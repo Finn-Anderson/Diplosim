@@ -5,7 +5,7 @@
 #include "Tile.generated.h"
 
 UENUM()
-enum Type
+enum EType
 {
 	Water	UMETA(DisplayName = "Water"),
 	Ground	UMETA(DisplayName = "Ground"),
@@ -24,7 +24,7 @@ public:
 		class UStaticMeshComponent* TileMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
-		TEnumAsByte<Type> Type;
+		TEnumAsByte<EType> Type;
 
 	UPROPERTY()
 		int32 Fertility;
@@ -38,4 +38,6 @@ public:
 	void SetFertility(int32 Mean);
 
 	int32 GetFertility();
+
+	TEnumAsByte<EType> GetType();
 };

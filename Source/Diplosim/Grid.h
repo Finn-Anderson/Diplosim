@@ -4,8 +4,6 @@
 #include "GameFramework/Actor.h"
 #include "Grid.generated.h"
 
-class ATile;
-
 UCLASS()
 class DIPLOSIM_API AGrid : public AActor
 {
@@ -15,13 +13,13 @@ public:
 	AGrid();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
-		ATile* Water;
+		TSubclassOf<class ATile> Water;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
-		ATile* Ground;
+		TSubclassOf<class ATile> Ground;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
-		ATile* Hill;
+		TSubclassOf<class ATile> Hill;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 size;

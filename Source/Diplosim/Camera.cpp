@@ -121,6 +121,4 @@ void ACamera::Scroll(float Value)
 	}
 
 	SpringArmComponent->TargetArmLength = FMath::FInterpTo(SpringArmComponent->TargetArmLength, TargetLength, GetWorld()->DeltaTimeSeconds, 10.0f);
-
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("%f"), SpringArmComponent->TargetArmLength));
 }

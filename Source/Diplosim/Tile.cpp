@@ -37,3 +37,8 @@ int32 ATile::GetFertility()
 {
 	return Fertility;
 }
+
+TEnumAsByte<EType> ATile::GetType()
+{
+	return Type;
+}
