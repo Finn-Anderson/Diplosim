@@ -2,47 +2,33 @@
 
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Kismet/GameplayStatics.h"
+
+#include "CameraMovementComponent.h"
 
 ACamera::ACamera()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	TargetLength = 1000.0f;
+	MovementComponent = CreateDefaultSubobject<UCameraMovementComponent>(TEXT("CameraMovementComponent"));
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	SpringArmComponent->SetupAttachment(RootComponent);
-	SpringArmComponent->TargetArmLength = TargetLength;
+	SpringArmComponent->TargetArmLength = MovementComponent->TargetLength;
 	SpringArmComponent->bUsePawnControlRotation = true;
 	SpringArmComponent->bEnableCameraLag = true;
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
-
-	CameraSpeed = 10.0f;
 }
 
 void ACamera::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	PController->SetControlRotation(FRotator(-45.0f, 0.0f, 0.0f));
-	PController->SetInputMode(FInputModeGameAndUI());
-	PController->bShowMouseCursor = true;
 }
 
 void ACamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-}
-
-void ACamera::SetBounds(FVector start, FVector end) {
-	MinXBounds = end.X;
-	MinYBounds = end.Y;
-
-	MaxXBounds = start.X;
-	MaxYBounds = start.Y;
 }
 
 void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -64,102 +50,35 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Turn(float Value)
 {
-	bool rmbHeld = PController->IsInputKeyDown(EKeys::RightMouseButton);
-	bool keyQ = PController->IsInputKeyDown(EKeys::Q);
-	bool keyE = PController->IsInputKeyDown(EKeys::E);
-
-	if (rmbHeld || keyQ || keyE)
-	{
-		AddControllerYawInput(Value / 6);
-	}
+	MovementComponent->Turn(Value);
 }
 
 void ACamera::LookUp(float Value) 
 {
-	bool keyHeld = PController->IsInputKeyDown(EKeys::RightMouseButton);
-
-	if (keyHeld)
-	{
-		AddControllerPitchInput(Value / 6);
-	}
+	MovementComponent->LookUp(Value);
 }
 
 void ACamera::MoveForward(float Value) 
 {
-	const FRotator rotation = Controller->GetControlRotation();
-	const FRotator yawRotation(0, rotation.Yaw, 0);
-
-	FVector direction = FRotationMatrix(yawRotation).GetScaledAxis(EAxis::X);
-
-	FVector loc = GetActorLocation();
-
-	loc += direction * Value * CameraSpeed;
-
-	if (loc.X > MaxXBounds || loc.X < MinXBounds) {
-		if (loc.X > MaxXBounds) {
-			loc.X = MaxXBounds;
-		}
-		else {
-			loc.X = MinXBounds;
-		}
-	}
-	else if (loc.Y > MaxYBounds || loc.Y < MinYBounds) {
-		if (loc.Y > MaxYBounds) {
-			loc.Y = MaxYBounds;
-		}
-		else {
-			loc.Y = MinYBounds;
-		}
-	}
-
-	SetActorLocation(loc);
+	MovementComponent->MoveForward(Value);
 }
 
 void ACamera::MoveRight(float Value)
 {
-	FVector direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
-
-	FVector loc = GetActorLocation();
-
-	loc += direction * Value * CameraSpeed;
-
-	if (loc.X > MaxXBounds || loc.X < MinXBounds) {
-		if (loc.X > MaxXBounds) {
-			loc.X = MaxXBounds;
-		}
-		else {
-			loc.X = MinXBounds;
-		}
-	}
-	else if (loc.Y > MaxYBounds || loc.Y < MinYBounds) {
-		if (loc.Y > MaxYBounds) {
-			loc.Y = MaxYBounds;
-		}
-		else {
-			loc.Y = MinYBounds;
-		}
-	}
-
-	SetActorLocation(loc);
+	MovementComponent->MoveRight(Value);
 }
 
 void ACamera::SpeedUp() 
 {
-	CameraSpeed *= 2;
+	MovementComponent->SpeedUp();
 }
 
 void ACamera::SlowDown() 
 {
-	CameraSpeed /= 2;
+	MovementComponent->SlowDown();
 }
 
 void ACamera::Scroll(float Value) 
 {
-	float target = 250.0f * Value;
-
-	if (target != 0.0f) {
-		TargetLength = FMath::Clamp(TargetLength + target, 0.0f, 2000.0f);
-	}
-
-	SpringArmComponent->TargetArmLength = FMath::FInterpTo(SpringArmComponent->TargetArmLength, TargetLength, GetWorld()->DeltaTimeSeconds, 10.0f);
+	MovementComponent->Scroll(Value);
 }

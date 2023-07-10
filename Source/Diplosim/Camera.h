@@ -15,32 +15,18 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USpringArmComponent* SpringArmComponent;
 
-	UPROPERTY()
-		class APlayerController* PController;
-
-	UPROPERTY()
-		float CameraSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")
+		class UCameraMovementComponent* MovementComponent;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
-
-
-public:
-	void SetBounds(FVector start, FVector end);
-
-	float MaxXBounds;
-
-	float MinXBounds;
-
-	float MaxYBounds;
-
-	float MinYBounds;
 
 public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -59,6 +45,4 @@ public:
 	void SlowDown();
 
 	void Scroll(float Value);
-
-	float TargetLength;
 };

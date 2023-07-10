@@ -5,12 +5,13 @@
 
 #include "Tile.h"
 #include "Camera.h"
+#include "CameraMovementComponent.h"
 
 AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	Size = 100;
+	Size = 120;
 }
 
 void AGrid::BeginPlay()
@@ -35,7 +36,7 @@ void AGrid::Render()
 
 	choices.Append(Arr, sizeof(Arr));
 
-	ATile* storage[100][100] = { };
+	ATile* storage[120][120] = { };
 
 	FActorSpawnParameters SpawnInfo;
 
@@ -49,8 +50,7 @@ void AGrid::Render()
 			int32 low = 0;
 			int32 high = 1000;
 
-
-			if (x < (Size - (Size - 5)) || y < (Size - (Size - 5)) || x > (Size - 6) || y > (Size - 6)) {
+			if (x < (Size - (Size - 20)) || y < (Size - (Size - 20)) || x > (Size - 21) || y > (Size - 21)) {
 				choice = Water;
 			}
 			else {
@@ -64,6 +64,9 @@ void AGrid::Render()
 					int32 fertility = 3;
 					int32 value = FMath::RandRange(-1, 1);
 
+					bool checkWater = false;
+					bool checkHill = false;
+
 					if (y > 0) {
 						yTile = storage[x][y - 1];
 					}
@@ -71,6 +74,7 @@ void AGrid::Render()
 					if (x > 0) {
 						xTile = storage[x - 1][y];
 					}
+
 					if (yTile != nullptr) {
 						if (xTile != nullptr) {
 							int32 yFertility = yTile->GetFertility();
@@ -78,21 +82,23 @@ void AGrid::Render()
 
 							fertility = (yFertility + xFertility) / 2;
 
-							if (xTile->GetType() == EType::Water || yTile->GetType() == EType::Water) {
-								high = 10;
-							}
-							else if (xTile->GetType() == EType::Hill || yTile->GetType() == EType::Hill) {
-								low = 990;
+							if (!(xTile->GetType() == EType::Water && yTile->GetType() == EType::Hill) || !(xTile->GetType() == EType::Hill && yTile->GetType() == EType::Water)) {
+								if (xTile->GetType() == EType::Water || yTile->GetType() == EType::Water) {
+									checkWater = true;
+								}
+								else if (xTile->GetType() == EType::Hill || yTile->GetType() == EType::Hill) {
+									checkHill = true;
+								}
 							}
 						}
 						else {
 							fertility = yTile->GetFertility();
 
 							if (yTile->GetType() == EType::Water) {
-								high = 10;
+								checkWater = true;
 							}
 							else if (yTile->GetType() == EType::Hill) {
-								low = 990;
+								checkHill = true;
 							}
 						}
 					}
@@ -100,10 +106,10 @@ void AGrid::Render()
 						fertility = xTile->GetFertility();
 
 						if (xTile->GetType() == EType::Water) {
-							high = 10;
+							checkWater = true;
 						}
 						else if (xTile->GetType() == EType::Hill) {
-							low = 990;
+							checkHill = true;
 						}
 					}
 
@@ -111,14 +117,29 @@ void AGrid::Render()
 
 					int32 choiceVal = FMath::RandRange(low, high);
 
-					if (choiceVal < 6) {
-						choiceVal = 0;
-					}
-					else if (choiceVal > 994) {
-						choiceVal = 2;
+					if (checkWater || checkHill) {
+						if (choiceVal < 500) {
+							if (checkWater) {
+								choiceVal = 0;
+							}
+							else {
+								choiceVal = 2;
+							}
+						}
+						else {
+							choiceVal = 1;
+						}
 					}
 					else {
-						choiceVal = 1;
+						if (choiceVal < 2) {
+							choiceVal = 0;
+						}
+						else if (choiceVal > 998) {
+							choiceVal = 2;
+						}
+						else {
+							choiceVal = 1;
+						}
 					}
 
 					choice = choices[choiceVal];
@@ -149,7 +170,7 @@ void AGrid::Render()
 
 				FVector c1 = tile->GetActorLocation();
 
-				Camera->SetBounds(c1, c2);
+				Camera->MovementComponent->SetBounds(c1, c2);
 			}
 		}
 	}
