@@ -30,6 +30,19 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
+
+public:
+	void SetBounds(FVector start, FVector end);
+
+	float MaxXBounds;
+
+	float MinXBounds;
+
+	float MaxYBounds;
+
+	float MinYBounds;
+
+public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// Camera Movement

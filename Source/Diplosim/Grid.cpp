@@ -1,19 +1,24 @@
 #include "Grid.h"
 
 #include "Math/UnrealMathUtility.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Tile.h"
+#include "Camera.h"
 
 AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	size = 100;
+	Size = 100;
 }
 
 void AGrid::BeginPlay()
 {
 	Super::BeginPlay();
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Camera = PController->GetPawn<ACamera>();
 
 	Render();
 }
@@ -34,86 +39,91 @@ void AGrid::Render()
 
 	FActorSpawnParameters SpawnInfo;
 
-	for (int32 y = 0; y < size; y++)
+	for (int32 y = 0; y < Size; y++)
 	{
-		for (int32 x = 0; x < size; x++)
+		for (int32 x = 0; x < Size; x++)
 		{
 			int32 mean = 3;
 			TSubclassOf<ATile> choice = Ground;
 
 			int32 low = 0;
-			int32 high = 20;
+			int32 high = 1000;
 
-			if (x == 0 && y == 0) {
-				mean = FMath::RandRange(0, 5);
+
+			if (x < (Size - (Size - 5)) || y < (Size - (Size - 5)) || x > (Size - 6) || y > (Size - 6)) {
+				choice = Water;
 			}
 			else {
-				ATile* yTile = nullptr;
-				ATile* xTile = nullptr;
-
-				int32 fertility = 3;
-				int32 value = FMath::RandRange(-1, 1);
-
-				if (y > 0) {
-					yTile = storage[x][y - 1];
+				if (x == 0 && y == 0) {
+					mean = FMath::RandRange(0, 5);
 				}
+				else {
+					ATile* yTile = nullptr;
+					ATile* xTile = nullptr;
 
-				if (x > 0) {
-					xTile = storage[x - 1][y];
-				}
+					int32 fertility = 3;
+					int32 value = FMath::RandRange(-1, 1);
 
-				if (yTile != nullptr) {
-					if (xTile != nullptr) {
-						int32 yFertility = yTile->GetFertility();
-						int32 xFertility = xTile->GetFertility();
+					if (y > 0) {
+						yTile = storage[x][y - 1];
+					}
 
-						fertility = (yFertility + xFertility) / 2;
+					if (x > 0) {
+						xTile = storage[x - 1][y];
+					}
+					if (yTile != nullptr) {
+						if (xTile != nullptr) {
+							int32 yFertility = yTile->GetFertility();
+							int32 xFertility = xTile->GetFertility();
 
-						if (xTile->GetType() == EType::Water && yTile->GetType() == EType::Water) {
-							high = 2;
+							fertility = (yFertility + xFertility) / 2;
+
+							if (xTile->GetType() == EType::Water || yTile->GetType() == EType::Water) {
+								high = 10;
+							}
+							else if (xTile->GetType() == EType::Hill || yTile->GetType() == EType::Hill) {
+								low = 990;
+							}
 						}
-						else if (xTile->GetType() == EType::Hill && yTile->GetType() == EType::Hill) {
-							low = 18;
+						else {
+							fertility = yTile->GetFertility();
+
+							if (yTile->GetType() == EType::Water) {
+								high = 10;
+							}
+							else if (yTile->GetType() == EType::Hill) {
+								low = 990;
+							}
 						}
 					}
 					else {
-						fertility = yTile->GetFertility();
+						fertility = xTile->GetFertility();
 
-						if (yTile->GetType() == EType::Water) {
-							high = 2;
+						if (xTile->GetType() == EType::Water) {
+							high = 10;
 						}
-						else if (yTile->GetType() == EType::Hill) {
-							low = 18;
+						else if (xTile->GetType() == EType::Hill) {
+							low = 990;
 						}
 					}
-				}
-				else {
-					fertility = xTile->GetFertility();
 
-					if (xTile->GetType() == EType::Water) {
-						high = 2;
+					mean = FMath::Clamp(fertility + value, 0, 5);
+
+					int32 choiceVal = FMath::RandRange(low, high);
+
+					if (choiceVal < 6) {
+						choiceVal = 0;
 					}
-					else if (xTile->GetType() == EType::Hill) {
-						low = 18;
+					else if (choiceVal > 994) {
+						choiceVal = 2;
 					}
+					else {
+						choiceVal = 1;
+					}
+
+					choice = choices[choiceVal];
 				}
-
-				mean = FMath::Clamp(fertility + value, 0, 5);
 			}
-
-			int32 choiceVal = FMath::RandRange(low, high);
-
-			if (choiceVal < 2) {
-				choiceVal = 0;
-			}
-			else if (choiceVal > 18) {
-				choiceVal = 2;
-			}
-			else {
-				choiceVal = 1;
-			}
-
-			choice = choices[choiceVal];
 
 			// Spawn Actor
 			ATile* tile = GetWorld()->SpawnActor<ATile>(choice, SpawnInfo);
@@ -123,13 +133,24 @@ void AGrid::Render()
 			tile->TileMesh->GetLocalBounds(min, max);
 
 			FVector center = min - max;
-			FVector loc = FVector(center.X * x - (center.X * (size / 2)), center.Y * y - (center.Y * (size / 2)), 0);
+			FVector loc = FVector(center.X * x - (center.X * (Size / 2)), center.Y * y - (center.Y * (Size / 2)), 0);
 
 			tile->SetActorLocation(loc);
 
 			tile->SetFertility(mean);
 
 			storage[x][y] = tile;
+
+			int32 boundsSize = (Size - 1);
+			if ((x == boundsSize) && (y == boundsSize)) {
+				FVector c2 = loc;
+				
+				tile = storage[0][0];
+
+				FVector c1 = tile->GetActorLocation();
+
+				Camera->SetBounds(c1, c2);
+			}
 		}
 	}
 }

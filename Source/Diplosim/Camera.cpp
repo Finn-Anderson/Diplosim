@@ -19,7 +19,7 @@ ACamera::ACamera()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
-	CameraSpeed = 4.0f;
+	CameraSpeed = 10.0f;
 }
 
 void ACamera::BeginPlay()
@@ -35,7 +35,14 @@ void ACamera::BeginPlay()
 void ACamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
 
+void ACamera::SetBounds(FVector start, FVector end) {
+	MinXBounds = end.X;
+	MinYBounds = end.Y;
+
+	MaxXBounds = start.X;
+	MaxYBounds = start.Y;
 }
 
 void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -88,6 +95,23 @@ void ACamera::MoveForward(float Value)
 
 	loc += direction * Value * CameraSpeed;
 
+	if (loc.X > MaxXBounds || loc.X < MinXBounds) {
+		if (loc.X > MaxXBounds) {
+			loc.X = MaxXBounds;
+		}
+		else {
+			loc.X = MinXBounds;
+		}
+	}
+	else if (loc.Y > MaxYBounds || loc.Y < MinYBounds) {
+		if (loc.Y > MaxYBounds) {
+			loc.Y = MaxYBounds;
+		}
+		else {
+			loc.Y = MinYBounds;
+		}
+	}
+
 	SetActorLocation(loc);
 }
 
@@ -98,6 +122,23 @@ void ACamera::MoveRight(float Value)
 	FVector loc = GetActorLocation();
 
 	loc += direction * Value * CameraSpeed;
+
+	if (loc.X > MaxXBounds || loc.X < MinXBounds) {
+		if (loc.X > MaxXBounds) {
+			loc.X = MaxXBounds;
+		}
+		else {
+			loc.X = MinXBounds;
+		}
+	}
+	else if (loc.Y > MaxYBounds || loc.Y < MinYBounds) {
+		if (loc.Y > MaxYBounds) {
+			loc.Y = MaxYBounds;
+		}
+		else {
+			loc.Y = MinYBounds;
+		}
+	}
 
 	SetActorLocation(loc);
 }

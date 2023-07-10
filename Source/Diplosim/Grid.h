@@ -22,7 +22,10 @@ public:
 		TSubclassOf<class ATile> Hill;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
-		int32 size;
+		int32 Size;
+
+	UPROPERTY()
+		class ACamera* Camera;
 
 protected:
 	virtual void BeginPlay() override;
