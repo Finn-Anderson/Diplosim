@@ -1,14 +1,14 @@
 #include "Tile.h"
 
 #include "Math/UnrealMathUtility.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 ATile::ATile()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
-	TileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AIMesh"));
-	TileMesh->SetupAttachment(RootComponent);
-	TileMesh->CastShadow = true;
+	ISMComponent = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("ISMC"));
+	SetRootComponent(ISMComponent);
 
 	Fertility = 0;
 	Type = Water;
@@ -17,13 +17,8 @@ ATile::ATile()
 void ATile::BeginPlay()
 {
 	Super::BeginPlay();
-	
-}
 
-void ATile::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
+	ISMComponent->AddInstance(FTransform::Identity);
 }
 
 void ATile::SetFertility(int32 Mean) 

@@ -3,6 +3,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
+#include "Grid.h"
 #include "CameraMovementComponent.h"
 
 ACamera::ACamera()
@@ -46,6 +47,14 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Speed", IE_Released, this, &ACamera::SlowDown);
 
 	PlayerInputComponent->BindAxis("Scroll", this, &ACamera::Scroll);
+
+	PlayerInputComponent->BindAction("Render", IE_Pressed, this, &ACamera::NewMap);
+}
+
+void ACamera::NewMap()
+{
+	Grid->Clear();
+	Grid->Render();
 }
 
 void ACamera::Turn(float Value)

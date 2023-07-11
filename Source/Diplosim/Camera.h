@@ -25,11 +25,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")
 		class UCameraMovementComponent* MovementComponent;
 
+	class AGrid* Grid;
+
 public:	
 	virtual void Tick(float DeltaTime) override;
 
 public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	// Commands
+	void NewMap();
 
 	// Camera Movement
 	void Turn(float Value);

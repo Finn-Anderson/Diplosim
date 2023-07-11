@@ -20,8 +20,15 @@ class DIPLOSIM_API ATile : public AActor
 public:	
 	ATile();
 
+protected:
+	virtual void BeginPlay() override;
+
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UStaticMeshComponent* TileMesh;
+		class UStaticMesh* TileMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UInstancedStaticMeshComponent* ISMComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TEnumAsByte<EType> Type;
@@ -29,12 +36,7 @@ public:
 	UPROPERTY()
 		int32 Fertility;
 
-protected:
-	virtual void BeginPlay() override;
-
 public:	
-	virtual void Tick(float DeltaTime) override;
-
 	void SetFertility(int32 Mean);
 
 	int32 GetFertility();

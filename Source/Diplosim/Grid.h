@@ -27,11 +27,13 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
+	ATile* Storage[200][200];
+
 protected:
 	virtual void BeginPlay() override;
 
-public:	
-	virtual void Tick(float DeltaTime) override;
-
+public:
 	void Render();
+
+	void Clear();
 };

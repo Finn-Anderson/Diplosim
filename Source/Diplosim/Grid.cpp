@@ -2,6 +2,7 @@
 
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 #include "Tile.h"
 #include "Camera.h"
@@ -9,9 +10,11 @@
 
 AGrid::AGrid()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
-	Size = 120;
+	Size = 150;
+
+	Storage[150][150] = { };
 }
 
 void AGrid::BeginPlay()
@@ -21,12 +24,9 @@ void AGrid::BeginPlay()
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
 
-	Render();
-}
+	Camera->Grid = this;
 
-void AGrid::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
+	Render();
 }
 
 void AGrid::Render()
@@ -35,8 +35,6 @@ void AGrid::Render()
 	TSubclassOf<ATile> Arr[] = { Water, Ground, Hill };
 
 	choices.Append(Arr, sizeof(Arr));
-
-	ATile* storage[120][120] = { };
 
 	FActorSpawnParameters SpawnInfo;
 
@@ -54,71 +52,96 @@ void AGrid::Render()
 				choice = Water;
 			}
 			else {
-				if (x == 0 && y == 0) {
-					mean = FMath::RandRange(0, 5);
+				ATile* yTile = nullptr;
+				ATile* xTile = nullptr;
+
+				int32 fertility = 3;
+				int32 value = FMath::RandRange(-1, 1);
+
+				bool checkWater = false;
+				bool checkHill = false;
+
+				bool mandoHill = false;
+				bool mandoWater = false;
+
+				if (y > 0) {
+					yTile = Storage[x][y - 1];
 				}
-				else {
-					ATile* yTile = nullptr;
-					ATile* xTile = nullptr;
 
-					int32 fertility = 3;
-					int32 value = FMath::RandRange(-1, 1);
+				if (x > 0) {
+					xTile = Storage[x - 1][y];
+				}
 
-					bool checkWater = false;
-					bool checkHill = false;
+				if (yTile != nullptr) {
+					if (xTile != nullptr) {
+						int32 yFertility = yTile->GetFertility();
+						int32 xFertility = xTile->GetFertility();
 
-					if (y > 0) {
-						yTile = storage[x][y - 1];
-					}
+						fertility = (yFertility + xFertility) / 2;
 
-					if (x > 0) {
-						xTile = storage[x - 1][y];
-					}
-
-					if (yTile != nullptr) {
-						if (xTile != nullptr) {
-							int32 yFertility = yTile->GetFertility();
-							int32 xFertility = xTile->GetFertility();
-
-							fertility = (yFertility + xFertility) / 2;
-
-							if (!(xTile->GetType() == EType::Water && yTile->GetType() == EType::Hill) || !(xTile->GetType() == EType::Hill && yTile->GetType() == EType::Water)) {
-								if (xTile->GetType() == EType::Water || yTile->GetType() == EType::Water) {
+						if (!(xTile->GetType() == EType::Water && yTile->GetType() == EType::Hill) || !(xTile->GetType() == EType::Hill && yTile->GetType() == EType::Water)) {
+							if (xTile->GetType() == EType::Water || yTile->GetType() == EType::Water) {
+								if (xTile->GetType() == EType::Water && yTile->GetType() == EType::Water) {
+									mandoWater = true;
+								}
+								else {
 									checkWater = true;
 								}
-								else if (xTile->GetType() == EType::Hill || yTile->GetType() == EType::Hill) {
+							}
+							else if (xTile->GetType() == EType::Hill || yTile->GetType() == EType::Hill) {
+								if (xTile->GetType() == EType::Hill && yTile->GetType() == EType::Hill) {
+									mandoHill = true;
+								}
+								else {
 									checkHill = true;
 								}
 							}
 						}
-						else {
-							fertility = yTile->GetFertility();
-
-							if (yTile->GetType() == EType::Water) {
-								checkWater = true;
-							}
-							else if (yTile->GetType() == EType::Hill) {
-								checkHill = true;
-							}
-						}
 					}
 					else {
-						fertility = xTile->GetFertility();
+						fertility = yTile->GetFertility();
 
-						if (xTile->GetType() == EType::Water) {
+						if (yTile->GetType() == EType::Water) {
 							checkWater = true;
 						}
-						else if (xTile->GetType() == EType::Hill) {
+						else if (yTile->GetType() == EType::Hill) {
 							checkHill = true;
 						}
 					}
+				}
+				else {
+					fertility = xTile->GetFertility();
 
-					mean = FMath::Clamp(fertility + value, 0, 5);
+					if (xTile->GetType() == EType::Water) {
+						checkWater = true;
+					}
+					else if (xTile->GetType() == EType::Hill) {
+						checkHill = true;
+					}
+				}
 
-					int32 choiceVal = FMath::RandRange(low, high);
+				mean = FMath::Clamp(fertility + value, 0, 5);
 
+				int32 choiceVal = FMath::RandRange(low, high);
+
+				if (mandoHill || mandoWater) {
+					if (mandoWater) {
+						if (choiceVal < 990) {
+							choiceVal = 0;
+						}
+						else {
+							choiceVal = 1;
+						}
+					}
+					else {
+						choiceVal = 2;
+					}
+				}
+				else {
 					if (checkWater || checkHill) {
-						if (choiceVal < 500) {
+						int32 pass = 500;
+
+						if (choiceVal < pass) {
 							if (checkWater) {
 								choiceVal = 0;
 							}
@@ -141,9 +164,9 @@ void AGrid::Render()
 							choiceVal = 1;
 						}
 					}
-
-					choice = choices[choiceVal];
 				}
+
+				choice = choices[choiceVal];
 			}
 
 			// Spawn Actor
@@ -151,7 +174,7 @@ void AGrid::Render()
 
 			FVector min;
 			FVector max;
-			tile->TileMesh->GetLocalBounds(min, max);
+			tile->ISMComponent->GetLocalBounds(min, max);
 
 			FVector center = min - max;
 			FVector loc = FVector(center.X * x - (center.X * (Size / 2)), center.Y * y - (center.Y * (Size / 2)), 0);
@@ -160,18 +183,33 @@ void AGrid::Render()
 
 			tile->SetFertility(mean);
 
-			storage[x][y] = tile;
+			tile->ISMComponent->SetMobility(EComponentMobility::Static);
+
+			Storage[x][y] = tile;
 
 			int32 boundsSize = (Size - 1);
 			if ((x == boundsSize) && (y == boundsSize)) {
 				FVector c2 = loc;
 				
-				tile = storage[0][0];
+				tile = Storage[0][0];
 
 				FVector c1 = tile->GetActorLocation();
 
 				Camera->MovementComponent->SetBounds(c1, c2);
 			}
+		}
+	}
+}
+
+void AGrid::Clear()
+{
+	for (int32 y = 0; y < Size; y++)
+	{
+		for (int32 x = 0; x < Size; x++)
+		{
+			ATile* tile = Storage[x][y];
+
+			tile->Destroy();
 		}
 	}
 }
