@@ -25,10 +25,7 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UStaticMesh* TileMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UInstancedStaticMeshComponent* ISMComponent;
+		class UStaticMeshComponent* TileMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TEnumAsByte<EType> Type;

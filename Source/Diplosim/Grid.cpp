@@ -174,7 +174,7 @@ void AGrid::Render()
 
 			FVector min;
 			FVector max;
-			tile->ISMComponent->GetLocalBounds(min, max);
+			tile->TileMesh->GetLocalBounds(min, max);
 
 			FVector center = min - max;
 			FVector loc = FVector(center.X * x - (center.X * (Size / 2)), center.Y * y - (center.Y * (Size / 2)), 0);
@@ -183,7 +183,7 @@ void AGrid::Render()
 
 			tile->SetFertility(mean);
 
-			tile->ISMComponent->SetMobility(EComponentMobility::Static);
+			tile->TileMesh->SetMobility(EComponentMobility::Static);
 
 			Storage[x][y] = tile;
 

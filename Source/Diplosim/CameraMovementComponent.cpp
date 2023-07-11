@@ -80,7 +80,8 @@ void UCameraMovementComponent::MoveForward(float Value)
 			loc.X = MinXBounds;
 		}
 	}
-	else if (loc.Y > MaxYBounds || loc.Y < MinYBounds) {
+
+	if (loc.Y > MaxYBounds || loc.Y < MinYBounds) {
 		if (loc.Y > MaxYBounds) {
 			loc.Y = MaxYBounds;
 		}
@@ -108,7 +109,8 @@ void UCameraMovementComponent::MoveRight(float Value)
 			loc.X = MinXBounds;
 		}
 	}
-	else if (loc.Y > MaxYBounds || loc.Y < MinYBounds) {
+
+	if (loc.Y > MaxYBounds || loc.Y < MinYBounds) {
 		if (loc.Y > MaxYBounds) {
 			loc.Y = MaxYBounds;
 		}
