@@ -12,6 +12,11 @@ AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	WaterMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WaterMesh"));
+	WaterMesh->SetRelativeLocation(FVector(0.0f, 0.0f, 60.0f));
+	WaterMesh->bCastDynamicShadow = true;
+	WaterMesh->CastShadow = true;
+
 	Size = 150;
 
 	Storage[150][150] = { };
@@ -31,6 +36,8 @@ void AGrid::BeginPlay()
 
 void AGrid::Render()
 {
+	WaterMesh->SetWorldScale3D(FVector(Size, Size, Size));
+
 	TArray<TSubclassOf<ATile>> choices;
 	TSubclassOf<ATile> Arr[] = { Water, Ground, Hill };
 
@@ -189,11 +196,11 @@ void AGrid::Render()
 
 			int32 boundsSize = (Size - 1);
 			if ((x == boundsSize) && (y == boundsSize)) {
-				FVector c2 = loc;
-				
-				tile = Storage[0][0];
+				ATile* tile1 = Storage[10][10];
+				FVector c1 = tile1->GetActorLocation();
 
-				FVector c1 = tile->GetActorLocation();
+				ATile* tile2 = Storage[139][139];
+				FVector c2 = tile2->GetActorLocation();
 
 				Camera->MovementComponent->SetBounds(c1, c2);
 			}

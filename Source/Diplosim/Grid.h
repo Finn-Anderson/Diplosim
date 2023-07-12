@@ -12,6 +12,9 @@ class DIPLOSIM_API AGrid : public AActor
 public:	
 	AGrid();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UStaticMeshComponent* WaterMesh;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TSubclassOf<class ATile> Water;
 
