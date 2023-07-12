@@ -22,6 +22,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USpringArmComponent* SpringArmComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		class UBuildComponent* BuildComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")
 		class UCameraMovementComponent* MovementComponent;
 
@@ -34,7 +37,13 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// Commands
+	void Primary();
+
 	void NewMap();
+
+	void GridStatus();
+
+	void BuildStatus();
 
 	// Camera Movement
 	void Turn(float Value);

@@ -4,6 +4,7 @@
 #include "GameFramework/SpringArmComponent.h"
 
 #include "Grid.h"
+#include "BuildComponent.h"
 #include "CameraMovementComponent.h"
 
 ACamera::ACamera()
@@ -20,6 +21,8 @@ ACamera::ACamera()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
+
+	BuildComponent = CreateDefaultSubobject<UBuildComponent>(TEXT("BuildComponent"));
 }
 
 void ACamera::BeginPlay()
@@ -48,13 +51,36 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAxis("Scroll", this, &ACamera::Scroll);
 
+	PlayerInputComponent->BindAction("Primary", IE_Pressed, this, &ACamera::Primary);
+
 	PlayerInputComponent->BindAction("Render", IE_Pressed, this, &ACamera::NewMap);
+
+	PlayerInputComponent->BindAction("Grid", IE_Pressed, this, &ACamera::GridStatus);
+
+	PlayerInputComponent->BindAction("Build", IE_Pressed, this, &ACamera::BuildStatus);
+}
+
+void ACamera::Primary()
+{
+	if (BuildComponent->IsComponentTickEnabled()) {
+		BuildComponent->Place();
+	}
 }
 
 void ACamera::NewMap()
 {
 	Grid->Clear();
 	Grid->Render();
+}
+
+void ACamera::GridStatus() 
+{
+	BuildComponent->SetGridStatus();
+}
+
+void ACamera::BuildStatus()
+{
+	BuildComponent->Build();
 }
 
 void ACamera::Turn(float Value)
