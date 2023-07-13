@@ -23,11 +23,17 @@ ACamera::ACamera()
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
 	BuildComponent = CreateDefaultSubobject<UBuildComponent>(TEXT("BuildComponent"));
+
+	start = true;
 }
 
 void ACamera::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (start) {
+		BuildComponent->Build();
+	}
 }
 
 void ACamera::Tick(float DeltaTime)
@@ -81,7 +87,9 @@ void ACamera::GridStatus()
 
 void ACamera::BuildStatus()
 {
-	BuildComponent->Build();
+	if (!start) {
+		BuildComponent->Build();
+	}
 }
 
 void ACamera::Rotate()

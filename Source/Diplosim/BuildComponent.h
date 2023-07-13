@@ -28,6 +28,11 @@ public:
 
 public:
 	// Building
+	UPROPERTY(EditAnywhere)
+		class UMaterial* BlueprintMaterial;
+
+	UMaterialInstanceDynamic* OGMaterial;
+
 	void Build();
 
 	void RotateBuilding();

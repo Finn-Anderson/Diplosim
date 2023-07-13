@@ -30,6 +30,8 @@ public:
 
 	class AGrid* Grid;
 
+	bool start;
+
 public:	
 	virtual void Tick(float DeltaTime) override;
 

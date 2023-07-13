@@ -13,6 +13,8 @@ UBuildComponent::UBuildComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
+	BlueprintMaterial = CreateDefaultSubobject<UMaterial>(TEXT("BlueprintMaterial"));
+
 	GridStatus = true;
 	Building = nullptr;
 
@@ -38,35 +40,40 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
 	{
-		ATile* tile = Cast<ATile>(hit.GetActor());
+		if (hit.GetActor()->IsA<ATile>()) {
+			ATile* tile = Cast<ATile>(hit.GetActor());
 
-		if (tile->GetType() != EType::Water) {
-			FVector location;
+			if (tile->GetType() != EType::Water) {
+				FVector location;
 
-			if (GridStatus) {
-				location = tile->GetActorLocation();
+				if (GridStatus) {
+					location = tile->GetActorLocation();
 
-				FVector origin;
-				FVector boxExtent;
-				tile->GetActorBounds(false, origin, boxExtent);
+					FVector origin;
+					FVector boxExtent;
+					tile->GetActorBounds(false, origin, boxExtent);
 
-				location.Z += boxExtent.Z + origin.Z;
+					location.Z += boxExtent.Z + origin.Z;
+				}
+				else {
+					location = hit.Location;
+				}
+
+				if (Building == nullptr) {
+					Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation);
+
+					OGMaterial = UMaterialInstanceDynamic::Create(Building->BuildingMesh->GetMaterial(0), NULL);
+					Building->BuildingMesh->SetMaterial(0, BlueprintMaterial);
+				}
+				else {
+					Building->SetActorLocation(location);
+				}
 			}
-			else {
-				location = hit.Location;
-			}
+			else if (Building != nullptr) {
+				Building->Destroy();
 
-			if (Building == nullptr) {
-				Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation);
+				Building = nullptr;
 			}
-			else {
-				Building->SetActorLocation(location);
-			}
-
-			Building->SetActorHiddenInGame(false);
-		}
-		else {
-			Building->SetActorHiddenInGame(true);
 		}
 	}
 }
@@ -81,7 +88,9 @@ void UBuildComponent::Build()
 	SetComponentTickEnabled(!IsComponentTickEnabled());
 
 	if (Building != nullptr) {
-		Building->SetActorHiddenInGame(IsComponentTickEnabled());
+		Building->Destroy();
+
+		Building = nullptr;
 	}
 }
 
@@ -124,8 +133,16 @@ void UBuildComponent::RotateBuilding()
 void UBuildComponent::Place()
 {
 	if (Building != nullptr && !Building->IsHidden() && !Building->IsBlocked()) {
-		Build();
+		Building->BuildingMesh->SetMaterial(0, OGMaterial);
+
+		Building->Blueprint = false;
 
 		Building = nullptr;
+
+		Build();
+
+		if (Camera->start) {
+			Camera->start = false;
+		}
 	}
 }

@@ -12,6 +12,14 @@ enum ECategory
 	Industry	UMETA(DisplayName = "Industry"),
 };
 
+UENUM()
+enum EEconomy
+{
+	Poor	UMETA(DisplayName = "Poor"),
+	Modest	UMETA(DisplayName = "Modest"),
+	Rich	UMETA(DisplayName = "Rich"),
+};
+
 UCLASS()
 class DIPLOSIM_API ABuilding : public AActor
 {
@@ -30,6 +38,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TEnumAsByte<ECategory> Category;
 
+	bool Blueprint;
+
+
 	// Building cost
 	int32 Wood;
 
@@ -47,5 +58,26 @@ public:
 
 	bool IsBlocked();
 
-	bool Blocked;
+	TArray<class AActor*> Blocked;
+
+
+	// Remove
+	void DestroyBuilding();
+
+	
+	// Building capacity
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
+		TEnumAsByte<EEconomy> EcoStatus;
+
+	void AddCitizen(class ACitizen* citizen);
+
+	void RemoveCitizen(class ACitizen* citizen);
+
+	int32 Capacity;
+
+	TArray<class ACitizen*> Occupied;
+
+	int32 GetCapacity();
+
+	TArray<class ACitizen*> GetOccupied();
 };
