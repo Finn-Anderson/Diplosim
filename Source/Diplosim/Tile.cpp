@@ -11,6 +11,8 @@ ATile::ATile()
 	TileMesh->bCastDynamicShadow = true;
 	TileMesh->CastShadow = true;
 
+	TileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+
 	RootComponent = TileMesh;
 
 	Fertility = 0;

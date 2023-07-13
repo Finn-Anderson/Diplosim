@@ -37,13 +37,20 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// Commands
-	void Primary();
+	void Action();
 
+
+	// Map
 	void NewMap();
 
 	void GridStatus();
 
+
+	// Building
 	void BuildStatus();
+
+	void Rotate();
+
 
 	// Camera Movement
 	void Turn(float Value);

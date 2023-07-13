@@ -30,10 +30,15 @@ public:
 	// Building
 	void Build();
 
+	void RotateBuilding();
+
 	void Place();
 
-	AActor* Actor;
+	FRotator Rotation;
+
+	UPROPERTY()
+		class ABuilding* Building;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
-		TSubclassOf<class ABuilding> Building;
+		TSubclassOf<class ABuilding> BuildingClass;
 };

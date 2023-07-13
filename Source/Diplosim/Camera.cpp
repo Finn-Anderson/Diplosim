@@ -51,16 +51,17 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAxis("Scroll", this, &ACamera::Scroll);
 
-	PlayerInputComponent->BindAction("Primary", IE_Pressed, this, &ACamera::Primary);
+	PlayerInputComponent->BindAction("Action", IE_Pressed, this, &ACamera::Action);
 
 	PlayerInputComponent->BindAction("Render", IE_Pressed, this, &ACamera::NewMap);
 
 	PlayerInputComponent->BindAction("Grid", IE_Pressed, this, &ACamera::GridStatus);
 
 	PlayerInputComponent->BindAction("Build", IE_Pressed, this, &ACamera::BuildStatus);
+	PlayerInputComponent->BindAction("Rotate", IE_Pressed, this, &ACamera::Rotate);
 }
 
-void ACamera::Primary()
+void ACamera::Action()
 {
 	if (BuildComponent->IsComponentTickEnabled()) {
 		BuildComponent->Place();
@@ -81,6 +82,11 @@ void ACamera::GridStatus()
 void ACamera::BuildStatus()
 {
 	BuildComponent->Build();
+}
+
+void ACamera::Rotate()
+{
+	BuildComponent->RotateBuilding();
 }
 
 void ACamera::Turn(float Value)
