@@ -3,11 +3,10 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
-
 #include "AIController.h"
+
 #include "Resource.h"
 #include "Building.h"
-#include "ExternalProduction.h"
 
 ACitizen::ACitizen()
 {
@@ -16,11 +15,9 @@ ACitizen::ACitizen()
 	House = nullptr;
 	Employment = nullptr;
 
-	Carrying = nullptr;
+	Carrying = 0;
 
 	Energy = 100;
-
-	Happiness = 100;
 }
 
 void ACitizen::BeginPlay()
@@ -41,20 +38,40 @@ void ACitizen::LookForHouse()
 		TArray<AActor*> b;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), b);
 
+		ABuilding* e = Cast<ABuilding>(Employment);
+
 		for (int i = 0; i < b.Num(); i++) {
 			ABuilding* building = Cast<ABuilding>(b[i]);
 
 			if (building->GetCapacity() != building->GetOccupied().Num() && building->Category == ECategory::House) {
-				if (House == nullptr) {
-					House = building;
+				bool ecoCheck = false;
+
+				if (e->EcoStatus == EEconomy::Modest) {
+					if (building->EcoStatus != EEconomy::Rich) {
+						ecoCheck = true;
+					}
+				}
+				else if (e->EcoStatus == EEconomy::Poor) {
+					if (building->EcoStatus == EEconomy::Poor) {
+						ecoCheck = true;
+					}
 				}
 				else {
-					float dH = (House->GetActorLocation() - Employment->GetActorLocation()).Length();
+					ecoCheck = true;
+				}
 
-					float dB = (building->GetActorLocation() - Employment->GetActorLocation()).Length();
-
-					if (dH > dB) {
+				if (ecoCheck) {
+					if (House == nullptr) {
 						House = building;
+					}
+					else {
+						float dH = (House->GetActorLocation() - Employment->GetActorLocation()).Length();
+
+						float dB = (building->GetActorLocation() - Employment->GetActorLocation()).Length();
+
+						if (dH > dB) {
+							House = building;
+						}
 					}
 				}
 			}
@@ -75,23 +92,13 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 			if (Energy == 0 && Goal == House) {
 				GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::GainEnergy, 0.6f, true);
 			}
-			else if (OtherActor == Employment && !e->InternalProd) {
-				AExternalProduction* ex = Cast<AExternalProduction>(Employment);
-
-				ex->StoreResource(Carrying);
-
-				Carrying = nullptr;
-			}
 		}
 		
 		if (OtherActor->GetClass() == ResourceActor) {
-			if (Carrying == nullptr) {
-				Carrying = Cast<AResource>(OtherActor);
+			AResource* r = Cast<AResource>(OtherActor);
 
-				MoveTo(Employment);
-
-				Goal = Employment;
-			}
+			FTimerHandle harvestTimer;
+			GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r), 5.0f, false);
 		}
 	}
 }
@@ -103,28 +110,62 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 	}
 
 	if (OtherActor == House) {
-		GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 30.0f, true);
+		GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
 	}
 }
 
 void ACitizen::LoseEnergy()
 {
-	Energy = FMath::Clamp(Energy - 1, 0, 100);
+	Energy = FMath::Clamp(Energy - 1, -100, 100);
 
-	if (Energy == 0) {
-		MoveTo(House);
+	if (Energy <= 0) {
+		if (House != nullptr) {
+			MoveTo(House);
 
-		Goal = House;
+			Goal = House;
+		}
+	}
+
+	if (Energy == -100) {
+		if (Employment != nullptr) {
+			ABuilding* e = Cast<ABuilding>(Employment);
+
+			e->RemoveCitizen(this);
+		}
+
+		Destroy();
 	}
 }
 
 void ACitizen::GainEnergy()
 {
-	Energy = FMath::Clamp(Energy + 1, 0, 100);
+	int32 maxE;
+
+	ABuilding* h = Cast<ABuilding>(House);
+	if (h->EcoStatus == EEconomy::Modest) {
+		maxE = 50;
+	}
+	else if (h->EcoStatus == EEconomy::Poor) {
+		maxE = 75;
+	}
+	else {
+		maxE = 100;
+	}
+
+	Energy = FMath::Clamp(Energy + 1, -100, 100);
 
 	if (Energy == 100) {
 		MoveTo(Employment);
 
 		Goal = Employment;
 	}
+}
+
+void ACitizen::Carry(AResource* Resource)
+{
+	Carrying = Resource->GetYield();
+
+	MoveTo(Employment);
+
+	Goal = Employment;
 }

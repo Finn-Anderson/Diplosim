@@ -58,8 +58,6 @@ public:
 
 	virtual void Production(class ACitizen* Citizen);
 
-	bool InternalProd;
-
 	FTimerHandle ProdTimer;
 
 
@@ -69,6 +67,10 @@ public:
 	int32 Stone;
 
 	int32 Money;
+
+	int32 Upkeep;
+
+	void UpkeepCost();
 
 public:
 	// Building prevent overlaps

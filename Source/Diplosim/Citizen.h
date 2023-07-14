@@ -33,10 +33,6 @@ public:
 	AActor* Goal;
 
 public:
-	// Happiness
-	int32 Happiness;
-
-public:
 	// Resources
 	TSubclassOf<class AResource> ResourceActor;
 
@@ -62,5 +58,7 @@ public:
 
 
 	// Resources
-	AResource* Carrying; // A Resource has types, which will go into a resource manager component to tally up. GMBase will deal with taxes.
+	int32 Carrying; 
+
+	void Carry(class AResource* Resource);
 };

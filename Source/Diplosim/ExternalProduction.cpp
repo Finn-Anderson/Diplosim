@@ -14,21 +14,18 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	AResource* resource = Cast<AResource>(foundResources[0]);
 
 	for (int i = 1; i < foundResources.Num(); i++) {
-		float dR = (resource->GetActorLocation() - GetActorLocation()).Length();
+		if (!resource->IsHidden()) {
+			float dR = (resource->GetActorLocation() - GetActorLocation()).Length();
 
-		float dF = (foundResources[i]->GetActorLocation() - GetActorLocation()).Length();
+			float dF = (foundResources[i]->GetActorLocation() - GetActorLocation()).Length();
 
-		if (dR > dF) {
-			resource = Cast<AResource>(foundResources[i]);
+			if (dR > dF) {
+				resource = Cast<AResource>(foundResources[i]);
+			}
 		}
 	}
 
 	Citizen->MoveTo(resource);
 
 	Citizen->Goal = resource;
-}
-
-void AExternalProduction::StoreResource(AResource* Resource)
-{
-	Storage += Resource->GetYield();
 }

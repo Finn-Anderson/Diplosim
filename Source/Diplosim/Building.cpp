@@ -4,6 +4,7 @@
 
 #include "Citizen.h"
 #include "Tile.h"
+#include "Resource.h"
 
 ABuilding::ABuilding()
 {
@@ -21,6 +22,8 @@ ABuilding::ABuilding()
 	Stone = 0;
 	Money = 0;
 
+	Upkeep = 0;
+
 	Storage = 0;
 	StorageCap = 1000;
 
@@ -28,10 +31,10 @@ ABuilding::ABuilding()
 
 	Blueprint = true;
 
-	InternalProd = true;
-
 	AtWork = 0;
 	TimeLength = 60.0f;
+
+	ActorToGetResource = nullptr;
 }
 
 void ABuilding::BeginPlay()
@@ -39,9 +42,15 @@ void ABuilding::BeginPlay()
 	Super::BeginPlay();
 
 	GetWorldTimerManager().SetTimer(FindTimer, this, &ABuilding::FindCitizens, 30.0f, true, 2.0f);
+	GetWorldTimerManager().SetTimer(FindTimer, this, &ABuilding::UpkeepCost, 300.0f, true);
 
 	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
 	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
+}
+
+void ABuilding::UpkeepCost()
+{
+	// Take money from treasury
 }
 
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -60,8 +69,19 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 		AtWork += 1;
 
-		if (AtWork == 1) {
-			GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &ABuilding::Production, c), (TimeLength / AtWork), true);
+		if (ActorToGetResource == nullptr) {
+			if (AtWork == 1) {
+				GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &ABuilding::Production, c), (TimeLength / AtWork), true);
+			}
+		}
+		else {
+			if (c->Carrying > 0) {
+				Storage += c->Carrying;
+
+				c->Carrying = 0;
+			}
+
+			Production(c);
 		}
 	}
 }

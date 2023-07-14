@@ -11,6 +11,4 @@ class DIPLOSIM_API AExternalProduction : public ABuilding
 
 public:
 	virtual void Production(class ACitizen* Citizen) override;
-
-	void StoreResource(AResource* Resource);
 };

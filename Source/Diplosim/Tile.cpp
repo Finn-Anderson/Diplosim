@@ -16,6 +16,7 @@ ATile::ATile()
 	RootComponent = TileMesh;
 
 	Fertility = 0;
+	Trees = 0;
 	Type = Water;
 }
 

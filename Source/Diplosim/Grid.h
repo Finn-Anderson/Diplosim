@@ -15,6 +15,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* WaterMesh;
 
+public:
+	// Tile Classes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TSubclassOf<class ATile> Water;
 
@@ -24,19 +26,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TSubclassOf<class ATile> Hill;
 
+public:
+	// Resource Classes
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
+		TSubclassOf<class AResource> Tree;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
+		TSubclassOf<class AResource> Rock;
+
+public:
+	// Dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Size;
 
 	UPROPERTY()
 		class ACamera* Camera;
 
-	ATile* Storage[200][200];
+	AActor* Storage[200][200];
 
 protected:
 	virtual void BeginPlay() override;
 
 public:
 	void Render();
+
+	void GenerateTile(TSubclassOf<class ATile> Choice, int32 Mean, int32 x, int32 y);
+
+	void GenerateResources();
 
 	void Clear();
 };

@@ -33,6 +33,8 @@ public:
 	UPROPERTY()
 		int32 Fertility;
 
+	int32 Trees;
+
 public:	
 	void SetFertility(int32 Mean);
 

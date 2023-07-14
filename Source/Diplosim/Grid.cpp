@@ -5,6 +5,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 
 #include "Tile.h"
+#include "Resource.h"
 #include "Camera.h"
 #include "CameraMovementComponent.h"
 
@@ -43,8 +44,6 @@ void AGrid::Render()
 
 	choices.Append(Arr, sizeof(Arr));
 
-	FActorSpawnParameters SpawnInfo;
-
 	for (int32 y = 0; y < Size; y++)
 	{
 		for (int32 x = 0; x < Size; x++)
@@ -72,11 +71,11 @@ void AGrid::Render()
 				bool mandoWater = false;
 
 				if (y > 0) {
-					yTile = Storage[x][y - 1];
+					yTile = Cast<ATile>(Storage[x][y - 1]);
 				}
 
 				if (x > 0) {
-					xTile = Storage[x - 1][y];
+					xTile = Cast<ATile>(Storage[x - 1][y]);
 				}
 
 				if (yTile != nullptr) {
@@ -177,32 +176,120 @@ void AGrid::Render()
 			}
 
 			// Spawn Actor
-			ATile* tile = GetWorld()->SpawnActor<ATile>(choice, SpawnInfo);
+			GenerateTile(choice, mean, x, y);
+		}
+	}
 
-			FVector min;
-			FVector max;
-			tile->TileMesh->GetLocalBounds(min, max);
+	// Set Camera Bounds
+	AActor* min = Storage[10][10];
+	FVector c1 = min->GetActorLocation();
 
-			FVector center = min - max;
-			FVector loc = FVector(center.X * x - (center.X * (Size / 2)), center.Y * y - (center.Y * (Size / 2)), 0);
+	AActor* max = Storage[139][139];
+	FVector c2 = max->GetActorLocation();
 
-			tile->SetActorLocation(loc);
+	Camera->MovementComponent->SetBounds(c1, c2);
 
-			tile->SetFertility(mean);
+	GenerateResources();
+}
 
-			tile->TileMesh->SetMobility(EComponentMobility::Static);
+void AGrid::GenerateTile(TSubclassOf<class ATile> Choice, int32 Mean, int32 x, int32 y)
+{
+	ATile* tile = GetWorld()->SpawnActor<ATile>(Choice);
 
-			Storage[x][y] = tile;
+	FVector min;
+	FVector max;
+	tile->TileMesh->GetLocalBounds(min, max);
 
-			int32 boundsSize = (Size - 1);
-			if ((x == boundsSize) && (y == boundsSize)) {
-				ATile* tile1 = Storage[10][10];
-				FVector c1 = tile1->GetActorLocation();
+	FVector center = min - max;
+	FVector loc = FVector(center.X * x - (center.X * (Size / 2)), center.Y * y - (center.Y * (Size / 2)), 0);
 
-				ATile* tile2 = Storage[139][139];
-				FVector c2 = tile2->GetActorLocation();
+	tile->SetActorLocation(loc);
 
-				Camera->MovementComponent->SetBounds(c1, c2);
+	tile->SetFertility(Mean);
+
+	tile->TileMesh->SetMobility(EComponentMobility::Static);
+
+	Storage[x][y] = tile;
+}
+
+void AGrid::GenerateResources()
+{
+	for (int32 y = 0; y < Size; y++) {
+		for (int32 x = 0; x < Size; x++) {
+			ATile* tile = Cast<ATile>(Storage[x][y]);
+
+			if (tile->GetType() == EType::Hill) {
+				int32 choiceVal = FMath::RandRange(1, 20);
+
+				TSubclassOf<AResource> choice;
+				if (choiceVal > 10) {
+					choice = Rock;
+				}
+
+				AResource* resource = GetWorld()->SpawnActor<AResource>(choice);
+
+				FVector loc = tile->GetActorLocation();
+
+				resource->SetActorLocation(loc);
+
+				resource->ResourceMesh->SetMobility(EComponentMobility::Static);
+
+				resource->Grid = this;
+
+				tile->Destroy();
+
+				Storage[x][y] = resource;
+			}
+			else if (tile->GetType() == EType::Ground) {
+				int32 value = FMath::RandRange(-1, 1);
+				int32 xTrees = Cast<ATile>(Storage[x - 1][y])->Trees;
+				int32 yTrees = Cast<ATile>(Storage[x][y - 1])->Trees;
+
+				int32 trees = (xTrees + yTrees) / 2;
+				int32 mean = FMath::Clamp(trees + value, 0, 5);
+
+				TArray<int32> xPrev;
+				TArray<int32> yPrev;
+				
+				for (int i = 0; i < mean; i++) {
+					FVector origin;
+					FVector boxExtent;
+					tile->GetActorBounds(false, origin, boxExtent);
+
+					int32 xRand;
+					int32 yRand;
+
+					bool passed = false;
+
+					if (xPrev.Num() > 0) {
+						while (!passed) {
+							xRand = FMath::RandRange(-45, 45);
+							yRand = FMath::RandRange(-45, 45);
+
+							for (int j = 0; j < xPrev.Num(); j++) {
+								if (!((xRand < (xPrev[j] + 10) && xRand > (xPrev[j] - 10)) || (yRand < (yPrev[j] + 10) && yRand > (yPrev[j] - 10)))) {
+									passed = true;
+								}
+							}
+						}
+					}
+					else {
+						xRand = FMath::RandRange(-45, 45);
+						yRand = FMath::RandRange(-45, 45);
+					}
+
+					xPrev.Add(xRand);
+					yPrev.Add(yRand);
+
+					FVector location = FVector(tile->GetActorLocation().X + xRand, tile->GetActorLocation().Y + yRand, boxExtent.Z + origin.Z);
+
+					GetWorld()->SpawnActor<AResource>(Tree, location, GetActorRotation());
+				}
+
+				tile->Trees = mean;
+			}
+			else {
+				// Water resources (fish/oil);
 			}
 		}
 	}
@@ -214,7 +301,7 @@ void AGrid::Clear()
 	{
 		for (int32 x = 0; x < Size; x++)
 		{
-			ATile* tile = Storage[x][y];
+			AActor* tile = Storage[x][y];
 
 			tile->Destroy();
 		}
