@@ -40,6 +40,28 @@ public:
 
 	bool Blueprint;
 
+	int32 AtWork;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
+		float TimeLength;
+
+public:
+	// Resource
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> ActorToGetResource;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Storage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 StorageCap;
+
+	virtual void Production(class ACitizen* Citizen);
+
+	bool InternalProd;
+
+	FTimerHandle ProdTimer;
+
 
 	// Building cost
 	int32 Wood;
@@ -68,6 +90,10 @@ public:
 	// Building capacity
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TEnumAsByte<EEconomy> EcoStatus;
+
+	void FindCitizens();
+
+	FTimerHandle FindTimer;
 
 	void AddCitizen(class ACitizen* citizen);
 

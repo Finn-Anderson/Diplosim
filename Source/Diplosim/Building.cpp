@@ -1,5 +1,7 @@
 #include "Building.h"
 
+#include "Kismet/GameplayStatics.h"
+
 #include "Citizen.h"
 #include "Tile.h"
 
@@ -19,14 +21,24 @@ ABuilding::ABuilding()
 	Stone = 0;
 	Money = 0;
 
+	Storage = 0;
+	StorageCap = 1000;
+
 	EcoStatus = Poor;
 
 	Blueprint = true;
+
+	InternalProd = true;
+
+	AtWork = 0;
+	TimeLength = 60.0f;
 }
 
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
+
+	GetWorldTimerManager().SetTimer(FindTimer, this, &ABuilding::FindCitizens, 30.0f, true, 2.0f);
 
 	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
 	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
@@ -44,6 +56,14 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 			Blocked.Add(OtherActor);
 		}
 	}
+	else if (OtherActor->IsA<ACitizen>()) {
+		ACitizen* c = Cast<ACitizen>(OtherActor);
+		AtWork += 1;
+
+		if (AtWork == 1) {
+			GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &ABuilding::Production, c), (TimeLength / AtWork), true);
+		}
+	}
 }
 
 void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -57,6 +77,13 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 
 		if (tile->GetType() == EType::Water) {
 			Blocked.Remove(OtherActor);
+		}
+	}
+	else if (OtherActor->IsA<ACitizen>()) {
+		AtWork -= 1;
+
+		if (AtWork == 0) {
+			GetWorldTimerManager().ClearTimer(ProdTimer);
 		}
 	}
 }
@@ -92,10 +119,37 @@ void ABuilding::DestroyBuilding()
 	Destroy();
 }
 
+void ABuilding::FindCitizens() 
+{
+	TArray<AActor*> citizens;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
+
+	int32 tax = 0;
+
+	for (int i = 0; i < citizens.Num(); i++) {
+		ACitizen* c = Cast<ACitizen>(citizens[i]);
+		ABuilding* e = Cast<ABuilding>(c->Employment);
+
+		if (e == nullptr) {
+			AddCitizen(c);
+		}
+	}
+}
+
 void ABuilding::AddCitizen(ACitizen* citizen)
 {
 	if (Occupied.Num() != Capacity) {
 		Occupied.Add(citizen);
+
+		citizen->Employment = this;
+		citizen->LookForHouse();
+
+		citizen->ResourceActor = ActorToGetResource;
+
+		citizen->MoveTo(this);
+	}
+	else {
+		GetWorldTimerManager().ClearTimer(FindTimer);
 	}
 }
 
@@ -103,9 +157,15 @@ void ABuilding::RemoveCitizen(ACitizen* citizen)
 {
 	if (Occupied.Num() != 0) {
 		Occupied.Remove(citizen);
+
+		citizen->Employment = nullptr;
+
+		GetWorldTimerManager().SetTimer(FindTimer, this, &ABuilding::FindCitizens, 30.0f, true);
 	}
 
-	// Add citizen to work if available when they come to live, then find closest available house to place. Each new house recalculate based on citizen furthest from work.
+	if (Occupied.Num() == 0) {
+		GetWorldTimerManager().ClearTimer(ProdTimer);
+	}
 }
 
 int32 ABuilding::GetCapacity()
@@ -116,4 +176,9 @@ int32 ABuilding::GetCapacity()
 TArray<class ACitizen*> ABuilding::GetOccupied()
 {
 	return Occupied;
+}
+
+void ABuilding::Production(ACitizen* Citizen)
+{
+
 }
