@@ -9,7 +9,7 @@ AResource::AResource()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	if (ResourceMeshList.Num() > 1) {
+	if (ResourceMeshList.Num() > 0) {
 		int32 num = FMath::RandRange(0, ResourceMeshList.Num() - 1);
 
 		ResourceMesh = ResourceMeshList[num];
