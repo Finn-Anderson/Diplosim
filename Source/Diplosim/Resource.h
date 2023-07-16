@@ -12,14 +12,11 @@ class DIPLOSIM_API AResource : public AActor
 public:	
 	AResource();
 
-protected:
-	virtual void BeginPlay() override;
-
 public:	
-	virtual void Tick(float DeltaTime) override;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UStaticMeshComponent* ResourceMesh;
+		TArray<class UStaticMeshComponent*>ResourceMeshList;
+	
+	class UStaticMeshComponent* ResourceMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		bool isRock;

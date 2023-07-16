@@ -7,28 +7,21 @@
 
 AResource::AResource()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
-	ResourceMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ResourceMesh"));
-	ResourceMesh->bCastDynamicShadow = true;
-	ResourceMesh->CastShadow = true;
+	if (ResourceMeshList.Num() > 1) {
+		int32 num = FMath::RandRange(0, ResourceMeshList.Num() - 1);
+
+		ResourceMesh = ResourceMeshList[num];
+		ResourceMesh->bCastDynamicShadow = true;
+		ResourceMesh->CastShadow = true;
+	}
 
 	Quantity = 100000;
 
 	MaxYield = 5;
 
 	isRock = true;
-}
-
-void AResource::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-void AResource::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }
 
 int32 AResource::GetYield()
