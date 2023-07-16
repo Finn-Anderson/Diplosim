@@ -40,10 +40,12 @@ public:
 
 	bool Blueprint;
 
-	int32 AtWork;
+	TArray<class ACitizen*> AtWork;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		float TimeLength;
+
+	class ACamera* Camera;
 
 public:
 	// Resource
@@ -51,14 +53,19 @@ public:
 		TSubclassOf<class AResource> ActorToGetResource;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		FString Produce;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Storage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 StorageCap;
 
+	FTimerHandle ProdTimer;
+
 	virtual void Production(class ACitizen* Citizen);
 
-	FTimerHandle ProdTimer;
+	void Store(int32 Amount, class ACitizen* Citizen);
 
 
 	// Building cost
@@ -69,6 +76,8 @@ public:
 	int32 Money;
 
 	int32 Upkeep;
+
+	bool BuildCost();
 
 	void UpkeepCost();
 

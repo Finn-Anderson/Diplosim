@@ -4,6 +4,8 @@
 
 #include "Citizen.h"
 #include "Building.h"
+#include "Camera.h"
+#include "ResourceManager.h"
 
 void ADiplosimGameModeBase::BeginPlay()
 {
@@ -11,6 +13,9 @@ void ADiplosimGameModeBase::BeginPlay()
 
 	FTimerHandle taxTimer;
 	GetWorld()->GetTimerManager().SetTimer(taxTimer, this, &ADiplosimGameModeBase::Tax, 600.0f, true);
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Camera = PController->GetPawn<ACamera>();
 }
 
 void ADiplosimGameModeBase::Tax()
@@ -38,5 +43,5 @@ void ADiplosimGameModeBase::Tax()
 		tax += rate;
 	}
 	
-	// Add to resource manager
+	Camera->ResourceManager->ChangeResource(TEXT("Money"), tax);
 }

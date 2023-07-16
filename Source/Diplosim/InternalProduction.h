@@ -11,4 +11,6 @@ class DIPLOSIM_API AInternalProduction : public ABuilding
 	
 public:
 	virtual void Production(class ACitizen* Citizen) override;
+
+	void ProductionDone(class ACitizen* Citizen);
 };

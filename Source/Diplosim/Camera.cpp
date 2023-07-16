@@ -6,6 +6,7 @@
 #include "Grid.h"
 #include "BuildComponent.h"
 #include "CameraMovementComponent.h"
+#include "ResourceManager.h"
 
 ACamera::ACamera()
 {
@@ -23,6 +24,8 @@ ACamera::ACamera()
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
 	BuildComponent = CreateDefaultSubobject<UBuildComponent>(TEXT("BuildComponent"));
+
+	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
 
 	start = true;
 }

@@ -23,6 +23,9 @@ public:
 		class USpringArmComponent* SpringArmComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		class UResourceManager* ResourceManager;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		class UBuildComponent* BuildComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")

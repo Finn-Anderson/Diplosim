@@ -133,16 +133,20 @@ void UBuildComponent::RotateBuilding()
 void UBuildComponent::Place()
 {
 	if (Building != nullptr && !Building->IsHidden() && !Building->IsBlocked()) {
-		Building->BuildingMesh->SetMaterial(0, OGMaterial);
+		if (Building->BuildCost()) {
+			Building->BuildingMesh->SetMaterial(0, OGMaterial);
 
-		Building->Blueprint = false;
+			Building->Blueprint = false;
 
-		Building = nullptr;
 
-		Build();
 
-		if (Camera->start) {
-			Camera->start = false;
+			Building = nullptr;
+
+			Build();
+
+			if (Camera->start) {
+				Camera->start = false;
+			}
 		}
 	}
 }
