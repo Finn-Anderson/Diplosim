@@ -19,8 +19,7 @@ protected:
 public:
 	class ACamera* Camera;
 
-	UPROPERTY()
-		class APlayerController* PController;
+	class APlayerController* PController;
 
 	float CameraSpeed;
 

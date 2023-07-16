@@ -17,7 +17,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	class ACamera* Camera;
+	UPROPERTY()
+		class ACamera* Camera;
 
 public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -31,7 +32,7 @@ public:
 	UPROPERTY(EditAnywhere)
 		class UMaterial* BlueprintMaterial;
 
-	UMaterialInstanceDynamic* OGMaterial;
+	class UMaterialInstanceDynamic* OGMaterial;
 
 	void Build();
 

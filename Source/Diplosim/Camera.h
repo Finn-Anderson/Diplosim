@@ -22,8 +22,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USpringArmComponent* SpringArmComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		class UResourceManager* ResourceManager;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		//class UResourceManager* ResourceManager;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		class UBuildComponent* BuildComponent;
@@ -31,7 +31,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")
 		class UCameraMovementComponent* MovementComponent;
 
-	class AGrid* Grid;
+	UPROPERTY()
+		class AGrid* Grid;
 
 	bool start;
 

@@ -6,7 +6,7 @@
 #include "Tile.h"
 #include "Resource.h"
 #include "Camera.h"
-#include "ResourceManager.h"
+//#include "ResourceManager.h"
 
 ABuilding::ABuilding()
 {
@@ -54,7 +54,7 @@ void ABuilding::BeginPlay()
 
 bool ABuilding::BuildCost()
 {
-	UResourceManager* rm = Camera->ResourceManager;
+	/*UResourceManager* rm = Camera->ResourceManager;
 	int32 maxWood = rm->GetResource(TEXT("Wood"));
 	int32 maxStone = rm->GetResource(TEXT("Stone"));
 	int32 maxMoney = rm->GetResource(TEXT("Money"));
@@ -68,12 +68,14 @@ bool ABuilding::BuildCost()
 	}
 	else {
 		return false;
-	}
+	}*/
+
+	return true;
 }
 
 void ABuilding::UpkeepCost()
 {
-	Camera->ResourceManager->ChangeResource(TEXT("Money"), -Upkeep);
+	//Camera->ResourceManager->ChangeResource(TEXT("Money"), -Upkeep);
 }
 
 void ABuilding::Store(int32 Amount, ACitizen* Citizen)
@@ -81,7 +83,7 @@ void ABuilding::Store(int32 Amount, ACitizen* Citizen)
 	if (Storage < StorageCap) {
 		Storage += Amount;
 
-		Camera->ResourceManager->ChangeResource(Produce, Amount);
+		//Camera->ResourceManager->ChangeResource(Produce, Amount);
 
 		Production(Citizen);
 	}

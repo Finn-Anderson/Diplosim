@@ -9,13 +9,10 @@ AResource::AResource()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	if (ResourceMeshList.Num() > 0) {
-		int32 num = FMath::RandRange(0, ResourceMeshList.Num() - 1);
-
-		ResourceMesh = ResourceMeshList[num];
-		ResourceMesh->bCastDynamicShadow = true;
-		ResourceMesh->CastShadow = true;
-	}
+	ResourceMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ResourceMesh"));
+	ResourceMesh->SetMobility(EComponentMobility::Static);
+	ResourceMesh->bCastDynamicShadow = true;
+	ResourceMesh->CastShadow = true;
 
 	Quantity = 100000;
 
@@ -46,19 +43,8 @@ void AResource::YieldStatus()
 		Quantity -= Yield;
 
 		if (Quantity <= 0) {
-			[&] {
-				for (int32 y = 0; y < Grid->Size; y++) {
-					for (int32 x = 0; x < Grid->Size; x++) {
-						if (Grid->Storage[x][y] == this) {
-							Destroy();
-
-							Grid->GenerateTile(Grid->Hill, 0, x, y);
-
-							return;
-						}
-					}
-				}
-			}();
+			FVector loc = GetActorLocation();
+			Grid->GenerateTile(Grid->Hill, 0, loc.X, loc.Y);
 
 			Destroy();
 		}

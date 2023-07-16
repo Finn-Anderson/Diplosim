@@ -18,12 +18,15 @@ UBuildComponent::UBuildComponent()
 	GridStatus = true;
 	Building = nullptr;
 
-	Camera = Cast<ACamera>(GetOwner());
+	//Camera = Cast<ACamera>(GetOwner());
 }
 
 void UBuildComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Camera = PController->GetPawn<ACamera>();
 }
 
 void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -132,21 +135,18 @@ void UBuildComponent::RotateBuilding()
 
 void UBuildComponent::Place()
 {
-	if (Building != nullptr && !Building->IsHidden() && !Building->IsBlocked()) {
-		if (Building->BuildCost()) {
-			Building->BuildingMesh->SetMaterial(0, OGMaterial);
+	if (Building == nullptr || Building->IsHidden() || Building->IsBlocked() || !Building->BuildCost())
+		return;
 
-			Building->Blueprint = false;
+	Building->BuildingMesh->SetMaterial(0, OGMaterial);
 
+	Building->Blueprint = false;
 
+	Building = nullptr;
 
-			Building = nullptr;
+	Build();
 
-			Build();
-
-			if (Camera->start) {
-				Camera->start = false;
-			}
-		}
+	if (Camera->start) {
+		Camera->start = false;
 	}
 }

@@ -6,7 +6,7 @@
 #include "Grid.h"
 #include "BuildComponent.h"
 #include "CameraMovementComponent.h"
-#include "ResourceManager.h"
+//#include "ResourceManager.h"
 
 ACamera::ACamera()
 {
@@ -25,7 +25,7 @@ ACamera::ACamera()
 
 	BuildComponent = CreateDefaultSubobject<UBuildComponent>(TEXT("BuildComponent"));
 
-	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
+	//ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
 
 	start = true;
 }

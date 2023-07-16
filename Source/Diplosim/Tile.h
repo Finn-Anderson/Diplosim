@@ -30,10 +30,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TEnumAsByte<EType> Type;
 
-	UPROPERTY()
-		int32 Fertility;
+	int32 Fertility;
 
-	int32 Trees;
+	UPROPERTY()
+		TArray<class AResource*> Trees;
 
 public:	
 	void SetFertility(int32 Mean);

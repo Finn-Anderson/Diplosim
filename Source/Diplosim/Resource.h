@@ -14,9 +14,7 @@ public:
 
 public:	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		TArray<class UStaticMeshComponent*>ResourceMeshList;
-	
-	class UStaticMeshComponent* ResourceMesh;
+		class UStaticMeshComponent* ResourceMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		bool isRock;
@@ -30,7 +28,8 @@ public:
 
 	int32 Yield;
 
-	class AGrid* Grid;
+	UPROPERTY()
+		class AGrid* Grid;
 
 	int32 GetYield();
 

@@ -40,12 +40,14 @@ public:
 
 	bool Blueprint;
 
-	TArray<class ACitizen*> AtWork;
+	UPROPERTY()
+		TArray<class ACitizen*> AtWork;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		float TimeLength;
 
-	class ACamera* Camera;
+	UPROPERTY()
+		class ACamera* Camera;
 
 public:
 	// Resource
@@ -91,7 +93,8 @@ public:
 
 	bool IsBlocked();
 
-	TArray<class AActor*> Blocked;
+	UPROPERTY()
+		TArray<class AActor*> Blocked;
 
 
 	// Remove
@@ -112,7 +115,8 @@ public:
 
 	int32 Capacity;
 
-	TArray<class ACitizen*> Occupied;
+	UPROPERTY()
+		TArray<class ACitizen*> Occupied;
 
 	int32 GetCapacity();
 
