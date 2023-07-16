@@ -13,3 +13,4 @@ Saved
 *.sln
 *.xcodeproj
 *.xcworkspace
+*.ipch
