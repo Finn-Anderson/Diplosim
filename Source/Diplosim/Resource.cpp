@@ -53,7 +53,7 @@ void AResource::YieldStatus()
 		SetActorHiddenInGame(true);
 
 		FTimerHandle growTimer;
-		GetWorldTimerManager().SetTimer(growTimer, this, &AResource::Grow, 300.0f, true);
+		GetWorldTimerManager().SetTimer(growTimer, this, &AResource::Grow, 300.0f, false);
 	}
 }
 

@@ -5,7 +5,7 @@
 #include "Citizen.h"
 #include "Building.h"
 #include "Camera.h"
-//#include "ResourceManager.h"
+#include "ResourceManager.h"
 
 void ADiplosimGameModeBase::BeginPlay()
 {
@@ -43,5 +43,7 @@ void ADiplosimGameModeBase::Tax()
 		tax += rate;
 	}
 	
-	//Camera->ResourceManager->ChangeResource(TEXT("Money"), tax);
+	if (tax > 0) {
+		Camera->ResourceManager->ChangeResource(TEXT("Money"), tax);
+	}
 }

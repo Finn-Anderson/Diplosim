@@ -4,14 +4,6 @@
 #include "GameFramework/Actor.h"
 #include "Tile.generated.h"
 
-UENUM()
-enum EType
-{
-	Water	UMETA(DisplayName = "Water"),
-	Ground	UMETA(DisplayName = "Ground"),
-	Hill	UMETA(DisplayName = "Hill"),
-};
-
 UCLASS()
 class DIPLOSIM_API ATile : public AActor
 {
@@ -27,18 +19,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* TileMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
-		TEnumAsByte<EType> Type;
-
 	int32 Fertility;
-
-	UPROPERTY()
-		TArray<class AResource*> Trees;
 
 public:	
 	void SetFertility(int32 Mean);
 
 	int32 GetFertility();
 
-	TEnumAsByte<EType> GetType();
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
+		TSubclassOf<class AResource> Tree;
+
+	UPROPERTY()
+		TArray<class AResource*> Trees;
+
+	FTimerHandle TreeTimer;
+
+	void GenerateTree();
 };

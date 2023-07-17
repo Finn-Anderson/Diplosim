@@ -7,6 +7,7 @@
 #include "Grid.h"
 #include "Building.h"
 #include "Tile.h"
+#include "Resource.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -44,39 +45,40 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
 	{
 		if (hit.GetActor()->IsA<ATile>()) {
-			ATile* tile = Cast<ATile>(hit.GetActor());
+			/*ATile* tile = Cast<ATile>(hit.GetActor());
 
-			if (tile->GetType() != EType::Water) {
-				FVector location;
+			FVector location;
 
-				if (GridStatus) {
-					location = tile->GetActorLocation();
+			if (GridStatus) {
+				location = tile->GetActorLocation();
 
-					FVector origin;
-					FVector boxExtent;
-					tile->GetActorBounds(false, origin, boxExtent);
+				FVector origin;
+				FVector boxExtent;
+				tile->GetActorBounds(false, origin, boxExtent);
 
-					location.Z += boxExtent.Z + origin.Z;
-				}
-				else {
-					location = hit.Location;
-				}
-
-				if (Building == nullptr) {
-					Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation);
-
-					OGMaterial = UMaterialInstanceDynamic::Create(Building->BuildingMesh->GetMaterial(0), NULL);
-					Building->BuildingMesh->SetMaterial(0, BlueprintMaterial);
-				}
-				else {
-					Building->SetActorLocation(location);
-				}
+				location.Z += boxExtent.Z + origin.Z;
 			}
-			else if (Building != nullptr) {
-				Building->Destroy();
-
-				Building = nullptr;
+			else {
+				location = hit.Location;
 			}
+
+			if (Building == nullptr) {
+				Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation);
+
+				OGMaterial = UMaterialInstanceDynamic::Create(Building->BuildingMesh->GetMaterial(0), NULL);
+			}
+			else {
+				Building->SetActorLocation(location);
+			}
+
+			if (Building->IsBlocked()) {
+				Building->BuildingMesh->SetMaterial(0, BlockedMaterial);
+			}
+			else {
+				Building->BuildingMesh->SetMaterial(0, BlueprintMaterial);
+
+				hideTrees(tile);
+			}*/
 		}
 	}
 }
@@ -84,6 +86,24 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 void UBuildComponent::SetGridStatus()
 {
 	GridStatus = !GridStatus;
+}
+
+void UBuildComponent::hideTrees(ATile* tile)
+{
+	if (PrevTile == tile)
+		return;
+
+	if (PrevTile != nullptr) {
+		for (int i = 0; i < PrevTile->Trees.Num(); i++) {
+			PrevTile->Trees[i]->SetActorHiddenInGame(false);
+		}
+	}
+
+	for (int i = 0; i < tile->Trees.Num(); i++) {
+		tile->Trees[i]->SetActorHiddenInGame(true);
+	}
+
+	PrevTile = tile;
 }
 
 void UBuildComponent::Build()
@@ -137,6 +157,10 @@ void UBuildComponent::Place()
 {
 	if (Building == nullptr || Building->IsHidden() || Building->IsBlocked() || !Building->BuildCost())
 		return;
+
+	for (int i = 0; i < PrevTile->Trees.Num(); i++) {
+		PrevTile->Trees[i]->Destroy();
+	}
 
 	Building->BuildingMesh->SetMaterial(0, OGMaterial);
 

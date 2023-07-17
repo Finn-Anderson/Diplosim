@@ -4,10 +4,11 @@ UResourceManager::UResourceManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	/*FString Arr[] = {TEXT("Wood"), TEXT("Stone"), TEXT("Money")};
-	ResourceNames.Append(Arr, sizeof(Arr) / sizeof(int));
+	ResourceNames.Add(TEXT("Wood"));
+	ResourceNames.Add(TEXT("Stone"));
+	ResourceNames.Add(TEXT("Money"));
 
-	ResourceAmounts.Init(0, ResourceNames.Num());*/
+	ResourceAmounts.Init(0, ResourceNames.Num());
 }
 
 void UResourceManager::ChangeResource(FString Name, int32 Change)

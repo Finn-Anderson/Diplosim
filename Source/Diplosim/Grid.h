@@ -29,9 +29,6 @@ public:
 public:
 	// Resource Classes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
-		TSubclassOf<class AResource> Tree;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
 		TSubclassOf<class AResource> Rock;
 
 public:
@@ -52,7 +49,7 @@ public:
 
 	void GenerateTile(TSubclassOf<class ATile> Choice, int32 Mean, int32 x, int32 y);
 
-	void GenerateResources();
+	void GenerateResource(class ATile* tile, int32 x, int32 y);
 
 	void Clear();
 };

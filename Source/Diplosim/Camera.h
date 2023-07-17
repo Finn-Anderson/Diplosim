@@ -22,8 +22,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USpringArmComponent* SpringArmComponent;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		//class UResourceManager* ResourceManager;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		class UResourceManager* ResourceManager;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		class UBuildComponent* BuildComponent;

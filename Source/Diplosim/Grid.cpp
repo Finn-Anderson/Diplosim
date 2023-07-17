@@ -58,7 +58,6 @@ void AGrid::Render()
 				choice = Water;
 			}
 			else {
-				int32 fertility = 3;
 				int32 value = FMath::RandRange(-1, 1);
 
 				bool checkWater = false;
@@ -67,30 +66,32 @@ void AGrid::Render()
 				bool mandoHill = false;
 				bool mandoWater = false;
 
-				ATile* yTile = Cast<ATile>(Storage[x][y - 1]);
 				ATile* xTile = Cast<ATile>(Storage[x - 1][y]);
+				ATile* yTile = Cast<ATile>(Storage[x][y - 1]);
 
-				int32 yFertility = yTile->GetFertility();
-				int32 xFertility = xTile->GetFertility();
+				int32 xFertility = 3;
+				int32 yFertility = 3;
+				if (xTile->GetClass() == Ground) {
+					xFertility = xTile->GetFertility();
+				}
+				if (yTile->GetClass() == Ground) {
+					yFertility = xTile->GetFertility();
+				}
 
-				fertility = (yFertility + xFertility) / 2;
+				int32 fertility = (yFertility + xFertility) / 2;
 
-				if (!(xTile->GetType() == EType::Water && yTile->GetType() == EType::Hill) || !(xTile->GetType() == EType::Hill && yTile->GetType() == EType::Water)) {
-					if (xTile->GetType() == EType::Water || yTile->GetType() == EType::Water) {
-						if (xTile->GetType() == EType::Water && yTile->GetType() == EType::Water) {
-							mandoWater = true;
-						}
-						else {
-							checkWater = true;
-						}
+				if (xTile->GetClass() == Water && yTile->GetClass() == Water) {
+					mandoWater = true;
+				}
+				else if (xTile->GetClass() == Hill && yTile->GetClass() == Hill) {
+					mandoHill = true;
+				}
+				else if (xTile->GetClass() == Ground || yTile->GetClass() == Ground) {
+					if (xTile->GetClass() == Water || yTile->GetClass() == Water) {
+						checkWater = true;
 					}
-					else if (xTile->GetType() == EType::Hill || yTile->GetType() == EType::Hill) {
-						if (xTile->GetType() == EType::Hill && yTile->GetType() == EType::Hill) {
-							mandoHill = true;
-						}
-						else {
-							checkHill = true;
-						}
+					else if (xTile->GetClass() == Hill || yTile->GetClass() == Hill) {
+						checkHill = true;
 					}
 				}
 
@@ -157,7 +158,14 @@ void AGrid::Render()
 
 	Camera->MovementComponent->SetBounds(c1, c2);
 
-	GenerateResources();
+	for (int32 y = 0; y < Size; y++)
+	{
+		for (int32 x = 0; x < Size; x++)
+		{
+			ATile* tile = Cast<ATile>(Storage[x][y]);
+			GenerateResource(tile, x, y);
+		}
+	}
 }
 
 void AGrid::GenerateTile(TSubclassOf<class ATile> Choice, int32 Mean, int32 x, int32 y)
@@ -180,93 +188,51 @@ void AGrid::GenerateTile(TSubclassOf<class ATile> Choice, int32 Mean, int32 x, i
 	Storage[x][y] = tile;
 }
 
-void AGrid::GenerateResources()
+void AGrid::GenerateResource(ATile* tile, int32 x, int32 y)
 {
-	for (int32 y = 0; y < Size; y++) {
-		for (int32 x = 0; x < Size; x++) {
-			ATile* tile = Cast<ATile>(Storage[x][y]);
+	int32 choiceVal = FMath::RandRange(1, 30);
 
-			int32 choiceVal = FMath::RandRange(1, 30);
+	if (tile->GetClass() == Hill) {
+		TSubclassOf<AResource> choice = nullptr;
+		if (choiceVal > 20) {
+			choice = Rock;
+		}
 
-			if (tile->GetType() == EType::Hill) {
-				TSubclassOf<AResource> choice = nullptr;
-				if (choiceVal > 20) {
-					choice = Rock;
+		if (choice != nullptr) {
+			FVector loc = tile->GetActorLocation();
+
+			AResource* resource = GetWorld()->SpawnActor<AResource>(choice, loc, GetActorRotation());
+
+			resource->Grid = this;
+
+			Storage[x][y] = resource;
+
+			tile->Destroy();
+		}
+	}
+	else if (tile->GetClass() == Ground) {
+		ATile* xTile = Cast<ATile>(Storage[x - 1][y]);
+		ATile* yTile = Cast<ATile>(Storage[x][y - 1]);
+
+		if (xTile != nullptr && xTile->GetClass() == Ground && yTile != nullptr && yTile->GetClass() == Ground) {
+			int32 xTrees = xTile->Trees.Num();
+			int32 yTrees = yTile->Trees.Num();
+
+			int32 value = FMath::RandRange(-1, 1);
+
+			int32 trees = ((xTrees + yTrees) + 1) / 2;
+			int32 mean = FMath::Clamp(trees + value, 0, 5);
+
+			if (choiceVal > 27 || mean > 1) {
+				for (int i = 0; i < mean; i++) {
+					tile->GenerateTree();
 				}
-
-				if (choice != nullptr) {
-					FVector loc = tile->GetActorLocation();
-
-					AResource* resource = GetWorld()->SpawnActor<AResource>(choice, loc, GetActorRotation());
-
-					resource->Grid = this;
-
-					tile->Destroy();
-
-					Storage[x][y] = resource;
-				}
-			}
-			else if (tile->GetType() == EType::Ground) {
-				ATile* xTile = Cast<ATile>(Storage[x - 1][y]);
-				ATile* yTile = Cast<ATile>(Storage[x][y - 1]);
-
-				if (xTile != nullptr && yTile != nullptr) {
-					int32 xTrees = xTile->Trees.Num();
-					int32 yTrees = yTile->Trees.Num();
-
-					int32 value = FMath::RandRange(-1, 1);
-
-					int32 trees = ((xTrees + yTrees) + 1) / 2;
-					int32 mean = FMath::Clamp(trees + value, 0, 5);
-
-					if (choiceVal > 27 || mean > 1) {
-						for (int i = 0; i < mean; i++) {
-							FVector origin;
-							FVector boxExtent;
-							tile->GetActorBounds(false, origin, boxExtent);
-
-							int32 xRand;
-							int32 yRand;
-
-							bool passed = false;
-
-							if (tile->Trees.Num() > 0) {
-								while (!passed) {
-									xRand = FMath::RandRange(-45, 45);
-									yRand = FMath::RandRange(-45, 45);
-
-
-									for (int j = 0; j < tile->Trees.Num(); j++) {
-
-										int32 xT = tile->Trees[j]->GetActorLocation().X;
-										int32 yT = tile->Trees[j]->GetActorLocation().Y;
-
-
-										if (!((xRand < (xT + 10) && xRand >(xT - 10)) || (yRand < (yT + 10) && yRand >(yT - 10)))) {
-											passed = true;
-										}
-									}
-								}
-							}
-							else {
-								xRand = FMath::RandRange(-45, 45);
-								yRand = FMath::RandRange(-45, 45);
-							}
-
-							FVector location = FVector(tile->GetActorLocation().X + xRand, tile->GetActorLocation().Y + yRand, boxExtent.Z + origin.Z);
-
-							AResource* tree = GetWorld()->SpawnActor<AResource>(Tree, location, GetActorRotation());
-
-							tile->Trees.Add(tree);
-						}
-					}
-				}
-				
-			}
-			else {
-				// Water resources (fish/oil);
 			}
 		}
+				
+	}
+	else {
+		// Water resources (fish/oil);
 	}
 }
 

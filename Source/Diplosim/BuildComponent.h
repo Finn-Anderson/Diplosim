@@ -20,6 +20,9 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
+	UPROPERTY()
+		class ATile* PrevTile;
+
 public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
@@ -32,13 +35,10 @@ public:
 	UPROPERTY(EditAnywhere)
 		class UMaterial* BlueprintMaterial;
 
+	UPROPERTY(EditAnywhere)
+		class UMaterial* BlockedMaterial;
+
 	class UMaterialInstanceDynamic* OGMaterial;
-
-	void Build();
-
-	void RotateBuilding();
-
-	void Place();
 
 	FRotator Rotation;
 
@@ -47,4 +47,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<class ABuilding> BuildingClass;
+
+	void hideTrees(class ATile* tile);
+
+	void Build();
+
+	void RotateBuilding();
+
+	void Place();
 };

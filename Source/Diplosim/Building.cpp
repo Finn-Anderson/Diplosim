@@ -6,7 +6,8 @@
 #include "Tile.h"
 #include "Resource.h"
 #include "Camera.h"
-//#include "ResourceManager.h"
+#include "Grid.h"
+#include "ResourceManager.h"
 
 ABuilding::ABuilding()
 {
@@ -54,12 +55,12 @@ void ABuilding::BeginPlay()
 
 bool ABuilding::BuildCost()
 {
-	/*UResourceManager* rm = Camera->ResourceManager;
+	UResourceManager* rm = Camera->ResourceManager;
 	int32 maxWood = rm->GetResource(TEXT("Wood"));
 	int32 maxStone = rm->GetResource(TEXT("Stone"));
 	int32 maxMoney = rm->GetResource(TEXT("Money"));
 
-	if (maxWood > Wood && maxStone > Stone && maxMoney > Money) {
+	if (maxWood >= Wood && maxStone >= Stone && maxMoney >= Money) {
 		rm->ChangeResource(TEXT("Wood"), -Wood);
 		rm->ChangeResource(TEXT("Stone"), -Stone);
 		rm->ChangeResource(TEXT("Money"), -Money);
@@ -68,14 +69,14 @@ bool ABuilding::BuildCost()
 	}
 	else {
 		return false;
-	}*/
+	}
 
 	return true;
 }
 
 void ABuilding::UpkeepCost()
 {
-	//Camera->ResourceManager->ChangeResource(TEXT("Money"), -Upkeep);
+	Camera->ResourceManager->ChangeResource(TEXT("Money"), -Upkeep);
 }
 
 void ABuilding::Store(int32 Amount, ACitizen* Citizen)
@@ -83,7 +84,7 @@ void ABuilding::Store(int32 Amount, ACitizen* Citizen)
 	if (Storage < StorageCap) {
 		Storage += Amount;
 
-		//Camera->ResourceManager->ChangeResource(Produce, Amount);
+		Camera->ResourceManager->ChangeResource(Produce, Amount);
 
 		Production(Citizen);
 	}
@@ -103,7 +104,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 	else if (OtherActor->IsA<ATile>()) {
 		ATile* tile = Cast<ATile>(OtherActor);
 
-		if (tile->GetType() == EType::Water) {
+		if (tile->GetClass() == Camera->Grid->Water) {
 			Blocked.Add(OtherActor);
 		}
 	}
@@ -115,7 +116,6 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 				AtWork.Add(c);
 			}
 		}
-
 		
 		if (AtWork.Num() == 1) {
 			if (c->Carrying > 0) {
@@ -139,7 +139,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 	else if (OtherActor->IsA<ATile>()) {
 		ATile* tile = Cast<ATile>(OtherActor);
 
-		if (tile->GetType() == EType::Water) {
+		if (tile->GetClass() == Camera->Grid->Water) {
 			Blocked.Remove(OtherActor);
 		}
 	}

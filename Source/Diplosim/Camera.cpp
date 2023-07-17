@@ -6,13 +6,15 @@
 #include "Grid.h"
 #include "BuildComponent.h"
 #include "CameraMovementComponent.h"
-//#include "ResourceManager.h"
+#include "ResourceManager.h"
 
 ACamera::ACamera()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	MovementComponent = CreateDefaultSubobject<UCameraMovementComponent>(TEXT("CameraMovementComponent"));
+
+	BuildComponent = CreateDefaultSubobject<UBuildComponent>(TEXT("BuildComponent"));
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	SpringArmComponent->SetupAttachment(RootComponent);
@@ -23,9 +25,7 @@ ACamera::ACamera()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
-	BuildComponent = CreateDefaultSubobject<UBuildComponent>(TEXT("BuildComponent"));
-
-	//ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
+	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
 
 	start = true;
 }
