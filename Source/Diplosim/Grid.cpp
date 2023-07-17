@@ -39,11 +39,6 @@ void AGrid::Render()
 {
 	WaterMesh->SetWorldScale3D(FVector(Size, Size, Size));
 
-	TArray<TSubclassOf<ATile>> choices;
-	TSubclassOf<ATile> Arr[] = { Water, Ground, Hill };
-
-	choices.Append(Arr, sizeof(Arr));
-
 	for (int32 y = 0; y < Size; y++)
 	{
 		for (int32 x = 0; x < Size; x++)
@@ -60,88 +55,65 @@ void AGrid::Render()
 			else {
 				int32 value = FMath::RandRange(-1, 1);
 
-				bool checkWater = false;
-				bool checkHill = false;
-
-				bool mandoHill = false;
-				bool mandoWater = false;
+				TSubclassOf<ATile> checkX = Ground;
+				TSubclassOf<ATile> checkY = Ground;
 
 				ATile* xTile = Cast<ATile>(Storage[x - 1][y]);
 				ATile* yTile = Cast<ATile>(Storage[x][y - 1]);
 
-				int32 xFertility = 3;
-				int32 yFertility = 3;
+				int32 xFertility;
+				int32 yFertility;
 				if (xTile->GetClass() == Ground) {
 					xFertility = xTile->GetFertility();
 				}
+				else {
+					xFertility = FMath::RandRange(0, 3);
+				}
+
 				if (yTile->GetClass() == Ground) {
-					yFertility = xTile->GetFertility();
+					yFertility = yTile->GetFertility();
+				}
+				else {
+					yFertility = FMath::RandRange(0, 3);
 				}
 
 				int32 fertility = (yFertility + xFertility) / 2;
 
-				if (xTile->GetClass() == Water && yTile->GetClass() == Water) {
-					mandoWater = true;
+				if (xTile->GetClass() == Water) {
+					checkX = Water;
 				}
-				else if (xTile->GetClass() == Hill && yTile->GetClass() == Hill) {
-					mandoHill = true;
+				else if (xTile->GetClass() == Hill) {
+					checkX = Hill;
 				}
-				else if (xTile->GetClass() == Ground || yTile->GetClass() == Ground) {
-					if (xTile->GetClass() == Water || yTile->GetClass() == Water) {
-						checkWater = true;
-					}
-					else if (xTile->GetClass() == Hill || yTile->GetClass() == Hill) {
-						checkHill = true;
-					}
+
+				if (yTile->GetClass() == Water) {
+					checkY = Water;
+				}
+				else if (yTile->GetClass() == Hill) {
+					checkY= Hill;
 				}
 
 				mean = FMath::Clamp(fertility + value, 0, 5);
 
 				int32 choiceVal = FMath::RandRange(low, high);
 
-				if (mandoHill || mandoWater) {
-					if (mandoWater) {
-						if (choiceVal < 990) {
-							choiceVal = 0;
-						}
-						else {
-							choiceVal = 1;
-						}
-					}
-					else {
-						choiceVal = 2;
-					}
+				int32 pass = 2;
+				if (checkX == checkY && checkX != Ground) {
+					pass = 990;
 				}
-				else {
-					if (checkWater || checkHill) {
-						int32 pass = 500;
-
-						if (choiceVal < pass) {
-							if (checkWater) {
-								choiceVal = 0;
-							}
-							else {
-								choiceVal = 2;
-							}
-						}
-						else {
-							choiceVal = 1;
-						}
-					}
-					else {
-						if (choiceVal < 2) {
-							choiceVal = 0;
-						}
-						else if (choiceVal > 998) {
-							choiceVal = 2;
-						}
-						else {
-							choiceVal = 1;
-						}
-					}
+				else if (checkX != checkY) {
+					pass = 500;
 				}
 
-				choice = choices[choiceVal];
+
+				if (pass > choiceVal) {
+					if (checkX == Water || checkY == Water) {
+						choice = Water;
+					}
+					else {
+						choice = Hill;
+					}
+				}
 			}
 
 			// Spawn Actor
@@ -181,9 +153,13 @@ void AGrid::GenerateTile(TSubclassOf<class ATile> Choice, int32 Mean, int32 x, i
 
 	tile->SetActorLocation(loc);
 
-	tile->SetFertility(Mean);
-
 	tile->TileMesh->SetMobility(EComponentMobility::Static);
+
+	/*if (tile->IsA<AGround>()) {
+		AGrid* t = Cast<AGround>(tile);
+
+		t->SetFertility(Mean);
+	}*/
 
 	Storage[x][y] = tile;
 }
