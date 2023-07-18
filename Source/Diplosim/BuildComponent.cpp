@@ -1,13 +1,14 @@
 #include "BuildComponent.h"
 
 #include "Kismet/GameplayStatics.h"
-#include "Engine/World.h"
 
 #include "Camera.h"
-#include "Grid.h"
 #include "Building.h"
+#include "Grid.h"
 #include "Tile.h"
+#include "Ground.h"
 #include "Resource.h"
+#include "Water.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -18,6 +19,8 @@ UBuildComponent::UBuildComponent()
 
 	GridStatus = true;
 	Building = nullptr;
+
+	IsBlocked = true;
 
 	//Camera = Cast<ACamera>(GetOwner());
 }
@@ -44,41 +47,79 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
 	{
-		if (hit.GetActor()->IsA<ATile>()) {
-			/*ATile* tile = Cast<ATile>(hit.GetActor());
+		AActor* tile = hit.GetActor();
 
-			FVector location;
+		FVector location;
 
-			if (GridStatus) {
-				location = tile->GetActorLocation();
+		if (GridStatus) {
+			location = tile->GetActorLocation();
 
-				FVector origin;
-				FVector boxExtent;
-				tile->GetActorBounds(false, origin, boxExtent);
+			FVector origin;
+			FVector boxExtent;
+			tile->GetActorBounds(false, origin, boxExtent);
 
-				location.Z += boxExtent.Z + origin.Z;
+			location.Z += boxExtent.Z + origin.Z;
+		}
+		else {
+			location = hit.Location;
+		}
+
+		if (Building == nullptr) {
+			Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation);
+
+			OGMaterial = UMaterialInstanceDynamic::Create(Building->BuildingMesh->GetMaterial(0), NULL);
+		}
+		else {
+			Building->SetActorLocation(location);
+		}
+
+		if (IsBlocked) {
+			Building->BuildingMesh->SetMaterial(0, BlockedMaterial);
+		}
+		else {
+			Building->BuildingMesh->SetMaterial(0, BlueprintMaterial);
+		}
+	}
+
+	if (Building != nullptr) {
+		FVector min = Building->GetActorLocation();
+
+		FVector max;
+		FVector boxExtent;
+		Building->GetActorBounds(false, max, boxExtent);
+
+		int32 x[2] = {min.X, max.X};
+		int32 y[2] = {min.Y, max.Y};
+		int32 z = min.Z;
+
+		int32 count = 0;
+
+		for (int i = 0; i < 2; i++) {
+			for (int j = 0; j < 2; j++) {
+				FVector end = FVector(x[j], y[i], z - 10.0f);
+				FVector corner = FVector(x[j], y[i], z);
+
+				if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECollisionChannel::ECC_GameTraceChannel1)) {
+					AActor* actor = hit.GetActor();
+					if (!actor->IsA<AGrid>()) {
+						if (actor->IsA<AResource>() || (actor->IsA<ATile>() && !actor->IsA<AWater>())) {
+							count += 1;
+						}
+					}
+				}
+				else {
+					GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Yellow, TEXT("Some debug message!"));
+
+					return;
+				}
 			}
-			else {
-				location = hit.Location;
-			}
+		}
 
-			if (Building == nullptr) {
-				Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation);
-
-				OGMaterial = UMaterialInstanceDynamic::Create(Building->BuildingMesh->GetMaterial(0), NULL);
-			}
-			else {
-				Building->SetActorLocation(location);
-			}
-
-			if (Building->IsBlocked()) {
-				Building->BuildingMesh->SetMaterial(0, BlockedMaterial);
-			}
-			else {
-				Building->BuildingMesh->SetMaterial(0, BlueprintMaterial);
-
-				hideTrees(tile);
-			}*/
+		if (count == 4) {
+			IsBlocked = false;
+		}
+		else {
+			IsBlocked = true;
 		}
 	}
 }
@@ -88,22 +129,18 @@ void UBuildComponent::SetGridStatus()
 	GridStatus = !GridStatus;
 }
 
-void UBuildComponent::hideTrees(ATile* tile)
+void UBuildComponent::HideTree(AResource* tree)
 {
-	if (PrevTile == tile)
-		return;
+	if (tree->GetClass() == TreeClass) {
+		tree->SetActorHiddenInGame(!tree->IsHidden());
 
-	if (PrevTile != nullptr) {
-		for (int i = 0; i < PrevTile->Trees.Num(); i++) {
-			PrevTile->Trees[i]->SetActorHiddenInGame(false);
+		if (tree->IsHidden()) {
+			Trees.Add(tree);
+		}
+		else {
+			Trees.Remove(tree);
 		}
 	}
-
-	for (int i = 0; i < tile->Trees.Num(); i++) {
-		tile->Trees[i]->SetActorHiddenInGame(true);
-	}
-
-	PrevTile = tile;
 }
 
 void UBuildComponent::Build()
@@ -155,11 +192,13 @@ void UBuildComponent::RotateBuilding()
 
 void UBuildComponent::Place()
 {
-	if (Building == nullptr || Building->IsHidden() || Building->IsBlocked() || !Building->BuildCost())
+	if (Building == nullptr || IsBlocked || !Building->BuildCost())
 		return;
 
-	for (int i = 0; i < PrevTile->Trees.Num(); i++) {
-		PrevTile->Trees[i]->Destroy();
+	for (int i = 0; i < Trees.Num(); i++) {
+		Trees[i]->Destroy();
+
+		Trees.RemoveAt(i);
 	}
 
 	Building->BuildingMesh->SetMaterial(0, OGMaterial);

@@ -12,6 +12,9 @@ class DIPLOSIM_API AResource : public AActor
 public:	
 	AResource();
 
+protected:
+	virtual void BeginPlay() override;
+
 public:	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* ResourceMesh;

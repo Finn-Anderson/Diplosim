@@ -3,11 +3,9 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "Citizen.h"
-#include "Tile.h"
-#include "Resource.h"
 #include "Camera.h"
-#include "Grid.h"
 #include "ResourceManager.h"
+#include "BuildComponent.h"
 
 ABuilding::ABuilding()
 {
@@ -98,17 +96,7 @@ void ABuilding::Store(int32 Amount, ACitizen* Citizen)
 
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor->IsA<ABuilding>()) {
-		Blocked.Add(OtherActor);
-	}
-	else if (OtherActor->IsA<ATile>()) {
-		ATile* tile = Cast<ATile>(OtherActor);
-
-		if (tile->GetClass() == Camera->Grid->Water) {
-			Blocked.Add(OtherActor);
-		}
-	}
-	else if (OtherActor->IsA<ACitizen>()) {
+	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
 		for (int i = 0; i < Occupied.Num(); i++) {
@@ -128,22 +116,15 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 			}
 		}
 	}
+	else if (OtherActor->IsA<AResource>()) {
+		AResource* r = Cast<AResource>(OtherActor);
+		Camera->BuildComponent->HideTree(r);
+	}
 }
 
 void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor->IsA<ABuilding>())
-	{
-		Blocked.Remove(OtherActor);
-	}
-	else if (OtherActor->IsA<ATile>()) {
-		ATile* tile = Cast<ATile>(OtherActor);
-
-		if (tile->GetClass() == Camera->Grid->Water) {
-			Blocked.Remove(OtherActor);
-		}
-	}
-	else if (OtherActor->IsA<ACitizen>()) {
+	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
 		if (AtWork.Contains(c)) {
@@ -154,19 +135,10 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 			GetWorldTimerManager().ClearTimer(ProdTimer);
 		}
 	}
-}
-
-bool ABuilding::IsBlocked()
-{
-	bool isBlocked = true;
-	if (Blocked.Num() > 0) {
-		isBlocked = true;
+	else if (OtherActor->IsA<AResource>()) {
+		AResource* r = Cast<AResource>(OtherActor);
+		Camera->BuildComponent->HideTree(r);
 	}
-	else {
-		isBlocked = false;
-	}
-
-	return isBlocked;
 }
 
 void ABuilding::DestroyBuilding()

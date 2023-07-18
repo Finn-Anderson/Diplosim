@@ -5,6 +5,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 
 #include "Tile.h"
+#include "Ground.h"
 #include "Resource.h"
 #include "Camera.h"
 #include "CameraMovementComponent.h"
@@ -61,17 +62,23 @@ void AGrid::Render()
 				ATile* xTile = Cast<ATile>(Storage[x - 1][y]);
 				ATile* yTile = Cast<ATile>(Storage[x][y - 1]);
 
+				// Check tile fertility if ground
 				int32 xFertility;
 				int32 yFertility;
+
 				if (xTile->GetClass() == Ground) {
-					xFertility = xTile->GetFertility();
+					AGround* xT = Cast<AGround>(xTile);
+
+					xFertility = xT->GetFertility();
 				}
 				else {
 					xFertility = FMath::RandRange(0, 3);
 				}
 
 				if (yTile->GetClass() == Ground) {
-					yFertility = yTile->GetFertility();
+					AGround* yT = Cast<AGround>(yTile);
+
+					yFertility = yT->GetFertility();
 				}
 				else {
 					yFertility = FMath::RandRange(0, 3);
@@ -79,6 +86,9 @@ void AGrid::Render()
 
 				int32 fertility = (yFertility + xFertility) / 2;
 
+				mean = FMath::Clamp(fertility + value, 0, 5);
+				
+				// Calculating tile type based on adjacant tiles
 				if (xTile->GetClass() == Water) {
 					checkX = Water;
 				}
@@ -92,8 +102,6 @@ void AGrid::Render()
 				else if (yTile->GetClass() == Hill) {
 					checkY= Hill;
 				}
-
-				mean = FMath::Clamp(fertility + value, 0, 5);
 
 				int32 choiceVal = FMath::RandRange(low, high);
 
@@ -130,6 +138,7 @@ void AGrid::Render()
 
 	Camera->MovementComponent->SetBounds(c1, c2);
 
+	// Spawn resources
 	for (int32 y = 0; y < Size; y++)
 	{
 		for (int32 x = 0; x < Size; x++)
@@ -155,11 +164,11 @@ void AGrid::GenerateTile(TSubclassOf<class ATile> Choice, int32 Mean, int32 x, i
 
 	tile->TileMesh->SetMobility(EComponentMobility::Static);
 
-	/*if (tile->IsA<AGround>()) {
-		AGrid* t = Cast<AGround>(tile);
+	if (tile->IsA<AGround>()) {
+		AGround* t = Cast<AGround>(tile);
 
 		t->SetFertility(Mean);
-	}*/
+	}
 
 	Storage[x][y] = tile;
 }
@@ -187,10 +196,10 @@ void AGrid::GenerateResource(ATile* tile, int32 x, int32 y)
 		}
 	}
 	else if (tile->GetClass() == Ground) {
-		ATile* xTile = Cast<ATile>(Storage[x - 1][y]);
-		ATile* yTile = Cast<ATile>(Storage[x][y - 1]);
+		AGround* xTile = Cast<AGround>(Storage[x - 1][y]);
+		AGround* yTile = Cast<AGround>(Storage[x][y - 1]);
 
-		if (xTile != nullptr && xTile->GetClass() == Ground && yTile != nullptr && yTile->GetClass() == Ground) {
+		if (xTile != nullptr && yTile != nullptr) {
 			int32 xTrees = xTile->Trees.Num();
 			int32 yTrees = yTile->Trees.Num();
 
@@ -201,7 +210,9 @@ void AGrid::GenerateResource(ATile* tile, int32 x, int32 y)
 
 			if (choiceVal > 27 || mean > 1) {
 				for (int i = 0; i < mean; i++) {
-					tile->GenerateTree();
+					AGround* t = Cast<AGround>(tile);
+
+					t->GenerateTree();
 				}
 			}
 		}
@@ -220,8 +231,8 @@ void AGrid::Clear()
 		{
 			AActor* tile = Storage[x][y];
 
-			if (tile->IsA<ATile>()) {
-				ATile* rList = Cast<ATile>(tile);
+			if (tile->IsA<AGround>()) {
+				AGround* rList = Cast<AGround>(tile);
 
 				for (int i = 0; i < rList->Trees.Num(); i++) {
 					rList->Trees[i]->Destroy();

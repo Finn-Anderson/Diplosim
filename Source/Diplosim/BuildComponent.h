@@ -21,7 +21,7 @@ public:
 		class ACamera* Camera;
 
 	UPROPERTY()
-		class ATile* PrevTile;
+		class AGround* PrevTile;
 
 public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -48,7 +48,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<class ABuilding> BuildingClass;
 
-	void hideTrees(class ATile* tile);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+		TSubclassOf<class AResource> TreeClass;
+
+	UPROPERTY()
+		TArray<class AResource*> Trees;
+
+	bool IsBlocked;
+
+	void HideTree(class AResource* tile);
 
 	void Build();
 

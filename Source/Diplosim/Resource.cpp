@@ -21,6 +21,15 @@ AResource::AResource()
 	isRock = true;
 }
 
+void AResource::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (isRock) {
+		ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	}
+}
+
 int32 AResource::GetYield()
 {
 	Yield = GenerateYield();
