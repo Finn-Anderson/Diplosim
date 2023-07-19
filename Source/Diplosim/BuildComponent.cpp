@@ -82,11 +82,12 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 
 	if (Building != nullptr) {
-		FVector min = Building->GetActorLocation();
-
-		FVector max;
+		FVector origin;
 		FVector boxExtent;
-		Building->GetActorBounds(false, max, boxExtent);
+		Building->GetActorBounds(false, origin, boxExtent);
+
+		FVector min = (origin - boxExtent) + FVector(1.0f, 1.0f, 0.0f);
+		FVector max = (origin + boxExtent) - FVector(1.0f, 1.0f, 0.0f);
 
 		int32 x[2] = {min.X, max.X};
 		int32 y[2] = {min.Y, max.Y};
@@ -106,11 +107,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 							count += 1;
 						}
 					}
-				}
-				else {
-					GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Yellow, TEXT("Some debug message!"));
-
-					return;
 				}
 			}
 		}

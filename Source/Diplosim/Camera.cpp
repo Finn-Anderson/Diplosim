@@ -21,6 +21,7 @@ ACamera::ACamera()
 	SpringArmComponent->TargetArmLength = MovementComponent->TargetLength;
 	SpringArmComponent->bUsePawnControlRotation = true;
 	SpringArmComponent->bEnableCameraLag = true;
+	SpringArmComponent->bDoCollisionTest = false;
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
@@ -79,8 +80,10 @@ void ACamera::Action()
 
 void ACamera::NewMap()
 {
-	Grid->Clear();
-	Grid->Render();
+	if (start) {
+		Grid->Clear();
+		Grid->Render();
+	}
 }
 
 void ACamera::GridStatus() 

@@ -118,12 +118,10 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, -100, 100);
 
-	if (Energy <= 0) {
-		if (House != nullptr) {
-			MoveTo(House);
+	if (Energy <= 0 && House != nullptr) {
+		MoveTo(House);
 
-			Goal = House;
-		}
+		Goal = House;
 	}
 
 	if (Energy == -100) {
