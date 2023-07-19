@@ -7,8 +7,9 @@
 #include "Grid.h"
 #include "Tile.h"
 #include "Ground.h"
-#include "Resource.h"
 #include "Water.h"
+#include "Vegetation.h"
+#include "Mineral.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -82,6 +83,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 
 	if (Building != nullptr) {
+		FCollisionQueryParams queryParams;
+		queryParams.AddIgnoredActor(Building);
+		queryParams.AddIgnoredActor(Camera->Grid);
+
 		FVector origin;
 		FVector boxExtent;
 		Building->GetActorBounds(false, origin, boxExtent);
@@ -98,14 +103,13 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		for (int i = 0; i < 2; i++) {
 			for (int j = 0; j < 2; j++) {
 				FVector end = FVector(x[j], y[i], z - 10.0f);
-				FVector corner = FVector(x[j], y[i], z);
+				FVector corner = FVector(x[j], y[i], z + 1.0f);
 
-				if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECollisionChannel::ECC_GameTraceChannel1)) {
+				if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECC_Visibility, queryParams)) {
 					AActor* actor = hit.GetActor();
-					if (!actor->IsA<AGrid>()) {
-						if (actor->IsA<AResource>() || (actor->IsA<ATile>() && !actor->IsA<AWater>())) {
-							count += 1;
-						}
+
+					if (actor->IsA<AMineral>() || (actor->IsA<ATile>() && !actor->IsA<AWater>())) {
+						count += 1;
 					}
 				}
 			}
@@ -125,17 +129,15 @@ void UBuildComponent::SetGridStatus()
 	GridStatus = !GridStatus;
 }
 
-void UBuildComponent::HideTree(AResource* tree)
+void UBuildComponent::HideTree(class AVegetation* vegetation)
 {
-	if (tree->GetClass() == TreeClass) {
-		tree->SetActorHiddenInGame(!tree->IsHidden());
+	vegetation->SetActorHiddenInGame(!vegetation->IsHidden());
 
-		if (tree->IsHidden()) {
-			Trees.Add(tree);
-		}
-		else {
-			Trees.Remove(tree);
-		}
+	if (vegetation->IsHidden()) {
+		Vegetation.Add(vegetation);
+	}
+	else {
+		Vegetation.Remove(vegetation);
 	}
 }
 
@@ -191,11 +193,11 @@ void UBuildComponent::Place()
 	if (Building == nullptr || IsBlocked || !Building->BuildCost())
 		return;
 
-	for (int i = 0; i < Trees.Num(); i++) {
-		Trees[i]->Destroy();
-
-		Trees.RemoveAt(i);
+	for (int i = 0; i < Vegetation.Num(); i++) {
+		Vegetation[i]->Destroy(true);
 	}
+
+	Vegetation.Empty();
 
 	Building->BuildingMesh->SetMaterial(0, OGMaterial);
 

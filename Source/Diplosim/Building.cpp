@@ -6,6 +6,7 @@
 #include "Camera.h"
 #include "ResourceManager.h"
 #include "BuildComponent.h"
+#include "Vegetation.h"
 
 ABuilding::ABuilding()
 {
@@ -116,8 +117,8 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 			}
 		}
 	}
-	else if (OtherActor->IsA<AResource>()) {
-		AResource* r = Cast<AResource>(OtherActor);
+	else if (OtherActor->IsA<AVegetation>()) {
+		AVegetation* r = Cast<AVegetation>(OtherActor);
 		Camera->BuildComponent->HideTree(r);
 	}
 }
@@ -135,8 +136,8 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 			GetWorldTimerManager().ClearTimer(ProdTimer);
 		}
 	}
-	else if (OtherActor->IsA<AResource>()) {
-		AResource* r = Cast<AResource>(OtherActor);
+	else if (OtherActor->IsA<AVegetation>()) {
+		AVegetation* r = Cast<AVegetation>(OtherActor);
 		Camera->BuildComponent->HideTree(r);
 	}
 }

@@ -29,7 +29,7 @@ public:
 public:
 	// Resource Classes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
-		TSubclassOf<class AResource> Rock;
+		TSubclassOf<class AMineral> Rock;
 
 public:
 	// Dimensions

@@ -48,15 +48,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<class ABuilding> BuildingClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
-		TSubclassOf<class AResource> TreeClass;
-
 	UPROPERTY()
-		TArray<class AResource*> Trees;
+		TArray<class AVegetation*> Vegetation;
 
 	bool IsBlocked;
 
-	void HideTree(class AResource* tile);
+	void HideTree(class AVegetation* vegetation);
 
 	void Build();
 

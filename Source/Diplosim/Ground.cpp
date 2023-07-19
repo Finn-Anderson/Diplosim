@@ -1,6 +1,6 @@
 #include "Ground.h"
 
-#include "Resource.h"
+#include "Vegetation.h"
 
 AGround::AGround()
 {
@@ -52,7 +52,7 @@ void AGround::GenerateTree()
 
 	FVector location = FVector(GetActorLocation().X + xRand, GetActorLocation().Y + yRand, boxExtent.Z + origin.Z);
 
-	AResource* tree = GetWorld()->SpawnActor<AResource>(Tree, location, GetActorRotation());
+	AVegetation* tree = GetWorld()->SpawnActor<AVegetation>(Tree, location, GetActorRotation());
 
 	Trees.Add(tree);
 }

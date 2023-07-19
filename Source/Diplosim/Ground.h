@@ -21,10 +21,10 @@ public:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
-		TSubclassOf<class AResource> Tree;
+		TSubclassOf<class AVegetation> Tree;
 
 	UPROPERTY()
-		TArray<class AResource*> Trees;
+		TArray<class AVegetation*> Trees;
 
 	FTimerHandle TreeTimer;
 

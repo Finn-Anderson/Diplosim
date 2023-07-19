@@ -6,7 +6,7 @@
 
 #include "Tile.h"
 #include "Ground.h"
-#include "Resource.h"
+#include "Mineral.h"
 #include "Camera.h"
 #include "CameraMovementComponent.h"
 
@@ -186,7 +186,9 @@ void AGrid::GenerateResource(ATile* tile, int32 x, int32 y)
 		if (choice != nullptr) {
 			FVector loc = tile->GetActorLocation();
 
-			AResource* resource = GetWorld()->SpawnActor<AResource>(choice, loc, GetActorRotation());
+			AMineral* resource = GetWorld()->SpawnActor<AMineral>(choice, loc, GetActorRotation());
+
+			resource->SetQuantity();
 
 			resource->Grid = this;
 
