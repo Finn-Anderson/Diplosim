@@ -9,8 +9,6 @@ UCameraMovementComponent::UCameraMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	Camera = Cast<ACamera>(GetOwner());
-
 	TargetLength = 1000.0f;
 
 	CameraSpeed = 10.0f;
@@ -19,6 +17,8 @@ UCameraMovementComponent::UCameraMovementComponent()
 void UCameraMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Camera = Cast<ACamera>(GetOwner());
 
 	PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PController->SetControlRotation(FRotator(-45.0f, 0.0f, 0.0f));

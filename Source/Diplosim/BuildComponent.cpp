@@ -5,33 +5,25 @@
 #include "Camera.h"
 #include "Building.h"
 #include "Grid.h"
-#include "Tile.h"
-#include "Ground.h"
 #include "Water.h"
 #include "Vegetation.h"
-#include "Mineral.h"
 
 UBuildComponent::UBuildComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
-	BlueprintMaterial = CreateDefaultSubobject<UMaterial>(TEXT("BlueprintMaterial"));
-
 	GridStatus = true;
 	Building = nullptr;
 
 	IsBlocked = true;
-
-	//Camera = Cast<ACamera>(GetOwner());
 }
 
 void UBuildComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	Camera = PController->GetPawn<ACamera>();
+	Camera = Cast<ACamera>(GetOwner());
 }
 
 void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -105,10 +97,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				FVector end = FVector(x[j], y[i], z - 10.0f);
 				FVector corner = FVector(x[j], y[i], z + 1.0f);
 
-				if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECC_Visibility, queryParams)) {
+				if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECollisionChannel::ECC_GameTraceChannel1, queryParams)) {
 					AActor* actor = hit.GetActor();
 
-					if (actor->IsA<AMineral>() || (actor->IsA<ATile>() && !actor->IsA<AWater>())) {
+					if (!actor->IsA<AWater>()) {
 						count += 1;
 					}
 				}
