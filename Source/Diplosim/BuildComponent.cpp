@@ -97,10 +97,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				FVector end = FVector(x[j], y[i], z - 10.0f);
 				FVector corner = FVector(x[j], y[i], z + 1.0f);
 
-				if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECollisionChannel::ECC_GameTraceChannel1, queryParams)) {
+				if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECC_Visibility, queryParams)) {
 					AActor* actor = hit.GetActor();
 
-					if (!actor->IsA<AWater>()) {
+					if (!actor->IsA<AWater>() && !actor->IsA<ABuilding>()) {
 						count += 1;
 					}
 				}
@@ -193,7 +193,7 @@ void UBuildComponent::Place()
 
 	Building->BuildingMesh->SetMaterial(0, OGMaterial);
 
-	Building->Blueprint = false;
+	Building->Run();
 
 	Building = nullptr;
 

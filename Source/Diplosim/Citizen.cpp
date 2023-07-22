@@ -25,6 +25,8 @@ void ACitizen::BeginPlay()
 	Super::BeginPlay();
 	
 	aiController = Cast<AAIController>(GetController());
+
+	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
 }
 
 void ACitizen::MoveTo(AActor* Location)
@@ -46,15 +48,11 @@ void ACitizen::LookForHouse()
 			if (building->GetCapacity() != building->GetOccupied().Num() && building->Category == ECategory::House) {
 				bool ecoCheck = false;
 
-				if (e->EcoStatus == EEconomy::Modest) {
-					if (building->EcoStatus != EEconomy::Rich) {
-						ecoCheck = true;
-					}
+				if (e->EcoStatus == EEconomy::Modest && building->EcoStatus != EEconomy::Rich) {
+					ecoCheck = true;
 				}
-				else if (e->EcoStatus == EEconomy::Poor) {
-					if (building->EcoStatus == EEconomy::Poor) {
-						ecoCheck = true;
-					}
+				else if (e->EcoStatus == EEconomy::Poor && building->EcoStatus == EEconomy::Poor) {
+					ecoCheck = true;
 				}
 				else {
 					ecoCheck = true;
@@ -87,14 +85,11 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 		if (OtherActor == House || OtherActor == Employment) {
 			SetActorHiddenInGame(true);
 
-			ABuilding* e = Cast<ABuilding>(Employment);
-
-			if (Energy == 0 && Goal == House) {
+			if (OtherActor == House) {
 				GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::GainEnergy, 0.6f, true);
 			}
 		}
-		
-		if (OtherActor->GetClass() == ResourceActor) {
+		else {
 			AResource* r = Cast<AResource>(OtherActor);
 
 			FTimerHandle harvestTimer;

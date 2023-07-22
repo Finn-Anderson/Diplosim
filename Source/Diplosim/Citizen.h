@@ -35,11 +35,6 @@ public:
 		AActor* Goal;
 
 public:
-	// Resources
-	UPROPERTY()
-		TSubclassOf<class AResource> ResourceActor;
-
-public:
 	// Energy
 	void LoseEnergy();
 

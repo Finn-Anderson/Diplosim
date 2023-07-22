@@ -41,35 +41,15 @@ public:
 	bool Blueprint;
 
 	UPROPERTY()
-		TArray<class ACitizen*> AtWork;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
-		float TimeLength;
-
-	UPROPERTY()
 		class ACamera* Camera;
 
+	void Run();
+
+	void DestroyBuilding();
+
+	virtual void Action(class ACitizen* Citizen);
+
 public:
-	// Resource
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> ActorToGetResource;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		FString Produce;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Storage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 StorageCap;
-
-	FTimerHandle ProdTimer;
-
-	virtual void Production(class ACitizen* Citizen);
-
-	void Store(int32 Amount, class ACitizen* Citizen);
-
-
 	// Building cost
 	int32 Wood;
 
@@ -91,27 +71,26 @@ public:
 	UFUNCTION()
 		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-
-	// Remove
-	void DestroyBuilding();
-
-	
-	// Building capacity
+public:
+	// Citizens
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TEnumAsByte<EEconomy> EcoStatus;
 
-	void FindCitizens();
+	UPROPERTY()
+		TArray<class ACitizen*> Occupied;
 
-	FTimerHandle FindTimer;
-
-	void AddCitizen(class ACitizen* citizen);
-
-	void RemoveCitizen(class ACitizen* citizen);
+	UPROPERTY()
+		TArray<class ACitizen*> AtWork;
 
 	int32 Capacity;
 
-	UPROPERTY()
-		TArray<class ACitizen*> Occupied;
+	FTimerHandle FindTimer;
+
+	void FindCitizens();
+
+	void AddCitizen(class ACitizen* Citizen);
+
+	void RemoveCitizen(class ACitizen* Citizen);
 
 	int32 GetCapacity();
 

@@ -26,30 +26,28 @@ ABuilding::ABuilding()
 
 	Upkeep = 0;
 
-	Storage = 0;
-	StorageCap = 1000;
-
 	EcoStatus = Poor;
 
 	Blueprint = true;
-
-	TimeLength = 60.0f;
-
-	ActorToGetResource = nullptr;
 }
 
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorldTimerManager().SetTimer(FindTimer, this, &ABuilding::FindCitizens, 30.0f, true, 2.0f);
-	GetWorldTimerManager().SetTimer(FindTimer, this, &ABuilding::UpkeepCost, 300.0f, true);
-
 	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
 	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
+}
+
+void ABuilding::Run()
+{
+	Blueprint = false;
+
+	GetWorldTimerManager().SetTimer(FindTimer, this, &ABuilding::FindCitizens, 30.0f, true, 2.0f);
+	GetWorldTimerManager().SetTimer(FindTimer, this, &ABuilding::UpkeepCost, 300.0f, true);
 }
 
 bool ABuilding::BuildCost()
@@ -69,8 +67,6 @@ bool ABuilding::BuildCost()
 	else {
 		return false;
 	}
-
-	return true;
 }
 
 void ABuilding::UpkeepCost()
@@ -78,44 +74,12 @@ void ABuilding::UpkeepCost()
 	Camera->ResourceManager->ChangeResource(TEXT("Money"), -Upkeep);
 }
 
-void ABuilding::Store(int32 Amount, ACitizen* Citizen)
-{
-	if (Storage < StorageCap) {
-		Storage += Amount;
-
-		Camera->ResourceManager->ChangeResource(Produce, Amount);
-
-		Production(Citizen);
-	}
-	else {
-		GetWorldTimerManager().ClearTimer(ProdTimer);
-
-		FTimerHandle StoreCheckTimer;
-		GetWorldTimerManager().SetTimer(StoreCheckTimer, FTimerDelegate::CreateUObject(this, &ABuilding::Store, Amount, Citizen), 30.0f, false);
-	}
-}
-
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
-		for (int i = 0; i < Occupied.Num(); i++) {
-			if (c == Occupied[i] && c->Goal == this) {
-				AtWork.Add(c);
-			}
-		}
-		
-		if (AtWork.Num() == 1) {
-			if (c->Carrying > 0) {
-				Store(c->Carrying, c);
-
-				c->Carrying = 0;
-			}
-			else {
-				Store(0, c);
-			}
-		}
+		Action(c);
 	}
 	else if (OtherActor->IsA<AVegetation>()) {
 		AVegetation* r = Cast<AVegetation>(OtherActor);
@@ -128,13 +92,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
-		if (AtWork.Contains(c)) {
-			AtWork.Remove(c);
-		}
-
-		if (AtWork.Num() == 0) {
-			GetWorldTimerManager().ClearTimer(ProdTimer);
-		}
+		Action(c);
 	}
 	else if (OtherActor->IsA<AVegetation>()) {
 		AVegetation* r = Cast<AVegetation>(OtherActor);
@@ -175,35 +133,33 @@ void ABuilding::FindCitizens()
 	}
 }
 
-void ABuilding::AddCitizen(ACitizen* citizen)
+void ABuilding::AddCitizen(ACitizen* Citizen)
 {
-	if (Occupied.Num() != Capacity) {
-		Occupied.Add(citizen);
+	if (Occupied.Num() != GetCapacity()) {
+		Occupied.Add(Citizen);
 
-		citizen->Employment = this;
-		citizen->LookForHouse();
+		Citizen->Employment = this;
+		Citizen->LookForHouse();
 
-		citizen->ResourceActor = ActorToGetResource;
-
-		citizen->MoveTo(this);
+		Action(Citizen);
 	}
 	else {
 		GetWorldTimerManager().ClearTimer(FindTimer);
 	}
 }
 
-void ABuilding::RemoveCitizen(ACitizen* citizen)
+void ABuilding::RemoveCitizen(ACitizen* Citizen)
 {
-	if (Occupied.Num() != 0) {
-		Occupied.Remove(citizen);
+	if (Occupied.Contains(Citizen)) {
+		Occupied.Remove(Citizen);
 
-		citizen->Employment = nullptr;
+		if (Occupied.Num() == 0) {
+			Action(Citizen);
+		}
+
+		Citizen->Employment = nullptr;
 
 		GetWorldTimerManager().SetTimer(FindTimer, this, &ABuilding::FindCitizens, 30.0f, true);
-	}
-
-	if (Occupied.Num() == 0) {
-		GetWorldTimerManager().ClearTimer(ProdTimer);
 	}
 }
 
@@ -217,7 +173,7 @@ TArray<class ACitizen*> ABuilding::GetOccupied()
 	return Occupied;
 }
 
-void ABuilding::Production(ACitizen* Citizen)
+void ABuilding::Action(ACitizen* Citizen)
 {
 
 }
