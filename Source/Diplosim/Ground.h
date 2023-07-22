@@ -29,4 +29,6 @@ public:
 	FTimerHandle TreeTimer;
 
 	void GenerateTree();
+
+	void DeleteTrees();
 };

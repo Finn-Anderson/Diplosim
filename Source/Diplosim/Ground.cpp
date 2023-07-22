@@ -56,3 +56,10 @@ void AGround::GenerateTree()
 
 	Trees.Add(tree);
 }
+
+void AGround::DeleteTrees()
+{
+	for (int i = 0; i < Trees.Num(); i++) {
+		Trees[i]->Destroy();
+	}
+}

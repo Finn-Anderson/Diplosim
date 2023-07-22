@@ -9,6 +9,7 @@
 #include "Mineral.h"
 #include "Camera.h"
 #include "CameraMovementComponent.h"
+#include "Vegetation.h"
 
 AGrid::AGrid()
 {
@@ -234,11 +235,9 @@ void AGrid::Clear()
 			AActor* tile = Storage[x][y];
 
 			if (tile->IsA<AGround>()) {
-				AGround* rList = Cast<AGround>(tile);
+				AGround* g = Cast<AGround>(tile);
 
-				for (int i = 0; i < rList->Trees.Num(); i++) {
-					rList->Trees[i]->Destroy();
-				}
+				g->DeleteTrees();
 			}
 
 			tile->Destroy();
