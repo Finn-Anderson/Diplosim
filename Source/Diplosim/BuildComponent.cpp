@@ -1,6 +1,7 @@
 #include "BuildComponent.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "Blueprint/UserWidget.h"
 
 #include "Camera.h"
 #include "Building.h"
@@ -201,5 +202,8 @@ void UBuildComponent::Place()
 
 	if (Camera->start) {
 		Camera->start = false;
+	}
+	else {
+		Camera->BuildUIInstance->RemoveFromViewport();
 	}
 }

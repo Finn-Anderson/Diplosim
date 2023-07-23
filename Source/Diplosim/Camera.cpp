@@ -2,6 +2,8 @@
 
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Blueprint/UserWidget.h"
 
 #include "Grid.h"
 #include "BuildComponent.h"
@@ -38,6 +40,10 @@ void ACamera::BeginPlay()
 	if (start) {
 		BuildComponent->Build();
 	}
+
+	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+
+	BuildUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildUI);
 }
 
 void ACamera::Tick(float DeltaTime)
@@ -95,6 +101,13 @@ void ACamera::BuildStatus()
 {
 	if (!start) {
 		BuildComponent->Build();
+
+		if (BuildComponent->IsComponentTickEnabled()) {
+			BuildUIInstance->AddToViewport();
+		}
+		else {
+			BuildUIInstance->RemoveFromViewport();
+		}
 	}
 }
 

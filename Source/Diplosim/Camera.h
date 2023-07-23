@@ -36,8 +36,17 @@ public:
 
 	bool start;
 
+
 public:	
 	virtual void Tick(float DeltaTime) override;
+
+	// UI
+	UPROPERTY(EditAnywhere)
+		TSubclassOf<class UUserWidget> BuildUI;
+
+	UPROPERTY()
+		class UUserWidget* BuildUIInstance;
+
 
 public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

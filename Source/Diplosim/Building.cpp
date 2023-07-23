@@ -173,6 +173,27 @@ TArray<class ACitizen*> ABuilding::GetOccupied()
 	return Occupied;
 }
 
+FText ABuilding::GetWood()
+{
+	FString s = "Wood: " + FString::FromInt(Wood);
+
+	return FText::FromString(s);
+}
+
+FText ABuilding::GetStone()
+{
+	FString s = "Stone: " + FString::FromInt(Stone);
+
+	return FText::FromString(s);
+}
+
+FText ABuilding::GetMoney()
+{
+	FString s = "Money: " + FString::FromInt(Money);
+
+	return FText::FromString(s);
+}
+
 void ABuilding::Action(ACitizen* Citizen)
 {
 

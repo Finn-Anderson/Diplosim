@@ -63,6 +63,15 @@ public:
 
 	void UpkeepCost();
 
+	UFUNCTION(BlueprintCallable)
+		FText GetWood();
+
+	UFUNCTION(BlueprintCallable)
+		FText GetStone();
+
+	UFUNCTION(BlueprintCallable)
+		FText GetMoney();
+
 public:
 	// Building prevent overlaps
 	UFUNCTION()

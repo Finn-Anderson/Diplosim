@@ -41,7 +41,7 @@ void AProduction::Action(ACitizen* Citizen)
 
 void AProduction::Store(int32 Amount, ACitizen* Citizen)
 {
-	if (Storage < StorageCap) {
+	if ((Storage + Amount) < StorageCap) {
 		Storage += Amount;
 
 		Camera->ResourceManager->ChangeResource(Produce, Amount);
