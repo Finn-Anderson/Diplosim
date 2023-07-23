@@ -38,8 +38,6 @@ public:
 	UPROPERTY(EditAnywhere)
 		class UMaterial* BlockedMaterial;
 
-	class UMaterialInstanceDynamic* OGMaterial;
-
 	FRotator Rotation;
 
 	UPROPERTY()

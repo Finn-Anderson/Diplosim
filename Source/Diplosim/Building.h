@@ -51,13 +51,17 @@ public:
 
 public:
 	// Building cost
-	int32 Wood;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
+		int32 Wood;
 
-	int32 Stone;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
+		int32 Stone;
 
-	int32 Money;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
+		int32 Money;
 
-	int32 Upkeep;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
+		int32 Upkeep;
 
 	bool BuildCost();
 
