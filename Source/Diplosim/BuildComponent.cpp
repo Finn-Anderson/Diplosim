@@ -95,7 +95,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			for (int i = 0; i < 2; i++) {
 				for (int j = 0; j < 2; j++) {
 					FVector end = FVector(x[j], y[i], z - 10.0f);
-					FVector corner = FVector(x[j], y[i], z + 1.0f);
+					FVector corner = FVector(x[j], y[i], z + 10.0f);
 
 					if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECC_Visibility, queryParams)) {
 						AActor* actor = hit.GetActor();
@@ -142,6 +142,7 @@ void UBuildComponent::Build()
 		Building->Destroy();
 
 		Building = nullptr;
+		BuildingClass = nullptr;
 	}
 }
 
