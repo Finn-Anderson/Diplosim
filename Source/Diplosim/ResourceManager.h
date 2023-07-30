@@ -14,12 +14,12 @@ public:
 	UResourceManager();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TArray<FString> ResourceNames;
+		TArray<TSubclassOf<class AResource>> ResourceTypes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<int32> ResourceAmounts;
 
-	void ChangeResource(FString Name, int32 Change);
+	void ChangeResource(TSubclassOf<AResource> Resource, int32 Change);
 
-	int32 GetResource(FString Name);
+	int32 GetResource(TSubclassOf<AResource> Resource);
 };

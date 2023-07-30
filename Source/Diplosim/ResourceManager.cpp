@@ -1,20 +1,16 @@
 #include "ResourceManager.h"
 
+#include "Resource.h"
+
 UResourceManager::UResourceManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-
-	ResourceNames.Add(TEXT("Wood"));
-	ResourceNames.Add(TEXT("Stone"));
-	ResourceNames.Add(TEXT("Money"));
-
-	ResourceAmounts.Init(0, ResourceNames.Num());
 }
 
-void UResourceManager::ChangeResource(FString Name, int32 Change)
+void UResourceManager::ChangeResource(TSubclassOf<AResource> Resource, int32 Change)
 {
-	for (int i = 0; i < ResourceNames.Num(); i++) {
-		if (ResourceNames[i] == Name) {
+	for (int i = 0; i < ResourceTypes.Num(); i++) {
+		if (ResourceTypes[i] == Resource) {
 			ResourceAmounts[i] += Change;
 
 			return;
@@ -22,10 +18,10 @@ void UResourceManager::ChangeResource(FString Name, int32 Change)
 	}
 }
 
-int32 UResourceManager::GetResource(FString Name)
+int32 UResourceManager::GetResource(TSubclassOf<AResource> Resource)
 {
-	for (int i = 0; i < ResourceNames.Num(); i++) {
-		if (ResourceNames[i] == Name) {
+	for (int i = 0; i < ResourceTypes.Num(); i++) {
+		if (ResourceTypes[i] == Resource) {
 			return ResourceAmounts[i];
 		}
 	}

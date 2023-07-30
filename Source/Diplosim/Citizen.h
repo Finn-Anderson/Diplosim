@@ -25,14 +25,15 @@ public:
 	UFUNCTION()
 		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void LookForHouse();
-
 	void MoveTo(AActor* Location);
-
-	FTimerHandle HouseTimer;
 
 	UPROPERTY()
 		AActor* Goal;
+
+public:
+	// Money
+	UPROPERTY()
+		int32 Balance;
 
 public:
 	// Energy
@@ -47,10 +48,10 @@ public:
 public:	
 	// Buildings
 	UPROPERTY()
-		class AActor* Employment;
+		class AWork* Employment;
 
 	UPROPERTY()
-		class AActor* House;
+		class AHouse* House;
 
 
 	// Resources

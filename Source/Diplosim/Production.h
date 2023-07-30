@@ -1,25 +1,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Building.h"
+#include "Work.h"
 #include "Production.generated.h"
 
 UCLASS()
-class DIPLOSIM_API AProduction : public ABuilding
+class DIPLOSIM_API AProduction : public AWork
 {
 	GENERATED_BODY()
 
 public:
 	AProduction();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
-		float TimeLength;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> ActorToGetResource;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		FString Produce;
+		TSubclassOf<class AResource> Resource;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Storage;
@@ -28,8 +22,6 @@ public:
 		int32 StorageCap;
 
 	FTimerHandle ProdTimer;
-
-	virtual void Action(class ACitizen* Citizen) override;
 
 	virtual void Production(class ACitizen* Citizen);
 

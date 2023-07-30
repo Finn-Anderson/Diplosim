@@ -4,22 +4,6 @@
 #include "GameFramework/Actor.h"
 #include "Building.generated.h"
 
-UENUM()
-enum ECategory
-{
-	House		UMETA(DisplayName = "House"),
-	Military	UMETA(DisplayName = "Military"),
-	Industry	UMETA(DisplayName = "Industry"),
-};
-
-UENUM()
-enum EEconomy
-{
-	Poor	UMETA(DisplayName = "Poor"),
-	Modest	UMETA(DisplayName = "Modest"),
-	Rich	UMETA(DisplayName = "Rich"),
-};
-
 UCLASS()
 class DIPLOSIM_API ABuilding : public AActor
 {
@@ -35,9 +19,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* BuildingMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
-		TEnumAsByte<ECategory> Category;
-
 	bool Blueprint;
 
 	UPROPERTY()
@@ -47,34 +28,55 @@ public:
 
 	void DestroyBuilding();
 
-	virtual void Action(class ACitizen* Citizen);
+	virtual void OnBuilt();
+
+	virtual void Enter(class ACitizen* Citizen);
+
+	virtual void Leave(class ACitizen* Citizen);
+
+	virtual void FindCitizens();
+
+	virtual void AddCitizen(class ACitizen* Citizen);
+
+	virtual void RemoveCitizen(class ACitizen* Citizen);
 
 public:
 	// Building cost
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
-		int32 Wood;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> Resource1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> Resource2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> Money;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
-		int32 Stone;
+		int32 R1Cost;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
-		int32 Money;
+		int32 R2Cost;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
-		int32 Upkeep;
+		int32 MoneyCost;
 
 	bool BuildCost();
 
-	void UpkeepCost();
+	UFUNCTION(BlueprintCallable)
+		FText GetR1();
 
 	UFUNCTION(BlueprintCallable)
-		FText GetWood();
-
-	UFUNCTION(BlueprintCallable)
-		FText GetStone();
+		FText GetR2();
 
 	UFUNCTION(BlueprintCallable)
 		FText GetMoney();
+
+public:
+	// Upkeep
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
+		int32 Upkeep;
+
+	virtual void UpkeepCost();
 
 public:
 	// Building prevent overlaps
@@ -86,24 +88,15 @@ public:
 
 public:
 	// Citizens
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
-		TEnumAsByte<EEconomy> EcoStatus;
-
 	UPROPERTY()
 		TArray<class ACitizen*> Occupied;
 
 	UPROPERTY()
 		TArray<class ACitizen*> AtWork;
 
+	FTimerHandle CostTimer;
+
 	int32 Capacity;
-
-	FTimerHandle FindTimer;
-
-	void FindCitizens();
-
-	void AddCitizen(class ACitizen* Citizen);
-
-	void RemoveCitizen(class ACitizen* Citizen);
 
 	int32 GetCapacity();
 

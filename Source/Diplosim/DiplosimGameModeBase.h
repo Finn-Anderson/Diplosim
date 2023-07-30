@@ -11,9 +11,4 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 
 protected:
 	virtual void BeginPlay() override;
-
-	UPROPERTY()
-		class ACamera* Camera;
-	
-	void Tax();
 };

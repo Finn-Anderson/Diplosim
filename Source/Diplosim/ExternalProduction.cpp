@@ -6,10 +6,24 @@
 #include "AIController.h"
 #include "Resource.h"
 
+void AExternalProduction::Enter(ACitizen* Citizen)
+{
+	if (Occupied.Contains(Citizen) && Citizen->Carrying > 0) {
+		Store(Citizen->Carrying, Citizen);
+
+		Citizen->Carrying = 0;
+	}
+}
+
+void AExternalProduction::Leave(ACitizen* Citizen)
+{
+	
+}
+
 void AExternalProduction::Production(ACitizen* Citizen)
 {
 	TArray<AActor*> foundResources;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ActorToGetResource, foundResources);
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), Resource, foundResources);
 
 	AResource* resource = Cast<AResource>(foundResources[0]);
 
