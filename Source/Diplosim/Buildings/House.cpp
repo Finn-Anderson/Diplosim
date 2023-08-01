@@ -2,9 +2,9 @@
 
 #include "Kismet/GameplayStatics.h"
 
-#include "Citizen.h"
-#include "Camera.h"
-#include "ResourceManager.h"
+#include "AI/Citizen.h"
+#include "Player/Camera.h"
+#include "Player/ResourceManager.h"
 #include "Work.h"
 
 AHouse::AHouse()
@@ -44,23 +44,26 @@ void AHouse::FindCitizens()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (GetCapacity() > GetOccupied().Num()) {
-			if (c->House == nullptr) {
-				c->House = this;
-			}
-			else if (c->Balance > Rent) {
-				float dOldHouse = (c->House->GetActorLocation() - c->Employment->GetActorLocation()).Length();
+		if (GetCapacity() <= GetOccupied().Num())
+			return;
 
-				float dNewHouse = (GetActorLocation() - c->Employment->GetActorLocation()).Length();
+		if (c->Balance < Rent)
+			continue;
 
-				if (dOldHouse > dNewHouse) {
-					c->House = this;
-				}
-			}
+		if (c->House == nullptr) {
+			c->House = this;
+			
 		}
 		else {
-			return;
+			float dOldHouse = (c->House->GetActorLocation() - c->Employment->GetActorLocation()).Length();
+
+			float dNewHouse = (GetActorLocation() - c->Employment->GetActorLocation()).Length();
+
+			if (dOldHouse > dNewHouse) {
+				c->House = this;
+			}
 		}
+		
 	}
 
 	if (GetCapacity() > Occupied.Num()) {

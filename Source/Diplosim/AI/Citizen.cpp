@@ -6,8 +6,8 @@
 #include "AIController.h"
 
 #include "Resource.h"
-#include "Work.h"
-#include "House.h"
+#include "Buildings/Work.h"
+#include "Buildings/House.h"
 
 ACitizen::ACitizen()
 {
@@ -16,7 +16,7 @@ ACitizen::ACitizen()
 	House = nullptr;
 	Employment = nullptr;
 
-	Balance = 0;
+	Balance = 20;
 
 	Carrying = 0;
 

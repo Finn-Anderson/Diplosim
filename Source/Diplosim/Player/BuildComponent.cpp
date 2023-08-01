@@ -4,10 +4,10 @@
 #include "Blueprint/UserWidget.h"
 
 #include "Camera.h"
-#include "Building.h"
-#include "Grid.h"
-#include "Water.h"
-#include "Vegetation.h"
+#include "Buildings/Building.h"
+#include "Map/Grid.h"
+#include "Map/Water.h"
+#include "Map/Vegetation.h"
 
 UBuildComponent::UBuildComponent()
 {

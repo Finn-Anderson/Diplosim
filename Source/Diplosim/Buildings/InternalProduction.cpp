@@ -1,7 +1,7 @@
 #include "InternalProduction.h"
 
 #include "Resource.h"
-#include "Camera.h"
+#include "Player/Camera.h"
 
 AInternalProduction::AInternalProduction()
 {

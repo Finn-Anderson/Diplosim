@@ -2,9 +2,9 @@
 
 #include "Kismet/GameplayStatics.h"
 
-#include "Citizen.h"
-#include "Camera.h"
-#include "ResourceManager.h"
+#include "AI/Citizen.h"
+#include "Player/Camera.h"
+#include "Player/ResourceManager.h"
 
 
 AWork::AWork()
@@ -54,9 +54,10 @@ void AWork::AddCitizen(ACitizen* Citizen)
 		Citizen->Employment = this;
 
 		Citizen->MoveTo(this);
-	}
-	else {
-		GetWorldTimerManager().ClearTimer(FindTimer);
+
+		if (GetCapacity() == Occupied.Num()) {
+			GetWorldTimerManager().ClearTimer(FindTimer);
+		}
 	}
 }
 

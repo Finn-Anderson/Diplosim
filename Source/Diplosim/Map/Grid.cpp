@@ -7,8 +7,8 @@
 #include "Tile.h"
 #include "Ground.h"
 #include "Mineral.h"
-#include "Camera.h"
-#include "CameraMovementComponent.h"
+#include "Player/Camera.h"
+#include "Player/CameraMovementComponent.h"
 #include "Vegetation.h"
 
 AGrid::AGrid()
@@ -63,7 +63,6 @@ void AGrid::Render()
 				ATile* xTile = Cast<ATile>(Storage[x - 1][y]);
 				ATile* yTile = Cast<ATile>(Storage[x][y - 1]);
 
-				// Check tile fertility if ground
 				int32 xFertility;
 				int32 yFertility;
 
@@ -180,46 +179,67 @@ void AGrid::GenerateResource(ATile* tile, int32 x, int32 y)
 
 	if (tile->GetClass() == Hill) {
 		TSubclassOf<AResource> choice = nullptr;
+
 		if (choiceVal > 20) {
 			choice = Rock;
 		}
-
-		if (choice != nullptr) {
-			FVector loc = tile->GetActorLocation();
-
-			AMineral* resource = GetWorld()->SpawnActor<AMineral>(choice, loc, GetActorRotation());
-
-			resource->SetQuantity();
-
-			resource->Grid = this;
-
-			Storage[x][y] = resource;
-
-			tile->Destroy();
+		else {
+			return;
 		}
+
+		FVector loc = tile->GetActorLocation();
+
+		AMineral* resource = GetWorld()->SpawnActor<AMineral>(choice, loc, GetActorRotation());
+
+		resource->SetQuantity();
+
+		resource->Grid = this;
+
+		Storage[x][y] = resource;
+
+		tile->Destroy();
 	}
 	else if (tile->GetClass() == Ground) {
-		AGround* xTile = Cast<AGround>(Storage[x - 1][y]);
-		AGround* yTile = Cast<AGround>(Storage[x][y - 1]);
+		AActor* xT = Storage[x - 1][y];
+		AActor* yT = Storage[x][y - 1];
 
-		if (xTile != nullptr && yTile != nullptr) {
-			int32 xTrees = xTile->Trees.Num();
-			int32 yTrees = yTile->Trees.Num();
+		int32 xTrees;
+		int32 yTrees;
 
-			int32 value = FMath::RandRange(-1, 1);
-
-			int32 trees = ((xTrees + yTrees) + 1) / 2;
-			int32 mean = FMath::Clamp(trees + value, 0, 5);
-
-			if (choiceVal > 27 || mean > 1) {
-				for (int i = 0; i < mean; i++) {
-					AGround* t = Cast<AGround>(tile);
-
-					t->GenerateTree();
-				}
-			}
+		if (!xT->IsA<AGround>()) {
+			xTrees = FMath::RandRange(0, 1);
 		}
-				
+		else {
+			AGround* xTile = Cast<AGround>(xT);
+			xTrees = xTile->Trees.Num();
+		}
+		
+		if (!yT->IsA<AGround>()) {
+			yTrees = FMath::RandRange(0, 1);
+		}
+		else {
+			AGround* yTile = Cast<AGround>(yT);
+			yTrees = yTile->Trees.Num();
+		}
+
+		int32 trees = ((xTrees + yTrees) + 1) / 2;
+
+		int32 value = 0;
+
+		if (choiceVal == 30) {
+			value = FMath::RandRange(-1, 1);
+		}
+		else if (choiceVal > 8) {
+			value = FMath::RandRange(-1, 0);
+		}
+
+		int32 mean = FMath::Clamp(trees + value, 0, 5);
+
+		for (int i = 0; i < mean; i++) {
+			AGround* t = Cast<AGround>(tile);
+
+			t->GenerateTree();
+		}	
 	}
 	else {
 		// Water resources (fish/oil);

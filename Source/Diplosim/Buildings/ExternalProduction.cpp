@@ -2,7 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 
-#include "Citizen.h"
+#include "AI/Citizen.h"
 #include "AIController.h"
 #include "Resource.h"
 
@@ -28,14 +28,15 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	AResource* resource = Cast<AResource>(foundResources[0]);
 
 	for (int i = 1; i < foundResources.Num(); i++) {
-		if (!resource->IsHidden()) {
-			float dR = (resource->GetActorLocation() - GetActorLocation()).Length();
+		if (resource->IsHidden())
+			continue;
 
-			float dF = (foundResources[i]->GetActorLocation() - GetActorLocation()).Length();
+		float dR = (resource->GetActorLocation() - GetActorLocation()).Length();
 
-			if (dR > dF) {
-				resource = Cast<AResource>(foundResources[i]);
-			}
+		float dF = (foundResources[i]->GetActorLocation() - GetActorLocation()).Length();
+
+		if (dR > dF) {
+			resource = Cast<AResource>(foundResources[i]);
 		}
 	}
 

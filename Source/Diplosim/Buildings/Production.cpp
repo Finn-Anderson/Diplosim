@@ -1,8 +1,8 @@
 #include "Production.h"
 
-#include "Camera.h"
-#include "ResourceManager.h"
-#include "Citizen.h"
+#include "Player/Camera.h"
+#include "Player/ResourceManager.h"
+#include "AI/Citizen.h"
 
 AProduction::AProduction()
 {
@@ -14,7 +14,8 @@ AProduction::AProduction()
 
 void AProduction::Store(int32 Amount, ACitizen* Citizen)
 {
-	if (0 < (Storage + Amount) && (Storage + Amount) < StorageCap) {
+	int32 quantity = (Storage + Amount);
+	if (0 < quantity && quantity < StorageCap) {
 		Storage += Amount;
 
 		Camera->ResourceManager->ChangeResource(Resource, Amount);

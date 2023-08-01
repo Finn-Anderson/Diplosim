@@ -2,11 +2,11 @@
 
 #include "Kismet/GameplayStatics.h"
 
-#include "Citizen.h"
-#include "Camera.h"
-#include "ResourceManager.h"
-#include "BuildComponent.h"
-#include "Vegetation.h"
+#include "AI/Citizen.h"
+#include "Player/Camera.h"
+#include "Player/ResourceManager.h"
+#include "Player/BuildComponent.h"
+#include "Map/Vegetation.h"
 
 ABuilding::ABuilding()
 {

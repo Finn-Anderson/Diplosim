@@ -5,7 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
 
-#include "Grid.h"
+#include "Map/Grid.h"
 #include "BuildComponent.h"
 #include "CameraMovementComponent.h"
 #include "ResourceManager.h"
