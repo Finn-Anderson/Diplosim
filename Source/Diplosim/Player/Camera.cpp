@@ -28,7 +28,7 @@ ACamera::ACamera()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
-	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
+	ResourceManagerComponent = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManagerComponent"));
 
 	start = true;
 }

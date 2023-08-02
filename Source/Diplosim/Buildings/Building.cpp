@@ -18,13 +18,6 @@ ABuilding::ABuilding()
 
 	Capacity = 2;
 
-	Resource1 = nullptr;
-	Resource2 = nullptr;
-
-	R1Cost = 0;
-	R2Cost = 0;
-	MoneyCost = 0;
-
 	Upkeep = 0;
 
 	Blueprint = true;
@@ -50,37 +43,28 @@ void ABuilding::Run()
 
 bool ABuilding::BuildCost()
 {
-	UResourceManager* rm = Camera->ResourceManager;
+	UResourceManager* rm = Camera->ResourceManagerComponent;
 
-	int32 maxR1 = 0;
-	int32 maxR2 = 0;
+	int32 tally = 0;
 
-	if (Resource1 != nullptr) {
-		maxR1 = rm->GetResource(Resource1);
+	for (int i = 0; i < CostList.Num(); i++) {
+		int32 maxAmount = rm->GetResourceAmount(CostList[i].Type);
+
+		if (maxAmount < CostList[i].Cost) {
+			return false;
+		} else if (CostList[i].Cost == 0) {
+			tally += 1;
+		}
 	}
 
-	if (Resource2 != nullptr) {
-		maxR2 = rm->GetResource(Resource2);
-	}
-
-	int32 maxMoney = rm->GetResource(Money);
-
-	if (maxR1 >= R1Cost && maxR2 >= R2Cost && maxMoney >= MoneyCost) {
-		if (Resource1 != nullptr) {
-			rm->ChangeResource(Resource1, -R1Cost);
-		}
-
-		if (Resource2 != nullptr) {
-			rm->ChangeResource(Resource2, -R1Cost);
-		}
-
-		rm->ChangeResource(Money, -MoneyCost);
-
+	if (tally == CostList.Num())
 		return true;
+
+	for (int i = 0; i < CostList.Num(); i++) {
+		rm->ChangeResource(CostList[i].Type, -CostList[i].Cost);
 	}
-	else {
-		return false;
-	}
+
+	return true;
 }
 
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -137,31 +121,9 @@ TArray<class ACitizen*> ABuilding::GetOccupied()
 	return Occupied;
 }
 
-FText ABuilding::GetR1()
+TArray<FCostStruct> ABuilding::GetCosts()
 {
-	FString s = "";
-	if (Resource1 != nullptr) {
-		s = Resource1->GetName() + ": " + FString::FromInt(R1Cost);
-	}
-
-	return FText::FromString(s);
-}
-
-FText ABuilding::GetR2()
-{
-	FString s = "";
-	if (Resource2 != nullptr) {
-		s = Resource2->GetName() + ": " + FString::FromInt(R2Cost);
-	}
-
-	return FText::FromString(s);
-}
-
-FText ABuilding::GetMoney()
-{
-	FString s = "Money: " + FString::FromInt(MoneyCost);
-
-	return FText::FromString(s);
+	return CostList;
 }
 
 void ABuilding::OnBuilt()

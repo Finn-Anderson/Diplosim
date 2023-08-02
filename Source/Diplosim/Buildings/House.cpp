@@ -33,7 +33,7 @@ void AHouse::UpkeepCost()
 
 	int32 cost = Rent * Occupied.Num() - Upkeep;
 
-	Camera->ResourceManager->ChangeResource(Money, cost);
+	Camera->ResourceManagerComponent->ChangeResource(Money, cost);
 }
 
 void AHouse::FindCitizens()

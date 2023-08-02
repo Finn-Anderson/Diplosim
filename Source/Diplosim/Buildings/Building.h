@@ -4,6 +4,24 @@
 #include "GameFramework/Actor.h"
 #include "Building.generated.h"
 
+USTRUCT(BlueprintType)
+struct FCostStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> Type;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Cost;
+
+	FCostStruct()
+	{
+		Type = nullptr;
+		Cost = 0;
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ABuilding : public AActor
 {
@@ -42,37 +60,19 @@ public:
 
 public:
 	// Building cost
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> Resource1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> Resource2;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> Money;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
-		int32 R1Cost;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
-		int32 R2Cost;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
-		int32 MoneyCost;
+		TArray<FCostStruct> CostList;
 
 	bool BuildCost();
 
 	UFUNCTION(BlueprintCallable)
-		FText GetR1();
-
-	UFUNCTION(BlueprintCallable)
-		FText GetR2();
-
-	UFUNCTION(BlueprintCallable)
-		FText GetMoney();
+		TArray<FCostStruct> GetCosts();
 
 public:
 	// Upkeep
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
+		TSubclassOf<class AResource> Money;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		int32 Upkeep;
 

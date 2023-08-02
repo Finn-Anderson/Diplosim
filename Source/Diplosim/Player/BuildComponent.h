@@ -44,7 +44,7 @@ public:
 		class ABuilding* Building;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
-		TSubclassOf<class ABuilding> BuildingClass;
+		TSubclassOf<class ABuilding> BuildingClass; 
 
 	UPROPERTY()
 		TArray<class AVegetation*> Vegetation;

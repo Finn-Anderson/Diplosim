@@ -16,16 +16,21 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	// For Resource Manager. This is here because Resource Manager is not a blueprint.
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateDisplay();
+
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USpringArmComponent* SpringArmComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		class UResourceManager* ResourceManager;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource Manager")
+		class UResourceManager* ResourceManagerComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		class UBuildComponent* BuildComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")
@@ -41,10 +46,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	// UI
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> BuildUI;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UUserWidget* BuildUIInstance;
 
 
