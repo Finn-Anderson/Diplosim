@@ -73,7 +73,6 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAction("Grid", IE_Pressed, this, &ACamera::GridStatus);
 
-	PlayerInputComponent->BindAction("Build", IE_Pressed, this, &ACamera::BuildStatus);
 	PlayerInputComponent->BindAction("Rotate", IE_Pressed, this, &ACamera::Rotate);
 }
 
@@ -95,20 +94,6 @@ void ACamera::NewMap()
 void ACamera::GridStatus() 
 {
 	BuildComponent->SetGridStatus();
-}
-
-void ACamera::BuildStatus()
-{
-	if (!start) {
-		BuildComponent->Build();
-
-		if (BuildComponent->IsComponentTickEnabled()) {
-			BuildUIInstance->AddToViewport();
-		}
-		else {
-			BuildUIInstance->RemoveFromViewport();
-		}
-	}
 }
 
 void ACamera::Rotate()

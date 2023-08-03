@@ -53,7 +53,8 @@ public:
 
 	void HideTree(class AVegetation* vegetation);
 
-	void Build();
+	UFUNCTION(BlueprintCallable)
+		void Build();
 
 	void RotateBuilding();
 

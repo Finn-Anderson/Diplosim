@@ -205,8 +205,6 @@ void UBuildComponent::Place()
 
 	if (Camera->start) {
 		Camera->start = false;
-	}
-	else {
-		Camera->BuildUIInstance->RemoveFromViewport();
+		Camera->BuildUIInstance->AddToViewport();
 	}
 }
