@@ -2,5 +2,5 @@
 
 AWater::AWater()
 {
-	SetActorHiddenInGame(true);
+	TileMesh->CastShadow = false;
 }

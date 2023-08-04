@@ -15,14 +15,7 @@ AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	WaterMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WaterMesh"));
-	WaterMesh->SetRelativeLocation(FVector(0.0f, 0.0f, 60.0f));
-	WaterMesh->bCastDynamicShadow = true;
-	WaterMesh->CastShadow = true;
-
 	Size = 150;
-
-	Storage[150][150] = { };
 }
 
 void AGrid::BeginPlay()
@@ -39,8 +32,6 @@ void AGrid::BeginPlay()
 
 void AGrid::Render()
 {
-	WaterMesh->SetWorldScale3D(FVector(Size, Size, Size));
-
 	for (int32 y = 0; y < Size; y++)
 	{
 		for (int32 x = 0; x < Size; x++)

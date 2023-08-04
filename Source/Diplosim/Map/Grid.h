@@ -12,9 +12,6 @@ class DIPLOSIM_API AGrid : public AActor
 public:	
 	AGrid();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UStaticMeshComponent* WaterMesh;
-
 public:
 	// Tile Classes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
