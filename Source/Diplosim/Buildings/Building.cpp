@@ -35,34 +35,29 @@ void ABuilding::BeginPlay()
 	Camera = PController->GetPawn<ACamera>();
 }
 
-void ABuilding::Run()
+void ABuilding::Build()
 {
 	Blueprint = false;
+
+	UResourceManager* rm = Camera->ResourceManagerComponent;
+
+	for (int i = 0; i < CostList.Num(); i++) {
+		rm->ChangeResource(CostList[i].Type, -CostList[i].Cost);
+	}
 
 	OnBuilt();
 }
 
-bool ABuilding::BuildCost()
+bool ABuilding::CheckBuildCost()
 {
 	UResourceManager* rm = Camera->ResourceManagerComponent;
-
-	int32 tally = 0;
 
 	for (int i = 0; i < CostList.Num(); i++) {
 		int32 maxAmount = rm->GetResourceAmount(CostList[i].Type);
 
 		if (maxAmount < CostList[i].Cost) {
 			return false;
-		} else if (CostList[i].Cost == 0) {
-			tally += 1;
 		}
-	}
-
-	if (tally == CostList.Num())
-		return true;
-
-	for (int i = 0; i < CostList.Num(); i++) {
-		rm->ChangeResource(CostList[i].Type, -CostList[i].Cost);
 	}
 
 	return true;

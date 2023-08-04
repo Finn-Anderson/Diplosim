@@ -42,8 +42,6 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
-	void Run();
-
 	void DestroyBuilding();
 
 	virtual void OnBuilt();
@@ -59,11 +57,13 @@ public:
 	virtual void RemoveCitizen(class ACitizen* Citizen);
 
 public:
-	// Building cost
+	// Construct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
 		TArray<FCostStruct> CostList;
 
-	bool BuildCost();
+	void Build();
+
+	bool CheckBuildCost();
 
 	UFUNCTION(BlueprintCallable)
 		TArray<FCostStruct> GetCosts();

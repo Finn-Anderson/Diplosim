@@ -65,13 +65,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			else {
 				Building->SetActorLocation(location);
 			}
-
-			if (IsBlocked) {
-				Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
-			}
-			else {
-				Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
-			}
 		}
 
 		if (Building != nullptr) {
@@ -112,6 +105,13 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			}
 			else {
 				IsBlocked = true;
+			}
+
+			if (IsBlocked || !Building->CheckBuildCost()) { // Change BuildCost to check and then have another function to actual take costs.
+				Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
+			}
+			else {
+				Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
 			}
 		}
 	}
@@ -184,7 +184,7 @@ void UBuildComponent::RotateBuilding()
 
 void UBuildComponent::Place()
 {
-	if (Building == nullptr || IsBlocked || !Building->BuildCost())
+	if (Building == nullptr || IsBlocked || !Building->CheckBuildCost())
 		return;
 
 	for (int i = 0; i < Vegetation.Num(); i++) {
@@ -195,7 +195,7 @@ void UBuildComponent::Place()
 
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);
 
-	Building->Run();
+	Building->Build();
 
 	Building = nullptr;
 
