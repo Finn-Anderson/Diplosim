@@ -4,6 +4,12 @@
 #include "GameFramework/Character.h"
 #include "Citizen.generated.h"
 
+enum ESex 
+{
+	Male	UMETA(DisplayName = "Male"),
+	Female	UMETA(DisplayName = "Female")
+};
+
 UCLASS()
 class DIPLOSIM_API ACitizen : public APawn
 {
@@ -16,6 +22,12 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UStaticMeshComponent* CitizenMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		class UHealthComponent* HealthComponent;
+
 	UPROPERTY()
 		class AAIController* aiController;
 
@@ -30,22 +42,12 @@ public:
 	UPROPERTY()
 		AActor* Goal;
 
-public:
+
 	// Money
 	UPROPERTY()
 		int32 Balance;
 
-public:
-	// Energy
-	void LoseEnergy();
 
-	void GainEnergy();
-
-	FTimerHandle EnergyTimer;
-
-	int32 Energy;
-
-public:	
 	// Buildings
 	UPROPERTY()
 		class AWork* Employment;
@@ -58,4 +60,34 @@ public:
 	void Carry(class AResource* Resource);
 
 	int32 Carrying; 
+
+
+	// Energy
+	void LoseEnergy();
+
+	void GainEnergy();
+
+	FTimerHandle EnergyTimer;
+
+	int32 Energy;
+
+
+	// Age
+	void Birthday();
+
+	int32 Age;
+
+
+	// Sex
+	TEnumAsByte<ESex> Sex;
+
+	void SetSex();
+
+	void SetPartner(ACitizen* Citizen);
+
+	void HaveChild();
+
+	FTimerHandle ChildTimer;
+
+	class ACitizen* Partner;
 };

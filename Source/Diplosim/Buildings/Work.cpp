@@ -55,6 +55,20 @@ void AWork::AddCitizen(ACitizen* Citizen)
 
 		Citizen->MoveTo(this);
 
+		if (Citizen->Partner == nullptr) {
+			TArray<ACitizen*> citizens = GetOccupied();
+
+			for (int i = 0; i < citizens.Num(); i++) {
+				if (Citizen->Partner != nullptr) {
+					return;
+				}
+
+				ACitizen* c = citizens[i];
+
+				Citizen->SetPartner(c);
+			}
+		}
+
 		if (GetCapacity() == Occupied.Num()) {
 			GetWorldTimerManager().ClearTimer(FindTimer);
 		}

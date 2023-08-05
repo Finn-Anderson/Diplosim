@@ -24,10 +24,11 @@ void AHouse::UpkeepCost()
 	for (int i = 0; i < Occupied.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(Occupied[i]);
 
-		c->Balance -= Rent;
-
-		if (c->Balance < 0) {
+		if (c->Balance < Rent) {
 			RemoveCitizen(c);
+		}
+		else {
+			c->Balance -= Rent;
 		}
 	}
 
@@ -52,7 +53,6 @@ void AHouse::FindCitizens()
 
 		if (c->House == nullptr) {
 			c->House = this;
-			
 		}
 		else {
 			float dOldHouse = (c->House->GetActorLocation() - c->Employment->GetActorLocation()).Length();
@@ -77,6 +77,20 @@ void AHouse::AddCitizen(ACitizen* Citizen)
 		Occupied.Add(Citizen);
 
 		Citizen->House = this;
+
+		if (Citizen->Partner == nullptr) {
+			TArray<ACitizen*> citizens = GetOccupied();
+
+			for (int i = 0; i < citizens.Num(); i++) {
+				if (Citizen->Partner != nullptr) {
+					return;
+				}
+
+				ACitizen* c = citizens[i];
+
+				Citizen->SetPartner(c);
+			}
+		}
 	}
 }
 
