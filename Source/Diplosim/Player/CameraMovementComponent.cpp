@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Camera/CameraComponent.h"
 
 #include "Camera.h"
 
@@ -12,6 +13,8 @@ UCameraMovementComponent::UCameraMovementComponent()
 	TargetLength = 1000.0f;
 
 	CameraSpeed = 10.0f;
+
+	Sensitivity = 2.0f;
 }
 
 void UCameraMovementComponent::BeginPlay()
@@ -45,9 +48,12 @@ void UCameraMovementComponent::Turn(float Value)
 	bool keyQ = PController->IsInputKeyDown(EKeys::Q);
 	bool keyE = PController->IsInputKeyDown(EKeys::E);
 
-	if (rmbHeld || keyQ || keyE)
-	{
-		Camera->AddControllerYawInput(Value / 6);
+	if (rmbHeld || keyQ || keyE) {
+		FRotator rot = PController->GetControlRotation();
+
+		float change = (Value / 3) * Sensitivity;
+
+		PController->SetControlRotation(FRotator(rot.Pitch, rot.Yaw + change, rot.Roll));
 	}
 }
 
@@ -55,9 +61,12 @@ void UCameraMovementComponent::LookUp(float Value)
 {
 	bool keyHeld = PController->IsInputKeyDown(EKeys::RightMouseButton);
 
-	if (keyHeld)
-	{
-		Camera->AddControllerPitchInput(Value / 6);
+	if (keyHeld) {
+		FRotator rot = PController->GetControlRotation();
+
+		float change = (Value / 3) * Sensitivity;
+
+		PController->SetControlRotation(FRotator(rot.Pitch - change, rot.Yaw, rot.Roll));
 	}
 }
 

@@ -107,7 +107,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				IsBlocked = true;
 			}
 
-			if (IsBlocked || !Building->CheckBuildCost()) { // Change BuildCost to check and then have another function to actual take costs.
+			if (IsBlocked || !Building->CheckBuildCost()) {
 				Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 			}
 			else {

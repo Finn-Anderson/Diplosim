@@ -23,7 +23,7 @@ ACamera::ACamera()
 	SpringArmComponent->TargetArmLength = MovementComponent->TargetLength;
 	SpringArmComponent->bUsePawnControlRotation = true;
 	SpringArmComponent->bEnableCameraLag = true;
-	SpringArmComponent->bDoCollisionTest = false;
+	SpringArmComponent->bDoCollisionTest = true;
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);

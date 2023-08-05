@@ -23,6 +23,8 @@ public:
 
 	float CameraSpeed;
 
+	float Sensitivity;
+
 public:
 	void SetBounds(FVector start, FVector end);
 

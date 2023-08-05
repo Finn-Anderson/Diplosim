@@ -13,7 +13,7 @@ ABuilding::ABuilding()
 	PrimaryActorTick.bCanEverTick = false;
 
 	BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TileMesh"));
-	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->bCastDynamicShadow = true;
 	BuildingMesh->CastShadow = true;
 
