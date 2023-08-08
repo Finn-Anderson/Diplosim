@@ -43,6 +43,7 @@ void ACitizen::BeginPlay()
 	Super::BeginPlay();
 
 	CitizenMesh->OnComponentBeginOverlap.AddDynamic(this, &ACitizen::OnOverlapBegin);
+	CitizenMesh->OnComponentEndOverlap.AddDynamic(this, &ACitizen::OnOverlapEnd);
 	
 	aiController = Cast<AAIController>(GetController());
 
@@ -79,6 +80,11 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 		SetPartner(c);
 	}
+}
+
+void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	
 }
 
 void ACitizen::StartLoseEnergyTimer()

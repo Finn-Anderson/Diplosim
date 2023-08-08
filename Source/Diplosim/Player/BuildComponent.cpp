@@ -31,89 +31,80 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (BuildingClass != nullptr) {
-		FVector mouseLoc, mouseDirection;
-		APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
+	FVector mouseLoc, mouseDirection;
+	APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
 
-		FHitResult hit(ForceInit);
+	FHitResult hit(ForceInit);
 
-		FVector endTrace = mouseLoc + (mouseDirection * 10000);
+	FVector endTrace = mouseLoc + (mouseDirection * 10000);
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
-		{
-			AActor* tile = hit.GetActor();
+	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
+	{
+		AActor* tile = hit.GetActor();
 
-			FVector location;
+		FVector location;
 
-			if (GridStatus) {
-				location = tile->GetActorLocation();
-
-				FVector origin;
-				FVector boxExtent;
-				tile->GetActorBounds(false, origin, boxExtent);
-
-				location.Z += boxExtent.Z + origin.Z;
-			}
-			else {
-				location = hit.Location;
-			}
-
-			if (Building == nullptr || Building->GetClass() != BuildingClass) {
-				Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation);
-			}
-			else {
-				Building->SetActorLocation(location);
-			}
-		}
-
-		if (Building != nullptr) {
-			FCollisionQueryParams queryParams;
-			queryParams.AddIgnoredActor(Building);
-			queryParams.AddIgnoredActor(Camera->Grid);
+		if (GridStatus) {
+			location = tile->GetActorLocation();
 
 			FVector origin;
 			FVector boxExtent;
-			Building->GetActorBounds(false, origin, boxExtent);
+			tile->GetActorBounds(false, origin, boxExtent);
 
-			FVector min = (origin - boxExtent) + FVector(1.0f, 1.0f, 0.0f);
-			FVector max = (origin + boxExtent) - FVector(1.0f, 1.0f, 0.0f);
+			location.Z += boxExtent.Z + origin.Z;
+		}
+		else {
+			location = hit.Location;
+		}
 
-			int32 x[2] = { min.X, max.X };
-			int32 y[2] = { min.Y, max.Y };
-			int32 z = min.Z;
+		Building->SetActorLocation(location);
+	}
 
-			int32 count = 0;
+	FCollisionQueryParams queryParams;
+	queryParams.AddIgnoredActor(Building);
+	queryParams.AddIgnoredActor(Camera->Grid);
 
-			for (int i = 0; i < 2; i++) {
-				for (int j = 0; j < 2; j++) {
-					FVector end = FVector(x[j], y[i], z - 10.0f);
-					FVector corner = FVector(x[j], y[i], z + 10.0f);
+	FVector origin;
+	FVector boxExtent;
+	Building->GetActorBounds(false, origin, boxExtent);
 
-					if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECC_Visibility, queryParams)) {
-						AActor* actor = hit.GetActor();
+	FVector min = (origin - boxExtent) + FVector(1.0f, 1.0f, 0.0f);
+	FVector max = (origin + boxExtent) - FVector(1.0f, 1.0f, 0.0f);
 
-						if (!actor->IsA<AWater>() && !actor->IsA<ABuilding>()) {
-							count += 1;
-						}
-					}
+	int32 x[2] = { min.X, max.X };
+	int32 y[2] = { min.Y, max.Y };
+	int32 z = min.Z;
+
+	int32 count = 0;
+
+	for (int i = 0; i < 2; i++) {
+		for (int j = 0; j < 2; j++) {
+			FVector end = FVector(x[j], y[i], z - 10.0f);
+			FVector corner = FVector(x[j], y[i], z + 10.0f);
+
+			if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECC_Visibility, queryParams)) {
+				AActor* actor = hit.GetActor();
+
+				if (!actor->IsA<AWater>() && !actor->IsA<ABuilding>()) {
+					count += 1;
 				}
 			}
-
-			if (count == 4) {
-				IsBlocked = false;
-			}
-			else {
-				IsBlocked = true;
-			}
-
-			if (IsBlocked || !Building->CheckBuildCost()) {
-				Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
-			}
-			else {
-				Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
-			}
 		}
+	}
+
+	if (count == 4) {
+		IsBlocked = false;
+	}
+	else {
+		IsBlocked = true;
+	}
+
+	if (IsBlocked || !Building->CheckBuildCost()) {
+		Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
+	}
+	else {
+		Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
 	}
 }
 
@@ -138,12 +129,20 @@ void UBuildComponent::Build()
 {
 	SetComponentTickEnabled(!IsComponentTickEnabled());
 
-	if (Building != nullptr) {
+	if (Building != nullptr && Building->Blueprint) {
 		Building->Destroy();
-
-		Building = nullptr;
-		BuildingClass = nullptr;
 	}
+
+	Building = nullptr;
+}
+
+void UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass)
+{
+	if (Building != nullptr && Building->Blueprint) {
+		Building->Destroy();
+	}
+
+	Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0, 0, 0), Rotation);
 }
 
 void UBuildComponent::RotateBuilding()
@@ -196,10 +195,6 @@ void UBuildComponent::Place()
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);
 
 	Building->Build();
-
-	Building = nullptr;
-
-	BuildingClass = nullptr;
 
 	Build();
 

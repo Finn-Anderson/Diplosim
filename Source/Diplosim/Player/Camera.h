@@ -67,6 +67,9 @@ public:
 
 
 	// Building
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+		TSubclassOf<class ABuilding> StartBuilding;
+
 	void BuildStatus();
 
 	void Rotate();

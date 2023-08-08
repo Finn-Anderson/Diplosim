@@ -40,11 +40,8 @@ public:
 
 	FRotator Rotation;
 
-	UPROPERTY()
-		class ABuilding* Building;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
-		TSubclassOf<class ABuilding> BuildingClass; 
+		class ABuilding* Building;
 
 	UPROPERTY()
 		TArray<class AVegetation*> Vegetation;
@@ -59,4 +56,7 @@ public:
 	void RotateBuilding();
 
 	void Place();
+
+	UFUNCTION(BlueprintCallable)
+		void SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass);
 };

@@ -39,6 +39,8 @@ void ACamera::BeginPlay()
 
 	if (start) {
 		BuildComponent->Build();
+
+		BuildComponent->SetBuildingClass(StartBuilding);
 	}
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
