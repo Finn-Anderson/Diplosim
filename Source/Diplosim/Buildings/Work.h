@@ -15,8 +15,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		int32 Wage;
 
-	virtual void OnBuilt() override;
-
 	virtual void UpkeepCost() override;
 
 public:

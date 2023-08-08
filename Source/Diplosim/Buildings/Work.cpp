@@ -12,13 +12,6 @@ AWork::AWork()
 	Wage = 0;
 }
 
-void AWork::OnBuilt()
-{
-	GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, true, 2.0f);
-
-	GetWorldTimerManager().SetTimer(CostTimer, this, &AWork::UpkeepCost, 300.0f, true);
-}
-
 void AWork::UpkeepCost()
 {
 	for (int i = 0; i < Occupied.Num(); i++) {
@@ -43,6 +36,10 @@ void AWork::FindCitizens()
 		if (c->Employment == nullptr) {
 			AddCitizen(c);
 		}
+	}
+
+	if (GetCapacity() > Occupied.Num()) {
+		GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
 	}
 }
 
@@ -85,7 +82,7 @@ void AWork::RemoveCitizen(ACitizen* Citizen)
 		Citizen->Employment = nullptr;
 
 		if (!GetWorldTimerManager().IsTimerActive(FindTimer)) {
-			GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, true);
+			GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
 		}
 	}
 }

@@ -41,6 +41,8 @@ ACitizen::ACitizen()
 void ACitizen::BeginPlay()
 {
 	Super::BeginPlay();
+
+	CitizenMesh->OnComponentBeginOverlap.AddDynamic(this, &ACitizen::OnOverlapBegin);
 	
 	aiController = Cast<AAIController>(GetController());
 
@@ -66,20 +68,11 @@ void ACitizen::MoveTo(AActor* Location)
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor == Goal) {
-		if (OtherActor == Cast<AActor>(House) || OtherActor == Cast<AActor>(Employment)) {
-			SetActorHiddenInGame(true);
+	if (OtherActor == Goal && OtherActor->IsA<AResource>()) {
+		AResource* r = Cast<AResource>(OtherActor);
 
-			if (OtherActor == Cast<AActor>(House)) {
-				GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::GainEnergy, 0.6f, true);
-			}
-		}
-		else {
-			AResource* r = Cast<AResource>(OtherActor);
-
-			FTimerHandle harvestTimer;
-			GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r), 2.0f, false);
-		}
+		FTimerHandle harvestTimer;
+		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r), 2.0f, false);
 	}
 	else if (OtherActor->IsA<ACitizen>() && Partner == nullptr) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
@@ -88,15 +81,9 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 	}
 }
 
-void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void ACitizen::StartLoseEnergyTimer()
 {
-	if (OtherActor == Cast<AActor>(House) || OtherActor == Cast<AActor>(Employment)) {
-		SetActorHiddenInGame(false);
-	}
-
-	if (OtherActor == Cast<AActor>(House)) {
-		GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
-	}
+	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
 }
 
 void ACitizen::LoseEnergy()
@@ -114,23 +101,13 @@ void ACitizen::LoseEnergy()
 	}
 }
 
+void ACitizen::StartGainEnergyTimer()
+{
+	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::GainEnergy, 0.6f, true);
+}
+
 void ACitizen::GainEnergy()
 {
-	int32 maxE = 20;
-
-	if (Balance >= 7) {
-		Balance -= 7;
-		maxE = 100;
-	}
-	else if (Balance >= 3) {
-		Balance -= 3;
-		maxE = 75;
-	}
-	else if (Balance >= 1) {
-		Balance -= 1;
-		maxE = 40;
-	}
-
 	Energy = FMath::Clamp(Energy + 1, -100, 100);
 
 	if (Energy == 100) {

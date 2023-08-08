@@ -15,11 +15,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		int32 Rent;
 
-	virtual void OnBuilt() override;
-
 	virtual void UpkeepCost() override;
 
-public:
+	virtual void Enter(class ACitizen* Citizen) override;
+
+	virtual void Leave(class ACitizen* Citizen) override;
+
+
 	// Citizens
 	FTimerHandle FindTimer;
 

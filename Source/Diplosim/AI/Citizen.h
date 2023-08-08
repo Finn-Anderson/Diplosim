@@ -63,7 +63,11 @@ public:
 
 
 	// Energy
+	void StartLoseEnergyTimer();
+
 	void LoseEnergy();
+
+	void StartGainEnergyTimer();
 
 	void GainEnergy();
 

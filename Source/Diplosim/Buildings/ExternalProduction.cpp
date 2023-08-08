@@ -8,6 +8,8 @@
 
 void AExternalProduction::Enter(ACitizen* Citizen)
 {
+	Super::Enter(Citizen);
+
 	if (Occupied.Contains(Citizen) && Citizen->Carrying > 0) {
 		Store(Citizen->Carrying, Citizen);
 
@@ -17,7 +19,7 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 
 void AExternalProduction::Leave(ACitizen* Citizen)
 {
-	
+	Super::Leave(Citizen);
 }
 
 void AExternalProduction::Production(ACitizen* Citizen)

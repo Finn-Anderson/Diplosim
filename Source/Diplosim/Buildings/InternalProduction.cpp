@@ -10,6 +10,8 @@ AInternalProduction::AInternalProduction()
 
 void AInternalProduction::Enter(ACitizen* Citizen)
 {
+	Super::Enter(Citizen);
+
 	if (Occupied.Contains(Citizen)) {
 		AtWork.Add(Citizen);
 
@@ -21,6 +23,8 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 
 void AInternalProduction::Leave(ACitizen* Citizen)
 {
+	Super::Leave(Citizen);
+
 	if (AtWork.Contains(Citizen)) {
 		AtWork.Remove(Citizen);
 

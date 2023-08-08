@@ -68,7 +68,9 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
-		Enter(c);
+		if (c->Goal == this) {
+			Enter(c);
+		}
 	}
 	else if (OtherActor->IsA<AVegetation>()) {
 		AVegetation* r = Cast<AVegetation>(OtherActor);
@@ -81,7 +83,9 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
-		Leave(c);
+		if (c->Goal == this) {
+			Leave(c);
+		}
 	}
 	else if (OtherActor->IsA<AVegetation>()) {
 		AVegetation* r = Cast<AVegetation>(OtherActor);
@@ -124,7 +128,9 @@ TArray<FCostStruct> ABuilding::GetCosts()
 
 void ABuilding::OnBuilt()
 {
+	GetWorldTimerManager().SetTimer(CostTimer, this, &ABuilding::UpkeepCost, 300.0f, true);
 
+	FindCitizens();
 }
 
 void ABuilding::UpkeepCost()
@@ -149,10 +155,10 @@ void ABuilding::RemoveCitizen(ACitizen* Citizen)
 
 void ABuilding::Enter(ACitizen* Citizen)
 {
-
+	Citizen->SetActorHiddenInGame(true);
 }
 
 void ABuilding::Leave(ACitizen* Citizen)
 {
-
+	Citizen->SetActorHiddenInGame(false);
 }

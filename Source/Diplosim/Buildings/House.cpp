@@ -12,13 +12,6 @@ AHouse::AHouse()
 	Rent = 0;
 }
 
-void AHouse::OnBuilt()
-{
-	GetWorldTimerManager().SetTimer(CostTimer, this, &AHouse::UpkeepCost, 300.0f, true);
-
-	FindCitizens();
-}
-
 void AHouse::UpkeepCost()
 {
 	for (int i = 0; i < Occupied.Num(); i++) {
@@ -35,6 +28,35 @@ void AHouse::UpkeepCost()
 	int32 cost = Rent * Occupied.Num() - Upkeep;
 
 	Camera->ResourceManagerComponent->ChangeResource(Money, cost);
+}
+
+void AHouse::Enter(ACitizen* Citizen)
+{
+	Super::Enter(Citizen);
+
+	int32 maxE = 20;
+
+	if (Citizen->Balance >= 7) {
+		Citizen->Balance -= 7;
+		maxE = 100;
+	}
+	else if (Citizen->Balance >= 3) {
+		Citizen->Balance -= 3;
+		maxE = 75;
+	}
+	else if (Citizen->Balance >= 1) {
+		Citizen->Balance -= 1;
+		maxE = 40;
+	}
+
+	Citizen->StartGainEnergyTimer();
+}
+
+void AHouse::Leave(ACitizen* Citizen)
+{
+	Super::Leave(Citizen);
+
+	Citizen->StartLoseEnergyTimer();
 }
 
 void AHouse::FindCitizens()
@@ -54,7 +76,7 @@ void AHouse::FindCitizens()
 		if (c->House == nullptr) {
 			c->House = this;
 		}
-		else {
+		else if (c->Employment != nullptr) {
 			float dOldHouse = (c->House->GetActorLocation() - c->Employment->GetActorLocation()).Length();
 
 			float dNewHouse = (GetActorLocation() - c->Employment->GetActorLocation()).Length();
@@ -67,7 +89,7 @@ void AHouse::FindCitizens()
 	}
 
 	if (GetCapacity() > Occupied.Num()) {
-		GetWorldTimerManager().SetTimer(FindTimer, this, &AHouse::FindCitizens, 30.0f, false, 2.0f);
+		GetWorldTimerManager().SetTimer(FindTimer, this, &AHouse::FindCitizens, 30.0f, false);
 	}
 }
 
@@ -100,5 +122,9 @@ void AHouse::RemoveCitizen(ACitizen* Citizen)
 		Citizen->House = nullptr;
 
 		Occupied.Remove(Citizen);
+
+		if (!GetWorldTimerManager().IsTimerActive(FindTimer)) {
+			GetWorldTimerManager().SetTimer(FindTimer, this, &AHouse::FindCitizens, 30.0f, false);
+		}
 	}
 }

@@ -44,7 +44,7 @@ public:
 
 	void DestroyBuilding();
 
-	virtual void OnBuilt();
+	void OnBuilt();
 
 	virtual void Enter(class ACitizen* Citizen);
 
