@@ -11,7 +11,7 @@ enum ESex
 };
 
 UCLASS()
-class DIPLOSIM_API ACitizen : public APawn
+class DIPLOSIM_API ACitizen : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -29,7 +29,7 @@ public:
 		class UHealthComponent* HealthComponent;
 
 	UPROPERTY()
-		class AAIController* aiController;
+		class AAIController* AIController;
 
 	UFUNCTION()
 		void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -49,11 +49,9 @@ public:
 
 
 	// Buildings
-	UPROPERTY()
-		class AWork* Employment;
+	class AWork* Employment;
 
-	UPROPERTY()
-		class AHouse* House;
+	class AHouse* House;
 
 
 	// Resources

@@ -41,10 +41,6 @@ public:
 
 	bool start;
 
-
-public:	
-	virtual void Tick(float DeltaTime) override;
-
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> BuildUI;

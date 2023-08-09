@@ -3,7 +3,8 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
-#include "AIController.h"
+#include "AIController.h"	
+#include "Components/CapsuleComponent.h"
 
 #include "Resource.h"
 #include "Buildings/Work.h"
@@ -14,11 +15,16 @@ ACitizen::ACitizen()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	GetCapsuleComponent()->SetCapsuleRadius(8.0f);
+	GetCapsuleComponent()->SetCapsuleHalfHeight(11.0f);
+
 	CitizenMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CitizenMesh"));
 	CitizenMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+	CitizenMesh->SetupAttachment(RootComponent);
 	CitizenMesh->bCastDynamicShadow = true;
 	CitizenMesh->CastShadow = true;
-	CitizenMesh->SetWorldScale3D(FVector(0.28, 0.28, 0.28));
+	CitizenMesh->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
+	CitizenMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -9.0f));
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	HealthComponent->MaxHealth = 100;
@@ -44,8 +50,10 @@ void ACitizen::BeginPlay()
 
 	CitizenMesh->OnComponentBeginOverlap.AddDynamic(this, &ACitizen::OnOverlapBegin);
 	CitizenMesh->OnComponentEndOverlap.AddDynamic(this, &ACitizen::OnOverlapEnd);
+
+	SpawnDefaultController();
 	
-	aiController = Cast<AAIController>(GetController());
+	AIController = Cast<AAIController>(GetController());
 
 	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
 
@@ -64,7 +72,7 @@ void ACitizen::BeginPlay()
 
 void ACitizen::MoveTo(AActor* Location)
 {
-	aiController->MoveToActor(Location, 10.0f, true);
+	AIController->MoveToActor(Location, 10.0f, true);
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -144,6 +152,9 @@ void ACitizen::Birthday()
 	if (Age <= 18) {
 		int32 scale = (Age * 0.04) + 0.28;
 		CitizenMesh->SetWorldScale3D(FVector(scale, scale, scale));
+
+		int32 z = (Age * 0.33333333333) - 9;
+		CitizenMesh->SetRelativeLocation(FVector(0.0f, 0.0f, z));
 	}
 }
 

@@ -12,7 +12,7 @@
 
 ACamera::ACamera()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	MovementComponent = CreateDefaultSubobject<UCameraMovementComponent>(TEXT("CameraMovementComponent"));
 
@@ -46,11 +46,6 @@ void ACamera::BeginPlay()
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
 	BuildUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildUI);
-}
-
-void ACamera::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }
 
 void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

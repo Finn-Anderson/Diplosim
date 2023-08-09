@@ -18,6 +18,8 @@ UBuildComponent::UBuildComponent()
 	Building = nullptr;
 
 	IsBlocked = true;
+
+	Rotation.Yaw = 90.0f;
 }
 
 void UBuildComponent::BeginPlay()
@@ -142,7 +144,7 @@ void UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClas
 		Building->Destroy();
 	}
 
-	Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0, 0, 0), Rotation);
+	Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0, 0, 50.0f), Rotation);
 }
 
 void UBuildComponent::RotateBuilding()
