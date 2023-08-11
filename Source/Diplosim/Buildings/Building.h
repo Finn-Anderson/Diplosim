@@ -39,6 +39,8 @@ public:
 
 	bool Blueprint;
 
+	TArray<AActor*> Blocking;
+
 	UPROPERTY()
 		class ACamera* Camera;
 

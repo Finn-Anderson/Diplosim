@@ -46,9 +46,7 @@ public:
 	UPROPERTY()
 		TArray<class AVegetation*> Vegetation;
 
-	bool IsBlocked;
-
-	void HideTree(class AVegetation* vegetation);
+	void HideTree(class AVegetation* vegetation, bool Hide);
 
 	UFUNCTION(BlueprintCallable)
 		void Build();

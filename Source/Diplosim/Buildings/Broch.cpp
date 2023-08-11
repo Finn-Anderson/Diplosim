@@ -9,10 +9,10 @@ ABroch::ABroch()
 
 void ABroch::FindCitizens()
 {
-	FVector loc = BuildingMesh->GetSocketLocation("SpawnRef");
+	FVector loc = BuildingMesh->GetSocketLocation("Entrance");
 
 	for (int i = 0; i < NumToSpawn; i++) {
-		ACitizen* c = GetWorld()->SpawnActor<ACitizen>(CitizenClass, loc + FVector(0.0f, 50.0f * i, 0.0f), FRotator(0, 0, 0));
+		ACitizen* c = GetWorld()->SpawnActor<ACitizen>(CitizenClass, loc + FVector(0.0f, 50.0f * i, 15.0f), FRotator(0, 0, 0));
 
 		c->Age = 17;
 		c->Birthday();

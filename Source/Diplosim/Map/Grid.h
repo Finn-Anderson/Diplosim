@@ -12,6 +12,9 @@ class DIPLOSIM_API AGrid : public AActor
 public:	
 	AGrid();
 
+protected:
+	virtual void BeginPlay() override;
+
 public:
 	// Tile Classes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
@@ -23,12 +26,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
 		TSubclassOf<class ATile> Hill;
 
-public:
 	// Resource Classes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
 		TSubclassOf<class AMineral> Rock;
 
-public:
+	// Instance Meshes
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* MeshInstanceWater;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* MeshInstanceGround;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* MeshInstanceHill;
+
 	// Dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Size;
@@ -38,10 +49,6 @@ public:
 
 	AActor* Storage[200][200];
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	void Render();
 
 	void GenerateTile(TSubclassOf<class ATile> Choice, int32 Mean, int32 x, int32 y);

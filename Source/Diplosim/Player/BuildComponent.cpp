@@ -17,8 +17,6 @@ UBuildComponent::UBuildComponent()
 	GridStatus = true;
 	Building = nullptr;
 
-	IsBlocked = true;
-
 	Rotation.Yaw = 90.0f;
 }
 
@@ -63,46 +61,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		Building->SetActorLocation(location);
 	}
 
-	FCollisionQueryParams queryParams;
-	queryParams.AddIgnoredActor(Building);
-	queryParams.AddIgnoredActor(Camera->Grid);
-
-	FVector origin;
-	FVector boxExtent;
-	Building->GetActorBounds(false, origin, boxExtent);
-
-	FVector min = (origin - boxExtent) + FVector(1.0f, 1.0f, 0.0f);
-	FVector max = (origin + boxExtent) - FVector(1.0f, 1.0f, 0.0f);
-
-	int32 x[2] = { min.X, max.X };
-	int32 y[2] = { min.Y, max.Y };
-	int32 z = min.Z;
-
-	int32 count = 0;
-
-	for (int i = 0; i < 2; i++) {
-		for (int j = 0; j < 2; j++) {
-			FVector end = FVector(x[j], y[i], z - 10.0f);
-			FVector corner = FVector(x[j], y[i], z + 10.0f);
-
-			if (GetWorld()->LineTraceSingleByChannel(hit, corner, end, ECC_Visibility, queryParams)) {
-				AActor* actor = hit.GetActor();
-
-				if (!actor->IsA<AWater>() && !actor->IsA<ABuilding>()) {
-					count += 1;
-				}
-			}
-		}
-	}
-
-	if (count == 4) {
-		IsBlocked = false;
-	}
-	else {
-		IsBlocked = true;
-	}
-
-	if (IsBlocked || !Building->CheckBuildCost()) {
+	if (Building->Blocking.Num() > 0 || !Building->CheckBuildCost()) {
 		Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 	}
 	else {
@@ -115,14 +74,16 @@ void UBuildComponent::SetGridStatus()
 	GridStatus = !GridStatus;
 }
 
-void UBuildComponent::HideTree(class AVegetation* vegetation)
+void UBuildComponent::HideTree(class AVegetation* vegetation, bool Hide)
 {
-	vegetation->SetActorHiddenInGame(!vegetation->IsHidden());
+	if (Hide) {
+		vegetation->SetActorHiddenInGame(Hide);
 
-	if (vegetation->IsHidden()) {
 		Vegetation.Add(vegetation);
 	}
 	else {
+		vegetation->SetActorHiddenInGame(Hide);
+
 		Vegetation.Remove(vegetation);
 	}
 }
@@ -185,7 +146,7 @@ void UBuildComponent::RotateBuilding()
 
 void UBuildComponent::Place()
 {
-	if (Building == nullptr || IsBlocked || !Building->CheckBuildCost())
+	if (Building == nullptr || Building->Blocking.Num() > 0 || !Building->CheckBuildCost() || Building->GetActorLocation() == FVector(0.0f, 0.0f, 0.0f))
 		return;
 
 	for (int i = 0; i < Vegetation.Num(); i++) {

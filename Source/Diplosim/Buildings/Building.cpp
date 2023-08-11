@@ -7,6 +7,9 @@
 #include "Player/ResourceManager.h"
 #include "Player/BuildComponent.h"
 #include "Map/Vegetation.h"
+#include "Map/Mineral.h"
+#include "Map/Hill.h"
+#include "Map/Water.h"
 
 ABuilding::ABuilding()
 {
@@ -14,6 +17,7 @@ ABuilding::ABuilding()
 
 	BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BuildingMesh"));
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->bCastDynamicShadow = true;
 	BuildingMesh->CastShadow = true;
 
@@ -74,7 +78,10 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 	}
 	else if (OtherActor->IsA<AVegetation>()) {
 		AVegetation* r = Cast<AVegetation>(OtherActor);
-		Camera->BuildComponent->HideTree(r);
+		Camera->BuildComponent->HideTree(r, true);
+	}
+	else if (OtherActor->IsA<AHill>() || OtherActor->IsA<AMineral>() || OtherActor->IsA<ABuilding>() || OtherActor->IsA<AWater>()) {
+		Blocking.Add(OtherActor);
 	}
 }
 
@@ -89,7 +96,10 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 	}
 	else if (OtherActor->IsA<AVegetation>()) {
 		AVegetation* r = Cast<AVegetation>(OtherActor);
-		Camera->BuildComponent->HideTree(r);
+		Camera->BuildComponent->HideTree(r, false);
+	}
+	else if (Blocking.Contains(OtherActor)) {
+		Blocking.Remove(OtherActor);
 	}
 }
 
