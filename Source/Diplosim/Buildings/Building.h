@@ -100,7 +100,8 @@ public:
 
 	FTimerHandle CostTimer;
 
-	int32 Capacity;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
+		int32 Capacity;
 
 	int32 GetCapacity();
 
