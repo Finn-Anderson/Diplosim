@@ -8,8 +8,6 @@
 #include "Player/BuildComponent.h"
 #include "Map/Vegetation.h"
 #include "Map/Mineral.h"
-#include "Map/Hill.h"
-#include "Map/Water.h"
 
 ABuilding::ABuilding()
 {
@@ -26,6 +24,7 @@ ABuilding::ABuilding()
 	Upkeep = 0;
 
 	Blueprint = true;
+	bMoved = false;
 }
 
 void ABuilding::BeginPlay()
@@ -69,6 +68,8 @@ bool ABuilding::CheckBuildCost()
 
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	bMoved = true;
+
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
@@ -80,8 +81,11 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 		AVegetation* r = Cast<AVegetation>(OtherActor);
 		Camera->BuildComponent->HideTree(r, true);
 	}
-	else if (OtherActor->IsA<AHill>() || OtherActor->IsA<AMineral>() || OtherActor->IsA<ABuilding>() || OtherActor->IsA<AWater>()) {
+	else if (OtherActor->IsA<AMineral>() || OtherActor->IsA<ABuilding>()) {
 		Blocking.Add(OtherActor);
+	}
+	else if (OtherComp->GetName() == "HISMWater" || OtherComp->GetName() == "HISMHill") {
+		Blocking.Add(OtherComp);
 	}
 }
 
@@ -99,7 +103,10 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 		Camera->BuildComponent->HideTree(r, false);
 	}
 	else if (Blocking.Contains(OtherActor)) {
-		Blocking.Remove(OtherActor);
+		Blocking.RemoveSingle(OtherActor);
+	}
+	else if (Blocking.Contains(OtherComp)) {
+		Blocking.RemoveSingle(OtherComp);
 	}
 }
 

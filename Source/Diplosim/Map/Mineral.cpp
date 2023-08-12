@@ -1,7 +1,6 @@
 #include "Mineral.h"
 
 #include "Grid.h"
-#include "Tile.h"
 
 AMineral::AMineral()
 {
@@ -14,7 +13,7 @@ void AMineral::YieldStatus()
 
 	if (Quantity <= 0) {
 		FVector loc = GetActorLocation();
-		Grid->GenerateTile(Grid->Hill, 0, loc.X, loc.Y);
+		Grid->GenerateTile("Hill", 0, loc.X, loc.Y);
 
 		Destroy();
 	}

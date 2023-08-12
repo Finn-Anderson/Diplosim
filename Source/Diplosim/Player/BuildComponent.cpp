@@ -2,11 +2,11 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Camera.h"
 #include "Buildings/Building.h"
 #include "Map/Grid.h"
-#include "Map/Water.h"
 #include "Map/Vegetation.h"
 
 UBuildComponent::UBuildComponent()
@@ -41,18 +41,18 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
 	{
-		AActor* tile = hit.GetActor();
+		UHierarchicalInstancedStaticMeshComponent* comp = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent());
+		int32 instance = hit.Item;
 
 		FVector location;
 
-		if (GridStatus) {
-			location = tile->GetActorLocation();
+		if (GridStatus && comp->IsValidLowLevelFast()) {
+			FTransform transform;
+			comp->GetInstanceTransform(instance, transform);
 
-			FVector origin;
-			FVector boxExtent;
-			tile->GetActorBounds(false, origin, boxExtent);
+			location = transform.GetLocation();
 
-			location.Z += boxExtent.Z + origin.Z;
+			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2;
 		}
 		else {
 			location = hit.Location;
@@ -61,7 +61,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		Building->SetActorLocation(location);
 	}
 
-	if (Building->Blocking.Num() > 0 || !Building->CheckBuildCost()) {
+	if (Building->Blocking.Num() > 0 || !Building->CheckBuildCost() || !Building->bMoved) {
 		Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 	}
 	else {
@@ -146,7 +146,7 @@ void UBuildComponent::RotateBuilding()
 
 void UBuildComponent::Place()
 {
-	if (Building == nullptr || Building->Blocking.Num() > 0 || !Building->CheckBuildCost() || Building->GetActorLocation() == FVector(0.0f, 0.0f, 0.0f))
+	if (Building == nullptr || Building->Blocking.Num() > 0 || !Building->CheckBuildCost() || !Building->bMoved)
 		return;
 
 	for (int i = 0; i < Vegetation.Num(); i++) {

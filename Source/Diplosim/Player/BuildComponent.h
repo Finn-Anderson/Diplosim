@@ -20,9 +20,6 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
-	UPROPERTY()
-		class AGround* PrevTile;
-
 public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 

@@ -2,18 +2,27 @@
 
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
-#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
-#include "Tile.h"
-#include "Ground.h"
 #include "Mineral.h"
+#include "Vegetation.h"
 #include "Player/Camera.h"
 #include "Player/CameraMovementComponent.h"
-#include "Vegetation.h"
+#include "Player/BuildComponent.h"
+#include "Buildings/Building.h"
 
 AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	HISMWater = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWater"));
+	HISMWater->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+
+	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
+	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+
+	HISMHill = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMHill"));
+	HISMHill->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 
 	Size = 150;
 }
@@ -37,67 +46,46 @@ void AGrid::Render()
 		for (int32 x = 0; x < Size; x++)
 		{
 			int32 mean = 3;
-			TSubclassOf<ATile> choice = Ground;
+			FString choice = "Ground";
 
 			int32 low = 0;
 			int32 high = 1000;
 
 			if (x < (Size - (Size - 20)) || y < (Size - (Size - 20)) || x > (Size - 21) || y > (Size - 21)) {
-				choice = Water;
+				choice = "Water";
 			}
 			else {
 				int32 value = FMath::RandRange(-1, 1);
 
-				TSubclassOf<ATile> checkX = Ground;
-				TSubclassOf<ATile> checkY = Ground;
+				FString checkX = "Ground";
+				FString checkY = "Ground";
 
-				ATile* xTile = Cast<ATile>(Storage[x - 1][y]);
-				ATile* yTile = Cast<ATile>(Storage[x][y - 1]);
+				FTileStruct xTile = Storage.Last();
+				FTileStruct yTile = Storage[x + ((y - 1) * Size)];
 
-				int32 xFertility;
-				int32 yFertility;
-
-				if (xTile->GetClass() == Ground) {
-					AGround* xT = Cast<AGround>(xTile);
-
-					xFertility = xT->GetFertility();
-				}
-				else {
-					xFertility = FMath::RandRange(0, 3);
-				}
-
-				if (yTile->GetClass() == Ground) {
-					AGround* yT = Cast<AGround>(yTile);
-
-					yFertility = yT->GetFertility();
-				}
-				else {
-					yFertility = FMath::RandRange(0, 3);
-				}
-
-				int32 fertility = (yFertility + xFertility) / 2;
+				int32 fertility = (yTile.GetFertility() + xTile.GetFertility()) / 2;
 
 				mean = FMath::Clamp(fertility + value, 0, 5);
 				
 				// Calculating tile type based on adjacant tiles
-				if (xTile->GetClass() == Water) {
-					checkX = Water;
+				if (xTile.Choice == "Water") {
+					checkX = "Water";
 				}
-				else if (xTile->GetClass() == Hill) {
-					checkX = Hill;
+				else if (xTile.Choice == "Hill") {
+					checkX = "Hill";
 				}
 
-				if (yTile->GetClass() == Water) {
-					checkY = Water;
+				if (yTile.Choice == "Water") {
+					checkY = "Water";
 				}
-				else if (yTile->GetClass() == Hill) {
-					checkY= Hill;
+				else if (yTile.Choice == "Hill") {
+					checkY = "Hill";
 				}
 
 				int32 choiceVal = FMath::RandRange(low, high);
 
 				int32 pass = 2;
-				if (checkX == checkY && checkX != Ground) {
+				if (checkX == checkY && checkX != "Ground") {
 					pass = 990;
 				}
 				else if (checkX != checkY) {
@@ -106,11 +94,11 @@ void AGrid::Render()
 
 
 				if (pass > choiceVal) {
-					if (checkX == Water || checkY == Water) {
-						choice = Water;
+					if (checkX == "Water" || checkY == "Water") {
+						choice = "Water";
 					}
 					else {
-						choice = Hill;
+						choice = "Hill";
 					}
 				}
 			}
@@ -121,137 +109,193 @@ void AGrid::Render()
 	}
 
 	// Set Camera Bounds
-	AActor* min = Storage[10][10];
-	FVector c1 = min->GetActorLocation();
+	FTransform transform;
 
-	AActor* max = Storage[139][139];
-	FVector c2 = max->GetActorLocation();
+	FTileStruct min = Storage[10 + 10 * Size];
+	if (min.Choice == "Water") {
+		HISMWater->GetInstanceTransform(min.Instance, transform);
+	}
+	else if (min.Choice == "Ground") {
+		HISMGround->GetInstanceTransform(min.Instance, transform);
+	}
+	else {
+		HISMHill->GetInstanceTransform(min.Instance, transform);
+	}
+	FVector c1 = transform.GetLocation();
 
-	Camera->MovementComponent->SetBounds(c1, c2);
+	FTileStruct max = Storage[139 + 139 * Size];
+	if (max.Choice == "Water") {
+		HISMWater->GetInstanceTransform(max.Instance, transform);
+	}
+	else if (max.Choice == "Ground") {
+		HISMGround->GetInstanceTransform(max.Instance, transform);
+	}
+	else {
+		HISMHill->GetInstanceTransform(max.Instance, transform);
+	}
+	FVector c2 = transform.GetLocation();
+
+	Camera->MovementComponent->SetBounds(c2, c1);
 
 	// Spawn resources
-	for (int32 y = 0; y < Size; y++)
-	{
-		for (int32 x = 0; x < Size; x++)
-		{
-			ATile* tile = Cast<ATile>(Storage[x][y]);
-			GenerateResource(tile, x, y);
-		}
+	for (int32 i = 0; i < Storage.Num(); i++) {
+		GenerateResource(i);
 	}
 }
 
-void AGrid::GenerateTile(TSubclassOf<class ATile> Choice, int32 Mean, int32 x, int32 y)
+void AGrid::GenerateTile(FString Choice, int32 Mean, int32 x, int32 y)
 {
-	ATile* tile = GetWorld()->SpawnActor<ATile>(Choice);
+	FTransform transform;
+	FVector loc = FVector(100.0f * x - (100.0f * (Size / 2)), 100.0f * y - (100.0f * (Size / 2)), 0);
+	transform.SetLocation(loc);
 
-	FVector min;
-	FVector max;
-	tile->TileMesh->GetLocalBounds(min, max);
-
-	FVector center = min - max;
-	FVector loc = FVector(center.X * x - (center.X * (Size / 2)), center.Y * y - (center.Y * (Size / 2)), 0);
-
-	tile->SetActorLocation(loc);
-
-	tile->TileMesh->SetMobility(EComponentMobility::Static);
-
-	if (tile->IsA<AGround>()) {
-		AGround* t = Cast<AGround>(tile);
-
-		t->SetFertility(Mean);
+	int32 inst;
+	if (Choice == "Water") {
+		inst = HISMWater->AddInstance(transform);
+	}
+	else if (Choice == "Ground") {
+		inst = HISMGround->AddInstance(transform);
+	}
+	else {
+		inst = HISMHill->AddInstance(transform);
 	}
 
-	Storage[x][y] = tile;
+	FTileStruct tile;
+	tile.Choice = Choice;
+	tile.Instance = inst;
+	tile.Fertility = Mean;
+	tile.Coords = x + (y * Size);
+
+	Storage.Add(tile);
 }
 
-void AGrid::GenerateResource(ATile* tile, int32 x, int32 y)
+void AGrid::GenerateResource(int32 Pos)
 {
+	FTileStruct tile = Storage[Pos];
+
 	int32 choiceVal = FMath::RandRange(1, 30);
 
-	if (tile->GetClass() == Hill) {
-		TSubclassOf<AResource> choice = nullptr;
-
-		if (choiceVal > 20) {
-			choice = Rock;
-		}
-		else {
+	if (tile.Choice == "Hill") {
+		if (choiceVal < 21)
 			return;
+
+		TSubclassOf<AResource> choice;
+		if (choiceVal > 20) {
+			choice = Rock; // Setup for different mineral types.
 		}
 
-		FVector loc = tile->GetActorLocation();
+		FTransform transform;
+		HISMHill->GetInstanceTransform(tile.Instance, transform);
+		FVector loc = transform.GetLocation();
 
-		AMineral* resource = GetWorld()->SpawnActor<AMineral>(choice, loc, GetActorRotation());
+		if (loc != FVector(0.0f, 0.0f, 0.0f)) {
+			HISMHill->RemoveInstance(tile.Instance);
 
-		resource->SetQuantity();
+			AMineral* resource = GetWorld()->SpawnActor<AMineral>(choice, loc, GetActorRotation());
 
-		resource->Grid = this;
+			resource->SetQuantity();
 
-		Storage[x][y] = resource;
+			resource->Grid = this;
 
-		tile->Destroy();
+			tile.Resource.Add(resource);
+
+			Storage[Pos] = tile;
+		}
 	}
-	else if (tile->GetClass() == Ground) {
-		AActor* xT = Storage[x - 1][y];
-		AActor* yT = Storage[x][y - 1];
+	else if (tile.Choice == "Ground") {
+		FTileStruct xTile = Storage[tile.Coords - 1];
+		FTileStruct yTile = Storage[tile.Coords - 150];
 
-		int32 xTrees;
-		int32 yTrees;
+		if (xTile.Choice == "Hill" || yTile.Choice == "Hill")
+			return;
 
-		if (!xT->IsA<AGround>()) {
-			xTrees = FMath::RandRange(0, 1);
-		}
-		else {
-			AGround* xTile = Cast<AGround>(xT);
-			xTrees = xTile->Trees.Num();
-		}
-		
-		if (!yT->IsA<AGround>()) {
-			yTrees = FMath::RandRange(0, 1);
-		}
-		else {
-			AGround* yTile = Cast<AGround>(yT);
-			yTrees = yTile->Trees.Num();
-		}
-
-		int32 trees = ((xTrees + yTrees) + 1) / 2;
+		int32 trees = (xTile.Resource.Num() + yTile.Resource.Num()) / 2;
 
 		int32 value = 0;
 
 		if (choiceVal == 30) {
-			value = FMath::RandRange(-1, 1);
+			value = 3;
 		}
-		else if (choiceVal > 8) {
-			value = FMath::RandRange(-1, 0);
+		else if (choiceVal > 24) {
+			value = FMath::RandRange(0, 1);
 		}
 
 		int32 mean = FMath::Clamp(trees + value, 0, 5);
 
-		for (int i = 0; i < mean; i++) {
-			AGround* t = Cast<AGround>(tile);
+		FTransform transform;
+		HISMGround->GetInstanceTransform(tile.Instance, transform);
+		FVector loc = transform.GetLocation();
 
-			t->GenerateTree();
-		}	
+		for (int i = 0; i < mean; i++) {
+			GenerateVegetation(Pos, loc);
+		}
 	}
 	else {
 		// Water resources (fish/oil);
 	}
 }
 
-void AGrid::Clear()
+void AGrid::GenerateVegetation(int32 Pos, FVector Location)
 {
-	for (int32 y = 0; y < Size; y++)
-	{
-		for (int32 x = 0; x < Size; x++)
-		{
-			AActor* tile = Storage[x][y];
+	FTileStruct tile = Storage[Pos];
 
-			if (tile->IsA<AGround>()) {
-				AGround* g = Cast<AGround>(tile);
+	int32 z = HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2;
 
-				g->DeleteTrees();
+	TArray<int32> locListX;
+	TArray<int32> locListY;
+	for (int i = -45; i <= 45; i++) {
+		locListX.Add(i);
+		locListY.Add(i);
+	}
+
+	for (int i = 0; i < tile.Resource.Num(); i++) {
+		int32 xT = tile.Resource[i]->GetActorLocation().X;
+		int32 yT = tile.Resource[i]->GetActorLocation().Y;
+
+		for (int j = yT - 10; j <= yT + 10; j++) {
+			if (locListX.Contains(j)) {
+				locListX.Remove(j);
 			}
+		}
 
-			tile->Destroy();
+		for (int j = yT - 10; j <= yT + 10; j++) {
+			if (locListY.Contains(j)) {
+				locListY.Remove(j);
+			}
 		}
 	}
+
+	int32 indexX = FMath::RandRange(0, (locListX.Num() - 1));
+	int32 indexY = FMath::RandRange(0, (locListY.Num() - 1));
+
+	int32 x = locListX[indexX];
+	int32 y = locListY[indexY];
+
+	FVector location = FVector(Location.X + x, Location.Y + y, z);
+
+	AVegetation* tree = GetWorld()->SpawnActor<AVegetation>(Tree, location, GetActorRotation());
+
+	tile.Resource.Add(tree);
+
+	Storage[Pos] = tile;
+}
+
+void AGrid::Clear()
+{
+	for (int32 i = 0; i < Storage.Num(); i++) {
+		FTileStruct tile = Storage[i];
+		for (int j = 0; j < tile.Resource.Num(); j++) {
+			tile.Resource[j]->Destroy();
+		}
+
+		tile.Resource.Empty();
+	}
+
+	Storage.Empty();
+
+	HISMWater->ClearInstances();
+	HISMGround->ClearInstances();
+	HISMHill->ClearInstances();
+
+	Camera->BuildComponent->Building->bMoved = false;
 }

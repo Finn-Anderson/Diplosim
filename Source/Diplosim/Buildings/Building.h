@@ -39,7 +39,9 @@ public:
 
 	bool Blueprint;
 
-	TArray<AActor*> Blocking;
+	bool bMoved;
+
+	TArray<UObject*> Blocking;
 
 	UPROPERTY()
 		class ACamera* Camera;
