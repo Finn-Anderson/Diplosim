@@ -74,7 +74,7 @@ void AHouse::FindCitizens()
 			continue;
 
 		if (c->House == nullptr) {
-			c->House = this;
+			AddCitizen(c);
 		}
 		else if (c->Employment != nullptr) {
 			float dOldHouse = (c->House->GetActorLocation() - c->Employment->GetActorLocation()).Length();
@@ -82,10 +82,9 @@ void AHouse::FindCitizens()
 			float dNewHouse = (GetActorLocation() - c->Employment->GetActorLocation()).Length();
 
 			if (dOldHouse > dNewHouse) {
-				c->House = this;
+				AddCitizen(c);
 			}
 		}
-		
 	}
 
 	if (GetCapacity() > Occupied.Num()) {

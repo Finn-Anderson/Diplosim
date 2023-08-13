@@ -16,12 +16,15 @@ AGrid::AGrid()
 	PrimaryActorTick.bCanEverTick = false;
 
 	HISMWater = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWater"));
+	HISMWater->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMWater->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
+	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 
 	HISMHill = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMHill"));
+	HISMHill->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMHill->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 
 	Size = 150;

@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "AIController.h"	
 #include "Components/CapsuleComponent.h"
+#include "NavigationSystem.h"
 
 #include "Resource.h"
 #include "Buildings/Work.h"
@@ -17,9 +18,15 @@ ACitizen::ACitizen()
 
 	GetCapsuleComponent()->SetCapsuleRadius(8.0f);
 	GetCapsuleComponent()->SetCapsuleHalfHeight(11.0f);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 
 	CitizenMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CitizenMesh"));
 	CitizenMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+	CitizenMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	CitizenMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	CitizenMesh->SetupAttachment(RootComponent);
 	CitizenMesh->bCastDynamicShadow = true;
 	CitizenMesh->CastShadow = true;
@@ -73,6 +80,8 @@ void ACitizen::BeginPlay()
 void ACitizen::MoveTo(AActor* Location)
 {
 	AIController->MoveToActor(Location, 10.0f, true);
+
+	Goal = Location;
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

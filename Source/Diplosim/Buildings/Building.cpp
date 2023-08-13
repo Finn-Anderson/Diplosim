@@ -94,7 +94,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
-		if (c->Goal == this) {
+		if (AtWork.Contains(c)) {
 			Leave(c);
 		}
 	}
@@ -173,9 +173,15 @@ void ABuilding::RemoveCitizen(ACitizen* Citizen)
 void ABuilding::Enter(ACitizen* Citizen)
 {
 	Citizen->SetActorHiddenInGame(true);
+
+	if (Occupied.Contains(Citizen)) {
+		AtWork.Add(Citizen);
+	}
 }
 
 void ABuilding::Leave(ACitizen* Citizen)
 {
 	Citizen->SetActorHiddenInGame(false);
+
+	AtWork.Remove(Citizen);
 }

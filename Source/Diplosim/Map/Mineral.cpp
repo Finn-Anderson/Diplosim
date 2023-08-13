@@ -4,6 +4,7 @@
 
 AMineral::AMineral()
 {
+	ResourceMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 }
 

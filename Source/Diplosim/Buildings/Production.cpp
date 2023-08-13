@@ -15,7 +15,7 @@ AProduction::AProduction()
 void AProduction::Store(int32 Amount, ACitizen* Citizen)
 {
 	int32 quantity = (Storage + Amount);
-	if (0 < quantity && quantity < StorageCap) {
+	if (0 <= quantity && quantity <= StorageCap) {
 		Storage += Amount;
 
 		Camera->ResourceManagerComponent->ChangeResource(Resource, Amount);

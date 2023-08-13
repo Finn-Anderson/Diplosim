@@ -12,12 +12,8 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (Occupied.Contains(Citizen)) {
-		AtWork.Add(Citizen);
-
-		if (AtWork.Num() == 1) {
-			Production(Citizen);
-		}
+	if (AtWork.Num() == 1) {
+		Production(Citizen);
 	}
 }
 
@@ -25,12 +21,8 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
-	if (AtWork.Contains(Citizen)) {
-		AtWork.Remove(Citizen);
-
-		if (AtWork.Num() == 0) {
-			GetWorldTimerManager().ClearTimer(ProdTimer);
-		}
+	if (AtWork.Num() == 0) {
+		GetWorldTimerManager().ClearTimer(ProdTimer);
 	}
 }
 
