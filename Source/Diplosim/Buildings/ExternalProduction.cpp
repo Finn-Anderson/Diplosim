@@ -31,7 +31,6 @@ void AExternalProduction::Production(ACitizen* Citizen)
 
 	for (int i = 1; i < foundResources.Num(); i++) {
 		if (resource->IsHidden())
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Some debug message!"));
 			continue;
 
 		float dR = (resource->GetActorLocation() - GetActorLocation()).Length();

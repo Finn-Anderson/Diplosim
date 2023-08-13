@@ -1,6 +1,7 @@
 #include "Building.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "Components/BoxComponent.h"
 
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
@@ -15,9 +16,15 @@ ABuilding::ABuilding()
 
 	BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BuildingMesh"));
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCanEverAffectNavigation(false);
 	BuildingMesh->bCastDynamicShadow = true;
 	BuildingMesh->CastShadow = true;
+
+	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
+	BoxCollision->bDynamicObstacle = true;
 
 	Capacity = 2;
 

@@ -18,6 +18,7 @@ AGrid::AGrid()
 	HISMWater = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWater"));
 	HISMWater->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMWater->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMWater->SetCanEverAffectNavigation(false);
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
@@ -26,6 +27,7 @@ AGrid::AGrid()
 	HISMHill = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMHill"));
 	HISMHill->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMHill->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMHill->SetCanEverAffectNavigation(false);
 
 	Size = 150;
 }

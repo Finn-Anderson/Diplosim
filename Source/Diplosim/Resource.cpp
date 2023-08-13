@@ -6,6 +6,7 @@ AResource::AResource()
 
 	ResourceMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ResourceMesh"));
 	ResourceMesh->SetMobility(EComponentMobility::Static);
+	ResourceMesh->SetCanEverAffectNavigation(false);
 	ResourceMesh->bCastDynamicShadow = true;
 	ResourceMesh->CastShadow = true;
 

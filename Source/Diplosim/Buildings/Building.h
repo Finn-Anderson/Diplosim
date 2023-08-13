@@ -37,6 +37,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* BuildingMesh;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nav")
+		class UBoxComponent* BoxCollision;
+
 	bool Blueprint;
 
 	bool bMoved;
