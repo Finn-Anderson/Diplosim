@@ -68,6 +68,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
 		TArray<FCostStruct> CostList;
 
+	TArray<class AActor*> TreeList;
+
 	void Build();
 
 	bool CheckBuildCost();

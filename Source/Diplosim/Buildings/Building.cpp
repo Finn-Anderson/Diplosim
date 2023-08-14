@@ -24,6 +24,7 @@ ABuilding::ABuilding()
 	BuildingMesh->CastShadow = true;
 
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
+	BoxCollision->SetupAttachment(BuildingMesh);
 	BoxCollision->bDynamicObstacle = true;
 
 	Capacity = 2;
@@ -37,6 +38,9 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
+
+	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.5;
+	BoxCollision->SetBoxExtent(size);
 
 	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
 	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
@@ -84,9 +88,11 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 			Enter(c);
 		}
 	}
-	else if (OtherActor->IsA<AVegetation>()) {
+	else if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
 		AVegetation* r = Cast<AVegetation>(OtherActor);
 		Camera->BuildComponent->HideTree(r, true);
+
+		TreeList.Add(OtherActor);
 	}
 	else if (OtherActor->IsA<AMineral>() || OtherActor->IsA<ABuilding>()) {
 		Blocking.Add(OtherActor);
@@ -105,7 +111,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 			Leave(c);
 		}
 	}
-	else if (OtherActor->IsA<AVegetation>()) {
+	else if (OtherActor->IsA<AVegetation>() && TreeList.Contains(OtherActor)) {
 		AVegetation* r = Cast<AVegetation>(OtherActor);
 		Camera->BuildComponent->HideTree(r, false);
 	}

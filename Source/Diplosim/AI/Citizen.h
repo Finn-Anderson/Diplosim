@@ -39,12 +39,11 @@ public:
 
 	void MoveTo(AActor* Location);
 
-	UPROPERTY()
-		AActor* Goal;
+	AActor* Goal;
 
 
 	// Money
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		int32 Balance;
 
 

@@ -3,8 +3,8 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "AI/Citizen.h"
-#include "AIController.h"
 #include "Resource.h"
+#include "Map/Vegetation.h"
 
 void AExternalProduction::Enter(ACitizen* Citizen)
 {
@@ -27,19 +27,28 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	TArray<AActor*> foundResources;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), Resource, foundResources);
 
-	AResource* resource = Cast<AResource>(foundResources[0]);
+	AResource* resource = nullptr;
 
-	for (int i = 1; i < foundResources.Num(); i++) {
-		if (resource->IsHidden())
+	for (int i = 0; i < foundResources.Num(); i++) {
+		if (foundResources[i]->IsHidden() || (foundResources[i]->IsA<AVegetation>() && Cast<AVegetation>(foundResources[i])->bIsGettingChopped))
 			continue;
 
-		float dR = (resource->GetActorLocation() - GetActorLocation()).Length();
-
-		float dF = (foundResources[i]->GetActorLocation() - GetActorLocation()).Length();
-
-		if (dR > dF) {
+		if (resource == nullptr) {
 			resource = Cast<AResource>(foundResources[i]);
 		}
+		else {
+			float dR = (resource->GetActorLocation() - GetActorLocation()).Length();
+
+			float dF = (foundResources[i]->GetActorLocation() - GetActorLocation()).Length();
+
+			if (dR > dF) {
+				resource = Cast<AResource>(foundResources[i]);
+			}
+		}
+	}
+
+	if (resource->IsA<AVegetation>()) {
+		Cast<AVegetation>(resource)->bIsGettingChopped = true;
 	}
 
 	Citizen->MoveTo(resource);

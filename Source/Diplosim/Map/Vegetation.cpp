@@ -1,5 +1,10 @@
 #include "Vegetation.h"
 
+AVegetation::AVegetation()
+{
+	bIsGettingChopped = false;
+}
+
 void AVegetation::BeginPlay()
 {
 	Super::BeginPlay();
@@ -19,6 +24,8 @@ void AVegetation::BeginPlay()
 
 void AVegetation::YieldStatus()
 {
+	bIsGettingChopped = false;
+
 	SetActorHiddenInGame(true);
 
 	FTimerHandle growTimer;

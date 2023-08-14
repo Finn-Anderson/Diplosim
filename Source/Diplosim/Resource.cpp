@@ -5,6 +5,7 @@ AResource::AResource()
 	PrimaryActorTick.bCanEverTick = false;
 
 	ResourceMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ResourceMesh"));
+	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	ResourceMesh->SetMobility(EComponentMobility::Static);
 	ResourceMesh->SetCanEverAffectNavigation(false);
 	ResourceMesh->bCastDynamicShadow = true;

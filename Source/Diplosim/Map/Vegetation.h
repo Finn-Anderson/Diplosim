@@ -9,6 +9,9 @@ class DIPLOSIM_API AVegetation : public AResource
 {
 	GENERATED_BODY()
 
+public:
+	AVegetation();
+
 protected:
 	virtual void BeginPlay();
 
@@ -19,4 +22,6 @@ public:
 	virtual void YieldStatus();
 
 	void Grow();
+
+	bool bIsGettingChopped;
 };

@@ -11,6 +11,7 @@
 #include "Buildings/Work.h"
 #include "Buildings/House.h"
 #include "HealthComponent.h"
+#include "Map/Vegetation.h"
 
 ACitizen::ACitizen()
 {
@@ -91,6 +92,8 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 		FTimerHandle harvestTimer;
 		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r), 2.0f, false);
+
+		AIController->StopMovement();
 	}
 	else if (OtherActor->IsA<ACitizen>() && Partner == nullptr) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
