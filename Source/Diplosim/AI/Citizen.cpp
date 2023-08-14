@@ -91,7 +91,8 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 		AResource* r = Cast<AResource>(OtherActor);
 
 		FTimerHandle harvestTimer;
-		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r), 2.0f, false);
+		int32 time = FMath::RandRange(4, 10);
+		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r), time, false);
 
 		AIController->StopMovement();
 	}
