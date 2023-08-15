@@ -74,8 +74,9 @@ void ACitizen::BeginPlay()
 	float g = FMath::FRandRange(0.0f, 1.0f);
 	float b = FMath::FRandRange(0.0f, 1.0f);
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(CitizenMesh->GetMaterial(0), NULL);
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(CitizenMesh->GetMaterial(0), this);
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
+	CitizenMesh->SetMaterial(0, material);
 }
 
 void ACitizen::MoveTo(AActor* Location)
@@ -91,7 +92,7 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 		AResource* r = Cast<AResource>(OtherActor);
 
 		FTimerHandle harvestTimer;
-		int32 time = FMath::RandRange(4, 10);
+		float time = FMath::RandRange(3.0f, 6.0f);
 		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r), time, false);
 
 		AIController->StopMovement();

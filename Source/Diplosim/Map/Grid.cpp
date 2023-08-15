@@ -23,6 +23,7 @@ AGrid::AGrid()
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMGround->NumCustomDataFloats = 3;
 
 	HISMHill = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMHill"));
 	HISMHill->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
@@ -68,9 +69,9 @@ void AGrid::Render()
 				FTileStruct xTile = Storage.Last();
 				FTileStruct yTile = Storage[x + ((y - 1) * Size)];
 
-				int32 fertility = (yTile.GetFertility() + xTile.GetFertility()) / 2;
+				int32 fertility = (yTile.GetFertility() + xTile.GetFertility() + 1) / 2;
 
-				mean = FMath::Clamp(fertility + value, 0, 5);
+				mean = FMath::Clamp(fertility + value, 1, 5);
 				
 				// Calculating tile type based on adjacant tiles
 				if (xTile.Choice == "Water") {
@@ -160,6 +161,44 @@ void AGrid::GenerateTile(FString Choice, int32 Mean, int32 x, int32 y)
 	}
 	else if (Choice == "Ground") {
 		inst = HISMGround->AddInstance(transform);
+
+		float r = 0.0f;
+		float g = 0.0f;
+		float b = 0.0f;
+
+		if (Mean == 1) {
+			r = 231.0f;
+			g = 215.0f;
+			b = 90.0f;
+		} 
+		else if (Mean == 2) {
+			r = 177.0f;
+			g = 231.0f;
+			b = 90.0f;
+		}
+		else if (Mean == 3) {
+			r = 106.0f;
+			g = 231.0f;
+			b = 90.0f;
+		}
+		else if (Mean == 4) {
+			r = 52.0f;
+			g = 213.0f;
+			b = 31.0f;
+		}
+		else {
+			r = 36.0f;
+			g = 146.0f;
+			b = 21.0f;
+		}
+
+		r /= 255.0f;
+		g /= 255.0f;
+		b /= 255.0f;
+
+		HISMGround->SetCustomDataValue(inst, 0, r);
+		HISMGround->SetCustomDataValue(inst, 1, g);
+		HISMGround->SetCustomDataValue(inst, 2, b);
 	}
 	else {
 		inst = HISMHill->AddInstance(transform);
