@@ -102,6 +102,7 @@ void AGrid::Render()
 				if (pass > choiceVal) {
 					if (checkX == "Water" || checkY == "Water") {
 						choice = "Water";
+						mean = 1;
 					}
 					else {
 						choice = "Hill";
@@ -167,19 +168,29 @@ void AGrid::GenerateTile(FString Choice, int32 Mean, int32 x, int32 y)
 		float b = 0.0f;
 
 		if (Mean == 1) {
-			r = 231.0f;
-			g = 215.0f;
-			b = 90.0f;
+			FTileStruct xTile = Storage.Last();
+			FTileStruct yTile = Storage[x + ((y - 1) * Size)];
+
+			if (xTile.Choice == "Water" || yTile.Choice == "Water") {
+				r = 231.0f;
+				g = 215.0f;
+				b = 90.0f;
+			}
+			else {
+				r = 255.0f;
+				g = 225.0f;
+				b = 45.0f;
+			}
 		} 
 		else if (Mean == 2) {
-			r = 177.0f;
-			g = 231.0f;
-			b = 90.0f;
+			r = 152.0f;
+			g = 191.0f;
+			b = 100.0f;
 		}
 		else if (Mean == 3) {
-			r = 106.0f;
-			g = 231.0f;
-			b = 90.0f;
+			r = 86.0f;
+			g = 228.0f;
+			b = 68.0f;
 		}
 		else if (Mean == 4) {
 			r = 52.0f;
