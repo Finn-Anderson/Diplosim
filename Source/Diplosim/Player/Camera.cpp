@@ -46,6 +46,9 @@ void ACamera::BeginPlay()
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
 	BuildUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildUI);
+
+	MapUIInstance = CreateWidget<UUserWidget>(pcontroller, MapUI);
+	MapUIInstance->AddToViewport();
 }
 
 void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

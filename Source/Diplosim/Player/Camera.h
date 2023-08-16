@@ -48,6 +48,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UUserWidget* BuildUIInstance;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> MapUI;
+
+	class UUserWidget* MapUIInstance;
+
 
 public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
