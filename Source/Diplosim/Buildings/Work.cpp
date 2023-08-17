@@ -1,6 +1,7 @@
 #include "Work.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
@@ -30,10 +31,19 @@ void AWork::FindCitizens()
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (c->Employment == nullptr) {
+		const ANavigationData* NavData = nav->GetNavDataForProps(c->GetNavAgentPropertiesRef());
+
+		FPathFindingQuery query(this, *NavData, GetActorLocation(), c->GetActorLocation());
+		query.bAllowPartialPaths = false;
+
+		bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
+
+		if (c->Employment == nullptr && path) {
 			AddCitizen(c);
 		}
 	}

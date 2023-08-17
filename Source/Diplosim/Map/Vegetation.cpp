@@ -26,13 +26,26 @@ void AVegetation::YieldStatus()
 {
 	bIsGettingChopped = false;
 
-	SetActorHiddenInGame(true);
+	ResourceMesh->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
 
 	FTimerHandle growTimer;
-	GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, 300.0f, false);
+	GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, 30.0f, false);
 }
 
 void AVegetation::Grow()
 {
-	SetActorHiddenInGame(false);
+	ResourceMesh->SetRelativeScale3D(ResourceMesh->GetRelativeScale3D() + FVector(0.1f, 0.1f, 0.1f));
+
+	if (!IsChoppable()) {
+		FTimerHandle growTimer;
+		GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, 30.0f, false);
+	}
+}
+
+bool AVegetation::IsChoppable()
+{
+	if (bIsGettingChopped || ResourceMesh->GetRelativeScale3D() != FVector(1.0f, 1.0f, 1.0f))
+		return false;
+
+	return true;
 }

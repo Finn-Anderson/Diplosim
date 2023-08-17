@@ -17,7 +17,6 @@ public:
 
 	virtual void UpkeepCost() override;
 
-public:
 	// Citizens
 	FTimerHandle FindTimer;
 

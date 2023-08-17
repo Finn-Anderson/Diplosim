@@ -17,6 +17,8 @@ void AMineral::YieldStatus()
 		Grid->GenerateTile("Hill", 0, loc.X, loc.Y);
 
 		Destroy();
+	} else if (Quantity < MaxYield) {
+		MaxYield = Quantity;
 	}
 }
 

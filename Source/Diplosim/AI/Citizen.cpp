@@ -5,7 +5,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "AIController.h"	
 #include "Components/CapsuleComponent.h"
-#include "NavigationSystem.h"
 
 #include "Resource.h"
 #include "Buildings/Work.h"

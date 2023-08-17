@@ -19,9 +19,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tree Meshes")
 		TArray<class UStaticMesh*> MeshList;
 
+	bool bIsGettingChopped;
+
 	virtual void YieldStatus();
 
 	void Grow();
 
-	bool bIsGettingChopped;
+	bool IsChoppable();
 };
