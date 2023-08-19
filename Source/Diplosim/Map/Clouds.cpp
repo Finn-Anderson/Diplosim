@@ -12,6 +12,7 @@ AClouds::AClouds()
 	HISMClouds = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClouds"));
 	HISMClouds->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMClouds->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	HISMClouds->SetCanEverAffectNavigation(false);
 	HISMClouds->NumCustomDataFloats = 2;
 }
 

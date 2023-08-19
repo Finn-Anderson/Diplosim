@@ -19,6 +19,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 MaxYield;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 MinYield;
+
 	int32 Yield;
 
 	int32 GenerateYield();

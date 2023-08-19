@@ -11,6 +11,7 @@ AResource::AResource()
 	ResourceMesh->bCastDynamicShadow = true;
 	ResourceMesh->CastShadow = true;
 
+	MinYield = 1;
 	MaxYield = 5;
 }
 
@@ -25,7 +26,7 @@ int32 AResource::GetYield()
 
 int32 AResource::GenerateYield()
 {
-	int32 yield = FMath::RandRange(1, MaxYield);
+	int32 yield = FMath::RandRange(MinYield, MaxYield);
 
 	return yield;
 }

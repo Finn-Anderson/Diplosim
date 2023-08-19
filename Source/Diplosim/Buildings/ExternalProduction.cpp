@@ -18,11 +18,6 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 	}
 }
 
-void AExternalProduction::Leave(ACitizen* Citizen)
-{
-	Super::Leave(Citizen);
-}
-
 void AExternalProduction::Production(ACitizen* Citizen)
 {
 	TArray<AActor*> foundResources;
@@ -46,9 +41,9 @@ void AExternalProduction::Production(ACitizen* Citizen)
 			resource = Cast<AResource>(foundResources[i]);
 		}
 		else {
-			float dR = (resource->GetActorLocation() - GetActorLocation()).Length();
+			float dR = FVector::Dist(resource->GetActorLocation(), GetActorLocation());
 
-			float dF = (foundResources[i]->GetActorLocation() - GetActorLocation()).Length();
+			float dF = FVector::Dist(foundResources[i]->GetActorLocation(), GetActorLocation());
 
 			if (dR > dF) {
 				resource = Cast<AResource>(foundResources[i]);
