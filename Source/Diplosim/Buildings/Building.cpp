@@ -88,17 +88,19 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 			Enter(c);
 		}
 	}
-	else if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
-		AVegetation* r = Cast<AVegetation>(OtherActor);
-		Camera->BuildComponent->HideTree(r, true);
+	else if (Blueprint) {
+		if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
+			AVegetation* r = Cast<AVegetation>(OtherActor);
+			Camera->BuildComponent->HideTree(r, true);
 
-		TreeList.Add(OtherActor);
-	}
-	else if (OtherActor->IsA<AMineral>() || OtherActor->IsA<ABuilding>()) {
-		Blocking.Add(OtherActor);
-	}
-	else if (OtherComp->GetName() == "HISMWater" || OtherComp->GetName() == "HISMHill") {
-		Blocking.Add(OtherComp);
+			TreeList.Add(OtherActor);
+		}
+		else if (OtherActor->IsA<AMineral>() || OtherActor->IsA<ABuilding>()) {
+			Blocking.Add(OtherActor);
+		}
+		else if (OtherComp->GetName() == "HISMWater" || OtherComp->GetName() == "HISMHill") {
+			Blocking.Add(OtherComp);
+		}
 	}
 }
 
@@ -111,15 +113,17 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 			Leave(c);
 		}
 	}
-	else if (OtherActor->IsA<AVegetation>() && TreeList.Contains(OtherActor)) {
-		AVegetation* r = Cast<AVegetation>(OtherActor);
-		Camera->BuildComponent->HideTree(r, false);
-	}
-	else if (Blocking.Contains(OtherActor)) {
-		Blocking.RemoveSingle(OtherActor);
-	}
-	else if (Blocking.Contains(OtherComp)) {
-		Blocking.RemoveSingle(OtherComp);
+	else if (Blueprint) {
+		if (OtherActor->IsA<AVegetation>() && TreeList.Contains(OtherActor)) {
+			AVegetation* r = Cast<AVegetation>(OtherActor);
+			Camera->BuildComponent->HideTree(r, false);
+		}
+		else if (Blocking.Contains(OtherActor)) {
+			Blocking.RemoveSingle(OtherActor);
+		}
+		else if (Blocking.Contains(OtherComp)) {
+			Blocking.RemoveSingle(OtherComp);
+		}
 	}
 }
 
@@ -187,7 +191,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 {
 	Citizen->SetActorHiddenInGame(true);
 
-	if (Occupied.Contains(Citizen)) {
+	if (Occupied.Contains(Citizen) && !AtWork.Contains(Citizen)) {
 		AtWork.Add(Citizen);
 	}
 }

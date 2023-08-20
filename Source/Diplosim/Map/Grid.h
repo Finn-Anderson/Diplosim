@@ -17,6 +17,8 @@ struct FTileStruct
 
 	int32 Coords;
 
+	FVector Location;
+
 	TArray<class AActor*> Resource;
 
 	FTileStruct()

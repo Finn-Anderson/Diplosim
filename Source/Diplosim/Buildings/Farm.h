@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Buildings/Production.h"
+#include "Buildings/Work.h"
 #include "Farm.generated.h"
 
 UCLASS()
-class DIPLOSIM_API AFarm : public AProduction
+class DIPLOSIM_API AFarm : public AWork
 {
 	GENERATED_BODY()
 
@@ -13,12 +13,15 @@ public:
 	AFarm();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
-		TSubclassOf<class AVegetation> Crop;
+		TSubclassOf<class AVegetation> CropClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
+		TSubclassOf<class AGrid> Grid;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		float TimeLength;
 
-	TArray<class AVegetation*> CropList;
+	class AVegetation* Crop;
 
 	virtual void Enter(class ACitizen* Citizen) override;
 

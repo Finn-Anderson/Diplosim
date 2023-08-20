@@ -11,6 +11,11 @@
 AWork::AWork()
 {
 	Wage = 0;
+
+	Storage = 0;
+	StorageCap = 1000;
+
+	Resource = nullptr;
 }
 
 void AWork::UpkeepCost()
@@ -95,4 +100,27 @@ void AWork::RemoveCitizen(ACitizen* Citizen)
 			GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
 		}
 	}
+}
+
+void AWork::Store(int32 Amount, ACitizen* Citizen)
+{
+	int32 quantity = (Storage + Amount);
+	if (0 <= quantity && quantity <= StorageCap) {
+		Storage += Amount;
+
+		Camera->ResourceManagerComponent->ChangeResource(Resource, Amount);
+
+		Production(Citizen);
+	}
+	else {
+		GetWorldTimerManager().ClearTimer(ProdTimer);
+
+		FTimerHandle StoreCheckTimer;
+		GetWorldTimerManager().SetTimer(StoreCheckTimer, FTimerDelegate::CreateUObject(this, &AWork::Store, Amount, Citizen), 30.0f, false);
+	}
+}
+
+void AWork::Production(ACitizen* Citizen)
+{
+
 }

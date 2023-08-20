@@ -17,10 +17,10 @@ public:
 		class UStaticMeshComponent* ResourceMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 MaxYield;
+		int32 MinYield;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 MinYield;
+		int32 MaxYield;
 
 	int32 Yield;
 

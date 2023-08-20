@@ -1,59 +1,65 @@
 #include "Buildings/Farm.h"
 
 #include "Map/Vegetation.h"
+#include "Map/Grid.h"
 
 AFarm::AFarm()
 {
 	TimeLength = 180.0f;
+
+	Crop = nullptr;
 }
 
 void AFarm::Enter(ACitizen* Citizen)
 {
-	Super::Enter(Citizen);
+	if (!AtWork.Contains(Citizen))
+		AtWork.Add(Citizen);
 
-	UStaticMeshComponent* cropMesh = Crop->GetDefaultObject<AVegetation>()->ResourceMesh;
+	if (Crop == nullptr) {
+		int32 finalX = GetActorLocation().X;
+		int32 finalY = GetActorLocation().Y;
+		int32 finalZ = GetActorLocation().Z + BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
-	FVector bounds = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
-	FVector cropSize = cropMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+		FVector pos = FVector(finalX, finalY, finalZ);
 
-	int32 xQ = FMath::Floor(bounds.X / cropSize.X);
-	int32 yQ = FMath::Floor(bounds.Y / cropSize.Y);
+		Crop = GetWorld()->SpawnActor<AVegetation>(CropClass, pos, GetActorRotation());
 
-	if (yQ == 0 || xQ == 0)
-		return;
+		Crop->ResourceMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 
-	for (int32 i = 0; i < yQ; i++) {
-		for (int32 j = 0; j < xQ; j++) {
-			int32 x = bounds.X / xQ * i;
-			int32 y = bounds.Y / yQ * j;
-
-			int32 finalX = GetActorLocation().X - (bounds.X / 2) + x;
-			int32 finalY = GetActorLocation().Y - (bounds.Y / 2) + y;
-			int32 finalZ = bounds.Z / 2;
-
-			FVector pos = FVector(finalX, finalY, finalZ);
-
-			AVegetation* crop = GetWorld()->SpawnActor<AVegetation>(Crop, pos, GetActorRotation());
-
-			crop->YieldStatus();
-
-			CropList.Add(crop);
-		}
+		Store(0, Citizen);
 	}
 }
 
 void AFarm::Production(ACitizen* Citizen)
 {
-	GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AFarm::ProductionDone, Citizen), TimeLength, false);
+	GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AFarm::ProductionDone, Citizen), TimeLength, true);
 }
 
 void AFarm::ProductionDone(ACitizen* Citizen)
 {
-	if (Storage < StorageCap) {
-		AResource* r = GetWorld()->SpawnActor<AResource>(Resource);
+	if (!(Crop->ResourceMesh->GetRelativeScale3D().Z >= 1.0f)) {
+		FVector curHeight = Crop->ResourceMesh->GetRelativeScale3D();
 
-		Store(r->GetYield(), Citizen);
+		Crop->ResourceMesh->SetRelativeScale3D(curHeight + FVector(0.0f, 0.0f, 0.1f));
 
-		r->Destroy();
+		return;
+	}
+	else if (AtWork.Num() == Capacity) {
+		GetWorldTimerManager().ClearTimer(ProdTimer);
+
+		int32 yield = Crop->GetYield();
+
+		TArray<FTileStruct> tileArr = Grid->GetDefaultObject<AGrid>()->Storage;
+		for (int32 i = 0; i < tileArr.Num(); i++) {
+			if (tileArr[i].Location == GetActorLocation()) {
+				yield *= tileArr[i].Fertility;
+
+				break;
+			}
+		}
+
+		Crop->ResourceMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
+
+		Store(yield, Citizen);
 	}
 }

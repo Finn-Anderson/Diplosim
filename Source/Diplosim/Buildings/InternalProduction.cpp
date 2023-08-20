@@ -13,7 +13,7 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 	Super::Enter(Citizen);
 
 	if (AtWork.Num() == 1) {
-		Production(Citizen);
+		Store(0, Citizen);
 	}
 }
 
@@ -44,11 +44,9 @@ void AInternalProduction::Produce(ACitizen* Citizen)
 
 void AInternalProduction::ProductionDone(ACitizen* Citizen)
 {
-	if (Storage < StorageCap) {
-		AResource* r = GetWorld()->SpawnActor<AResource>(Resource);
+	AResource* r = GetWorld()->SpawnActor<AResource>(Resource);
 
-		Store(r->GetYield(), Citizen);
+	Store(r->GetYield(), Citizen);
 
-		r->Destroy();
-	}
+	r->Destroy();
 }

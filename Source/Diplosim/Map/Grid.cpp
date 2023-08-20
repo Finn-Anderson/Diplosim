@@ -220,6 +220,7 @@ void AGrid::GenerateTile(FString Choice, int32 Mean, int32 x, int32 y)
 	tile.Instance = inst;
 	tile.Fertility = Mean;
 	tile.Coords = x + (y * Size);
+	tile.Location = loc;
 
 	Storage.Add(tile);
 }
@@ -259,7 +260,7 @@ void AGrid::GenerateResource(int32 Pos)
 	}
 	else if (tile.Choice == "Ground") {
 		FTileStruct xTile = Storage[tile.Coords - 1];
-		FTileStruct yTile = Storage[tile.Coords - 150];
+		FTileStruct yTile = Storage[tile.Coords - Size];
 
 		if (xTile.Choice == "Hill" || yTile.Choice == "Hill")
 			return;

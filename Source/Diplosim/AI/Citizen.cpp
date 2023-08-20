@@ -206,7 +206,7 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 		Citizen->SetPartner(this);
 
 		if (Sex == ESex::Female) {
-			GetWorld()->GetTimerManager().SetTimer(ChildTimer, this, &ACitizen::HaveChild, 120.0f, true);
+			GetWorld()->GetTimerManager().SetTimer(ChildTimer, this, &ACitizen::HaveChild, 90.0f, true);
 		}
 	}
 }
