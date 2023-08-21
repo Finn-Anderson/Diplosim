@@ -39,8 +39,9 @@ void AFarm::ProductionDone(ACitizen* Citizen)
 {
 	if (!(Crop->ResourceMesh->GetRelativeScale3D().Z >= 1.0f)) {
 		FVector curHeight = Crop->ResourceMesh->GetRelativeScale3D();
+		curHeight.Z += 0.1f;
 
-		Crop->ResourceMesh->SetRelativeScale3D(curHeight + FVector(0.0f, 0.0f, 0.1f));
+		Crop->ResourceMesh->SetRelativeScale3D(curHeight);
 
 		return;
 	}
