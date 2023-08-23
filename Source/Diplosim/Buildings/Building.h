@@ -13,12 +13,16 @@ struct FCostStruct
 		TSubclassOf<class AResource> Type;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Stored;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Cost;
 
 	FCostStruct()
 	{
 		Type = nullptr;
 		Cost = 0;
+		Stored = 0;
 	}
 };
 
