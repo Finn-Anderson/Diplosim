@@ -31,8 +31,12 @@ ABuilding::ABuilding()
 
 	Upkeep = 0;
 
-	Blueprint = true;
+	BuildStatus = EBuildStatus::Blueprint;
 	bMoved = false;
+
+	bHideCitizen = true;
+
+	bInstantConstruction = false;
 }
 
 void ABuilding::BeginPlay()
@@ -51,15 +55,32 @@ void ABuilding::BeginPlay()
 
 void ABuilding::Build()
 {
-	Blueprint = false;
+	BuildStatus = EBuildStatus::Construction;
 
 	UResourceManager* rm = Camera->ResourceManagerComponent;
 
-	for (int i = 0; i < CostList.Num(); i++) {
+	for (int32 i = 0; i < CostList.Num(); i++) {
 		rm->ChangeResource(CostList[i].Type, -CostList[i].Cost);
 	}
 
-	OnBuilt();
+	if (bInstantConstruction) {
+		OnBuilt();
+	} else {
+		UStaticMesh* building = BuildingMesh->GetStaticMesh();
+		FVector bSize = building->GetBounds().GetBox().GetSize();
+		FVector cSize = ConstructionMesh->GetBounds().GetBox().GetSize();
+
+		FVector size = bSize / cSize;
+		if (size.Z < 1.0f)
+			size.Z = 1.0f;
+
+		BuildingMesh->SetRelativeScale3D(size);
+		BuildingMesh->SetStaticMesh(ConstructionMesh);
+
+		// Setup builders instead of raw timer
+		FTimerHandle constructTimer;
+		GetWorldTimerManager().SetTimer(constructTimer, FTimerDelegate::CreateUObject(this, &ABuilding::OnBuilt, building), 5.0f, false);
+	}
 }
 
 bool ABuilding::CheckBuildCost()
@@ -88,7 +109,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 			Enter(c);
 		}
 	}
-	else if (Blueprint) {
+	else if (BuildStatus == EBuildStatus::Blueprint) {
 		if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
 			AVegetation* r = Cast<AVegetation>(OtherActor);
 			Camera->BuildComponent->HideTree(r, true);
@@ -113,7 +134,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 			Leave(c);
 		}
 	}
-	else if (Blueprint) {
+	else if (BuildStatus == EBuildStatus::Blueprint) {
 		if (OtherActor->IsA<AVegetation>() && TreeList.Contains(OtherActor)) {
 			AVegetation* r = Cast<AVegetation>(OtherActor);
 			Camera->BuildComponent->HideTree(r, false);
@@ -160,8 +181,15 @@ TArray<FCostStruct> ABuilding::GetCosts()
 	return CostList;
 }
 
-void ABuilding::OnBuilt()
+void ABuilding::OnBuilt(UStaticMesh* Building)
 {
+	if (Building != nullptr) {
+		BuildingMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+		BuildingMesh->SetStaticMesh(Building);
+	}
+
+	BuildStatus = EBuildStatus::Complete;
+
 	GetWorldTimerManager().SetTimer(CostTimer, this, &ABuilding::UpkeepCost, 300.0f, true);
 
 	FindCitizens();
@@ -189,10 +217,15 @@ void ABuilding::RemoveCitizen(ACitizen* Citizen)
 
 void ABuilding::Enter(ACitizen* Citizen)
 {
-	Citizen->SetActorHiddenInGame(true);
+	if (BuildStatus != EBuildStatus::Construction) {
+		Citizen->SetActorHiddenInGame(bHideCitizen);
 
-	if (Occupied.Contains(Citizen) && !AtWork.Contains(Citizen)) {
-		AtWork.Add(Citizen);
+		if (Occupied.Contains(Citizen) && !AtWork.Contains(Citizen)) {
+			AtWork.Add(Citizen);
+		}
+	}
+	else {
+		Citizen->SetActorHiddenInGame(true);
 	}
 }
 

@@ -92,7 +92,7 @@ void UBuildComponent::Build()
 {
 	SetComponentTickEnabled(!IsComponentTickEnabled());
 
-	if (Building != nullptr && Building->Blueprint) {
+	if (Building != nullptr && Building->BuildStatus == EBuildStatus::Blueprint) {
 		Building->Destroy();
 	}
 
@@ -101,7 +101,7 @@ void UBuildComponent::Build()
 
 void UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass)
 {
-	if (Building != nullptr && Building->Blueprint) {
+	if (Building != nullptr && Building->BuildStatus == EBuildStatus::Blueprint) {
 		Building->Destroy();
 	}
 

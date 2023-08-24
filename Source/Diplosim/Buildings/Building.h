@@ -26,6 +26,13 @@ struct FCostStruct
 	}
 };
 
+UENUM()
+enum class EBuildStatus : uint8 {
+	Blueprint,
+	Construction,
+	Complete
+};
+
 UCLASS()
 class DIPLOSIM_API ABuilding : public AActor
 {
@@ -44,7 +51,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nav")
 		class UBoxComponent* BoxCollision;
 
-	bool Blueprint;
+	EBuildStatus BuildStatus;
 
 	bool bMoved;
 
@@ -54,8 +61,6 @@ public:
 		class ACamera* Camera;
 
 	void DestroyBuilding();
-
-	void OnBuilt();
 
 	virtual void Enter(class ACitizen* Citizen);
 
@@ -72,6 +77,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
 		TArray<FCostStruct> CostList;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		class UStaticMesh* ConstructionMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		bool bInstantConstruction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen")
+		bool bHideCitizen;
+
 	TArray<class AActor*> TreeList;
 
 	void Build();
@@ -80,6 +94,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		TArray<FCostStruct> GetCosts();
+
+	void OnBuilt(UStaticMesh* Building = nullptr);
 
 public:
 	// Upkeep

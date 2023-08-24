@@ -12,8 +12,7 @@ AFarm::AFarm()
 
 void AFarm::Enter(ACitizen* Citizen)
 {
-	if (!AtWork.Contains(Citizen))
-		AtWork.Add(Citizen);
+	Super::Enter(Citizen);
 
 	if (Crop == nullptr) {
 		int32 finalX = GetActorLocation().X;
