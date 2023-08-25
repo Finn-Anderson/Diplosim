@@ -66,7 +66,7 @@ void ABuilding::Build()
 		rm->TakeResource(CostList[i].Type, CostList[i].Cost);
 	}
 
-	if (bInstantConstruction) {
+	if (CheckInstant()) {
 		OnBuilt();
 	} else {
 		UStaticMesh* building = BuildingMesh->GetStaticMesh();
@@ -108,7 +108,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
-		if (c->Goal == this) {
+		if (!AtWork.Contains(c) && c->Goal == this) {
 			Enter(c);
 		}
 	}
@@ -237,4 +237,9 @@ void ABuilding::Leave(ACitizen* Citizen)
 	Citizen->SetActorHiddenInGame(false);
 
 	AtWork.Remove(Citizen);
+}
+
+bool ABuilding::CheckInstant()
+{
+	return bInstantConstruction;
 }

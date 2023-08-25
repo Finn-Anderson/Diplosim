@@ -13,11 +13,12 @@ UResourceManager::UResourceManager()
 
 bool UResourceManager::AddLocalResource(ABuilding* Building, int32 Amount)
 {
-	// No worky work.
 	int32 target = Building->Storage + Amount;
 
-	if (target > Building->Capacity)
+	if (target > Building->StorageCap) {
+		Building->Storage = Building->StorageCap;
 		return false;
+	}
 
 	Building->Storage = target;
 
@@ -47,7 +48,7 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
 
 					stored += b->Storage;
-					capacity += b->Capacity;
+					capacity += b->StorageCap;
 				}
 			}
 
@@ -70,7 +71,7 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 				for (int32 k = 0; k < foundBuildings.Num(); k++) {
 					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
 
-					AmountLeft -= (b->Capacity - b->Storage);
+					AmountLeft -= (b->StorageCap - b->Storage);
 
 					b->Storage = FMath::Clamp(b->Storage + Amount, 0, 1000);
 

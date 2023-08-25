@@ -15,10 +15,14 @@ struct FCostStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Cost;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Stored;
+
 	FCostStruct()
 	{
 		Type = nullptr;
 		Cost = 0;
+		Stored = 0;
 	}
 };
 
@@ -67,6 +71,8 @@ public:
 	virtual void AddCitizen(class ACitizen* Citizen);
 
 	virtual void RemoveCitizen(class ACitizen* Citizen);
+
+	virtual bool CheckInstant();
 
 	// Construct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")

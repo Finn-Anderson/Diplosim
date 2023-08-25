@@ -53,9 +53,11 @@ void AExternalProduction::Production(ACitizen* Citizen)
 		}
 	}
 
-	if (resource->IsA<AVegetation>()) {
-		Cast<AVegetation>(resource)->bIsGettingChopped = true;
-	}
+	if (resource != nullptr) {
+		if (resource->IsA<AVegetation>()) {
+			Cast<AVegetation>(resource)->bIsGettingChopped = true;
+		}
 
-	Citizen->MoveTo(resource);
+		Citizen->MoveTo(resource);
+	}
 }
