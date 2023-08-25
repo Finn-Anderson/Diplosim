@@ -12,9 +12,6 @@ class DIPLOSIM_API AFarm : public AWork
 public:
 	AFarm();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
-		TSubclassOf<class AVegetation> CropClass;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 		TSubclassOf<class AGrid> Grid;
 

@@ -2,6 +2,7 @@
 
 #include "Resource.h"
 #include "Player/Camera.h"
+#include "Player/ResourceManager.h"
 
 AInternalProduction::AInternalProduction()
 {
@@ -44,7 +45,7 @@ void AInternalProduction::Produce(ACitizen* Citizen)
 
 void AInternalProduction::ProductionDone(ACitizen* Citizen)
 {
-	AResource* r = GetWorld()->SpawnActor<AResource>(Resource);
+	AResource* r = GetWorld()->SpawnActor<AResource>(Camera->ResourceManagerComponent->GetResource(this));
 
 	Store(r->GetYield(), Citizen);
 

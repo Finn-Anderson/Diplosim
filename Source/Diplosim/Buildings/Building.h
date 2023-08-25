@@ -13,16 +13,12 @@ struct FCostStruct
 		TSubclassOf<class AResource> Type;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Stored;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Cost;
 
 	FCostStruct()
 	{
 		Type = nullptr;
 		Cost = 0;
-		Stored = 0;
 	}
 };
 
@@ -72,7 +68,6 @@ public:
 
 	virtual void RemoveCitizen(class ACitizen* Citizen);
 
-public:
 	// Construct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
 		TArray<FCostStruct> CostList;
@@ -97,7 +92,6 @@ public:
 
 	void OnBuilt(UStaticMesh* Building = nullptr);
 
-public:
 	// Upkeep
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		TSubclassOf<class AResource> Money;
@@ -107,7 +101,6 @@ public:
 
 	virtual void UpkeepCost();
 
-public:
 	// Building prevent overlaps
 	UFUNCTION()
 		void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -115,7 +108,6 @@ public:
 	UFUNCTION()
 		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-public:
 	// Citizens
 	UPROPERTY()
 		TArray<class ACitizen*> Occupied;
@@ -131,4 +123,11 @@ public:
 	int32 GetCapacity();
 
 	TArray<class ACitizen*> GetOccupied();
+
+	// Resources
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Storage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 StorageCap;
 };

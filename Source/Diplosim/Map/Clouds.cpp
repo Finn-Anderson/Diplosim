@@ -43,8 +43,8 @@ void AClouds::Tick(float DeltaTime)
 			opacity = HISMClouds->PerInstanceSMCustomData[i * 2 + 1] - 0.01f;
 
 			if (HISMClouds->PerInstanceSMCustomData[i * 2 + 1] <= 0.0f) {
-				HISMClouds->PerInstanceSMCustomData[i * 2 + 1] = 1.0f;
-				HISMClouds->RemoveInstance(i);
+				HISMClouds->PerInstanceSMCustomData[i * 2 + 1] = 1.0f; // Broken
+				HISMClouds->RemoveInstance(i); // Broken
 			}
 		} else if (HISMClouds->PerInstanceSMCustomData[i * 2 + 1] < 1.0f) {
 			opacity = HISMClouds->PerInstanceSMCustomData[i * 2 + 1] + 0.01f;

@@ -13,12 +13,11 @@ struct FResourceStruct
 		TSubclassOf<class AResource> Type;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Amount;
+		TArray<TSubclassOf<class ABuilding>> Buildings;
 
 	FResourceStruct()
 	{
 		Type = nullptr;
-		Amount = 0;
 	}
 };
 
@@ -33,9 +32,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FResourceStruct> ResourceList;
 
-	void ChangeResource(TSubclassOf<class AResource> Resource, int32 Change);
+	bool AddLocalResource(class ABuilding* Building, int32 Amount);
+
+	bool AddUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount);
+
+	bool TakeResource(TSubclassOf<class AResource> Resource, int32 Amount);
+
+	void SetResourceStruct(TSubclassOf<AResource> Resource);
 
 	int32 GetResourceAmount(TSubclassOf<class AResource> Resource);
+
+	TSubclassOf<class AResource> GetResource(class ABuilding* Building);
 
 public:
 	// UI

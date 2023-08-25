@@ -6,6 +6,8 @@
 #include "AI/Citizen.h"
 #include "Resource.h"
 #include "Map/Vegetation.h"
+#include "Player/Camera.h"
+#include "Player/ResourceManager.h"
 
 void AExternalProduction::Enter(ACitizen* Citizen)
 {
@@ -21,14 +23,14 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 void AExternalProduction::Production(ACitizen* Citizen)
 {
 	TArray<AActor*> foundResources;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), Resource, foundResources);
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), Camera->ResourceManagerComponent->GetResource(this), foundResources);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetNavDataForProps(Citizen->GetNavAgentPropertiesRef());
 
 	AResource* resource = nullptr;
 
-	for (int i = 0; i < foundResources.Num(); i++) {
+	for (int32 i = 0; i < foundResources.Num(); i++) {
 		FPathFindingQuery query(Citizen, *NavData, Citizen->GetActorLocation(), foundResources[i]->GetActorLocation());
 		query.bAllowPartialPaths = false;
 

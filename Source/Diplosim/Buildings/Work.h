@@ -27,15 +27,6 @@ public:
 	virtual void RemoveCitizen(class ACitizen* Citizen) override;
 
 	// Resources
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> Resource;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Storage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 StorageCap;
-
 	FTimerHandle ProdTimer;
 
 	virtual void Production(class ACitizen* Citizen);

@@ -11,11 +11,6 @@
 AWork::AWork()
 {
 	Wage = 0;
-
-	Storage = 0;
-	StorageCap = 1000;
-
-	Resource = nullptr;
 }
 
 void AWork::UpkeepCost()
@@ -28,7 +23,9 @@ void AWork::UpkeepCost()
 
 	int32 cost = Wage * Occupied.Num() + Upkeep;
 
-	Camera->ResourceManagerComponent->ChangeResource(Money, -cost);
+	if (!Camera->ResourceManagerComponent->TakeResource(Money, cost)) {
+		// Shutdown building;
+	}
 }
 
 void AWork::FindCitizens()
@@ -104,12 +101,7 @@ void AWork::RemoveCitizen(ACitizen* Citizen)
 
 void AWork::Store(int32 Amount, ACitizen* Citizen)
 {
-	int32 quantity = (Storage + Amount);
-	if (0 <= quantity && quantity <= StorageCap) {
-		Storage += Amount;
-
-		Camera->ResourceManagerComponent->ChangeResource(Resource, Amount);
-
+	if (Camera->ResourceManagerComponent->AddLocalResource(this, Amount)) {
 		Production(Citizen);
 	}
 	else {

@@ -2,6 +2,8 @@
 
 #include "Map/Vegetation.h"
 #include "Map/Grid.h"
+#include "Player/Camera.h"
+#include "Player/ResourceManager.h"
 
 AFarm::AFarm()
 {
@@ -21,7 +23,7 @@ void AFarm::Enter(ACitizen* Citizen)
 
 		FVector pos = FVector(finalX, finalY, finalZ);
 
-		Crop = GetWorld()->SpawnActor<AVegetation>(CropClass, pos, GetActorRotation());
+		Crop = GetWorld()->SpawnActor<AVegetation>(Camera->ResourceManagerComponent->GetResource(this), pos, GetActorRotation());
 
 		Crop->ResourceMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 

@@ -31,6 +31,9 @@ ABuilding::ABuilding()
 
 	Upkeep = 0;
 
+	Storage = 0;
+	StorageCap = 1000;
+
 	BuildStatus = EBuildStatus::Blueprint;
 	bMoved = false;
 
@@ -60,7 +63,7 @@ void ABuilding::Build()
 	UResourceManager* rm = Camera->ResourceManagerComponent;
 
 	for (int32 i = 0; i < CostList.Num(); i++) {
-		rm->ChangeResource(CostList[i].Type, -CostList[i].Cost);
+		rm->TakeResource(CostList[i].Type, CostList[i].Cost);
 	}
 
 	if (bInstantConstruction) {
