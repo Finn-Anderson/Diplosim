@@ -4,6 +4,22 @@
 #include "GameFramework/Character.h"
 #include "Citizen.generated.h"
 
+USTRUCT()
+struct FCarryStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	TSubclassOf<class AResource> Type;
+
+	int32 Amount;
+
+	FCarryStruct()
+	{
+		Type = nullptr;
+		Amount = 0;
+	}
+};
+
 enum ESex 
 {
 	Male	UMETA(DisplayName = "Male"),
@@ -54,9 +70,9 @@ public:
 
 
 	// Resources
-	void Carry(class AResource* Resource);
+	void Carry(class AResource* Resource, int32 Amount);
 
-	int32 Carrying; 
+	FCarryStruct Carrying;
 
 
 	// Energy

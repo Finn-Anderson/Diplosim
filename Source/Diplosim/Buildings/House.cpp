@@ -28,7 +28,7 @@ void AHouse::UpkeepCost()
 	int32 rent = Rent * Occupied.Num();
 	Camera->ResourceManagerComponent->AddUniversalResource(Money, rent);
 
-	if (!Camera->ResourceManagerComponent->TakeResource(Money, Upkeep)) {
+	if (!Camera->ResourceManagerComponent->TakeUniversalResource(Money, Upkeep)) {
 		// Shutdown building;
 	}
 }

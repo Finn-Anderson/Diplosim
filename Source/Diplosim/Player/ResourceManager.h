@@ -36,13 +36,17 @@ public:
 
 	bool AddUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount);
 
-	bool TakeResource(TSubclassOf<class AResource> Resource, int32 Amount);
+	bool TakeLocalResource(class ABuilding* Building, int32 Amount);
+
+	bool TakeUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount);
 
 	void SetResourceStruct(TSubclassOf<AResource> Resource);
 
 	int32 GetResourceAmount(TSubclassOf<class AResource> Resource);
 
 	TSubclassOf<class AResource> GetResource(class ABuilding* Building);
+
+	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
 
 public:
 	// UI

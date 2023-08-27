@@ -9,6 +9,7 @@
 #include "Player/BuildComponent.h"
 #include "Map/Vegetation.h"
 #include "Map/Mineral.h"
+#include "Buildings/Builder.h"
 
 ABuilding::ABuilding()
 {
@@ -40,6 +41,8 @@ ABuilding::ABuilding()
 	bHideCitizen = true;
 
 	bInstantConstruction = false;
+
+	ActualMesh = nullptr;
 }
 
 void ABuilding::BeginPlay()
@@ -63,14 +66,14 @@ void ABuilding::Build()
 	UResourceManager* rm = Camera->ResourceManagerComponent;
 
 	for (int32 i = 0; i < CostList.Num(); i++) {
-		rm->TakeResource(CostList[i].Type, CostList[i].Cost);
+		rm->TakeUniversalResource(CostList[i].Type, CostList[i].Cost);
 	}
 
 	if (CheckInstant()) {
 		OnBuilt();
 	} else {
-		UStaticMesh* building = BuildingMesh->GetStaticMesh();
-		FVector bSize = building->GetBounds().GetBox().GetSize();
+		ActualMesh = BuildingMesh->GetStaticMesh();
+		FVector bSize = ActualMesh->GetBounds().GetBox().GetSize();
 		FVector cSize = ConstructionMesh->GetBounds().GetBox().GetSize();
 
 		FVector size = bSize / cSize;
@@ -80,9 +83,37 @@ void ABuilding::Build()
 		BuildingMesh->SetRelativeScale3D(size);
 		BuildingMesh->SetStaticMesh(ConstructionMesh);
 
-		// Setup builders instead of raw timer
-		FTimerHandle constructTimer;
-		GetWorldTimerManager().SetTimer(constructTimer, FTimerDelegate::CreateUObject(this, &ABuilding::OnBuilt, building), 5.0f, false);
+		TArray<AActor*> foundBuilders;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), foundBuilders);
+
+		ABuilder* target = nullptr;
+		for (int32 i = 0; i < foundBuilders.Num(); i++) {
+			ABuilder* builder = Cast<ABuilder>(foundBuilders[i]);
+
+			if (builder->Constructing != nullptr)
+				continue;
+
+			if (target == nullptr) {
+				target = Cast<ABuilder>(foundBuilders[i]);
+			}
+			else {
+				float dT = FVector::Dist(target->GetActorLocation(), GetActorLocation());
+
+				float dB = FVector::Dist(foundBuilders[i]->GetActorLocation(), GetActorLocation());
+
+				if (dT > dB) {
+					target = builder;
+				}
+			}
+		}
+
+		if (target != nullptr) {
+			target->Constructing = this;
+
+			for (int32 i = 0; i < AtWork.Num(); i++) {
+				AtWork[i]->MoveTo(target->Constructing);
+			}
+		}
 	}
 }
 
@@ -184,11 +215,11 @@ TArray<FCostStruct> ABuilding::GetCosts()
 	return CostList;
 }
 
-void ABuilding::OnBuilt(UStaticMesh* Building)
+void ABuilding::OnBuilt()
 {
-	if (Building != nullptr) {
+	if (ActualMesh != nullptr) {
 		BuildingMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
-		BuildingMesh->SetStaticMesh(Building);
+		BuildingMesh->SetStaticMesh(ActualMesh);
 	}
 
 	BuildStatus = EBuildStatus::Complete;
@@ -226,9 +257,122 @@ void ABuilding::Enter(ACitizen* Citizen)
 		if (Occupied.Contains(Citizen) && !AtWork.Contains(Citizen)) {
 			AtWork.Add(Citizen);
 		}
+		else if(Citizen->Employment->IsA<ABuilder>()) {
+			ABuilder* e = Cast<ABuilder>(Citizen->Employment);
+			ABuilding* constructing = e->Constructing;
+
+			int32 amount = 0;
+			for (int32 i = 0; i < constructing->CostList.Num(); i++) {
+				if (constructing->CostList[i].Type == Camera->ResourceManagerComponent->GetResource(this)) {
+					amount = FMath::Clamp(constructing->CostList[i].Cost - constructing->CostList[i].Stored, 0, 10);
+
+					break;
+				}
+			}
+
+			AResource* r = Cast<AResource>(Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject());
+			Citizen->Carry(r, amount);
+
+			Camera->ResourceManagerComponent->TakeLocalResource(this, Citizen->Carrying.Amount);
+
+			Citizen->MoveTo(constructing);
+		}
 	}
-	else {
+	else if (Citizen->Employment->IsA<ABuilder>()) {
 		Citizen->SetActorHiddenInGame(true);
+
+		AtWork.Add(Citizen);
+
+		if (Citizen->Carrying.Amount > 0) {
+			for (int32 i = 0; i < CostList.Num(); i++) {
+				FCostStruct stock = CostList[i];
+
+				if (stock.Type != Citizen->Carrying.Type)
+					continue;
+
+				stock.Stored += Citizen->Carrying.Amount;
+
+				Citizen->Carry(nullptr, 0);
+
+				break;
+			}
+		}
+
+		bool construct = true;
+		for (int32 i = 0; i < CostList.Num(); i++) {
+			FCostStruct stock = CostList[i];
+
+			if (stock.Stored == stock.Cost)
+				continue;
+
+			construct = false;
+
+			CheckGatherSites(Citizen);
+		}
+
+		if (construct) {
+			GetWorldTimerManager().SetTimer(ConstructTimer, this, &ABuilding::AddBuildPercentage, 0.1f, true);
+		}
+	}
+}
+
+void ABuilding::CheckGatherSites(class ACitizen* Citizen)
+{
+	for (int32 i = 0; i < CostList.Num(); i++) {
+		FCostStruct stock = CostList[i];
+
+		if (stock.Stored == stock.Cost)
+			continue;
+
+		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(stock.Type);
+
+		ABuilding* target = nullptr;
+
+		for (int32 j = 0; j < buildings.Num(); j++) {
+			TArray<AActor*> foundBuildings;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
+
+			for (int32 k = 0; k < foundBuildings.Num(); k++) {
+				if (target->BuildStatus != EBuildStatus::Construction)
+					continue;
+
+				if (target == nullptr) {
+					target = Cast<ABuilding>(foundBuildings[k]);
+				}
+				else {
+					float dT = FVector::Dist(target->GetActorLocation(), GetActorLocation());
+
+					float dB = FVector::Dist(foundBuildings[k]->GetActorLocation(), GetActorLocation());
+
+					ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
+
+					if (dT > dB && building->Storage > target->Storage) {
+						target = building;
+					}
+				}
+			}
+		}
+
+		if (target != nullptr) {
+			Citizen->MoveTo(target);
+
+			return;
+		}
+		else {
+			FTimerHandle checkSitesTimer;
+			GetWorldTimerManager().SetTimer(checkSitesTimer, FTimerDelegate::CreateUObject(this, &ABuilding::CheckGatherSites, Citizen), 30.0f, false);
+		}
+	}
+}
+
+void ABuilding::AddBuildPercentage()
+{
+	BuildPercentage += 1;
+
+	if (BuildPercentage == 100) {
+		OnBuilt();
+
+		GetWorldTimerManager().ClearTimer(ConstructTimer);
 	}
 }
 

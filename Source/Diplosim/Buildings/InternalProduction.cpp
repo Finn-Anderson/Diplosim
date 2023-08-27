@@ -29,7 +29,9 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 
 void AInternalProduction::Production(ACitizen* Citizen)
 {
-	GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / AtWork.Num()), false);
+	if (!GetWorldTimerManager().IsTimerActive(ProdTimer)) {
+		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / AtWork.Num()), false);
+	}
 }
 
 void AInternalProduction::Produce(ACitizen* Citizen)
@@ -40,6 +42,10 @@ void AInternalProduction::Produce(ACitizen* Citizen)
 		ProductionDone(Citizen);
 
 		PercentageDone = 0;
+	}
+
+	if (AtWork.Contains(Citizen)) {
+		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / AtWork.Num()), false);
 	}
 }
 

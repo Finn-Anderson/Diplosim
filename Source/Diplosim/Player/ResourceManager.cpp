@@ -86,7 +86,28 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 	return false;
 }
 
-bool UResourceManager::TakeResource(TSubclassOf<AResource> Resource, int32 Amount)
+bool UResourceManager::TakeLocalResource(ABuilding* Building, int32 Amount)
+{
+	int32 target = Building->Storage - Amount;
+
+	if (target < 0) {
+		return false;
+	}
+
+	Building->Storage = target;
+
+	for (int32 i = 0; i < ResourceList.Num(); i++) {
+		if (ResourceList[i].Buildings.Contains(Building->GetClass())) {
+			SetResourceStruct(ResourceList[i].Type);
+
+			break;
+		}
+	}
+
+	return true;
+}
+
+bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, int32 Amount)
 {
 	int32 stored = 0;
 
@@ -177,7 +198,8 @@ int32 UResourceManager::GetResourceAmount(TSubclassOf<AResource> Resource)
 	return amount;
 }
 
-TSubclassOf<class AResource> UResourceManager::GetResource(ABuilding* Building) {
+TSubclassOf<class AResource> UResourceManager::GetResource(ABuilding* Building) 
+{
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
 			if (ResourceList[i].Buildings[j] == Building->GetClass()) {
@@ -186,7 +208,19 @@ TSubclassOf<class AResource> UResourceManager::GetResource(ABuilding* Building) 
 		}
 	}
 
-	return 0;
+	return nullptr;
+}
+
+TArray<TSubclassOf<class ABuilding>> UResourceManager::GetBuildings(TSubclassOf<class AResource> Resource) 
+{
+	for (int32 i = 0; i < ResourceList.Num(); i++) {
+		if (ResourceList[i].Type == Resource) {
+			return ResourceList[i].Buildings;
+		}
+	}
+
+	TArray<TSubclassOf<class ABuilding>> null;
+	return null;
 }
 
 FResourceStruct UResourceManager::GetUpdatedResource()

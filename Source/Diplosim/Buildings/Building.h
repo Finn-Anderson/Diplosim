@@ -89,6 +89,12 @@ public:
 
 	TArray<class AActor*> TreeList;
 
+	int32 BuildPercentage;
+
+	FTimerHandle ConstructTimer;
+
+	UStaticMesh* ActualMesh;
+
 	void Build();
 
 	bool CheckBuildCost();
@@ -96,7 +102,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 		TArray<FCostStruct> GetCosts();
 
-	void OnBuilt(UStaticMesh* Building = nullptr);
+	void OnBuilt();
+
+	void CheckGatherSites(class ACitizen* Citizen);
+
+	void AddBuildPercentage();
 
 	// Upkeep
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")

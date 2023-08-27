@@ -42,8 +42,6 @@ ACitizen::ACitizen()
 
 	Balance = 20;
 
-	Carrying = 0;
-
 	Energy = 100;
 
 	Age = 0;
@@ -92,7 +90,7 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 		FTimerHandle harvestTimer;
 		float time = FMath::RandRange(3.0f, 6.0f);
-		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r), time, false);
+		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r, r->GetYield()), time, false);
 
 		AIController->StopMovement();
 	}
@@ -119,8 +117,6 @@ void ACitizen::LoseEnergy()
 
 	if (Energy <= 0 && House != nullptr) {
 		MoveTo(House);
-
-		Goal = House;
 	}
 
 	if (Energy == -100) {
@@ -139,18 +135,15 @@ void ACitizen::GainEnergy()
 
 	if (Energy == 100) {
 		MoveTo(Employment);
-
-		Goal = Employment;
 	}
 }
 
-void ACitizen::Carry(AResource* Resource)
+void ACitizen::Carry(AResource* Resource, int32 Amount)
 {
-	Carrying = Resource->GetYield();
+	Carrying.Type = Resource->GetClass();
+	Carrying.Amount = Amount;
 
 	MoveTo(Employment);
-
-	Goal = Employment;
 }
 
 void ACitizen::Birthday()

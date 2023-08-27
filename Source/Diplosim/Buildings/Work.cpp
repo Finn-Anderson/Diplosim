@@ -23,7 +23,7 @@ void AWork::UpkeepCost()
 
 	int32 cost = Wage * Occupied.Num() + Upkeep;
 
-	if (!Camera->ResourceManagerComponent->TakeResource(Money, cost)) {
+	if (!Camera->ResourceManagerComponent->TakeUniversalResource(Money, cost)) {
 		// Shutdown building;
 	}
 }
