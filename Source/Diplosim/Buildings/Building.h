@@ -104,9 +104,9 @@ public:
 
 	void OnBuilt();
 
-	void CheckGatherSites(class ACitizen* Citizen);
+	void CheckGatherSites(class ACitizen* Citizen, struct FCostStruct Stock);
 
-	void AddBuildPercentage();
+	void AddBuildPercentage(class ACitizen* Citizen);
 
 	// Upkeep
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")

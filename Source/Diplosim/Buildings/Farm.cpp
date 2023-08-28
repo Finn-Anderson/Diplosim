@@ -16,7 +16,7 @@ void AFarm::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (Crop == nullptr) {
+	if (Occupied.Contains(Citizen) && Crop == nullptr) {
 		int32 finalX = GetActorLocation().X;
 		int32 finalY = GetActorLocation().Y;
 		int32 finalZ = GetActorLocation().Z + BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;

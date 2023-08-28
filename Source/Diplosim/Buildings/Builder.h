@@ -18,5 +18,7 @@ public:
 
 	void CheckConstruction(class ACitizen* Citizen);
 
+	void CarryResources(class ACitizen* Citizen, class ABuilding* Building);
+
 	class ABuilding* Constructing;
 };

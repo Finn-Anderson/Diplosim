@@ -15,8 +15,6 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 
 	if (Occupied.Contains(Citizen)) {
 		Store(Citizen->Carrying.Amount, Citizen);
-
-		Citizen->Carry(nullptr, 0);
 	}
 }
 

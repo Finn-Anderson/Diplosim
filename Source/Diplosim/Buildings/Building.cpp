@@ -63,12 +63,6 @@ void ABuilding::Build()
 {
 	BuildStatus = EBuildStatus::Construction;
 
-	UResourceManager* rm = Camera->ResourceManagerComponent;
-
-	for (int32 i = 0; i < CostList.Num(); i++) {
-		rm->TakeUniversalResource(CostList[i].Type, CostList[i].Cost);
-	}
-
 	if (CheckInstant()) {
 		OnBuilt();
 	} else {
@@ -110,8 +104,8 @@ void ABuilding::Build()
 		if (target != nullptr) {
 			target->Constructing = this;
 
-			for (int32 i = 0; i < AtWork.Num(); i++) {
-				AtWork[i]->MoveTo(target->Constructing);
+			for (int32 i = 0; i < target->AtWork.Num(); i++) {
+				target->AtWork[i]->MoveTo(target->Constructing);
 			}
 		}
 	}
@@ -139,7 +133,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
-		if (!AtWork.Contains(c) && c->Goal == this) {
+		if (c->Goal == this) {
 			Enter(c);
 		}
 	}
@@ -164,9 +158,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
-		if (AtWork.Contains(c)) {
-			Leave(c);
-		}
+		Leave(c);
 	}
 	else if (BuildStatus == EBuildStatus::Blueprint) {
 		if (OtherActor->IsA<AVegetation>() && TreeList.Contains(OtherActor)) {
@@ -259,23 +251,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 		}
 		else if(Citizen->Employment->IsA<ABuilder>()) {
 			ABuilder* e = Cast<ABuilder>(Citizen->Employment);
-			ABuilding* constructing = e->Constructing;
-
-			int32 amount = 0;
-			for (int32 i = 0; i < constructing->CostList.Num(); i++) {
-				if (constructing->CostList[i].Type == Camera->ResourceManagerComponent->GetResource(this)) {
-					amount = FMath::Clamp(constructing->CostList[i].Cost - constructing->CostList[i].Stored, 0, 10);
-
-					break;
-				}
-			}
-
-			AResource* r = Cast<AResource>(Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject());
-			Citizen->Carry(r, amount);
-
-			Camera->ResourceManagerComponent->TakeLocalResource(this, Citizen->Carrying.Amount);
-
-			Citizen->MoveTo(constructing);
+			
+			e->CarryResources(Citizen, this);
 		}
 	}
 	else if (Citizen->Employment->IsA<ABuilder>()) {
@@ -285,14 +262,12 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 		if (Citizen->Carrying.Amount > 0) {
 			for (int32 i = 0; i < CostList.Num(); i++) {
-				FCostStruct stock = CostList[i];
-
-				if (stock.Type != Citizen->Carrying.Type)
+				if (CostList[i].Type->GetDefaultObject<AResource>() != Citizen->Carrying.Type)
 					continue;
 
-				stock.Stored += Citizen->Carrying.Amount;
+				CostList[i].Stored += Citizen->Carrying.Amount;
 
-				Citizen->Carry(nullptr, 0);
+				Citizen->Carry(nullptr, 0, nullptr);
 
 				break;
 			}
@@ -300,79 +275,78 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 		bool construct = true;
 		for (int32 i = 0; i < CostList.Num(); i++) {
-			FCostStruct stock = CostList[i];
-
-			if (stock.Stored == stock.Cost)
+			if (CostList[i].Stored == CostList[i].Cost)
 				continue;
 
 			construct = false;
 
-			CheckGatherSites(Citizen);
+			CheckGatherSites(Citizen, CostList[i]);
 		}
 
 		if (construct) {
-			GetWorldTimerManager().SetTimer(ConstructTimer, this, &ABuilding::AddBuildPercentage, 0.1f, true);
+			GetWorldTimerManager().SetTimer(ConstructTimer, FTimerDelegate::CreateUObject(this, &ABuilding::AddBuildPercentage, Citizen), 0.1f, true);
 		}
 	}
 }
 
-void ABuilding::CheckGatherSites(class ACitizen* Citizen)
+void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 {
-	for (int32 i = 0; i < CostList.Num(); i++) {
-		FCostStruct stock = CostList[i];
 
-		if (stock.Stored == stock.Cost)
-			continue;
+	TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(Stock.Type);
 
-		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(stock.Type);
+	ABuilding* target = nullptr;
 
-		ABuilding* target = nullptr;
+	for (int32 j = 0; j < buildings.Num(); j++) {
+		TArray<AActor*> foundBuildings;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
 
-		for (int32 j = 0; j < buildings.Num(); j++) {
-			TArray<AActor*> foundBuildings;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
+		for (int32 k = 0; k < foundBuildings.Num(); k++) {
+			ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
 
-			for (int32 k = 0; k < foundBuildings.Num(); k++) {
-				if (target->BuildStatus != EBuildStatus::Construction)
-					continue;
+			if (building->BuildStatus != EBuildStatus::Complete)
+				continue;
 
-				if (target == nullptr) {
-					target = Cast<ABuilding>(foundBuildings[k]);
-				}
-				else {
-					float dT = FVector::Dist(target->GetActorLocation(), GetActorLocation());
+			if (target == nullptr) {
+				target = Cast<ABuilding>(foundBuildings[k]);
+			}
+			else {
+				float dT = FVector::Dist(target->GetActorLocation(), GetActorLocation());
 
-					float dB = FVector::Dist(foundBuildings[k]->GetActorLocation(), GetActorLocation());
+				float dB = FVector::Dist(foundBuildings[k]->GetActorLocation(), GetActorLocation());
 
-					ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
-
-					if (dT > dB && building->Storage > target->Storage) {
-						target = building;
-					}
+				if (dT > dB && building->Storage > target->Storage) {
+					target = building;
 				}
 			}
 		}
+	}
 
-		if (target != nullptr) {
-			Citizen->MoveTo(target);
+	if (target != nullptr) {
+		Citizen->MoveTo(target);
 
-			return;
-		}
-		else {
-			FTimerHandle checkSitesTimer;
-			GetWorldTimerManager().SetTimer(checkSitesTimer, FTimerDelegate::CreateUObject(this, &ABuilding::CheckGatherSites, Citizen), 30.0f, false);
-		}
+		return;
+	}
+	else {
+		FTimerHandle checkSitesTimer;
+		GetWorldTimerManager().SetTimer(checkSitesTimer, FTimerDelegate::CreateUObject(this, &ABuilding::CheckGatherSites, Citizen, Stock), 30.0f, false);
 	}
 }
 
-void ABuilding::AddBuildPercentage()
+void ABuilding::AddBuildPercentage(ACitizen* Citizen)
 {
-	BuildPercentage += 1;
+	if (AtWork.Contains(Citizen)) {
+		BuildPercentage += 1;
 
-	if (BuildPercentage == 100) {
-		OnBuilt();
+		if (BuildPercentage == 100) {
+			OnBuilt();
 
-		GetWorldTimerManager().ClearTimer(ConstructTimer);
+			ABuilder* e = Cast<ABuilder>(Citizen->Employment);
+			e->Constructing = nullptr;
+
+			Citizen->MoveTo(Citizen->Employment);
+
+			GetWorldTimerManager().ClearTimer(ConstructTimer);
+		}
 	}
 }
 

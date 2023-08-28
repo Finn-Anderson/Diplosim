@@ -9,7 +9,7 @@ struct FCarryStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	TSubclassOf<class AResource> Type;
+	class AResource* Type;
 
 	int32 Amount;
 
@@ -70,7 +70,9 @@ public:
 
 
 	// Resources
-	void Carry(class AResource* Resource, int32 Amount);
+	void HarvestResource(class AResource* Resource);
+
+	void Carry(class AResource* Resource, int32 Amount, AActor* Location);
 
 	FCarryStruct Carrying;
 
@@ -80,9 +82,9 @@ public:
 
 	void LoseEnergy();
 
-	void StartGainEnergyTimer();
+	void StartGainEnergyTimer(int32 Max);
 
-	void GainEnergy();
+	void GainEnergy(int32 Max);
 
 	FTimerHandle EnergyTimer;
 

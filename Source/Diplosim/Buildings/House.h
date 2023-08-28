@@ -23,6 +23,9 @@ public:
 
 
 	// Citizens
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Food")
+		TArray<TSubclassOf<AResource>> Food;
+
 	FTimerHandle FindTimer;
 
 	virtual void FindCitizens() override;

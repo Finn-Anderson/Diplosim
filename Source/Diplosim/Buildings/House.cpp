@@ -37,22 +37,35 @@ void AHouse::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	int32 maxE = 20;
+	int32 amount = 0;
+	TSubclassOf<AResource> r = nullptr;
+	for (int32 i = 0; i < Food.Num(); i++) {
+		int32 curAmount = Camera->ResourceManagerComponent->GetResourceAmount(Food[i]);
 
-	if (Citizen->Balance >= 7) {
-		Citizen->Balance -= 7;
-		maxE = 100;
-	}
-	else if (Citizen->Balance >= 3) {
-		Citizen->Balance -= 3;
-		maxE = 75;
-	}
-	else if (Citizen->Balance >= 1) {
-		Citizen->Balance -= 1;
-		maxE = 40;
+		if (curAmount > amount) {
+			amount = curAmount;
+
+			r = Food[i];
+		}
 	}
 
-	Citizen->StartGainEnergyTimer();
+	if (amount > 0) {
+		int32 maxE = 25;
+
+		int32 maxF = FMath::Clamp(amount, 1, 3);
+		int32 maxB = FMath::Clamp(Citizen->Balance, 1, 3);
+
+		int32 quantity = FMath::Min(maxF, maxB);
+
+		Citizen->Balance -= quantity;
+
+		Camera->ResourceManagerComponent->TakeUniversalResource(r, quantity);
+		Camera->ResourceManagerComponent->AddUniversalResource(Money, quantity);
+
+		maxE += quantity * 25;
+
+		Citizen->StartGainEnergyTimer(maxE);
+	}
 }
 
 void AHouse::Leave(ACitizen* Citizen)

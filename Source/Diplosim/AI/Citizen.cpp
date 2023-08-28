@@ -19,9 +19,9 @@ ACitizen::ACitizen()
 	GetCapsuleComponent()->SetCapsuleRadius(8.0f);
 	GetCapsuleComponent()->SetCapsuleHalfHeight(11.0f);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 
 	CitizenMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CitizenMesh"));
 	CitizenMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
@@ -90,7 +90,7 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 		FTimerHandle harvestTimer;
 		float time = FMath::RandRange(3.0f, 6.0f);
-		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Carry, r, r->GetYield()), time, false);
+		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, r), time, false);
 
 		AIController->StopMovement();
 	}
@@ -124,26 +124,31 @@ void ACitizen::LoseEnergy()
 	}
 }
 
-void ACitizen::StartGainEnergyTimer()
+void ACitizen::StartGainEnergyTimer(int32 Max)
 {
-	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::GainEnergy, 0.6f, true);
+	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, FTimerDelegate::CreateUObject(this, &ACitizen::GainEnergy, Max), 0.6f, true);
 }
 
-void ACitizen::GainEnergy()
+void ACitizen::GainEnergy(int32 Max)
 {
-	Energy = FMath::Clamp(Energy + 1, -100, 100);
+	Energy = FMath::Clamp(Energy + 1, -100, Max);
 
-	if (Energy == 100) {
+	if (Energy == Max) {
 		MoveTo(Employment);
 	}
 }
 
-void ACitizen::Carry(AResource* Resource, int32 Amount)
+void ACitizen::HarvestResource(AResource* Resource)
 {
-	Carrying.Type = Resource->GetClass();
+	Carry(Resource, Resource->GetYield(), Employment);
+}
+
+void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
+{
+	Carrying.Type = Resource;
 	Carrying.Amount = Amount;
 
-	MoveTo(Employment);
+	MoveTo(Location);
 }
 
 void ACitizen::Birthday()

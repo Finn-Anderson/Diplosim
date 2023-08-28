@@ -102,6 +102,8 @@ void AWork::RemoveCitizen(ACitizen* Citizen)
 void AWork::Store(int32 Amount, ACitizen* Citizen)
 {
 	if (Camera->ResourceManagerComponent->AddLocalResource(this, Amount)) {
+		Citizen->Carry(nullptr, 0, nullptr);
+
 		Production(Citizen);
 	}
 	else {
