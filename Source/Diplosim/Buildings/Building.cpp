@@ -84,7 +84,7 @@ void ABuilding::Build()
 		for (int32 i = 0; i < foundBuilders.Num(); i++) {
 			ABuilder* builder = Cast<ABuilder>(foundBuilders[i]);
 
-			if (builder->Constructing != nullptr)
+			if (builder->Constructing != nullptr || builder == this)
 				continue;
 
 			if (target == nullptr) {

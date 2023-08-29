@@ -13,8 +13,8 @@ void AMineral::YieldStatus()
 	Quantity -= Yield;
 
 	if (Quantity <= 0) {
-		FVector loc = GetActorLocation();
-		Grid->GenerateTile("Hill", 0, loc.X, loc.Y);
+		FVector loc = (GetActorLocation() / 100) + (Grid->Size / 2);
+		Grid->GenerateTile(Grid->HISMHill, 0, loc.X, loc.Y);
 
 		Destroy();
 	} else if (Quantity < MaxYield) {

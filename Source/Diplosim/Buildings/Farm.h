@@ -15,14 +15,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 		TSubclassOf<class AGrid> Grid;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
-		float TimeLength;
-
 	class AVegetation* Crop;
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
-	virtual void Production(class ACitizen* Citizen) override;
-
-	void ProductionDone(ACitizen* Citizen);
+	void ProductionDone();
 };

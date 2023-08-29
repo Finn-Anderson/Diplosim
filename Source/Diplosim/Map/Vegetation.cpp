@@ -1,8 +1,14 @@
 #include "Vegetation.h"
 
+#include "Buildings/Farm.h"
+
 AVegetation::AVegetation()
 {
 	bIsGettingChopped = false;
+
+	IntialScale = FVector(0.1f, 0.1f, 0.1f);
+
+	TimeLength = 30.0f;
 }
 
 void AVegetation::BeginPlay()
@@ -26,26 +32,44 @@ void AVegetation::YieldStatus()
 {
 	bIsGettingChopped = false;
 
-	ResourceMesh->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
+	ResourceMesh->SetRelativeScale3D(IntialScale);
 
 	FTimerHandle growTimer;
-	GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, 30.0f, false);
+	GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, TimeLength, false);
 }
 
 void AVegetation::Grow()
 {
-	ResourceMesh->SetRelativeScale3D(ResourceMesh->GetRelativeScale3D() + FVector(0.1f, 0.1f, 0.1f));
+	FVector scale = ResourceMesh->GetRelativeScale3D();
+	if (scale.X < 1.0f) {
+		scale.X += 0.1f;
+	}
+	if (scale.Y < 1.0f) {
+		scale.Y += 0.1f;
+	}
+	if (scale.Z < 1.0f) {
+		scale.Z += 0.1f;
+	}
+
+	ResourceMesh->SetRelativeScale3D(scale);
 
 	if (!IsChoppable()) {
 		FTimerHandle growTimer;
-		GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, 30.0f, false);
+		GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, TimeLength, false);
 	}
 }
 
 bool AVegetation::IsChoppable()
 {
-	if (bIsGettingChopped || ResourceMesh->GetRelativeScale3D() != FVector(1.0f, 1.0f, 1.0f))
+	FVector scale = ResourceMesh->GetRelativeScale3D();
+	if (bIsGettingChopped || scale.X < 1.0f || scale.Y < 1.0f || scale.Z < 1.0f)
 		return false;
+
+	if (Owner->IsValidLowLevelFast() && Owner->IsA<AFarm>()) {
+		AFarm* farm = Cast<AFarm>(Owner);
+
+		farm->ProductionDone();
+	}
 
 	return true;
 }

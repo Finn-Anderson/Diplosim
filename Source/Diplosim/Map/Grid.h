@@ -9,38 +9,15 @@ struct FTileStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	FString Choice;
+	class UHierarchicalInstancedStaticMeshComponent* Choice;
 
 	int32 Instance;
-
-	int32 Fertility;
-
-	int32 Coords;
-
-	FVector Location;
 
 	TArray<class AActor*> Resource;
 
 	FTileStruct()
 	{
-		Choice = "";
 		Instance = 0;
-		Fertility = -1;
-		Coords = 0;
-	}
-
-	int32 GetFertility()
-	{
-		int32 f = 0;
-
-		if (Fertility == -1) {
-			f = FMath::RandRange(0, 3);
-		}
-		else {
-			f = Fertility;
-		}
-
-		return f;
 	}
 };
 
@@ -85,7 +62,7 @@ public:
 	
 	void Render();
 
-	void GenerateTile(FString Choice, int32 Mean, int32 x, int32 y);
+	void GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Mean, int32 x, int32 y);
 
 	void Clear();
 
@@ -95,4 +72,6 @@ public:
 	void GenerateResource(int32 Pos);
 
 	void GenerateVegetation(int32 Pos, FVector Location);
+
+	int32 GetFertility(FTileStruct Tile);
 };

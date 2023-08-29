@@ -23,7 +23,7 @@ AGrid::AGrid()
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMGround->NumCustomDataFloats = 3;
+	HISMGround->NumCustomDataFloats = 4;
 
 	HISMHill = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMHill"));
 	HISMHill->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
@@ -51,47 +51,33 @@ void AGrid::Render()
 	{
 		for (int32 x = 0; x < Size; x++)
 		{
-			int32 mean = 3;
-			FString choice = "Ground";
+			int32 mean = 1;
+			UHierarchicalInstancedStaticMeshComponent* choice = HISMGround;
 
 			int32 low = 0;
 			int32 high = 1000;
 
 			if (x < (Size - (Size - 20)) || y < (Size - (Size - 20)) || x > (Size - 21) || y > (Size - 21)) {
-				choice = "Water";
+				choice = HISMWater;
 			}
 			else {
 				int32 value = FMath::RandRange(-1, 1);
 
-				FString checkX = "Ground";
-				FString checkY = "Ground";
-
 				FTileStruct xTile = Storage.Last();
 				FTileStruct yTile = Storage[x + ((y - 1) * Size)];
 
-				int32 fertility = (yTile.GetFertility() + xTile.GetFertility() + 1) / 2;
+				int32 fertility = (GetFertility(yTile) + GetFertility(xTile) + 1) / 2;
 
 				mean = FMath::Clamp(fertility + value, 1, 5);
 				
 				// Calculating tile type based on adjacant tiles
-				if (xTile.Choice == "Water") {
-					checkX = "Water";
-				}
-				else if (xTile.Choice == "Hill") {
-					checkX = "Hill";
-				}
-
-				if (yTile.Choice == "Water") {
-					checkY = "Water";
-				}
-				else if (yTile.Choice == "Hill") {
-					checkY = "Hill";
-				}
+				UHierarchicalInstancedStaticMeshComponent* checkX = xTile.Choice;
+				UHierarchicalInstancedStaticMeshComponent* checkY = yTile.Choice;
 
 				int32 choiceVal = FMath::RandRange(low, high);
 
 				int32 pass = 2;
-				if (checkX == checkY && checkX != "Ground") {
+				if (checkX == checkY && checkX != HISMGround) {
 					pass = 990;
 				}
 				else if (checkX != checkY) {
@@ -100,12 +86,11 @@ void AGrid::Render()
 
 
 				if (pass > choiceVal) {
-					if (checkX == "Water" || checkY == "Water") {
-						choice = "Water";
-						mean = 1;
+					if (checkX == HISMWater || checkY == HISMWater) {
+						choice = HISMWater;
 					}
 					else {
-						choice = "Hill";
+						choice = HISMHill;
 					}
 				}
 			}
@@ -119,27 +104,11 @@ void AGrid::Render()
 	FTransform transform;
 
 	FTileStruct min = Storage[10 + 10 * Size];
-	if (min.Choice == "Water") {
-		HISMWater->GetInstanceTransform(min.Instance, transform);
-	}
-	else if (min.Choice == "Ground") {
-		HISMGround->GetInstanceTransform(min.Instance, transform);
-	}
-	else {
-		HISMHill->GetInstanceTransform(min.Instance, transform);
-	}
+	min.Choice->GetInstanceTransform(min.Instance, transform);
 	FVector c1 = transform.GetLocation();
 
 	FTileStruct max = Storage[139 + 139 * Size];
-	if (max.Choice == "Water") {
-		HISMWater->GetInstanceTransform(max.Instance, transform);
-	}
-	else if (max.Choice == "Ground") {
-		HISMGround->GetInstanceTransform(max.Instance, transform);
-	}
-	else {
-		HISMHill->GetInstanceTransform(max.Instance, transform);
-	}
+	max.Choice->GetInstanceTransform(max.Instance, transform);
 	FVector c2 = transform.GetLocation();
 
 	Camera->MovementComponent->SetBounds(c2, c1);
@@ -150,17 +119,17 @@ void AGrid::Render()
 	}
 }
 
-void AGrid::GenerateTile(FString Choice, int32 Mean, int32 x, int32 y)
+void AGrid::GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Mean, int32 x, int32 y)
 {
 	FTransform transform;
 	FVector loc = FVector(100.0f * x - (100.0f * (Size / 2)), 100.0f * y - (100.0f * (Size / 2)), 0);
 	transform.SetLocation(loc);
 
 	int32 inst;
-	if (Choice == "Water") {
+	if (Choice == HISMWater) {
 		inst = HISMWater->AddInstance(transform);
 	}
-	else if (Choice == "Ground") {
+	else if (Choice == HISMGround) {
 		inst = HISMGround->AddInstance(transform);
 
 		float r = 0.0f;
@@ -171,7 +140,7 @@ void AGrid::GenerateTile(FString Choice, int32 Mean, int32 x, int32 y)
 			FTileStruct xTile = Storage.Last();
 			FTileStruct yTile = Storage[x + ((y - 1) * Size)];
 
-			if (xTile.Choice == "Water" || yTile.Choice == "Water") {
+			if (xTile.Choice == HISMWater || yTile.Choice == HISMWater) {
 				r = 231.0f;
 				g = 215.0f;
 				b = 90.0f;
@@ -210,6 +179,7 @@ void AGrid::GenerateTile(FString Choice, int32 Mean, int32 x, int32 y)
 		HISMGround->SetCustomDataValue(inst, 0, r);
 		HISMGround->SetCustomDataValue(inst, 1, g);
 		HISMGround->SetCustomDataValue(inst, 2, b);
+		HISMGround->SetCustomDataValue(inst, 3, Mean);
 	}
 	else {
 		inst = HISMHill->AddInstance(transform);
@@ -218,9 +188,6 @@ void AGrid::GenerateTile(FString Choice, int32 Mean, int32 x, int32 y)
 	FTileStruct tile;
 	tile.Choice = Choice;
 	tile.Instance = inst;
-	tile.Fertility = Mean;
-	tile.Coords = x + (y * Size);
-	tile.Location = loc;
 
 	Storage.Add(tile);
 }
@@ -231,7 +198,7 @@ void AGrid::GenerateResource(int32 Pos)
 
 	int32 choiceVal = FMath::RandRange(1, 30);
 
-	if (tile.Choice == "Hill") {
+	if (tile.Choice == HISMHill) {
 		if (choiceVal < 21)
 			return;
 
@@ -258,11 +225,11 @@ void AGrid::GenerateResource(int32 Pos)
 			Storage[Pos] = tile;
 		}
 	}
-	else if (tile.Choice == "Ground") {
-		FTileStruct xTile = Storage[tile.Coords - 1];
-		FTileStruct yTile = Storage[tile.Coords - Size];
+	else if (tile.Choice == HISMGround) {
+		FTileStruct xTile = Storage[Pos - 1];
+		FTileStruct yTile = Storage[Pos - Size];
 
-		if (xTile.Choice == "Hill" || yTile.Choice == "Hill")
+		if (xTile.Choice == HISMHill || yTile.Choice == HISMHill)
 			return;
 
 		int32 trees = (xTile.Resource.Num() + yTile.Resource.Num()) / 2;
@@ -334,6 +301,16 @@ void AGrid::GenerateVegetation(int32 Pos, FVector Location)
 	tile.Resource.Add(tree);
 
 	Storage[Pos] = tile;
+}
+
+int32 AGrid::GetFertility(FTileStruct Tile)
+{
+	int32 fertility = 1;
+	if (Tile.Choice == HISMGround) {
+		fertility = HISMGround->PerInstanceSMCustomData[Tile.Instance * 4 + 3];
+	}
+
+	return fertility;
 }
 
 void AGrid::Clear()
