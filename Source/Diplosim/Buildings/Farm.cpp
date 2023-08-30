@@ -37,7 +37,7 @@ void AFarm::Enter(ACitizen* Citizen)
 
 void AFarm::ProductionDone()
 {
-	if (!AtWork.IsEmpty()) {
+	if (AtWork.Num() > 0) {
 		int32 yield = Crop->GetYield();
 
 		FHitResult hit;

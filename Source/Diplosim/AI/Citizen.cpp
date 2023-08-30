@@ -5,6 +5,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "AIController.h"	
 #include "Components/CapsuleComponent.h"
+#include "Engine/StaticMeshSocket.h"
+#include "NavigationSystem.h"
 
 #include "Resource.h"
 #include "Buildings/Work.h"
@@ -78,9 +80,42 @@ void ACitizen::BeginPlay()
 
 void ACitizen::MoveTo(AActor* Location)
 {
-	AIController->MoveToActor(Location, 10.0f, true);
+	if (Location->IsValidLowLevelFast()) {
+		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Location->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+		TArray<FName> sockets = comp->GetAllSocketNames();
 
-	Goal = Location;
+		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+		const ANavigationData* NavData = nav->GetNavDataForProps(GetNavAgentPropertiesRef());
+			
+		FName socket = "";
+		for (int32 i = 0; i < sockets.Num(); i++) {
+			FName s = sockets[i];
+
+			FPathFindingQuery query(this, *NavData, GetActorLocation(), comp->GetSocketLocation(s));
+			query.bAllowPartialPaths = false;
+
+			bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
+
+			if (path) {
+				if (socket == "") {
+					socket = s;
+				}
+				else {
+					float curSocketLoc = FVector::Dist(comp->GetSocketLocation(socket), GetActorLocation());
+
+					float newSocketLoc = FVector::Dist(comp->GetSocketLocation(s), GetActorLocation());
+
+					if (curSocketLoc > newSocketLoc) {
+						socket = s;
+					}
+				}
+			}
+		}
+
+		AIController->MoveToLocation(comp->GetSocketLocation(socket));
+
+		Goal = Location;
+	}
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

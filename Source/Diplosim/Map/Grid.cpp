@@ -28,7 +28,6 @@ AGrid::AGrid()
 	HISMHill = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMHill"));
 	HISMHill->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMHill->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMHill->SetCanEverAffectNavigation(false);
 
 	Size = 150;
 }
