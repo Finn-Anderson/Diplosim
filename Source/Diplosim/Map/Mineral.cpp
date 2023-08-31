@@ -24,7 +24,7 @@ void AMineral::YieldStatus()
 
 void AMineral::SetQuantity()
 {
-	int32 q = FMath::RandRange(20000, 200000);
+	int32 q = FMath::RandRange(1000, 10000);
 
 	Quantity = q;
 }

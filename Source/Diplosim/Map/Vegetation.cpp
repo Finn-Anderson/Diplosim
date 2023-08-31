@@ -22,8 +22,6 @@ void AVegetation::BeginPlay()
 
 		ResourceMesh->SetStaticMesh(MeshList[i]);
 
-		ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-
 		ResourceMesh->SetMobility(EComponentMobility::Static);
 	}
 }

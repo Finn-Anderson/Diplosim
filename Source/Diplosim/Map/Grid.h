@@ -71,7 +71,7 @@ public:
 
 	void GenerateResource(int32 Pos);
 
-	void GenerateVegetation(int32 Pos, FVector Location);
+	void SpawnResource(int32 Pos, FVector Location, TSubclassOf<class AResource> ResourceClass);
 
 	int32 GetFertility(FTileStruct Tile);
 };

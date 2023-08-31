@@ -197,107 +197,87 @@ void AGrid::GenerateResource(int32 Pos)
 
 	int32 choiceVal = FMath::RandRange(1, 30);
 
-	if (tile.Choice == HISMHill) {
-		if (choiceVal < 21)
-			return;
-
-		TSubclassOf<AResource> choice;
-		if (choiceVal > 20) {
-			choice = Rock; // Setup for different mineral types.
-		}
-
-		FTransform transform;
-		HISMHill->GetInstanceTransform(tile.Instance, transform);
-		FVector loc = transform.GetLocation();
-
-		if (loc != FVector(0.0f, 0.0f, 0.0f)) {
-			HISMHill->RemoveInstance(tile.Instance);
-
-			AMineral* resource = GetWorld()->SpawnActor<AMineral>(choice, loc, GetActorRotation());
-
-			resource->SetQuantity();
-
-			resource->Grid = this;
-
-			tile.Resource.Add(resource);
-
-			Storage[Pos] = tile;
-		}
-	}
-	else if (tile.Choice == HISMGround) {
-		FTileStruct xTile = Storage[Pos - 1];
-		FTileStruct yTile = Storage[Pos - Size];
-
-		if (xTile.Choice == HISMHill || yTile.Choice == HISMHill)
-			return;
-
-		int32 trees = (xTile.Resource.Num() + yTile.Resource.Num()) / 2;
-
-		int32 value = 0;
-
-		if (choiceVal == 30) {
-			value = 3;
-		}
-		else if (choiceVal > 24) {
-			value = FMath::RandRange(0, 1);
-		}
-
-		int32 mean = FMath::Clamp(trees + value, 0, 5);
-
+	if (tile.Choice == HISMGround) {
 		FTransform transform;
 		HISMGround->GetInstanceTransform(tile.Instance, transform);
 		FVector loc = transform.GetLocation();
 
-		for (int i = 0; i < mean; i++) {
-			GenerateVegetation(Pos, loc);
+		int32 z = HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2;
+		loc.Z = z;
+
+		if (choiceVal == 1) {
+			SpawnResource(Pos, loc, Rock);
 		}
-	}
-	else {
-		// Water resources (fish/oil);
+		else {
+			FTileStruct xTile = Storage[Pos - 1];
+			FTileStruct yTile = Storage[Pos - Size];
+
+			if (xTile.Choice == HISMHill || yTile.Choice == HISMHill)
+				return;
+
+			int32 trees = (xTile.Resource.Num() + yTile.Resource.Num()) / 2;
+
+			int32 value = 0;
+
+			if (choiceVal == 30) {
+				value = 3;
+			}
+			else if (choiceVal > 24) {
+				value = FMath::RandRange(0, 1);
+			}
+
+			int32 mean = FMath::Clamp(trees + value, 0, 5);
+
+			TArray<int32> locListX;
+			TArray<int32> locListY;
+			for (int32 i = -45; i <= 45; i++) {
+				locListX.Add(i);
+				locListY.Add(i);
+			}
+
+			for (int32 i = 0; i < mean; i++) {
+				int32 indexX = FMath::RandRange(0, (locListX.Num() - 1));
+				int32 indexY = FMath::RandRange(0, (locListY.Num() - 1));
+
+				int32 x = locListX[indexX];
+				int32 y = locListY[indexY];
+
+				loc.X += x;
+				loc.Y += y;
+
+				SpawnResource(Pos, loc, Tree);
+
+				for (int32 j = x - 10; j <= x + 10; j++) {
+					if (locListX.Contains(j)) {
+						locListX.Remove(j);
+					}
+				}
+
+				for (int32 j = y - 10; j <= y + 10; j++) {
+					if (locListY.Contains(j)) {
+						locListY.Remove(j);
+					}
+				}
+			}
+		}
 	}
 }
 
-void AGrid::GenerateVegetation(int32 Pos, FVector Location)
+void AGrid::SpawnResource(int32 Pos, FVector Location, TSubclassOf<AResource> ResourceClass)
 {
 	FTileStruct tile = Storage[Pos];
 
-	int32 z = HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2;
+	AResource* resource = GetWorld()->SpawnActor<AResource>(ResourceClass, Location, GetActorRotation());
 
-	TArray<int32> locListX;
-	TArray<int32> locListY;
-	for (int i = -45; i <= 45; i++) {
-		locListX.Add(i);
-		locListY.Add(i);
+	if (resource->IsA<AMineral>()) {
+		AMineral* mineral = Cast<AMineral>(resource);
+
+		mineral->SetQuantity();
+
+		mineral->Grid = this;
 	}
 
-	for (int i = 0; i < tile.Resource.Num(); i++) {
-		int32 xT = tile.Resource[i]->GetActorLocation().X;
-		int32 yT = tile.Resource[i]->GetActorLocation().Y;
-
-		for (int j = yT - 10; j <= yT + 10; j++) {
-			if (locListX.Contains(j)) {
-				locListX.Remove(j);
-			}
-		}
-
-		for (int j = yT - 10; j <= yT + 10; j++) {
-			if (locListY.Contains(j)) {
-				locListY.Remove(j);
-			}
-		}
-	}
-
-	int32 indexX = FMath::RandRange(0, (locListX.Num() - 1));
-	int32 indexY = FMath::RandRange(0, (locListY.Num() - 1));
-
-	int32 x = locListX[indexX];
-	int32 y = locListY[indexY];
-
-	FVector location = FVector(Location.X + x, Location.Y + y, z);
-
-	AVegetation* tree = GetWorld()->SpawnActor<AVegetation>(Tree, location, GetActorRotation());
-
-	tile.Resource.Add(tree);
+	tile.Resource.Add(resource);
 
 	Storage[Pos] = tile;
 }
