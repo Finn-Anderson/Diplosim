@@ -27,6 +27,8 @@ public:
 
 	bool GridStatus;
 
+	bool bCanRotate;
+
 public:
 	// Building
 	UPROPERTY(EditAnywhere)
@@ -48,7 +50,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Build();
 
-	void RotateBuilding();
+	void RotateBuilding(bool Rotate);
 
 	void Place();
 

@@ -1,12 +1,14 @@
 #include "Citizen.h"
 
 #include "GameFramework/PawnMovementComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
 #include "AIController.h"	
 #include "Components/CapsuleComponent.h"
 #include "Engine/StaticMeshSocket.h"
 #include "NavigationSystem.h"
+
 
 #include "Resource.h"
 #include "Buildings/Work.h"
@@ -49,6 +51,8 @@ ACitizen::ACitizen()
 	Age = 0;
 
 	Partner = nullptr;
+
+	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 }
 
 void ACitizen::BeginPlay()
@@ -124,7 +128,7 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 		AResource* r = Cast<AResource>(OtherActor);
 
 		FTimerHandle harvestTimer;
-		float time = FMath::RandRange(9.0f, 15.0f);
+		float time = FMath::RandRange(6.0f, 10.0f);
 		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, r), time, false);
 
 		AIController->StopMovement();

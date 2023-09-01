@@ -12,9 +12,14 @@ class DIPLOSIM_API AMineral : public AResource
 public:
 	AMineral();
 
+protected:
+	virtual void BeginPlay() override;
+
 public:
-	UPROPERTY()
-		class AGrid* Grid;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nav")
+		class UBoxComponent* BoxCollisionComp;
+
+	class AGrid* Grid;
 
 	int32 Quantity;
 

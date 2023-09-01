@@ -15,6 +15,7 @@ UBuildComponent::UBuildComponent()
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	GridStatus = true;
+	bCanRotate = true;
 	Building = nullptr;
 
 	Rotation.Yaw = 90.0f;
@@ -108,9 +109,9 @@ void UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClas
 	Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0, 0, 50.0f), Rotation);
 }
 
-void UBuildComponent::RotateBuilding()
+void UBuildComponent::RotateBuilding(bool Rotate)
 {
-	if (Building != nullptr) {
+	if (Building != nullptr && Rotate && bCanRotate) {
 		int32 yaw = Rotation.Yaw;
 		if (GridStatus) {
 			if (yaw % 90 == 0) {
@@ -120,18 +121,11 @@ void UBuildComponent::RotateBuilding()
 				yaw += 90 / 2;
 				yaw -= yaw % 90;
 			}
+
+			bCanRotate = false;
 		}
 		else {
-			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-
-			bool keyR = PController->IsInputKeyDown(EKeys::R);
-
-			if (keyR) {
-				yaw += 2;
-
-				FTimerHandle timerHandle;
-				GetWorld()->GetTimerManager().SetTimer(timerHandle, this, &UBuildComponent::RotateBuilding, 0.01f, false);
-			}
+			yaw += 1;
 		}
 
 		if (yaw == 360) {
@@ -141,6 +135,9 @@ void UBuildComponent::RotateBuilding()
 		Rotation.Yaw = yaw;
 
 		Building->SetActorRotation(Rotation);
+	}
+	else if (!Rotate) {
+		bCanRotate = true;
 	}
 }
 

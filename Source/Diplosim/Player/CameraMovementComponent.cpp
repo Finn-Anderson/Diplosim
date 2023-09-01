@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "EnhancedInputComponent.h"
 
 #include "Camera.h"
 
@@ -29,9 +30,11 @@ void UCameraMovementComponent::BeginPlay()
 	PController->bShowMouseCursor = true;
 }
 
-void UCameraMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, GetWorld()->DeltaTimeSeconds, 10.0f);
 }
 
 void UCameraMovementComponent::SetBounds(FVector start, FVector end) {
@@ -42,44 +45,30 @@ void UCameraMovementComponent::SetBounds(FVector start, FVector end) {
 	MaxYBounds = start.Y;
 }
 
-void UCameraMovementComponent::Turn(float Value)
+void UCameraMovementComponent::Look(const struct FInputActionInstance& Instance)
 {
-	bool rmbHeld = PController->IsInputKeyDown(EKeys::RightMouseButton);
-	bool keyQ = PController->IsInputKeyDown(EKeys::Q);
-	bool keyE = PController->IsInputKeyDown(EKeys::E);
+	FVector2D value = Instance.GetValue().Get<FVector2D>();
 
-	if (rmbHeld || keyQ || keyE) {
-		FRotator rot = PController->GetControlRotation();
+	FRotator rot = PController->GetControlRotation();
 
-		float change = (Value / 3) * Sensitivity;
+	FVector2D change = (value / 3) * Sensitivity;
 
-		PController->SetControlRotation(FRotator(rot.Pitch, rot.Yaw + change, rot.Roll));
-	}
+	PController->SetControlRotation(FRotator(rot.Pitch + change.Y, rot.Yaw + change.X, rot.Roll));
 }
 
-void UCameraMovementComponent::LookUp(float Value)
+void UCameraMovementComponent::Move(const struct FInputActionInstance& Instance)
 {
-	bool keyHeld = PController->IsInputKeyDown(EKeys::RightMouseButton);
+	FVector2D value = Instance.GetValue().Get<FVector2D>();
 
-	if (keyHeld) {
-		FRotator rot = PController->GetControlRotation();
-
-		float change = (Value / 3) * Sensitivity;
-
-		PController->SetControlRotation(FRotator(rot.Pitch - change, rot.Yaw, rot.Roll));
-	}
-}
-
-void UCameraMovementComponent::MoveForward(float Value)
-{
 	const FRotator rotation = Camera->Controller->GetControlRotation();
 	const FRotator yawRotation(0, rotation.Yaw, 0);
 
-	FVector direction = FRotationMatrix(yawRotation).GetScaledAxis(EAxis::X);
+	FVector directionX = FRotationMatrix(yawRotation).GetScaledAxis(EAxis::X);
+	FVector directionY = FRotationMatrix(rotation).GetScaledAxis(EAxis::Y);
 
 	FVector loc = Camera->GetActorLocation();
 
-	loc += direction * Value * CameraSpeed;
+	loc += (directionX * value.X * CameraSpeed) + (directionY * value.Y * CameraSpeed);
 
 	if (loc.X > MaxXBounds || loc.X < MinXBounds) {
 		if (loc.X > MaxXBounds) {
@@ -102,52 +91,21 @@ void UCameraMovementComponent::MoveForward(float Value)
 	Camera->SetActorLocation(loc);
 }
 
-void UCameraMovementComponent::MoveRight(float Value)
+void UCameraMovementComponent::Speed(const struct FInputActionInstance& Instance)
 {
-	FVector direction = FRotationMatrix(Camera->Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+	bool value = Instance.GetValue().Get<bool>();
 
-	FVector loc = Camera->GetActorLocation();
-
-	loc += direction * Value * CameraSpeed;
-
-	if (loc.X > MaxXBounds || loc.X < MinXBounds) {
-		if (loc.X > MaxXBounds) {
-			loc.X = MaxXBounds;
-		}
-		else {
-			loc.X = MinXBounds;
-		}
+	if (value) {
+		CameraSpeed *= 2;
 	}
-
-	if (loc.Y > MaxYBounds || loc.Y < MinYBounds) {
-		if (loc.Y > MaxYBounds) {
-			loc.Y = MaxYBounds;
-		}
-		else {
-			loc.Y = MinYBounds;
-		}
+	else {
+		CameraSpeed /= 2;
 	}
-
-	Camera->SetActorLocation(loc);
 }
 
-void UCameraMovementComponent::SpeedUp()
+void UCameraMovementComponent::Scroll(const struct FInputActionInstance& Instance)
 {
-	CameraSpeed *= 2;
-}
+	float target = 250.0f * Instance.GetValue().Get<float>();
 
-void UCameraMovementComponent::SlowDown()
-{
-	CameraSpeed /= 2;
-}
-
-void UCameraMovementComponent::Scroll(float Value)
-{
-	float target = 250.0f * Value;
-
-	if (target != 0.0f) {
-		TargetLength = FMath::Clamp(TargetLength + target, 0.0f, 2000.0f);
-	}
-
-	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, GetWorld()->DeltaTimeSeconds, 10.0f);
+	TargetLength = FMath::Clamp(TargetLength + target, 0.0f, 2000.0f);
 }

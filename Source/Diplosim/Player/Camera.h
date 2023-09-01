@@ -53,8 +53,34 @@ public:
 
 	class UUserWidget* MapUIInstance;
 
+	// Inputs
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputMappingContext* InputMapping;
 
-public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputLook;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputMove;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputScroll;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputRender;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputGrid;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputRotate;
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// Commands
@@ -71,23 +97,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<class ABuilding> StartBuilding;
 
-	void BuildStatus();
-
-	void Rotate();
+	void Rotate(const struct FInputActionInstance& Instance);
 
 
 	// Camera Movement
-	void Turn(float Value);
+	void Look(const struct FInputActionInstance& Instance);
 
-	void LookUp(float Value);
+	void Move(const struct FInputActionInstance& Instance);
+	
+	void Speed(const struct FInputActionInstance& Instance);
 
-	void MoveForward(float Value);
-
-	void MoveRight(float Value);
-
-	void SpeedUp();
-
-	void SlowDown();
-
-	void Scroll(float Value);
+	void Scroll(const struct FInputActionInstance& Instance);
 };

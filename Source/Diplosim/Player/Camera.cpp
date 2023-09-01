@@ -4,6 +4,9 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
+#include "EnhancedInputComponent.h"
 
 #include "Map/Grid.h"
 #include "BuildComponent.h"
@@ -45,6 +48,12 @@ void ACamera::BeginPlay()
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
+	UEnhancedInputLocalPlayerSubsystem* InputSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(pcontroller->GetLocalPlayer());
+
+	if (InputSystem && InputMapping) {
+		InputSystem->AddMappingContext(InputMapping, 0);
+	}
+
 	BuildUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildUI);
 
 	MapUIInstance = CreateWidget<UUserWidget>(pcontroller, MapUI);
@@ -55,25 +64,27 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+
 	// Camera movement
-	PlayerInputComponent->BindAxis("Turn", this, &ACamera::Turn);
-	PlayerInputComponent->BindAxis("LookUp", this, &ACamera::LookUp);
+	Input->BindAction(InputLook, ETriggerEvent::Triggered, this, &ACamera::Look);
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &ACamera::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ACamera::MoveRight);
+	Input->BindAction(InputMove, ETriggerEvent::Triggered, this, &ACamera::Move);
 
-	PlayerInputComponent->BindAction("Speed", IE_Pressed, this, &ACamera::SpeedUp);
-	PlayerInputComponent->BindAction("Speed", IE_Released, this, &ACamera::SlowDown);
+	Input->BindAction(InputSpeed, ETriggerEvent::Started, this, &ACamera::Speed);
+	Input->BindAction(InputSpeed, ETriggerEvent::Completed, this, &ACamera::Speed);
 
-	PlayerInputComponent->BindAxis("Scroll", this, &ACamera::Scroll);
+	Input->BindAction(InputScroll, ETriggerEvent::Triggered, this, &ACamera::Scroll);
 
-	PlayerInputComponent->BindAction("Action", IE_Pressed, this, &ACamera::Action);
+	// Build
+	Input->BindAction(InputAction, ETriggerEvent::Started, this, &ACamera::Action);
 
-	PlayerInputComponent->BindAction("Render", IE_Pressed, this, &ACamera::NewMap);
+	Input->BindAction(InputRender, ETriggerEvent::Started, this, &ACamera::NewMap);
 
-	PlayerInputComponent->BindAction("Grid", IE_Pressed, this, &ACamera::GridStatus);
+	Input->BindAction(InputGrid, ETriggerEvent::Started, this, &ACamera::GridStatus);
 
-	PlayerInputComponent->BindAction("Rotate", IE_Pressed, this, &ACamera::Rotate);
+	Input->BindAction(InputRotate, ETriggerEvent::Triggered, this, &ACamera::Rotate);
+	Input->BindAction(InputRotate, ETriggerEvent::Completed, this, &ACamera::Rotate);
 }
 
 void ACamera::Action()
@@ -96,42 +107,27 @@ void ACamera::GridStatus()
 	BuildComponent->SetGridStatus();
 }
 
-void ACamera::Rotate()
+void ACamera::Rotate(const struct FInputActionInstance& Instance)
 {
-	BuildComponent->RotateBuilding();
+	BuildComponent->RotateBuilding(Instance.GetValue().Get<bool>());
 }
 
-void ACamera::Turn(float Value)
+void ACamera::Look(const struct FInputActionInstance& Instance)
 {
-	MovementComponent->Turn(Value);
+	MovementComponent->Look(Instance);
 }
 
-void ACamera::LookUp(float Value) 
+void ACamera::Move(const struct FInputActionInstance& Instance)
 {
-	MovementComponent->LookUp(Value);
+	MovementComponent->Move(Instance);
 }
 
-void ACamera::MoveForward(float Value) 
+void ACamera::Speed(const struct FInputActionInstance& Instance)
 {
-	MovementComponent->MoveForward(Value);
+	MovementComponent->Speed(Instance);
 }
 
-void ACamera::MoveRight(float Value)
+void ACamera::Scroll(const struct FInputActionInstance& Instance)
 {
-	MovementComponent->MoveRight(Value);
-}
-
-void ACamera::SpeedUp() 
-{
-	MovementComponent->SpeedUp();
-}
-
-void ACamera::SlowDown() 
-{
-	MovementComponent->SlowDown();
-}
-
-void ACamera::Scroll(float Value) 
-{
-	MovementComponent->Scroll(Value);
+	MovementComponent->Scroll(Instance);
 }

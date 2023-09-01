@@ -17,6 +17,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
+
 	class ACamera* Camera;
 
 	class APlayerController* PController;
@@ -25,7 +27,7 @@ public:
 
 	float Sensitivity;
 
-public:
+	// Map Bounds
 	void SetBounds(FVector start, FVector end);
 
 	float MaxXBounds;
@@ -36,22 +38,14 @@ public:
 
 	float MinYBounds;
 
-public:	
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	// Movement Functions
+	void Look(const struct FInputActionInstance& Instance);
 
-	void Turn(float Value);
+	void Move(const struct FInputActionInstance& Instance);
 
-	void LookUp(float Value);
+	void Speed(const struct FInputActionInstance& Instance);
 
-	void MoveForward(float Value);
-
-	void MoveRight(float Value);
-
-	void SpeedUp();
-
-	void SlowDown();
-
-	void Scroll(float Value);
+	void Scroll(const struct FInputActionInstance& Instance);
 
 	float TargetLength;
 };
