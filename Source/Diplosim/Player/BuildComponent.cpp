@@ -164,3 +164,20 @@ void UBuildComponent::Place()
 		Camera->MapUIInstance->RemoveFromParent();
 	}
 }
+
+void UBuildComponent::QuickPlace()
+{
+	if (Camera->start) {
+		Place();
+
+		return;
+	}
+
+	ABuilding* building = Building;
+
+	Place();
+
+	SetComponentTickEnabled(!IsComponentTickEnabled());
+
+	SetBuildingClass(building->GetClass());
+}

@@ -34,6 +34,8 @@ ACamera::ACamera()
 	ResourceManagerComponent = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManagerComponent"));
 
 	start = true;
+
+	bQuick = false;
 }
 
 void ACamera::BeginPlay()
@@ -79,6 +81,8 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// Build
 	Input->BindAction(InputAction, ETriggerEvent::Started, this, &ACamera::Action);
 
+	Input->BindAction(InputCancel, ETriggerEvent::Started, this, &ACamera::Cancel);
+
 	Input->BindAction(InputRender, ETriggerEvent::Started, this, &ACamera::NewMap);
 
 	Input->BindAction(InputGrid, ETriggerEvent::Started, this, &ACamera::GridStatus);
@@ -90,7 +94,19 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void ACamera::Action()
 {
 	if (BuildComponent->IsComponentTickEnabled()) {
-		BuildComponent->Place();
+		if (bQuick) {
+			BuildComponent->QuickPlace();
+		}
+		else {
+			BuildComponent->Place();
+		}
+	}
+}
+
+void ACamera::Cancel()
+{
+	if (BuildComponent->IsComponentTickEnabled()) {
+		BuildComponent->Build();
 	}
 }
 
@@ -125,6 +141,8 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 void ACamera::Speed(const struct FInputActionInstance& Instance)
 {
 	MovementComponent->Speed(Instance);
+
+	bQuick = !bQuick;
 }
 
 void ACamera::Scroll(const struct FInputActionInstance& Instance)

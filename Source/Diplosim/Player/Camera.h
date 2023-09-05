@@ -73,6 +73,9 @@ public:
 		class UInputAction* InputAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputCancel;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputRender;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -86,19 +89,20 @@ public:
 	// Commands
 	void Action();
 
+	void Cancel();
+
+	bool bQuick;
 
 	// Map
 	void NewMap();
 
 	void GridStatus();
 
-
 	// Building
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<class ABuilding> StartBuilding;
 
 	void Rotate(const struct FInputActionInstance& Instance);
-
 
 	// Camera Movement
 	void Look(const struct FInputActionInstance& Instance);

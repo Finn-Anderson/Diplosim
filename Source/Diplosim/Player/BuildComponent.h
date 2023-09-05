@@ -54,6 +54,8 @@ public:
 
 	void Place();
 
+	void QuickPlace();
+
 	UFUNCTION(BlueprintCallable)
 		void SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass);
 };
