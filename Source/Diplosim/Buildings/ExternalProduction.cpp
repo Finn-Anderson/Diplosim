@@ -21,43 +21,47 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 void AExternalProduction::Production(ACitizen* Citizen)
 {
 	if (AtWork.Contains(Citizen)) {
-		TArray<AActor*> foundResources;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), Camera->ResourceManagerComponent->GetResource(this), foundResources);
+		if (Resource == nullptr || !Resource->IsValidLowLevelFast() || Resource->Quantity <= 0) {
+			TArray<AActor*> foundResources;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), Camera->ResourceManagerComponent->GetResource(this), foundResources);
 
-		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-		const ANavigationData* NavData = nav->GetNavDataForProps(Citizen->GetNavAgentPropertiesRef());
+			UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+			const ANavigationData* NavData = nav->GetNavDataForProps(Citizen->GetNavAgentPropertiesRef());
 
-		AResource* resource = nullptr;
+			Resource = nullptr;
 
-		for (int32 i = 0; i < foundResources.Num(); i++) {
-			FPathFindingQuery query(Citizen, *NavData, Citizen->GetActorLocation(), foundResources[i]->GetActorLocation());
-			query.bAllowPartialPaths = false;
+			for (int32 i = 0; i < foundResources.Num(); i++) {
+				FPathFindingQuery query(Citizen, *NavData, Citizen->GetActorLocation(), foundResources[i]->GetActorLocation());
+				query.bAllowPartialPaths = false;
 
-			bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
+				bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
-			if (foundResources[i]->IsHidden() || !path || (foundResources[i]->IsA<AVegetation>() && !Cast<AVegetation>(foundResources[i])->IsChoppable()))
-				continue;
+				AResource* r = Cast<AResource>(foundResources[i]);
 
-			if (resource == nullptr) {
-				resource = Cast<AResource>(foundResources[i]);
-			}
-			else {
-				float dR = FVector::Dist(resource->GetActorLocation(), GetActorLocation());
+				if (r->IsHidden() || !path || r->Quantity <= 0)
+					continue;
 
-				float dF = FVector::Dist(foundResources[i]->GetActorLocation(), GetActorLocation());
+				if (Resource == nullptr) {
+					Resource = r;
+				}
+				else {
+					float dR = FVector::Dist(Resource->GetActorLocation(), GetActorLocation());
 
-				if (dR > dF) {
-					resource = Cast<AResource>(foundResources[i]);
+					float dF = FVector::Dist(foundResources[i]->GetActorLocation(), GetActorLocation());
+
+					if (dR > dF) {
+						Resource = r;
+					}
 				}
 			}
 		}
 
-		if (resource != nullptr) {
-			if (resource->IsA<AVegetation>()) {
-				Cast<AVegetation>(resource)->bIsGettingChopped = true;
+		if (Resource != nullptr) {
+			if (Resource->IsA<AVegetation>()) {
+				Resource->Quantity = 0;
 			}
 
-			Citizen->MoveTo(resource);
+			Citizen->MoveTo(Resource);
 		}
 		else {
 			GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);

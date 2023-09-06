@@ -6,20 +6,24 @@
 
 AMineral::AMineral()
 {
-	ResourceMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	ResourceMesh->SetCanEverAffectNavigation(true);
+	ResourceMesh->bFillCollisionUnderneathForNavmesh = true;
 
-	BoxCollisionComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
-	BoxCollisionComp->SetupAttachment(ResourceMesh);
-	BoxCollisionComp->bDynamicObstacle = true;
+	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
+	BoxCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	BoxCollision->SetupAttachment(ResourceMesh);
 }
 
 void AMineral::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FVector size = ResourceMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.5;
-	BoxCollisionComp->SetBoxExtent(size);
+	FVector size = ResourceMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2;
+	BoxCollision->SetBoxExtent(size + 10.0f);
+
+	int32 q = FMath::RandRange(1000, 10000); 
+	SetQuantity(q);
 }
 
 void AMineral::YieldStatus()
@@ -27,18 +31,8 @@ void AMineral::YieldStatus()
 	Quantity -= Yield;
 
 	if (Quantity <= 0) {
-		FVector loc = (GetActorLocation() / 100) + (Grid->Size / 2);
-		Grid->GenerateTile(Grid->HISMHill, 0, loc.X, loc.Y);
-
 		Destroy();
 	} else if (Quantity < MaxYield) {
 		MaxYield = Quantity;
 	}
-}
-
-void AMineral::SetQuantity()
-{
-	int32 q = FMath::RandRange(1000, 10000);
-
-	Quantity = q;
 }

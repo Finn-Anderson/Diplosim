@@ -17,13 +17,7 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nav")
-		class UBoxComponent* BoxCollisionComp;
-
-	class AGrid* Grid;
-
-	int32 Quantity;
+		class UBoxComponent* BoxCollision;
 
 	virtual void YieldStatus();
-
-	void SetQuantity();
 };

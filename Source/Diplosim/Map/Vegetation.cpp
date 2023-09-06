@@ -4,8 +4,6 @@
 
 AVegetation::AVegetation()
 {
-	bIsGettingChopped = false;
-
 	IntialScale = FVector(0.1f, 0.1f, 0.1f);
 
 	TimeLength = 30.0f;
@@ -24,12 +22,12 @@ void AVegetation::BeginPlay()
 
 		ResourceMesh->SetMobility(EComponentMobility::Static);
 	}
+
+	SetQuantity(MaxYield);
 }
 
 void AVegetation::YieldStatus()
 {
-	bIsGettingChopped = false;
-
 	ResourceMesh->SetRelativeScale3D(IntialScale);
 
 	FTimerHandle growTimer;
@@ -60,8 +58,10 @@ void AVegetation::Grow()
 bool AVegetation::IsChoppable()
 {
 	FVector scale = ResourceMesh->GetRelativeScale3D();
-	if (bIsGettingChopped || scale.X < 1.0f || scale.Y < 1.0f || scale.Z < 1.0f)
+	if (scale.X < 1.0f || scale.Y < 1.0f || scale.Z < 1.0f)
 		return false;
+
+	SetQuantity(MaxYield);
 
 	if (Owner->IsValidLowLevelFast() && Owner->IsA<AFarm>()) {
 		AFarm* farm = Cast<AFarm>(Owner);

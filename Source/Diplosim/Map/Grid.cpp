@@ -269,14 +269,6 @@ void AGrid::SpawnResource(int32 Pos, FVector Location, TSubclassOf<AResource> Re
 
 	AResource* resource = GetWorld()->SpawnActor<AResource>(ResourceClass, Location, GetActorRotation());
 
-	if (resource->IsA<AMineral>()) {
-		AMineral* mineral = Cast<AMineral>(resource);
-
-		mineral->SetQuantity();
-
-		mineral->Grid = this;
-	}
-
 	tile.Resource.Add(resource);
 
 	Storage[Pos] = tile;

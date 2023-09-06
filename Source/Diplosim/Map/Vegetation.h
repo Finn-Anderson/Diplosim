@@ -21,8 +21,6 @@ public:
 
 	FVector IntialScale;
 
-	bool bIsGettingChopped;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
 		int32 TimeLength;
 

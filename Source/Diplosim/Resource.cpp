@@ -5,7 +5,6 @@ AResource::AResource()
 	PrimaryActorTick.bCanEverTick = false;
 
 	ResourceMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ResourceMesh"));
-	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 	ResourceMesh->SetMobility(EComponentMobility::Static);
 	ResourceMesh->SetCanEverAffectNavigation(false);
@@ -14,6 +13,8 @@ AResource::AResource()
 
 	MinYield = 1;
 	MaxYield = 5;
+
+	Quantity = MaxYield;
 }
 
 int32 AResource::GetYield()
@@ -30,6 +31,11 @@ int32 AResource::GenerateYield()
 	int32 yield = FMath::RandRange(MinYield, MaxYield);
 
 	return yield;
+}
+
+void AResource::SetQuantity(int32 Value)
+{
+	Quantity = Value;
 }
 
 void AResource::YieldStatus() 

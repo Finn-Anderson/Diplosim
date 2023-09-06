@@ -20,13 +20,13 @@ ABuilding::ABuilding()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	BuildingMesh->SetCanEverAffectNavigation(false);
+	BuildingMesh->SetCanEverAffectNavigation(true);
+	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
 	BuildingMesh->bCastDynamicShadow = true;
 	BuildingMesh->CastShadow = true;
 
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
 	BoxCollision->SetupAttachment(BuildingMesh);
-	BoxCollision->bDynamicObstacle = true;
 
 	Capacity = 2;
 
@@ -49,11 +49,15 @@ void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.5;
-	BoxCollision->SetBoxExtent(size);
+	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2;
+	BoxCollision->SetBoxExtent(size + 10.f);
+	BoxCollision->SetRelativeLocation(FVector(0.0f, 0.0f, size.Z / 2));
 
-	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
-	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
+	BoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::CitizenOnOverlapBegin);
+	BoxCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::CitizenOnOverlapEnd);
+
+	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapBegin);
+	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapEnd);
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
@@ -126,10 +130,8 @@ bool ABuilding::CheckBuildCost()
 	return true;
 }
 
-void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ABuilding::CitizenOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	bMoved = true;
-
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
@@ -137,7 +139,22 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 			Enter(c);
 		}
 	}
-	else if (BuildStatus == EBuildStatus::Blueprint) {
+}
+
+void ABuilding::CitizenOnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor->IsA<ACitizen>()) {
+		ACitizen* c = Cast<ACitizen>(OtherActor);
+
+		Leave(c);
+	}
+}
+
+void ABuilding::BuildOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	bMoved = true;
+
+	if (BuildStatus == EBuildStatus::Blueprint) {
 		if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
 			AVegetation* r = Cast<AVegetation>(OtherActor);
 			Camera->BuildComponent->HideTree(r, true);
@@ -153,14 +170,9 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 	}
 }
 
-void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void ABuilding::BuildOnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor->IsA<ACitizen>()) {
-		ACitizen* c = Cast<ACitizen>(OtherActor);
-
-		Leave(c);
-	}
-	else if (BuildStatus == EBuildStatus::Blueprint) {
+	if (BuildStatus == EBuildStatus::Blueprint) {
 		if (OtherActor->IsA<AVegetation>() && TreeList.Contains(OtherActor)) {
 			AVegetation* r = Cast<AVegetation>(OtherActor);
 			Camera->BuildComponent->HideTree(r, false);

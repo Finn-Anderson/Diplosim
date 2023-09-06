@@ -24,9 +24,13 @@ public:
 
 	int32 Yield;
 
+	int32 Quantity;
+
 	int32 GenerateYield();
 
 	int32 GetYield();
+
+	void SetQuantity(int32 Value);
 
 	virtual void YieldStatus();
 };

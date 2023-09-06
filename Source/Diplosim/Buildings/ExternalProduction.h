@@ -13,4 +13,6 @@ public:
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	virtual void Production(class ACitizen* Citizen) override;
+
+	class AResource* Resource = nullptr;
 };

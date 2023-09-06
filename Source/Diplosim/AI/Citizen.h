@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "AI/AI.h"
 #include "Citizen.generated.h"
 
 USTRUCT()
@@ -27,7 +27,7 @@ enum ESex
 };
 
 UCLASS()
-class DIPLOSIM_API ACitizen : public ACharacter
+class DIPLOSIM_API ACitizen : public AAI
 {
 	GENERATED_BODY()
 
@@ -38,24 +38,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UStaticMeshComponent* CitizenMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		class UHealthComponent* HealthComponent;
-
-	UPROPERTY()
-		class AAIController* AIController;
-
-	UFUNCTION()
-		void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	void MoveTo(AActor* Location);
-
-	AActor* Goal;
+	virtual void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 
 
 	// Money

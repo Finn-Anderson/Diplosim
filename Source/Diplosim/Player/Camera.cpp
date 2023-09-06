@@ -105,7 +105,7 @@ void ACamera::Action()
 
 void ACamera::Cancel()
 {
-	if (BuildComponent->IsComponentTickEnabled()) {
+	if (BuildComponent->IsComponentTickEnabled() && !start) {
 		BuildComponent->Build();
 	}
 }
