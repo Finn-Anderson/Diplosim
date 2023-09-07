@@ -17,6 +17,7 @@ ACitizen::ACitizen()
 	GetCapsuleComponent()->SetCapsuleHalfHeight(2.0f);
 
 	AIMesh->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
+	AIMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -2.0f));
 
 	House = nullptr;
 	Employment = nullptr;

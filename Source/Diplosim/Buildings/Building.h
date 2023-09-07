@@ -26,6 +26,29 @@ struct FCostStruct
 	}
 };
 
+USTRUCT()
+struct FBuildStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	class UHierarchicalInstancedStaticMeshComponent* HISMComponent;
+
+	int32 Instance;
+
+	FVector Location;
+
+	FBuildStruct()
+	{
+		HISMComponent = nullptr;
+		Instance = 0;
+	}
+
+	bool operator==(const FBuildStruct& other) const
+	{
+		return (other.HISMComponent == HISMComponent) && (other.Instance == Instance);
+	}
+};
+
 UENUM()
 enum class EBuildStatus : uint8 {
 	Blueprint,
@@ -51,9 +74,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nav")
 		class UBoxComponent* BoxCollision;
 
-	EBuildStatus BuildStatus;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		class UBoxComponent* BuildBoxCollision;
 
-	bool bMoved;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		class UCapsuleComponent* BuildCapsuleCollision;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		bool bEnableBox;
+
+	EBuildStatus BuildStatus;
 
 	TArray<UObject*> Blocking;
 
@@ -94,6 +124,8 @@ public:
 	FTimerHandle ConstructTimer;
 
 	UStaticMesh* ActualMesh;
+
+	TArray<FBuildStruct> AllowedComps;
 
 	void Build();
 

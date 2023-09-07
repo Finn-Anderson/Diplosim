@@ -53,7 +53,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 			location = transform.GetLocation();
 
-			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2;
+			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 50.0f;
 		}
 		else {
 			location = hit.Location;
@@ -62,7 +62,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		Building->SetActorLocation(location);
 	}
 
-	if (Building->Blocking.Num() > 0 || !Building->CheckBuildCost() || !Building->bMoved) {
+	if (!IsNotFloating() || Building->Blocking.Num() > 0 || !Building->CheckBuildCost()) {
 		Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 	}
 	else {
@@ -87,6 +87,33 @@ void UBuildComponent::HideTree(class AVegetation* vegetation, bool Hide)
 
 		Vegetation.Remove(vegetation);
 	}
+}
+
+bool UBuildComponent::IsNotFloating()
+{
+	FHitResult hit(ForceInit);
+
+	for (int32 i = 0; i < Building->AllowedComps.Num(); i++) {
+		UHierarchicalInstancedStaticMeshComponent* comp = Building->AllowedComps[i].HISMComponent;
+
+		FVector loc = Building->AllowedComps[i].Location;
+
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(comp->GetOwner());
+		QueryParams.AddIgnoredComponent(comp);
+
+		if (GetWorld()->LineTraceSingleByChannel(hit, loc, Building->GetActorLocation(), ECollisionChannel::ECC_Visibility, QueryParams))
+		{
+			if (hit.GetActor() != Building || hit.Distance > 75.0f || hit.Location.Z < (loc.Z - 0.1f)) {
+				return false;
+			}
+		}
+		else {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void UBuildComponent::Build()
@@ -143,7 +170,7 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 
 void UBuildComponent::Place()
 {
-	if (Building == nullptr || Building->Blocking.Num() > 0 || !Building->CheckBuildCost() || !Building->bMoved)
+	if (Building == nullptr || !IsNotFloating() || Building->Blocking.Num() > 0 || !Building->CheckBuildCost())
 		return;
 
 	for (int i = 0; i < Vegetation.Num(); i++) {

@@ -47,6 +47,8 @@ public:
 
 	void HideTree(class AVegetation* vegetation, bool Hide);
 
+	bool IsNotFloating();
+
 	UFUNCTION(BlueprintCallable)
 		void Build();
 

@@ -2,6 +2,8 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
@@ -28,6 +30,12 @@ ABuilding::ABuilding()
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
 	BoxCollision->SetupAttachment(BuildingMesh);
 
+	BuildBoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BuildBoxCollision"));
+	BuildBoxCollision->SetupAttachment(BuildingMesh);
+
+	BuildCapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
+	BuildCapsuleCollision->SetupAttachment(BuildingMesh);
+
 	Capacity = 2;
 
 	Upkeep = 0;
@@ -36,13 +44,14 @@ ABuilding::ABuilding()
 	StorageCap = 1000;
 
 	BuildStatus = EBuildStatus::Blueprint;
-	bMoved = false;
 
 	bHideCitizen = true;
 
 	bInstantConstruction = false;
 
 	ActualMesh = nullptr;
+
+	bEnableBox = true;
 }
 
 void ABuilding::BeginPlay()
@@ -56,8 +65,14 @@ void ABuilding::BeginPlay()
 	BoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::CitizenOnOverlapBegin);
 	BoxCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::CitizenOnOverlapEnd);
 
-	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapBegin);
-	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapEnd);
+	if (bEnableBox) {
+		BuildBoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapBegin);
+		BuildBoxCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapEnd);
+	}
+	else {
+		BuildCapsuleCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapBegin);
+		BuildCapsuleCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapEnd);
+	}
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
@@ -152,8 +167,6 @@ void ABuilding::CitizenOnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 
 void ABuilding::BuildOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	bMoved = true;
-
 	if (BuildStatus == EBuildStatus::Blueprint) {
 		if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
 			AVegetation* r = Cast<AVegetation>(OtherActor);
@@ -164,8 +177,21 @@ void ABuilding::BuildOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, c
 		else if (OtherActor->IsA<AMineral>() || OtherActor->IsA<ABuilding>()) {
 			Blocking.Add(OtherActor);
 		}
-		else if (OtherComp->GetName() == "HISMWater" || OtherComp->GetName() == "HISMHill") {
+		else if (OtherComp->GetName() == "HISMWater") {
 			Blocking.Add(OtherComp);
+		}
+		else if (OtherComp->IsValidLowLevelFast()) {
+			FBuildStruct item;
+			item.HISMComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
+			item.Instance = OtherBodyIndex;
+
+			FTransform transform;
+			item.HISMComponent->GetInstanceTransform(item.Instance, transform);
+			int32 z = item.HISMComponent->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 50.0f;
+
+			item.Location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
+
+			AllowedComps.Add(item);
 		}
 	}
 }
@@ -182,6 +208,13 @@ void ABuilding::BuildOnOverlapEnd(class UPrimitiveComponent* OverlappedComp, cla
 		}
 		else if (Blocking.Contains(OtherComp)) {
 			Blocking.RemoveSingle(OtherComp);
+		}
+		else {
+			FBuildStruct item;
+			item.HISMComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
+			item.Instance = OtherBodyIndex;
+
+			AllowedComps.Remove(item);
 		}
 	}
 }
@@ -261,7 +294,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 		if (Occupied.Contains(Citizen) && !AtWork.Contains(Citizen)) {
 			AtWork.Add(Citizen);
 		}
-		else if(Citizen->Employment->IsA<ABuilder>()) {
+		else if(Citizen->Employment != nullptr && Citizen->Employment->IsA<ABuilder>()) {
 			ABuilder* e = Cast<ABuilder>(Citizen->Employment);
 			
 			e->CarryResources(Citizen, this);
