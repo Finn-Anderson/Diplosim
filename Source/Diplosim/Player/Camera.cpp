@@ -12,6 +12,7 @@
 #include "BuildComponent.h"
 #include "CameraMovementComponent.h"
 #include "ResourceManager.h"
+#include "Buildings/Building.h"
 
 ACamera::ACamera()
 {
@@ -43,8 +44,6 @@ void ACamera::BeginPlay()
 	Super::BeginPlay();
 
 	if (start) {
-		BuildComponent->Build();
-
 		BuildComponent->SetBuildingClass(StartBuilding);
 	}
 
@@ -106,7 +105,7 @@ void ACamera::Action()
 void ACamera::Cancel()
 {
 	if (BuildComponent->IsComponentTickEnabled() && !start) {
-		BuildComponent->Build();
+		BuildComponent->SetBuildingClass(BuildComponent->Building->GetClass());
 	}
 }
 

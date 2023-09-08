@@ -19,8 +19,6 @@ ABuilding::ABuilding()
 
 	BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BuildingMesh"));
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
-	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCanEverAffectNavigation(true);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
@@ -30,11 +28,8 @@ ABuilding::ABuilding()
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
 	BoxCollision->SetupAttachment(BuildingMesh);
 
-	BuildBoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BuildBoxCollision"));
-	BuildBoxCollision->SetupAttachment(BuildingMesh);
-
-	BuildCapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
-	BuildCapsuleCollision->SetupAttachment(BuildingMesh);
+	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
+	CapsuleCollision->SetupAttachment(BuildingMesh);
 
 	Capacity = 2;
 
@@ -58,20 +53,23 @@ void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2;
-	BoxCollision->SetBoxExtent(size + 10.f);
-	BoxCollision->SetRelativeLocation(FVector(0.0f, 0.0f, size.Z / 2));
-
-	BoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::CitizenOnOverlapBegin);
-	BoxCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::CitizenOnOverlapEnd);
+	FVector size = (BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2) + 10.0f;
 
 	if (bEnableBox) {
-		BuildBoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapBegin);
-		BuildBoxCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapEnd);
+		BoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
+		BoxCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
+		BoxCollision->SetRelativeLocation(FVector(0.0f, 0.0f, size.Z / 2));
+		BoxCollision->SetBoxExtent(FVector(size.X, size.Y, 800.0f));
+
+		CapsuleCollision->DestroyComponent();
 	}
 	else {
-		BuildCapsuleCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapBegin);
-		BuildCapsuleCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::BuildOnOverlapEnd);
+		CapsuleCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
+		CapsuleCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
+		CapsuleCollision->SetRelativeLocation(FVector(0.0f, 0.0f, size.Z / 2));
+		CapsuleCollision->SetCapsuleSize(size.X, 800.0f);
+
+		BoxCollision->DestroyComponent();
 	}
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -145,27 +143,7 @@ bool ABuilding::CheckBuildCost()
 	return true;
 }
 
-void ABuilding::CitizenOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (OtherActor->IsA<ACitizen>()) {
-		ACitizen* c = Cast<ACitizen>(OtherActor);
-
-		if (c->Goal == this) {
-			Enter(c);
-		}
-	}
-}
-
-void ABuilding::CitizenOnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OtherActor->IsA<ACitizen>()) {
-		ACitizen* c = Cast<ACitizen>(OtherActor);
-
-		Leave(c);
-	}
-}
-
-void ABuilding::BuildOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (BuildStatus == EBuildStatus::Blueprint) {
 		if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
@@ -174,13 +152,13 @@ void ABuilding::BuildOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, c
 
 			TreeList.Add(OtherActor);
 		}
-		else if (OtherActor->IsA<AMineral>() || OtherActor->IsA<ABuilding>()) {
+		else if (OtherActor->IsA<AMineral>() || (OtherActor->IsA<ABuilding>() && OtherActor != this)) {
 			Blocking.Add(OtherActor);
 		}
 		else if (OtherComp->GetName() == "HISMWater") {
 			Blocking.Add(OtherComp);
 		}
-		else if (OtherComp->IsValidLowLevelFast()) {
+		else if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
 			FBuildStruct item;
 			item.HISMComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
 			item.Instance = OtherBodyIndex;
@@ -191,12 +169,21 @@ void ABuilding::BuildOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, c
 
 			item.Location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
-			AllowedComps.Add(item);
+			if (!AllowedComps.Contains(item)) {
+				AllowedComps.Add(item);
+			}
+		}
+	}
+	else if (OtherActor->IsA<ACitizen>()) {
+		ACitizen* c = Cast<ACitizen>(OtherActor);
+
+		if (c->Goal == this) {
+			Enter(c);
 		}
 	}
 }
 
-void ABuilding::BuildOnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (BuildStatus == EBuildStatus::Blueprint) {
 		if (OtherActor->IsA<AVegetation>() && TreeList.Contains(OtherActor)) {
@@ -209,13 +196,20 @@ void ABuilding::BuildOnOverlapEnd(class UPrimitiveComponent* OverlappedComp, cla
 		else if (Blocking.Contains(OtherComp)) {
 			Blocking.RemoveSingle(OtherComp);
 		}
-		else {
+		else if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
 			FBuildStruct item;
 			item.HISMComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
 			item.Instance = OtherBodyIndex;
 
-			AllowedComps.Remove(item);
+			if (AllowedComps.Contains(item)) {
+				AllowedComps.Remove(item);
+			}
 		}
+	}
+	else if (OtherActor->IsA<ACitizen>()) {
+		ACitizen* c = Cast<ACitizen>(OtherActor);
+
+		Leave(c);
 	}
 }
 

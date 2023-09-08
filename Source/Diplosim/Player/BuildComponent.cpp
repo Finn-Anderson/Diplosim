@@ -93,6 +93,9 @@ bool UBuildComponent::IsNotFloating()
 {
 	FHitResult hit(ForceInit);
 
+	if (Building->AllowedComps.Num() == 0)
+		return false;
+
 	for (int32 i = 0; i < Building->AllowedComps.Num(); i++) {
 		UHierarchicalInstancedStaticMeshComponent* comp = Building->AllowedComps[i].HISMComponent;
 
@@ -104,7 +107,10 @@ bool UBuildComponent::IsNotFloating()
 
 		if (GetWorld()->LineTraceSingleByChannel(hit, loc, Building->GetActorLocation(), ECollisionChannel::ECC_Visibility, QueryParams))
 		{
-			if (hit.GetActor() != Building || hit.Distance > 75.0f || hit.Location.Z < (loc.Z - 0.1f)) {
+			int32 locZ = loc.Z;
+			int32 hitZ = FMath::RoundHalfFromZero(hit.Location.Z);
+
+			if (hit.GetActor() != Building || locZ != hitZ) {
 				return false;
 			}
 		}
@@ -116,24 +122,35 @@ bool UBuildComponent::IsNotFloating()
 	return true;
 }
 
-void UBuildComponent::Build()
+bool UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass)
 {
-	SetComponentTickEnabled(!IsComponentTickEnabled());
+	if (Building != nullptr) {
+		if (Building->BuildStatus == EBuildStatus::Blueprint) {
+			Building->Destroy();
 
-	if (Building != nullptr && Building->BuildStatus == EBuildStatus::Blueprint) {
-		Building->Destroy();
+			for (int i = 0; i < Vegetation.Num(); i++) {
+				HideTree(Vegetation[i], false);
+			}
+
+			Vegetation.Empty();
+		}
+
+		if (BuildingClass == Building->GetClass()) {
+			SetComponentTickEnabled(false);
+
+			Building = nullptr;
+
+			return false;
+		} 
 	}
 
-	Building = nullptr;
-}
-
-void UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass)
-{
-	if (Building != nullptr && Building->BuildStatus == EBuildStatus::Blueprint) {
-		Building->Destroy();
+	if (!IsComponentTickEnabled()) {
+		SetComponentTickEnabled(true);
 	}
 
 	Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0, 0, 50.0f), Rotation);
+	
+	return true;
 }
 
 void UBuildComponent::RotateBuilding(bool Rotate)
@@ -183,7 +200,7 @@ void UBuildComponent::Place()
 
 	Building->Build();
 
-	Build();
+	SetBuildingClass(Building->GetClass());
 
 	if (Camera->start) {
 		Camera->start = false;

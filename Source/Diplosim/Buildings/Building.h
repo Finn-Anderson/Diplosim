@@ -71,14 +71,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* BuildingMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nav")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
 		class UBoxComponent* BoxCollision;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
-		class UBoxComponent* BuildBoxCollision;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
-		class UCapsuleComponent* BuildCapsuleCollision;
+		class UCapsuleComponent* CapsuleCollision;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		bool bEnableBox;
@@ -151,16 +148,10 @@ public:
 
 	// Building prevent overlaps
 	UFUNCTION()
-		void CitizenOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+		void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-		void CitizenOnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	UFUNCTION()
-		void BuildOnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-		void BuildOnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	// Citizens
 	UPROPERTY()

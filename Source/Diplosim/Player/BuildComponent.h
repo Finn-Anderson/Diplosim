@@ -49,9 +49,6 @@ public:
 
 	bool IsNotFloating();
 
-	UFUNCTION(BlueprintCallable)
-		void Build();
-
 	void RotateBuilding(bool Rotate);
 
 	void Place();
@@ -59,5 +56,5 @@ public:
 	void QuickPlace();
 
 	UFUNCTION(BlueprintCallable)
-		void SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass);
+		bool SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass);
 };
