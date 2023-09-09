@@ -99,22 +99,10 @@ bool UBuildComponent::IsNotFloating()
 	for (int32 i = 0; i < Building->AllowedComps.Num(); i++) {
 		UHierarchicalInstancedStaticMeshComponent* comp = Building->AllowedComps[i].HISMComponent;
 
-		FVector loc = Building->AllowedComps[i].Location;
+		int32 terrainZ = Building->AllowedComps[i].Location.Z;
+		int32 buildingZ = FMath::RoundHalfFromZero(Building->GetActorLocation().Z);
 
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(comp->GetOwner());
-		QueryParams.AddIgnoredComponent(comp);
-
-		if (GetWorld()->LineTraceSingleByChannel(hit, loc, Building->GetActorLocation(), ECollisionChannel::ECC_Visibility, QueryParams))
-		{
-			int32 locZ = loc.Z;
-			int32 hitZ = FMath::RoundHalfFromZero(hit.Location.Z);
-
-			if (hit.GetActor() != Building || locZ != hitZ) {
-				return false;
-			}
-		}
-		else {
+		if (terrainZ != buildingZ) {
 			return false;
 		}
 	}
