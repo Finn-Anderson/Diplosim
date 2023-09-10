@@ -6,6 +6,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI/Citizen.h"
+#include "AI/HealthComponent.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 #include "Player/BuildComponent.h"
@@ -31,6 +32,10 @@ ABuilding::ABuilding()
 	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
 	CapsuleCollision->SetupAttachment(BuildingMesh);
 
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	HealthComponent->MaxHealth = 500;
+	HealthComponent->Health = HealthComponent->MaxHealth;
+
 	Capacity = 2;
 
 	Upkeep = 0;
@@ -47,6 +52,8 @@ ABuilding::ABuilding()
 	ActualMesh = nullptr;
 
 	bEnableBox = true;
+
+	bMoved = false;
 }
 
 void ABuilding::BeginPlay()
@@ -146,6 +153,8 @@ bool ABuilding::CheckBuildCost()
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (BuildStatus == EBuildStatus::Blueprint) {
+		bMoved = true;
+
 		if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
 			AVegetation* r = Cast<AVegetation>(OtherActor);
 			Camera->BuildComponent->HideTree(r, true);

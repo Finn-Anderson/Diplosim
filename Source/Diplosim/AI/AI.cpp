@@ -1,6 +1,7 @@
 #include "AI/AI.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
@@ -33,6 +34,13 @@ AAI::AAI()
 	HealthComponent->MaxHealth = 100;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
+	Range = 10.0f;
+	Damage = 20;
+	TimeToAttack = 5.0f;
+
+	AttackComponent = CreateDefaultSubobject<USphereComponent>(TEXT("AttackComponent"));
+	AttackComponent->SetSphereRadius(Range);
+
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 }
 
@@ -42,6 +50,9 @@ void AAI::BeginPlay()
 
 	AIMesh->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnOverlapBegin);
 	AIMesh->OnComponentEndOverlap.AddDynamic(this, &AAI::OnOverlapEnd);
+
+	AttackComponent->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnEnemyOverlapBegin);
+	AttackComponent->OnComponentEndOverlap.AddDynamic(this, &AAI::OnEnemyOverlapEnd);
 
 	SpawnDefaultController();
 
@@ -54,6 +65,16 @@ void AAI::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor
 }
 
 void AAI::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+
+}
+
+void AAI::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+
+}
+
+void AAI::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 
 }
@@ -95,5 +116,21 @@ void AAI::MoveTo(AActor* Location)
 		AIController->MoveToLocation(comp->GetSocketLocation(socket));
 
 		Goal = Location;
+	}
+}
+
+void AAI::Throw(AActor* Target)
+{
+	FCollisionQueryParams queryParams;
+	queryParams.AddIgnoredActor(this);
+
+	TArray<struct FHitResult> hits;
+
+	if (GetWorld()->LineTraceMultiByChannel(hits, GetActorLocation(), Target->GetActorLocation(), ECC_Visibility, queryParams)) {
+		int32 Distance = hits[hits.Num() - 1].Distance;
+
+		for (int32 i = 0; i < hits.Num(); i++) {
+			// Projectile Motion Calculation
+		}
 	}
 }

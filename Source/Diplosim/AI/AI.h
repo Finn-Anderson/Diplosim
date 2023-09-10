@@ -19,9 +19,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* AIMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		class UHealthComponent* HealthComponent;
-
 	UPROPERTY()
 		class AAIController* AIController;
 
@@ -30,6 +27,33 @@ public:
 
 	UFUNCTION()
 		virtual void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	// Fighting
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		class UHealthComponent* HealthComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+		class USphereComponent* AttackComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+		int32 Damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+		float Range;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+		float TimeToAttack;
+		
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+		TSubclassOf<class AProjectile> ProjectileClass;
+
+	UFUNCTION()
+		virtual void OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+		virtual void OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	void Throw(AActor* Target);
 
 
 	// Movement

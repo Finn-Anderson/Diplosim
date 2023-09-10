@@ -360,6 +360,8 @@ void AGrid::Clear()
 
 	Storage.Empty();
 
+	Camera->BuildComponent->Building->bMoved = false;
+
 	HISMWater->ClearInstances();
 	HISMGround->ClearInstances();
 	HISMMound->ClearInstances();

@@ -80,6 +80,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		bool bEnableBox;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		class UHealthComponent* HealthComponent;
+
 	EBuildStatus BuildStatus;
 
 	TArray<UObject*> Blocking;
@@ -113,6 +116,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen")
 		bool bHideCitizen;
+
+	bool bMoved;
 
 	TArray<class AActor*> TreeList;
 
