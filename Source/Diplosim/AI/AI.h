@@ -4,6 +4,25 @@
 #include "GameFramework/Character.h"
 #include "AI.generated.h"
 
+USTRUCT()
+struct FAttackStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	class AActor* Actor;
+
+	int32 Dmg;
+
+	int32 Hp;
+
+	FAttackStruct()
+	{
+		Actor = nullptr;
+		Dmg = 0;
+		Hp = 0;
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API AAI : public ACharacter
 {
@@ -47,13 +66,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class AProjectile> ProjectileClass;
 
+	TArray<AActor*> OverlappingEnemies;
+
+	FTimerHandle DamageTimer;
+
 	UFUNCTION()
 		virtual void OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
 		virtual void OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	void Attack();
+
+	bool CanThrow(AActor* Target);
+
 	void Throw(AActor* Target);
+
+	float Theta;
 
 
 	// Movement

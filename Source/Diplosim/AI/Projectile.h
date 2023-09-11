@@ -18,4 +18,6 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+		float Speed;
 };

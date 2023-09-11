@@ -9,6 +9,7 @@
 #include "HealthComponent.h"
 #include "Citizen.h"
 #include "Buildings/Work.h"
+#include "Projectile.h"
 
 AAI::AAI()
 {
@@ -34,7 +35,7 @@ AAI::AAI()
 	HealthComponent->MaxHealth = 100;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
-	Range = 10.0f;
+	Range = 100.0f;
 	Damage = 20;
 	TimeToAttack = 5.0f;
 
@@ -76,7 +77,13 @@ void AAI::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 void AAI::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	if (OverlappingEnemies.Contains(OtherActor)) {
+		OverlappingEnemies.Remove(OtherActor);
 
+		if (OverlappingEnemies.IsEmpty()) {
+			GetWorld()->GetTimerManager().ClearTimer(DamageTimer);
+		}
+	}
 }
 
 void AAI::MoveTo(AActor* Location)
@@ -97,7 +104,7 @@ void AAI::MoveTo(AActor* Location)
 
 			bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
-			if (path) {
+			if (path && s != "Throw") {
 				if (socket == "") {
 					socket = s;
 				}
@@ -119,18 +126,94 @@ void AAI::MoveTo(AActor* Location)
 	}
 }
 
-void AAI::Throw(AActor* Target)
+void AAI::Attack()
+{
+	FAttackStruct favoured;
+
+	for (int32 i = 0; i < OverlappingEnemies.Num(); i++) {
+		int32 hp = 0;
+		int32 dmg = 0;
+
+		if (OverlappingEnemies[i]->IsA<AAI>()) {
+			AAI* ai = Cast<AAI>(OverlappingEnemies[i]);
+
+			hp = ai->HealthComponent->Health;
+			dmg = ai->Damage;
+		}
+		else {
+			ABuilding* building = Cast<ABuilding>(OverlappingEnemies[i]);
+
+			hp = building->HealthComponent->Health;
+			dmg = 0;
+		}
+
+		float favourability = (Damage / hp) * dmg;
+		float currentFavoured = 0; 
+		
+		if (favoured.Hp > 0) {
+			currentFavoured = (Damage / favoured.Hp) * favoured.Dmg;
+		}
+
+		if (favourability > currentFavoured) {
+			favoured.Actor = OverlappingEnemies[i];
+			favoured.Hp = hp;
+			favoured.Dmg = dmg;
+		}
+	}
+
+	if (ProjectileClass) {
+		Throw(favoured.Actor);
+	}
+	else {
+		if (favoured.Actor->IsA<AAI>()) {
+			AAI* ai = Cast<AAI>(favoured.Actor);
+
+			ai->HealthComponent->TakeHealth(Damage, GetActorLocation());
+		}
+		else {
+			ABuilding* building = Cast<ABuilding>(favoured.Actor);
+
+			building->HealthComponent->TakeHealth(Damage, GetActorLocation());
+		}
+	}
+}
+
+bool AAI::CanThrow(AActor* Target)
 {
 	FCollisionQueryParams queryParams;
 	queryParams.AddIgnoredActor(this);
 
 	TArray<struct FHitResult> hits;
 
-	if (GetWorld()->LineTraceMultiByChannel(hits, GetActorLocation(), Target->GetActorLocation(), ECC_Visibility, queryParams)) {
-		int32 Distance = hits[hits.Num() - 1].Distance;
+	FVector startLoc = AIMesh->GetSocketLocation("Throw");
 
-		for (int32 i = 0; i < hits.Num(); i++) {
-			// Projectile Motion Calculation
+	if (GetWorld()->LineTraceMultiByChannel(hits, GetActorLocation(), Target->GetActorLocation(), ECC_Visibility, queryParams)) {
+		FHitResult target = hits[hits.Num() - 1];
+		FVector targetLoc = (target.GetActor()->GetActorForwardVector() * target.GetActor()->GetVelocity()) + target.Location;
+
+		float distance = FVector::Dist(startLoc, targetLoc);
+		float initialHeight = startLoc.Z;
+		float initialV = ProjectileClass->GetDefaultObject<AProjectile>()->Speed;
+
+		Theta = 0.5 * FMath::Asin((GetWorld()->GetGravityZ() * distance) / initialV);
+
+		float initialVy = initialV * FMath::Sin(Theta);
+		float maxHeight = initialHeight + FMath::Square(initialVy) / (2 * GetWorld()->GetGravityZ());
+
+		for (int32 i = 0; i < (hits.Num() - 1); i++) {
+			if (hits[i].Location.Z > maxHeight) {
+				MoveTo(Target);
+				return false;
+			}
 		}
+	}
+
+	return true;
+}
+
+void AAI::Throw(AActor* Target)
+{
+	if (CanThrow(Target)) {
+		GetWorld()->SpawnActor<ACitizen>(ProjectileClass, AIMesh->GetSocketLocation("Throw"), FRotator(0, Theta, 0));
 	}
 }

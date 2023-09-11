@@ -4,6 +4,7 @@ AProjectile::AProjectile()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	Speed = 300.0f;
 }
 
 void AProjectile::BeginPlay()
