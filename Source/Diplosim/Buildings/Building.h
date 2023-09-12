@@ -87,6 +87,8 @@ public:
 
 	TArray<UObject*> Blocking;
 
+	TArray<FBuildStruct> AllowedComps;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -126,8 +128,6 @@ public:
 	FTimerHandle ConstructTimer;
 
 	UStaticMesh* ActualMesh;
-
-	TArray<FBuildStruct> AllowedComps;
 
 	void Build();
 

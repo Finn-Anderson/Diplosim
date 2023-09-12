@@ -32,41 +32,43 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	FVector mouseLoc, mouseDirection;
-	APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
+	if (Building) {
+		FVector mouseLoc, mouseDirection;
+		APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
 
-	FHitResult hit(ForceInit);
+		FHitResult hit(ForceInit);
 
-	FVector endTrace = mouseLoc + (mouseDirection * 10000);
+		FVector endTrace = mouseLoc + (mouseDirection * 10000);
 
-	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
-	{
-		UHierarchicalInstancedStaticMeshComponent* comp = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent());
-		int32 instance = hit.Item;
+		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
+		{
+			UHierarchicalInstancedStaticMeshComponent* comp = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent());
+			int32 instance = hit.Item;
 
-		FVector location;
+			FVector location;
 
-		if (GridStatus && comp->IsValidLowLevelFast()) {
-			FTransform transform;
-			comp->GetInstanceTransform(instance, transform);
+			if (GridStatus && comp->IsValidLowLevelFast()) {
+				FTransform transform;
+				comp->GetInstanceTransform(instance, transform);
 
-			location = transform.GetLocation();
+				location = transform.GetLocation();
 
-			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 50.0f;
+				location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 50.0f;
+			}
+			else {
+				location = hit.Location;
+			}
+
+			Building->SetActorLocation(location);
+		}
+
+		if (!IsNotFloating() || Building->Blocking.Num() > 0 || !Building->CheckBuildCost()) {
+			Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 		}
 		else {
-			location = hit.Location;
+			Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
 		}
-
-		Building->SetActorLocation(location);
-	}
-
-	if (!IsNotFloating() || Building->Blocking.Num() > 0 || !Building->CheckBuildCost()) {
-		Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
-	}
-	else {
-		Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
 	}
 }
 

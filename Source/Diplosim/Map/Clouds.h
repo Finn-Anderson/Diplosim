@@ -29,5 +29,6 @@ public:
 
 	void GetCloudBounds();
 
-	void CloudSpawner();
+	UFUNCTION()
+		void CloudSpawner();
 };

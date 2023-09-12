@@ -2,12 +2,14 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 #include "Map/Grid.h"
 
 AClouds::AClouds()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	SetTickableWhenPaused(true);
 
 	HISMClouds = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClouds"));
 	HISMClouds->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
@@ -22,8 +24,7 @@ void AClouds::BeginPlay()
 
 	GetCloudBounds();
 
-	FTimerHandle cloudTimer;
-	GetWorldTimerManager().SetTimer(cloudTimer, this, &AClouds::CloudSpawner, 1.0f, true);
+	CloudSpawner();
 }
 
 void AClouds::Tick(float DeltaTime)
@@ -105,4 +106,11 @@ void AClouds::CloudSpawner()
 
 		HISMClouds->SetCustomDataValue(inst, 1, 0.0f);
 	}
+
+	FLatentActionInfo info;
+	info.Linkage = 0;
+	info.CallbackTarget = this;
+	info.ExecutionFunction = "CloudSpawner";
+	info.UUID = GetUniqueID();
+	UKismetSystemLibrary::Delay(GetWorld(), 1.0f, info);
 }
