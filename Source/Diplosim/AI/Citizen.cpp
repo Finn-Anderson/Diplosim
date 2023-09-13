@@ -10,6 +10,7 @@
 #include "Resource.h"
 #include "HealthComponent.h"
 #include "Map/Mineral.h"
+#include "Enemy.h"
 
 ACitizen::ACitizen()
 {
@@ -66,6 +67,24 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 		ACitizen* c = Cast<ACitizen>(OtherActor);
 
 		SetPartner(c);
+	}
+}
+
+void ACitizen::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor->IsA<AEnemy>()) {
+		OverlappingEnemies.Add(OtherActor);
+
+		SetActorTickEnabled(true);
+	}
+}
+
+void ACitizen::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	Super::OnEnemyOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
+
+	if (OverlappingEnemies.IsEmpty()) {
+		MoveTo(Employment);
 	}
 }
 

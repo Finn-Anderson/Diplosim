@@ -17,8 +17,6 @@ void AEnemy::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, clas
 	if (OtherActor->IsA<ACitizen>()) {
 		OverlappingEnemies.Add(OtherActor);
 
-		if (!GetWorld()->GetTimerManager().IsTimerActive(DamageTimer)) {
-			GetWorld()->GetTimerManager().SetTimer(DamageTimer, this, &AEnemy::Attack, TimeToAttack, true);
-		}
+		SetActorTickEnabled(true);
 	}
 }

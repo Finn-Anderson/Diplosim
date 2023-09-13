@@ -35,6 +35,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
+	virtual void Tick(float DeltaTime) override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* AIMesh;
 
@@ -52,7 +54,7 @@ public:
 		class UHealthComponent* HealthComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-		class USphereComponent* AttackComponent;
+		class USphereComponent* RangeComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		int32 Damage;
@@ -76,11 +78,19 @@ public:
 	UFUNCTION()
 		virtual void OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void Attack();
+	AActor* PickTarget(TArray<AActor*> Targets);
+
+	void Attack(AActor* Target);
 
 	bool CanThrow(AActor* Target);
 
 	void Throw(AActor* Target);
+
+	void SetCanAttack(bool Value);
+
+	bool GetCanAttack();
+
+	bool bCanAttack;
 
 	float Theta;
 
