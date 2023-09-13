@@ -37,29 +37,34 @@ void AHouse::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	int32 amount = 0;
-	TSubclassOf<AResource> r = nullptr;
+	TArray<TSubclassOf<AResource>> Resources;
 	for (int32 i = 0; i < Food.Num(); i++) {
 		int32 curAmount = Camera->ResourceManagerComponent->GetResourceAmount(Food[i]);
 
-		if (curAmount > amount) {
-			amount = curAmount;
-
-			r = Food[i];
+		if (curAmount > 0) {
+			for (int32 j = 0; j < curAmount; j++) {
+				Resources.Add(Food[i]);
+			}
 		}
 	}
 
-	if (amount > 0) {
+	if (!Resources.IsEmpty()) {
 		int32 maxE = 25;
 
-		int32 maxF = FMath::Clamp(amount, 1, 3);
+		int32 maxF = FMath::Clamp(Resources.Num(), 1, 3);
 		int32 maxB = FMath::Clamp(Citizen->Balance, 1, 3);
 
 		int32 quantity = FMath::Min(maxF, maxB);
+		
+		for (int32 i = 0; i < quantity; i++) {
+			int32 selected = FMath::RandRange(0, Resources.Num());
+
+			Camera->ResourceManagerComponent->TakeUniversalResource(Resources[selected], 1);
+
+			Resources.RemoveAt(selected);
+		}
 
 		Citizen->Balance -= quantity;
-
-		Camera->ResourceManagerComponent->TakeUniversalResource(r, quantity);
 		Camera->ResourceManagerComponent->AddUniversalResource(Money, quantity);
 
 		maxE += quantity * 25;
