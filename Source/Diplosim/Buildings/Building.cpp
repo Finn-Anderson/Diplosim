@@ -156,8 +156,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 		bMoved = true;
 
 		if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
-			AVegetation* r = Cast<AVegetation>(OtherActor);
-			Camera->BuildComponent->HideTree(r, true);
+			OtherActor->SetActorHiddenInGame(true);
 
 			TreeList.Add(OtherActor);
 		}
@@ -195,9 +194,10 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (BuildStatus == EBuildStatus::Blueprint) {
-		if (OtherActor->IsA<AVegetation>() && TreeList.Contains(OtherActor)) {
-			AVegetation* r = Cast<AVegetation>(OtherActor);
-			Camera->BuildComponent->HideTree(r, false);
+		if (TreeList.Contains(OtherActor)) {
+			OtherActor->SetActorHiddenInGame(false);
+
+			TreeList.Remove(OtherActor);
 		}
 		else if (Blocking.Contains(OtherActor)) {
 			Blocking.RemoveSingle(OtherActor);

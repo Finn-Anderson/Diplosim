@@ -42,11 +42,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		class ABuilding* Building;
 
-	UPROPERTY()
-		TArray<class AVegetation*> Vegetation;
-
-	void HideTree(class AVegetation* vegetation, bool Hide);
-
 	bool IsNotFloating();
 
 	void RotateBuilding(bool Rotate);

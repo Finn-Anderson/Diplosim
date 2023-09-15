@@ -77,20 +77,6 @@ void UBuildComponent::SetGridStatus()
 	GridStatus = !GridStatus;
 }
 
-void UBuildComponent::HideTree(class AVegetation* vegetation, bool Hide)
-{
-	if (Hide) {
-		vegetation->SetActorHiddenInGame(Hide);
-
-		Vegetation.Add(vegetation);
-	}
-	else {
-		vegetation->SetActorHiddenInGame(Hide);
-
-		Vegetation.Remove(vegetation);
-	}
-}
-
 bool UBuildComponent::IsNotFloating()
 {
 	FHitResult hit(ForceInit);
@@ -116,13 +102,11 @@ bool UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClas
 {
 	if (Building != nullptr) {
 		if (Building->BuildStatus == EBuildStatus::Blueprint) {
-			Building->Destroy();
-
-			for (int i = 0; i < Vegetation.Num(); i++) {
-				HideTree(Vegetation[i], false);
+			for (int i = 0; i < Building->TreeList.Num(); i++) {
+				Building->TreeList[i]->SetActorHiddenInGame(false);
 			}
 
-			Vegetation.Empty();
+			Building->Destroy();
 		}
 
 		if (BuildingClass == Building->GetClass()) {
@@ -180,11 +164,9 @@ void UBuildComponent::Place()
 	if (Building == nullptr || !IsNotFloating() || Building->Blocking.Num() > 0 || !Building->CheckBuildCost())
 		return;
 
-	for (int i = 0; i < Vegetation.Num(); i++) {
-		Vegetation[i]->Destroy(true);
+	for (int i = 0; i < Building->TreeList.Num(); i++) {
+		Building->TreeList[i]->Destroy(true);
 	}
-
-	Vegetation.Empty();
 
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);
 

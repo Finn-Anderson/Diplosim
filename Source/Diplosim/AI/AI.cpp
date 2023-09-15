@@ -17,6 +17,8 @@ AAI::AAI()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
+	GetCapsuleComponent()->SetCapsuleRadius(2.0f);
+	GetCapsuleComponent()->SetCapsuleHalfHeight(2.0f);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
@@ -24,6 +26,7 @@ AAI::AAI()
 	GetCapsuleComponent()->bDynamicObstacle = false;
 
 	AIMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AIMesh"));
+	AIMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -2.0f));
 	AIMesh->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
 	AIMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 	AIMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
@@ -46,6 +49,10 @@ AAI::AAI()
 	bCanAttack = false;
 
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 360.0f, 0.0f);
 }
 
 void AAI::BeginPlay()
@@ -96,7 +103,6 @@ void AAI::Tick(float DeltaTime)
 				Attack(target);
 			}
 		}
-
 	}
 }
 
