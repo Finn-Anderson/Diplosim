@@ -1,6 +1,9 @@
 #include "AI/Enemy.h"
 
+#include "Kismet/GameplayStatics.h"
+
 #include "Citizen.h"
+#include "Buildings/Broch.h"
 
 AEnemy::AEnemy()
 {
@@ -26,5 +29,17 @@ void AEnemy::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, clas
 		OverlappingEnemies.Add(OtherActor);
 
 		SetActorTickEnabled(true);
+	}
+}
+
+void AEnemy::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	Super::OnEnemyOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
+
+	if (OverlappingEnemies.IsEmpty()) {
+		TArray<AActor*> brochs;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
+
+		MoveTo(brochs[0]);
 	}
 }
