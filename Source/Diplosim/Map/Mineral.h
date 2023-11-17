@@ -16,8 +16,5 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nav")
-		class UBoxComponent* BoxCollision;
-
 	virtual void YieldStatus();
 };

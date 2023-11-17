@@ -21,16 +21,13 @@ ABuilding::ABuilding()
 	BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BuildingMesh"));
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	BuildingMesh->SetCanEverAffectNavigation(true);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
 	BuildingMesh->bCastDynamicShadow = true;
 	BuildingMesh->CastShadow = true;
-
-	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
-	BoxCollision->SetupAttachment(BuildingMesh);
-
-	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
-	CapsuleCollision->SetupAttachment(BuildingMesh);
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	HealthComponent->MaxHealth = 500;
@@ -51,8 +48,6 @@ ABuilding::ABuilding()
 
 	ActualMesh = nullptr;
 
-	bEnableBox = true;
-
 	bMoved = false;
 }
 
@@ -60,24 +55,10 @@ void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FVector size = (BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2) + 10.0f;
+	FVector size = (BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2);
 
-	if (bEnableBox) {
-		BoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
-		BoxCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
-		BoxCollision->SetRelativeLocation(FVector(0.0f, 0.0f, size.Z / 2));
-		BoxCollision->SetBoxExtent(FVector(size.X, size.Y, 800.0f));
-
-		CapsuleCollision->DestroyComponent();
-	}
-	else {
-		CapsuleCollision->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
-		CapsuleCollision->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
-		CapsuleCollision->SetRelativeLocation(FVector(0.0f, 0.0f, size.Z / 2));
-		CapsuleCollision->SetCapsuleSize(size.X, 800.0f);
-
-		BoxCollision->DestroyComponent();
-	}
+	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
+	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
@@ -165,8 +146,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 		}
 		else if (OtherComp->GetName() == "HISMWater") {
 			Blocking.Add(OtherComp);
-		}
-		else if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+		} else if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
 			FBuildStruct item;
 			item.HISMComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
 			item.Instance = OtherBodyIndex;
@@ -204,8 +184,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 		}
 		else if (Blocking.Contains(OtherComp)) {
 			Blocking.RemoveSingle(OtherComp);
-		}
-		else if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+		} else if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
 			FBuildStruct item;
 			item.HISMComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
 			item.Instance = OtherBodyIndex;

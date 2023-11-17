@@ -16,6 +16,10 @@ ACitizen::ACitizen()
 {
 	AIMesh->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
+	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
+	CapsuleCollision->SetRelativeScale3D(FVector(2.0f, 2.0f, 2.0f));
+	CapsuleCollision->SetupAttachment(AIMesh);
+
 	House = nullptr;
 	Employment = nullptr;
 
@@ -31,6 +35,9 @@ ACitizen::ACitizen()
 void ACitizen::BeginPlay()
 {
 	Super::BeginPlay();
+
+	CapsuleCollision->OnComponentBeginOverlap.AddDynamic(this, &ACitizen::OnOverlapBegin);
+	CapsuleCollision->OnComponentEndOverlap.AddDynamic(this, &ACitizen::OnOverlapEnd);
 
 	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
 
@@ -64,6 +71,11 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 		SetPartner(c);
 	}
+}
+
+void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	
 }
 
 void ACitizen::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

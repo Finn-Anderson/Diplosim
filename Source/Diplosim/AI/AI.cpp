@@ -59,9 +59,6 @@ void AAI::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AIMesh->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnOverlapBegin);
-	AIMesh->OnComponentEndOverlap.AddDynamic(this, &AAI::OnOverlapEnd);
-
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnEnemyOverlapBegin);
 	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &AAI::OnEnemyOverlapEnd);
 
@@ -104,16 +101,6 @@ void AAI::Tick(float DeltaTime)
 			}
 		}
 	}
-}
-
-void AAI::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	
-}
-
-void AAI::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-
 }
 
 void AAI::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

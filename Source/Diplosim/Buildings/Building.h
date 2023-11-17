@@ -71,15 +71,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* BuildingMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
-		class UBoxComponent* BoxCollision;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
-		class UCapsuleComponent* CapsuleCollision;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
-		bool bEnableBox;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		class UHealthComponent* HealthComponent;
 
