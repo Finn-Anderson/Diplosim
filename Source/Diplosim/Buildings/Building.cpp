@@ -4,6 +4,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
 #include "AI/HealthComponent.h"
@@ -86,32 +87,25 @@ void ABuilding::Build()
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), foundBuilders);
 
 		ABuilder* target = nullptr;
+
 		for (int32 i = 0; i < foundBuilders.Num(); i++) {
 			ABuilder* builder = Cast<ABuilder>(foundBuilders[i]);
 
-			if (builder->Constructing != nullptr || builder == this)
+			if (builder->Constructing != nullptr || builder->BuildStatus != EBuildStatus::Complete)
 				continue;
 
-			if (target == nullptr) {
-				target = Cast<ABuilder>(foundBuilders[i]);
-			}
-			else {
-				float dT = FVector::Dist(target->GetActorLocation(), GetActorLocation());
+			FVector loc = builder->Occupied[0]->CanMoveTo(this);
 
-				float dB = FVector::Dist(foundBuilders[i]->GetActorLocation(), GetActorLocation());
+			if (loc.IsZero())
+				continue;
 
-				if (dT > dB) {
-					target = builder;
-				}
-			}
+			target = Cast<ABuilder>(builder->Occupied[0]->GetClosestActor(this, target, builder));
 		}
 
 		if (target != nullptr) {
 			target->Constructing = this;
 
-			for (int32 i = 0; i < target->AtWork.Num(); i++) {
-				target->AtWork[i]->MoveTo(target->Constructing);
-			}
+			target->Occupied[0]->MoveTo(target->Constructing);
 		}
 	}
 }
@@ -162,13 +156,6 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 			}
 		}
 	}
-	else if (OtherActor->IsA<ACitizen>()) {
-		ACitizen* c = Cast<ACitizen>(OtherActor);
-
-		if (c->Goal == this) {
-			Enter(c);
-		}
-	}
 }
 
 void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -193,11 +180,6 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 				AllowedComps.Remove(item);
 			}
 		}
-	}
-	else if (OtherActor->IsA<ACitizen>()) {
-		ACitizen* c = Cast<ACitizen>(OtherActor);
-
-		Leave(c);
 	}
 }
 
@@ -318,7 +300,6 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 {
-
 	TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(Stock.Type);
 
 	ABuilding* target = nullptr;
@@ -328,23 +309,19 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
 
 		for (int32 k = 0; k < foundBuildings.Num(); k++) {
-			ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
+			ABuilding* building = Cast<ABuilding>(foundBuildings[k]); 
 
-			if (building->BuildStatus != EBuildStatus::Complete)
+			FVector loc = Citizen->CanMoveTo(building);
+
+			if (building->BuildStatus != EBuildStatus::Complete || loc.IsZero())
 				continue;
 
-			if (target == nullptr) {
-				target = Cast<ABuilding>(foundBuildings[k]);
+			int32 storage = 1;
+			if (target != nullptr) {
+				storage = target->Storage;
 			}
-			else {
-				float dT = FVector::Dist(target->GetActorLocation(), GetActorLocation());
 
-				float dB = FVector::Dist(foundBuildings[k]->GetActorLocation(), GetActorLocation());
-
-				if (dT > dB && building->Storage > target->Storage) {
-					target = building;
-				}
-			}
+			target = Cast<ABuilding>(Citizen->GetClosestActor(Citizen, target, building, storage, building->Storage));
 		}
 	}
 

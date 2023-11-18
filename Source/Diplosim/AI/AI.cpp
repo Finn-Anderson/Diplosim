@@ -123,43 +123,68 @@ void AAI::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 	}
 }
 
-void AAI::MoveTo(AActor* Location)
+AActor* AAI::GetClosestActor(AActor* Actor, AActor* CurrentLocation, AActor* NewLocation, int32 CurrentValue, int32 NewValue)
+{
+	if (CurrentLocation == nullptr)
+		return NewLocation;
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+	const ANavigationData* NavData = nav->GetNavDataForProps(GetNavAgentPropertiesRef());
+
+	float outLengthCurrent;
+	NavData->CalcPathLength(Actor->GetActorLocation(), CurrentLocation->GetActorLocation(), outLengthCurrent);
+
+	outLengthCurrent /= CurrentValue;
+
+	float outLengthNew;
+	NavData->CalcPathLength(Actor->GetActorLocation(), NewLocation->GetActorLocation(), outLengthNew);
+
+	outLengthNew /= NewValue;
+
+	if (outLengthCurrent > outLengthNew) {
+		return NewLocation;
+	}
+	else {
+		return CurrentLocation;
+	}
+}
+
+FVector AAI::CanMoveTo(AActor* Location) 
 {
 	if (Location->IsValidLowLevelFast()) {
 		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Location->GetComponentByClass(UStaticMeshComponent::StaticClass()));
-		TArray<FName> sockets = comp->GetAllSocketNames();
+
+		FVector loc = Location->GetActorLocation();
+
+		if (comp->DoesSocketExist("Entrance")) {
+			loc = comp->GetSocketLocation("Entrance");
+		}
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* NavData = nav->GetNavDataForProps(GetNavAgentPropertiesRef());
 
-		FName socket = "";
-		for (int32 i = 0; i < sockets.Num(); i++) {
-			FName s = sockets[i];
+		FPathFindingQuery query(this, *NavData, GetActorLocation(), loc);
 
-			FPathFindingQuery query(this, *NavData, GetActorLocation(), comp->GetSocketLocation(s));
-			query.bAllowPartialPaths = false;
+		bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
-			bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
-
-			if (path && s != "Throw") {
-				if (socket == "") {
-					socket = s;
-				}
-				else {
-					float curSocketLoc = FVector::Dist(comp->GetSocketLocation(socket), GetActorLocation());
-
-					float newSocketLoc = FVector::Dist(comp->GetSocketLocation(s), GetActorLocation());
-
-					if (curSocketLoc > newSocketLoc) {
-						socket = s;
-					}
-				}
-			}
+		if (path) {
+			return loc;
 		}
+	}
 
-		AIController->MoveToLocation(comp->GetSocketLocation(socket));
+	return FVector(0.0f, 0.0f, 0.0f);
+}
 
-		Goal = Location;
+void AAI::MoveTo(AActor* Location)
+{
+	if (Location->IsValidLowLevelFast()) {
+		FVector loc = CanMoveTo(Location);
+
+		if (!loc.IsZero()) {
+			AIController->MoveToLocation(loc);
+
+			Goal = Location;
+		}
 	}
 }
 

@@ -25,34 +25,17 @@ void AExternalProduction::Production(ACitizen* Citizen)
 			TArray<AActor*> foundResources;
 			UGameplayStatics::GetAllActorsOfClass(GetWorld(), Camera->ResourceManagerComponent->GetResource(this), foundResources);
 
-			UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-			const ANavigationData* NavData = nav->GetNavDataForProps(Citizen->GetNavAgentPropertiesRef());
-
 			Resource = nullptr;
 
 			for (int32 i = 0; i < foundResources.Num(); i++) {
-				FPathFindingQuery query(Citizen, *NavData, Citizen->GetActorLocation(), foundResources[i]->GetActorLocation());
-				query.bAllowPartialPaths = false;
-
-				bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
-
 				AResource* r = Cast<AResource>(foundResources[i]);
 
-				if (r->IsHidden() || !path || r->Quantity <= 0)
+				FVector loc = Citizen->CanMoveTo(r);
+
+				if (r->IsHidden() || loc.IsZero() || r->Quantity <= 0)
 					continue;
 
-				if (Resource == nullptr) {
-					Resource = r;
-				}
-				else {
-					float dR = FVector::Dist(Resource->GetActorLocation(), GetActorLocation());
-
-					float dF = FVector::Dist(foundResources[i]->GetActorLocation(), GetActorLocation());
-
-					if (dR > dF) {
-						Resource = r;
-					}
-				}
+				Resource = Cast<AResource>(Citizen->GetClosestActor(Citizen, Resource, r));
 			}
 		}
 

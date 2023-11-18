@@ -90,6 +90,10 @@ public:
 
 
 	// Movement
+	AActor* GetClosestActor(AActor* Actor, AActor* CurrentLocation, AActor* NewLocation, int32 CurrentValue = 1, int32 NewValue = 1);
+
+	FVector CanMoveTo(AActor* Location);
+
 	void MoveTo(AActor* Location);
 
 	AActor* Goal;

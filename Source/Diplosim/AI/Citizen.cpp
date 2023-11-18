@@ -17,7 +17,7 @@ ACitizen::ACitizen()
 	AIMesh->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
-	CapsuleCollision->SetRelativeScale3D(FVector(2.0f, 2.0f, 2.0f));
+	CapsuleCollision->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 	CapsuleCollision->SetupAttachment(AIMesh);
 
 	House = nullptr;
@@ -57,14 +57,21 @@ void ACitizen::BeginPlay()
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor == Goal && OtherActor->IsA<AResource>()) {
-		AResource* r = Cast<AResource>(OtherActor);
+	if (OtherActor == Goal) {
+		if (OtherActor->IsA<AResource>()) {
+			AResource* r = Cast<AResource>(OtherActor);
 
-		FTimerHandle harvestTimer;
-		float time = FMath::RandRange(6.0f, 10.0f);
-		GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, r), time, false);
+			FTimerHandle harvestTimer;
+			float time = FMath::RandRange(6.0f, 10.0f);
+			GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, r), time, false);
 
-		AIController->StopMovement();
+			AIController->StopMovement();
+		}
+		else if (OtherActor->IsA<ABuilding>()) {
+			ABuilding* b = Cast<ABuilding>(OtherActor);
+
+			b->Enter(this);
+		}
 	}
 	else if (OtherActor->IsA<ACitizen>() && Partner == nullptr) {
 		ACitizen* c = Cast<ACitizen>(OtherActor);
@@ -75,7 +82,11 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	
+	if (OtherActor->IsA<ABuilding>()) {
+		ABuilding* b = Cast<ABuilding>(OtherActor);
+
+		b->Leave(this);
+	}
 }
 
 void ACitizen::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

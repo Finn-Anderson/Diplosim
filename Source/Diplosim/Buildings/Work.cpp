@@ -38,14 +38,9 @@ void AWork::FindCitizens()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		const ANavigationData* NavData = nav->GetNavDataForProps(c->GetNavAgentPropertiesRef());
+		FVector loc = c->CanMoveTo(this);
 
-		FPathFindingQuery query(this, *NavData, GetActorLocation(), c->GetActorLocation());
-		query.bAllowPartialPaths = false;
-
-		bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
-
-		if (c->Employment == nullptr && path) {
+		if (c->Employment == nullptr && !loc.IsZero()) {
 			AddCitizen(c);
 		}
 	}
