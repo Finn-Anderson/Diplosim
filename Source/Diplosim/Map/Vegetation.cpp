@@ -30,6 +30,8 @@ void AVegetation::YieldStatus()
 {
 	ResourceMesh->SetRelativeScale3D(IntialScale);
 
+	SetQuantity(0);
+
 	FTimerHandle growTimer;
 	GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, TimeLength, false);
 }

@@ -36,7 +36,7 @@ void AEnemy::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class 
 {
 	Super::OnEnemyOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
 
-	if (OverlappingEnemies.IsEmpty()) {
+	if (OverlappingEnemies.IsEmpty() && OtherActor->IsA<ACitizen>()) {
 		TArray<AActor*> brochs;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
 

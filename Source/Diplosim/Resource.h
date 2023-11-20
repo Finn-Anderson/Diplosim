@@ -22,6 +22,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 MaxYield;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 MaxWorkers;
+
+	int32 WorkerCount;
+
 	int32 Yield;
 
 	int32 Quantity;

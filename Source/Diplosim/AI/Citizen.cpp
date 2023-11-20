@@ -102,7 +102,7 @@ void ACitizen::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, clas
 {
 	Super::OnEnemyOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
 
-	if (OverlappingEnemies.IsEmpty()) {
+	if (OverlappingEnemies.IsEmpty() && OtherActor->IsA<AEnemy>()) {
 		MoveTo(Employment);
 	}
 }
@@ -149,7 +149,12 @@ void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 	Carrying.Type = Resource;
 	Carrying.Amount = Amount;
 
-	MoveTo(Location);
+	if (Location == nullptr) {
+		AIController->StopMovement();
+	}
+	else {
+		MoveTo(Location);
+	}
 }
 
 void ACitizen::Birthday()

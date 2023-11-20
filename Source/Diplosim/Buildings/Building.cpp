@@ -290,6 +290,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 			construct = false;
 
 			CheckGatherSites(Citizen, CostList[i]);
+
+			break;
 		}
 
 		if (construct) {

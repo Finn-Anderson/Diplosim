@@ -17,12 +17,13 @@ AAI::AAI()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	GetCapsuleComponent()->SetCapsuleRadius(2.0f);
-	GetCapsuleComponent()->SetCapsuleHalfHeight(2.0f);
+	GetCapsuleComponent()->SetCapsuleRadius(11.5f);
+	GetCapsuleComponent()->SetCapsuleHalfHeight(8.0f);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->bDynamicObstacle = false;
 
 	AIMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AIMesh"));
@@ -41,6 +42,7 @@ AAI::AAI()
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
+	RangeComponent->SetCollisionProfileName("OverlapOnlyPawn", true);
 	RangeComponent->SetSphereRadius(1000.0f);
 
 	Range = 100.0f;

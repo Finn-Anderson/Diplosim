@@ -21,7 +21,7 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 void AExternalProduction::Production(ACitizen* Citizen)
 {
 	if (AtWork.Contains(Citizen)) {
-		if (Resource == nullptr || !Resource->IsValidLowLevelFast() || Resource->Quantity <= 0) {
+		if (!Resource->IsValidLowLevelFast() || Resource->WorkerCount == Resource->MaxWorkers || Resource->Quantity <= 0) {
 			TArray<AActor*> foundResources;
 			UGameplayStatics::GetAllActorsOfClass(GetWorld(), Camera->ResourceManagerComponent->GetResource(this), foundResources);
 
@@ -32,7 +32,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 
 				FVector loc = Citizen->CanMoveTo(r);
 
-				if (r->IsHidden() || loc.IsZero() || r->Quantity <= 0)
+				if (r->IsHidden() || loc.IsZero() || r->Quantity <= 0 || r->WorkerCount == r->MaxWorkers)
 					continue;
 
 				Resource = Cast<AResource>(Citizen->GetClosestActor(Citizen, Resource, r));
@@ -40,9 +40,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 		}
 
 		if (Resource != nullptr) {
-			if (Resource->IsA<AVegetation>()) {
-				Resource->Quantity = 0;
-			}
+			Resource->WorkerCount++;
 
 			Citizen->MoveTo(Resource);
 		}

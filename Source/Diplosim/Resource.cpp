@@ -16,12 +16,15 @@ AResource::AResource()
 	MinYield = 1;
 	MaxYield = 5;
 
-	Quantity = MaxYield;
+	MaxWorkers = 1;
+	WorkerCount = 0;
 }
 
 int32 AResource::GetYield()
 {
 	Yield = GenerateYield();
+
+	WorkerCount--;
 
 	YieldStatus();
 
