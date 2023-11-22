@@ -25,6 +25,8 @@ struct FTileStruct
 
 	FTileStruct() {
 		Choice = nullptr;
+
+		Fertility = 0;
 	}
 };
 
@@ -77,7 +79,11 @@ public:
 
 	int32 GetFertility(FTileStruct Tile);
 
-	void SetTileChoices(TArray<FTileStruct> Tiles, TArray<class UHierarchicalInstancedStaticMeshComponent*> Choices);
+	void SetTileChoices(TArray<FTileStruct> Tiles);
+
+	UHierarchicalInstancedStaticMeshComponent* GetTargetChoice(TArray<int32> Pos, TArray<UHierarchicalInstancedStaticMeshComponent*> TargetBanList);
+
+	TArray<FTileStruct> GetChosenList(TArray<int32> Pos, class UHierarchicalInstancedStaticMeshComponent* TargetChoice);
 
 	void GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Fertility, int32 x, int32 y);
 
