@@ -11,13 +11,20 @@ struct FTileStruct
 
 	class UHierarchicalInstancedStaticMeshComponent* Choice;
 
+	TArray<class UHierarchicalInstancedStaticMeshComponent*> ChoiceList;
+
 	int32 Instance;
+
+	int32 Fertility;
+
+	int32 X;
+
+	int32 Y;
 
 	TArray<class AActor*> Resource;
 
-	FTileStruct()
-	{
-		Instance = 0;
+	FTileStruct() {
+		Choice = nullptr;
 	}
 };
 
@@ -68,7 +75,11 @@ public:
 	
 	void Render();
 
-	void GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Mean, int32 x, int32 y);
+	int32 GetFertility(FTileStruct Tile);
+
+	void SetTileChoices(TArray<FTileStruct> Tiles, TArray<class UHierarchicalInstancedStaticMeshComponent*> Choices);
+
+	void GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Fertility, int32 x, int32 y);
 
 	void Clear();
 
@@ -78,6 +89,4 @@ public:
 	void GenerateResource(int32 Pos);
 
 	void SpawnResource(int32 Pos, FVector Location, TSubclassOf<class AResource> ResourceClass);
-
-	int32 GetFertility(FTileStruct Tile);
 };

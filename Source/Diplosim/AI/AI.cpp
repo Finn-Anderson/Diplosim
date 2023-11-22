@@ -133,12 +133,12 @@ AActor* AAI::GetClosestActor(AActor* Actor, AActor* CurrentLocation, AActor* New
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetNavDataForProps(GetNavAgentPropertiesRef());
 
-	float outLengthCurrent;
+	FVector::FReal outLengthCurrent;
 	NavData->CalcPathLength(Actor->GetActorLocation(), CurrentLocation->GetActorLocation(), outLengthCurrent);
 
 	outLengthCurrent /= CurrentValue;
 
-	float outLengthNew;
+	FVector::FReal outLengthNew;
 	NavData->CalcPathLength(Actor->GetActorLocation(), NewLocation->GetActorLocation(), outLengthNew);
 
 	outLengthNew /= NewValue;
