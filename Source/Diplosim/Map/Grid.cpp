@@ -19,6 +19,7 @@ AGrid::AGrid()
 	HISMWater->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMWater->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMWater->SetCanEverAffectNavigation(false);
+	HISMWater->NumCustomDataFloats = 1;
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
@@ -29,14 +30,6 @@ AGrid::AGrid()
 	HISMMound->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMMound->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMMound->NumCustomDataFloats = 4;
-
-	HISMHill = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMHill"));
-	HISMHill->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMHill->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-
-	HISMMountain = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMMountain"));
-	HISMMountain->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMMountain->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 
 	Size = 150;
 }
@@ -139,25 +132,26 @@ void AGrid::Render()
 		tiles.Add(Storage[chosenTile.X + ((chosenTile.Y + 1) * Size)]);
 
 		// Set fertility
-		int32 value = FMath::RandRange(-1, 1);
-
-		int32 fTile = 0;
-		int32 count = 0;
-		for (FTileStruct t : tiles) {
-			int32 f = GetFertility(t);
-
-			if (f > 0) {
-				fTile += f;
-				count++;
-			}
-		}
-
-		fTile = (fTile + 1) / count;
-
-		chosenTile.Fertility = FMath::Clamp(fTile + value, 1, 5);
-
-		if (targetChoice == HISMWater || targetChoice == HISMHill || targetChoice == HISMMountain) {
+		if (targetChoice == HISMWater) {
 			chosenTile.Fertility = 1;
+		}
+		else {
+			int32 value = FMath::RandRange(-1, 1);
+
+			int32 fTile = 0;
+			int32 count = 0;
+			for (FTileStruct t : tiles) {
+				int32 f = GetFertility(t);
+
+				if (f > 0) {
+					fTile += f;
+					count++;
+				}
+			}
+
+			fTile = (fTile + 1) / count;
+
+			chosenTile.Fertility = FMath::Clamp(fTile + value, 1, 5);
 		}
 				
 		// Calculating tile type based on adjacent tile choices
@@ -236,19 +230,9 @@ void AGrid::SetTileChoices(TArray<FTileStruct> Tiles)
 				choices.Add(HISMGround);
 				choices.Add(HISMMound);
 			}
-			else if (t.Choice == HISMMound) {
+			else {
 				choices.Add(HISMGround);
 				choices.Add(HISMMound);
-				choices.Add(HISMHill);
-			}
-			else if (t.Choice == HISMHill) {
-				choices.Add(HISMMound);
-				choices.Add(HISMHill);
-				choices.Add(HISMMountain);
-			}
-			else {
-				choices.Add(HISMHill);
-				choices.Add(HISMMountain);
 			}
 		}
 
@@ -354,8 +338,33 @@ void AGrid::GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int3
 	int32 inst;
 	if (Choice == HISMWater) {
 		inst = HISMWater->AddInstance(transform);
+
+		float data = 0.0f;
+
+		if (x < 20 || y < 20 || x > (Size - 21) || y > (Size - 21)) {
+			int32 xData = 0;
+			int32 yData = 0;
+
+			if (x < 20) {
+				xData = 20 - x;
+			}
+			else if (x > (Size - 21)) {
+				xData =  20 - (Size - x);
+			}
+
+			if (y < 20) {
+				yData = 20 - y;
+			}
+			else if (y > (Size - 21)) {
+				yData = 20 - (Size - y);
+			}
+
+			data = FMath::Max(xData, yData) / 20.0f;
+		}
+
+		HISMWater->SetCustomDataValue(inst, 0, data);
 	}
-	else if (Choice == HISMGround || Choice == HISMMound) {
+	else {
 		float r = 0.0f;
 		float g = 0.0f;
 		float b = 0.0f;
@@ -427,12 +436,6 @@ void AGrid::GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int3
 			HISMMound->SetCustomDataValue(inst, 3, Fertility);
 		}
 	}
-	else if (Choice == HISMHill) {
-		inst = HISMHill->AddInstance(transform);
-	}
-	else {
-		inst = HISMMountain->AddInstance(transform);
-	}
 
 	Storage[x + (y * Size)].Instance = inst;
 }
@@ -441,68 +444,66 @@ void AGrid::GenerateResource(int32 Pos)
 {
 	FTileStruct tile = Storage[Pos];
 
+	if (tile.Choice == HISMWater)
+		return;
+
 	int32 choiceVal = FMath::RandRange(1, 100);
 
-	if (tile.Choice == HISMGround || tile.Choice == HISMMound) {
-		FTransform transform;
-		tile.Choice->GetInstanceTransform(tile.Instance, transform);
-		FVector loc = transform.GetLocation();
+	FTransform transform;
+	tile.Choice->GetInstanceTransform(tile.Instance, transform);
+	FVector loc = transform.GetLocation();
 
-		int32 z = tile.Choice->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 50.0f;
-		loc.Z = z;
+	int32 z = tile.Choice->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 50.0f;
+	loc.Z = z;
 
-		if (choiceVal == 1) {
-			SpawnResource(Pos, loc, Rock);
+	if (choiceVal == 1) {
+		SpawnResource(Pos, loc, Rock);
+	}
+	else {
+		FTileStruct xTile = Storage[Pos - 1];
+		FTileStruct yTile = Storage[Pos - Size];
+
+		int32 trees = (xTile.Resource.Num() + yTile.Resource.Num()) / 2;
+
+		int32 value = 0;
+
+		if (choiceVal == 100) {
+			value = 3;
 		}
-		else {
-			FTileStruct xTile = Storage[Pos - 1];
-			FTileStruct yTile = Storage[Pos - Size];
+		else if (choiceVal > 80) {
+			value = FMath::RandRange(0, 1);
+		}
 
-			if (xTile.Choice == HISMHill || yTile.Choice == HISMHill)
-				return;
+		int32 mean = FMath::Clamp(trees + value, 0, 5);
 
-			int32 trees = (xTile.Resource.Num() + yTile.Resource.Num()) / 2;
+		TArray<int32> locListX;
+		TArray<int32> locListY;
+		for (int32 i = -40; i <= 40; i++) {
+			locListX.Add(i);
+			locListY.Add(i);
+		}
 
-			int32 value = 0;
+		for (int32 i = 0; i < mean; i++) {
+			int32 indexX = FMath::RandRange(0, (locListX.Num() - 1));
+			int32 indexY = FMath::RandRange(0, (locListY.Num() - 1));
 
-			if (choiceVal == 100) {
-				value = 3;
-			}
-			else if (choiceVal > 80) {
-				value = FMath::RandRange(0, 1);
-			}
+			int32 x = locListX[indexX];
+			int32 y = locListY[indexY];
 
-			int32 mean = FMath::Clamp(trees + value, 0, 5);
+			loc.X += x;
+			loc.Y += y;
 
-			TArray<int32> locListX;
-			TArray<int32> locListY;
-			for (int32 i = -40; i <= 40; i++) {
-				locListX.Add(i);
-				locListY.Add(i);
-			}
+			SpawnResource(Pos, loc, Tree);
 
-			for (int32 i = 0; i < mean; i++) {
-				int32 indexX = FMath::RandRange(0, (locListX.Num() - 1));
-				int32 indexY = FMath::RandRange(0, (locListY.Num() - 1));
-
-				int32 x = locListX[indexX];
-				int32 y = locListY[indexY];
-
-				loc.X += x;
-				loc.Y += y;
-
-				SpawnResource(Pos, loc, Tree);
-
-				for (int32 j = x - 10; j <= x + 10; j++) {
-					if (locListX.Contains(j)) {
-						locListX.Remove(j);
-					}
+			for (int32 j = x - 10; j <= x + 10; j++) {
+				if (locListX.Contains(j)) {
+					locListX.Remove(j);
 				}
+			}
 
-				for (int32 j = y - 10; j <= y + 10; j++) {
-					if (locListY.Contains(j)) {
-						locListY.Remove(j);
-					}
+			for (int32 j = y - 10; j <= y + 10; j++) {
+				if (locListY.Contains(j)) {
+					locListY.Remove(j);
 				}
 			}
 		}
@@ -538,6 +539,4 @@ void AGrid::Clear()
 	HISMWater->ClearInstances();
 	HISMGround->ClearInstances();
 	HISMMound->ClearInstances();
-	HISMHill->ClearInstances();
-	HISMMountain->ClearInstances();
 }
