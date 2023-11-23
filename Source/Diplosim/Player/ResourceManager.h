@@ -38,7 +38,7 @@ public:
 
 	bool TakeLocalResource(class ABuilding* Building, int32 Amount);
 
-	bool TakeUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount);
+	bool TakeUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount, int32 Min);
 
 	void SetResourceStruct(TSubclassOf<AResource> Resource);
 

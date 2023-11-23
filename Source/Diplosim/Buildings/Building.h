@@ -140,7 +140,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		int32 Upkeep;
 
-	virtual void UpkeepCost();
+	virtual void UpkeepCost(int32 Cost = 0);
 
 	// Building prevent overlaps
 	UFUNCTION()

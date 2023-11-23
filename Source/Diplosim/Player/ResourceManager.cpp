@@ -107,7 +107,7 @@ bool UResourceManager::TakeLocalResource(ABuilding* Building, int32 Amount)
 	return true;
 }
 
-bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, int32 Amount)
+bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, int32 Amount, int32 Min)
 {
 	int32 stored = 0;
 
@@ -128,7 +128,7 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 		}
 	}
 
-	int32 target = stored - Amount;
+	int32 target = stored - Amount - Min;
 
 	if (target < 0)
 		return false;
@@ -145,15 +145,18 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 				for (int32 k = 0; k < foundBuildings.Num(); k++) {
 					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
 
-					AmountLeft -= b->Storage;
+					AmountLeft -= b->Storage - Min;
 
-					b->Storage = FMath::Clamp(b->Storage - Amount, 0, 1000);
+					b->Storage = FMath::Clamp(b->Storage - Amount, Min, 1000);
 
-					if (AmountLeft <= 0)
+					if (AmountLeft <= 0) {
 						SetResourceStruct(Resource);
 						return true;
+					}
 				}
 			}
+
+			break;
 		}
 	}
 

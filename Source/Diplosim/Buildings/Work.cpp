@@ -13,7 +13,7 @@ AWork::AWork()
 	Wage = 0;
 }
 
-void AWork::UpkeepCost()
+void AWork::UpkeepCost(int32 Cost)
 {
 	for (int i = 0; i < Occupied.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(Occupied[i]);
@@ -21,11 +21,9 @@ void AWork::UpkeepCost()
 		c->Balance += Wage;
 	}
 
-	int32 cost = Wage * Occupied.Num() + Upkeep;
+	Cost = Wage * Occupied.Num() + Upkeep;
 
-	if (!Camera->ResourceManagerComponent->TakeUniversalResource(Money, cost)) {
-		// Shutdown building;
-	}
+	Super::UpkeepCost(Cost);
 }
 
 void AWork::FindCitizens()

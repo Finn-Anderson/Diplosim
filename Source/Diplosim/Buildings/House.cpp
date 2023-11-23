@@ -12,7 +12,7 @@ AHouse::AHouse()
 	Rent = 0;
 }
 
-void AHouse::UpkeepCost()
+void AHouse::UpkeepCost(int32 Cost)
 {
 	for (int i = 0; i < Occupied.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(Occupied[i]);
@@ -28,9 +28,7 @@ void AHouse::UpkeepCost()
 	int32 rent = Rent * Occupied.Num();
 	Camera->ResourceManagerComponent->AddUniversalResource(Money, rent);
 
-	if (!Camera->ResourceManagerComponent->TakeUniversalResource(Money, Upkeep)) {
-		// Shutdown building;
-	}
+	Super::UpkeepCost(Upkeep);
 }
 
 void AHouse::Enter(ACitizen* Citizen)
@@ -61,7 +59,7 @@ void AHouse::Enter(ACitizen* Citizen)
 					selected -= foodAmounts[j];
 				}
 				else {
-					Camera->ResourceManagerComponent->TakeUniversalResource(Food[j], 1);
+					Camera->ResourceManagerComponent->TakeUniversalResource(Food[j], 1, 0);
 
 					foodAmounts[j] -= 1;
 					totalAmount -= 1;

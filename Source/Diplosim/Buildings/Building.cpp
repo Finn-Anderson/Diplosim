@@ -225,14 +225,14 @@ void ABuilding::OnBuilt()
 
 	BuildStatus = EBuildStatus::Complete;
 
-	GetWorldTimerManager().SetTimer(CostTimer, this, &ABuilding::UpkeepCost, 300.0f, true);
+	GetWorldTimerManager().SetTimer(CostTimer, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost, 0), 300.0f, true);
 
 	FindCitizens();
 }
 
-void ABuilding::UpkeepCost()
+void ABuilding::UpkeepCost(int32 Cost)
 {
-
+	Camera->ResourceManagerComponent->TakeUniversalResource(Money, Cost, -1000000000);
 }
 
 void ABuilding::FindCitizens()
@@ -315,10 +315,11 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 
 			FVector loc = Citizen->CanMoveTo(building);
 
-			if (building->BuildStatus != EBuildStatus::Complete || loc.IsZero())
+			if (building->BuildStatus != EBuildStatus::Complete || loc.IsZero() || building->Storage < 1)
 				continue;
 
 			int32 storage = 1;
+
 			if (target != nullptr) {
 				storage = target->Storage;
 			}
@@ -333,6 +334,13 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 		return;
 	}
 	else {
+		ABuilder* e = Cast<ABuilder>(Citizen->Employment);
+
+		e->CheckConstruction(Citizen);
+
+		if (e->Constructing != this)
+			return;
+
 		FTimerHandle checkSitesTimer;
 		GetWorldTimerManager().SetTimer(checkSitesTimer, FTimerDelegate::CreateUObject(this, &ABuilding::CheckGatherSites, Citizen, Stock), 30.0f, false);
 	}

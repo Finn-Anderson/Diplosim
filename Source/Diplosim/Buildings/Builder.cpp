@@ -75,9 +75,14 @@ void ABuilder::CheckConstruction(ACitizen* Citizen)
 void ABuilder::CarryResources(ACitizen* Citizen, ABuilding* Building)
 {
 	int32 amount = 0;
+	int32 capacity = 10;
+	if (capacity > Building->Storage) {
+		capacity = Building->Storage;
+	}
+
 	for (int32 i = 0; i < Constructing->CostList.Num(); i++) {
 		if (Constructing->CostList[i].Type == Camera->ResourceManagerComponent->GetResource(Building)) {
-			amount = FMath::Clamp(Constructing->CostList[i].Cost - Constructing->CostList[i].Stored, 0, 10);
+			amount = FMath::Clamp(Constructing->CostList[i].Cost - Constructing->CostList[i].Stored, 0, capacity);
 
 			break;
 		}
