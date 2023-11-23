@@ -114,14 +114,16 @@ void ACitizen::StartLoseEnergyTimer()
 
 void ACitizen::LoseEnergy()
 {
-	Energy = FMath::Clamp(Energy - 1, -100, 100);
+	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	if (Energy <= 0 && House != nullptr) {
+	if (Energy <= 20 && House->IsValidLowLevelFast()) {
 		MoveTo(House);
 	}
 
-	if (Energy == -100) {
+	if (Energy == 0) {
 		HealthComponent->TakeHealth(100, GetActorLocation() + GetVelocity());
+
+		GetWorld()->GetTimerManager().ClearTimer(EnergyTimer);
 	}
 }
 
@@ -132,7 +134,7 @@ void ACitizen::StartGainEnergyTimer(int32 Max)
 
 void ACitizen::GainEnergy(int32 Max)
 {
-	Energy = FMath::Clamp(Energy + 1, -100, Max);
+	Energy = FMath::Clamp(Energy + 1, 0, Max);
 
 	if (Energy == Max) {
 		MoveTo(Employment);

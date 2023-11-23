@@ -98,18 +98,18 @@ void AHouse::FindCitizens()
 		if (GetCapacity() <= GetOccupied().Num())
 			return;
 
-		if (c->Balance < Rent)
+		FVector loc = c->CanMoveTo(this);
+
+		if (c->Balance < Rent || loc.IsZero())
 			continue;
 
 		if (c->House == nullptr) {
 			AddCitizen(c);
 		}
 		else if (c->Employment != nullptr) {
-			float dOldHouse = (c->House->GetActorLocation() - c->Employment->GetActorLocation()).Length();
+			AHouse* house = Cast<AHouse>(c->GetClosestActor(c->Employment, c->House, this));
 
-			float dNewHouse = (GetActorLocation() - c->Employment->GetActorLocation()).Length();
-
-			if (dOldHouse > dNewHouse) {
+			if (house == this) {
 				AddCitizen(c);
 			}
 		}
