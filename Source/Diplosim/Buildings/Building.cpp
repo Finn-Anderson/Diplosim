@@ -72,6 +72,12 @@ void ABuilding::Build()
 	if (CheckInstant()) {
 		OnBuilt();
 	} else {
+		UResourceManager* rm = Camera->ResourceManagerComponent;
+
+		for (int i = 0; i < CostList.Num(); i++) {
+			rm->AddCommittedResource(CostList[i].Type, CostList[i].Cost);
+		}
+
 		ActualMesh = BuildingMesh->GetStaticMesh();
 		FVector bSize = ActualMesh->GetBounds().GetBox().GetSize();
 		FVector cSize = ConstructionMesh->GetBounds().GetBox().GetSize();

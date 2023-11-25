@@ -76,21 +76,24 @@ void ABuilder::CarryResources(ACitizen* Citizen, ABuilding* Building)
 {
 	int32 amount = 0;
 	int32 capacity = 10;
+
+	TSubclassOf<AResource> resource = Camera->ResourceManagerComponent->GetResource(Building);
+
 	if (capacity > Building->Storage) {
 		capacity = Building->Storage;
 	}
 
 	for (int32 i = 0; i < Constructing->CostList.Num(); i++) {
-		if (Constructing->CostList[i].Type == Camera->ResourceManagerComponent->GetResource(Building)) {
+		if (Constructing->CostList[i].Type == resource) {
 			amount = FMath::Clamp(Constructing->CostList[i].Cost - Constructing->CostList[i].Stored, 0, capacity);
 
 			break;
 		}
 	}
+
+	Camera->ResourceManagerComponent->TakeCommittedResource(resource, amount);
+
 	Camera->ResourceManagerComponent->TakeLocalResource(Building, amount);
 
-	if (*Camera->ResourceManagerComponent->GetResource(Building)) {
-		AResource* r = Cast<AResource>(Camera->ResourceManagerComponent->GetResource(Building)->GetDefaultObject());
-		Citizen->Carry(r, amount, Constructing);
-	}
+	Citizen->Carry(Cast<AResource>(resource->GetDefaultObject()), amount, Constructing);
 }

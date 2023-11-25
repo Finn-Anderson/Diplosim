@@ -18,7 +18,10 @@ protected:
 public:
 	// For Resource Manager. This is here because Resource Manager is not a blueprint.
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateDisplay();
+		void UpdateResourceText();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void ClearMinusText();
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)

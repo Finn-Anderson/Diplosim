@@ -109,6 +109,8 @@ void ACamera::Action()
 		}
 		else {
 			BuildComponent->Place();
+
+			ClearMinusText();
 		}
 	}
 }
@@ -117,6 +119,8 @@ void ACamera::Cancel()
 {
 	if (BuildComponent->IsComponentTickEnabled() && !start) {
 		BuildComponent->SetBuildingClass(BuildComponent->Building->GetClass());
+
+		ClearMinusText();
 	}
 }
 

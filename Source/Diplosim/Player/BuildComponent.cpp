@@ -193,7 +193,9 @@ void UBuildComponent::QuickPlace()
 
 	Place();
 
-	SetComponentTickEnabled(!IsComponentTickEnabled());
+	if (!IsComponentTickEnabled()) {
+		SetComponentTickEnabled(!IsComponentTickEnabled());
 
-	SetBuildingClass(building->GetClass());
+		SetBuildingClass(building->GetClass());
+	}
 }

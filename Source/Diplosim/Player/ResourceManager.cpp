@@ -5,10 +5,35 @@
 #include "Resource.h"
 #include "Camera.h"
 #include "Buildings/Building.h"
+#include "Buildings/Builder.h"
 
 UResourceManager::UResourceManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UResourceManager::AddCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount)
+{
+	for (int32 i = 0; i < ResourceList.Num(); i++) {
+		if (ResourceList[i].Type == Resource) {
+			ResourceList[i].Committed += Amount;
+
+			SetResourceStruct(Resource);
+
+			break;
+		}
+	}
+}
+
+void UResourceManager::TakeCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount)
+{
+	for (int32 i = 0; i < ResourceList.Num(); i++) {
+		if (ResourceList[i].Type == Resource) {
+			ResourceList[i].Committed -= Amount;
+
+			break;
+		}
+	}
 }
 
 bool UResourceManager::AddLocalResource(ABuilding* Building, int32 Amount)
@@ -170,7 +195,7 @@ void UResourceManager::SetResourceStruct(TSubclassOf<AResource> Resource)
 			ResourceStruct = ResourceList[i];
 
 			ACamera* player = Cast<ACamera>(GetOwner());
-			player->UpdateDisplay();
+			player->UpdateResourceText();
 
 			return;
 		}
@@ -180,9 +205,12 @@ void UResourceManager::SetResourceStruct(TSubclassOf<AResource> Resource)
 int32 UResourceManager::GetResourceAmount(TSubclassOf<AResource> Resource)
 {
 	int32 amount = 0;
+	int32 committed = 0;
 
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Type == Resource) {
+			amount -= ResourceList[i].Committed;
+
 			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
 				TArray<AActor*> foundBuildings;
 				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ResourceList[i].Buildings[j], foundBuildings);
