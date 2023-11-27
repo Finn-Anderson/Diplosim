@@ -99,6 +99,8 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	// Other
 	Input->BindAction(InputPause, ETriggerEvent::Started, this, &ACamera::Pause);
+
+	Input->BindAction(InputDebug, ETriggerEvent::Started, this, &ACamera::Pause);
 }
 
 void ACamera::Action()
@@ -132,15 +134,20 @@ void ACamera::NewMap()
 	}
 }
 
+void ACamera::GridStatus()
+{
+	BuildComponent->SetGridStatus();
+}
+
 void ACamera::Pause()
 {
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	pcontroller->SetPause(!pcontroller->IsPaused());
 }
 
-void ACamera::GridStatus() 
+void ACamera::Debug()
 {
-	BuildComponent->SetGridStatus();
+
 }
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)

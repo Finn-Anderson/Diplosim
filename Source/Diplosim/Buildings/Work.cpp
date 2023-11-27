@@ -31,16 +31,13 @@ void AWork::FindCitizens()
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		FVector loc = c->CanMoveTo(this);
-
-		if (c->Employment == nullptr && !loc.IsZero()) {
-			AddCitizen(c);
-		}
+		if (c->Employment != nullptr || !c->CanMoveTo(this))
+			continue;
+			
+		AddCitizen(c);
 	}
 
 	if (GetCapacity() > Occupied.Num()) {
@@ -56,20 +53,6 @@ void AWork::AddCitizen(ACitizen* Citizen)
 		Citizen->Employment = this;
 
 		Citizen->MoveTo(this);
-
-		if (Citizen->Partner == nullptr) {
-			TArray<ACitizen*> citizens = GetOccupied();
-
-			for (int i = 0; i < citizens.Num(); i++) {
-				if (Citizen->Partner != nullptr) {
-					return;
-				}
-
-				ACitizen* c = citizens[i];
-
-				Citizen->SetPartner(c);
-			}
-		}
 
 		if (GetCapacity() == Occupied.Num()) {
 			GetWorldTimerManager().ClearTimer(FindTimer);

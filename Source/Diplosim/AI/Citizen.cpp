@@ -30,6 +30,8 @@ ACitizen::ACitizen()
 	Age = 0;
 
 	Partner = nullptr;
+
+	Sex = ESex::NaN;
 }
 
 void ACitizen::BeginPlay()
@@ -73,11 +75,6 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 			b->Enter(this);
 		}
 	}
-	else if (OtherActor->IsA<ACitizen>() && Partner == nullptr) {
-		ACitizen* c = Cast<ACitizen>(OtherActor);
-
-		SetPartner(c);
-	}
 }
 
 void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -89,7 +86,7 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 	}
 }
 
-void ACitizen::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ACitizen::OnDetectOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor->IsA<AEnemy>()) {
 		OverlappingEnemies.Add(OtherActor);
@@ -98,9 +95,9 @@ void ACitizen::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, cl
 	}
 }
 
-void ACitizen::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void ACitizen::OnDetectOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	Super::OnEnemyOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
+	Super::OnDetectOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
 
 	if (OverlappingEnemies.IsEmpty() && OtherActor->IsA<AEnemy>()) {
 		MoveTo(Employment);
@@ -136,6 +133,8 @@ void ACitizen::GainEnergy(int32 Max)
 {
 	Energy = FMath::Clamp(Energy + 1, 0, Max);
 
+	HealthComponent->AddHealth(1);
+
 	if (Energy == Max) {
 		MoveTo(Employment);
 	}
@@ -166,11 +165,24 @@ void ACitizen::Birthday()
 	if (Age >= 60) {
 		HealthComponent->MaxHealth = 50;
 		HealthComponent->AddHealth(0);
+
+		int32 chance = FMath::RandRange(1, 100);
+
+		if (chance < 5) {
+			HealthComponent->TakeHealth(50);
+		}
 	}
 
 	if (Age <= 18) {
 		int32 scale = (Age * 0.04) + 0.28;
 		AIMesh->SetWorldScale3D(FVector(scale, scale, scale));
+	}
+	else {
+		HaveChild();
+	}
+
+	if (Age == 18) {
+		FindPartner();
 	}
 }
 
@@ -181,43 +193,78 @@ void ACitizen::SetSex()
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
-	int32 male = 0;
+	float male = 0.0f;
+	float total = 0.0f;
 
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
+		if (c == this)
+			continue;
+
 		if (c->Sex == ESex::Male) {
-			male += 1;
+			male += 1.0f;
 		}
+
+		total += 1.0f;
 	}
 
-	float mPerc = (male / citizens.Num()) * 100;
+	float mPerc = 50.0f;
+
+	if (total > 0) {
+		mPerc = (male / total) * 100.0f;
+	}
 
 	if (choice > mPerc) {
-		Sex == ESex::Male;
+		Sex = ESex::Male;
 	}
 	else {
-		Sex == ESex::Female;
+		Sex = ESex::Female;
+	}
+}
+
+void ACitizen::FindPartner()
+{
+	ACitizen* citizen = nullptr;
+
+	TArray<AActor*> citizens;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
+
+	for (int i = 0; i < citizens.Num(); i++) {
+		ACitizen* c = Cast<ACitizen>(citizens[i]);
+
+		if (!c->CanMoveTo(c) || c->Sex == Sex || c->Partner != nullptr || c->Age < 18) {
+			continue;
+		}
+
+		citizen = Cast<ACitizen>(GetClosestActor(this, citizen, c));
+	}
+
+	if (citizen != nullptr) {
+		SetPartner(citizen);
+
+		citizen->SetPartner(this);
+	}
+	else {
+		GetWorldTimerManager().SetTimer(PartnerTimer, this, &ACitizen::FindPartner, 30.0f, false);
 	}
 }
 
 void ACitizen::SetPartner(ACitizen* Citizen)
 {
-	if (Citizen->Partner == this || (Citizen->Sex != Sex && Citizen->Partner == nullptr && Age > 17 && Citizen->Age > 17)) {
-		Partner = Citizen;
+	Partner = Citizen;
 
-		Citizen->SetPartner(this);
-
-		if (Sex == ESex::Female) {
-			GetWorld()->GetTimerManager().SetTimer(ChildTimer, this, &ACitizen::HaveChild, 90.0f, true);
-		}
+	if (Sex == ESex::Female) {
+		GetWorld()->GetTimerManager().SetTimer(ChildTimer, this, &ACitizen::HaveChild, 45.0f, true);
 	}
+
+	GetWorld()->GetTimerManager().ClearTimer(PartnerTimer);
 }
 
 void ACitizen::HaveChild()
 {
 	int32 chance = FMath::RandRange(1, 100);
-	int32 likelihood = (Age / 60) * 100;
+	int32 likelihood = FMath::LogX(60.0f, Age);
 
 	if (chance > likelihood) {
 		GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), GetActorLocation(), GetActorRotation());

@@ -87,8 +87,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputRotate;
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputPause;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputDebug;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -106,6 +109,8 @@ public:
 
 	// Other
 	void Pause();
+
+	void Debug();
 
 	// Building
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")

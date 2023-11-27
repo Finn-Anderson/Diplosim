@@ -20,10 +20,12 @@ struct FCarryStruct
 	}
 };
 
-enum ESex 
+UENUM()
+enum class ESex : uint8 
 {
-	Male	UMETA(DisplayName = "Male"),
-	Female	UMETA(DisplayName = "Female")
+	NaN,
+	Male,
+	Female
 };
 
 UCLASS()
@@ -47,9 +49,9 @@ public:
 	UFUNCTION()
 		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	virtual void OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
+	virtual void OnDetectOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 
-	virtual void OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
+	virtual void OnDetectOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
 	// Money
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
@@ -91,13 +93,17 @@ public:
 
 
 	// Sex
-	TEnumAsByte<ESex> Sex;
+	ESex Sex;
 
 	void SetSex();
+
+	void FindPartner();
 
 	void SetPartner(ACitizen* Citizen);
 
 	void HaveChild();
+
+	FTimerHandle PartnerTimer;
 
 	FTimerHandle ChildTimer;
 

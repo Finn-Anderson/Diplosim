@@ -67,10 +67,10 @@ public:
 	FTimerHandle DamageTimer;
 
 	UFUNCTION()
-		virtual void OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+		virtual void OnDetectOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-		virtual void OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+		virtual void OnDetectOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	AActor* PickTarget(TArray<AActor*> Targets);
 
@@ -92,7 +92,7 @@ public:
 	// Movement
 	AActor* GetClosestActor(AActor* Actor, AActor* CurrentLocation, AActor* NewLocation, int32 CurrentValue = 1, int32 NewValue = 1);
 
-	FVector CanMoveTo(AActor* Location);
+	bool CanMoveTo(AActor* Location);
 
 	void MoveTo(AActor* Location);
 

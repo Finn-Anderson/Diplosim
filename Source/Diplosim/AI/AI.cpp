@@ -43,7 +43,7 @@ AAI::AAI()
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetCollisionProfileName("OverlapOnlyPawn", true);
-	RangeComponent->SetSphereRadius(1000.0f);
+	RangeComponent->SetSphereRadius(200.0f);
 
 	Range = 100.0f;
 	Damage = 20;
@@ -61,8 +61,8 @@ void AAI::BeginPlay()
 {
 	Super::BeginPlay();
 
-	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnEnemyOverlapBegin);
-	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &AAI::OnEnemyOverlapEnd);
+	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnDetectOverlapBegin);
+	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &AAI::OnDetectOverlapEnd);
 
 	SpawnDefaultController();
 
@@ -105,12 +105,12 @@ void AAI::Tick(float DeltaTime)
 	}
 }
 
-void AAI::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AAI::OnDetectOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 
 }
 
-void AAI::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AAI::OnDetectOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (OverlappingEnemies.Contains(OtherActor)) {
 		OverlappingEnemies.Remove(OtherActor);
@@ -131,17 +131,21 @@ AActor* AAI::GetClosestActor(AActor* Actor, AActor* CurrentLocation, AActor* New
 		return NewLocation;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-	const ANavigationData* NavData = nav->GetNavDataForProps(GetNavAgentPropertiesRef());
+	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
 	FVector::FReal outLengthCurrent;
 	NavData->CalcPathLength(Actor->GetActorLocation(), CurrentLocation->GetActorLocation(), outLengthCurrent);
 
-	outLengthCurrent /= CurrentValue;
+	if (CurrentValue > 1) {
+		outLengthCurrent /= CurrentValue;
+	}	
 
 	FVector::FReal outLengthNew;
 	NavData->CalcPathLength(Actor->GetActorLocation(), NewLocation->GetActorLocation(), outLengthNew);
 
-	outLengthNew /= NewValue;
+	if (NewValue > 1) {
+		outLengthNew /= NewValue;
+	}
 
 	if (outLengthCurrent > outLengthNew) {
 		return NewLocation;
@@ -151,42 +155,43 @@ AActor* AAI::GetClosestActor(AActor* Actor, AActor* CurrentLocation, AActor* New
 	}
 }
 
-FVector AAI::CanMoveTo(AActor* Location) 
+bool AAI::CanMoveTo(AActor* Location) 
 {
-	if (Location->IsValidLowLevelFast()) {
-		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Location->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-		FVector loc = Location->GetActorLocation();
+	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Location->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 
-		if (comp->DoesSocketExist("Entrance")) {
-			loc = comp->GetSocketLocation("Entrance");
-		}
+	FVector loc = Location->GetActorLocation();
 
-		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-		const ANavigationData* NavData = nav->GetNavDataForProps(GetNavAgentPropertiesRef());
-
-		FPathFindingQuery query(this, *NavData, GetActorLocation(), loc);
-
-		bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
-
-		if (path) {
-			return loc;
-		}
+	if (comp->DoesSocketExist("Entrance")) {
+		loc = comp->GetSocketLocation("Entrance");
 	}
 
-	return FVector(0.0f, 0.0f, 0.0f);
+	FPathFindingQuery query(this, *NavData, GetActorLocation(), loc);
+
+	bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
+
+	if (path) {
+		return true;
+	}
+
+	return false;
 }
 
 void AAI::MoveTo(AActor* Location)
 {
-	if (Location->IsValidLowLevelFast()) {
-		FVector loc = CanMoveTo(Location);
+	if (Location->IsValidLowLevelFast() && CanMoveTo(Location)) {
+		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Location->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 
-		if (!loc.IsZero()) {
-			AIController->MoveToLocation(loc);
-
-			Goal = Location;
+		if (comp->DoesSocketExist("Entrance")) {
+			AIController->MoveToLocation(comp->GetSocketLocation("Entrance"));
 		}
+		else {
+			AIController->MoveToLocation(Location->GetActorLocation());
+		}
+
+		Goal = Location;
 	}
 }
 

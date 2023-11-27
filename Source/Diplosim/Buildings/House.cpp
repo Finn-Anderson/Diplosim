@@ -96,9 +96,7 @@ void AHouse::FindCitizens()
 		if (GetCapacity() <= GetOccupied().Num())
 			return;
 
-		FVector loc = c->CanMoveTo(this);
-
-		if (c->Balance < Rent || loc.IsZero())
+		if (c->Balance < Rent || !c->CanMoveTo(this))
 			continue;
 
 		if (c->House == nullptr) {

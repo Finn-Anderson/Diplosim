@@ -50,7 +50,8 @@ struct FBuildStruct
 };
 
 UENUM()
-enum class EBuildStatus : uint8 {
+enum class EBuildStatus : uint8 
+{
 	Blueprint,
 	Construction,
 	Complete

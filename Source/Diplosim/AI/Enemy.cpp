@@ -23,7 +23,7 @@ void AEnemy::Tick(float DeltaTime)
 	SetActorRotation(GetActorRotation() + FRotator(spin, 0.0f, 0.0f));
 }
 
-void AEnemy::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AEnemy::OnDetectOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor->IsA<ACitizen>()) {
 		OverlappingEnemies.Add(OtherActor);
@@ -32,9 +32,9 @@ void AEnemy::OnEnemyOverlapBegin(class UPrimitiveComponent* OverlappedComp, clas
 	}
 }
 
-void AEnemy::OnEnemyOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AEnemy::OnDetectOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	Super::OnEnemyOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
+	Super::OnDetectOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
 
 	if (OverlappingEnemies.IsEmpty() && OtherActor->IsA<ACitizen>()) {
 		TArray<AActor*> brochs;

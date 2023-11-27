@@ -25,7 +25,6 @@ ABuilding::ABuilding()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	BuildingMesh->SetCanEverAffectNavigation(true);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
 	BuildingMesh->bCastDynamicShadow = true;
 	BuildingMesh->CastShadow = true;
@@ -55,6 +54,13 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (BuildingMesh->DoesSocketExist("Entrance")) {
+		BuildingMesh->SetCanEverAffectNavigation(true);
+	}
+	else {
+		BuildingMesh->SetCanEverAffectNavigation(false);
+	}
 
 	FVector size = (BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2);
 
@@ -97,21 +103,19 @@ void ABuilding::Build()
 		for (int32 i = 0; i < foundBuilders.Num(); i++) {
 			ABuilder* builder = Cast<ABuilder>(foundBuilders[i]);
 
-			if (builder->Constructing != nullptr || builder->BuildStatus != EBuildStatus::Complete)
+			if (builder->Constructing != nullptr || builder->BuildStatus != EBuildStatus::Complete || builder->AtWork.IsEmpty())
 				continue;
 
-			FVector loc = builder->Occupied[0]->CanMoveTo(this);
-
-			if (loc.IsZero())
+			if (!builder->AtWork[0]->CanMoveTo(this))
 				continue;
 
-			target = Cast<ABuilder>(builder->Occupied[0]->GetClosestActor(this, target, builder));
+			target = Cast<ABuilder>(builder->AtWork[0]->GetClosestActor(this, target, builder));
 		}
 
 		if (target != nullptr) {
 			target->Constructing = this;
 
-			target->Occupied[0]->MoveTo(target->Constructing);
+			target->AtWork[0]->MoveTo(target->Constructing);
 		}
 	}
 }
@@ -317,14 +321,12 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
 
 		for (int32 k = 0; k < foundBuildings.Num(); k++) {
-			ABuilding* building = Cast<ABuilding>(foundBuildings[k]); 
+			ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
 
-			FVector loc = Citizen->CanMoveTo(building);
-
-			if (building->BuildStatus != EBuildStatus::Complete || loc.IsZero() || building->Storage < 1)
+			if (building->BuildStatus != EBuildStatus::Complete || !Citizen->CanMoveTo(building) || building->Storage < 1)
 				continue;
 
-			int32 storage = 1;
+			int32 storage = 0;
 
 			if (target != nullptr) {
 				storage = target->Storage;

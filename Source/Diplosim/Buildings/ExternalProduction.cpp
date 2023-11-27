@@ -30,9 +30,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 			for (int32 i = 0; i < foundResources.Num(); i++) {
 				AResource* r = Cast<AResource>(foundResources[i]);
 
-				FVector loc = Citizen->CanMoveTo(r);
-
-				if (r->IsHidden() || loc.IsZero() || r->Quantity <= 0 || r->WorkerCount == r->MaxWorkers)
+				if (r->IsHidden() || !Citizen->CanMoveTo(r) || r->Quantity <= 0 || r->WorkerCount == r->MaxWorkers)
 					continue;
 
 				Resource = Cast<AResource>(Citizen->GetClosestActor(Citizen, Resource, r));
