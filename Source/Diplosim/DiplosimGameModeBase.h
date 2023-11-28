@@ -20,6 +20,8 @@ public:
 
 	int32 GetRandomTime();
 
+	void SetWaveTimer();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		TSubclassOf<class AEnemy> EnemyClass;
 

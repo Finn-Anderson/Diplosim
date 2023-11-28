@@ -1,14 +1,12 @@
 #include "AI/AI.h"
 
 #include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
 
 #include "HealthComponent.h"
+#include "AttackComponent.h"
 #include "Buildings/Building.h"
 #include "Projectile.h"
 
@@ -41,14 +39,7 @@ AAI::AAI()
 	HealthComponent->MaxHealth = 100;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
-	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
-	RangeComponent->SetCollisionProfileName("OverlapOnlyPawn", true);
-	RangeComponent->SetSphereRadius(200.0f);
-
-	Range = 100.0f;
-	Damage = 20;
-	TimeToAttack = 5.0f;
-	bCanAttack = false;
+	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 
@@ -61,68 +52,9 @@ void AAI::BeginPlay()
 {
 	Super::BeginPlay();
 
-	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnDetectOverlapBegin);
-	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &AAI::OnDetectOverlapEnd);
-
 	SpawnDefaultController();
 
 	AIController = Cast<AAIController>(GetController());
-}
-
-void AAI::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	if (!OverlappingEnemies.IsEmpty()) {
-		if (!GetCanAttack()) {
-			FTimerHandle attackTimer;
-			GetWorld()->GetTimerManager().SetTimer(attackTimer, FTimerDelegate::CreateUObject(this, &AAI::SetCanAttack, true), TimeToAttack, false);
-		}
-		else {
-			TArray<AActor*> targets;
-			for (int32 i = 0; i < OverlappingEnemies.Num(); i++) {
-				float distance = FVector::Dist(GetActorLocation(), OverlappingEnemies[i]->GetActorLocation());
-
-				if (distance <= Range) {
-					if (ProjectileClass && !CanThrow(OverlappingEnemies[i]))
-						continue;
-
-					targets.Add(OverlappingEnemies[i]);
-				}
-			}
-
-			if (targets.IsEmpty()) {
-				AActor* target = PickTarget(OverlappingEnemies);
-
-				MoveTo(target);
-			}
-			else {
-				AActor* target = PickTarget(targets);
-
-				Attack(target);
-			}
-		}
-	}
-}
-
-void AAI::OnDetectOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-
-}
-
-void AAI::OnDetectOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OverlappingEnemies.Contains(OtherActor)) {
-		OverlappingEnemies.Remove(OtherActor);
-
-		if (OverlappingEnemies.IsEmpty()) {
-			SetActorTickEnabled(false);
-
-			SetCanAttack(false);
-
-			GetWorld()->GetTimerManager().ClearTimer(DamageTimer);
-		}
-	}
 }
 
 AActor* AAI::GetClosestActor(AActor* Actor, AActor* CurrentLocation, AActor* NewLocation, int32 CurrentValue, int32 NewValue)
@@ -193,118 +125,4 @@ void AAI::MoveTo(AActor* Location)
 
 		Goal = Location;
 	}
-}
-
-AActor* AAI::PickTarget(TArray<AActor*> Targets)
-{
-	FAttackStruct favoured;
-
-	for (int32 i = 0; i < Targets.Num(); i++) {
-		int32 hp = 0;
-		int32 dmg = 0;
-
-		if (Targets[i]->IsA<AAI>()) {
-			AAI* ai = Cast<AAI>(Targets[i]);
-
-			hp = ai->HealthComponent->Health;
-			dmg = ai->Damage;
-		}
-		else {
-			ABuilding* building = Cast<ABuilding>(Targets[i]);
-
-			hp = building->HealthComponent->Health;
-			dmg = 0;
-		}
-
-		float favourability = (Damage / hp) * dmg;
-		float currentFavoured = 0;
-
-		if (favoured.Hp > 0) {
-			currentFavoured = (Damage / favoured.Hp) * favoured.Dmg;
-		}
-
-		if (favourability > currentFavoured) {
-			favoured.Actor = Targets[i];
-			favoured.Hp = hp;
-			favoured.Dmg = dmg;
-		}
-	}
-
-	return favoured.Actor;
-}
-
-void AAI::Attack(AActor* Target)
-{
-	AIController->StopMovement();
-
-	if (ProjectileClass) {
-		Throw(Target);
-	}
-	else {
-		if (Target->IsA<AAI>()) {
-			AAI* ai = Cast<AAI>(Target);
-
-			ai->HealthComponent->TakeHealth(Damage, GetActorLocation());
-		}
-		else {
-			ABuilding* building = Cast<ABuilding>(Target);
-
-			building->HealthComponent->TakeHealth(Damage, GetActorLocation());
-		}
-	}
-}
-
-bool AAI::CanThrow(AActor* Target)
-{
-	FCollisionQueryParams queryParams;
-	queryParams.AddIgnoredActor(this);
-
-	TArray<struct FHitResult> hits;
-
-	FVector startLoc = AIMesh->GetSocketLocation("Throw");
-
-	if (GetWorld()->LineTraceMultiByChannel(hits, startLoc, Target->GetActorLocation(), ECC_Visibility, queryParams)) {
-		FHitResult target = hits[hits.Num() - 1];
-		FVector targetLoc = (target.GetActor()->GetActorForwardVector() * target.GetActor()->GetVelocity()) + target.Location;
-
-		float distance = FVector::Dist(startLoc, targetLoc);
-		float initialHeight = startLoc.Z;
-		float initialV = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent->InitialSpeed;
-
-		Theta = 0.5 * FMath::Asin((GetWorld()->GetGravityZ() * distance) / initialV);
-
-		float initialVy = initialV * FMath::Sin(Theta);
-		float maxHeight = initialHeight + FMath::Square(initialVy) / (2 * GetWorld()->GetGravityZ());
-
-		for (int32 i = 0; i < (hits.Num() - 1); i++) {
-			if (hits[i].Location.Z > maxHeight) {
-				MoveTo(Target);
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
-void AAI::Throw(AActor* Target)
-{
-	FVector lookLoc = GetActorLocation() - Target->GetActorLocation();
-	FVector dir;
-	float len;
-	lookLoc.ToDirectionAndLength(dir, len);
-
-	float yaw = UKismetMathLibrary::DegAtan2(dir.X, dir.Y);
-
-	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, AIMesh->GetSocketLocation("Throw"), FRotator(Theta, yaw, 0));
-}
-
-void AAI::SetCanAttack(bool Value)
-{
-	bCanAttack = Value;
-}
-
-bool AAI::GetCanAttack()
-{
-	return bCanAttack;
 }

@@ -13,6 +13,8 @@ AEnemy::AEnemy()
 void AEnemy::BeginPlay()
 {
 	Super::BeginPlay();
+
+	SetActorTickEnabled(true);
 }
 
 void AEnemy::Tick(float DeltaTime)
@@ -23,23 +25,10 @@ void AEnemy::Tick(float DeltaTime)
 	SetActorRotation(GetActorRotation() + FRotator(spin, 0.0f, 0.0f));
 }
 
-void AEnemy::OnDetectOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AEnemy::MoveToBroch()
 {
-	if (OtherActor->IsA<ACitizen>()) {
-		OverlappingEnemies.Add(OtherActor);
+	TArray<AActor*> brochs;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
 
-		SetActorTickEnabled(true);
-	}
-}
-
-void AEnemy::OnDetectOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	Super::OnDetectOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
-
-	if (OverlappingEnemies.IsEmpty() && OtherActor->IsA<ACitizen>()) {
-		TArray<AActor*> brochs;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
-
-		MoveTo(brochs[0]);
-	}
+	MoveTo(brochs[0]);
 }

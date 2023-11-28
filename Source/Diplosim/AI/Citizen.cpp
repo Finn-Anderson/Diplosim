@@ -86,24 +86,6 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 	}
 }
 
-void ACitizen::OnDetectOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (OtherActor->IsA<AEnemy>()) {
-		OverlappingEnemies.Add(OtherActor);
-
-		SetActorTickEnabled(true);
-	}
-}
-
-void ACitizen::OnDetectOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	Super::OnDetectOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
-
-	if (OverlappingEnemies.IsEmpty() && OtherActor->IsA<AEnemy>()) {
-		MoveTo(Employment);
-	}
-}
-
 void ACitizen::StartLoseEnergyTimer()
 {
 	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
