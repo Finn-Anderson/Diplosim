@@ -112,6 +112,9 @@ public:
 
 	void Debug();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+		TSubclassOf<class AEnemy> EnemyClass;
+
 	// Building
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<class ABuilding> StartBuilding;

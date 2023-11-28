@@ -13,6 +13,7 @@
 #include "CameraMovementComponent.h"
 #include "ResourceManager.h"
 #include "Buildings/Building.h"
+#include "AI/Enemy.h"
 
 ACamera::ACamera()
 {
@@ -100,7 +101,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// Other
 	Input->BindAction(InputPause, ETriggerEvent::Started, this, &ACamera::Pause);
 
-	Input->BindAction(InputDebug, ETriggerEvent::Started, this, &ACamera::Pause);
+	Input->BindAction(InputDebug, ETriggerEvent::Started, this, &ACamera::Debug);
 }
 
 void ACamera::Action()
@@ -147,7 +148,18 @@ void ACamera::Pause()
 
 void ACamera::Debug()
 {
+	FVector mouseLoc, mouseDirection;
+	APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
 
+	FHitResult hit(ForceInit);
+
+	FVector endTrace = mouseLoc + (mouseDirection * 10000);
+
+	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
+	{
+		AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, hit.Location, FRotator(0, 0, 0));
+	}
 }
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)
