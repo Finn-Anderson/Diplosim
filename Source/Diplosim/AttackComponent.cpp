@@ -30,7 +30,7 @@ void UAttackComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Owner = Cast<AAI>(GetOwner());
+	Owner = GetOwner();
 
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
 	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &UAttackComponent::OnOverlapEnd);
@@ -83,10 +83,18 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor->StaticClass() != GetOwner()->StaticClass() && (OtherActor->IsA<AEnemy>() || OtherActor->IsA<ACitizen>())) {
+	if (OtherActor->StaticClass() == EnemyClass) {
 		AAI* a = Cast<AAI>(OtherActor);
 
 		if (a->HealthComponent->Health == 0)
+			return;
+
+		OverlappingEnemies.Add(OtherActor);
+	}
+	else if (Owner->IsA<AEnemy>() && OtherActor->StaticClass() == Cast<AEnemy>(Owner)->WatchtowerClass) {
+		ABuilding* b = Cast<ABuilding>(OtherActor);
+
+		if (b->HealthComponent->Health == 0)
 			return;
 
 		OverlappingEnemies.Add(OtherActor);
@@ -166,43 +174,71 @@ bool UAttackComponent::CanThrow(AActor* Target)
 	FCollisionQueryParams queryParams;
 	queryParams.AddIgnoredActor(Owner);
 
+	bool bThrowable = false;
+
+	float targetDistance = 1000000000000;
+
 	TArray<struct FHitResult> hits;
 
-	FVector startLoc = Owner->AIMesh->GetSocketLocation("Throw");
+	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Owner->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 
-	if (GetWorld()->LineTraceMultiByChannel(hits, startLoc, Target->GetActorLocation(), ECC_Visibility, queryParams)) {
-		FHitResult target = hits[hits.Num() - 1];
-		FVector targetLoc = (target.GetActor()->GetActorForwardVector() * target.GetActor()->GetVelocity()) + target.Location;
+	TArray<FName> sockets = comp->GetAllSocketNames();
 
-		float distance = FVector::Dist(startLoc, targetLoc);
-		float initialHeight = startLoc.Z;
-		float initialV = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent->InitialSpeed;
+	for (FName name : sockets) {
+		if (name == FName("Entrance"))
+			continue;
 
-		Theta = 0.5 * FMath::Asin((GetWorld()->GetGravityZ() * distance) / initialV);
+		FVector startLoc = comp->GetSocketLocation(name);
 
-		float initialVy = initialV * FMath::Sin(Theta);
-		float maxHeight = initialHeight + FMath::Square(initialVy) / (2 * GetWorld()->GetGravityZ());
+		if (GetWorld()->LineTraceMultiByChannel(hits, startLoc, Target->GetActorLocation(), ECC_Visibility, queryParams)) {
+			FHitResult target = hits[hits.Num() - 1];
+			FVector targetLoc = (target.GetActor()->GetActorForwardVector() * target.GetActor()->GetVelocity()) + target.Location;
 
-		for (int32 i = 0; i < (hits.Num() - 1); i++) {
-			if (hits[i].Location.Z > maxHeight) {
-				return false;
+			UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
+
+			float distance = FVector::Dist(startLoc, targetLoc);
+			float initialHeight = startLoc.Z;
+			float initialV = projectileMovement->InitialSpeed;
+
+			Theta = 0.5 * FMath::Asin(((projectileMovement->ProjectileGravityScale * GetWorld()->GetGravityZ()) * distance) / initialV);
+
+			float initialVy = initialV * FMath::Sin(Theta);
+			float maxHeight = initialHeight + FMath::Square(initialVy) / (2 * GetWorld()->GetGravityZ());
+
+			bool bCollision = false;
+
+			for (int32 i = 0; i < (hits.Num() - 1); i++) {
+				if (hits[i].Location.Z < maxHeight) {
+					bCollision = true;
+				}
+			}
+
+			if (bCollision)
+				continue;
+
+			if (target.Distance < targetDistance) {
+				ThrowLocation = target.Location;
+
+				bThrowable = true;
 			}
 		}
 	}
 
-	return true;
+	return bThrowable;
 }
 
 void UAttackComponent::Attack(AActor* Target, FVector::FReal Length)
 {
-	Owner->AIController->StopMovement();
+	if (Owner->IsA<AAI>()) {
+		Cast<AAI>(Owner)->AIController->StopMovement();
+	}
 
 	if (ProjectileClass) {
 		Throw(Target);
 	}
 	else {
 		if (Length > Range) {
-			Owner->MoveTo(Target);
+			Cast<AAI>(Owner)->MoveTo(Target);
 
 			return;
 		}
@@ -229,5 +265,5 @@ void UAttackComponent::Throw(AActor* Target)
 
 	float yaw = UKismetMathLibrary::DegAtan2(dir.X, dir.Y);
 
-	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, Owner->AIMesh->GetSocketLocation("Throw"), FRotator(Theta, yaw, 0));
+	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, ThrowLocation, FRotator(Theta, yaw, 0));
 }

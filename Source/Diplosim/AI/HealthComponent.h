@@ -15,9 +15,11 @@ public:
 
 public:
 	// Health
-	int32 MaxHealth;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		int32 MaxHealth;
 
-	int32 Health;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		int32 Health;
 
 	void AddHealth(int32 Amount);
 

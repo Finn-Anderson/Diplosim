@@ -71,9 +71,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class AProjectile> ProjectileClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+		TSubclassOf<class AAI> EnemyClass;
+
+	FVector ThrowLocation;
+
 	FTimerHandle AttackTimer;
 
 	float Theta;
 
-	class AAI* Owner;
+	AActor* Owner;
 };

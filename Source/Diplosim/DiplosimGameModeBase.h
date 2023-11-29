@@ -12,7 +12,6 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 public:
 	ADiplosimGameModeBase();
 
-public:
 	TArray<FVector> GetSpawnPoints(bool bCheckLength);
 
 	void SetSpawnPoints();

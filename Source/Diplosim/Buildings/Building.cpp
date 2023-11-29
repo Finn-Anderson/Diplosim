@@ -30,7 +30,7 @@ ABuilding::ABuilding()
 	BuildingMesh->CastShadow = true;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
-	HealthComponent->MaxHealth = 500;
+	HealthComponent->MaxHealth = 200;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	Capacity = 2;

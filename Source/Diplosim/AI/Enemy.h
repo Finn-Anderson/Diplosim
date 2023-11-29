@@ -19,4 +19,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void MoveToBroch();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+		TSubclassOf<class AWatchtower> WatchtowerClass;
 };
