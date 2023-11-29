@@ -8,6 +8,7 @@
 #include "Buildings/Building.h"
 #include "Map/Grid.h"
 #include "Map/Vegetation.h"
+#include "DiplosimGameModeBase.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -178,6 +179,9 @@ void UBuildComponent::Place()
 		Camera->start = false;
 		Camera->BuildUIInstance->AddToViewport();
 		Camera->MapUIInstance->RemoveFromParent();
+
+		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+		gamemode->SetWaveTimer();
 	}
 }
 

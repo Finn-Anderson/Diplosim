@@ -74,6 +74,7 @@ void AGrid::Render()
 
 		tile.Choice = HISMWater;
 		tile.Fertility = 1;
+		tile.bIsSea = true;
 
 		Storage[tile.X + (tile.Y * Size)] = tile;
 
@@ -134,6 +135,15 @@ void AGrid::Render()
 		// Set fertility
 		if (targetChoice == HISMWater) {
 			chosenTile.Fertility = 1;
+
+			for (FTileStruct t : tiles) {
+				if (!t.bIsSea)
+					continue;
+
+				chosenTile.bIsSea = true;
+
+				break;
+			}
 		}
 		else {
 			int32 value = FMath::RandRange(-1, 1);

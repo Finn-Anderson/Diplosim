@@ -12,10 +12,11 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 public:
 	ADiplosimGameModeBase();
 
-protected:
-	virtual void BeginPlay() override;
-
 public:
+	TArray<FVector> GetSpawnPoints(bool bCheckLength);
+
+	void SetSpawnPoints();
+
 	void SpawnEnemies();
 
 	int32 GetRandomTime();

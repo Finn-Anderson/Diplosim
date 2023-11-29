@@ -23,10 +23,14 @@ struct FTileStruct
 
 	TArray<class AActor*> Resource;
 
+	bool bIsSea;
+
 	FTileStruct() {
 		Choice = nullptr;
 
 		Fertility = 0;
+
+		bIsSea = false;
 	}
 };
 
