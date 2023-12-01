@@ -12,6 +12,16 @@ class DIPLOSIM_API AWatchtower : public AWork
 public:
 	AWatchtower();
 
+protected:
+	virtual void BeginPlay() override;
+
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		class UAttackComponent* AttackComponent;
+
+	int32 BaseRange;
+
+	void HideRangeComponent();
+
+	void SetRange(float Z);
 };

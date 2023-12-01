@@ -1,6 +1,7 @@
 #include "AI/AI.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
@@ -40,6 +41,7 @@ AAI::AAI()
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
+	AttackComponent->RangeComponent->SetupAttachment(RootComponent);
 
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 

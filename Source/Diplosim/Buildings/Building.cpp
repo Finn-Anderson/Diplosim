@@ -49,6 +49,8 @@ ABuilding::ABuilding()
 	ActualMesh = nullptr;
 
 	bMoved = false;
+
+	RootComponent = BuildingMesh;
 }
 
 void ABuilding::BeginPlay()

@@ -21,7 +21,6 @@ UAttackComponent::UAttackComponent()
 	RangeComponent->SetCollisionProfileName("OverlapOnlyPawn", true);
 	RangeComponent->SetSphereRadius(300.0f);
 
-	Range = 100.0f;
 	Damage = 20;
 	TimeToAttack = 5.0f;
 }
@@ -38,7 +37,7 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
+	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Employment->AtWork.Contains(Cast<ACitizen>(Owner))))
 		return;
 
 	TArray<AActor*> targets;
@@ -51,6 +50,9 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 			continue;
 		}
+
+		if (actor->IsA<ACitizen>() && Cast<ACitizen>(actor)->Employment->AtWork.Contains(Cast<ACitizen>(actor)))
+			continue;
 
 		if (!ProjectileClass && a->CanMoveTo(actor)) {
 			targets.Add(actor);
@@ -237,7 +239,9 @@ void UAttackComponent::Attack(AActor* Target, FVector::FReal Length)
 		Throw(Target);
 	}
 	else {
-		if (Length > Range) {
+		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Owner->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+
+		if (Length > comp->GetStaticMesh()->GetBoundingBox().GetSize().Length() + 50.0f) {
 			Cast<AAI>(Owner)->MoveTo(Target);
 
 			return;

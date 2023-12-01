@@ -95,7 +95,7 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	if (Energy <= 20 && House->IsValidLowLevelFast()) {
+	if (Energy <= 15 && House->IsValidLowLevelFast()) {
 		MoveTo(House);
 	}
 
@@ -117,7 +117,7 @@ void ACitizen::GainEnergy(int32 Max)
 
 	HealthComponent->AddHealth(1);
 
-	if (Energy == Max) {
+	if (Energy >= Max) {
 		MoveTo(Employment);
 	}
 }

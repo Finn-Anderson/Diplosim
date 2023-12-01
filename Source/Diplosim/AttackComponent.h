@@ -63,9 +63,6 @@ public:
 		int32 Damage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-		float Range;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		float TimeToAttack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")

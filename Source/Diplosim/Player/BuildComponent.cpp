@@ -6,6 +6,7 @@
 
 #include "Camera.h"
 #include "Buildings/Building.h"
+#include "Buildings/Watchtower.h"
 #include "Map/Grid.h"
 #include "Map/Vegetation.h"
 #include "DiplosimGameModeBase.h"
@@ -62,6 +63,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			}
 
 			Building->SetActorLocation(location);
+
+			if (Building->IsA<AWatchtower>()) {
+				Cast<AWatchtower>(Building)->SetRange(location.Z);
+			}
 		}
 
 		if (!IsNotFloating() || Building->Blocking.Num() > 0 || !Building->CheckBuildCost()) {
@@ -167,6 +172,10 @@ void UBuildComponent::Place()
 
 	for (int i = 0; i < Building->TreeList.Num(); i++) {
 		Building->TreeList[i]->Destroy(true);
+	}
+
+	if (Building->IsA<AWatchtower>()) {
+		Cast<AWatchtower>(Building)->HideRangeComponent();
 	}
 
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);

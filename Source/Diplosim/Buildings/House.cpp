@@ -44,38 +44,37 @@ void AHouse::Enter(ACitizen* Citizen)
 		totalAmount += curAmount;
 	}
 
-	if (totalAmount < 0) {
-		int32 maxE = 25;
+	if (totalAmount < 0)
+		return;
 
-		int32 maxF = FMath::Clamp(totalAmount, 1, 3);
-		int32 maxB = FMath::Clamp(Citizen->Balance, 1, 3);
+	int32 maxF = FMath::Clamp(totalAmount, 1, 4);
+	int32 maxB = FMath::Clamp(Citizen->Balance, 1, 4);
 
-		int32 quantity = FMath::Min(maxF, maxB);
+	int32 quantity = FMath::Min(maxF, maxB);
 		
-		for (int32 i = 0; i < quantity; i++) {
-			int32 selected = FMath::RandRange(0, totalAmount - 1);
-			for (int32 j = 0; j < foodAmounts.Num(); j++) {
-				if (foodAmounts[j] <= selected) {
-					selected -= foodAmounts[j];
-				}
-				else {
-					Camera->ResourceManagerComponent->TakeUniversalResource(Food[j], 1, 0);
+	for (int32 i = 0; i < quantity; i++) {
+		int32 selected = FMath::RandRange(0, totalAmount - 1);
+		for (int32 j = 0; j < foodAmounts.Num(); j++) {
+			if (foodAmounts[j] <= selected) {
+				selected -= foodAmounts[j];
+			}
+			else {
+				Camera->ResourceManagerComponent->TakeUniversalResource(Food[j], 1, 0);
 
-					foodAmounts[j] -= 1;
-					totalAmount -= 1;
+				foodAmounts[j] -= 1;
+				totalAmount -= 1;
 
-					break;
-				}
+				break;
 			}
 		}
-
-		Citizen->Balance -= quantity;
-		Camera->ResourceManagerComponent->AddUniversalResource(Money, quantity);
-
-		maxE += quantity * 25;
-
-		Citizen->StartGainEnergyTimer(maxE);
 	}
+
+	Citizen->Balance -= (quantity - 1);
+	Camera->ResourceManagerComponent->AddUniversalResource(Money, quantity);
+
+	int32 maxE = quantity * 25;
+
+	Citizen->StartGainEnergyTimer(maxE);
 }
 
 void AHouse::Leave(ACitizen* Citizen)
