@@ -18,11 +18,15 @@ UAttackComponent::UAttackComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
-	RangeComponent->SetCollisionProfileName("OverlapOnlyPawn", true);
+	RangeComponent->SetCollisionProfileName("Spectator", true);
+	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	RangeComponent->SetSphereRadius(300.0f);
 
 	Damage = 20;
 	TimeToAttack = 5.0f;
+
+	bCanAttack = true;
 }
 
 void UAttackComponent::BeginPlay()
@@ -37,8 +41,10 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Employment->AtWork.Contains(Cast<ACitizen>(Owner))))
+	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || !bCanAttack)
 		return;
+
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Some debug message!"));
 
 	TArray<AActor*> targets;
 

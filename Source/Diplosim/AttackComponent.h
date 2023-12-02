@@ -71,6 +71,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class AAI> EnemyClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+		bool bCanAttack;
+
 	FVector ThrowLocation;
 
 	FTimerHandle AttackTimer;

@@ -8,6 +8,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/HealthComponent.h"
+#include "AttackComponent.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 #include "Player/BuildComponent.h"
@@ -269,6 +270,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 		if (Occupied.Contains(Citizen) && !AtWork.Contains(Citizen)) {
 			AtWork.Add(Citizen);
+
+			Citizen->AttackComponent->bCanAttack = false;
 		}
 		else if(Citizen->Employment != nullptr && Citizen->Employment->IsA<ABuilder>()) {
 			ABuilder* e = Cast<ABuilder>(Citizen->Employment);
@@ -379,6 +382,8 @@ void ABuilding::Leave(ACitizen* Citizen)
 	Citizen->SetActorHiddenInGame(false);
 
 	AtWork.Remove(Citizen);
+
+	Citizen->AttackComponent->bCanAttack = true;
 }
 
 bool ABuilding::CheckInstant()

@@ -3,6 +3,7 @@
 #include "Components/SphereComponent.h"
 
 #include "AttackComponent.h"
+#include "AI/Citizen.h"
 
 AWatchtower::AWatchtower()
 {
@@ -18,6 +19,24 @@ void AWatchtower::BeginPlay()
 
 	if (BuildStatus == EBuildStatus::Blueprint) {
 		AttackComponent->RangeComponent->SetHiddenInGame(false);
+	}
+}
+
+void AWatchtower::Enter(ACitizen* Citizen)
+{
+	Super::Enter(Citizen);
+
+	if (Occupied.Contains(Citizen)) {
+		AttackComponent->bCanAttack = true;
+	}
+}
+
+void AWatchtower::Leave(ACitizen* Citizen)
+{
+	Super::Leave(Citizen);
+
+	if (Occupied.Contains(Citizen)) {
+		AttackComponent->bCanAttack = false;
 	}
 }
 
