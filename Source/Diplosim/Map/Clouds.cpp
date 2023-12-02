@@ -9,7 +9,6 @@
 AClouds::AClouds()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	SetTickableWhenPaused(true);
 
 	HISMClouds = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClouds"));
 	HISMClouds->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
