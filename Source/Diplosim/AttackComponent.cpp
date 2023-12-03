@@ -16,6 +16,7 @@
 UAttackComponent::UAttackComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetCollisionProfileName("Spectator", true);
@@ -44,8 +45,6 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || !bCanAttack)
 		return;
 
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Some debug message!"));
-
 	TArray<AActor*> targets;
 
 	for (AActor* actor : OverlappingEnemies) {
@@ -57,10 +56,10 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 			continue;
 		}
 
-		if (actor->IsA<ACitizen>() && Cast<ACitizen>(actor)->Employment->AtWork.Contains(Cast<ACitizen>(actor)))
+		if (!a->AttackComponent->bCanAttack)
 			continue;
 
-		if (!ProjectileClass && a->CanMoveTo(actor)) {
+		if (!ProjectileClass && a->CanMoveTo(GetOwner())) {
 			targets.Add(actor);
 		}
 		else if (CanThrow(actor)) {
@@ -91,21 +90,29 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor->StaticClass() == EnemyClass) {
+	bool bValidEnemy = false;
+
+	if (OtherActor->GetClass() == EnemyClass) {
 		AAI* a = Cast<AAI>(OtherActor);
 
 		if (a->HealthComponent->Health == 0)
 			return;
 
-		OverlappingEnemies.Add(OtherActor);
+		bValidEnemy = true;
 	}
-	else if (Owner->IsA<AEnemy>() && OtherActor->StaticClass() == Cast<AEnemy>(Owner)->WatchtowerClass) {
+	else if (Owner->IsA<AEnemy>() && OtherActor->GetClass() == Cast<AEnemy>(Owner)->WatchtowerClass) {
 		ABuilding* b = Cast<ABuilding>(OtherActor);
 
 		if (b->HealthComponent->Health == 0)
 			return;
 
+		bValidEnemy = true;
+	}
+
+	if (bValidEnemy) {
 		OverlappingEnemies.Add(OtherActor);
+
+		SetComponentTickEnabled(true);
 	}
 }
 
@@ -116,6 +123,8 @@ void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 
 		if (!OverlappingEnemies.IsEmpty())
 			return;
+
+		SetComponentTickEnabled(false);
 
 		if (OtherActor->IsA<AEnemy>()) {
 			ACitizen* citizen = Cast<ACitizen>(Owner);

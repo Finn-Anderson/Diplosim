@@ -17,7 +17,7 @@ AAI::AAI()
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	GetCapsuleComponent()->SetCapsuleRadius(11.5f);
-	GetCapsuleComponent()->SetCapsuleHalfHeight(8.0f);
+	GetCapsuleComponent()->SetCapsuleHalfHeight(11.5f);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
@@ -25,16 +25,15 @@ AAI::AAI()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->bDynamicObstacle = false;
 
-	AIMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AIMesh"));
-	AIMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -2.0f));
-	AIMesh->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
-	AIMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-	AIMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	AIMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	AIMesh->SetCanEverAffectNavigation(false);
-	AIMesh->SetupAttachment(RootComponent);
-	AIMesh->bCastDynamicShadow = true;
-	AIMesh->CastShadow = true;
+	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
+	GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	GetMesh()->SetCanEverAffectNavigation(false);
+	GetMesh()->SetupAttachment(RootComponent);
+	GetMesh()->bCastDynamicShadow = true;
+	GetMesh()->CastShadow = true;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	HealthComponent->MaxHealth = 100;
@@ -98,7 +97,7 @@ bool AAI::CanMoveTo(AActor* Location)
 
 	FVector loc = Location->GetActorLocation();
 
-	if (comp->DoesSocketExist("Entrance")) {
+	if (comp && comp->DoesSocketExist("Entrance")) {
 		loc = comp->GetSocketLocation("Entrance");
 	}
 

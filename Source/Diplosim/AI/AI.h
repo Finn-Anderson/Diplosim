@@ -16,9 +16,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UStaticMeshComponent* AIMesh;
-
 	UPROPERTY()
 		class AAIController* AIController;
 

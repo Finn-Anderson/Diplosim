@@ -7,7 +7,9 @@
 
 AEnemy::AEnemy()
 {
-	AIMesh->SetSimulatePhysics(true);
+	PrimaryActorTick.bStartWithTickEnabled = true;
+
+	GetMesh()->SetSimulatePhysics(true);
 }
 
 void AEnemy::BeginPlay()

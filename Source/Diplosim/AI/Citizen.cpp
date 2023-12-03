@@ -14,11 +14,11 @@
 
 ACitizen::ACitizen()
 {
-	AIMesh->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
+	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
 	CapsuleCollision->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
-	CapsuleCollision->SetupAttachment(AIMesh);
+	CapsuleCollision->SetupAttachment(GetMesh());
 
 	House = nullptr;
 	Employment = nullptr;
@@ -52,9 +52,9 @@ void ACitizen::BeginPlay()
 	float g = FMath::FRandRange(0.0f, 1.0f);
 	float b = FMath::FRandRange(0.0f, 1.0f);
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(AIMesh->GetMaterial(0), this);
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(0), this);
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
-	AIMesh->SetMaterial(0, material);
+	GetMesh()->SetMaterial(0, material);
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -79,7 +79,7 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor->IsA<ABuilding>()) {
+	if (OtherActor->IsA<ABuilding>() && Cast<ABuilding>(OtherActor)->BuildStatus != EBuildStatus::Blueprint) {
 		ABuilding* b = Cast<ABuilding>(OtherActor);
 
 		b->Leave(this);
@@ -157,7 +157,7 @@ void ACitizen::Birthday()
 
 	if (Age <= 18) {
 		int32 scale = (Age * 0.04) + 0.28;
-		AIMesh->SetWorldScale3D(FVector(scale, scale, scale));
+		GetMesh()->SetWorldScale3D(FVector(scale, scale, scale));
 	}
 	else {
 		HaveChild();
@@ -215,7 +215,7 @@ void ACitizen::FindPartner()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (!c->CanMoveTo(c) || c->Sex == Sex || c->Partner != nullptr || c->Age < 18) {
+		if (!CanMoveTo(c) || c->Sex == Sex || c->Partner != nullptr || c->Age < 18) {
 			continue;
 		}
 
