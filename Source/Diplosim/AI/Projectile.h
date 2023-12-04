@@ -23,6 +23,9 @@ public:
 		class UProjectileMovementComponent* ProjectileMovementComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+		class UNiagaraSystem* TrailSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		int32 Damage;
 
 	UFUNCTION()

@@ -25,7 +25,7 @@ UAttackComponent::UAttackComponent()
 	RangeComponent->SetSphereRadius(300.0f);
 
 	Damage = 20;
-	TimeToAttack = 5.0f;
+	TimeToAttack = 2.0f;
 
 	bCanAttack = true;
 }
@@ -191,6 +191,10 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 	}
 
 	if (*ProjectileClass || CanHit(favoured.Actor, favoured.Length)) {
+		if (Owner->IsA<AAI>()) {
+			Cast<AAI>(Owner)->AIController->StopMovement();
+		}
+
 		GetWorld()->GetTimerManager().SetTimer(AttackTimer, FTimerDelegate::CreateUObject(this, &UAttackComponent::Attack, favoured.Actor), TimeToAttack, false);
 	}
 }
@@ -199,7 +203,7 @@ bool UAttackComponent::CanHit(AActor* Target, FVector::FReal Length)
 {
 	USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 
-	if (Length > comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Length() * 2.0f) {
+	if (Length > comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Length() + 20.0f) {
 		Cast<AAI>(Owner)->MoveTo(Target);
 
 		return false;
@@ -259,10 +263,6 @@ bool UAttackComponent::CanThrow(AActor* Target, TArray<FVector> Locations)
 
 void UAttackComponent::Attack(AActor* Target)
 {
-	if (Owner->IsA<AAI>()) {
-		Cast<AAI>(Owner)->AIController->StopMovement();
-	}
-
 	if (*ProjectileClass) {
 		Throw(Target);
 	}
@@ -275,13 +275,8 @@ void UAttackComponent::Attack(AActor* Target)
 
 void UAttackComponent::Throw(AActor* Target)
 {
-	FVector lookLoc = Owner->GetActorLocation() - Target->GetActorLocation();
-	FVector dir;
-	float len;
-	lookLoc.ToDirectionAndLength(dir, len);
+	FRotator lookAt = (ThrowLocation - Target->GetActorLocation()).Rotation();
 
-	float yaw = UKismetMathLibrary::DegAtan2(dir.X, dir.Y);
-
-	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, ThrowLocation, FRotator(Theta, yaw, 0));
+	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, ThrowLocation, lookAt);
 	projectile->Owner = Owner;
 }

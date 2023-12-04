@@ -268,10 +268,10 @@ void ABuilding::Enter(ACitizen* Citizen)
 	if (BuildStatus != EBuildStatus::Construction) {
 		Citizen->SetActorHiddenInGame(bHideCitizen);
 
+		Citizen->AttackComponent->bCanAttack = false;
+
 		if (Occupied.Contains(Citizen) && !AtWork.Contains(Citizen)) {
 			AtWork.Add(Citizen);
-
-			Citizen->AttackComponent->bCanAttack = false;
 		}
 		else if(Citizen->Employment != nullptr && Citizen->Employment->IsA<ABuilder>()) {
 			ABuilder* e = Cast<ABuilder>(Citizen->Employment);

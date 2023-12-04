@@ -12,11 +12,5 @@ class DIPLOSIM_API AEnemy : public AAI
 public:
 	AEnemy();
 
-protected:
-	void BeginPlay();
-
-public:
-	virtual void Tick(float DeltaTime) override;
-
 	void MoveToBroch();
 };

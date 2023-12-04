@@ -25,6 +25,7 @@ AAI::AAI()
 	GetCapsuleComponent()->bDynamicObstacle = false;
 
 	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
@@ -36,7 +37,6 @@ AAI::AAI()
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	HealthComponent->MaxHealth = 100;
-	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 	AttackComponent->RangeComponent->SetupAttachment(RootComponent);

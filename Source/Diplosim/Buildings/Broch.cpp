@@ -1,6 +1,7 @@
 #include "Buildings/Broch.h"
 
 #include "AI/Citizen.h"
+#include "AI/HealthComponent.h"
 
 ABroch::ABroch()
 {
@@ -16,6 +17,8 @@ void ABroch::FindCitizens()
 
 		c->Age = 17;
 		c->Birthday();
+		c->HealthComponent->Health = c->HealthComponent->MaxHealth;
+
 		Enter(c);
 	}
 }

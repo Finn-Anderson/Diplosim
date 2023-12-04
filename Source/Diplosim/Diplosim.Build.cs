@@ -8,7 +8,7 @@ public class Diplosim : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule", "UMG", "NavigationSystem", "EnhancedInput" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule", "UMG", "NavigationSystem", "EnhancedInput", "Niagara" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

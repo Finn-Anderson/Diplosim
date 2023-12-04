@@ -32,6 +32,8 @@ ACitizen::ACitizen()
 	Partner = nullptr;
 
 	Sex = ESex::NaN;
+
+	HealthComponent->Health = 10;
 }
 
 void ACitizen::BeginPlay()
@@ -156,6 +158,8 @@ void ACitizen::Birthday()
 	}
 
 	if (Age <= 18) {
+		HealthComponent->Health += 5;
+
 		int32 scale = (Age * 0.04) + 0.28;
 		GetMesh()->SetWorldScale3D(FVector(scale, scale, scale));
 	}

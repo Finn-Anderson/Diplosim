@@ -8,24 +8,7 @@
 
 AEnemy::AEnemy()
 {
-	PrimaryActorTick.bStartWithTickEnabled = true;
-
-	GetMesh()->SetSimulatePhysics(true);
-}
-
-void AEnemy::BeginPlay()
-{
-	Super::BeginPlay();
-
-	SetActorTickEnabled(true);
-}
-
-void AEnemy::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	float spin = FMath::Abs(GetVelocity().Length());
-	SetActorRotation(GetActorRotation() + FRotator(spin, 0.0f, 0.0f));
+	HealthComponent->Health = HealthComponent->MaxHealth;
 }
 
 void AEnemy::MoveToBroch()

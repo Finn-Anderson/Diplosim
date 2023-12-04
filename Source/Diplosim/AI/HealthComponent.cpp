@@ -1,6 +1,7 @@
 #include "AI/HealthComponent.h"
 
 #include "Citizen.h"
+#include "AttackComponent.h"
 #include "Buildings/Work.h"
 #include "Buildings/House.h"
 
@@ -50,10 +51,15 @@ void UHealthComponent::Death(FVector DeathInstigatorLocation)
 
 		mesh->SetSimulatePhysics(true);
 
-		const FVector direction = actor->GetActorLocation() + DeathInstigatorLocation;
+		const FVector direction = (actor->GetActorLocation() - DeathInstigatorLocation) * 10;
 		mesh->SetPhysicsLinearVelocity(direction, false);
 	}
 	
+	UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
+
+	if (attackComp) {
+		attackComp->bCanAttack = false;
+	}
 
 	FTimerHandle clearTimer;
 	GetWorld()->GetTimerManager().SetTimer(clearTimer, this, &UHealthComponent::ClearRagdoll, 10.0f, false);
