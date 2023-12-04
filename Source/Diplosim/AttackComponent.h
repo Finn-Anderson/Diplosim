@@ -48,9 +48,11 @@ public:
 
 	void PickTarget(TArray<AActor*> Targets);
 
-	bool CanThrow(AActor* Target);
+	bool CanThrow(AActor* Target, TArray<FVector> Locations);
 
-	void Attack(AActor* Target, FVector::FReal Length);
+	bool CanHit(AActor* Target, FVector::FReal Length);
+
+	void Attack(AActor* Target);
 
 	void Throw(AActor* Target);
 
@@ -69,7 +71,7 @@ public:
 		TSubclassOf<class AProjectile> ProjectileClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-		TSubclassOf<class AAI> EnemyClass;
+		TArray<TSubclassOf<class AActor>> EnemyClasses;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		bool bCanAttack;

@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "Citizen.h"
+#include "HealthComponent.h"
 #include "Buildings/Broch.h"
 
 AEnemy::AEnemy()
@@ -29,8 +30,14 @@ void AEnemy::Tick(float DeltaTime)
 
 void AEnemy::MoveToBroch()
 {
+	if (!IsValidLowLevelFast())
+		return;
+
 	TArray<AActor*> brochs;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
+
+	if (brochs.IsEmpty() || HealthComponent->Health == 0)
+		return;
 
 	MoveTo(brochs[0]);
 }

@@ -5,6 +5,7 @@
 #include "AI.h"
 #include "Buildings/Building.h"
 #include "HealthComponent.h"
+#include "AttackComponent.h"
 
 AProjectile::AProjectile()
 {
@@ -36,15 +37,10 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 	if (OtherActor == GetOwner())
 		return;
 
-	if (OtherActor->IsA<AAI>()) {
-		AAI* ai = Cast<AAI>(OtherActor);
+	UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
 
-		ai->HealthComponent->TakeHealth(Damage, GetActorLocation());
-	}
-	else if (OtherActor->IsA<ABuilding>()) {
-		ABuilding* building = Cast<ABuilding>(OtherActor);
-
-		building->HealthComponent->TakeHealth(Damage, GetActorLocation());
+	if (healthComp) {
+		healthComp->TakeHealth(Damage, GetActorLocation());
 	}
 
 	Destroy();

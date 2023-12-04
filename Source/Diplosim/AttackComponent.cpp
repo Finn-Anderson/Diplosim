@@ -11,7 +11,7 @@
 #include "AI/Enemy.h"
 #include "AI/Citizen.h"
 #include "AI/Projectile.h"
-#include "Buildings/Work.h"
+#include "Buildings/Watchtower.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -36,6 +36,10 @@ void UAttackComponent::BeginPlay()
 
 	Owner = GetOwner();
 
+	if (*ProjectileClass) {
+		Damage = Cast<AProjectile>(ProjectileClass->GetDefaultObject())->Damage;
+	}
+
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
 	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &UAttackComponent::OnOverlapEnd);
 }
@@ -48,21 +52,39 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	TArray<AActor*> targets;
 
 	for (AActor* actor : OverlappingEnemies) {
-		AAI* a = Cast<AAI>(actor);
+		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
-		if (a->HealthComponent->Health == 0) {
+		if (healthComp->Health == 0) {
 			OverlappingEnemies.Remove(actor);
 
 			continue;
 		}
 
-		if (!a->AttackComponent->bCanAttack)
+		if (!attackComp->bCanAttack)
 			continue;
 
-		if (!ProjectileClass && a->CanMoveTo(GetOwner())) {
-			targets.Add(actor);
+		TArray<FVector> locations;
+
+		if (Owner->IsA<AAI>()) {
+			USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+
+			FVector loc = Owner->GetActorLocation() + comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
+
+			locations.Add(loc);
 		}
-		else if (CanThrow(actor)) {
+		else {
+			UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Owner->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+
+			TArray<FName> sockets = comp->GetAllSocketNames();
+			sockets.Remove("Entrance");
+
+			for (FName socket : sockets) {
+				locations.Add(comp->GetSocketLocation(socket));
+			}
+		}
+
+		if ((*ProjectileClass && CanThrow(actor, locations)) || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->CanMoveTo(actor))) {
 			targets.Add(actor);
 		}
 	}
@@ -90,29 +112,20 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	bool bValidEnemy = false;
+	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
+		if (OtherActor->GetClass() != enemyClass || (OtherActor->IsA<ABuilding>() && Cast<ABuilding>(OtherActor)->BuildStatus == EBuildStatus::Blueprint))
+			continue;
 
-	if (OtherActor->GetClass() == EnemyClass) {
-		AAI* a = Cast<AAI>(OtherActor);
+		UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
 
-		if (a->HealthComponent->Health == 0)
+		if (healthComp->Health == 0)
 			return;
 
-		bValidEnemy = true;
-	}
-	else if (Owner->IsA<AEnemy>() && OtherActor->GetClass() == Cast<AEnemy>(Owner)->WatchtowerClass) {
-		ABuilding* b = Cast<ABuilding>(OtherActor);
-
-		if (b->HealthComponent->Health == 0)
-			return;
-
-		bValidEnemy = true;
-	}
-
-	if (bValidEnemy) {
 		OverlappingEnemies.Add(OtherActor);
 
 		SetComponentTickEnabled(true);
+
+		break;
 	}
 }
 
@@ -126,12 +139,12 @@ void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 
 		SetComponentTickEnabled(false);
 
-		if (OtherActor->IsA<AEnemy>()) {
+		if (Owner->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(Owner);
 
 			citizen->MoveTo(citizen->Employment);
 		}
-		else {
+		else if (Owner->IsA<AEnemy>()) {
 			AEnemy* enemy = Cast<AEnemy>(Owner);
 
 			enemy->MoveToBroch();
@@ -151,24 +164,18 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-		if (Targets[i]->IsA<AAI>()) {
-			AAI* ai = Cast<AAI>(Targets[i]);
+		UHealthComponent* healthComp = Targets[i]->GetComponentByClass<UHealthComponent>();
+		UAttackComponent* attackComp = Targets[i]->GetComponentByClass<UAttackComponent>();
 
-			hp = ai->HealthComponent->Health;
-			dmg = ai->AttackComponent->Damage;
+		hp = healthComp->Health;
 
-			NavData->CalcPathLength(Owner->GetActorLocation(), ai->GetActorLocation(), outLength);
-		}
-		else {
-			ABuilding* building = Cast<ABuilding>(Targets[i]);
-
-			hp = building->HealthComponent->Health;
-			dmg = 0;
-
-			NavData->CalcPathLength(Owner->GetActorLocation(), building->GetActorLocation(), outLength);
+		if (attackComp) {
+			dmg = attackComp->Damage;
 		}
 
-		float favourability = (Damage / hp) * dmg / outLength;
+		NavData->CalcPathLength(Owner->GetActorLocation(), Targets[i]->GetActorLocation(), outLength);
+
+		float favourability = (((float)Damage / (float)hp) * (float)dmg) / outLength;
 		float currentFavoured = 0;
 
 		if (favoured.Hp > 0) {
@@ -183,10 +190,25 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 		}
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(AttackTimer, FTimerDelegate::CreateUObject(this, &UAttackComponent::Attack, favoured.Actor, favoured.Length), TimeToAttack, false);
+	if (*ProjectileClass || CanHit(favoured.Actor, favoured.Length)) {
+		GetWorld()->GetTimerManager().SetTimer(AttackTimer, FTimerDelegate::CreateUObject(this, &UAttackComponent::Attack, favoured.Actor), TimeToAttack, false);
+	}
 }
 
-bool UAttackComponent::CanThrow(AActor* Target)
+bool UAttackComponent::CanHit(AActor* Target, FVector::FReal Length)
+{
+	USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+
+	if (Length > comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Length() * 2.0f) {
+		Cast<AAI>(Owner)->MoveTo(Target);
+
+		return false;
+	}
+
+	return true;
+}
+
+bool UAttackComponent::CanThrow(AActor* Target, TArray<FVector> Locations)
 {
 	FCollisionQueryParams queryParams;
 	queryParams.AddIgnoredActor(Owner);
@@ -197,16 +219,7 @@ bool UAttackComponent::CanThrow(AActor* Target)
 
 	TArray<struct FHitResult> hits;
 
-	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Owner->GetComponentByClass(UStaticMeshComponent::StaticClass()));
-
-	TArray<FName> sockets = comp->GetAllSocketNames();
-
-	for (FName name : sockets) {
-		if (name == FName("Entrance"))
-			continue;
-
-		FVector startLoc = comp->GetSocketLocation(name);
-
+	for (FVector startLoc : Locations) {
 		if (GetWorld()->LineTraceMultiByChannel(hits, startLoc, Target->GetActorLocation(), ECC_Visibility, queryParams)) {
 			FHitResult target = hits[hits.Num() - 1];
 			FVector targetLoc = (target.GetActor()->GetActorForwardVector() * target.GetActor()->GetVelocity()) + target.Location;
@@ -244,34 +257,19 @@ bool UAttackComponent::CanThrow(AActor* Target)
 	return bThrowable;
 }
 
-void UAttackComponent::Attack(AActor* Target, FVector::FReal Length)
+void UAttackComponent::Attack(AActor* Target)
 {
 	if (Owner->IsA<AAI>()) {
 		Cast<AAI>(Owner)->AIController->StopMovement();
 	}
 
-	if (ProjectileClass) {
+	if (*ProjectileClass) {
 		Throw(Target);
 	}
 	else {
-		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Owner->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+		UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
 
-		if (Length > comp->GetStaticMesh()->GetBoundingBox().GetSize().Length() + 50.0f) {
-			Cast<AAI>(Owner)->MoveTo(Target);
-
-			return;
-		}
-
-		if (Target->IsA<AAI>()) {
-			AAI* ai = Cast<AAI>(Target);
-
-			ai->HealthComponent->TakeHealth(Damage, Owner->GetActorLocation());
-		}
-		else {
-			ABuilding* building = Cast<ABuilding>(Target);
-
-			building->HealthComponent->TakeHealth(Damage, Owner->GetActorLocation());
-		}
+		healthComp->TakeHealth(Damage, Owner->GetActorLocation());
 	}
 }
 
@@ -285,4 +283,5 @@ void UAttackComponent::Throw(AActor* Target)
 	float yaw = UKismetMathLibrary::DegAtan2(dir.X, dir.Y);
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, ThrowLocation, FRotator(Theta, yaw, 0));
+	projectile->Owner = Owner;
 }

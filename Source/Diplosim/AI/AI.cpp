@@ -18,7 +18,6 @@ AAI::AAI()
 
 	GetCapsuleComponent()->SetCapsuleRadius(11.5f);
 	GetCapsuleComponent()->SetCapsuleHalfHeight(11.5f);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
@@ -117,7 +116,7 @@ void AAI::MoveTo(AActor* Location)
 	if (Location->IsValidLowLevelFast() && CanMoveTo(Location)) {
 		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Location->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 
-		if (comp->DoesSocketExist("Entrance")) {
+		if (comp && comp->DoesSocketExist("Entrance")) {
 			AIController->MoveToLocation(comp->GetSocketLocation("Entrance"));
 		}
 		else {

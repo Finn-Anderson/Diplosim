@@ -44,12 +44,16 @@ void UHealthComponent::Death(FVector DeathInstigatorLocation)
 		}
 	}
 
-	UStaticMeshComponent* mesh = actor->GetComponentByClass<UStaticMeshComponent>();
 
-	mesh->SetSimulatePhysics(true);
+	if (actor->IsA<AAI>()) {
+		USkeletalMeshComponent* mesh = actor->GetComponentByClass<USkeletalMeshComponent>();
 
-	const FVector direction = actor->GetActorLocation() + DeathInstigatorLocation;
-	mesh->SetPhysicsLinearVelocity(direction, false);
+		mesh->SetSimulatePhysics(true);
+
+		const FVector direction = actor->GetActorLocation() + DeathInstigatorLocation;
+		mesh->SetPhysicsLinearVelocity(direction, false);
+	}
+	
 
 	FTimerHandle clearTimer;
 	GetWorld()->GetTimerManager().SetTimer(clearTimer, this, &UHealthComponent::ClearRagdoll, 10.0f, false);
