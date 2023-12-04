@@ -1,8 +1,8 @@
 #include "AI/Projectile.h"
 
 #include "GameFramework/ProjectileMovementComponent.h"
-//#include "../../Engine/Plugins/FX/Niagara/Source/Niagara/Public/NiagaraFunctionLibrary.h"
-//#include "../../Engine/Plugins/FX/Niagara/Source/Niagara/Public/NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 #include "AI.h"
 #include "Buildings/Building.h"
@@ -32,8 +32,7 @@ void AProjectile::BeginPlay()
 	Super::BeginPlay();
 
 	if (TrailSystem) {
-		//UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailSystem, WeaponMuzzle, NAME_None, FVector(0.f), FRotator(0.f), EAttachLocation::Type::KeepRelativeOffset, true);
-		//NiagaraComp->SetNiagaraVariableFloat(FString("StrengthCoef"), CoefStrength);
+		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailSystem, ProjectileMesh, FName("Trail1"), FVector(0.0f), FRotator(0.0f), EAttachLocation::Type::KeepRelativeOffset, true);
 	}
 	
 	ProjectileMesh->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
