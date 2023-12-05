@@ -83,8 +83,8 @@ void ABuilding::Build()
 	} else {
 		UResourceManager* rm = Camera->ResourceManagerComponent;
 
-		for (int i = 0; i < CostList.Num(); i++) {
-			rm->AddCommittedResource(CostList[i].Type, CostList[i].Cost);
+		for (FCostStruct costStruct : GetCosts()) {
+			rm->AddCommittedResource(costStruct.Type, costStruct.Cost);
 		}
 
 		ActualMesh = BuildingMesh->GetStaticMesh();
@@ -106,19 +106,19 @@ void ABuilding::Build()
 		for (int32 i = 0; i < foundBuilders.Num(); i++) {
 			ABuilder* builder = Cast<ABuilder>(foundBuilders[i]);
 
-			if (builder->Constructing != nullptr || builder->BuildStatus != EBuildStatus::Complete || builder->AtWork.IsEmpty())
+			if (builder->Constructing != nullptr || builder->BuildStatus != EBuildStatus::Complete || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder)
 				continue;
 
-			if (!builder->AtWork[0]->CanMoveTo(this))
+			if (!builder->GetOccupied()[0]->CanMoveTo(this))
 				continue;
 
-			target = Cast<ABuilder>(builder->AtWork[0]->GetClosestActor(this, target, builder));
+			target = Cast<ABuilder>(builder->GetOccupied()[0]->GetClosestActor(this, target, builder));
 		}
 
 		if (target != nullptr) {
 			target->Constructing = this;
 
-			target->AtWork[0]->MoveTo(target->Constructing);
+			target->GetOccupied()[0]->MoveTo(target->Constructing);
 		}
 	}
 }
@@ -127,10 +127,10 @@ bool ABuilding::CheckBuildCost()
 {
 	UResourceManager* rm = Camera->ResourceManagerComponent;
 
-	for (int i = 0; i < CostList.Num(); i++) {
-		int32 maxAmount = rm->GetResourceAmount(CostList[i].Type);
+	for (FCostStruct costStruct : GetCosts()) {
+		int32 maxAmount = rm->GetResourceAmount(costStruct.Type);
 
-		if (maxAmount < CostList[i].Cost) {
+		if (maxAmount < costStruct.Cost) {
 			return false;
 		}
 	}
@@ -198,35 +198,16 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 
 void ABuilding::DestroyBuilding()
 {
-	if (Occupied.Num() > 0) {
-		for (int i = 0; i < Occupied.Num(); i++) {
-			ACitizen* c = Occupied[i];
-
-			if (Cast<ABuilding>(c->House) == this) {
-				c->House = nullptr;
-			}
-			else {
-				c->Employment = nullptr;
-			}
+	for (ACitizen* citizen : GetOccupied()) {
+		if (Cast<ABuilding>(citizen->Building.House) == this) {
+			citizen->Building.House = nullptr;
+		}
+		else {
+			citizen->Building.Employment = nullptr;
 		}
 	}
 
 	Destroy();
-}
-
-int32 ABuilding::GetCapacity()
-{
-	return Capacity;
-}
-
-TArray<class ACitizen*> ABuilding::GetOccupied()
-{
-	return Occupied;
-}
-
-TArray<FCostStruct> ABuilding::GetCosts()
-{
-	return CostList;
 }
 
 void ABuilding::OnBuilt()
@@ -268,28 +249,30 @@ void ABuilding::Enter(ACitizen* Citizen)
 	if (BuildStatus != EBuildStatus::Construction) {
 		Citizen->SetActorHiddenInGame(bHideCitizen);
 
-		Citizen->AttackComponent->bCanAttack = false;
+		Citizen->Building.BuildingAt = this;
 
-		if (Occupied.Contains(Citizen) && !AtWork.Contains(Citizen)) {
-			AtWork.Add(Citizen);
-		}
-		else if(Citizen->Employment != nullptr && Citizen->Employment->IsA<ABuilder>()) {
-			ABuilder* e = Cast<ABuilder>(Citizen->Employment);
+		if (GetOccupied().Contains(Citizen) || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
+			return;
+
+		ABuilder* e = Cast<ABuilder>(Citizen->Building.Employment);
 			
-			e->CarryResources(Citizen, this);
-		}
+		e->CarryResources(Citizen, this);
 	}
-	else if (Citizen->Employment->IsA<ABuilder>()) {
+	else if (Citizen->Building.Employment->IsA<ABuilder>()) {
 		Citizen->SetActorHiddenInGame(true);
 
-		AtWork.Add(Citizen);
+		Citizen->Building.BuildingAt = this;
 
 		if (Citizen->Carrying.Amount > 0) {
-			for (int32 i = 0; i < CostList.Num(); i++) {
-				if (CostList[i].Type->GetDefaultObject<AResource>() != Citizen->Carrying.Type)
+			for (int32 i = 0; i < GetCosts().Num(); i++) {
+				FCostStruct costStruct = CostList[i];
+
+				if (costStruct.Type->GetDefaultObject<AResource>() != Citizen->Carrying.Type)
 					continue;
 
-				CostList[i].Stored += Citizen->Carrying.Amount;
+				costStruct.Stored += Citizen->Carrying.Amount;
+
+				CostList[i] = costStruct;
 
 				Citizen->Carry(nullptr, 0, nullptr);
 
@@ -298,13 +281,16 @@ void ABuilding::Enter(ACitizen* Citizen)
 		}
 
 		bool construct = true;
-		for (int32 i = 0; i < CostList.Num(); i++) {
-			if (CostList[i].Stored == CostList[i].Cost)
+
+		for (FCostStruct costStruct : GetCosts()) {
+			if (costStruct.Stored == costStruct.Cost)
 				continue;
 
 			construct = false;
 
-			CheckGatherSites(Citizen, CostList[i]);
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Some debug message!"));
+
+			CheckGatherSites(Citizen, costStruct);
 
 			break;
 		}
@@ -347,7 +333,7 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 		return;
 	}
 	else {
-		ABuilder* e = Cast<ABuilder>(Citizen->Employment);
+		ABuilder* e = Cast<ABuilder>(Citizen->Building.Employment);
 
 		e->CheckConstruction(Citizen);
 
@@ -361,19 +347,20 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 
 void ABuilding::AddBuildPercentage(ACitizen* Citizen)
 {
-	if (AtWork.Contains(Citizen)) {
-		BuildPercentage += 1;
+	if (Citizen->Building.BuildingAt != this)
+		return;
 
-		if (BuildPercentage == 100) {
-			OnBuilt();
+	BuildPercentage += 1;
 
-			ABuilder* e = Cast<ABuilder>(Citizen->Employment);
-			e->Constructing = nullptr;
+	if (BuildPercentage == 100) {
+		OnBuilt();
 
-			Citizen->MoveTo(Citizen->Employment);
+		ABuilder* e = Cast<ABuilder>(Citizen->Building.Employment);
+		e->Constructing = nullptr;
 
-			GetWorldTimerManager().ClearTimer(ConstructTimer);
-		}
+		Citizen->MoveTo(Citizen->Building.Employment);
+
+		GetWorldTimerManager().ClearTimer(ConstructTimer);
 	}
 }
 
@@ -381,12 +368,25 @@ void ABuilding::Leave(ACitizen* Citizen)
 {
 	Citizen->SetActorHiddenInGame(false);
 
-	AtWork.Remove(Citizen);
-
-	Citizen->AttackComponent->bCanAttack = true;
+	Citizen->Building.BuildingAt = nullptr;
 }
 
 bool ABuilding::CheckInstant()
 {
 	return bInstantConstruction;
+}
+
+int32 ABuilding::GetCapacity()
+{
+	return Capacity;
+}
+
+TArray<class ACitizen*> ABuilding::GetOccupied()
+{
+	return Occupied;
+}
+
+TArray<FCostStruct> ABuilding::GetCosts()
+{
+	return CostList;
 }

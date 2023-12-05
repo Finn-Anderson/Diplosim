@@ -56,6 +56,8 @@ public:
 
 	void Throw(AActor* Target);
 
+	bool CanAttack();
+
 	TArray<AActor*> OverlappingEnemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
@@ -72,9 +74,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TArray<TSubclassOf<class AActor>> EnemyClasses;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-		bool bCanAttack;
 
 	FVector ThrowLocation;
 

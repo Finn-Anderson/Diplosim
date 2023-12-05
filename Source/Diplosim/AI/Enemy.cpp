@@ -2,7 +2,6 @@
 
 #include "Kismet/GameplayStatics.h"
 
-#include "Citizen.h"
 #include "HealthComponent.h"
 #include "Buildings/Broch.h"
 

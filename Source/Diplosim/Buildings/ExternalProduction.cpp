@@ -13,37 +13,38 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (Occupied.Contains(Citizen)) {
+	if (GetOccupied().Contains(Citizen)) {
 		Store(Citizen->Carrying.Amount, Citizen);
 	}
 }
 
 void AExternalProduction::Production(ACitizen* Citizen)
 {
-	if (AtWork.Contains(Citizen)) {
-		if (!Resource->IsValidLowLevelFast() || Resource->WorkerCount == Resource->MaxWorkers || Resource->Quantity <= 0) {
-			TArray<AActor*> foundResources;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), Camera->ResourceManagerComponent->GetResource(this), foundResources);
+	if (Citizen->Building.BuildingAt != this)
+		return;
 
-			Resource = nullptr;
+	if (!Resource->IsValidLowLevelFast() || Resource->WorkerCount == Resource->MaxWorkers || Resource->Quantity <= 0) {
+		TArray<AActor*> foundResources;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), Camera->ResourceManagerComponent->GetResource(this), foundResources);
 
-			for (int32 i = 0; i < foundResources.Num(); i++) {
-				AResource* r = Cast<AResource>(foundResources[i]);
+		Resource = nullptr;
 
-				if (r->IsHidden() || !Citizen->CanMoveTo(r) || r->Quantity <= 0 || r->WorkerCount == r->MaxWorkers)
-					continue;
+		for (int32 i = 0; i < foundResources.Num(); i++) {
+			AResource* r = Cast<AResource>(foundResources[i]);
 
-				Resource = Cast<AResource>(Citizen->GetClosestActor(Citizen, Resource, r));
-			}
+			if (r->IsHidden() || !Citizen->CanMoveTo(r) || r->Quantity <= 0 || r->WorkerCount == r->MaxWorkers)
+				continue;
+
+			Resource = Cast<AResource>(Citizen->GetClosestActor(Citizen, Resource, r));
 		}
+	}
 
-		if (Resource != nullptr) {
-			Resource->WorkerCount++;
+	if (Resource != nullptr) {
+		Resource->WorkerCount++;
 
-			Citizen->MoveTo(Resource);
-		}
-		else {
-			GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);
-		}
+		Citizen->MoveTo(Resource);
+	}
+	else {
+		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);
 	}
 }

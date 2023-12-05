@@ -9,8 +9,7 @@
 #include "Buildings/House.h"
 #include "Resource.h"
 #include "HealthComponent.h"
-#include "Map/Mineral.h"
-#include "Enemy.h"
+#include "AttackComponent.h"
 
 ACitizen::ACitizen()
 {
@@ -19,9 +18,6 @@ ACitizen::ACitizen()
 	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
 	CapsuleCollision->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 	CapsuleCollision->SetupAttachment(GetMesh());
-
-	House = nullptr;
-	Employment = nullptr;
 
 	Balance = 20;
 
@@ -97,8 +93,8 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	if (Energy <= 15 && House->IsValidLowLevelFast()) {
-		MoveTo(House);
+	if (Energy <= 15 && Building.House->IsValidLowLevelFast()) {
+		MoveTo(Building.House);
 	}
 
 	if (Energy == 0) {
@@ -120,13 +116,13 @@ void ACitizen::GainEnergy(int32 Max)
 	HealthComponent->AddHealth(1);
 
 	if (Energy >= Max) {
-		MoveTo(Employment);
+		MoveTo(Building.Employment);
 	}
 }
 
 void ACitizen::HarvestResource(AResource* Resource)
 {
-	Carry(Resource, Resource->GetYield(), Employment);
+	Carry(Resource, Resource->GetYield(), Building.Employment);
 }
 
 void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
@@ -163,11 +159,11 @@ void ACitizen::Birthday()
 		int32 scale = (Age * 0.04) + 0.28;
 		GetMesh()->SetWorldScale3D(FVector(scale, scale, scale));
 	}
-	else {
+	else if (Partner != nullptr) {
 		HaveChild();
 	}
 
-	if (Age == 18) {
+	if (Age >= 18) {
 		FindPartner();
 	}
 }
@@ -231,9 +227,6 @@ void ACitizen::FindPartner()
 
 		citizen->SetPartner(this);
 	}
-	else {
-		GetWorldTimerManager().SetTimer(PartnerTimer, this, &ACitizen::FindPartner, 30.0f, false);
-	}
 }
 
 void ACitizen::SetPartner(ACitizen* Citizen)
@@ -243,16 +236,14 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 	if (Sex == ESex::Female) {
 		GetWorld()->GetTimerManager().SetTimer(ChildTimer, this, &ACitizen::HaveChild, 45.0f, true);
 	}
-
-	GetWorld()->GetTimerManager().ClearTimer(PartnerTimer);
 }
 
 void ACitizen::HaveChild()
 {
-	int32 chance = FMath::RandRange(1, 100);
-	int32 likelihood = FMath::LogX(60.0f, Age);
+	float chance = FMath::FRandRange(0.0f, 100.0f);
+	float passMark = FMath::LogX(60.0f, Age) * 100.0f;
 
-	if (chance > likelihood) {
+	if (chance > passMark) {
 		GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), GetActorLocation(), GetActorRotation());
 	}
 }

@@ -29,22 +29,21 @@ void UHealthComponent::Death(FVector DeathInstigatorLocation)
 	AActor* actor = GetOwner();
 
 	if (actor->IsA<ACitizen>()) {
-		ACitizen* c = Cast<ACitizen>(actor);
+		ACitizen* citizen = Cast<ACitizen>(actor);
 
-		if (c->Employment != nullptr) {
-			c->Employment->RemoveCitizen(c);
+		if (citizen->Building.Employment != nullptr) {
+			citizen->Building.Employment->RemoveCitizen(citizen);
 		}
 
-		if (c->House != nullptr) {
-			c->House->RemoveCitizen(c);
+		if (citizen->Building.House != nullptr) {
+			citizen->Building.House->RemoveCitizen(citizen);
 		}
 
-		if (c->Partner != nullptr) {
-			c->Partner->Partner = nullptr;
-			c->Partner = nullptr;
+		if (citizen->Partner != nullptr) {
+			citizen->Partner->Partner = nullptr;
+			citizen->Partner = nullptr;
 		}
 	}
-
 
 	if (actor->IsA<AAI>()) {
 		USkeletalMeshComponent* mesh = actor->GetComponentByClass<USkeletalMeshComponent>();
@@ -53,12 +52,6 @@ void UHealthComponent::Death(FVector DeathInstigatorLocation)
 
 		const FVector direction = (actor->GetActorLocation() - DeathInstigatorLocation) * 10;
 		mesh->SetPhysicsLinearVelocity(direction, false);
-	}
-	
-	UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
-
-	if (attackComp) {
-		attackComp->bCanAttack = false;
 	}
 
 	FTimerHandle clearTimer;

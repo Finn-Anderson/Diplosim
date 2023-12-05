@@ -20,6 +20,25 @@ struct FCarryStruct
 	}
 };
 
+USTRUCT()
+struct FBuildingStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	class ABuilding* House;
+
+	class ABuilding* Employment;
+
+	class ABuilding* BuildingAt;
+
+	FBuildingStruct()
+	{
+		House = nullptr;
+		Employment = nullptr;
+		BuildingAt = nullptr;
+	}
+};
+
 UENUM()
 enum class ESex : uint8 
 {
@@ -55,9 +74,7 @@ public:
 
 
 	// Buildings
-	class AWork* Employment;
-
-	class AHouse* House;
+	FBuildingStruct Building;
 
 
 	// Resources
@@ -98,8 +115,6 @@ public:
 	void SetPartner(ACitizen* Citizen);
 
 	void HaveChild();
-
-	FTimerHandle PartnerTimer;
 
 	FTimerHandle ChildTimer;
 

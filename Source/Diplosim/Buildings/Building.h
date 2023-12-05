@@ -154,9 +154,6 @@ public:
 	UPROPERTY()
 		TArray<class ACitizen*> Occupied;
 
-	UPROPERTY()
-		TArray<class ACitizen*> AtWork;
-
 	FTimerHandle CostTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")

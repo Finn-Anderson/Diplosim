@@ -14,14 +14,12 @@ AHouse::AHouse()
 
 void AHouse::UpkeepCost(int32 Cost)
 {
-	for (int i = 0; i < Occupied.Num(); i++) {
-		ACitizen* c = Cast<ACitizen>(Occupied[i]);
-
-		if (c->Balance < Rent) {
-			RemoveCitizen(c);
+	for (ACitizen* citizen : GetOccupied()) {
+		if (citizen->Balance < Rent) {
+			RemoveCitizen(citizen);
 		}
 		else {
-			c->Balance -= Rent;
+			citizen->Balance -= Rent;
 		}
 	}
 
@@ -89,23 +87,23 @@ void AHouse::FindCitizens()
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
-	for (int i = 0; i < citizens.Num(); i++) {
-		ACitizen* c = Cast<ACitizen>(citizens[i]);
+	for (AActor* actor : citizens) {
+		ACitizen* citizen = Cast<ACitizen>(actor);
 
 		if (GetCapacity() <= GetOccupied().Num())
 			return;
 
-		if (c->Balance < Rent || !c->CanMoveTo(this))
+		if (citizen->Balance < Rent || !citizen->CanMoveTo(this))
 			continue;
 
-		if (c->House == nullptr) {
-			AddCitizen(c);
+		if (citizen->Building.House == nullptr) {
+			AddCitizen(citizen);
 		}
-		else if (c->Employment != nullptr) {
-			AHouse* house = Cast<AHouse>(c->GetClosestActor(c->Employment, c->House, this));
+		else if (citizen->Building.Employment != nullptr) {
+			AHouse* house = Cast<AHouse>(citizen->GetClosestActor(citizen->Building.Employment, citizen->Building.House, this));
 
 			if (house == this) {
-				AddCitizen(c);
+				AddCitizen(citizen);
 			}
 		}
 	}
@@ -120,7 +118,7 @@ void AHouse::AddCitizen(ACitizen* Citizen)
 	if (GetCapacity() > Occupied.Num()) {
 		Occupied.Add(Citizen);
 
-		Citizen->House = this;
+		Citizen->Building.House = this;
 
 		if (Citizen->Partner == nullptr) {
 			TArray<ACitizen*> citizens = GetOccupied();
@@ -141,7 +139,7 @@ void AHouse::AddCitizen(ACitizen* Citizen)
 void AHouse::RemoveCitizen(ACitizen* Citizen)
 {
 	if (Occupied.Contains(Citizen)) {
-		Citizen->House = nullptr;
+		Citizen->Building.House = nullptr;
 
 		Occupied.Remove(Citizen);
 

@@ -83,9 +83,9 @@ void ABuilder::CarryResources(ACitizen* Citizen, ABuilding* Building)
 		capacity = Building->Storage;
 	}
 
-	for (int32 i = 0; i < Constructing->CostList.Num(); i++) {
-		if (Constructing->CostList[i].Type == resource) {
-			amount = FMath::Clamp(Constructing->CostList[i].Cost - Constructing->CostList[i].Stored, 0, capacity);
+	for (FCostStruct costStruct : Constructing->GetCosts()) {
+		if (costStruct.Type == resource) {
+			amount = FMath::Clamp(costStruct.Cost - costStruct.Stored, 0, capacity);
 
 			break;
 		}

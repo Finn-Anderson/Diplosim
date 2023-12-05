@@ -26,8 +26,6 @@ UAttackComponent::UAttackComponent()
 
 	Damage = 20;
 	TimeToAttack = 2.0f;
-
-	bCanAttack = true;
 }
 
 void UAttackComponent::BeginPlay()
@@ -46,7 +44,7 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || !bCanAttack)
+	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || !CanAttack())
 		return;
 
 	TArray<AActor*> targets;
@@ -61,7 +59,7 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 			continue;
 		}
 
-		if (!attackComp->bCanAttack)
+		if (!attackComp->CanAttack())
 			continue;
 
 		TArray<FVector> locations;
@@ -93,7 +91,7 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 		if (Owner->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(Owner);
 
-			citizen->MoveTo(citizen->Employment);
+			citizen->MoveTo(citizen->Building.Employment);
 		}
 		else {
 			AEnemy* enemy = Cast<AEnemy>(Owner);
@@ -142,7 +140,7 @@ void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 		if (Owner->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(Owner);
 
-			citizen->MoveTo(citizen->Employment);
+			citizen->MoveTo(citizen->Building.Employment);
 		}
 		else if (Owner->IsA<AEnemy>()) {
 			AEnemy* enemy = Cast<AEnemy>(Owner);
@@ -279,4 +277,29 @@ void UAttackComponent::Throw(AActor* Target)
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, ThrowLocation, lookAt);
 	projectile->Owner = Owner;
+}
+
+bool UAttackComponent::CanAttack()
+{
+	UHealthComponent* healthComp = Owner->GetComponentByClass<UHealthComponent>();
+
+	if (healthComp->Health == 0)
+		return false;
+
+	if (Owner->IsA<ACitizen>()) {
+		ACitizen* citizen = Cast<ACitizen>(Owner);
+
+		if (citizen->Age < 18 && citizen->Building.BuildingAt != nullptr) {
+			return false;
+		}
+	}
+	else if (Owner->IsA<AWatchtower>()) {
+		AWatchtower* watchtower = Cast<AWatchtower>(Owner);
+
+		if (watchtower->Occupied.IsEmpty() || watchtower->GetWorkers().Num() == 0) {
+			return false;
+		}
+	}
+
+	return true;
 }

@@ -16,10 +16,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void Enter(class ACitizen* Citizen) override;
-
-	virtual void Leave(class ACitizen* Citizen) override;
-
 	void HideRangeComponent();
 
 	void SetRange(float Z);

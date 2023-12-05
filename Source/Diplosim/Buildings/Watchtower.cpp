@@ -22,24 +22,6 @@ void AWatchtower::BeginPlay()
 	}
 }
 
-void AWatchtower::Enter(ACitizen* Citizen)
-{
-	Super::Enter(Citizen);
-
-	if (Occupied.Contains(Citizen)) {
-		AttackComponent->bCanAttack = true;
-	}
-}
-
-void AWatchtower::Leave(ACitizen* Citizen)
-{
-	Super::Leave(Citizen);
-
-	if (Occupied.Contains(Citizen)) {
-		AttackComponent->bCanAttack = false;
-	}
-}
-
 void AWatchtower::HideRangeComponent()
 {
 	AttackComponent->RangeComponent->SetHiddenInGame(true);

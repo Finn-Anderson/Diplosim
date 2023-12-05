@@ -3,6 +3,7 @@
 #include "Resource.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
+#include "AI/Citizen.h"
 
 AInternalProduction::AInternalProduction()
 {
@@ -13,7 +14,9 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (AtWork.Num() == 1) {
+	int32 numAtWork = GetWorkers().Num();
+
+	if (numAtWork == 1) {
 		Store(0, Citizen);
 	}
 }
@@ -22,15 +25,19 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
-	if (AtWork.Num() == 0) {
+	int32 numAtWork = GetWorkers().Num();
+
+	if (numAtWork == 0) {
 		GetWorldTimerManager().ClearTimer(ProdTimer);
 	}
 }
 
 void AInternalProduction::Production(ACitizen* Citizen)
 {
+	int32 numAtWork = GetWorkers().Num();
+
 	if (!GetWorldTimerManager().IsTimerActive(ProdTimer)) {
-		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / AtWork.Num()), false);
+		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / numAtWork), false);
 	}
 }
 
@@ -44,8 +51,8 @@ void AInternalProduction::Produce(ACitizen* Citizen)
 		PercentageDone = 0;
 	}
 
-	if (AtWork.Contains(Citizen)) {
-		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / AtWork.Num()), false);
+	if (Citizen->Building.BuildingAt == this) {
+		Production(Citizen);
 	}
 }
 

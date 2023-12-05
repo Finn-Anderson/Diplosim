@@ -37,7 +37,9 @@ void AFarm::Enter(ACitizen* Citizen)
 
 void AFarm::ProductionDone()
 {
-	if (AtWork.Num() > 0) {
+	TArray<ACitizen*> workers = GetWorkers();
+
+	if (workers.Num() > 0) {
 		int32 yield = Crop->GetYield();
 
 		FHitResult hit;
@@ -58,6 +60,6 @@ void AFarm::ProductionDone()
 			}
 		}
 
-		Store(yield, AtWork[0]);
+		Store(yield, workers[0]);
 	}
 }

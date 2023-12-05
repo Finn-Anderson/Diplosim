@@ -34,40 +34,36 @@ void AWork::FindCitizens()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (c->Employment != nullptr || !c->CanMoveTo(this))
+		if (c->Building.Employment != nullptr || !c->CanMoveTo(this))
 			continue;
 			
 		AddCitizen(c);
 	}
 
-	if (GetCapacity() > Occupied.Num()) {
+	if (GetCapacity() > GetOccupied().Num()) {
 		GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
 	}
 }
 
 void AWork::AddCitizen(ACitizen* Citizen)
 {
-	if (GetCapacity() > Occupied.Num()) {
+	if (GetCapacity() > GetOccupied().Num()) {
 		Occupied.Add(Citizen);
 
-		Citizen->Employment = this;
+		Citizen->Building.Employment = this;
 
 		Citizen->MoveTo(this);
-
-		if (GetCapacity() == Occupied.Num()) {
-			GetWorldTimerManager().ClearTimer(FindTimer);
-		}
 	}
 }
 
 void AWork::RemoveCitizen(ACitizen* Citizen)
 {
-	if (Occupied.Contains(Citizen)) {
+	if (GetOccupied().Contains(Citizen)) {
 		Leave(Citizen);
 
 		Occupied.Remove(Citizen);
 
-		Citizen->Employment = nullptr;
+		Citizen->Building.Employment = nullptr;
 
 		if (!GetWorldTimerManager().IsTimerActive(FindTimer)) {
 			GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
@@ -93,4 +89,18 @@ void AWork::Store(int32 Amount, ACitizen* Citizen)
 void AWork::Production(ACitizen* Citizen)
 {
 
+}
+
+TArray<ACitizen*> AWork::GetWorkers()
+{
+	TArray<ACitizen*> workers;
+
+	for (ACitizen* citizen : GetOccupied()) {
+		if (citizen->Building.BuildingAt != this)
+			continue;
+
+		workers.Add(citizen);
+	}
+
+	return workers;
 }
