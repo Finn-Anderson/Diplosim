@@ -289,7 +289,7 @@ bool UAttackComponent::CanAttack()
 	if (Owner->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(Owner);
 
-		if (citizen->Age < 18 && citizen->Building.BuildingAt != nullptr) {
+		if (citizen->Age < 18 || citizen->Building.BuildingAt != nullptr) {
 			return false;
 		}
 	}
