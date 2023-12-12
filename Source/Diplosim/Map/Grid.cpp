@@ -349,28 +349,22 @@ void AGrid::GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int3
 	if (Choice == HISMWater) {
 		inst = HISMWater->AddInstance(transform);
 
-		float data = 0.0f;
+		double distToChosen = FVector::Dist(loc, FVector(1000000.0f, 1000000.0f, 1000000.0f));
 
-		if (x < 20 || y < 20 || x > (Size - 21) || y > (Size - 21)) {
-			int32 xData = 0;
-			int32 yData = 0;
+		for (FTileStruct tile : Storage) {
+			if (tile.Choice == HISMWater)
+				continue;
+			
+			FVector tileLoc = FVector(100.0f * tile.X - (100.0f * (Size / 2)), 100.0f * tile.Y - (100.0f * (Size / 2)), 0);
 
-			if (x < 20) {
-				xData = 20 - x;
-			}
-			else if (x > (Size - 21)) {
-				xData =  20 - (Size - x);
-			}
+			double distToTile = FVector::Dist(loc, tileLoc);
 
-			if (y < 20) {
-				yData = 20 - y;
+			if (distToTile < distToChosen) {
+				distToChosen = distToTile;
 			}
-			else if (y > (Size - 21)) {
-				yData = 20 - (Size - y);
-			}
-
-			data = FMath::Max(xData, yData) / 20.0f;
 		}
+
+		float data = FMath::Sqrt(distToChosen / 1000.0f);
 
 		HISMWater->SetCustomDataValue(inst, 0, data);
 	}
