@@ -21,13 +21,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMClouds;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		TSubclassOf<class AGrid> GridClass;
-
 	float X;
 	float Y;
 
-	void GetCloudBounds();
+	void GetCloudBounds(class AGrid* Grid);
 
 	UFUNCTION()
 		void CloudSpawner();

@@ -62,27 +62,7 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 		if (!attackComp->CanAttack())
 			continue;
 
-		TArray<FVector> locations;
-
-		if (Owner->IsA<AAI>()) {
-			USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
-
-			FVector loc = Owner->GetActorLocation() + comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
-
-			locations.Add(loc);
-		}
-		else {
-			UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Owner->GetComponentByClass(UStaticMeshComponent::StaticClass()));
-
-			TArray<FName> sockets = comp->GetAllSocketNames();
-			sockets.Remove("Entrance");
-
-			for (FName socket : sockets) {
-				locations.Add(comp->GetSocketLocation(socket));
-			}
-		}
-
-		if ((*ProjectileClass && CanThrow(actor, locations)) || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->CanMoveTo(actor))) {
+		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->CanMoveTo(actor))) {
 			targets.Add(actor);
 		}
 	}
@@ -193,7 +173,7 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 			Cast<AAI>(Owner)->AIController->StopMovement();
 		}
 
-		GetWorld()->GetTimerManager().SetTimer(AttackTimer, FTimerDelegate::CreateUObject(this, &UAttackComponent::Attack, favoured.Actor), TimeToAttack, false);
+		Attack(favoured.Actor);
 	}
 }
 
@@ -210,55 +190,6 @@ bool UAttackComponent::CanHit(AActor* Target, FVector::FReal Length)
 	return true;
 }
 
-bool UAttackComponent::CanThrow(AActor* Target, TArray<FVector> Locations)
-{
-	FCollisionQueryParams queryParams;
-	queryParams.AddIgnoredActor(Owner);
-
-	bool bThrowable = false;
-
-	float targetDistance = 1000000000000;
-
-	TArray<struct FHitResult> hits;
-
-	for (FVector startLoc : Locations) {
-		if (GetWorld()->LineTraceMultiByChannel(hits, startLoc, Target->GetActorLocation(), ECC_Visibility, queryParams)) {
-			FHitResult target = hits[hits.Num() - 1];
-			FVector targetLoc = (target.GetActor()->GetActorForwardVector() * target.GetActor()->GetVelocity()) + target.Location;
-
-			UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
-
-			float distance = FVector::Dist(startLoc, targetLoc);
-			float initialHeight = startLoc.Z;
-			float initialV = projectileMovement->InitialSpeed;
-
-			Theta = 0.5 * FMath::Asin(((projectileMovement->ProjectileGravityScale * GetWorld()->GetGravityZ()) * distance) / initialV);
-
-			float initialVy = initialV * FMath::Sin(Theta);
-			float maxHeight = initialHeight + FMath::Square(initialVy) / (2 * GetWorld()->GetGravityZ());
-
-			bool bCollision = false;
-
-			for (int32 i = 0; i < (hits.Num() - 1); i++) {
-				if (hits[i].Location.Z < maxHeight) {
-					bCollision = true;
-				}
-			}
-
-			if (bCollision)
-				continue;
-
-			if (target.Distance < targetDistance) {
-				ThrowLocation = target.Location;
-
-				bThrowable = true;
-			}
-		}
-	}
-
-	return bThrowable;
-}
-
 void UAttackComponent::Attack(AActor* Target)
 {
 	if (*ProjectileClass) {
@@ -269,13 +200,57 @@ void UAttackComponent::Attack(AActor* Target)
 
 		healthComp->TakeHealth(Damage, Owner->GetActorLocation());
 	}
+
+	GetWorld()->GetTimerManager().SetTimer(AttackTimer, TimeToAttack, false);
 }
 
 void UAttackComponent::Throw(AActor* Target)
 {
-	FRotator lookAt = (ThrowLocation - Target->GetActorLocation()).Rotation();
+	TArray<FVector> locations;
 
-	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, ThrowLocation, lookAt);
+	if (Owner->IsA<AAI>()) {
+		USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+
+		FVector loc = Owner->GetActorLocation() + comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
+
+		locations.Add(loc);
+	}
+	else {
+		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Owner->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+
+		TArray<FName> sockets = comp->GetAllSocketNames();
+		sockets.Remove("Entrance");
+
+		for (FName socket : sockets) {
+			locations.Add(comp->GetSocketLocation(socket));
+		}
+	}
+
+	FVector startLoc = FVector(1000000000.0f, 1000000000.0f, 1000000000.0f);
+
+	for (FVector loc : locations) {
+		double distLoc = FVector::Dist(loc, Target->GetActorLocation());
+
+		double distStart = FVector::Dist(startLoc, Target->GetActorLocation());
+
+		if (distLoc < distStart) {
+			startLoc = loc;
+		}
+	}
+
+	double initialHeight = startLoc.Z - Target->GetActorLocation().Z;
+
+	FVector groundedLocation = FVector(startLoc.X, startLoc.Y, Target->GetActorLocation().Z);
+	double distance = FVector::Dist(groundedLocation, Target->GetActorLocation());
+
+	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
+
+	double angle = FMath::Abs(0.5f * FMath::Asin((GetWorld()->GetGravityZ() * distance) / FMath::Square(projectileMovement->InitialSpeed))) * 90.0f;
+
+	FRotator lookAt = UKismetMathLibrary::FindLookAtRotation(startLoc, Target->GetActorLocation());
+	FRotator ang = FRotator(angle + lookAt.Pitch, lookAt.Yaw, lookAt.Roll);
+
+	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 	projectile->Owner = Owner;
 }
 

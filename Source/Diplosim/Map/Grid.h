@@ -46,6 +46,9 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
+	TSubclassOf<class AClouds> CloudsClass;
+
 	// Resource Classes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
 		TSubclassOf<class AMineral> Rock;

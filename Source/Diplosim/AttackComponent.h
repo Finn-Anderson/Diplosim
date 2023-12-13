@@ -75,8 +75,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TArray<TSubclassOf<class AActor>> EnemyClasses;
 
-	FVector ThrowLocation;
-
 	FTimerHandle AttackTimer;
 
 	float Theta;

@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
+#include "Clouds.h"
 #include "Mineral.h"
 #include "Vegetation.h"
 #include "Player/Camera.h"
@@ -200,6 +201,9 @@ void AGrid::Render()
 	for (int32 i = 0; i < Storage.Num(); i++) {
 		GenerateResource(i);
 	}
+
+	AClouds* clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 800.0f), FRotator(0.0f, 0.0f, 0.0f));
+	clouds->GetCloudBounds(this);
 }
 
 int32 AGrid::GetFertility(FTileStruct Tile)

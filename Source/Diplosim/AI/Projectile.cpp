@@ -14,6 +14,9 @@ AProjectile::AProjectile()
 	PrimaryActorTick.bCanEverTick = false;
 
 	ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AIMesh"));
+	ProjectileMesh->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
+	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
 	ProjectileMesh->SetupAttachment(RootComponent);
 	ProjectileMesh->bCastDynamicShadow = true;
 	ProjectileMesh->CastShadow = true;
@@ -21,8 +24,8 @@ AProjectile::AProjectile()
     ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
     ProjectileMovementComponent->SetUpdatedComponent(ProjectileMesh);
     ProjectileMovementComponent->bRotationFollowsVelocity = true;
-    ProjectileMovementComponent->InitialSpeed = 300.0f;
-    ProjectileMovementComponent->MaxSpeed = 300.0f;
+	ProjectileMovementComponent->InitialSpeed = 500.0f;
+    ProjectileMovementComponent->MaxSpeed = 500.0f;
 
 	Damage = 20;
 }

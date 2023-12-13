@@ -20,10 +20,6 @@ AClouds::AClouds()
 void AClouds::BeginPlay()
 {
 	Super::BeginPlay();
-
-	GetCloudBounds();
-
-	CloudSpawner();
 }
 
 void AClouds::Tick(float DeltaTime)
@@ -54,26 +50,23 @@ void AClouds::Tick(float DeltaTime)
 	}
 }
 
-void AClouds::GetCloudBounds()
+void AClouds::GetCloudBounds(AGrid* Grid)
 {
-	TArray<AActor*> foundGrids;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), GridClass, foundGrids);
-
-	AGrid* grid = Cast<AGrid>(foundGrids[0]);
-
 	FTransform minTransform;
 	FTransform maxTransform;
 
-	FTileStruct min = grid->Storage[0];
-	FTileStruct max = grid->Storage[(grid->Size - 1) * (grid->Size - 1)];
+	FTileStruct min = Grid->Storage[0];
+	FTileStruct max = Grid->Storage[(Grid->Size - 1) * (Grid->Size - 1)];
 
-	grid->HISMWater->GetInstanceTransform(min.Instance, minTransform);
-	grid->HISMWater->GetInstanceTransform(max.Instance, maxTransform);
+	Grid->HISMWater->GetInstanceTransform(min.Instance, minTransform);
+	Grid->HISMWater->GetInstanceTransform(max.Instance, maxTransform);
 	X = FMath::Abs(minTransform.GetLocation().X) + FMath::Abs(maxTransform.GetLocation().X) / 2;
 
-	grid->HISMWater->GetInstanceTransform(min.Instance, minTransform);
-	grid->HISMWater->GetInstanceTransform(max.Instance, maxTransform);
+	Grid->HISMWater->GetInstanceTransform(min.Instance, minTransform);
+	Grid->HISMWater->GetInstanceTransform(max.Instance, maxTransform);
 	Y = FMath::Abs(minTransform.GetLocation().Y) + FMath::Abs(maxTransform.GetLocation().Y) / 2;
+
+	CloudSpawner();
 }
 
 void AClouds::CloudSpawner()
