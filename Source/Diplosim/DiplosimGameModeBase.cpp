@@ -15,7 +15,7 @@ ADiplosimGameModeBase::ADiplosimGameModeBase()
 	latestSpawnTime = 1800;
 }
 
-TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(bool bCheckLength)
+TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(bool bCheckLength, bool bCheckSeaAdjacency)
 {
 	TArray<AActor*> brochs;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
@@ -36,25 +36,28 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(bool bCheckLength)
 		if (tile.Choice == grid->HISMWater)
 			continue;
 
-		TArray<FTileStruct> tiles;
+		if (bCheckSeaAdjacency) {
+			TArray<FTileStruct> tiles;
 
-		tiles.Add(grid->Storage[(tile.X - 1) + (tile.Y * grid->Size)]);
-		tiles.Add(grid->Storage[tile.X + ((tile.Y - 1) * grid->Size)]);
-		tiles.Add(grid->Storage[(tile.X + 1) + (tile.Y * grid->Size)]);
-		tiles.Add(grid->Storage[tile.X + ((tile.Y + 1) * grid->Size)]);
+			tiles.Add(grid->Storage[(tile.X - 1) + (tile.Y * grid->Size)]);
+			tiles.Add(grid->Storage[tile.X + ((tile.Y - 1) * grid->Size)]);
+			tiles.Add(grid->Storage[(tile.X + 1) + (tile.Y * grid->Size)]);
+			tiles.Add(grid->Storage[tile.X + ((tile.Y + 1) * grid->Size)]);
 
-		bool bAdjacentToSea = false;
+		
+			bool bAdjacentToSea = false;
 
-		for (FTileStruct t : tiles) {
-			if (t.bIsSea) {
-				bAdjacentToSea = true;
+			for (FTileStruct t : tiles) {
+				if (t.bIsSea) {
+					bAdjacentToSea = true;
 
-				break;
+					break;
+				}
 			}
-		}
 
-		if (!bAdjacentToSea)
-			continue;
+			if (!bAdjacentToSea)
+				continue;
+		}
 
 		float z = tile.Choice->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
@@ -71,7 +74,7 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(bool bCheckLength)
 			FVector::FReal outLength;
 			NavData->CalcPathLength(location, comp->GetSocketLocation("Entrance"), outLength);
 
-			if (outLength < 500.0f)
+			if (outLength < 3000.0f)
 				continue;
 		}
 
@@ -86,10 +89,14 @@ void ADiplosimGameModeBase::SpawnEnemies()
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
-	TArray<FVector> validLocations = GetSpawnPoints(true);
+	TArray<FVector> validLocations = GetSpawnPoints(true, true);
 
 	if (validLocations.IsEmpty()) {
-		validLocations = GetSpawnPoints(false);
+		validLocations = GetSpawnPoints(true, false);
+	}
+
+	if (validLocations.IsEmpty()) {
+		validLocations = GetSpawnPoints(false, false);
 	}
 
 	int32 index = FMath::RandRange(0, validLocations.Num() - 1);

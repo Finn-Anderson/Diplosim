@@ -7,6 +7,7 @@
 
 #include "Buildings/Work.h"
 #include "Buildings/House.h"
+#include "Buildings/Broch.h"
 #include "Resource.h"
 #include "HealthComponent.h"
 #include "AttackComponent.h"
@@ -53,6 +54,11 @@ void ACitizen::BeginPlay()
 	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(0), this);
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
 	GetMesh()->SetMaterial(0, material);
+
+	TArray<AActor*> brochs;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
+
+	MoveTo(brochs[0]);
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

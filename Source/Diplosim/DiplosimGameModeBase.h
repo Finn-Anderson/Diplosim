@@ -12,7 +12,7 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 public:
 	ADiplosimGameModeBase();
 
-	TArray<FVector> GetSpawnPoints(bool bCheckLength);
+	TArray<FVector> GetSpawnPoints(bool bCheckLength, bool bCheckSeaAdjacency);
 
 	void SetSpawnPoints();
 

@@ -3,6 +3,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "AIController.h"
 
@@ -12,6 +13,7 @@
 #include "AI/Citizen.h"
 #include "AI/Projectile.h"
 #include "Buildings/Watchtower.h"
+#include "Buildings/Broch.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -120,7 +122,15 @@ void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 		if (Owner->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(Owner);
 
-			citizen->MoveTo(citizen->Building.Employment);
+			if (citizen->Building.Employment == nullptr) {
+				TArray<AActor*> brochs;
+				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
+
+				citizen->MoveTo(brochs[0]);
+			}
+			else {
+				citizen->MoveTo(citizen->Building.Employment);
+			}
 		}
 		else if (Owner->IsA<AEnemy>()) {
 			AEnemy* enemy = Cast<AEnemy>(Owner);
@@ -264,7 +274,7 @@ bool UAttackComponent::CanAttack()
 	if (Owner->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(Owner);
 
-		if (citizen->Age < 18 || citizen->Building.BuildingAt != nullptr) {
+		if (citizen->Age < 18 || (citizen->Building.BuildingAt != nullptr && !citizen->Building.BuildingAt->IsA<ABroch>() )) {
 			return false;
 		}
 	}
