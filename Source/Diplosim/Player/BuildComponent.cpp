@@ -85,19 +85,33 @@ void UBuildComponent::SetGridStatus()
 
 bool UBuildComponent::IsNotFloating()
 {
-	FHitResult hit(ForceInit);
-
 	if (Building->AllowedComps.Num() == 0)
 		return false;
 
 	for (int32 i = 0; i < Building->AllowedComps.Num(); i++) {
 		UHierarchicalInstancedStaticMeshComponent* comp = Building->AllowedComps[i].HISMComponent;
 
-		int32 terrainZ = Building->AllowedComps[i].Location.Z;
-		int32 buildingZ = FMath::RoundHalfFromZero(Building->GetActorLocation().Z);
+		FVector terrain = Building->AllowedComps[i].Location;
+		FVector building = Building->GetActorLocation();
+		building.X = FMath::RoundHalfFromZero(building.X);
+		building.Y = FMath::RoundHalfFromZero(building.Y);
+		building.Z = FMath::RoundHalfFromZero(building.Z);
 
-		if (terrainZ != buildingZ) {
+		if (terrain.Z < building.Z) {
 			return false;
+		}
+
+		if (terrain.Z > building.Z) {
+			FCollisionQueryParams QueryParams;
+			QueryParams.AddIgnoredComponent(Building->AllowedComps[i].HISMComponent);
+
+			FHitResult hit(ForceInit);
+
+			if (GetWorld()->LineTraceSingleByChannel(hit, terrain, building, ECollisionChannel::ECC_Visibility)) {
+				if (hit.Distance < 100.0f) {
+					return false;
+				}
+			}
 		}
 	}
 
@@ -137,6 +151,7 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 {
 	if (Building != nullptr && Rotate && bCanRotate) {
 		int32 yaw = Rotation.Yaw;
+
 		if (GridStatus) {
 			if (yaw % 90 == 0) {
 				yaw += 90;

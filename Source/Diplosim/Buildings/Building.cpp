@@ -26,6 +26,7 @@ ABuilding::ABuilding()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	BuildingMesh->SetCanEverAffectNavigation(false);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
 	BuildingMesh->bCastDynamicShadow = true;
 	BuildingMesh->CastShadow = true;
@@ -57,13 +58,6 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (BuildingMesh->DoesSocketExist("Entrance")) {
-		BuildingMesh->SetCanEverAffectNavigation(true);
-	}
-	else {
-		BuildingMesh->SetCanEverAffectNavigation(false);
-	}
 
 	FVector size = (BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2);
 
@@ -218,6 +212,8 @@ void ABuilding::OnBuilt()
 	}
 
 	BuildStatus = EBuildStatus::Complete;
+
+	BuildingMesh->SetCanEverAffectNavigation(true);
 
 	GetWorldTimerManager().SetTimer(CostTimer, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost, 0), 300.0f, true);
 

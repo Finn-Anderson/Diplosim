@@ -64,7 +64,7 @@ void AClouds::GetCloudBounds(AGrid* Grid)
 	X = FMath::Abs(extremeTransform.GetLocation().X) / 2;
 
 	Grid->HISMWater->GetInstanceTransform(min.Instance, extremeTransform);
-	Y = FMath::Abs(extremeTransform.GetLocation().Y) / 2;
+	Y = FMath::Abs(extremeTransform.GetLocation().Y);
 
 	CloudSpawner();
 }
@@ -85,7 +85,7 @@ void AClouds::CloudSpawner()
 
 	x = FMath::FRandRange(1.0f, 5.0f);
 	y = FMath::FRandRange(1.0f, 5.0f);
-	z = FMath::FRandRange(1.0f, 2.0f);
+	z = FMath::FRandRange(1.5f, 2.0f);
 	transform.SetScale3D(FVector(x, y, z));
 
 	int32 inst = HISMClouds->AddInstance(transform);
