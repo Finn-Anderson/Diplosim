@@ -202,7 +202,7 @@ void AGrid::Render()
 		GenerateResource(i);
 	}
 
-	AClouds* clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 800.0f), FRotator(0.0f, 0.0f, 0.0f));
+	AClouds* clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f));
 	clouds->GetCloudBounds(this);
 }
 

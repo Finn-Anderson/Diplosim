@@ -15,11 +15,15 @@ AClouds::AClouds()
 	HISMClouds->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	HISMClouds->SetCanEverAffectNavigation(false);
 	HISMClouds->NumCustomDataFloats = 2;
+
+	height = 800.0f;
 }
 
 void AClouds::BeginPlay()
 {
 	Super::BeginPlay();
+
+	SetActorLocation(FVector(0.0f, 0.0f, height));
 }
 
 void AClouds::Tick(float DeltaTime)
@@ -34,7 +38,7 @@ void AClouds::Tick(float DeltaTime)
 		transform.SetLocation(transform.GetLocation() + FVector(0.0f, HISMClouds->PerInstanceSMCustomData[i * 2], 0.0f));
 		HISMClouds->UpdateInstanceTransform(i, transform, false);
 
-		float opacity = 1.0f;
+		float opacity = 0.5f;
 		if (transform.GetLocation().Y >= Y) {
 			opacity = HISMClouds->PerInstanceSMCustomData[i * 2 + 1] - 0.01f;
 
@@ -43,7 +47,7 @@ void AClouds::Tick(float DeltaTime)
 
 				continue;
 			}
-		} else if (HISMClouds->PerInstanceSMCustomData[i * 2 + 1] < 1.0f) {
+		} else if (HISMClouds->PerInstanceSMCustomData[i * 2 + 1] < 0.5f) {
 			opacity = HISMClouds->PerInstanceSMCustomData[i * 2 + 1] + 0.01f;
 		}
 		HISMClouds->SetCustomDataValue(i, 1, opacity);
@@ -52,57 +56,49 @@ void AClouds::Tick(float DeltaTime)
 
 void AClouds::GetCloudBounds(AGrid* Grid)
 {
-	FTransform minTransform;
-	FTransform maxTransform;
+	FTransform extremeTransform;
 
 	FTileStruct min = Grid->Storage[0];
-	FTileStruct max = Grid->Storage[(Grid->Size - 1) * (Grid->Size - 1)];
 
-	Grid->HISMWater->GetInstanceTransform(min.Instance, minTransform);
-	Grid->HISMWater->GetInstanceTransform(max.Instance, maxTransform);
-	X = FMath::Abs(minTransform.GetLocation().X) + FMath::Abs(maxTransform.GetLocation().X) / 2;
+	Grid->HISMWater->GetInstanceTransform(min.Instance, extremeTransform);
+	X = FMath::Abs(extremeTransform.GetLocation().X) / 2;
 
-	Grid->HISMWater->GetInstanceTransform(min.Instance, minTransform);
-	Grid->HISMWater->GetInstanceTransform(max.Instance, maxTransform);
-	Y = FMath::Abs(minTransform.GetLocation().Y) + FMath::Abs(maxTransform.GetLocation().Y) / 2;
+	Grid->HISMWater->GetInstanceTransform(min.Instance, extremeTransform);
+	Y = FMath::Abs(extremeTransform.GetLocation().Y) / 2;
 
 	CloudSpawner();
 }
 
 void AClouds::CloudSpawner()
 {
-	int32 chance = FMath::RandRange(1, 30);
+	FTransform transform;
 
-	if (chance > 15) {
-		FTransform transform;
+	float x;
+	float y;
+	float z;
 
-		float x;
-		float y;
-		float z;
+	x = FMath::FRandRange(-X, X);
+	y = -Y;
+	z = GetActorLocation().Z + FMath::FRandRange(-200.0f, 200.0f);
+	FVector loc = FVector(x, y, z);
+	transform.SetLocation(loc);
 
-		x = FMath::FRandRange(-X, X);
-		y = -Y;
-		z = GetActorLocation().Z + FMath::FRandRange(-200.0f, 200.0f);
-		FVector loc = FVector(x, y, z);
-		transform.SetLocation(loc);
+	x = FMath::FRandRange(1.0f, 5.0f);
+	y = FMath::FRandRange(1.0f, 5.0f);
+	z = FMath::FRandRange(1.0f, 2.0f);
+	transform.SetScale3D(FVector(x, y, z));
 
-		x = FMath::FRandRange(1.0f, 20.0f);
-		y = FMath::FRandRange(1.0f, 20.0f);
-		z = 1.0f;
-		transform.SetScale3D(FVector(x, y, z));
+	int32 inst = HISMClouds->AddInstance(transform);
 
-		int32 inst = HISMClouds->AddInstance(transform);
+	float time = FMath::FRandRange(1.0f, 3.0f);
+	HISMClouds->SetCustomDataValue(inst, 0, time);
 
-		float time = FMath::FRandRange(1.0f, 3.0f);
-		HISMClouds->SetCustomDataValue(inst, 0, time);
-
-		HISMClouds->SetCustomDataValue(inst, 1, 0.0f);
-	}
+	HISMClouds->SetCustomDataValue(inst, 1, 0.0f);
 
 	FLatentActionInfo info;
 	info.Linkage = 0;
 	info.CallbackTarget = this;
 	info.ExecutionFunction = "CloudSpawner";
 	info.UUID = GetUniqueID();
-	UKismetSystemLibrary::Delay(GetWorld(), 1.0f, info);
+	UKismetSystemLibrary::Delay(GetWorld(), 15.0f, info);
 }

@@ -21,6 +21,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMClouds;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+	float height;
+
 	float X;
 	float Y;
 
