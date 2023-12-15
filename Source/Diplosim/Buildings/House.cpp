@@ -33,53 +33,14 @@ void AHouse::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	TArray<int32> foodAmounts;
-	int32 totalAmount = 0;
-	for (int32 i = 0; i < Food.Num(); i++) {
-		int32 curAmount = Camera->ResourceManagerComponent->GetResourceAmount(Food[i]);
-
-		foodAmounts.Add(curAmount);
-		totalAmount += curAmount;
-	}
-
-	if (totalAmount < 0)
-		return;
-
-	int32 maxF = FMath::Clamp(totalAmount, 1, 4);
-	int32 maxB = FMath::Clamp(Citizen->Balance, 1, 4);
-
-	int32 quantity = FMath::Min(maxF, maxB);
-		
-	for (int32 i = 0; i < quantity; i++) {
-		int32 selected = FMath::RandRange(0, totalAmount - 1);
-		for (int32 j = 0; j < foodAmounts.Num(); j++) {
-			if (foodAmounts[j] <= selected) {
-				selected -= foodAmounts[j];
-			}
-			else {
-				Camera->ResourceManagerComponent->TakeUniversalResource(Food[j], 1, 0);
-
-				foodAmounts[j] -= 1;
-				totalAmount -= 1;
-
-				break;
-			}
-		}
-	}
-
-	Citizen->Balance -= (quantity - 1);
-	Camera->ResourceManagerComponent->AddUniversalResource(Money, quantity);
-
-	int32 maxE = quantity * 25;
-
-	Citizen->StartGainEnergyTimer(maxE);
+	Citizen->SetEnergyTimer(true);
 }
 
 void AHouse::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
-	Citizen->StartLoseEnergyTimer();
+	Citizen->SetEnergyTimer(false);
 }
 
 void AHouse::FindCitizens()
@@ -119,20 +80,6 @@ void AHouse::AddCitizen(ACitizen* Citizen)
 		Occupied.Add(Citizen);
 
 		Citizen->Building.House = this;
-
-		if (Citizen->Partner == nullptr) {
-			TArray<ACitizen*> citizens = GetOccupied();
-
-			for (int i = 0; i < citizens.Num(); i++) {
-				if (Citizen->Partner != nullptr) {
-					return;
-				}
-
-				ACitizen* c = citizens[i];
-
-				Citizen->SetPartner(c);
-			}
-		}
 	}
 }
 

@@ -11,6 +11,8 @@
 #include "Resource.h"
 #include "HealthComponent.h"
 #include "AttackComponent.h"
+#include "Player/Camera.h"
+#include "Player/ResourceManager.h"
 
 ACitizen::ACitizen()
 {
@@ -22,13 +24,8 @@ ACitizen::ACitizen()
 
 	Balance = 20;
 
+	Hunger = 100;
 	Energy = 100;
-
-	Age = 0;
-
-	Partner = nullptr;
-
-	Sex = ESex::NaN;
 
 	HealthComponent->Health = 10;
 }
@@ -41,6 +38,8 @@ void ACitizen::BeginPlay()
 	CapsuleCollision->OnComponentEndOverlap.AddDynamic(this, &ACitizen::OnOverlapEnd);
 
 	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
+
+	GetWorld()->GetTimerManager().SetTimer(HungerTimer, this, &ACitizen::Eat, 3.0f, true);
 
 	FTimerHandle ageTimer;
 	GetWorld()->GetTimerManager().SetTimer(ageTimer, this, &ACitizen::Birthday, 60.0f, false);
@@ -90,9 +89,71 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 	}
 }
 
-void ACitizen::StartLoseEnergyTimer()
+//
+// Food
+//
+void ACitizen::Eat()
 {
-	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
+	Hunger--;
+
+	if (Hunger > 25)
+		return;
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
+
+	TArray<int32> foodAmounts;
+	int32 totalAmount = 0;
+	for (int32 i = 0; i < Food.Num(); i++) {
+		int32 curAmount = camera->ResourceManagerComponent->GetResourceAmount(Food[i]);
+
+		foodAmounts.Add(curAmount);
+		totalAmount += curAmount;
+	}
+
+	if (totalAmount < 0)
+		return;
+
+	int32 maxF = FMath::CeilToInt((100 - Hunger) / 25.0f);
+	int32 quantity = FMath::Clamp(totalAmount, 1, maxF);
+
+	for (int32 i = 0; i < quantity; i++) {
+		int32 selected = FMath::RandRange(0, totalAmount - 1);
+
+		for (int32 j = 0; j < foodAmounts.Num(); j++) {
+			if (foodAmounts[j] <= selected) {
+				selected -= foodAmounts[j];
+			}
+			else {
+				camera->ResourceManagerComponent->TakeUniversalResource(Food[j], 1, 0);
+
+				foodAmounts[j] -= 1;
+				totalAmount -= 1;
+
+				break;
+			}
+		}
+
+		Hunger = FMath::Clamp(Hunger + 25, 0, 100);
+	}
+
+	if (Hunger == 0) {
+		HealthComponent->TakeHealth(100, GetActorLocation());
+	}
+}
+
+//
+// Energy
+//
+void ACitizen::SetEnergyTimer(bool bGain)
+{
+	auto func = &ACitizen::LoseEnergy;
+
+	if (bGain) {
+		func = &ACitizen::GainEnergy;
+	}
+
+	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, func, 6.0f, true);
 }
 
 void ACitizen::LoseEnergy()
@@ -110,22 +171,20 @@ void ACitizen::LoseEnergy()
 	}
 }
 
-void ACitizen::StartGainEnergyTimer(int32 Max)
+void ACitizen::GainEnergy()
 {
-	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, FTimerDelegate::CreateUObject(this, &ACitizen::GainEnergy, Max), 0.6f, true);
-}
-
-void ACitizen::GainEnergy(int32 Max)
-{
-	Energy = FMath::Clamp(Energy + 1, 0, Max);
+	Energy = FMath::Clamp(Energy + 1, 0, 100);
 
 	HealthComponent->AddHealth(1);
 
-	if (Energy >= Max) {
+	if (Energy >= 100) {
 		MoveTo(Building.Employment);
 	}
 }
 
+//
+// Resources
+//
 void ACitizen::HarvestResource(AResource* Resource)
 {
 	Carry(Resource, Resource->GetYield(), Building.Employment);
@@ -144,11 +203,14 @@ void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 	}
 }
 
+//
+// Bio
+//
 void ACitizen::Birthday()
 {
-	Age += 1;
+	BioStruct.Age++;
 
-	if (Age >= 60) {
+	if (BioStruct.Age >= 60) {
 		HealthComponent->MaxHealth = 50;
 		HealthComponent->AddHealth(0);
 
@@ -159,17 +221,17 @@ void ACitizen::Birthday()
 		}
 	}
 
-	if (Age <= 18) {
+	if (BioStruct.Age <= 18) {
 		HealthComponent->Health += 5;
 
-		int32 scale = (Age * 0.04) + 0.28;
+		int32 scale = (BioStruct.Age * 0.04) + 0.28;
 		GetMesh()->SetWorldScale3D(FVector(scale, scale, scale));
 	}
-	else if (Partner != nullptr) {
+	else if (BioStruct.Partner != nullptr) {
 		HaveChild();
 	}
 
-	if (Age >= 18) {
+	if (BioStruct.Age >= 18) {
 		FindPartner();
 	}
 }
@@ -190,7 +252,7 @@ void ACitizen::SetSex()
 		if (c == this)
 			continue;
 
-		if (c->Sex == ESex::Male) {
+		if (c->BioStruct.Sex == ESex::Male) {
 			male += 1.0f;
 		}
 
@@ -204,10 +266,10 @@ void ACitizen::SetSex()
 	}
 
 	if (choice > mPerc) {
-		Sex = ESex::Male;
+		BioStruct.Sex = ESex::Male;
 	}
 	else {
-		Sex = ESex::Female;
+		BioStruct.Sex = ESex::Female;
 	}
 }
 
@@ -221,7 +283,7 @@ void ACitizen::FindPartner()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (!CanMoveTo(c) || c->Sex == Sex || c->Partner != nullptr || c->Age < 18) {
+		if (!CanMoveTo(c) || c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18) {
 			continue;
 		}
 
@@ -237,9 +299,9 @@ void ACitizen::FindPartner()
 
 void ACitizen::SetPartner(ACitizen* Citizen)
 {
-	Partner = Citizen;
+	BioStruct.Partner = Citizen;
 
-	if (Sex == ESex::Female) {
+	if (BioStruct.Sex == ESex::Female) {
 		GetWorld()->GetTimerManager().SetTimer(ChildTimer, this, &ACitizen::HaveChild, 45.0f, true);
 	}
 }
@@ -247,9 +309,11 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 void ACitizen::HaveChild()
 {
 	float chance = FMath::FRandRange(0.0f, 100.0f);
-	float passMark = FMath::LogX(60.0f, Age) * 100.0f;
+	float passMark = FMath::LogX(60.0f, BioStruct.Age) * 100.0f;
 
 	if (chance > passMark) {
-		GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), GetActorLocation(), GetActorRotation());
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), GetActorLocation(), GetActorRotation());
+		citizen->BioStruct.Mother = this;
+		citizen->BioStruct.Father = BioStruct.Father;
 	}
 }

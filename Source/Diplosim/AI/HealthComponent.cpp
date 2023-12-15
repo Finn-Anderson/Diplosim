@@ -41,9 +41,9 @@ void UHealthComponent::Death(FVector DeathInstigatorLocation)
 			citizen->Building.House->RemoveCitizen(citizen);
 		}
 
-		if (citizen->Partner != nullptr) {
-			citizen->Partner->Partner = nullptr;
-			citizen->Partner = nullptr;
+		if (citizen->BioStruct.Partner != nullptr) {
+			citizen->BioStruct.Partner->BioStruct.Partner = nullptr;
+			citizen->BioStruct.Partner = nullptr;
 		}
 	}
 

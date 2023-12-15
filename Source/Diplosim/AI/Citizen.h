@@ -40,11 +40,36 @@ struct FBuildingStruct
 };
 
 UENUM()
-enum class ESex : uint8 
+enum class ESex : uint8
 {
 	NaN,
 	Male,
 	Female
+};
+
+USTRUCT()
+struct FBioStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	class ACitizen* Mother;
+
+	class ACitizen* Father;
+
+	class ACitizen* Partner;
+
+	ESex Sex;
+
+	int32 Age;
+
+	FBioStruct()
+	{
+		Mother = nullptr;
+		Father = nullptr;
+		Partner = nullptr;
+		Sex = ESex::NaN;
+		Age = 0;
+	}
 };
 
 UCLASS()
@@ -85,28 +110,31 @@ public:
 	FCarryStruct Carrying;
 
 
+	// Food
+	void Eat();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Food")
+		TArray<TSubclassOf<AResource>> Food;
+
+	FTimerHandle HungerTimer;
+
+	int32 Hunger;
+
+
 	// Energy
-	void StartLoseEnergyTimer();
+	void SetEnergyTimer(bool bGain);
 
 	void LoseEnergy();
 
-	void StartGainEnergyTimer(int32 Max);
-
-	void GainEnergy(int32 Max);
+	void GainEnergy();
 
 	FTimerHandle EnergyTimer;
 
 	int32 Energy;
 
 
-	// Age
+	// Bio
 	void Birthday();
-
-	int32 Age;
-
-
-	// Sex
-	ESex Sex;
 
 	void SetSex();
 
@@ -116,7 +144,7 @@ public:
 
 	void HaveChild();
 
-	FTimerHandle ChildTimer;
+	FBioStruct BioStruct;
 
-	class ACitizen* Partner;
+	FTimerHandle ChildTimer;
 };

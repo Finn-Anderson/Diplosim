@@ -33,7 +33,7 @@ void AVegetation::YieldStatus()
 	SetQuantity(0);
 
 	FTimerHandle growTimer;
-	GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, TimeLength, false);
+	GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, TimeLength / 10, false);
 }
 
 void AVegetation::Grow()
@@ -53,7 +53,7 @@ void AVegetation::Grow()
 
 	if (!IsChoppable()) {
 		FTimerHandle growTimer;
-		GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, TimeLength, false);
+		GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, TimeLength / 10, false);
 	}
 }
 

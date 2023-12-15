@@ -12,9 +12,6 @@ class DIPLOSIM_API AFarm : public AWork
 public:
 	AFarm();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
-		TSubclassOf<class AGrid> Grid;
-
 	class AVegetation* Crop;
 
 	virtual void Enter(class ACitizen* Citizen) override;

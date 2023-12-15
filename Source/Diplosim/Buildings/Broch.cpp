@@ -15,7 +15,7 @@ void ABroch::FindCitizens()
 	for (int i = 0; i < NumToSpawn; i++) {
 		ACitizen* c = GetWorld()->SpawnActor<ACitizen>(CitizenClass, loc, FRotator(0, 0, 0));
 
-		c->Age = 17;
+		c->BioStruct.Age = 17;
 		c->Birthday();
 		c->HealthComponent->Health = c->HealthComponent->MaxHealth;
 
