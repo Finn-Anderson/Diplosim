@@ -82,11 +82,7 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor->IsA<ABuilding>() && Cast<ABuilding>(OtherActor)->BuildStatus != EBuildStatus::Blueprint) {
-		ABuilding* b = Cast<ABuilding>(OtherActor);
-
-		b->Leave(this);
-	}
+	
 }
 
 //
@@ -160,8 +156,14 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	if (Energy <= 15 && Building.House->IsValidLowLevelFast()) {
+	if (Energy > 15)
+		return;
+
+	if (Building.House->IsValidLowLevelFast()) {
 		MoveTo(Building.House);
+	}
+	else if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.House->IsValidLowLevelFast()) {
+		MoveTo(BioStruct.Mother->Building.House);
 	}
 
 	if (Energy == 0) {

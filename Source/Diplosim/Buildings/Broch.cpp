@@ -22,10 +22,3 @@ void ABroch::FindCitizens()
 		Enter(c);
 	}
 }
-
-void ABroch::Enter(ACitizen* Citizen)
-{
-	Super::Enter(Citizen);
-
-	Citizen->SetEnergyTimer(true);
-}

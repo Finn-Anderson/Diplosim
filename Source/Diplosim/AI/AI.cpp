@@ -10,6 +10,7 @@
 #include "AttackComponent.h"
 #include "Buildings/Building.h"
 #include "Projectile.h"
+#include "Citizen.h"
 
 AAI::AAI()
 {
@@ -122,6 +123,15 @@ void AAI::MoveTo(AActor* Location)
 		else {
 			AIController->MoveToLocation(Location->GetActorLocation());
 		}
+
+		if (IsA<ACitizen>()) {
+			ACitizen* citizen = Cast<ACitizen>(this);
+
+			if (citizen->Building.BuildingAt != nullptr && citizen->Building.BuildingAt != Location) {
+				citizen->Building.BuildingAt->Leave(citizen);
+			}
+		}
+		
 
 		Goal = Location;
 	}
