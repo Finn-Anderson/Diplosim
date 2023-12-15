@@ -19,4 +19,6 @@ public:
 		int32 NumToSpawn;
 
 	virtual void FindCitizens() override;
+
+	virtual void Enter(class ACitizen* Citizen) override;
 };
