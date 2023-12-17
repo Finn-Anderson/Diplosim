@@ -142,24 +142,15 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 
 			TreeList.Add(OtherActor);
 		}
-		else if (OtherActor->IsA<AMineral>() || (OtherActor->IsA<ABuilding>() && OtherActor != this)) {
-			Blocking.Add(OtherActor);
-		}
-		else if (OtherComp->GetName() == "HISMWater") {
-			Blocking.Add(OtherComp);
-		} else if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
-			FBuildStruct item;
-			item.HISMComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
-			item.Instance = OtherBodyIndex;
+		else {
+			TArray<UObject*> objArr = { OtherComp, OtherActor };
 
-			FTransform transform;
-			item.HISMComponent->GetInstanceTransform(item.Instance, transform);
-			int32 z = item.HISMComponent->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 50.0f;
+			for (UObject* obj : objArr) {
+				FVector location = CheckCollisions(obj);
 
-			item.Location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
-
-			if (!AllowedComps.Contains(item)) {
-				AllowedComps.Add(item);
+				if (!location.IsZero()) {
+					Collisions.Add(location);
+				}
 			}
 		}
 	}
@@ -173,21 +164,44 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 
 			TreeList.Remove(OtherActor);
 		}
-		else if (Blocking.Contains(OtherActor)) {
-			Blocking.RemoveSingle(OtherActor);
-		}
-		else if (Blocking.Contains(OtherComp)) {
-			Blocking.RemoveSingle(OtherComp);
-		} else if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
-			FBuildStruct item;
-			item.HISMComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
-			item.Instance = OtherBodyIndex;
+		else {
+			TArray<UObject*> objArr = { OtherComp, OtherActor };
 
-			if (AllowedComps.Contains(item)) {
-				AllowedComps.Remove(item);
+			for (UObject* obj : objArr) {
+				FVector location = CheckCollisions(obj);
+
+				if (!location.IsZero()) {
+					Collisions.RemoveSingle(location);
+				}
 			}
 		}
 	}
+}
+
+FVector ABuilding::CheckCollisions(class UObject* Object, int32 Index)
+{
+	FTransform transform;
+	double z = 0.0f;
+
+	if (Object->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+		UHierarchicalInstancedStaticMeshComponent* HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(Object);
+
+		HISM->GetInstanceTransform(Index, transform);
+		z = HISM->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	}
+	else if (Object->IsA<AResource>() || (Object->IsA<ABuilding>())) {
+		UStaticMeshComponent* MeshComp = Cast<AActor>(Object)->GetComponentByClass<UStaticMeshComponent>();
+
+		transform = MeshComp->GetComponentTransform();
+		z = MeshComp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	}
+
+	if (z == 0.0f)
+		return FVector::Zero();
+
+	FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
+
+	return location;
 }
 
 void ABuilding::DestroyBuilding()

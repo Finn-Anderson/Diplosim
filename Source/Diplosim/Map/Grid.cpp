@@ -461,7 +461,7 @@ void AGrid::GenerateResource(int32 Pos)
 	tile.Choice->GetInstanceTransform(tile.Instance, transform);
 	FVector loc = transform.GetLocation();
 
-	int32 z = tile.Choice->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 50.0f;
+	int32 z = tile.Choice->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 	loc.Z = z;
 
 	if (choiceVal == 1) {

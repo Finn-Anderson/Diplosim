@@ -131,7 +131,6 @@ void AAI::MoveTo(AActor* Location)
 				citizen->Building.BuildingAt->Leave(citizen);
 			}
 		}
-		
 
 		Goal = Location;
 	}

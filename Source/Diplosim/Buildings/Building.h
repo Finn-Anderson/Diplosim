@@ -26,29 +26,6 @@ struct FCostStruct
 	}
 };
 
-USTRUCT()
-struct FBuildStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	class UHierarchicalInstancedStaticMeshComponent* HISMComponent;
-
-	int32 Instance;
-
-	FVector Location;
-
-	FBuildStruct()
-	{
-		HISMComponent = nullptr;
-		Instance = 0;
-	}
-
-	bool operator==(const FBuildStruct& other) const
-	{
-		return (other.HISMComponent == HISMComponent) && (other.Instance == Instance);
-	}
-};
-
 UENUM()
 enum class EBuildStatus : uint8 
 {
@@ -77,12 +54,12 @@ public:
 
 	EBuildStatus BuildStatus;
 
-	TArray<UObject*> Blocking;
-
-	TArray<FBuildStruct> AllowedComps;
+	TArray<FVector> Collisions;
 
 	UPROPERTY()
 		class ACamera* Camera;
+
+	FVector CheckCollisions(class UObject* Object, int32 Index = 0);
 
 	void DestroyBuilding();
 

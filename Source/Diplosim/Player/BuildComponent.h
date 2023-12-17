@@ -42,7 +42,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		class ABuilding* Building;
 
-	bool IsNotFloating();
+	bool IsValidLocation();
 
 	void RotateBuilding(bool Rotate);
 

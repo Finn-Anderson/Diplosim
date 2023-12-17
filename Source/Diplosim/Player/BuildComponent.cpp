@@ -56,7 +56,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 				location = transform.GetLocation();
 
-				location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 50.0f;
+				location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 			}
 			else {
 				location = hit.Location;
@@ -69,7 +69,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			}
 		}
 
-		if (!IsNotFloating() || Building->Blocking.Num() > 0 || !Building->CheckBuildCost()) {
+		if (!IsValidLocation() || !Building->CheckBuildCost()) {
 			Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 		}
 		else {
@@ -83,35 +83,22 @@ void UBuildComponent::SetGridStatus()
 	GridStatus = !GridStatus;
 }
 
-bool UBuildComponent::IsNotFloating()
+bool UBuildComponent::IsValidLocation()
 {
-	if (Building->AllowedComps.Num() == 0)
+	if (Building->Collisions.Num() == 0)
 		return false;
 
-	for (int32 i = 0; i < Building->AllowedComps.Num(); i++) {
-		UHierarchicalInstancedStaticMeshComponent* comp = Building->AllowedComps[i].HISMComponent;
+	FVector building = Building->GetActorLocation();
+	building.X = FMath::RoundHalfFromZero(building.X);
+	building.Y = FMath::RoundHalfFromZero(building.Y);
+	building.Z = FMath::RoundHalfFromZero(building.Z);
 
-		FVector terrain = Building->AllowedComps[i].Location;
-		FVector building = Building->GetActorLocation();
-		building.X = FMath::RoundHalfFromZero(building.X);
-		building.Y = FMath::RoundHalfFromZero(building.Y);
-		building.Z = FMath::RoundHalfFromZero(building.Z);
+	for (int32 i = 0; i < Building->Collisions.Num(); i++) {
+		FVector terrain = Building->Collisions[i];
+		terrain.Z = FMath::RoundHalfFromZero(terrain.Z);
 
-		if (terrain.Z < building.Z) {
+		if (terrain.Z < 50.0f || terrain.Z < building.Z || (terrain.Z > building.Z && Building->GetClass()->GetName() != "BP_Ramp_C")) {
 			return false;
-		}
-
-		if (terrain.Z > building.Z) {
-			FCollisionQueryParams QueryParams;
-			QueryParams.AddIgnoredComponent(Building->AllowedComps[i].HISMComponent);
-
-			FHitResult hit(ForceInit);
-
-			if (GetWorld()->LineTraceSingleByChannel(hit, terrain, building, ECollisionChannel::ECC_Visibility)) {
-				if (hit.Distance < 100.0f) {
-					return false;
-				}
-			}
 		}
 	}
 
@@ -182,7 +169,7 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 
 void UBuildComponent::Place()
 {
-	if (Building == nullptr || !IsNotFloating() || Building->Blocking.Num() > 0 || !Building->CheckBuildCost())
+	if (Building == nullptr || !IsValidLocation() || !Building->CheckBuildCost())
 		return;
 
 	for (int i = 0; i < Building->TreeList.Num(); i++) {
