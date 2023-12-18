@@ -22,6 +22,10 @@ AGrid::AGrid()
 	HISMWater->SetCanEverAffectNavigation(false);
 	HISMWater->NumCustomDataFloats = 1;
 
+	HISMBeach = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMBeach"));
+	HISMBeach->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	HISMBeach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
@@ -65,6 +69,8 @@ void AGrid::Render()
 			Storage.Add(tile);
 		}
 	}
+
+	TArray<int32> backupPos = pos;
 
 	// Set the sea size for the outer rim of the map
 	int32 seaSize = 20;
@@ -112,15 +118,27 @@ void AGrid::Render()
 		TArray<UHierarchicalInstancedStaticMeshComponent*> targetBanList = {};
 
 		UHierarchicalInstancedStaticMeshComponent* targetChoice = GetTargetChoice(pos, targetBanList);
-		targetBanList.Add(targetChoice);
+
+		int32 maxCount = 110;
 
 		// Go down quantity or repick targetChoice
 		while (chosenList.IsEmpty()) {
-			chosenList = GetChosenList(pos, targetChoice);
+			if (targetChoice == nullptr) {
+				targetBanList.Empty();
 
-			if (chosenList.IsEmpty()) {
+				maxCount += 10;
+
 				targetChoice = GetTargetChoice(pos, targetBanList);
 			}
+
+			chosenList = GetChosenList(pos, targetChoice, maxCount);
+
+			if (!chosenList.IsEmpty())
+				break;
+
+			targetBanList.Add(targetChoice);
+
+			targetChoice = GetTargetChoice(pos, targetBanList);
 		}
 
 		int32 chosenNum = FMath::RandRange(0, chosenList.Num() - 1);
@@ -179,9 +197,12 @@ void AGrid::Render()
 		}
 	}
 
+	// Generate Beaches
+	SetBeaches(backupPos);
+
 	// Spawn Actor
 	for (FTileStruct tile : Storage) {
-		GenerateTile(tile.Choice, tile.Fertility, tile.X, tile.Y);
+		GenerateTile(tile.Choice, tile.Fertility, tile.X, tile.Y, tile.Rotation);
 	}
 
 	// Set Camera Bounds
@@ -213,6 +234,7 @@ int32 AGrid::GetFertility(FTileStruct Tile)
 
 void AGrid::SetTileChoices(TArray<FTileStruct> Tiles)
 {
+	// Set tile choices based on adjacent tiles
 	for (FTileStruct tile : Tiles) {
 		TArray<class UHierarchicalInstancedStaticMeshComponent*> choices;
 
@@ -275,79 +297,142 @@ UHierarchicalInstancedStaticMeshComponent* AGrid::GetTargetChoice(TArray<int32> 
 		}
 	}
 
+	if (targetChoiceList.Num() == 0)
+		return nullptr;
+
 	int32 targetNum = FMath::RandRange(0, targetChoiceList.Num() - 1);
 
 	return targetChoiceList[targetNum];
 }
 
-TArray<FTileStruct> AGrid::GetChosenList(TArray<int32> Pos, class UHierarchicalInstancedStaticMeshComponent* TargetChoice) 
+TArray<FTileStruct> AGrid::GetChosenList(TArray<int32> Pos, class UHierarchicalInstancedStaticMeshComponent* TargetChoice, int32 MaxCount) 
 {
-	int32 targetQuantity = 0;
+	int32 targetQuantity = 4;
 
 	TArray<FTileStruct> tiles;
 
 	TArray<FTileStruct> chosenList;
 
-	for (int32 i = 0; i < Pos.Num(); i++) {
-		FTileStruct tile = Storage[Pos[i]];
+	while (chosenList.IsEmpty()) {
+		for (int32 i = 0; i < Pos.Num(); i++) {
+			FTileStruct tile = Storage[Pos[i]];
 
-		if (tile.ChoiceList.IsEmpty() || !tile.ChoiceList.Contains(TargetChoice))
-			continue;
+			if (tile.ChoiceList.IsEmpty() || !tile.ChoiceList.Contains(TargetChoice))
+				continue;
 
-		tiles.Empty();
+			tiles.Empty();
 
-		tiles.Add(Storage[(tile.X - 1) + (tile.Y * Size)]);
-		tiles.Add(Storage[tile.X + ((tile.Y - 1) * Size)]);
-		tiles.Add(Storage[(tile.X + 1) + (tile.Y * Size)]);
-		tiles.Add(Storage[tile.X + ((tile.Y + 1) * Size)]);
+			tiles.Add(Storage[(tile.X - 1) + (tile.Y * Size)]);
+			tiles.Add(Storage[tile.X + ((tile.Y - 1) * Size)]);
+			tiles.Add(Storage[(tile.X + 1) + (tile.Y * Size)]);
+			tiles.Add(Storage[tile.X + ((tile.Y + 1) * Size)]);
 
-		int32 quantity = 0;
-		for (FTileStruct t : tiles) {
-			if (t.Choice == TargetChoice) {
-				quantity++;
+			int32 quantity = 0;
+			bool bWater = false;
+
+			for (FTileStruct t : tiles) {
+				if (t.Choice == TargetChoice) {
+					quantity++;
+				}
+				else if (t.Choice == HISMWater) {
+					bWater = true;
+				}
 			}
-		}
 
-		int32 count = 0;
-		for (int32 y = 1; y < 9; y++)
-		{
-			for (int32 x = 1; x < 9; x++)
+			if (quantity < targetQuantity || (TargetChoice == HISMBeach && !bWater))
+				continue;
+
+			int32 count = 0;
+			for (int32 y = 1; y < 9; y++)
 			{
-				if (Storage[(tile.X - x) + (tile.Y * Size)].Choice == TargetChoice) {
-					count++;
-				}
-				if (Storage[(tile.X + x) + (tile.Y * Size)].Choice == TargetChoice) {
-					count++;
-				}
-				if (Storage[tile.X + ((tile.Y - y) * Size)].Choice == TargetChoice) {
-					count++;
-				}
-				if (Storage[tile.X + ((tile.Y + y) * Size)].Choice == TargetChoice) {
-					count++;
+				for (int32 x = 1; x < 9; x++)
+				{
+					if (Storage[(tile.X - x) + (tile.Y * Size)].Choice == TargetChoice) {
+						count++;
+					}
+					if (Storage[(tile.X + x) + (tile.Y * Size)].Choice == TargetChoice) {
+						count++;
+					}
+					if (Storage[tile.X + ((tile.Y - y) * Size)].Choice == TargetChoice) {
+						count++;
+					}
+					if (Storage[tile.X + ((tile.Y + y) * Size)].Choice == TargetChoice) {
+						count++;
+					}
 				}
 			}
+
+			if (count > MaxCount)
+				continue;
+
+			chosenList.Add(tile);
 		}
 
-		if (quantity < targetQuantity || count > 125)
-			continue;
-
-		if (quantity > targetQuantity) {
-			chosenList.Empty();
-
-			targetQuantity = quantity;
+		if (targetQuantity == 0) {
+			break;
 		}
 
-		chosenList.Add(tile);
+		targetQuantity--;
 	}
 
 	return chosenList;
 }
 
-void AGrid::GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Fertility, int32 x, int32 y)
+void AGrid::SetBeaches(TArray<int32> pos)
+{
+	FTileStruct temp;
+	TArray<FTileStruct> chosenList = { temp };
+
+	bool bChoicesPending = true;
+	while (bChoicesPending) {
+		chosenList = GetChosenList(pos, HISMBeach, 4);
+
+		if (chosenList.IsEmpty())
+			break;
+
+		int32 chosenNum = FMath::RandRange(0, chosenList.Num() - 1);
+		FTileStruct chosenTile = chosenList[chosenNum];
+
+		TArray<FTileStruct> tiles;
+
+		tiles.Add(Storage[(chosenTile.X - 1) + (chosenTile.Y * Size)]);
+		tiles.Add(Storage[chosenTile.X + ((chosenTile.Y - 1) * Size)]);
+		tiles.Add(Storage[(chosenTile.X + 1) + (chosenTile.Y * Size)]);
+		tiles.Add(Storage[chosenTile.X + ((chosenTile.Y + 1) * Size)]);
+
+		FVector waterLoc = FVector(0.0f, 0.0f, 0.0f);
+
+		for (FTileStruct t : tiles) {
+			if (t.Choice != HISMWater)
+				continue;
+
+			waterLoc = FVector(100.0f * t.X - (100.0f * (Size / 2)), 100.0f * t.Y - (100.0f * (Size / 2)), 0);
+
+			break;
+		}
+
+		FVector groundLoc = FVector(100.0f * chosenTile.X - (100.0f * (Size / 2)), 100.0f * chosenTile.Y - (100.0f * (Size / 2)), 0);
+
+		chosenTile.Rotation = (groundLoc - waterLoc).Rotation().Quaternion();
+
+		chosenTile.Choice = HISMBeach;
+
+		Storage[chosenTile.X + (chosenTile.Y * Size)] = chosenTile;
+
+		pos.Remove(chosenTile.X + (chosenTile.Y * Size));
+
+		if (pos.IsEmpty()) {
+			bChoicesPending = false;
+		}
+	}
+}
+
+void AGrid::GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Fertility, int32 x, int32 y, FQuat Rotation)
 {
 	FTransform transform;
 	FVector loc = FVector(100.0f * x - (100.0f * (Size / 2)), 100.0f * y - (100.0f * (Size / 2)), 0);
 	transform.SetLocation(loc);
+	transform.SetRotation(Rotation);
 
 	int32 inst;
 	if (Choice == HISMWater) {
@@ -371,6 +456,9 @@ void AGrid::GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int3
 		float data = FMath::Sqrt(distToChosen / 1000.0f);
 
 		HISMWater->SetCustomDataValue(inst, 0, data);
+	}
+	else if (Choice == HISMBeach) {
+		inst = HISMBeach->AddInstance(transform);
 	}
 	else {
 		float r = 0.0f;
@@ -452,7 +540,7 @@ void AGrid::GenerateResource(int32 Pos)
 {
 	FTileStruct tile = Storage[Pos];
 
-	if (tile.Choice == HISMWater)
+	if (tile.Choice == HISMWater || tile.Choice == HISMBeach)
 		return;
 
 	int32 choiceVal = FMath::RandRange(1, 100);

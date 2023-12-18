@@ -21,6 +21,8 @@ struct FTileStruct
 
 	int32 Y;
 
+	FQuat Rotation;
+
 	TArray<class AActor*> Resource;
 
 	bool bIsSea;
@@ -28,9 +30,17 @@ struct FTileStruct
 	FTileStruct() {
 		Choice = nullptr;
 
+		Instance = 0;
+
 		Fertility = 0;
 
+		X = 0;
+
+		Y = 0;
+
 		bIsSea = false;
+
+		Rotation = FRotator(0.0f, 0.0f, 0.0f).Quaternion();
 	}
 };
 
@@ -61,6 +71,9 @@ public:
 		class UHierarchicalInstancedStaticMeshComponent* HISMWater;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* HISMBeach;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMGround;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
@@ -84,9 +97,11 @@ public:
 
 	UHierarchicalInstancedStaticMeshComponent* GetTargetChoice(TArray<int32> Pos, TArray<UHierarchicalInstancedStaticMeshComponent*> TargetBanList);
 
-	TArray<FTileStruct> GetChosenList(TArray<int32> Pos, class UHierarchicalInstancedStaticMeshComponent* TargetChoice);
+	TArray<FTileStruct> GetChosenList(TArray<int32> Pos, class UHierarchicalInstancedStaticMeshComponent* TargetChoice, int32 MaxCount);
 
-	void GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Fertility, int32 x, int32 y);
+	void SetBeaches(TArray<int32> pos);
+
+	void GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Fertility, int32 x, int32 y, FQuat Rotation);
 
 	void Clear();
 
