@@ -12,7 +12,6 @@
 #include "AI/Enemy.h"
 #include "AI/Citizen.h"
 #include "AI/Projectile.h"
-#include "Buildings/Watchtower.h"
 #include "Buildings/Broch.h"
 
 UAttackComponent::UAttackComponent()
@@ -36,9 +35,7 @@ void UAttackComponent::BeginPlay()
 
 	Owner = GetOwner();
 
-	if (*ProjectileClass) {
-		Damage = Cast<AProjectile>(ProjectileClass->GetDefaultObject())->Damage;
-	}
+	SetProjectileClass(ProjectileClass);
 
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
 	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &UAttackComponent::OnOverlapEnd);
@@ -46,6 +43,9 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	if (*ProjectileClass)
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, ProjectileClass->GetName());
+
 	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || !CanAttack())
 		return;
 
@@ -140,6 +140,16 @@ void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 	}
 }
 
+void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
+{
+	if (OtherClass == ProjectileClass)
+		return;
+
+	ProjectileClass = OtherClass;
+
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, ProjectileClass->GetName());
+}
+
 void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 {
 	FAttackStruct favoured;
@@ -158,7 +168,12 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 		hp = healthComp->Health;
 
 		if (attackComp) {
-			dmg = attackComp->Damage;
+			if (*attackComp->ProjectileClass) {
+				dmg = Cast<AProjectile>(attackComp->ProjectileClass->GetDefaultObject())->Damage;
+			}
+			else {
+				dmg = attackComp->Damage;
+			}
 		}
 
 		NavData->CalcPathLength(Owner->GetActorLocation(), Targets[i]->GetActorLocation(), outLength);
@@ -216,37 +231,9 @@ void UAttackComponent::Attack(AActor* Target)
 
 void UAttackComponent::Throw(AActor* Target)
 {
-	TArray<FVector> locations;
+	USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 
-	if (Owner->IsA<AAI>()) {
-		USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
-
-		FVector loc = Owner->GetActorLocation() + comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
-
-		locations.Add(loc);
-	}
-	else {
-		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Owner->GetComponentByClass(UStaticMeshComponent::StaticClass()));
-
-		TArray<FName> sockets = comp->GetAllSocketNames();
-		sockets.Remove("Entrance");
-
-		for (FName socket : sockets) {
-			locations.Add(comp->GetSocketLocation(socket));
-		}
-	}
-
-	FVector startLoc = FVector(1000000000.0f, 1000000000.0f, 1000000000.0f);
-
-	for (FVector loc : locations) {
-		double distLoc = FVector::Dist(loc, Target->GetActorLocation());
-
-		double distStart = FVector::Dist(startLoc, Target->GetActorLocation());
-
-		if (distLoc < distStart) {
-			startLoc = loc;
-		}
-	}
+	FVector startLoc = Owner->GetActorLocation() + comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
 
 	double initialHeight = startLoc.Z - Target->GetActorLocation().Z;
 
@@ -275,13 +262,6 @@ bool UAttackComponent::CanAttack()
 		ACitizen* citizen = Cast<ACitizen>(Owner);
 
 		if (citizen->BioStruct.Age < 18 || (citizen->Building.BuildingAt != nullptr && !citizen->Building.BuildingAt->IsA<ABroch>() )) {
-			return false;
-		}
-	}
-	else if (Owner->IsA<AWatchtower>()) {
-		AWatchtower* watchtower = Cast<AWatchtower>(Owner);
-
-		if (watchtower->Occupied.IsEmpty() || watchtower->GetWorkers().Num() == 0) {
 			return false;
 		}
 	}

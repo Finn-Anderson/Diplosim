@@ -6,7 +6,7 @@
 
 #include "Camera.h"
 #include "Buildings/Building.h"
-#include "Buildings/Watchtower.h"
+#include "Buildings/Wall.h"
 #include "Map/Grid.h"
 #include "Map/Vegetation.h"
 #include "DiplosimGameModeBase.h"
@@ -176,8 +176,8 @@ void UBuildComponent::Place()
 		Building->TreeList[i]->Destroy(true);
 	}
 
-	if (Building->IsA<AWatchtower>()) {
-		Cast<AWatchtower>(Building)->HideRangeComponent();
+	if (Building->IsA<AWall>()) {
+		Cast<AWall>(Building)->StoreSocketLocations();
 	}
 
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);

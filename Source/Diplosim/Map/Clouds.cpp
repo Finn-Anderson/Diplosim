@@ -16,7 +16,7 @@ AClouds::AClouds()
 	HISMClouds->SetCanEverAffectNavigation(false);
 	HISMClouds->NumCustomDataFloats = 2;
 
-	height = 800.0f;
+	height = 1000.0f;
 }
 
 void AClouds::BeginPlay()
@@ -61,10 +61,10 @@ void AClouds::GetCloudBounds(AGrid* Grid)
 	FTileStruct min = Grid->Storage[0];
 
 	Grid->HISMWater->GetInstanceTransform(min.Instance, extremeTransform);
-	X = FMath::Abs(extremeTransform.GetLocation().X) / 2;
+	X = FMath::Abs(extremeTransform.GetLocation().X);
 
 	Grid->HISMWater->GetInstanceTransform(min.Instance, extremeTransform);
-	Y = FMath::Abs(extremeTransform.GetLocation().Y);
+	Y = FMath::Abs(extremeTransform.GetLocation().Y) * 1.5;
 
 	CloudSpawner();
 }

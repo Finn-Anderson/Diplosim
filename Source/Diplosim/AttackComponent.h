@@ -46,9 +46,9 @@ public:
 	UFUNCTION()
 		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void PickTarget(TArray<AActor*> Targets);
+	void SetProjectileClass(TSubclassOf<class AProjectile> OtherClass);
 
-	bool CanThrow(AActor* Target, TArray<FVector> Locations);
+	void PickTarget(TArray<AActor*> Targets);
 
 	bool CanHit(AActor* Target, FVector::FReal Length);
 
