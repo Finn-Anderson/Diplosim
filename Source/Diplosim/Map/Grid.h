@@ -42,6 +42,11 @@ struct FTileStruct
 
 		Rotation = FRotator(0.0f, 0.0f, 0.0f).Quaternion();
 	}
+
+	bool operator==(const FTileStruct& other) const
+	{
+		return (other.X == X) && (other.Y == Y);
+	}
 };
 
 UCLASS()
@@ -91,15 +96,13 @@ public:
 	
 	void Render();
 
-	int32 GetFertility(FTileStruct Tile);
+	TArray<FTileStruct> SetTileChoices(TArray<FTileStruct> Tiles);
 
-	void SetTileChoices(TArray<FTileStruct> Tiles);
+	UHierarchicalInstancedStaticMeshComponent* GetTargetChoice(TArray<FTileStruct> Tiles, TArray<UHierarchicalInstancedStaticMeshComponent*> TargetBanList);
 
-	UHierarchicalInstancedStaticMeshComponent* GetTargetChoice(TArray<int32> Pos, TArray<UHierarchicalInstancedStaticMeshComponent*> TargetBanList);
+	TArray<FTileStruct> GetChosenList(TArray<FTileStruct> Tiles, class UHierarchicalInstancedStaticMeshComponent* TargetChoice, int32 MaxCount);
 
-	TArray<FTileStruct> GetChosenList(TArray<int32> Pos, class UHierarchicalInstancedStaticMeshComponent* TargetChoice, int32 MaxCount);
-
-	void SetBeaches(TArray<int32> pos);
+	void SetBeaches();
 
 	void GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Fertility, int32 x, int32 y, FQuat Rotation);
 

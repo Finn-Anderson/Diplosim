@@ -21,8 +21,8 @@ ABuilding::ABuilding()
 	PrimaryActorTick.bCanEverTick = false;
 
 	BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BuildingMesh"));
+	BuildingMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
