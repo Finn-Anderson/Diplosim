@@ -39,7 +39,7 @@ void AWall::Enter(ACitizen* Citizen)
 
 	Citizen->AIController->StopMovement();
 
-	Citizen->AttackComponent->ProjectileClass = BuildingProjectileClass;
+	Citizen->AttackComponent->SetProjectileClass(BuildingProjectileClass);
 
 	for (int32 i = 0; i < SocketList.Num(); i++) {
 		if (SocketList[i].Citizen != nullptr)

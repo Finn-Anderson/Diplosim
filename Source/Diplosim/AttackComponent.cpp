@@ -13,6 +13,7 @@
 #include "AI/Citizen.h"
 #include "AI/Projectile.h"
 #include "Buildings/Broch.h"
+#include "Buildings/Wall.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -35,23 +36,20 @@ void UAttackComponent::BeginPlay()
 
 	Owner = GetOwner();
 
-	SetProjectileClass(ProjectileClass);
-
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
 	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &UAttackComponent::OnOverlapEnd);
 }
 
 void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	if (*ProjectileClass)
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, ProjectileClass->GetName());
-
 	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || !CanAttack())
 		return;
 
 	TArray<AActor*> targets;
 
-	for (AActor* actor : OverlappingEnemies) {
+	for (int32 i = (OverlappingEnemies.Num() - 1); i > -1; i--) {
+		AActor* actor = OverlappingEnemies[i];
+
 		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
@@ -146,8 +144,6 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 		return;
 
 	ProjectileClass = OtherClass;
-
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, ProjectileClass->GetName());
 }
 
 void UAttackComponent::PickTarget(TArray<AActor*> Targets)
@@ -261,7 +257,7 @@ bool UAttackComponent::CanAttack()
 	if (Owner->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(Owner);
 
-		if (citizen->BioStruct.Age < 18 || (citizen->Building.BuildingAt != nullptr && !citizen->Building.BuildingAt->IsA<ABroch>() )) {
+		if (citizen->BioStruct.Age < 18 || (citizen->Building.BuildingAt != nullptr && !citizen->Building.BuildingAt->IsA<ABroch>() && !citizen->Building.BuildingAt->IsA<AWall>())) {
 			return false;
 		}
 	}
