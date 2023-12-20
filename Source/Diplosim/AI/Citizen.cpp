@@ -27,7 +27,8 @@ ACitizen::ACitizen()
 	Hunger = 100;
 	Energy = 100;
 
-	HealthComponent->Health = 10;
+	HealthComponent->MaxHealth = 10;
+	HealthComponent->Health = HealthComponent->MaxHealth;
 }
 
 void ACitizen::BeginPlay()
@@ -224,7 +225,7 @@ void ACitizen::Birthday()
 	}
 
 	if (BioStruct.Age <= 18) {
-		HealthComponent->Health += 5;
+		HealthComponent->MaxHealth += 5;
 
 		int32 scale = (BioStruct.Age * 0.04) + 0.28;
 		GetMesh()->SetWorldScale3D(FVector(scale, scale, scale));
@@ -236,6 +237,8 @@ void ACitizen::Birthday()
 	if (BioStruct.Age >= 18) {
 		FindPartner();
 	}
+
+	HealthComponent->Health += 5;
 }
 
 void ACitizen::SetSex()

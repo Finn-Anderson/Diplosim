@@ -8,7 +8,7 @@
 #include "AIController.h"
 
 #include "AI/AI.h"
-#include "AI/HealthComponent.h"
+#include "HealthComponent.h"
 #include "AI/Enemy.h"
 #include "AI/Citizen.h"
 #include "AI/Projectile.h"

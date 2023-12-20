@@ -3,7 +3,7 @@
 #include "AIController.h"
 
 #include "AI/Citizen.h"
-#include "AttackComponent.h"
+#include "AI/AttackComponent.h"
 
 AWall::AWall()
 {

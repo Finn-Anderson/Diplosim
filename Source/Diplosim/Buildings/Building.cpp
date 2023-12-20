@@ -7,8 +7,7 @@
 #include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
-#include "AI/HealthComponent.h"
-#include "AttackComponent.h"
+#include "HealthComponent.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 #include "Player/BuildComponent.h"

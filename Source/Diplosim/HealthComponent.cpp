@@ -1,9 +1,9 @@
-#include "AI/HealthComponent.h"
+#include "HealthComponent.h"
 
 #include "Kismet/GameplayStatics.h"
 
-#include "Citizen.h"
-#include "AttackComponent.h"
+#include "AI/Citizen.h"
+#include "AI/AttackComponent.h"
 #include "Buildings/Work.h"
 #include "Buildings/House.h"
 

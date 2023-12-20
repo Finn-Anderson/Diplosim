@@ -63,10 +63,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			}
 
 			Building->SetActorLocation(location);
-
-			if (Building->IsA<AWatchtower>()) {
-				Cast<AWatchtower>(Building)->SetRange(location.Z);
-			}
 		}
 
 		if (!IsValidLocation() || !Building->CheckBuildCost()) {
