@@ -16,9 +16,16 @@ void AVegetation::BeginPlay()
 	if (MeshList.Num() > 0) {
 		int32 i = FMath::RandRange(0, (MeshList.Num() - 1));
 
+		int32 s = FMath::RandRange(-2, 2);
+		float scale = (10.0f + s) / 10.0f;
+
+		MaxScale = FVector(scale, scale, scale);
+
 		ResourceMesh->SetMobility(EComponentMobility::Movable);
 
 		ResourceMesh->SetStaticMesh(MeshList[i]);
+
+		ResourceMesh->SetRelativeScale3D(MaxScale);
 
 		ResourceMesh->SetMobility(EComponentMobility::Static);
 	}
@@ -39,6 +46,7 @@ void AVegetation::YieldStatus()
 void AVegetation::Grow()
 {
 	FVector scale = ResourceMesh->GetRelativeScale3D();
+
 	if (scale.X < 1.0f) {
 		scale.X += 0.1f;
 	}
@@ -60,7 +68,8 @@ void AVegetation::Grow()
 bool AVegetation::IsChoppable()
 {
 	FVector scale = ResourceMesh->GetRelativeScale3D();
-	if (scale.X < 1.0f || scale.Y < 1.0f || scale.Z < 1.0f)
+
+	if (scale.X < MaxScale.X || scale.Y < MaxScale.Y || scale.Z < MaxScale.Z)
 		return false;
 
 	SetQuantity(MaxYield);

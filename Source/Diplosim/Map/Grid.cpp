@@ -208,7 +208,7 @@ void AGrid::Render()
 	min.Choice->GetInstanceTransform(min.Instance, transform);
 	FVector c1 = transform.GetLocation();
 
-	FTileStruct max = Storage[139 + 139 * Size];
+	FTileStruct max = Storage[(Size - 10) + (Size - 10) * Size];
 	max.Choice->GetInstanceTransform(max.Instance, transform);
 	FVector c2 = transform.GetLocation();
 

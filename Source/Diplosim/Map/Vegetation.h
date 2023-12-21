@@ -19,10 +19,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tree Meshes")
 		TArray<class UStaticMesh*> MeshList;
 
-	FVector IntialScale;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
 		int32 TimeLength;
+
+	FVector IntialScale;
+
+	FVector MaxScale;
 
 	virtual void YieldStatus();
 
