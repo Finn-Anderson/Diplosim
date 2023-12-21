@@ -93,7 +93,7 @@ bool UBuildComponent::IsValidLocation()
 		FVector terrain = Building->Collisions[i];
 		terrain.Z = FMath::RoundHalfFromZero(terrain.Z);
 
-		if (terrain.Z < 50.0f || terrain.Z < building.Z || (terrain.Z > building.Z && Building->GetClass()->GetName() != "BP_Ramp_C")) {
+		if (terrain.Z < 100.0f || terrain.Z < building.Z || (terrain.Z > building.Z && Building->GetClass()->GetName() != "BP_Ramp_C")) {
 			return false;
 		}
 	}
