@@ -16,19 +16,22 @@ protected:
 	virtual void BeginPlay();
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tree Meshes")
-		TArray<class UStaticMesh*> MeshList;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
-		int32 TimeLength;
-
-	FVector IntialScale;
-
-	FVector MaxScale;
-
 	virtual void YieldStatus();
 
 	void Grow();
 
 	bool IsChoppable();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Meshes")
+		TArray<class UStaticMesh*> MeshList;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
+		int32 TimeLength;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scale")
+		bool bVaryScale;
+
+	FVector IntialScale;
+
+	FVector MaxScale;
 };

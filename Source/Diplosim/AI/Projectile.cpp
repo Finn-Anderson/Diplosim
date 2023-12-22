@@ -24,8 +24,8 @@ AProjectile::AProjectile()
     ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
     ProjectileMovementComponent->SetUpdatedComponent(ProjectileMesh);
     ProjectileMovementComponent->bRotationFollowsVelocity = true;
-	ProjectileMovementComponent->InitialSpeed = 500.0f;
-    ProjectileMovementComponent->MaxSpeed = 500.0f;
+	ProjectileMovementComponent->InitialSpeed = 650.0f;
+    ProjectileMovementComponent->MaxSpeed = 650.0f;
 
 	Damage = 20;
 }

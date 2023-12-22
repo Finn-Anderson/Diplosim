@@ -17,8 +17,7 @@
 
 UAttackComponent::UAttackComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.bCanEverTick = false;
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetCollisionProfileName("Spectator", true);
@@ -40,9 +39,67 @@ void UAttackComponent::BeginPlay()
 	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &UAttackComponent::OnOverlapEnd);
 }
 
-void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OverlappingEnemies.IsEmpty() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || !CanAttack())
+	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
+		if (OtherActor->GetClass() != enemyClass || (OtherActor->IsA<ABuilding>() && Cast<ABuilding>(OtherActor)->BuildStatus != EBuildStatus::Complete))
+			continue;
+
+		UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
+
+		if (healthComp->Health == 0)
+			return;
+
+		OverlappingEnemies.Add(OtherActor);
+
+		GetTargets();
+
+		break;
+	}
+}
+
+void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OverlappingEnemies.Contains(OtherActor)) {
+		OverlappingEnemies.Remove(OtherActor);
+
+		if (!OverlappingEnemies.IsEmpty())
+			return;
+
+		GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
+
+		if (Owner->IsA<ACitizen>()) {
+			ACitizen* citizen = Cast<ACitizen>(Owner);
+
+			if (citizen->Building.Employment == nullptr) {
+				TArray<AActor*> brochs;
+				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
+
+				citizen->MoveTo(brochs[0]);
+			}
+			else {
+				citizen->MoveTo(citizen->Building.Employment);
+			}
+		}
+		else if (Owner->IsA<AEnemy>()) {
+			AEnemy* enemy = Cast<AEnemy>(Owner);
+
+			enemy->MoveToBroch();
+		}
+	}
+}
+
+void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
+{
+	if (OtherClass == ProjectileClass)
+		return;
+
+	ProjectileClass = OtherClass;
+}
+
+void UAttackComponent::GetTargets()
+{
+	if (OverlappingEnemies.IsEmpty() || !CanAttack())
 		return;
 
 	TArray<AActor*> targets;
@@ -82,68 +139,6 @@ void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	else {
 		PickTarget(targets);
 	}
-
-	if (OverlappingEnemies.IsEmpty()) {
-		GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
-	}
-}
-
-void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
-		if (OtherActor->GetClass() != enemyClass || (OtherActor->IsA<ABuilding>() && Cast<ABuilding>(OtherActor)->BuildStatus != EBuildStatus::Complete))
-			continue;
-
-		UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
-
-		if (healthComp->Health == 0)
-			return;
-
-		OverlappingEnemies.Add(OtherActor);
-
-		SetComponentTickEnabled(true);
-
-		break;
-	}
-}
-
-void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OverlappingEnemies.Contains(OtherActor)) {
-		OverlappingEnemies.Remove(OtherActor);
-
-		if (!OverlappingEnemies.IsEmpty())
-			return;
-
-		SetComponentTickEnabled(false);
-
-		if (Owner->IsA<ACitizen>()) {
-			ACitizen* citizen = Cast<ACitizen>(Owner);
-
-			if (citizen->Building.Employment == nullptr) {
-				TArray<AActor*> brochs;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
-
-				citizen->MoveTo(brochs[0]);
-			}
-			else {
-				citizen->MoveTo(citizen->Building.Employment);
-			}
-		}
-		else if (Owner->IsA<AEnemy>()) {
-			AEnemy* enemy = Cast<AEnemy>(Owner);
-
-			enemy->MoveToBroch();
-		}
-	}
-}
-
-void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
-{
-	if (OtherClass == ProjectileClass)
-		return;
-
-	ProjectileClass = OtherClass;
 }
 
 void UAttackComponent::PickTarget(TArray<AActor*> Targets)
@@ -205,6 +200,8 @@ bool UAttackComponent::CanHit(AActor* Target, FVector::FReal Length)
 	if (Length > comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Length() + 20.0f) {
 		Cast<AAI>(Owner)->MoveTo(Target);
 
+		GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, 0.1, false);
+
 		return false;
 	}
 
@@ -222,7 +219,7 @@ void UAttackComponent::Attack(AActor* Target)
 		healthComp->TakeHealth(Damage, Owner->GetActorLocation());
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(AttackTimer, TimeToAttack, false);
+	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, TimeToAttack, true);
 }
 
 void UAttackComponent::Throw(AActor* Target)

@@ -6,7 +6,11 @@ AVegetation::AVegetation()
 {
 	IntialScale = FVector(0.1f, 0.1f, 0.1f);
 
+	MaxScale = FVector(1.0f, 1.0f, 1.0f);
+
 	TimeLength = 30.0f;
+
+	bVaryScale = false;
 }
 
 void AVegetation::BeginPlay()
@@ -16,16 +20,18 @@ void AVegetation::BeginPlay()
 	if (MeshList.Num() > 0) {
 		int32 i = FMath::RandRange(0, (MeshList.Num() - 1));
 
-		int32 s = FMath::RandRange(-2, 2);
-		float scale = (10.0f + s) / 10.0f;
-
-		MaxScale = FVector(scale, scale, scale);
-
 		ResourceMesh->SetMobility(EComponentMobility::Movable);
 
 		ResourceMesh->SetStaticMesh(MeshList[i]);
 
-		ResourceMesh->SetRelativeScale3D(MaxScale);
+		if (bVaryScale) {
+			int32 s = FMath::RandRange(-2, 2);
+			float scale = (10.0f + s) / 10.0f;
+
+			MaxScale = FVector(scale, scale, scale);
+
+			ResourceMesh->SetRelativeScale3D(MaxScale);
+		}
 
 		ResourceMesh->SetMobility(EComponentMobility::Static);
 	}
