@@ -16,11 +16,14 @@
 
 ACitizen::ACitizen()
 {
+	GetCapsuleComponent()->SetCapsuleSize(9.0f, 11.5f);
+
+	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
 	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
-	CapsuleCollision->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
-	CapsuleCollision->SetupAttachment(GetMesh());
+	CapsuleCollision->SetCapsuleSize(18.0f, 23.0f);
+	CapsuleCollision->SetupAttachment(RootComponent);
 
 	Balance = 20;
 
@@ -157,7 +160,7 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	if (Energy > 15)
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty())
 		return;
 
 	if (Building.House->IsValidLowLevelFast()) {

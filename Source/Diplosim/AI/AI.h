@@ -15,7 +15,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-public:	
+public:
+	void MoveToBroch();
+
 	UPROPERTY()
 		class AAIController* AIController;
 

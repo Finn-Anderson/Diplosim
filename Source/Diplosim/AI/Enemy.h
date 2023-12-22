@@ -11,6 +11,4 @@ class DIPLOSIM_API AEnemy : public AAI
 	
 public:
 	AEnemy();
-
-	void MoveToBroch();
 };

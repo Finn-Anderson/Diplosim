@@ -1,25 +1,15 @@
 #include "AI/Enemy.h"
 
-#include "Kismet/GameplayStatics.h"
+#include "Components/CapsuleComponent.h"
 
 #include "HealthComponent.h"
-#include "Buildings/Broch.h"
 
 AEnemy::AEnemy()
 {
+	GetCapsuleComponent()->SetCapsuleSize(16.0f, 16.0f);
+
+	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -15.0f));
+
+	HealthComponent->MaxHealth = 100;
 	HealthComponent->Health = HealthComponent->MaxHealth;
-}
-
-void AEnemy::MoveToBroch()
-{
-	if (!IsValidLowLevelFast())
-		return;
-
-	TArray<AActor*> brochs;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
-
-	if (brochs.IsEmpty() || HealthComponent->Health == 0)
-		return;
-
-	MoveTo(brochs[0]);
 }

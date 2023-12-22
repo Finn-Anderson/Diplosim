@@ -42,7 +42,7 @@ void UAttackComponent::BeginPlay()
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
-		if (OtherActor->GetClass() != enemyClass || (OtherActor->IsA<ABuilding>() && Cast<ABuilding>(OtherActor)->BuildStatus != EBuildStatus::Complete))
+		if (OtherActor->GetClass() != enemyClass)
 			continue;
 
 		UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
@@ -56,6 +56,16 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 
 		break;
 	}
+
+	if (!Owner->IsA<ACitizen>() || !OtherActor->IsA<ACitizen>())
+		return;
+
+	UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
+
+	if (healthComp->Health == 0)
+		return;
+
+	OverlappingAllies.Add(Cast<ACitizen>(OtherActor));
 }
 
 void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -86,6 +96,9 @@ void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 
 			enemy->MoveToBroch();
 		}
+	} 
+	else if (OverlappingAllies.Contains(Cast<ACitizen>(OtherActor))) {
+		OverlappingAllies.Remove(Cast<ACitizen>(OtherActor));
 	}
 }
 
@@ -95,6 +108,49 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 		return;
 
 	ProjectileClass = OtherClass;
+}
+
+int32 UAttackComponent::GetMorale()
+{
+	float allyHP = 0.0f;
+	float allyDmg = 0.0f;
+
+	for (ACitizen* citizen : OverlappingAllies) {
+		allyHP += citizen->HealthComponent->Health;
+
+		if (*citizen->AttackComponent->ProjectileClass) {
+			allyDmg += Cast<AProjectile>(citizen->AttackComponent->ProjectileClass->GetDefaultObject())->Damage;
+		}
+		else {
+			allyDmg += citizen->AttackComponent->Damage;
+		}
+	}
+
+	float enemyHP = 0.0f;
+	float enemyDmg = 0.0f;
+
+	for (AActor* actor : OverlappingEnemies) {
+		AEnemy* enemy = Cast<AEnemy>(actor);
+
+		allyHP += enemy->HealthComponent->Health;
+
+		if (*enemy->AttackComponent->ProjectileClass) {
+			allyDmg += Cast<AProjectile>(enemy->AttackComponent->ProjectileClass->GetDefaultObject())->Damage;
+		}
+		else {
+			allyDmg += enemy->AttackComponent->Damage;
+		}
+	}
+
+	float allyTotal = allyHP * allyDmg;
+	float enemyTotal = enemyHP * enemyDmg;
+
+	if (enemyTotal == 0.0f)
+		return 1.0f;
+
+	float morale = allyTotal / enemyTotal;
+
+	return morale;
 }
 
 void UAttackComponent::GetTargets()
@@ -116,24 +172,27 @@ void UAttackComponent::GetTargets()
 			continue;
 		}
 
-		if (!attackComp->CanAttack())
-			continue;
-
 		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->CanMoveTo(actor))) {
 			targets.Add(actor);
 		}
 	}
 
-	if (targets.IsEmpty()) {
-		if (Owner->IsA<ACitizen>()) {
+	float morale = 1.0f;
+
+	if (Owner->IsA<ACitizen>()) {
+		morale = GetMorale();
+	}
+
+	if (targets.IsEmpty() || morale < 1.0f) {
+		if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Building.Employment != nullptr) {
 			ACitizen* citizen = Cast<ACitizen>(Owner);
 
 			citizen->MoveTo(citizen->Building.Employment);
 		}
 		else {
-			AEnemy* enemy = Cast<AEnemy>(Owner);
+			AAI* ai = Cast<AAI>(Owner);
 
-			enemy->MoveToBroch();
+			ai->MoveToBroch();
 		}
 	}
 	else {
@@ -251,12 +310,14 @@ bool UAttackComponent::CanAttack()
 	if (healthComp->Health == 0)
 		return false;
 
-	if (Owner->IsA<ACitizen>()) {
+	if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->BioStruct.Age < 18) {
 		ACitizen* citizen = Cast<ACitizen>(Owner);
 
-		if (citizen->BioStruct.Age < 18 || (citizen->Building.BuildingAt != nullptr && !citizen->Building.BuildingAt->IsA<ABroch>() && !citizen->Building.BuildingAt->IsA<AWall>())) {
-			return false;
+		if (!citizen->Building.BuildingAt->IsA<ABroch>()) {
+			citizen->MoveToBroch();
 		}
+
+		return false;
 	}
 
 	return true;
