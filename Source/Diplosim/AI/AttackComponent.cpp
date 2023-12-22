@@ -275,7 +275,7 @@ void UAttackComponent::Attack(AActor* Target)
 	else {
 		UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
 
-		healthComp->TakeHealth(Damage, Owner->GetActorLocation());
+		healthComp->TakeHealth(Damage, Owner);
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, TimeToAttack, true);
@@ -287,17 +287,23 @@ void UAttackComponent::Throw(AActor* Target)
 
 	FVector startLoc = Owner->GetActorLocation() + comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
 
-	double initialHeight = startLoc.Z - Target->GetActorLocation().Z;
+	FVector targetLoc = Target->GetActorLocation();
+
+	double h = startLoc.Z - Target->GetActorLocation().Z;
 
 	FVector groundedLocation = FVector(startLoc.X, startLoc.Y, Target->GetActorLocation().Z);
-	double distance = FVector::Dist(groundedLocation, Target->GetActorLocation());
+	double d = FVector::Dist(groundedLocation, targetLoc);
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
-	double angle = FMath::Abs(0.5f * FMath::Asin((GetWorld()->GetGravityZ() * distance) / FMath::Square(projectileMovement->InitialSpeed))) * 90.0f;
+	double g = FMath::Abs(GetWorld()->GetGravityZ());
+	double v = projectileMovement->InitialSpeed;
+	double phi = FMath::Atan(d / h);
+
+	double angle = (FMath::Acos(((g * FMath::Square(d)) / FMath::Square(v) - h) / FMath::Sqrt(FMath::Square(h) + FMath::Square(d))) + phi) / 2 * (180.0f / PI);
 
 	FRotator lookAt = UKismetMathLibrary::FindLookAtRotation(startLoc, Target->GetActorLocation());
-	FRotator ang = FRotator(angle + lookAt.Pitch, lookAt.Yaw, lookAt.Roll);
+	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 	projectile->Owner = Owner;
@@ -313,7 +319,7 @@ bool UAttackComponent::CanAttack()
 	if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->BioStruct.Age < 18) {
 		ACitizen* citizen = Cast<ACitizen>(Owner);
 
-		if (!citizen->Building.BuildingAt->IsA<ABroch>()) {
+		if (citizen->Building.BuildingAt == nullptr || !citizen->Building.BuildingAt->IsA<ABroch>()) {
 			citizen->MoveToBroch();
 		}
 

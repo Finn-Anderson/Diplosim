@@ -263,9 +263,12 @@ void ABuilding::Enter(ACitizen* Citizen)
 		if (GetOccupied().Contains(Citizen) || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
 			return;
 
-		ABuilder* e = Cast<ABuilder>(Citizen->Building.Employment);
+		ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
 			
-		e->CarryResources(Citizen, this);
+		if (builder->Constructing == nullptr)
+			return;
+
+		builder->CarryResources(Citizen, this);
 	}
 	else if (Citizen->Building.Employment->IsA<ABuilder>()) {
 		Citizen->SetActorHiddenInGame(true);

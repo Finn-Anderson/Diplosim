@@ -4,6 +4,25 @@
 #include "GameFramework/GameModeBase.h"
 #include "DiplosimGameModeBase.generated.h"
 
+USTRUCT()
+struct FWaveStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	FVector SpawnLocation;
+
+	TArray<FString> DiedTo;
+
+	int32 NumKilled;
+
+	FWaveStruct()
+	{
+		SpawnLocation = FVector(0.0f, 0.0f, 0.0f);
+		DiedTo = {};
+		NumKilled = 0;
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 {
@@ -12,15 +31,19 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 public:
 	ADiplosimGameModeBase();
 
-	TArray<FVector> GetSpawnPoints(bool bCheckLength, bool bCheckSeaAdjacency);
+	bool PathToBroch(class AGrid* Grid, struct FTileStruct tile, bool bCheckLength);
 
-	void SetSpawnPoints();
+	TArray<FTileStruct> GetSpawnPoints(class AGrid* Grid, bool bCheckLength, bool bCheckSeaAdjacency);
+
+	TArray<FVector> PickSpawnPoints();
 
 	void SpawnEnemies();
 
 	int32 GetRandomTime();
 
 	void SetWaveTimer();
+
+	void SaveToFile();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		TSubclassOf<class AEnemy> EnemyClass;
@@ -30,4 +53,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		int32 latestSpawnTime;
+
+	TArray<FWaveStruct> WavesData;
+
+	class ABuilding* Broch;
 };

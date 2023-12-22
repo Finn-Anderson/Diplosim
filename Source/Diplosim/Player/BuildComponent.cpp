@@ -180,8 +180,6 @@ void UBuildComponent::Place()
 
 	Building->Build();
 
-	SetBuildingClass(Building->GetClass());
-
 	if (Camera->start) {
 		Camera->start = false;
 		Camera->BuildUIInstance->AddToViewport();
@@ -189,7 +187,10 @@ void UBuildComponent::Place()
 
 		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 		gamemode->SetWaveTimer();
+		gamemode->Broch = Building;
 	}
+
+	SetBuildingClass(Building->GetClass());
 }
 
 void UBuildComponent::QuickPlace()

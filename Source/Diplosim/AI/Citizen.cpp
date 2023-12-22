@@ -138,7 +138,7 @@ void ACitizen::Eat()
 	}
 
 	if (Hunger == 0) {
-		HealthComponent->TakeHealth(100, GetActorLocation());
+		HealthComponent->TakeHealth(100, this);
 	}
 }
 
@@ -171,7 +171,7 @@ void ACitizen::LoseEnergy()
 	}
 
 	if (Energy == 0) {
-		HealthComponent->TakeHealth(100, GetActorLocation() + GetVelocity());
+		HealthComponent->TakeHealth(100, this);
 
 		GetWorld()->GetTimerManager().ClearTimer(EnergyTimer);
 	}
@@ -223,7 +223,7 @@ void ACitizen::Birthday()
 		int32 chance = FMath::RandRange(1, 100);
 
 		if (chance < 5) {
-			HealthComponent->TakeHealth(50);
+			HealthComponent->TakeHealth(50, this);
 		}
 	}
 

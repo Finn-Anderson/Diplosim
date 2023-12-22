@@ -23,13 +23,13 @@ public:
 
 	void AddHealth(int32 Amount);
 
-	void TakeHealth(int32 Amount, FVector DeathInstigatorLocation = FVector(0, 0, 0));
+	void TakeHealth(int32 Amount, AActor* Attacker);
 
 	int32 GetHealth();
 
 public:
 	// Death
-	void Death(FVector DeathInstigatorLocation);
+	void Death(AActor* Attacker);
 
 	void ClearRagdoll();
 };

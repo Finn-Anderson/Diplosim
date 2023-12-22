@@ -17,6 +17,7 @@ AProjectile::AProjectile()
 	ProjectileMesh->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
 	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
+	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	ProjectileMesh->SetupAttachment(RootComponent);
 	ProjectileMesh->bCastDynamicShadow = true;
 	ProjectileMesh->CastShadow = true;
@@ -24,8 +25,8 @@ AProjectile::AProjectile()
     ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
     ProjectileMovementComponent->SetUpdatedComponent(ProjectileMesh);
     ProjectileMovementComponent->bRotationFollowsVelocity = true;
-	ProjectileMovementComponent->InitialSpeed = 650.0f;
-    ProjectileMovementComponent->MaxSpeed = 650.0f;
+	ProjectileMovementComponent->InitialSpeed = 600.0f;
+    ProjectileMovementComponent->MaxSpeed = 600.0f;
 
 	Damage = 20;
 }
@@ -49,7 +50,7 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 	UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
 
 	if (healthComp) {
-		healthComp->TakeHealth(Damage, GetActorLocation());
+		healthComp->TakeHealth(Damage, this);
 	}
 
 	Destroy();
