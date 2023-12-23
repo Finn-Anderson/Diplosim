@@ -151,19 +151,35 @@ void ADiplosimGameModeBase::SpawnEnemies()
 
 	TArray<FVector> spawnLocations = PickSpawnPoints();
 
+	LastLocation = FVector(0.0f, 0.0f, 0.0f);
+
 	int32 num = citizens.Num() / 3;
 
 	for (int32 i = 0; i < num; i++) {
-		int32 index = FMath::RandRange(0, spawnLocations.Num() - 1);
-
-		AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, spawnLocations[index], FRotator(0, 0, 0));
-
-		enemy->MoveToBroch();
+		FTimerHandle locationTimer;
+		GetWorld()->GetTimerManager().SetTimer(locationTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, spawnLocations), 0.1f, false);
 	}
 
 	if (WavesData.Num() > 5) {
 		WavesData.RemoveAt(0);
 	}
+}
+
+void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> SpawnLocations)
+{
+	int32 index = FMath::RandRange(0, SpawnLocations.Num() - 1);
+
+	if (SpawnLocations[index] == LastLocation) {
+		SpawnAtValidLocation(SpawnLocations);
+		
+		return;
+	}
+
+	LastLocation = SpawnLocations[index];
+
+	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, SpawnLocations[index], FRotator(0, 0, 0));
+
+	enemy->MoveToBroch();
 }
 
 int32 ADiplosimGameModeBase::GetRandomTime()

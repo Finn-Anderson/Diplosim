@@ -6,9 +6,9 @@
 
 AEnemy::AEnemy()
 {
-	GetCapsuleComponent()->SetCapsuleSize(16.0f, 16.0f);
+	GetCapsuleComponent()->SetCapsuleSize(9.0f, 9.0f);
 
-	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -15.0f));
+	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -9.0f));
 
 	HealthComponent->MaxHealth = 100;
 	HealthComponent->Health = HealthComponent->MaxHealth;

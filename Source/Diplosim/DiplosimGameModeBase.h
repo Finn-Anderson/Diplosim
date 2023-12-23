@@ -39,6 +39,8 @@ public:
 
 	void SpawnEnemies();
 
+	void SpawnAtValidLocation(TArray<FVector> SpawnLocations);
+
 	int32 GetRandomTime();
 
 	void SetWaveTimer();
@@ -57,4 +59,6 @@ public:
 	TArray<FWaveStruct> WavesData;
 
 	class ABuilding* Broch;
+
+	FVector LastLocation;
 };
