@@ -88,12 +88,6 @@ void ABuilding::Build()
 		if (size.Z < 1.0f)
 			size.Z = 1.0f;
 
-		if (size.Y < 0.3f)
-			size.Y = 0.3f;
-
-		if (size.X < 0.3f)
-			size.X = 0.3f;
-
 		BuildingMesh->SetRelativeScale3D(size);
 		BuildingMesh->SetStaticMesh(ConstructionMesh);
 
