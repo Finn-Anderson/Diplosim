@@ -4,6 +4,8 @@
 
 AVegetation::AVegetation()
 {
+	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
+
 	IntialScale = FVector(0.1f, 0.1f, 0.1f);
 
 	MaxScale = FVector(1.0f, 1.0f, 1.0f);

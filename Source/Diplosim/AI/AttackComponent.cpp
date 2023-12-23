@@ -289,20 +289,39 @@ void UAttackComponent::Throw(AActor* Target)
 
 	FVector targetLoc = Target->GetActorLocation();
 
-	double h = startLoc.Z - Target->GetActorLocation().Z;
-
-	FVector groundedLocation = FVector(startLoc.X, startLoc.Y, Target->GetActorLocation().Z);
-	double d = FVector::Dist(groundedLocation, targetLoc);
+	FRotator lookAt = UKismetMathLibrary::FindLookAtRotation(startLoc, Target->GetActorLocation());
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
 	double g = FMath::Abs(GetWorld()->GetGravityZ());
 	double v = projectileMovement->InitialSpeed;
-	double phi = FMath::Atan(d / h);
 
-	double angle = (FMath::Acos(((g * FMath::Square(d)) / FMath::Square(v) - h) / FMath::Sqrt(FMath::Square(h) + FMath::Square(d))) + phi) / 2 * (180.0f / PI);
+	double angle = 0.0f;
+	double d = 0.0f;
 
-	FRotator lookAt = UKismetMathLibrary::FindLookAtRotation(startLoc, Target->GetActorLocation());
+	FHitResult hit;
+
+	FCollisionQueryParams queryParams;
+	queryParams.AddIgnoredActor(GetOwner());
+
+	if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, targetLoc, ECollisionChannel::ECC_PhysicsBody, queryParams)) {
+		if (hit.GetActor()->IsA<AEnemy>()) {
+			d = FVector::Dist(startLoc, targetLoc);
+
+			angle = 0.5 * FMath::Asin(g * d / FMath::Square(v)) * (180.0f / PI) + lookAt.Pitch;
+		}
+		else {
+			FVector groundedLocation = FVector(startLoc.X, startLoc.Y, Target->GetActorLocation().Z);
+			d = FVector::Dist(groundedLocation, targetLoc);
+
+			double h = startLoc.Z - Target->GetActorLocation().Z;
+
+			double phi = FMath::Atan(d / h);
+
+			angle = (FMath::Acos(((g * FMath::Square(d)) / FMath::Square(v) - h) / FMath::Sqrt(FMath::Square(h) + FMath::Square(d))) + phi) / 2 * (180.0f / PI);
+		}
+	}
+
 	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
