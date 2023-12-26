@@ -434,29 +434,14 @@ void AGrid::GenerateTile(int32 Level, int32 Fertility, int32 x, int32 y, FQuat R
 	transform.SetRotation(Rotation);
 
 	int32 inst;
-	if (Level < 0) {
+	if (Level < 0.0f) {
 		inst = HISMWater->AddInstance(transform);
 
-		double distToChosen = FVector::Dist(loc, FVector(1000000.0f, 1000000.0f, 1000000.0f));
-
-		for (FTileStruct tile : Storage) {
-			if (tile.Level <  0)
-				continue;
-			
-			FVector tileLoc = FVector(100.0f * tile.X - (100.0f * (Size / 2)), 100.0f * tile.Y - (100.0f * (Size / 2)), 0);
-
-			double distToTile = FVector::Dist(loc, tileLoc);
-
-			if (distToTile < distToChosen) {
-				distToChosen = distToTile;
-			}
-		}
-
-		float data = FMath::Sqrt(distToChosen / 1000.0f);
+		float data = -Level;
 
 		HISMWater->SetCustomDataValue(inst, 0, data);
 	}
-	else if (Level > 4) {
+	else if (Level > 4.0f) {
 		inst = HISMBeach->AddInstance(transform);
 	}
 	else {

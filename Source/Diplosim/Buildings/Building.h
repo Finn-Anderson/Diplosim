@@ -59,7 +59,7 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
-	FVector CheckCollisions(class UObject* Object, int32 Index = 0);
+	FVector CheckCollisions(class UObject* Object, int32 Index);
 
 	void DestroyBuilding();
 

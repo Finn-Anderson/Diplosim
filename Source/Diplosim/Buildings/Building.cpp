@@ -145,7 +145,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 			TArray<UObject*> objArr = { OtherComp, OtherActor };
 
 			for (UObject* obj : objArr) {
-				FVector location = CheckCollisions(obj);
+				FVector location = CheckCollisions(obj, OtherBodyIndex);
 
 				if (!location.IsZero()) {
 					Collisions.Add(location);
@@ -167,7 +167,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 			TArray<UObject*> objArr = { OtherComp, OtherActor };
 
 			for (UObject* obj : objArr) {
-				FVector location = CheckCollisions(obj);
+				FVector location = CheckCollisions(obj, OtherBodyIndex);
 
 				if (!location.IsZero()) {
 					Collisions.RemoveSingle(location);
