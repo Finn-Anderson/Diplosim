@@ -9,9 +9,7 @@ struct FTileStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	class UHierarchicalInstancedStaticMeshComponent* Choice;
-
-	TArray<class UHierarchicalInstancedStaticMeshComponent*> ChoiceList;
+	int32 Level;
 
 	int32 Instance;
 
@@ -25,10 +23,8 @@ struct FTileStruct
 
 	TArray<class AActor*> Resource;
 
-	bool bIsSea;
-
 	FTileStruct() {
-		Choice = nullptr;
+		Level = -100;
 
 		Instance = 0;
 
@@ -37,8 +33,6 @@ struct FTileStruct
 		X = 0;
 
 		Y = 0;
-
-		bIsSea = false;
 
 		Rotation = FRotator(0.0f, 0.0f, 0.0f).Quaternion();
 	}
@@ -64,6 +58,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
 	TSubclassOf<class AClouds> CloudsClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ground", meta = (ClampMin = "0.0", ClampMax = "100.0", UIMin = "0.0", UIMax = "100.0"))
+		int32 PercentageGround;
+
 	// Resource Classes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
 		TSubclassOf<class AMineral> Rock;
@@ -81,9 +78,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMGround;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMMound;
-
 	// Dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Size;
@@ -96,15 +90,13 @@ public:
 	
 	void Render();
 
-	TArray<FTileStruct> SetTileChoices(TArray<FTileStruct> Tiles);
+	FTileStruct GetChosenTile(TArray<FTileStruct> Tiles, int32 TargetLevel);
 
-	UHierarchicalInstancedStaticMeshComponent* GetTargetChoice(TArray<FTileStruct> Tiles, TArray<UHierarchicalInstancedStaticMeshComponent*> TargetBanList);
-
-	TArray<FTileStruct> GetChosenList(TArray<FTileStruct> Tiles, class UHierarchicalInstancedStaticMeshComponent* TargetChoice, int32 MaxCount);
+	void FillGaps(FTileStruct Tile);
 
 	void SetBeaches();
 
-	void GenerateTile(UHierarchicalInstancedStaticMeshComponent* Choice, int32 Fertility, int32 x, int32 y, FQuat Rotation);
+	void GenerateTile(int32 Level, int32 Fertility, int32 x, int32 y, FQuat Rotation);
 
 	void Clear();
 

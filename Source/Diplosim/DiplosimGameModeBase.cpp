@@ -20,13 +20,13 @@ ADiplosimGameModeBase::ADiplosimGameModeBase()
 
 bool ADiplosimGameModeBase::PathToBroch(class AGrid* Grid, struct FTileStruct tile, bool bCheckLength)
 {
-	if (tile.Choice == Grid->HISMWater)
+	if (tile.Level < 0)
 		return false;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-	float z = tile.Choice->GetStaticMesh()->GetBoundingBox().GetSize().Z;
+	float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
 	FVector location = FVector(100.0f * tile.X - (100.0f * (Grid->Size / 2)), 100.0f * tile.Y - (100.0f * (Grid->Size / 2)), z);
 
@@ -53,7 +53,7 @@ TArray<FTileStruct> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, boo
 	TArray<FTileStruct> validTiles;
 
 	for (FTileStruct tile : Grid->Storage) {
-		if (tile.Choice == Grid->HISMWater)
+		if (tile.Level < 0)
 			continue;
 
 		if (bCheckSeaAdjacency) {
@@ -63,12 +63,11 @@ TArray<FTileStruct> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, boo
 			tiles.Add(Grid->Storage[tile.X + ((tile.Y - 1) * Grid->Size)]);
 			tiles.Add(Grid->Storage[(tile.X + 1) + (tile.Y * Grid->Size)]);
 			tiles.Add(Grid->Storage[tile.X + ((tile.Y + 1) * Grid->Size)]);
-
 		
 			bool bAdjacentToSea = false;
 
 			for (FTileStruct t : tiles) {
-				if (t.bIsSea) {
+				if (t.Level < 0) {
 					bAdjacentToSea = true;
 
 					break;
@@ -109,7 +108,7 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	FTileStruct chosenTile = validTiles[index];
 
-	float z = chosenTile.Choice->GetStaticMesh()->GetBoundingBox().GetSize().Z;
+	float z = grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
 	FVector loc = FVector(100.0f * chosenTile.X - (100.0f * (grid->Size / 2)), 100.0f * chosenTile.Y - (100.0f * (grid->Size / 2)), z);
 
@@ -125,7 +124,7 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 			if (PathToBroch(grid, grid->Storage[(chosenTile.X - x) + ((chosenTile.Y - y) * grid->Size)], false)) {
 				FTileStruct tile = grid->Storage[(chosenTile.X - x) + ((chosenTile.Y - y) * grid->Size)];
 
-				z = tile.Choice->GetStaticMesh()->GetBoundingBox().GetSize().Z;
+				z = grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
 				loc = FVector(100.0f * tile.X - (100.0f * (grid->Size / 2)), 100.0f * tile.Y - (100.0f * (grid->Size / 2)), z);
 
