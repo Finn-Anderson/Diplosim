@@ -97,15 +97,13 @@ bool UBuildComponent::IsValidLocation()
 
 		bool sameLoc = false;
 
-		if (buildStruct.Object->IsA<ABuilding>() && buildStruct.Location.X == Building->GetActorLocation().X && buildStruct.Location.Y == Building->GetActorLocation().Y) {
+		if (buildStruct.Object->IsA<ABuilding>() && buildStruct.Location.X == Building->GetActorLocation().X && buildStruct.Location.Y == Building->GetActorLocation().Y)
 			sameLoc = true;
-		}
 
-		TArray<FName> allowedList = { "BP_Ramp_C", "BP_Wall_C" };
+		TArray<FName> allowedList = { "BP_Ramp_C", "BP_Wall_C", "BP_CornerWall_C" };
 
-		if (location.Z < 100.0f || location.Z < building.Z || (location.Z > building.Z && (sameLoc || buildStruct.Object->GetClass() != Building->GetClass() || !allowedList.Contains(Building->GetClass()->GetName())))) {
+		if (location.Z < 100.0f || location.Z < building.Z || (location.Z > building.Z && (sameLoc || !allowedList.Contains(Building->GetClass()->GetName()) || !allowedList.Contains(buildStruct.Object->GetClass()->GetName()))))
 			return false;
-		}
 	}
 
 	return true;
