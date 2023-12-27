@@ -26,9 +26,12 @@ bool ADiplosimGameModeBase::PathToBroch(class AGrid* Grid, struct FTileStruct ti
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
+	FTransform transform;
+	Grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
+
 	float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
-	FVector location = FVector(100.0f * tile.X - (100.0f * (Grid->Size / 2)), 100.0f * tile.Y - (100.0f * (Grid->Size / 2)), z);
+	FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
 	FPathFindingQuery query(this, *NavData, location, Broch->BuildingMesh->GetSocketLocation("Entrance"));
 
@@ -59,10 +62,18 @@ TArray<FTileStruct> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, boo
 		if (bCheckSeaAdjacency) {
 			TArray<FTileStruct> tiles;
 
-			tiles.Add(Grid->Storage[(tile.X - 1) + (tile.Y * Grid->Size)]);
-			tiles.Add(Grid->Storage[tile.X + ((tile.Y - 1) * Grid->Size)]);
-			tiles.Add(Grid->Storage[(tile.X + 1) + (tile.Y * Grid->Size)]);
-			tiles.Add(Grid->Storage[tile.X + ((tile.Y + 1) * Grid->Size)]);
+			if (tile.X > 0) {
+				tiles.Add(Grid->Storage[(tile.X - 1) + (tile.Y * Grid->Size)]);
+			}
+			if (tile.X < (Grid->Size - 1)) {
+				tiles.Add(Grid->Storage[(tile.X + 1) + (tile.Y * Grid->Size)]);
+			}
+			if (tile.Y > 0) {
+				tiles.Add(Grid->Storage[tile.X + ((tile.Y - 1) * Grid->Size)]);
+			}
+			if (tile.Y < (Grid->Size - 1)) {
+				tiles.Add(Grid->Storage[tile.X + ((tile.Y + 1) * Grid->Size)]);
+			}
 		
 			bool bAdjacentToSea = false;
 
@@ -108,25 +119,31 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	FTileStruct chosenTile = validTiles[index];
 
+	FTransform transform;
+	grid->HISMGround->GetInstanceTransform(chosenTile.Instance, transform);
+
 	float z = grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
-	FVector loc = FVector(100.0f * chosenTile.X - (100.0f * (grid->Size / 2)), 100.0f * chosenTile.Y - (100.0f * (grid->Size / 2)), z);
+	FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
 	TArray<FVector> chosenLocations;
 	chosenLocations.Add(loc);
 
 	WavesData.Last().SpawnLocation = loc;
 
-	for (int32 y = 0; y < 5; y++)
+	for (int32 y = -4; y < 5; y++)
 	{
-		for (int32 x = 0; x < 5; x++)
+		for (int32 x = -4; x < 5; x++)
 		{
-			if (PathToBroch(grid, grid->Storage[(chosenTile.X - x) + ((chosenTile.Y - y) * grid->Size)], false)) {
-				FTileStruct tile = grid->Storage[(chosenTile.X - x) + ((chosenTile.Y - y) * grid->Size)];
+			if (chosenTile.X + x < 0 || chosenTile.Y + y < 0 || chosenTile.X + x >= grid->Size || chosenTile.Y + y >= grid->Size)
+				continue;
 
-				z = grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
+			FTileStruct tile = grid->Storage[(chosenTile.X - x) + ((chosenTile.Y - y) * grid->Size)];
 
-				loc = FVector(100.0f * tile.X - (100.0f * (grid->Size / 2)), 100.0f * tile.Y - (100.0f * (grid->Size / 2)), z);
+			if (PathToBroch(grid, tile, false)) {
+				grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
+
+				loc = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
 				if (chosenLocations.Contains(loc))
 					continue;
