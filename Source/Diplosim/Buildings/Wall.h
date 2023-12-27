@@ -15,7 +15,7 @@ struct FSocketStruct
 
 	FVector EntranceLocation;
 
-	ACitizen* Citizen;
+	class ACitizen* Citizen;
 
 	FSocketStruct()
 	{

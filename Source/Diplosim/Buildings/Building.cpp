@@ -148,7 +148,17 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 				FVector location = CheckCollisions(obj, OtherBodyIndex);
 
 				if (!location.IsZero()) {
-					Collisions.Add(location);
+					FBuildStruct buildStruct;
+
+					buildStruct.Object = obj;
+
+					if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+						buildStruct.Instance = OtherBodyIndex;
+					}
+
+					buildStruct.Location = location;
+
+					Collisions.Add(buildStruct);
 				}
 			}
 		}
@@ -170,7 +180,17 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 				FVector location = CheckCollisions(obj, OtherBodyIndex);
 
 				if (!location.IsZero()) {
-					Collisions.RemoveSingle(location);
+					FBuildStruct buildStruct;
+
+					buildStruct.Object = obj;
+
+					if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+						buildStruct.Instance = OtherBodyIndex;
+					}
+
+					buildStruct.Location = location;
+
+					Collisions.RemoveSingle(buildStruct);
 				}
 			}
 		}
@@ -179,7 +199,11 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 
 FVector ABuilding::CheckCollisions(class UObject* Object, int32 Index)
 {
+	FVector location;
+
 	FTransform transform;
+	transform.SetLocation(FVector(0.0f, 0.0f, 0.0f));
+
 	double z = 0.0f;
 
 	if (Object->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
@@ -195,10 +219,7 @@ FVector ABuilding::CheckCollisions(class UObject* Object, int32 Index)
 		z = MeshComp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 	}
 
-	if (z == 0.0f)
-		return FVector::Zero();
-
-	FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
+	location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
 	return location;
 }

@@ -26,6 +26,30 @@ struct FCostStruct
 	}
 };
 
+USTRUCT()
+struct FBuildStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UObject* Object;
+
+	int32 Instance;
+
+	FVector Location;
+
+	FBuildStruct()
+	{
+		Object = nullptr;
+		Instance = -1;
+		Location = FVector::Zero();
+	}
+
+	bool operator==(const FBuildStruct& other) const
+	{
+		return (other.Object == Object) && (other.Instance == Instance) && (other.Location == Location);
+	}
+};
+
 UENUM()
 enum class EBuildStatus : uint8 
 {
@@ -54,7 +78,7 @@ public:
 
 	EBuildStatus BuildStatus;
 
-	TArray<FVector> Collisions;
+	TArray<FBuildStruct> Collisions;
 
 	UPROPERTY()
 		class ACamera* Camera;

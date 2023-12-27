@@ -89,11 +89,15 @@ bool UBuildComponent::IsValidLocation()
 	building.Y = FMath::RoundHalfFromZero(building.Y);
 	building.Z = FMath::RoundHalfFromZero(building.Z);
 
-	for (int32 i = 0; i < Building->Collisions.Num(); i++) {
-		FVector terrain = Building->Collisions[i];
-		terrain.Z = FMath::RoundHalfFromZero(terrain.Z);
+	for (const FBuildStruct buildStruct : Building->Collisions) {
+		FVector location = buildStruct.Location;
+		location.X = FMath::RoundHalfFromZero(location.X);
+		location.Y = FMath::RoundHalfFromZero(location.Y);
+		location.Z = FMath::RoundHalfFromZero(location.Z);
 
-		if (terrain.Z < 100.0f || terrain.Z < building.Z || (terrain.Z > building.Z && Building->GetClass()->GetName() != "BP_Ramp_C")) {
+		TArray<FName> allowedList = { "BP_Ramp_C", "BP_Wall_C" };
+
+		if (location.Z < 100.0f || location.Z < building.Z || (location.Z > building.Z && (buildStruct.Object->GetClass() != Building->GetClass() || !allowedList.Contains(Building->GetClass()->GetName())))) {
 			return false;
 		}
 	}
