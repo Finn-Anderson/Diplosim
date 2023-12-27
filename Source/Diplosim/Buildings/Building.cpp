@@ -24,6 +24,7 @@ ABuilding::ABuilding()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	BuildingMesh->SetCanEverAffectNavigation(false);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
@@ -70,6 +71,10 @@ void ABuilding::BeginPlay()
 void ABuilding::Build()
 {
 	BuildStatus = EBuildStatus::Construction;
+
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+
+	BuildingMesh->SetCanEverAffectNavigation(true);
 
 	if (CheckInstant()) {
 		OnBuilt();
@@ -246,8 +251,6 @@ void ABuilding::OnBuilt()
 	}
 
 	BuildStatus = EBuildStatus::Complete;
-
-	BuildingMesh->SetCanEverAffectNavigation(true);
 
 	GetWorldTimerManager().SetTimer(CostTimer, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost, 0), 300.0f, true);
 

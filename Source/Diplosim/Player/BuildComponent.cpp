@@ -95,9 +95,15 @@ bool UBuildComponent::IsValidLocation()
 		location.Y = FMath::RoundHalfFromZero(location.Y);
 		location.Z = FMath::RoundHalfFromZero(location.Z);
 
+		bool sameLoc = false;
+
+		if (buildStruct.Object->IsA<ABuilding>() && buildStruct.Location.X == Building->GetActorLocation().X && buildStruct.Location.Y == Building->GetActorLocation().Y) {
+			sameLoc = true;
+		}
+
 		TArray<FName> allowedList = { "BP_Ramp_C", "BP_Wall_C" };
 
-		if (location.Z < 100.0f || location.Z < building.Z || (location.Z > building.Z && (buildStruct.Object->GetClass() != Building->GetClass() || !allowedList.Contains(Building->GetClass()->GetName())))) {
+		if (location.Z < 100.0f || location.Z < building.Z || (location.Z > building.Z && (sameLoc || buildStruct.Object->GetClass() != Building->GetClass() || !allowedList.Contains(Building->GetClass()->GetName())))) {
 			return false;
 		}
 	}

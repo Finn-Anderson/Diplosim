@@ -8,8 +8,6 @@
 AWall::AWall()
 {
 	BuildingMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
-	BuildingMesh->SetCanEverAffectNavigation(true);
 
 	bHideCitizen = false;
 }
