@@ -23,10 +23,6 @@ public:
 public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void SetGridStatus();
-
-	bool GridStatus;
-
 	bool bCanRotate;
 
 public:

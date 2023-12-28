@@ -82,9 +82,6 @@ public:
 		class UInputAction* InputRender;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-		class UInputAction* InputGrid;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputRotate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -104,8 +101,6 @@ public:
 
 	// Map
 	void NewMap();
-
-	void GridStatus();
 
 	// Other
 	void Pause();

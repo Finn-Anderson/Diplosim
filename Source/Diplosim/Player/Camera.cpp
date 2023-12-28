@@ -94,8 +94,6 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	Input->BindAction(InputRender, ETriggerEvent::Started, this, &ACamera::NewMap);
 
-	Input->BindAction(InputGrid, ETriggerEvent::Started, this, &ACamera::GridStatus);
-
 	Input->BindAction(InputRotate, ETriggerEvent::Triggered, this, &ACamera::Rotate);
 	Input->BindAction(InputRotate, ETriggerEvent::Completed, this, &ACamera::Rotate);
 
@@ -134,11 +132,6 @@ void ACamera::NewMap()
 		Grid->Clear();
 		Grid->Render();
 	}
-}
-
-void ACamera::GridStatus()
-{
-	BuildComponent->SetGridStatus();
 }
 
 void ACamera::Pause()

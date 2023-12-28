@@ -16,7 +16,6 @@ UBuildComponent::UBuildComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
-	GridStatus = true;
 	bCanRotate = true;
 	Building = nullptr;
 
@@ -50,16 +49,13 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 			FVector location;
 
-			if (GridStatus && comp->IsValidLowLevelFast()) {
+			if (comp->IsValidLowLevelFast()) {
 				FTransform transform;
 				comp->GetInstanceTransform(instance, transform);
 
 				location = transform.GetLocation();
 
 				location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-			}
-			else {
-				location = hit.Location;
 			}
 
 			Building->SetActorLocation(location);
@@ -72,11 +68,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
 		}
 	}
-}
-
-void UBuildComponent::SetGridStatus()
-{
-	GridStatus = !GridStatus;
 }
 
 bool UBuildComponent::IsValidLocation()
@@ -143,24 +134,13 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 	if (Building != nullptr && Rotate && bCanRotate) {
 		int32 yaw = Rotation.Yaw;
 
-		if (GridStatus) {
-			if (yaw % 90 == 0) {
-				yaw += 90;
-			}
-			else {
-				yaw += 90 / 2;
-				yaw -= yaw % 90;
-			}
+		if (yaw % 90 == 0)
+			yaw += 90;
 
-			bCanRotate = false;
-		}
-		else {
-			yaw += 1;
-		}
-
-		if (yaw == 360) {
+		if (yaw == 360)
 			yaw = 0;
-		}
+
+		bCanRotate = false;
 
 		Rotation.Yaw = yaw;
 
