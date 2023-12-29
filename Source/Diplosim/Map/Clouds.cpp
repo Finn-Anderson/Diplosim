@@ -3,6 +3,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+#include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 
 #include "Map/Grid.h"
 
@@ -10,47 +13,32 @@ AClouds::AClouds()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	HISMClouds = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClouds"));
-	HISMClouds->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMClouds->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	HISMClouds->SetCanEverAffectNavigation(false);
-	HISMClouds->NumCustomDataFloats = 2;
-
-	height = 1000.0f;
+	Height = 2000.0f;
 }
 
 void AClouds::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SetActorLocation(FVector(0.0f, 0.0f, height));
+	SetActorLocation(FVector(0.0f, 0.0f, Height));
 }
 
 void AClouds::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	for (int32 i = 0; i < HISMClouds->GetInstanceCount(); i++) {
-		FTransform transform;
+	for (int32 i = (Clouds.Num() - 1); i > -1; i--) {
+		FCloudStruct cloud = Clouds[i];
 
-		HISMClouds->GetInstanceTransform(i, transform);
+		FVector location = cloud.CloudComponent->GetRelativeLocation() + FVector(0.0f, cloud.Speed, 0.0f);
 
-		transform.SetLocation(transform.GetLocation() + FVector(0.0f, HISMClouds->PerInstanceSMCustomData[i * 2], 0.0f));
-		HISMClouds->UpdateInstanceTransform(i, transform, false);
+		cloud.CloudComponent->SetRelativeLocation(location);
 
-		float opacity = 0.5f;
-		if (transform.GetLocation().Y >= Y) {
-			opacity = HISMClouds->PerInstanceSMCustomData[i * 2 + 1] - 0.01f;
+		if (location.Y >= Y) {
+			cloud.CloudComponent->Deactivate();
 
-			if (HISMClouds->PerInstanceSMCustomData[i * 2 + 1] <= 0.0f) {
-				HISMClouds->RemoveInstance(i);
-
-				continue;
-			}
-		} else if (HISMClouds->PerInstanceSMCustomData[i * 2 + 1] < 0.5f) {
-			opacity = HISMClouds->PerInstanceSMCustomData[i * 2 + 1] + 0.01f;
+			Clouds.Remove(cloud);
 		}
-		HISMClouds->SetCustomDataValue(i, 1, opacity);
 	}
 }
 
@@ -79,7 +67,7 @@ void AClouds::CloudSpawner()
 
 	x = FMath::FRandRange(-X, X);
 	y = -Y;
-	z = GetActorLocation().Z + FMath::FRandRange(-200.0f, 200.0f);
+	z = Height + FMath::FRandRange(-200.0f, 200.0f);
 	FVector loc = FVector(x, y, z);
 	transform.SetLocation(loc);
 
@@ -88,12 +76,14 @@ void AClouds::CloudSpawner()
 	z = FMath::FRandRange(1.5f, 2.0f);
 	transform.SetScale3D(FVector(x, y, z));
 
-	int32 inst = HISMClouds->AddInstance(transform);
+	UNiagaraComponent* cloudComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), CloudSystem, transform.GetLocation(), FRotator(0.0f), transform.GetScale3D());
+	cloudComp->CastShadow = true;
 
-	float time = FMath::FRandRange(1.0f, 3.0f);
-	HISMClouds->SetCustomDataValue(inst, 0, time);
+	FCloudStruct cloudStruct;
+	cloudStruct.Speed = FMath::FRandRange(1.0f, 3.0f);
+	cloudStruct.CloudComponent = cloudComp;
 
-	HISMClouds->SetCustomDataValue(inst, 1, 0.0f);
+	Clouds.Add(cloudStruct);
 
 	FLatentActionInfo info;
 	info.Linkage = 0;

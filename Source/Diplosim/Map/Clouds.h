@@ -4,6 +4,27 @@
 #include "GameFramework/Actor.h"
 #include "Clouds.generated.h"
 
+USTRUCT()
+struct FCloudStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	class UNiagaraComponent* CloudComponent;
+
+	int32 Speed;
+
+	FCloudStruct() {
+		CloudComponent = nullptr;
+
+		Speed = 0;
+	}
+
+	bool operator==(const FCloudStruct& other) const
+	{
+		return (other.CloudComponent == CloudComponent) && (other.Speed == Speed);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API AClouds : public AActor
 {
@@ -18,11 +39,13 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMClouds;
+	TArray<FCloudStruct> Clouds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
+		class UNiagaraSystem* CloudSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-	float height;
+		float Height;
 
 	float X;
 	float Y;
