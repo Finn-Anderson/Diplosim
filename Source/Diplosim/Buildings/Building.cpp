@@ -282,6 +282,9 @@ void ABuilding::Enter(ACitizen* Citizen)
 	if (BuildStatus != EBuildStatus::Construction) {
 		Citizen->SetActorHiddenInGame(bHideCitizen);
 
+		if (Citizen->IsHidden())
+			Citizen->SetActorLocation(GetActorLocation());
+
 		Citizen->Building.BuildingAt = this;
 
 		if (GetOccupied().Contains(Citizen) || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
@@ -400,7 +403,17 @@ void ABuilding::AddBuildPercentage(ACitizen* Citizen)
 
 void ABuilding::Leave(ACitizen* Citizen)
 {
-	Citizen->SetActorHiddenInGame(false);
+	if (Citizen->IsHidden()) {
+		TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
+
+		int32 index;
+		sockets.Find("Entrance", index);
+
+		if (sockets.Contains("Entrance"))
+			Citizen->SetActorLocation(BuildingMesh->GetSocketLocation(sockets[index]));
+
+		Citizen->SetActorHiddenInGame(false);
+	}
 
 	Citizen->Building.BuildingAt = nullptr;
 }
