@@ -198,7 +198,7 @@ void AGrid::Render()
 	}
 
 	AClouds* clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f));
-	clouds->GetCloudBounds(this);
+	clouds->GetCloudBounds(Size);
 }
 
 FTileStruct AGrid::GetChosenTile(TArray<FTileStruct> Tiles, int32 TargetLevel)

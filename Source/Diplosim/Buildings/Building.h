@@ -15,8 +15,7 @@ struct FCostStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Cost;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Stored;
+	int32 Stored;
 
 	FCostStruct()
 	{

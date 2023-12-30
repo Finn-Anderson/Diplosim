@@ -4,24 +4,24 @@
 #include "GameFramework/Actor.h"
 #include "Clouds.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCloudStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	class UNiagaraComponent* CloudComponent;
 
-	int32 Speed;
+	bool Active;
 
 	FCloudStruct() {
 		CloudComponent = nullptr;
 
-		Speed = 0;
+		Active = false;
 	}
 
 	bool operator==(const FCloudStruct& other) const
 	{
-		return (other.CloudComponent == CloudComponent) && (other.Speed == Speed);
+		return (other.CloudComponent == CloudComponent) && (other.Active == Active);
 	}
 };
 
@@ -39,23 +39,30 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
+		class UNiagaraComponent* CloudComponent1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
+		class UNiagaraComponent* CloudComponent2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
+		class UNiagaraComponent* CloudComponent3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
+		class UNiagaraComponent* CloudComponent4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
+		class UNiagaraComponent* CloudComponent5;
+
 	TArray<FCloudStruct> Clouds;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-		class UNiagaraSystem* CloudSystem;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-		class UNiagaraComponent* CloudComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		float Height;
 
-	float Speed;
+	float XY;
 
-	float X;
-	float Y;
+	void GetCloudBounds(int32 GridSize);
 
-	void GetCloudBounds(class AGrid* Grid);
-
-	void ResetCloud();
+	UFUNCTION()
+		void ActivateCloud();
 };
