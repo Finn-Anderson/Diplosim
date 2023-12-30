@@ -44,14 +44,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
 		class UNiagaraSystem* CloudSystem;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
+		class UNiagaraComponent* CloudComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		float Height;
+
+	float Speed;
 
 	float X;
 	float Y;
 
 	void GetCloudBounds(class AGrid* Grid);
 
-	UFUNCTION()
-		void CloudSpawner();
+	void ResetCloud();
 };

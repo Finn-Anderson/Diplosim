@@ -5,13 +5,15 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
-#include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 
 #include "Map/Grid.h"
 
 AClouds::AClouds()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	CloudComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("CloudComponent"));
+	CloudComponent->SetCastShadow(true);
 
 	Height = 2000.0f;
 }
@@ -27,68 +29,43 @@ void AClouds::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	for (int32 i = (Clouds.Num() - 1); i > -1; i--) {
-		FCloudStruct cloud = Clouds[i];
+	FVector location = CloudComponent->GetRelativeLocation() + FVector(0.0f, Speed, 0.0f);
 
-		FVector location = cloud.CloudComponent->GetRelativeLocation() + FVector(0.0f, cloud.Speed, 0.0f);
+	CloudComponent->SetRelativeLocation(location);
 
-		cloud.CloudComponent->SetRelativeLocation(location);
+	if (location.Y >= Y + CloudComponent->GetRelativeScale3D().Y * 400.0f) {
+		CloudComponent->Deactivate();
 
-		if (location.Y >= Y) {
-			cloud.CloudComponent->Deactivate();
-
-			Clouds.Remove(cloud);
+		if (location.Y >= Y + CloudComponent->GetRelativeScale3D().Y * 400.0f + 800.0f) {
+			ResetCloud();
 		}
 	}
 }
 
 void AClouds::GetCloudBounds(AGrid* Grid)
 {
-	FTransform extremeTransform;
+	X, Y = Grid->Size * 100.0f / 2.0f;
 
-	FTileStruct min = Grid->Storage[0];
-
-	Grid->HISMWater->GetInstanceTransform(min.Instance, extremeTransform);
-	X = FMath::Abs(extremeTransform.GetLocation().X);
-
-	Grid->HISMWater->GetInstanceTransform(min.Instance, extremeTransform);
-	Y = FMath::Abs(extremeTransform.GetLocation().Y) * 1.5;
-
-	CloudSpawner();
+	ResetCloud();
 }
 
-void AClouds::CloudSpawner()
+void AClouds::ResetCloud()
 {
-	FTransform transform;
-
 	float x;
 	float y;
 	float z;
 
+	x = FMath::FRandRange(1.0f, 10.0f);
+	y = FMath::FRandRange(1.0f, 10.0f);
+	z = FMath::FRandRange(1.0f, 3.0f);
+	CloudComponent->SetWorldScale3D(FVector(x, y, z));
+
 	x = FMath::FRandRange(-X, X);
-	y = -Y;
+	y = -Y - 400.0f * CloudComponent->GetRelativeScale3D().Y;
 	z = Height + FMath::FRandRange(-200.0f, 200.0f);
-	FVector loc = FVector(x, y, z);
-	transform.SetLocation(loc);
+	CloudComponent->SetWorldScale3D(FVector(x, y, z));
 
-	x = FMath::FRandRange(1.0f, 5.0f);
-	y = FMath::FRandRange(1.0f, 5.0f);
-	z = FMath::FRandRange(1.5f, 2.0f);
-	transform.SetScale3D(FVector(x, y, z));
+	Speed = FMath::FRandRange(1.0f, 3.0f);
 
-	UNiagaraComponent* cloudComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), CloudSystem, transform.GetLocation(), FRotator(0.0f), transform.GetScale3D());
-	cloudComp->CastShadow = true;
-
-	FCloudStruct cloudStruct;
-	cloudStruct.Speed = FMath::FRandRange(1.0f, 3.0f);
-	cloudStruct.CloudComponent = cloudComp;
-
-	Clouds.Add(cloudStruct);
-
-	FLatentActionInfo info;
-	info.Linkage = 0;
-	info.CallbackTarget = this;
-	info.ExecutionFunction = "CloudSpawner";
-	info.UUID = GetUniqueID();
-	UKismetSystemLibrary::Delay(GetWorld(), 15.0f, info);
+	CloudComponent->Activate();
 }
