@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Map/Grid.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "DiplosimGameModeBase.generated.h"
@@ -18,8 +20,15 @@ struct FWaveStruct
 	FWaveStruct()
 	{
 		SpawnLocation = FVector(0.0f, 0.0f, 0.0f);
+
 		DiedTo = {};
+
 		NumKilled = 0;
+	}
+
+	bool operator==(const FWaveStruct& other) const
+	{
+		return (other.SpawnLocation == SpawnLocation) && (other.DiedTo == DiedTo) && (other.NumKilled == NumKilled);
 	}
 };
 
@@ -33,7 +42,7 @@ public:
 
 	bool PathToBroch(class AGrid* Grid, struct FTileStruct tile, bool bCheckLength);
 
-	TArray<FTileStruct> GetSpawnPoints(class AGrid* Grid, bool bCheckLength, bool bCheckSeaAdjacency);
+	TArray<FVector> GetSpawnPoints(class AGrid* Grid, bool bCheckLength);
 
 	TArray<FVector> PickSpawnPoints();
 

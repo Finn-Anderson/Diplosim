@@ -51,48 +51,27 @@ bool ADiplosimGameModeBase::PathToBroch(class AGrid* Grid, struct FTileStruct ti
 	return true;
 }
 
-TArray<FTileStruct> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, bool bCheckLength, bool bCheckSeaAdjacency)
+TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, bool bCheckLength)
 {
-	TArray<FTileStruct> validTiles;
+	TArray<FVector> validTiles;
 
 	for (FTileStruct tile : Grid->Storage) {
 		if (tile.Level < 0)
 			continue;
 
-		if (bCheckSeaAdjacency) {
-			TArray<FTileStruct> tiles;
-
-			if (tile.X > 0) {
-				tiles.Add(Grid->Storage[(tile.X - 1) + (tile.Y * Grid->Size)]);
-			}
-			if (tile.X < (Grid->Size - 1)) {
-				tiles.Add(Grid->Storage[(tile.X + 1) + (tile.Y * Grid->Size)]);
-			}
-			if (tile.Y > 0) {
-				tiles.Add(Grid->Storage[tile.X + ((tile.Y - 1) * Grid->Size)]);
-			}
-			if (tile.Y < (Grid->Size - 1)) {
-				tiles.Add(Grid->Storage[tile.X + ((tile.Y + 1) * Grid->Size)]);
-			}
-		
-			bool bAdjacentToSea = false;
-
-			for (FTileStruct t : tiles) {
-				if (t.Level < 0) {
-					bAdjacentToSea = true;
-
-					break;
-				}
-			}
-
-			if (!bAdjacentToSea)
-				continue;
-		}
-
 		if (!PathToBroch(Grid, tile, bCheckLength))
 			continue;
 
-		validTiles.Add(tile);
+		FTransform transform;
+		Grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
+
+		float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
+
+		validTiles.Add(transform.GetLocation() + FVector(0.0f, 0.0f, z));
+	}
+
+	if (validTiles.IsEmpty()) {
+		validTiles = GetSpawnPoints(Grid, !bCheckLength);
 	}
 
 	return validTiles;
@@ -105,31 +84,42 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	AGrid* grid = Cast<AGrid>(grids[0]);
 
-	TArray<FTileStruct> validTiles = GetSpawnPoints(grid, true, true);
+	TArray<FVector> validTiles;
 
-	if (validTiles.IsEmpty()) {
-		validTiles = GetSpawnPoints(grid, true, false);
+	for (FWaveStruct wave : WavesData) {
+		if (wave == WavesData.Last())
+			continue;
+
+		if (wave.DiedTo.Num() * 0.66f > wave.NumKilled) {
+			for (FVector location : validTiles) {
+				if (location != wave.SpawnLocation)
+					continue;
+
+				validTiles.RemoveSingle(location);
+
+				break;
+			}
+
+			continue;
+		}
+
+		validTiles.Add(wave.SpawnLocation);
 	}
 
 	if (validTiles.IsEmpty()) {
-		validTiles = GetSpawnPoints(grid, false, false);
+		validTiles = GetSpawnPoints(grid, true);
 	}
 
 	int32 index = FMath::RandRange(0, validTiles.Num() - 1);
 
-	FTileStruct chosenTile = validTiles[index];
-
-	FTransform transform;
-	grid->HISMGround->GetInstanceTransform(chosenTile.Instance, transform);
-
-	float z = grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
-
-	FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, z);
-
 	TArray<FVector> chosenLocations;
-	chosenLocations.Add(loc);
+	chosenLocations.Add(validTiles[index]);
 
-	WavesData.Last().SpawnLocation = loc;
+	WavesData.Last().SpawnLocation = validTiles[index];
+
+	FTileStruct chosenTile = grid->Storage[validTiles[index].X / 100 + 100 + (validTiles[index].Y / 100 + 100) * grid->Size];
+
+	int32 z = grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
 	for (int32 y = -4; y < 5; y++)
 	{
@@ -141,9 +131,10 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 			FTileStruct tile = grid->Storage[(chosenTile.X - x) + ((chosenTile.Y - y) * grid->Size)];
 
 			if (PathToBroch(grid, tile, false)) {
+				FTransform transform;
 				grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
 
-				loc = transform.GetLocation() + FVector(0.0f, 0.0f, z);
+				FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
 				if (chosenLocations.Contains(loc))
 					continue;
