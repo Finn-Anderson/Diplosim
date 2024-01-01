@@ -20,7 +20,7 @@ ABuilding::ABuilding()
 	PrimaryActorTick.bCanEverTick = false;
 
 	BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BuildingMesh"));
-	BuildingMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	BuildingMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
@@ -76,11 +76,15 @@ void ABuilding::Build()
 
 	BuildingMesh->SetCanEverAffectNavigation(true);
 
+	UResourceManager* rm = Camera->ResourceManagerComponent;
+
 	if (CheckInstant()) {
 		OnBuilt();
-	} else {
-		UResourceManager* rm = Camera->ResourceManagerComponent;
 
+		for (FCostStruct costStruct : GetCosts()) {
+			rm->TakeUniversalResource(costStruct.Type, costStruct.Cost, 0);
+		}
+	} else {
 		for (FCostStruct costStruct : GetCosts()) {
 			rm->AddCommittedResource(costStruct.Type, costStruct.Cost);
 		}
@@ -279,13 +283,14 @@ void ABuilding::RemoveCitizen(ACitizen* Citizen)
 
 void ABuilding::Enter(ACitizen* Citizen)
 {
+	Citizen->Building.BuildingAt = this;
+	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
+
+	if (bHideCitizen || BuildStatus == EBuildStatus::Construction)
+		Citizen->SetActorLocation(GetActorLocation());
+
 	if (BuildStatus != EBuildStatus::Construction) {
 		Citizen->SetActorHiddenInGame(bHideCitizen);
-
-		if (Citizen->IsHidden())
-			Citizen->SetActorLocation(GetActorLocation());
-
-		Citizen->Building.BuildingAt = this;
 
 		if (GetOccupied().Contains(Citizen) || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
 			return;
@@ -299,8 +304,6 @@ void ABuilding::Enter(ACitizen* Citizen)
 	}
 	else if (Citizen->Building.Employment->IsA<ABuilder>()) {
 		Citizen->SetActorHiddenInGame(true);
-
-		Citizen->Building.BuildingAt = this;
 
 		if (Citizen->Carrying.Amount > 0) {
 			for (int32 i = 0; i < GetCosts().Num(); i++) {
@@ -404,13 +407,7 @@ void ABuilding::AddBuildPercentage(ACitizen* Citizen)
 void ABuilding::Leave(ACitizen* Citizen)
 {
 	if (Citizen->IsHidden()) {
-		TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
-
-		int32 index;
-		sockets.Find("Entrance", index);
-
-		if (sockets.Contains("Entrance"))
-			Citizen->SetActorLocation(BuildingMesh->GetSocketLocation(sockets[index]));
+		Citizen->SetActorLocation(Citizen->Building.EnterLocation);
 
 		Citizen->SetActorHiddenInGame(false);
 	}

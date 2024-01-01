@@ -112,7 +112,8 @@ void ACamera::Action()
 		else {
 			BuildComponent->Place();
 
-			ClearMinusText();
+			if (BuildComponent->Building == nullptr)
+				ClearMinusText();
 		}
 	}
 }

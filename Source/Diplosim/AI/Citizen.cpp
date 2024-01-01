@@ -22,7 +22,7 @@ ACitizen::ACitizen()
 	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
-	CapsuleCollision->SetCapsuleSize(18.0f, 23.0f);
+	CapsuleCollision->SetCapsuleSize(23.0f, 23.0f);
 	CapsuleCollision->SetupAttachment(RootComponent);
 
 	Balance = 20;

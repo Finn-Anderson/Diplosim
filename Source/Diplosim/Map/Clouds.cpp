@@ -126,7 +126,7 @@ void AClouds::ActivateCloud()
 
 	if (chance > 75) {
 		cloud.CloudComponent->SetVariableLinearColor(TEXT("Color"), FLinearColor(0.1f, 0.1f, 0.1f));
-		spawnRate = 200.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
+		spawnRate = 400.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
 	}
 
 	cloud.CloudComponent->SetVariableFloat(TEXT("SpawnRate"), spawnRate);
