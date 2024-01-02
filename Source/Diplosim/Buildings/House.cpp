@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 #include "Work.h"
@@ -54,18 +55,19 @@ void AHouse::FindCitizens()
 		if (GetCapacity() <= GetOccupied().Num())
 			return;
 
-		if (citizen->Balance < Rent || !citizen->CanMoveTo(this))
+		if (citizen->Balance < Rent || !citizen->AIController->CanMoveTo(this))
 			continue;
 
 		if (citizen->Building.House == nullptr) {
 			AddCitizen(citizen);
 		}
 		else if (citizen->Building.Employment != nullptr) {
-			AHouse* house = Cast<AHouse>(citizen->GetClosestActor(citizen->Building.Employment, citizen->Building.House, this));
+			FClosestStruct ClosestStruct = citizen->AIController->GetClosestActor(citizen->Building.House, this);
 
-			if (house == this) {
-				AddCitizen(citizen);
-			}
+			if (ClosestStruct.Actor != this)
+				continue;
+
+			AddCitizen(citizen);
 		}
 	}
 

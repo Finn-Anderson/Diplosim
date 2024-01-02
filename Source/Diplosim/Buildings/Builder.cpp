@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 
@@ -29,7 +30,7 @@ void ABuilder::Enter(ACitizen* Citizen)
 
 	if (Occupied.Contains(Citizen)) {
 		if (Constructing != nullptr) {
-			Citizen->MoveTo(Constructing);
+			Citizen->AIController->AIMoveTo(Constructing);
 		}
 		else {
 			CheckConstruction(Citizen);
@@ -65,7 +66,7 @@ void ABuilder::CheckConstruction(ACitizen* Citizen)
 		if (passed) {
 			Constructing = building;
 
-			Citizen->MoveTo(Constructing);
+			Citizen->AIController->AIMoveTo(Constructing);
 
 			return;
 		}

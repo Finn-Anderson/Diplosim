@@ -11,6 +11,7 @@
 #include "Resource.h"
 #include "HealthComponent.h"
 #include "AttackComponent.h"
+#include "DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 
@@ -22,7 +23,7 @@ ACitizen::ACitizen()
 	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
-	CapsuleCollision->SetCapsuleSize(23.0f, 23.0f);
+	CapsuleCollision->SetCapsuleSize(30.0f, 30.0f);
 	CapsuleCollision->SetupAttachment(RootComponent);
 
 	Balance = 20;
@@ -58,15 +59,12 @@ void ACitizen::BeginPlay()
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
 	GetMesh()->SetMaterial(0, material);
 
-	TArray<AActor*> brochs;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
-
-	MoveTo(brochs[0]);
+	MoveToBroch();
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor == Goal) {
+	if (OtherActor == AIController->MoveRequest.GetGoalActor()) {
 		if (OtherActor->IsA<AResource>()) {
 			AResource* r = Cast<AResource>(OtherActor);
 
@@ -164,10 +162,10 @@ void ACitizen::LoseEnergy()
 		return;
 
 	if (Building.House->IsValidLowLevelFast()) {
-		MoveTo(Building.House);
+		AIController->AIMoveTo(Building.House);
 	}
 	else if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.House->IsValidLowLevelFast()) {
-		MoveTo(BioStruct.Mother->Building.House);
+		AIController->AIMoveTo(BioStruct.Mother->Building.House);
 	}
 
 	if (Energy == 0) {
@@ -184,7 +182,7 @@ void ACitizen::GainEnergy()
 	HealthComponent->AddHealth(1);
 
 	if (Energy >= 100) {
-		MoveTo(Building.Employment);
+		AIController->AIMoveTo(Building.Employment);
 	}
 }
 
@@ -205,7 +203,7 @@ void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 		AIController->StopMovement();
 	}
 	else {
-		MoveTo(Location);
+		AIController->AIMoveTo(Location);
 	}
 }
 
@@ -291,11 +289,13 @@ void ACitizen::FindPartner()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (!CanMoveTo(c) || c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18) {
+		if (!AIController->CanMoveTo(c) || c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18) {
 			continue;
 		}
 
-		citizen = Cast<ACitizen>(GetClosestActor(this, citizen, c));
+		FClosestStruct closestStruct = AIController->GetClosestActor(citizen, c);
+
+		citizen = Cast<ACitizen>(closestStruct.Actor);
 	}
 
 	if (citizen != nullptr) {

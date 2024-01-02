@@ -7,6 +7,7 @@
 #include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
 #include "HealthComponent.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
@@ -104,6 +105,7 @@ void ABuilding::Build()
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), foundBuilders);
 
 		ABuilder* target = nullptr;
+		double magnitude = 1.0f;
 
 		for (int32 i = 0; i < foundBuilders.Num(); i++) {
 			ABuilder* builder = Cast<ABuilder>(foundBuilders[i]);
@@ -111,16 +113,22 @@ void ABuilding::Build()
 			if (builder->Constructing != nullptr || builder->BuildStatus != EBuildStatus::Complete || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder)
 				continue;
 
-			if (!builder->GetOccupied()[0]->CanMoveTo(this))
+			if (!builder->GetOccupied()[0]->AIController->CanMoveTo(this))
 				continue;
 
-			target = Cast<ABuilder>(builder->GetOccupied()[0]->GetClosestActor(this, target, builder));
+			FClosestStruct closestStruct = builder->GetOccupied()[0]->AIController->GetClosestActor(builder, this);
+
+			if (magnitude <= closestStruct.Magnitude)
+				continue;
+
+			magnitude = closestStruct.Magnitude;
+			target = builder;
 		}
 
 		if (target != nullptr) {
 			target->Constructing = this;
 
-			target->GetOccupied()[0]->MoveTo(target->Constructing);
+			target->GetOccupied()[0]->AIController->AIMoveTo(target->Constructing);
 		}
 	}
 }
@@ -354,7 +362,7 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 		for (int32 k = 0; k < foundBuildings.Num(); k++) {
 			ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
 
-			if (building->BuildStatus != EBuildStatus::Complete || !Citizen->CanMoveTo(building) || building->Storage < 1)
+			if (building->BuildStatus != EBuildStatus::Complete || !Citizen->AIController->CanMoveTo(building) || building->Storage < 1)
 				continue;
 
 			int32 storage = 0;
@@ -363,12 +371,14 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 				storage = target->Storage;
 			}
 
-			target = Cast<ABuilding>(Citizen->GetClosestActor(Citizen, target, building, storage, building->Storage));
+			FClosestStruct closestStruct = Citizen->AIController->GetClosestActor(target, building, storage, building->Storage);
+
+			target = Cast<ABuilding>(closestStruct.Actor);
 		}
 	}
 
 	if (target != nullptr) {
-		Citizen->MoveTo(target);
+		Citizen->AIController->AIMoveTo(target);
 
 		return;
 	}
@@ -398,7 +408,7 @@ void ABuilding::AddBuildPercentage(ACitizen* Citizen)
 		ABuilder* e = Cast<ABuilder>(Citizen->Building.Employment);
 		e->Constructing = nullptr;
 
-		Citizen->MoveTo(Citizen->Building.Employment);
+		Citizen->AIController->AIMoveTo(Citizen->Building.Employment);
 
 		GetWorldTimerManager().ClearTimer(ConstructTimer);
 	}

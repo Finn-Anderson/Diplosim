@@ -4,6 +4,7 @@
 #include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 
@@ -34,7 +35,7 @@ void AWork::FindCitizens()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (c->BioStruct.Age < 18 || c->Building.Employment != nullptr || !c->CanMoveTo(this))
+		if (c->BioStruct.Age < 18 || c->Building.Employment != nullptr || !c->AIController->CanMoveTo(this))
 			continue;
 			
 		AddCitizen(c);
@@ -52,7 +53,7 @@ void AWork::AddCitizen(ACitizen* Citizen)
 
 		Citizen->Building.Employment = this;
 
-		Citizen->MoveTo(this);
+		Citizen->AIController->AIMoveTo(this);
 	}
 }
 

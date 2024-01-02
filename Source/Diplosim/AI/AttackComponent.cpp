@@ -9,6 +9,7 @@
 
 #include "AI/AI.h"
 #include "HealthComponent.h"
+#include "DiplosimAIController.h"
 #include "AI/Enemy.h"
 #include "AI/Citizen.h"
 #include "AI/Projectile.h"
@@ -78,23 +79,15 @@ void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 
 		GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
 
-		if (Owner->IsA<ACitizen>()) {
+		if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Building.Employment != nullptr) {
 			ACitizen* citizen = Cast<ACitizen>(Owner);
 
-			if (citizen->Building.Employment == nullptr) {
-				TArray<AActor*> brochs;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
-
-				citizen->MoveTo(brochs[0]);
-			}
-			else {
-				citizen->MoveTo(citizen->Building.Employment);
-			}
+			citizen->AIController->AIMoveTo(citizen->Building.Employment);
 		}
-		else if (Owner->IsA<AEnemy>()) {
-			AEnemy* enemy = Cast<AEnemy>(Owner);
+		else if (Owner->IsA<AAI>()) {
+			AAI* ai = Cast<AAI>(Owner);
 
-			enemy->MoveToBroch();
+			ai->MoveToBroch();
 		}
 	} 
 	else if (OverlappingAllies.Contains(Cast<ACitizen>(OtherActor))) {
@@ -172,7 +165,7 @@ void UAttackComponent::GetTargets()
 			continue;
 		}
 
-		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->CanMoveTo(actor))) {
+		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->AIController->CanMoveTo(actor))) {
 			targets.Add(actor);
 		}
 	}
@@ -187,7 +180,7 @@ void UAttackComponent::GetTargets()
 		if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Building.Employment != nullptr) {
 			ACitizen* citizen = Cast<ACitizen>(Owner);
 
-			citizen->MoveTo(citizen->Building.Employment);
+			citizen->AIController->AIMoveTo(citizen->Building.Employment);
 		}
 		else {
 			AAI* ai = Cast<AAI>(Owner);
@@ -257,7 +250,7 @@ bool UAttackComponent::CanHit(AActor* Target, FVector::FReal Length)
 	USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 
 	if (Length > comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Length() + 20.0f) {
-		Cast<AAI>(Owner)->MoveTo(Target);
+		Cast<AAI>(Owner)->AIController->AIMoveTo(Target);
 
 		GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, 0.1, false);
 
