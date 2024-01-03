@@ -5,23 +5,71 @@
 #include "DiplosimGameModeBase.generated.h"
 
 USTRUCT()
+struct FDiedToStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	AActor* Actor;
+
+	FString Name;
+
+	int32 Kills;
+
+	FDiedToStruct()
+	{
+		Actor = nullptr;
+		Name = "";
+		Kills = 0;
+	}
+
+	bool operator==(const FDiedToStruct& other) const
+	{
+		return (other.Actor == Actor) && (other.Name == Name);
+	}
+};
+
+USTRUCT()
 struct FWaveStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	FVector SpawnLocation;
 
-	TArray<FString> DiedTo;
+	TArray<FDiedToStruct> DiedTo;
+
+	int32 NumSpawned;
 
 	int32 NumKilled;
 
 	FWaveStruct()
 	{
 		SpawnLocation = FVector(0.0f, 0.0f, 0.0f);
-
 		DiedTo = {};
-
+		NumSpawned = 0;
 		NumKilled = 0;
+	}
+
+	void SetDiedTo(AActor* Attacker, bool bIsProjectile)
+	{
+		AActor* actor = Attacker;
+
+		if (bIsProjectile)
+			actor = Attacker->Owner;
+
+		FDiedToStruct diedTo;
+		diedTo.Actor = actor;
+		diedTo.Name = Attacker->GetName();
+		diedTo.Kills = 1;
+
+		if (DiedTo.Contains(diedTo)) {
+			int32 index;
+			DiedTo.Find(diedTo, index);
+
+			DiedTo[index].Kills++;
+		}
+		else {
+			DiedTo.Add(diedTo);
+		}
 	}
 
 	bool operator==(const FWaveStruct& other) const
@@ -37,6 +85,8 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 
 public:
 	ADiplosimGameModeBase();
+
+	void SetupActorsToAvoid();
 
 	bool PathToBroch(class AGrid* Grid, struct FTileStruct tile, bool bCheckLength);
 

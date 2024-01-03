@@ -8,6 +8,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
+#include "AI/AttackComponent.h"
 #include "Map/Grid.h"
 #include "Buildings/Broch.h"
 #include "HealthComponent.h"
@@ -16,6 +17,44 @@ ADiplosimGameModeBase::ADiplosimGameModeBase()
 {
 	earliestSpawnTime = 900;
 	latestSpawnTime = 1800;
+}
+
+void ADiplosimGameModeBase::SetupActorsToAvoid()
+{
+	int32 num = -1;
+
+	if (WavesData.Num() > 5)
+		num = WavesData.Num() - 6;
+
+	TArray<FDiedToStruct> threats;
+
+	for (int32 i = WavesData.Num() - 1; i > num; i--) {
+		FWaveStruct wave = WavesData[i];
+
+		for (FDiedToStruct diedTo : wave.DiedTo) {
+			if (!diedTo.Actor->IsValidLowLevelFast())
+				continue;
+
+			if (threats.Contains(diedTo)) {
+				int32 index;
+				threats.Find(diedTo, index);
+
+				threats[index].Kills += diedTo.Kills;
+			}
+			else {
+				threats.Add(diedTo);
+			}
+		}
+	}
+
+	for (FDiedToStruct threat : threats) {
+		if (threat.Kills < 10)
+			continue;
+
+		ACitizen* citizen = Cast<ACitizen>(threat.Actor);
+
+		// Setup avoiding code;
+	}
 }
 
 bool ADiplosimGameModeBase::PathToBroch(class AGrid* Grid, struct FTileStruct tile, bool bCheckLength)
@@ -153,6 +192,8 @@ void ADiplosimGameModeBase::SpawnEnemies()
 
 	WavesData.Add(waveStruct);
 
+	SetupActorsToAvoid();
+
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
@@ -165,10 +206,6 @@ void ADiplosimGameModeBase::SpawnEnemies()
 	for (int32 i = 0; i < num; i++) {
 		FTimerHandle locationTimer;
 		GetWorld()->GetTimerManager().SetTimer(locationTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, spawnLocations), 0.1f, false);
-	}
-
-	if (WavesData.Num() > 5) {
-		WavesData.RemoveAt(0);
 	}
 }
 
@@ -187,6 +224,8 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> SpawnLocations)
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, SpawnLocations[index], FRotator(0, 0, 0));
 
 	enemy->MoveToBroch();
+
+	WavesData.Last().NumSpawned++;
 }
 
 int32 ADiplosimGameModeBase::GetRandomTime()
@@ -233,41 +272,27 @@ void ADiplosimGameModeBase::SaveToFile()
 
 	FString FileContent;
 
-	int32 count = 1;
-
 	for (FWaveStruct wave : WavesData) {
-		FString waveNum = FString::FromInt(count);
+		int32 index;
+		WavesData.Find(wave, index);
+
+		FString waveNum = FString::FromInt(index++);
 
 		FileContent += "Wave " + waveNum + " \n \n";
 
 		FileContent += "Spawn Location \n" + wave.SpawnLocation.ToString() + " \n \n";
 
+		FileContent += "Number of Spawned Enemies \n" + FString::FromInt(wave.NumSpawned) + " \n \n";
+
 		FileContent += "Number of kills \n" + FString::FromInt(wave.NumKilled) + " \n \n";
 
 		FileContent += "Number that died to an actor \n";
 
-		TArray<FString> killers = wave.DiedTo;
-
-		while (!killers.IsEmpty()) {
-			FString name = killers[0];
-
-			int32 tally = 0;
-
-			for (int32 i = (killers.Num() - 1); i > -1; i--) {
-				if (name != killers[i])
-					continue;
-
-				tally++;
-
-				killers.RemoveAt(i);
-			}
-
-			FileContent += name + ": " + FString::FromInt(tally) + "\n";
+		for (FDiedToStruct diedTo : wave.DiedTo) {
+			FileContent += diedTo.Name + ": " + FString::FromInt(diedTo.Kills) + "\n";
 		}
 
 		FileContent += "\n \n";
-
-		count++;
 	}
 
 	FFileHelper::SaveStringToFile(FileContent, *FilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get());

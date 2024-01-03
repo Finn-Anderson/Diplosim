@@ -23,7 +23,7 @@ ACitizen::ACitizen()
 	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
-	CapsuleCollision->SetCapsuleSize(30.0f, 30.0f);
+	CapsuleCollision->SetCapsuleSize(20.0f, 20.0f);
 	CapsuleCollision->SetupAttachment(RootComponent);
 
 	Balance = 20;
@@ -68,23 +68,25 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 		if (OtherActor->IsA<AResource>()) {
 			AResource* r = Cast<AResource>(OtherActor);
 
-			FTimerHandle harvestTimer;
-			float time = FMath::RandRange(6.0f, 10.0f);
-			GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, r), time, false);
+			StartHarvestTimer(r);
 
-			AIController->StopMovement();
+			StillColliding.Add(OtherActor);
 		}
 		else if (OtherActor->IsA<ABuilding>()) {
 			ABuilding* b = Cast<ABuilding>(OtherActor);
 
 			b->Enter(this);
+
+			if (Building.Employment == b)
+				StillColliding.Add(OtherActor);
 		}
 	}
 }
 
 void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	
+	if (StillColliding.Contains(OtherActor))
+		StillColliding.Remove(OtherActor);
 }
 
 //
@@ -189,9 +191,22 @@ void ACitizen::GainEnergy()
 //
 // Resources
 //
+void ACitizen::StartHarvestTimer(AResource* Resource)
+{
+	FTimerHandle harvestTimer;
+	float time = FMath::RandRange(6.0f, 10.0f);
+	GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource), time, false);
+
+	AIController->StopMovement();
+}
+
 void ACitizen::HarvestResource(AResource* Resource)
 {
 	Carry(Resource, Resource->GetYield(), Building.Employment);
+
+	if (StillColliding.Contains(Building.Employment)) {
+		Building.Employment->Enter(this);
+	}
 }
 
 void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
@@ -320,7 +335,7 @@ void ACitizen::HaveChild()
 	float passMark = FMath::LogX(60.0f, BioStruct.Age) * 100.0f;
 
 	if (chance > passMark) {
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), GetActorLocation(), GetActorRotation());
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), GetActorLocation() + GetActorForwardVector() * 10.0f, GetActorRotation());
 		citizen->BioStruct.Mother = this;
 		citizen->BioStruct.Father = BioStruct.Father;
 	}

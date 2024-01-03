@@ -26,6 +26,9 @@ UAttackComponent::UAttackComponent()
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	RangeComponent->SetSphereRadius(300.0f);
 
+	RangeComponent->bDynamicObstacle = true;
+	RangeComponent->SetAreaClassOverride(NavAreaNormal);
+
 	Damage = 20;
 	TimeToAttack = 2.0f;
 }

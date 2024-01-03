@@ -70,7 +70,12 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	if (Resource != nullptr) {
 		Resource->WorkerCount++;
 
-		Citizen->AIController->AIMoveTo(Resource);
+		if (Citizen->StillColliding.Contains(Resource)) {
+			Citizen->StartHarvestTimer(Resource);
+		}
+		else {
+			Citizen->AIController->AIMoveTo(Resource);
+		}
 	}
 	else {
 		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);

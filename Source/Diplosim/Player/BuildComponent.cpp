@@ -3,10 +3,12 @@
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/SphereComponent.h"
 
 #include "Camera.h"
 #include "Buildings/Building.h"
 #include "Buildings/Wall.h"
+#include "Buildings/ExternalProduction.h"
 #include "Map/Grid.h"
 #include "Map/Vegetation.h"
 #include "DiplosimGameModeBase.h"
@@ -162,6 +164,9 @@ void UBuildComponent::Place()
 
 	if (Building->IsA<AWall>()) {
 		Cast<AWall>(Building)->StoreSocketLocations();
+	}
+	else if (Building->IsA<AExternalProduction>()) {
+		Cast<AExternalProduction>(Building)->RangeComponent->SetHiddenInGame(true);
 	}
 
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);

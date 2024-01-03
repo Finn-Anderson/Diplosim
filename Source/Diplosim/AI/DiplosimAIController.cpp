@@ -48,6 +48,9 @@ FVector ADiplosimAIController::GetLocationOrDestination()
 
 bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 {
+	if (!Actor->IsValidLowLevelFast())
+		return false;
+
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
@@ -72,7 +75,7 @@ bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor)
 {
-	if (Actor->IsValidLowLevelFast() && CanMoveTo(Actor)) {
+	if (CanMoveTo(Actor)) {
 		MoveToLocation(GetLocationOrDestination());
 
 		if (GetOwner()->IsA<ACitizen>()) {

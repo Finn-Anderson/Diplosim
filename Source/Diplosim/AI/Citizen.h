@@ -104,8 +104,12 @@ public:
 	// Buildings
 	FBuildingStruct Building;
 
+	TArray<AActor*> StillColliding;
+
 
 	// Resources
+	void StartHarvestTimer(AResource* Resource);
+
 	void HarvestResource(class AResource* Resource);
 
 	void Carry(class AResource* Resource, int32 Amount, AActor* Location);

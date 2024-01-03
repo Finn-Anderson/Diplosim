@@ -5,6 +5,7 @@
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
 #include "AI/AttackComponent.h"
+#include "AI/Projectile.h"
 #include "Buildings/Work.h"
 #include "Buildings/House.h"
 #include "DiplosimGameModeBase.h"
@@ -51,7 +52,12 @@ void UHealthComponent::Death(AActor* Attacker)
 		}
 	} 
 	else if (actor->IsA<AEnemy>()) {
-		gamemode->WavesData.Last().DiedTo.Add(Attacker->GetName());
+		bool bIsProjectile = false;
+
+		if (Attacker->IsA<AProjectile>())
+			bIsProjectile = true;
+
+		gamemode->WavesData.Last().SetDiedTo(Attacker, bIsProjectile);
 
 		gamemode->SetWaveTimer();
 	}
