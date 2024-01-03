@@ -12,40 +12,24 @@ ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectIni
 
 }
 
-FAIMoveRequest ADiplosimAIController::CreateMoveRequest()
-{
-	FAIMoveRequest moveRequest; // create own struct
-
-	return moveRequest;
-}
-
 FClosestStruct ADiplosimAIController::GetClosestActor(AActor* CurrentActor, AActor* NewActor, int32 CurrentValue, int32 NewValue)
 {
 	FClosestStruct closestStruct;
+	closestStruct.Actor = CurrentActor;
+
+	if (!CanMoveTo(NewActor))
+		return closestStruct;
+	
 	closestStruct.Actor = NewActor;
 
 	if (CurrentActor == nullptr)
 		return closestStruct;
 
-	double outLength = 0.0f;
+	double curLength = FVector::Dist(GetOwner()->GetActorLocation(), CurrentActor->GetActorLocation());
 
-	TArray<AActor*> actors = { CurrentActor, NewActor };
-	TArray<double> paths;
+	double newLength = FVector::Dist(GetOwner()->GetActorLocation(), NewActor->GetActorLocation());
 
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
-
-	for (AActor* actor : actors) {
-		MoveRequest = CreateMoveRequest();
-
-		MoveRequest.SetGoalActor(actor);
-
-		NavData->CalcPathLength(GetOwner()->GetActorLocation(), actor->GetActorLocation(), outLength);
-
-		paths.Add(outLength);
-	}
-
-	closestStruct.Magnitude = paths[0] / CurrentValue - paths[1] / NewValue;
+	closestStruct.Magnitude = curLength / CurrentValue - newLength / NewValue;
 
 	if (closestStruct.Magnitude < 0.0f) {
 		closestStruct.Actor = CurrentActor;
@@ -54,14 +38,12 @@ FClosestStruct ADiplosimAIController::GetClosestActor(AActor* CurrentActor, AAct
 	return closestStruct;
 }
 
-FVector ADiplosimAIController::GetLocationOrDestination(FAIMoveRequest MoveReq)
+FVector ADiplosimAIController::GetLocationOrDestination()
 {
-	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(MoveReq.GetGoalActor()->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+	if (MoveRequest.GetLocation() != FVector::Zero())
+		return MoveRequest.GetLocation();
 
-	if (comp && comp->DoesSocketExist("Entrance"))
-		return comp->GetSocketLocation("Entrance");
-
-	return MoveReq.GetDestination();
+	return MoveRequest.GetGoalActor()->GetActorLocation();
 }
 
 bool ADiplosimAIController::CanMoveTo(AActor* Actor)
@@ -69,11 +51,16 @@ bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-	MoveRequest = CreateMoveRequest();
+	MoveRequest.Reset();
+
+	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+
+	if (comp && comp->DoesSocketExist("Entrance"))
+		MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 
 	MoveRequest.SetGoalActor(Actor);
 
-	FPathFindingQuery query(this, *NavData, GetOwner()->GetActorLocation(), GetLocationOrDestination(MoveRequest));
+	FPathFindingQuery query(this, *NavData, GetOwner()->GetActorLocation(), GetLocationOrDestination());
 
 	bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
@@ -86,7 +73,7 @@ bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 void ADiplosimAIController::AIMoveTo(AActor* Actor)
 {
 	if (Actor->IsValidLowLevelFast() && CanMoveTo(Actor)) {
-		MoveToLocation(GetLocationOrDestination(MoveRequest));
+		MoveToLocation(GetLocationOrDestination());
 
 		if (GetOwner()->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(GetOwner());

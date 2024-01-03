@@ -26,6 +26,7 @@ ABuilding::ABuilding()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	BuildingMesh->SetCanEverAffectNavigation(false);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
@@ -113,9 +114,6 @@ void ABuilding::Build()
 			if (builder->Constructing != nullptr || builder->BuildStatus != EBuildStatus::Complete || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder)
 				continue;
 
-			if (!builder->GetOccupied()[0]->AIController->CanMoveTo(this))
-				continue;
-
 			FClosestStruct closestStruct = builder->GetOccupied()[0]->AIController->GetClosestActor(builder, this);
 
 			if (magnitude <= closestStruct.Magnitude)
@@ -151,6 +149,9 @@ bool ABuilding::CheckBuildCost()
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (BuildStatus == EBuildStatus::Blueprint) {
+		if (OtherActor == this)
+			return;
+
 		bMoved = true;
 
 		if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
@@ -300,6 +301,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 	if (BuildStatus != EBuildStatus::Construction) {
 		Citizen->SetActorHiddenInGame(bHideCitizen);
 
+		Citizen->AIController->StopMovement();
+
 		if (GetOccupied().Contains(Citizen) || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
 			return;
 
@@ -362,7 +365,7 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 		for (int32 k = 0; k < foundBuildings.Num(); k++) {
 			ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
 
-			if (building->BuildStatus != EBuildStatus::Complete || !Citizen->AIController->CanMoveTo(building) || building->Storage < 1)
+			if (building->BuildStatus != EBuildStatus::Complete || building->Storage < 1)
 				continue;
 
 			int32 storage = 0;
@@ -417,7 +420,23 @@ void ABuilding::AddBuildPercentage(ACitizen* Citizen)
 void ABuilding::Leave(ACitizen* Citizen)
 {
 	if (Citizen->IsHidden()) {
-		Citizen->SetActorLocation(Citizen->Building.EnterLocation);
+		FHitResult Hit;
+
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+
+		FVector loc = Citizen->Building.EnterLocation;
+
+		while (true) {
+			if (GetWorld()->LineTraceSingleByChannel(Hit, loc, Citizen->Building.EnterLocation + FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Visibility, QueryParams)) {
+				loc += GetActorForwardVector() * 20.0f;
+			}
+			else {
+				break;
+			}
+		}
+
+		Citizen->SetActorLocation(loc);
 
 		Citizen->SetActorHiddenInGame(false);
 	}
