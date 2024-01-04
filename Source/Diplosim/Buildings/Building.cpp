@@ -425,13 +425,27 @@ void ABuilding::Leave(ACitizen* Citizen)
 		FCollisionQueryParams QueryParams;
 		QueryParams.AddIgnoredActor(this);
 
-		FVector loc = Citizen->Building.EnterLocation;
+		FVector left, right;
+		left = right = Citizen->Building.EnterLocation;
 
-		while (true) {
-			if (GetWorld()->LineTraceSingleByChannel(Hit, loc, Citizen->Building.EnterLocation + FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Visibility, QueryParams)) {
-				loc += GetActorForwardVector() * 20.0f;
+		FVector loc = FVector::Zero();
+
+		while (loc.IsZero()) {
+			if (GetWorld()->LineTraceSingleByChannel(Hit, left, left + FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Vehicle, QueryParams)) {
+				left -= GetActorForwardVector() * 20.0f;
 			}
 			else {
+				loc = left;
+
+				break;
+			}
+
+			if (GetWorld()->LineTraceSingleByChannel(Hit, right, right + FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Vehicle, QueryParams)) {
+				right += GetActorForwardVector() * 20.0f;
+			}
+			else {
+				loc = right;
+
 				break;
 			}
 		}

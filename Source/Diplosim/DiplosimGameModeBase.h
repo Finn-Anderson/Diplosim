@@ -88,9 +88,9 @@ public:
 
 	void SetupActorsToAvoid();
 
-	bool PathToBroch(class AGrid* Grid, struct FTileStruct tile, bool bCheckLength);
+	bool PathToBuilding(class AGrid* Grid, struct FTileStruct tile, float Length, bool bCheckForBroch);
 
-	TArray<FVector> GetSpawnPoints(class AGrid* Grid, bool bCheckLength);
+	TArray<FVector> GetSpawnPoints(class AGrid* Grid, float Length, bool bCheckForBroch);
 
 	TArray<FVector> PickSpawnPoints();
 

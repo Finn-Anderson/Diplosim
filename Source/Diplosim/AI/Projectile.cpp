@@ -28,7 +28,7 @@ AProjectile::AProjectile()
 	ProjectileMovementComponent->InitialSpeed = 600.0f;
     ProjectileMovementComponent->MaxSpeed = 600.0f;
 
-	Damage = 20;
+	Damage = 10;
 }
 
 void AProjectile::BeginPlay()

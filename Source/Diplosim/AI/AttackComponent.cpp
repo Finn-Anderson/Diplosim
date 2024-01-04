@@ -29,7 +29,7 @@ UAttackComponent::UAttackComponent()
 	RangeComponent->bDynamicObstacle = true;
 	RangeComponent->SetAreaClassOverride(NavAreaNormal);
 
-	Damage = 20;
+	Damage = 10;
 	TimeToAttack = 2.0f;
 }
 
@@ -45,6 +45,9 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (OtherActor->IsHidden())
+		return;
+
 	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
 		if (OtherActor->GetClass() != enemyClass)
 			continue;
@@ -74,6 +77,9 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 
 void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	if (OtherActor->IsHidden())
+		return;
+
 	if (OverlappingEnemies.Contains(OtherActor)) {
 		OverlappingEnemies.Remove(OtherActor);
 
@@ -200,16 +206,16 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 {
 	FAttackStruct favoured;
 
-	for (int32 i = 0; i < Targets.Num(); i++) {
-		int32 hp = 0;
-		int32 dmg = 0;
-		FVector::FReal outLength;
+	for (AActor* target : Targets) {
+		float hp = 0.0f;
+		float dmg = 0.0f;
+		double outLength;
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-		UHealthComponent* healthComp = Targets[i]->GetComponentByClass<UHealthComponent>();
-		UAttackComponent* attackComp = Targets[i]->GetComponentByClass<UAttackComponent>();
+		UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
+		UAttackComponent* attackComp = target->GetComponentByClass<UAttackComponent>();
 
 		hp = healthComp->Health;
 
@@ -222,9 +228,9 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 			}
 		}
 
-		NavData->CalcPathLength(Owner->GetActorLocation(), Targets[i]->GetActorLocation(), outLength);
+		NavData->CalcPathLength(Owner->GetActorLocation(), target->GetActorLocation(), outLength);
 
-		float favourability = (((float)Damage / (float)hp) * (float)dmg) / outLength;
+		float favourability = ((Damage / hp) * dmg) / outLength;
 		float currentFavoured = 0;
 
 		if (favoured.Hp > 0) {
@@ -232,7 +238,7 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 		}
 
 		if (favourability > currentFavoured) {
-			favoured.Actor = Targets[i];
+			favoured.Actor = target;
 			favoured.Hp = hp;
 			favoured.Dmg = dmg;
 			favoured.Length = outLength;
@@ -334,9 +340,8 @@ bool UAttackComponent::CanAttack()
 	if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->BioStruct.Age < 18) {
 		ACitizen* citizen = Cast<ACitizen>(Owner);
 
-		if (citizen->Building.BuildingAt == nullptr || !citizen->Building.BuildingAt->IsA<ABroch>()) {
+		if (citizen->Building.BuildingAt == nullptr || !citizen->Building.BuildingAt->IsA<ABroch>())
 			citizen->MoveToBroch();
-		}
 
 		return false;
 	}

@@ -57,7 +57,7 @@ void ADiplosimGameModeBase::SetupActorsToAvoid()
 	}
 }
 
-bool ADiplosimGameModeBase::PathToBroch(class AGrid* Grid, struct FTileStruct tile, bool bCheckLength)
+bool ADiplosimGameModeBase::PathToBuilding(class AGrid* Grid, struct FTileStruct tile, float Length, bool bCheckForBroch)
 {
 	if (tile.Level < 0)
 		return false;
@@ -72,33 +72,48 @@ bool ADiplosimGameModeBase::PathToBroch(class AGrid* Grid, struct FTileStruct ti
 
 	FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
-	FPathFindingQuery query(this, *NavData, location, Broch->BuildingMesh->GetSocketLocation("Entrance"));
+	TArray<AActor*> buildings;
 
-	bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
-
-	if (!path)
-		return false;
-
-	if (bCheckLength) {
-		FVector::FReal outLength;
-		NavData->CalcPathLength(location, Broch->BuildingMesh->GetSocketLocation("Entrance"), outLength);
-
-		if (outLength < 3000.0f)
-			return false;
+	if (bCheckForBroch) {
+		buildings.Add(Broch);
+	}
+	else {
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
 	}
 
-	return true;
+	for (AActor* actor : buildings) {
+		ABuilding* building = Cast<ABuilding>(actor);
+
+		FVector loc = building->GetActorLocation();
+
+		FPathFindingQuery query(this, *NavData, location, loc);
+
+		bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
+
+		if (!path)
+			continue;
+
+		double outLength;
+		NavData->CalcPathLength(location, loc, outLength);
+
+		if (outLength < Length)
+			continue;
+
+		return true;
+	}
+
+	return false;
 }
 
-TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, bool bCheckLength)
+TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, float Length, bool bCheckForBroch)
 {
 	TArray<FVector> validTiles;
 
 	for (FTileStruct tile : Grid->Storage) {
 		if (tile.Level < 0)
-			continue;
+			continue;;
 
-		if (!PathToBroch(Grid, tile, bCheckLength))
+		if (!PathToBuilding(Grid, tile, Length, bCheckForBroch))
 			continue;
 
 		FTransform transform;
@@ -107,10 +122,16 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, bool bC
 		float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
 		validTiles.Add(transform.GetLocation() + FVector(0.0f, 0.0f, z));
+
+		validTiles.Last().Z = FMath::RoundHalfFromZero(validTiles.Last().Z);
 	}
 
 	if (validTiles.IsEmpty()) {
-		validTiles = GetSpawnPoints(Grid, !bCheckLength);
+		validTiles = GetSpawnPoints(Grid, Length, !bCheckForBroch);
+	}
+
+	if (validTiles.IsEmpty()) {
+		validTiles = GetSpawnPoints(Grid, 500.0f, !bCheckForBroch);
 	}
 
 	return validTiles;
@@ -146,7 +167,7 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 	}
 
 	if (validTiles.IsEmpty()) {
-		validTiles = GetSpawnPoints(grid, true);
+		validTiles = GetSpawnPoints(grid, 3000.0f, true);
 	}
 
 	int32 index = FMath::RandRange(0, validTiles.Num() - 1);
@@ -167,19 +188,17 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 			if (chosenTile.X + x < 0 || chosenTile.Y + y < 0 || chosenTile.X + x >= grid->Size || chosenTile.Y + y >= grid->Size)
 				continue;
 
-			FTileStruct tile = grid->Storage[(chosenTile.X - x) + ((chosenTile.Y - y) * grid->Size)];
+			FTileStruct tile = grid->Storage[(chosenTile.X + x) + ((chosenTile.Y + y) * grid->Size)];
 
-			if (PathToBroch(grid, tile, false)) {
-				FTransform transform;
-				grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
+			FTransform transform;
+			grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
 
-				FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, z);
+			FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
-				if (chosenLocations.Contains(loc))
-					continue;
+			if (chosenLocations.Contains(loc) || !validTiles.Contains(loc))
+				continue;
 
-				chosenLocations.Add(loc);
-			}
+			chosenLocations.Add(loc);
 		}
 	}
 
@@ -273,7 +292,7 @@ void ADiplosimGameModeBase::SaveToFile()
 	FString FileContent;
 
 	for (FWaveStruct wave : WavesData) {
-		int32 index;
+		int32 index = 0;
 		WavesData.Find(wave, index);
 
 		FString waveNum = FString::FromInt(index++);
