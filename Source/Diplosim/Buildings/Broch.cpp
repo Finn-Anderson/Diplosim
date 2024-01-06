@@ -13,14 +13,13 @@ void ABroch::FindCitizens()
 	FVector loc = BuildingMesh->GetSocketLocation("Entrance");
 
 	for (int i = 0; i < NumToSpawn; i++) {
-		ACitizen* c = GetWorld()->SpawnActor<ACitizen>(CitizenClass, loc, FRotator(0, 0, 0));
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, loc, FRotator(0, 0, 0));
 
-		c->BioStruct.Age = 17;
-		c->Birthday();
+		citizen->BioStruct.Age = 17;
+		citizen->Birthday();
 
-		c->HealthComponent->MaxHealth = 100;
-		c->HealthComponent->Health = c->HealthComponent->MaxHealth;
+		citizen->HealthComponent->Health = 100;
 
-		Enter(c);
+		Enter(citizen);
 	}
 }

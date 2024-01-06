@@ -56,8 +56,6 @@ void AExternalProduction::Production(ACitizen* Citizen)
 		Resource = nullptr;
 
 		for (AResource* r : ResourceList) {
-			float dist = FVector::Dist(GetActorLocation(), r->GetActorLocation());
-
 			if (r->IsHidden() || r->Quantity <= 0 || r->WorkerCount == r->MaxWorkers)
 				continue;
 
@@ -70,12 +68,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	if (Resource != nullptr) {
 		Resource->WorkerCount++;
 
-		if (Citizen->StillColliding.Contains(Resource)) {
-			Citizen->StartHarvestTimer(Resource);
-		}
-		else {
-			Citizen->AIController->AIMoveTo(Resource);
-		}
+		Citizen->AIController->AIMoveTo(Resource);
 	}
 	else {
 		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);

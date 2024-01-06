@@ -11,15 +11,18 @@
 #include "AI/AttackComponent.h"
 #include "Map/Grid.h"
 #include "Buildings/Broch.h"
+#include "Buildings/Wall.h"
 #include "HealthComponent.h"
 
 ADiplosimGameModeBase::ADiplosimGameModeBase()
 {
+	Broch = nullptr;
+
 	earliestSpawnTime = 900;
 	latestSpawnTime = 1800;
 }
 
-void ADiplosimGameModeBase::SetupActorsToAvoid()
+void ADiplosimGameModeBase::EvaluateThreats()
 {
 	int32 num = -1;
 
@@ -32,7 +35,7 @@ void ADiplosimGameModeBase::SetupActorsToAvoid()
 		FWaveStruct wave = WavesData[i];
 
 		for (FDiedToStruct diedTo : wave.DiedTo) {
-			if (!diedTo.Actor->IsValidLowLevelFast())
+			if (diedTo.Actor == nullptr || !diedTo.Actor->IsValidLowLevelFast())
 				continue;
 
 			if (threats.Contains(diedTo)) {
@@ -53,24 +56,17 @@ void ADiplosimGameModeBase::SetupActorsToAvoid()
 
 		ACitizen* citizen = Cast<ACitizen>(threat.Actor);
 
-		// Setup avoiding code;
+		if (!citizen->Building.Employment->IsA<AWall>())
+			continue;
+
+		// Setup avoid/target code;
 	}
 }
 
-bool ADiplosimGameModeBase::PathToBuilding(class AGrid* Grid, struct FTileStruct tile, float Length, bool bCheckForBroch)
+bool ADiplosimGameModeBase::PathToBuilding(class AGrid* Grid, FVector Location, float Length, bool bCheckForBroch)
 {
-	if (tile.Level < 0)
-		return false;
-
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
-
-	FTransform transform;
-	Grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
-
-	float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
-
-	FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
 	TArray<AActor*> buildings;
 
@@ -86,7 +82,7 @@ bool ADiplosimGameModeBase::PathToBuilding(class AGrid* Grid, struct FTileStruct
 
 		FVector loc = building->GetActorLocation();
 
-		FPathFindingQuery query(this, *NavData, location, loc);
+		FPathFindingQuery query(this, *NavData, Location, loc);
 
 		bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
@@ -94,7 +90,7 @@ bool ADiplosimGameModeBase::PathToBuilding(class AGrid* Grid, struct FTileStruct
 			continue;
 
 		double outLength;
-		NavData->CalcPathLength(location, loc, outLength);
+		NavData->CalcPathLength(Location, loc, outLength);
 
 		if (outLength < Length)
 			continue;
@@ -111,9 +107,6 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, float L
 
 	for (FTileStruct tile : Grid->Storage) {
 		if (tile.Level < 0)
-			continue;;
-
-		if (!PathToBuilding(Grid, tile, Length, bCheckForBroch))
 			continue;
 
 		FTransform transform;
@@ -121,7 +114,12 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, float L
 
 		float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
-		validTiles.Add(transform.GetLocation() + FVector(0.0f, 0.0f, z));
+		FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
+
+		if (!PathToBuilding(Grid, location, Length, bCheckForBroch))
+			continue;
+
+		validTiles.Add(location);
 
 		validTiles.Last().Z = FMath::RoundHalfFromZero(validTiles.Last().Z);
 	}
@@ -146,7 +144,14 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	TArray<FVector> validTiles;
 
-	for (FWaveStruct wave : WavesData) {
+	int32 num = -1;
+
+	if (WavesData.Num() > 5)
+		num = WavesData.Num() - 6;
+
+	for (int32 i = WavesData.Num() - 1; i > num; i--) {
+		FWaveStruct wave = WavesData[i];
+
 		if (wave == WavesData.Last())
 			continue;
 
@@ -190,12 +195,15 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 			FTileStruct tile = grid->Storage[(chosenTile.X + x) + ((chosenTile.Y + y) * grid->Size)];
 
+			if (tile.Level < 0)
+				continue;
+
 			FTransform transform;
 			grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
 
 			FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
-			if (chosenLocations.Contains(loc) || !validTiles.Contains(loc))
+			if (validTiles.Num() > 10 && !validTiles.Contains(loc))
 				continue;
 
 			chosenLocations.Add(loc);
@@ -211,16 +219,27 @@ void ADiplosimGameModeBase::SpawnEnemies()
 
 	WavesData.Add(waveStruct);
 
-	SetupActorsToAvoid();
+	EvaluateThreats();
 
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
 	TArray<FVector> spawnLocations = PickSpawnPoints();
 
-	LastLocation = FVector(0.0f, 0.0f, 0.0f);
+	LastLocation.Empty();
 
-	int32 num = citizens.Num() / 3;
+	int32 num = 0;
+
+	for (AActor* actor : citizens) {
+		ACitizen* citizen = Cast<ACitizen>(actor);
+
+		if (citizen->BioStruct.Age < 18)
+			continue;
+
+		num++;
+	}
+
+	 num /= 3;
 
 	for (int32 i = 0; i < num; i++) {
 		FTimerHandle locationTimer;
@@ -232,13 +251,16 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> SpawnLocations)
 {
 	int32 index = FMath::RandRange(0, SpawnLocations.Num() - 1);
 
-	if (SpawnLocations[index] == LastLocation) {
+	if (LastLocation.Contains(SpawnLocations[index])) {
 		SpawnAtValidLocation(SpawnLocations);
 		
 		return;
 	}
 
-	LastLocation = SpawnLocations[index];
+	LastLocation.Add(SpawnLocations[index]);
+
+	if (LastLocation.Num() > 10)
+		LastLocation.RemoveAt(0);
 
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, SpawnLocations[index], FRotator(0, 0, 0));
 
@@ -294,8 +316,9 @@ void ADiplosimGameModeBase::SaveToFile()
 	for (FWaveStruct wave : WavesData) {
 		int32 index = 0;
 		WavesData.Find(wave, index);
+		index++;
 
-		FString waveNum = FString::FromInt(index++);
+		FString waveNum = FString::FromInt(index);
 
 		FileContent += "Wave " + waveNum + " \n \n";
 

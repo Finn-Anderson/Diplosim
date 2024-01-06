@@ -22,10 +22,6 @@ ACitizen::ACitizen()
 	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
 	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
-	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
-	CapsuleCollision->SetCapsuleSize(20.0f, 20.0f);
-	CapsuleCollision->SetupAttachment(RootComponent);
-
 	Balance = 20;
 
 	Hunger = 100;
@@ -38,9 +34,6 @@ ACitizen::ACitizen()
 void ACitizen::BeginPlay()
 {
 	Super::BeginPlay();
-
-	CapsuleCollision->OnComponentBeginOverlap.AddDynamic(this, &ACitizen::OnOverlapBegin);
-	CapsuleCollision->OnComponentEndOverlap.AddDynamic(this, &ACitizen::OnOverlapEnd);
 
 	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
 
@@ -64,27 +57,30 @@ void ACitizen::BeginPlay()
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor == AIController->MoveRequest.GetGoalActor()) {
-		if (OtherActor->IsA<AResource>()) {
-			AResource* r = Cast<AResource>(OtherActor);
+	Super::OnOverlapBegin(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 
-			StartHarvestTimer(r);
+	if (OtherActor->IsA<AResource>() || OtherActor->IsA<ABuilding>())
+		StillColliding.Add(OtherActor);
 
-			StillColliding.Add(OtherActor);
-		}
-		else if (OtherActor->IsA<ABuilding>()) {
-			ABuilding* b = Cast<ABuilding>(OtherActor);
+	if (OtherActor != AIController->MoveRequest.GetGoalActor())
+		return;
 
-			b->Enter(this);
+	if (OtherActor->IsA<AResource>()) {
+		AResource* r = Cast<AResource>(OtherActor);
 
-			if (Building.Employment == b)
-				StillColliding.Add(OtherActor);
-		}
+		StartHarvestTimer(r);
+	}
+	else if (OtherActor->IsA<ABuilding>()) {
+		ABuilding* b = Cast<ABuilding>(OtherActor);
+
+		b->Enter(this);
 	}
 }
 
 void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	Super::OnOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
+
 	if (StillColliding.Contains(OtherActor))
 		StillColliding.Remove(OtherActor);
 }
@@ -203,10 +199,6 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 void ACitizen::HarvestResource(AResource* Resource)
 {
 	Carry(Resource, Resource->GetYield(), Building.Employment);
-
-	if (StillColliding.Contains(Building.Employment)) {
-		Building.Employment->Enter(this);
-	}
 }
 
 void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
@@ -241,7 +233,8 @@ void ACitizen::Birthday()
 	}
 
 	if (BioStruct.Age <= 18) {
-		HealthComponent->MaxHealth += 5;
+		HealthComponent->MaxHealth = 5 * BioStruct.Age + 10.0f;
+		HealthComponent->AddHealth(5);
 
 		int32 scale = (BioStruct.Age * 0.04) + 0.28;
 		GetMesh()->SetWorldScale3D(FVector(scale, scale, scale));
@@ -253,8 +246,6 @@ void ACitizen::Birthday()
 	if (BioStruct.Age >= 18) {
 		FindPartner();
 	}
-
-	HealthComponent->Health += 5;
 }
 
 void ACitizen::SetSex()
@@ -334,9 +325,15 @@ void ACitizen::HaveChild()
 	float chance = FMath::FRandRange(0.0f, 100.0f);
 	float passMark = FMath::LogX(60.0f, BioStruct.Age) * 100.0f;
 
-	if (chance > passMark) {
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), GetActorLocation() + GetActorForwardVector() * 10.0f, GetActorRotation());
-		citizen->BioStruct.Mother = this;
-		citizen->BioStruct.Father = BioStruct.Father;
-	}
+	if (chance < passMark)
+		return;
+
+	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), GetActorLocation() + GetActorForwardVector() * 10.0f, GetActorRotation());
+	citizen->BioStruct.Mother = this;
+	citizen->BioStruct.Father = BioStruct.Father;
+
+	if (Building.BuildingAt == nullptr || !Building.BuildingAt->IsA<ABroch>())
+		return;
+
+	Building.BuildingAt->Enter(citizen);
 }

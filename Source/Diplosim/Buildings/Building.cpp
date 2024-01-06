@@ -14,6 +14,7 @@
 #include "Player/BuildComponent.h"
 #include "Map/Vegetation.h"
 #include "Map/Mineral.h"
+#include "Map/Grid.h"
 #include "Buildings/Builder.h"
 
 ABuilding::ABuilding()
@@ -295,13 +296,13 @@ void ABuilding::Enter(ACitizen* Citizen)
 	Citizen->Building.BuildingAt = this;
 	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
 
+	Citizen->AIController->StopMovement();
+
 	if (bHideCitizen || BuildStatus == EBuildStatus::Construction)
 		Citizen->SetActorLocation(GetActorLocation());
 
 	if (BuildStatus != EBuildStatus::Construction) {
 		Citizen->SetActorHiddenInGame(bHideCitizen);
-
-		Citizen->AIController->StopMovement();
 
 		if (GetOccupied().Contains(Citizen) || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
 			return;
@@ -420,34 +421,35 @@ void ABuilding::AddBuildPercentage(ACitizen* Citizen)
 void ABuilding::Leave(ACitizen* Citizen)
 {
 	if (Citizen->IsHidden()) {
-		FHitResult Hit;
+		FHitResult hit;
 
 		FCollisionQueryParams QueryParams;
 		QueryParams.AddIgnoredActor(this);
 
-		FVector left, right;
-		left = right = Citizen->Building.EnterLocation;
+		TArray<FVector> possibleLocations;
 
-		FVector loc = FVector::Zero();
+		FVector loc = Citizen->Building.EnterLocation;
 
-		while (loc.IsZero()) {
-			if (GetWorld()->LineTraceSingleByChannel(Hit, left, left + FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Vehicle, QueryParams)) {
-				left -= GetActorForwardVector() * 20.0f;
+		for (int32 i = -5; i < 5; i++) {
+			FVector pos = BuildingMesh->GetSocketLocation("Entrance") + GetActorForwardVector() * 20.0f * i;
+
+			if (GetWorld()->LineTraceSingleByChannel(hit, pos, pos - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_WorldStatic, QueryParams)) {
+				if (!hit.GetActor()->IsA<AGrid>() || hit.GetComponent() != Cast<AGrid>(hit.GetActor())->HISMGround)
+					continue;
+
+				possibleLocations.Add(pos);
 			}
-			else {
-				loc = left;
+		}
 
-				break;
-			}
+		for (FVector location : possibleLocations) {
+			double currentDist = FVector::Dist(loc, BuildingMesh->GetSocketLocation("Entrance"));
 
-			if (GetWorld()->LineTraceSingleByChannel(Hit, right, right + FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Vehicle, QueryParams)) {
-				right += GetActorForwardVector() * 20.0f;
-			}
-			else {
-				loc = right;
+			double newDist = FVector::Dist(location, BuildingMesh->GetSocketLocation("Entrance"));
 
-				break;
-			}
+			if (newDist >= currentDist && loc != Citizen->Building.EnterLocation)
+				continue;
+
+			loc = location;
 		}
 
 		Citizen->SetActorLocation(loc);

@@ -32,6 +32,10 @@ AAI::AAI()
 	GetMesh()->bCastDynamicShadow = true;
 	GetMesh()->CastShadow = true;
 
+	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
+	CapsuleCollision->SetCapsuleSize(27.0f, 27.0f);
+	CapsuleCollision->SetupAttachment(RootComponent);
+
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
@@ -57,6 +61,9 @@ void AAI::BeginPlay()
 
 	AIController = GetController<ADiplosimAIController>();
 	AIController->Owner = this;
+
+	CapsuleCollision->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnOverlapBegin);
+	CapsuleCollision->OnComponentEndOverlap.AddDynamic(this, &AAI::OnOverlapEnd);
 }
 
 void AAI::MoveToBroch()
@@ -71,4 +78,16 @@ void AAI::MoveToBroch()
 		return;
 
 	AIController->AIMoveTo(brochs[0]);
+}
+
+void AAI::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor->IsA<AAI>() && OtherActor->StaticClass() != StaticClass())
+		Meleeable.Add(Cast<AAI>(OtherActor));
+}
+
+void AAI::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (Meleeable.Contains(Cast<AAI>(OtherActor)))
+		Meleeable.Remove(Cast<AAI>(OtherActor));
 }

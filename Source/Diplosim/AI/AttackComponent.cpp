@@ -7,12 +7,12 @@
 #include "NavigationSystem.h"
 #include "AIController.h"
 
-#include "AI/AI.h"
+#include "AI.h"
 #include "HealthComponent.h"
 #include "DiplosimAIController.h"
-#include "AI/Enemy.h"
-#include "AI/Citizen.h"
-#include "AI/Projectile.h"
+#include "Enemy.h"
+#include "Citizen.h"
+#include "Projectile.h"
 #include "Buildings/Broch.h"
 #include "Buildings/Wall.h"
 
@@ -45,9 +45,6 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor->IsHidden())
-		return;
-
 	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
 		if (OtherActor->GetClass() != enemyClass)
 			continue;
@@ -58,6 +55,9 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 			return;
 
 		OverlappingEnemies.Add(OtherActor);
+
+		if (GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
+			return;
 
 		GetTargets();
 
@@ -77,9 +77,6 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 
 void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor->IsHidden())
-		return;
-
 	if (OverlappingEnemies.Contains(OtherActor)) {
 		OverlappingEnemies.Remove(OtherActor);
 
@@ -93,7 +90,7 @@ void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 
 			citizen->AIController->AIMoveTo(citizen->Building.Employment);
 		}
-		else if (Owner->IsA<AAI>()) {
+		else {
 			AAI* ai = Cast<AAI>(Owner);
 
 			ai->MoveToBroch();
@@ -174,6 +171,9 @@ void UAttackComponent::GetTargets()
 			continue;
 		}
 
+		if (actor->IsHidden())
+			continue;
+
 		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->AIController->CanMoveTo(actor))) {
 			targets.Add(actor);
 		}
@@ -181,9 +181,8 @@ void UAttackComponent::GetTargets()
 
 	float morale = 1.0f;
 
-	if (Owner->IsA<ACitizen>()) {
+	if (Owner->IsA<ACitizen>())
 		morale = GetMorale();
-	}
 
 	if (targets.IsEmpty() || morale < 1.0f) {
 		if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Building.Employment != nullptr) {
@@ -228,13 +227,16 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 			}
 		}
 
+		if (target->IsA<ACitizen>() && Cast<ACitizen>(target)->BioStruct.Age < 18)
+			dmg = 0.0f;
+
 		NavData->CalcPathLength(Owner->GetActorLocation(), target->GetActorLocation(), outLength);
 
-		float favourability = ((Damage / hp) * dmg) / outLength;
-		float currentFavoured = 0;
+		float favourability = (Damage / hp) * dmg - (outLength / 1000.0f);
+		float currentFavoured = -100000.0f;
 
 		if (favoured.Hp > 0) {
-			currentFavoured = (Damage / favoured.Hp) * favoured.Dmg / favoured.Length;
+			currentFavoured = (Damage / favoured.Hp) * favoured.Dmg - (favoured.Length / 1000.0f);
 		}
 
 		if (favourability > currentFavoured) {
@@ -245,32 +247,28 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 		}
 	}
 
-	if (*ProjectileClass || CanHit(favoured.Actor, favoured.Length)) {
-		if (Owner->IsA<AAI>()) {
-			Cast<AAI>(Owner)->AIController->StopMovement();
-		}
-
-		Attack(favoured.Actor);
+	if (Cast<AAI>(Owner)->AIController->MoveRequest.GetGoalActor() != favoured.Actor) {
+		Cast<AAI>(Owner)->AIController->AIMoveTo(favoured.Actor);
 	}
+
+	if (*ProjectileClass || CanHit(favoured.Actor))
+		Attack(favoured.Actor);
 }
 
-bool UAttackComponent::CanHit(AActor* Target, FVector::FReal Length)
+bool UAttackComponent::CanHit(AActor* Target)
 {
-	USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+	if (Cast<AAI>(Owner)->Meleeable.Contains(Target))
+		return true;
 
-	if (Length > comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Length() + 20.0f) {
-		Cast<AAI>(Owner)->AIController->AIMoveTo(Target);
+	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, 0.1, false);
 
-		GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, 0.1, false);
-
-		return false;
-	}
-
-	return true;
+	return false;
 }
 
 void UAttackComponent::Attack(AActor* Target)
 {
+	Cast<AAI>(Owner)->AIController->StopMovement();
+
 	if (*ProjectileClass) {
 		Throw(Target);
 	}
@@ -280,7 +278,7 @@ void UAttackComponent::Attack(AActor* Target)
 		healthComp->TakeHealth(Damage, Owner);
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, TimeToAttack, true);
+	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, TimeToAttack, false);
 }
 
 void UAttackComponent::Throw(AActor* Target)
@@ -336,6 +334,7 @@ bool UAttackComponent::CanAttack()
 
 	if (healthComp->Health == 0)
 		return false;
+		
 
 	if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->BioStruct.Age < 18) {
 		ACitizen* citizen = Cast<ACitizen>(Owner);

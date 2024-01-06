@@ -184,10 +184,10 @@ void AGrid::Render()
 	}
 
 	// Set Camera Bounds
-	FTileStruct min = Storage[10 + 10 * Size];
+	FTileStruct min = Storage[0];
 	FVector c1 = FVector(100.0f * min.X - (100.0f * (Size / 2)), 100.0f * min.Y - (100.0f * (Size / 2)), 0);
 
-	FTileStruct max = Storage[(Size - 10) + (Size - 10) * Size];
+	FTileStruct max = Storage.Last();
 	FVector c2 = FVector(100.0f * max.X - (100.0f * (Size / 2)), 100.0f * max.Y - (100.0f * (Size / 2)), 0);
 
 	Camera->MovementComponent->SetBounds(c2, c1);
@@ -434,14 +434,14 @@ void AGrid::GenerateTile(int32 Level, int32 Fertility, int32 x, int32 y, FQuat R
 	transform.SetRotation(Rotation);
 
 	int32 inst;
-	if (Level < 0.0f) {
+	if (Level < 0) {
 		inst = HISMWater->AddInstance(transform);
 
 		float data = -Level;
 
 		HISMWater->SetCustomDataValue(inst, 0, data);
 	}
-	else if (Level > 4.0f) {
+	else if (Level > 4) {
 		inst = HISMBeach->AddInstance(transform);
 	}
 	else {

@@ -6,6 +6,7 @@
 #include "AI.h"
 #include "Citizen.h"
 #include "Buildings/Building.h"
+#include "Resource.h"
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
@@ -38,14 +39,6 @@ FClosestStruct ADiplosimAIController::GetClosestActor(AActor* CurrentActor, AAct
 	return closestStruct;
 }
 
-FVector ADiplosimAIController::GetLocationOrDestination()
-{
-	if (MoveRequest.GetLocation() != FVector::Zero())
-		return MoveRequest.GetLocation();
-
-	return MoveRequest.GetGoalActor()->GetActorLocation();
-}
-
 bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 {
 	if (!Actor->IsValidLowLevelFast())
@@ -54,16 +47,22 @@ bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-	MoveRequest.Reset();
+	MoveRequest.ResetLocation();
 
 	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 
 	if (comp && comp->DoesSocketExist("Entrance"))
 		MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 
-	MoveRequest.SetGoalActor(Actor);
+	FVector loc = FVector::Zero();
+	if (MoveRequest.GetLocation() != FVector::Zero()) {
+		loc = MoveRequest.GetLocation();
+	}
+	else {
+		loc = Actor->GetActorLocation();
+	}
 
-	FPathFindingQuery query(this, *NavData, GetOwner()->GetActorLocation(), GetLocationOrDestination());
+	FPathFindingQuery query(this, *NavData, GetOwner()->GetActorLocation(), loc);
 
 	bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
@@ -75,15 +74,40 @@ bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor)
 {
-	if (CanMoveTo(Actor)) {
-		MoveToLocation(GetLocationOrDestination());
+	if (!CanMoveTo(Actor))
+		return;
 
-		if (GetOwner()->IsA<ACitizen>()) {
-			ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	MoveRequest.SetGoalActor(Actor);
 
-			if (citizen->Building.BuildingAt != nullptr && citizen->Building.BuildingAt != Actor) {
-				citizen->Building.BuildingAt->Leave(citizen);
-			}
-		}
+	if (MoveRequest.GetLocation() != FVector::Zero()) {
+		MoveToLocation(MoveRequest.GetLocation());
+	}
+	else {
+		MoveToActor(MoveRequest.GetGoalActor());
+	}
+
+	SetFocus(Actor);
+
+	if (!GetOwner()->IsA<ACitizen>() || Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor)
+		return;
+
+	ACitizen* citizen = Cast<ACitizen>(GetOwner()); 
+	
+	if (citizen->Building.BuildingAt != nullptr) {
+		citizen->Building.BuildingAt->Leave(citizen);
+	}
+
+	if (!citizen->StillColliding.Contains(Actor))
+		return;
+
+	if (Actor->IsA<ABuilding>()) {
+		ABuilding* building = Cast<ABuilding>(Actor);
+
+		building->Enter(citizen);
+	}
+	else if (Actor->IsA<AResource>()) {
+		AResource* resource = Cast<AResource>(Actor);
+
+		citizen->StartHarvestTimer(resource);
 	}
 }

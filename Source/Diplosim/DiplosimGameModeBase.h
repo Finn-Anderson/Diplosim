@@ -9,7 +9,7 @@ struct FDiedToStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	AActor* Actor;
+	TWeakObjectPtr<AActor> Actor;
 
 	FString Name;
 
@@ -86,9 +86,9 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 public:
 	ADiplosimGameModeBase();
 
-	void SetupActorsToAvoid();
+	void EvaluateThreats();
 
-	bool PathToBuilding(class AGrid* Grid, struct FTileStruct tile, float Length, bool bCheckForBroch);
+	bool PathToBuilding(class AGrid* Grid, FVector Location, float Length, bool bCheckForBroch);
 
 	TArray<FVector> GetSpawnPoints(class AGrid* Grid, float Length, bool bCheckForBroch);
 
@@ -117,5 +117,5 @@ public:
 
 	class ABuilding* Broch;
 
-	FVector LastLocation;
+	TArray<FVector> LastLocation;
 };

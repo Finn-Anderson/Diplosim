@@ -69,9 +69,10 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		const FVector direction = (actor->GetActorLocation() - (Attacker->GetActorLocation() + actor->GetVelocity())) * 10;
 		mesh->SetPhysicsLinearVelocity(direction, false);
-	}
 
-	if (actor->IsA<ABuilding>()) {
+		Cast<AAI>(actor)->DetachFromControllerPendingDestroy();
+	} 
+	else if (actor->IsA<ABuilding>()) {
 		TArray<AActor*> foundCitizens;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), foundCitizens);
 

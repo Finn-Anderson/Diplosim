@@ -52,7 +52,7 @@ public:
 
 	void PickTarget(TArray<AActor*> Targets);
 
-	bool CanHit(AActor* Target, FVector::FReal Length);
+	bool CanHit(AActor* Target);
 
 	void Attack(AActor* Target);
 
@@ -86,6 +86,8 @@ public:
 		TSubclassOf<class UNavAreaBase> NavAreaThreat;
 
 	int32 Morale;
+
+	FTimerHandle CheckTimer;
 
 	FTimerHandle AttackTimer;
 

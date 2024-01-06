@@ -19,9 +19,8 @@ struct FMoveStruct
 		Location = FVector::Zero();
 	}
 
-	void Reset()
+	void ResetLocation()
 	{
-		Actor = nullptr;
 		Location = FVector::Zero();
 	}
 
@@ -71,8 +70,6 @@ public:
 	ADiplosimAIController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	FClosestStruct GetClosestActor(AActor* CurrentActor, AActor* NewActor, int32 CurrentValue = 1, int32 NewValue = 1);
-
-	FVector GetLocationOrDestination();
 
 	bool CanMoveTo(AActor* Actor);
 
