@@ -420,16 +420,21 @@ void ABuilding::AddBuildPercentage(ACitizen* Citizen)
 
 void ABuilding::Leave(ACitizen* Citizen)
 {
-	if (Citizen->IsHidden()) {
-		FHitResult hit;
+	Citizen->Building.BuildingAt = nullptr;
 
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(this);
+	if (!Citizen->IsHidden())
+		return;
 
-		TArray<FVector> possibleLocations;
+	FHitResult hit;
 
-		FVector loc = Citizen->Building.EnterLocation;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
 
+	TArray<FVector> possibleLocations;
+
+	FVector loc = Citizen->Building.EnterLocation;
+
+	if (BuildingMesh->DoesSocketExist("Entrance")) {
 		for (int32 i = -5; i < 5; i++) {
 			FVector pos = BuildingMesh->GetSocketLocation("Entrance") + GetActorForwardVector() * 20.0f * i;
 
@@ -451,13 +456,11 @@ void ABuilding::Leave(ACitizen* Citizen)
 
 			loc = location;
 		}
-
-		Citizen->SetActorLocation(loc);
-
-		Citizen->SetActorHiddenInGame(false);
 	}
 
-	Citizen->Building.BuildingAt = nullptr;
+	Citizen->SetActorLocation(loc);
+
+	Citizen->SetActorHiddenInGame(false);
 }
 
 bool ABuilding::CheckInstant()

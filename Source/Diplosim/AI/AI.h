@@ -37,5 +37,8 @@ public:
 	TArray<class AAI*> Meleeable;
 
 	// Movement
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		TSubclassOf<class UNavigationQueryFilter> NavQueryFilter;
+
 	class ADiplosimAIController* AIController;
 };

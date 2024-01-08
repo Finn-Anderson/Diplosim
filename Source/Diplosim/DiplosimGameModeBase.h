@@ -113,9 +113,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		int32 latestSpawnTime;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+		TSubclassOf<class UNavAreaBase> NavAreaThreat;
+
 	TArray<FWaveStruct> WavesData;
 
 	class ABuilding* Broch;
 
 	TArray<FVector> LastLocation;
+
+	TArray<class ACitizen*> Threats;
 };

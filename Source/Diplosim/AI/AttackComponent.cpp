@@ -15,6 +15,7 @@
 #include "Projectile.h"
 #include "Buildings/Broch.h"
 #include "Buildings/Wall.h"
+#include "DiplosimGameModeBase.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -22,12 +23,13 @@ UAttackComponent::UAttackComponent()
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetCollisionProfileName("Spectator", true);
+	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	RangeComponent->SetSphereRadius(300.0f);
+	RangeComponent->SetSphereRadius(400.0f);
 
 	RangeComponent->bDynamicObstacle = true;
-	RangeComponent->SetAreaClassOverride(NavAreaNormal);
+	RangeComponent->SetCanEverAffectNavigation(false);
 
 	Damage = 10;
 	TimeToAttack = 2.0f;
@@ -38,6 +40,11 @@ void UAttackComponent::BeginPlay()
 	Super::BeginPlay();
 
 	Owner = GetOwner();
+
+	if (GetOwner()->IsA<ACitizen>()) {
+		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+		RangeComponent->SetAreaClassOverride(gamemode->NavAreaThreat);
+	}
 
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
 	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &UAttackComponent::OnOverlapEnd);
@@ -206,15 +213,21 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 	FAttackStruct favoured;
 
 	for (AActor* target : Targets) {
+		UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
+		UAttackComponent* attackComp = target->GetComponentByClass<UAttackComponent>();
+
+		if (Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->Threats.Contains(target) && !Cast<ACitizen>(target)->AttackComponent->RangeComponent->CanEverAffectNavigation()) {
+			favoured.Actor = Cast<ACitizen>(target)->Building.Employment;
+
+			break;
+		}
+
 		float hp = 0.0f;
 		float dmg = 0.0f;
 		double outLength;
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
-
-		UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
-		UAttackComponent* attackComp = target->GetComponentByClass<UAttackComponent>();
 
 		hp = healthComp->Health;
 
@@ -229,6 +242,9 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 
 		if (target->IsA<ACitizen>() && Cast<ACitizen>(target)->BioStruct.Age < 18)
 			dmg = 0.0f;
+
+		if (target->IsA<AWall>())
+			dmg = Cast<AProjectile>(Cast<AWall>(target)->BuildingProjectileClass->GetDefaultObject())->Damage;
 
 		NavData->CalcPathLength(Owner->GetActorLocation(), target->GetActorLocation(), outLength);
 

@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/SphereComponent.h"
 #include "NavigationSystem.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -56,10 +57,31 @@ void ADiplosimGameModeBase::EvaluateThreats()
 
 		ACitizen* citizen = Cast<ACitizen>(threat.Actor);
 
-		if (!citizen->Building.Employment->IsA<AWall>())
+		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AWall>())
 			continue;
 
-		// Setup avoid/target code;
+		Threats.Add(citizen);
+
+		int32 chance = FMath::RandRange(1, 30);
+		chance -= threat.Kills;
+
+		if (chance > 15)
+			continue;
+
+		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(true);
+	}
+
+	// CODE FOR TESTING
+	TArray<AActor*> citizens;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
+
+	for (AActor* actor : citizens) {
+		ACitizen* citizen = Cast<ACitizen>(actor);
+
+		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AWall>())
+			continue;
+
+		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(true);
 	}
 }
 
@@ -294,6 +316,15 @@ void ADiplosimGameModeBase::SetWaveTimer()
 
 	if (!enemies.IsEmpty())
 		return;
+
+	for (ACitizen* citizen : Threats) {
+		if (!citizen->AttackComponent->RangeComponent->CanEverAffectNavigation())
+			continue;
+
+		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(false);
+	}
+
+	Threats.Empty();
 
 	int32 time = GetRandomTime();
 

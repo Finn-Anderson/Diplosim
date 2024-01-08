@@ -27,6 +27,7 @@ AAI::AAI()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
+	GetMesh()->SetGenerateOverlapEvents(true);
 	GetMesh()->SetCanEverAffectNavigation(false);
 	GetMesh()->SetupAttachment(RootComponent);
 	GetMesh()->bCastDynamicShadow = true;

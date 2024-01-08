@@ -10,7 +10,7 @@
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
-
+	
 }
 
 FClosestStruct ADiplosimAIController::GetClosestActor(AActor* CurrentActor, AActor* NewActor, int32 CurrentValue, int32 NewValue)
@@ -79,11 +79,16 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor)
 
 	MoveRequest.SetGoalActor(Actor);
 
+	TSubclassOf<UNavigationQueryFilter> filter = DefaultNavigationFilterClass;
+
+	if (*Cast<AAI>(GetOwner())->NavQueryFilter)
+		filter = Cast<AAI>(GetOwner())->NavQueryFilter;
+
 	if (MoveRequest.GetLocation() != FVector::Zero()) {
-		MoveToLocation(MoveRequest.GetLocation());
+		MoveToLocation(MoveRequest.GetLocation(), 1.0f, true, true, false, true, filter, true);
 	}
 	else {
-		MoveToActor(MoveRequest.GetGoalActor());
+		MoveToActor(MoveRequest.GetGoalActor(), 1.0f, true, true, true, filter, true);
 	}
 
 	SetFocus(Actor);
@@ -93,21 +98,19 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor)
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner()); 
 	
-	if (citizen->Building.BuildingAt != nullptr) {
+	if (citizen->StillColliding.Contains(Actor)) {
+		if (Actor->IsA<ABuilding>()) {
+			ABuilding* building = Cast<ABuilding>(Actor);
+
+			building->Enter(citizen);
+		}
+		else if (Actor->IsA<AResource>()) {
+			AResource* resource = Cast<AResource>(Actor);
+
+			citizen->StartHarvestTimer(resource);
+		}
+	} 
+	else if (citizen->Building.BuildingAt != nullptr) {
 		citizen->Building.BuildingAt->Leave(citizen);
-	}
-
-	if (!citizen->StillColliding.Contains(Actor))
-		return;
-
-	if (Actor->IsA<ABuilding>()) {
-		ABuilding* building = Cast<ABuilding>(Actor);
-
-		building->Enter(citizen);
-	}
-	else if (Actor->IsA<AResource>()) {
-		AResource* resource = Cast<AResource>(Actor);
-
-		citizen->StartHarvestTimer(resource);
 	}
 }

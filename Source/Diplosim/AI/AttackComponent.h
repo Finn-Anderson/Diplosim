@@ -79,12 +79,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TArray<TSubclassOf<class AActor>> EnemyClasses;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-		TSubclassOf<class UNavAreaBase> NavAreaNormal;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-		TSubclassOf<class UNavAreaBase> NavAreaThreat;
-
 	int32 Morale;
 
 	FTimerHandle CheckTimer;

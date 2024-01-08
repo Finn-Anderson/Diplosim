@@ -328,7 +328,12 @@ void ACitizen::HaveChild()
 	if (chance < passMark)
 		return;
 
-	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), GetActorLocation() + GetActorForwardVector() * 10.0f, GetActorRotation());
+	FVector loc = GetActorLocation() + GetActorForwardVector() * 10.0f;
+
+	if (Building.BuildingAt != nullptr && IsHidden())
+		loc = Building.EnterLocation;
+
+	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), loc, GetActorRotation());
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Father;
 
