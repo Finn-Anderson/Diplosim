@@ -1,7 +1,7 @@
 Wave 1 
  
 Spawn Location 
-X=0.000 Y=5900.000 Z=100.000 
+X=-4700.000 Y=5900.000 Z=100.000 
  
 Number of Spawned Enemies 
 3 
@@ -10,8 +10,25 @@ Number of kills
 1 
  
 Number that died to an actor 
-BP_Citizen_C_5: 1
-BP_Citizen_C_9: 1
-BP_Citizen_C_7: 1
+BP_Arrow_C_12: 1
+BP_Citizen_C_6: 1
+BP_Arrow_C_16: 1
+
+ 
+Wave 2 
+ 
+Spawn Location 
+X=6700.000 Y=-2200.000 Z=100.000 
+ 
+Number of Spawned Enemies 
+3 
+ 
+Number of kills 
+1 
+ 
+Number that died to an actor 
+BP_Citizen_C_6: 1
+BP_Arrow_C_29: 1
+BP_Citizen_C_8: 1
 
  

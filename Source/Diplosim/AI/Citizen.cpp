@@ -337,8 +337,13 @@ void ACitizen::HaveChild()
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Father;
 
-	if (Building.BuildingAt == nullptr || !Building.BuildingAt->IsA<ABroch>())
+	if (Building.BuildingAt == nullptr)
 		return;
 
-	Building.BuildingAt->Enter(citizen);
+	if (!Building.BuildingAt->IsA<ABroch>()) {
+		Building.BuildingAt->Leave(citizen);
+	}
+	else {
+		Building.BuildingAt->Enter(citizen);
+	}
 }

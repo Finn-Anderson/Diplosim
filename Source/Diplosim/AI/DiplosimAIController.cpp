@@ -5,6 +5,7 @@
 
 #include "AI.h"
 #include "Citizen.h"
+#include "HealthComponent.h"
 #include "Buildings/Building.h"
 #include "Resource.h"
 
@@ -41,7 +42,9 @@ FClosestStruct ADiplosimAIController::GetClosestActor(AActor* CurrentActor, AAct
 
 bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 {
-	if (!Actor->IsValidLowLevelFast())
+	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
+
+	if (!Actor->IsValidLowLevelFast() || healthComp->GetHealth() == 0)
 		return false;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());

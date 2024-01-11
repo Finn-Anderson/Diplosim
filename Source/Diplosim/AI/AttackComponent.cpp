@@ -172,7 +172,7 @@ void UAttackComponent::GetTargets()
 		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
-		if (healthComp->Health == 0) {
+		if (healthComp->GetHealth() == 0) {
 			OverlappingEnemies.Remove(actor);
 
 			continue;
@@ -299,18 +299,20 @@ void UAttackComponent::Attack(AActor* Target)
 
 void UAttackComponent::Throw(AActor* Target)
 {
-	USkeletalMeshComponent* comp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
-
-	FVector startLoc = Owner->GetActorLocation() + comp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
-
-	FVector targetLoc = Target->GetActorLocation();
-
-	FRotator lookAt = UKismetMathLibrary::FindLookAtRotation(startLoc, Target->GetActorLocation());
+	USkeletalMeshComponent* ownerComp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+	USkeletalMeshComponent* targetComp = Cast<USkeletalMeshComponent>(Target->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
 	double g = FMath::Abs(GetWorld()->GetGravityZ());
 	double v = projectileMovement->InitialSpeed;
+
+	FVector startLoc = Owner->GetActorLocation() + (ownerComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z / 2) + GetOwner()->GetActorForwardVector(); 
+
+	FVector targetLoc = Target->GetActorLocation();
+	targetLoc += Target->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
+
+	FRotator lookAt = (targetLoc - startLoc).Rotation();
 
 	double angle = 0.0f;
 	double d = 0.0f;
@@ -318,7 +320,7 @@ void UAttackComponent::Throw(AActor* Target)
 	FHitResult hit;
 
 	FCollisionQueryParams queryParams;
-	queryParams.AddIgnoredActor(GetOwner());
+	queryParams.AddIgnoredActor(Owner);
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, targetLoc, ECollisionChannel::ECC_PhysicsBody, queryParams)) {
 		if (hit.GetActor()->IsA<AEnemy>()) {
@@ -327,10 +329,10 @@ void UAttackComponent::Throw(AActor* Target)
 			angle = 0.5 * FMath::Asin(g * d / FMath::Square(v)) * (180.0f / PI) + lookAt.Pitch;
 		}
 		else {
-			FVector groundedLocation = FVector(startLoc.X, startLoc.Y, Target->GetActorLocation().Z);
+			FVector groundedLocation = FVector(startLoc.X, startLoc.Y, targetLoc.Z);
 			d = FVector::Dist(groundedLocation, targetLoc);
 
-			double h = startLoc.Z - Target->GetActorLocation().Z;
+			double h = startLoc.Z - targetLoc.Z;
 
 			double phi = FMath::Atan(d / h);
 
@@ -339,6 +341,8 @@ void UAttackComponent::Throw(AActor* Target)
 	}
 
 	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
+
+	Owner->SetActorRotation(ang);
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 	projectile->Owner = Owner;

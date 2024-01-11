@@ -72,7 +72,7 @@ void ADiplosimGameModeBase::EvaluateThreats()
 	}
 
 	// CODE FOR TESTING
-	TArray<AActor*> citizens;
+	/*TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
 	for (AActor* actor : citizens) {
@@ -82,7 +82,7 @@ void ADiplosimGameModeBase::EvaluateThreats()
 			continue;
 
 		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(true);
-	}
+	}*/
 }
 
 bool ADiplosimGameModeBase::PathToBuilding(class AGrid* Grid, FVector Location, float Length, bool bCheckForBroch)
