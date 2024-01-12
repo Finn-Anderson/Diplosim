@@ -55,11 +55,11 @@ struct FBioStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	class ACitizen* Mother;
+	TWeakObjectPtr<class ACitizen> Mother;
 
-	class ACitizen* Father;
+	TWeakObjectPtr<class ACitizen> Father;
 
-	class ACitizen* Partner;
+	TWeakObjectPtr<class ACitizen> Partner;
 
 	ESex Sex;
 

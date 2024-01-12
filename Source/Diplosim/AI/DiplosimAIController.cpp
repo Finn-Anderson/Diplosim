@@ -99,7 +99,11 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor)
 	if (!GetOwner()->IsA<ACitizen>() || Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor)
 		return;
 
-	ACitizen* citizen = Cast<ACitizen>(GetOwner()); 
+	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+	if (citizen->Building.BuildingAt != nullptr) {
+		citizen->Building.BuildingAt->Leave(citizen);
+	} 
 	
 	if (citizen->StillColliding.Contains(Actor)) {
 		if (Actor->IsA<ABuilding>()) {
@@ -112,8 +116,5 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor)
 
 			citizen->StartHarvestTimer(resource);
 		}
-	} 
-	else if (citizen->Building.BuildingAt != nullptr) {
-		citizen->Building.BuildingAt->Leave(citizen);
 	}
 }

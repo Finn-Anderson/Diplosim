@@ -14,6 +14,7 @@
 #include "DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
+#include "Buildings/Farm.h"
 
 ACitizen::ACitizen()
 {
@@ -40,7 +41,7 @@ void ACitizen::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(HungerTimer, this, &ACitizen::Eat, 3.0f, true);
 
 	FTimerHandle ageTimer;
-	GetWorld()->GetTimerManager().SetTimer(ageTimer, this, &ACitizen::Birthday, 60.0f, false);
+	GetWorld()->GetTimerManager().SetTimer(ageTimer, this, &ACitizen::Birthday, 20.0f, false);
 
 	SetSex();
 
@@ -162,7 +163,7 @@ void ACitizen::LoseEnergy()
 	if (Building.House->IsValidLowLevelFast()) {
 		AIController->AIMoveTo(Building.House);
 	}
-	else if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.House->IsValidLowLevelFast()) {
+	else if (BioStruct.Age < 18 && BioStruct.Mother != nullptr && BioStruct.Mother->Building.House->IsValidLowLevelFast()) {
 		AIController->AIMoveTo(BioStruct.Mother->Building.House);
 	}
 
@@ -330,20 +331,15 @@ void ACitizen::HaveChild()
 
 	FVector loc = GetActorLocation() + GetActorForwardVector() * 10.0f;
 
-	if (Building.BuildingAt != nullptr && IsHidden())
+	if (Building.BuildingAt != nullptr && !Building.BuildingAt->IsA<AFarm>())
 		loc = Building.EnterLocation;
 
 	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), loc, GetActorRotation());
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Father;
 
-	if (Building.BuildingAt == nullptr)
+	if (Building.BuildingAt == nullptr || !Building.BuildingAt->IsA<ABroch>())
 		return;
 
-	if (!Building.BuildingAt->IsA<ABroch>()) {
-		Building.BuildingAt->Leave(citizen);
-	}
-	else {
-		Building.BuildingAt->Enter(citizen);
-	}
+	Building.BuildingAt->Enter(citizen);
 }

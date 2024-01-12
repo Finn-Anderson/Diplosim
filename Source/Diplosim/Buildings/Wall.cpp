@@ -38,8 +38,6 @@ void AWall::Enter(ACitizen* Citizen)
 	if (!Occupied.Contains(Citizen))
 		return;
 
-	Citizen->AIController->StopMovement();
-
 	Citizen->AttackComponent->SetProjectileClass(BuildingProjectileClass);
 
 	for (int32 i = 0; i < SocketList.Num(); i++) {
@@ -63,6 +61,8 @@ void AWall::Leave(ACitizen* Citizen)
 	if (!Occupied.Contains(Citizen))
 		return;
 
+	Citizen->AttackComponent->SetProjectileClass(nullptr);
+
 	for (int32 i = 0; i < SocketList.Num(); i++) {
 		if (SocketList[i].Citizen != Citizen)
 			continue;
@@ -73,11 +73,4 @@ void AWall::Leave(ACitizen* Citizen)
 
 		break;
 	}
-}
-
-void AWall::RemoveCitizen(ACitizen* Citizen)
-{
-	Super::RemoveCitizen(Citizen);
-
-	Citizen->AttackComponent->SetProjectileClass(nullptr);
 }

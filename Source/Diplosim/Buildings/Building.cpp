@@ -16,6 +16,7 @@
 #include "Map/Mineral.h"
 #include "Map/Grid.h"
 #include "Buildings/Builder.h"
+#include "Buildings/Farm.h"
 
 ABuilding::ABuilding()
 {
@@ -296,7 +297,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 	Citizen->Building.BuildingAt = this;
 	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
 
-	Citizen->AIController->StopMovement();
+	if (!IsA<AFarm>())
+		Citizen->AIController->StopMovement();
 
 	if (bHideCitizen || BuildStatus == EBuildStatus::Construction)
 		Citizen->SetActorLocation(GetActorLocation());

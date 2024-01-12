@@ -40,8 +40,6 @@ public:
 
 	virtual void Leave(class ACitizen* Citizen) override;
 
-	virtual void RemoveCitizen(class ACitizen* Citizen) override;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class AProjectile> BuildingProjectileClass;
 

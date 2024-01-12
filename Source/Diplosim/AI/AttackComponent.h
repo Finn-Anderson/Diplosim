@@ -46,7 +46,7 @@ public:
 
 	void SetProjectileClass(TSubclassOf<class AProjectile> OtherClass);
 
-	int32 GetMorale();
+	int32 GetMorale(TArray<AActor*> Targets);
 
 	void GetTargets();
 

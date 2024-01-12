@@ -47,7 +47,6 @@ void UAttackComponent::BeginPlay()
 	}
 
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
-	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &UAttackComponent::OnOverlapEnd);
 }
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -84,28 +83,8 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 
 void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OverlappingEnemies.Contains(OtherActor)) {
-		OverlappingEnemies.Remove(OtherActor);
-
-		if (!OverlappingEnemies.IsEmpty())
-			return;
-
-		GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
-
-		if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Building.Employment != nullptr) {
-			ACitizen* citizen = Cast<ACitizen>(Owner);
-
-			citizen->AIController->AIMoveTo(citizen->Building.Employment);
-		}
-		else {
-			AAI* ai = Cast<AAI>(Owner);
-
-			ai->MoveToBroch();
-		}
-	} 
-	else if (OverlappingAllies.Contains(Cast<ACitizen>(OtherActor))) {
+	if (OverlappingAllies.Contains(Cast<ACitizen>(OtherActor)))
 		OverlappingAllies.Remove(Cast<ACitizen>(OtherActor));
-	}
 }
 
 void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
@@ -116,13 +95,21 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 	ProjectileClass = OtherClass;
 }
 
-int32 UAttackComponent::GetMorale()
+int32 UAttackComponent::GetMorale(TArray<AActor*> Targets)
 {
 	float allyHP = 0.0f;
 	float allyDmg = 0.0f;
 
-	for (ACitizen* citizen : OverlappingAllies) {
-		allyHP += citizen->HealthComponent->Health;
+	for (int32 i = (OverlappingAllies.Num() - 1); i > -1; i--) {
+		ACitizen* citizen = OverlappingAllies[i];
+
+		if (citizen->HealthComponent->GetHealth() == 0) {
+			OverlappingAllies.Remove(citizen);
+
+			continue;
+		}
+
+		allyHP += citizen->HealthComponent->GetHealth();
 
 		if (*citizen->AttackComponent->ProjectileClass) {
 			allyDmg += Cast<AProjectile>(citizen->AttackComponent->ProjectileClass->GetDefaultObject())->Damage;
@@ -135,16 +122,16 @@ int32 UAttackComponent::GetMorale()
 	float enemyHP = 0.0f;
 	float enemyDmg = 0.0f;
 
-	for (AActor* actor : OverlappingEnemies) {
+	for (AActor* actor : Targets) {
 		AEnemy* enemy = Cast<AEnemy>(actor);
 
-		allyHP += enemy->HealthComponent->Health;
+		enemyHP += enemy->HealthComponent->Health;
 
 		if (*enemy->AttackComponent->ProjectileClass) {
-			allyDmg += Cast<AProjectile>(enemy->AttackComponent->ProjectileClass->GetDefaultObject())->Damage;
+			enemyDmg += Cast<AProjectile>(enemy->AttackComponent->ProjectileClass->GetDefaultObject())->Damage;
 		}
 		else {
-			allyDmg += enemy->AttackComponent->Damage;
+			enemyDmg += enemy->AttackComponent->Damage;
 		}
 	}
 
@@ -152,7 +139,7 @@ int32 UAttackComponent::GetMorale()
 	float enemyTotal = enemyHP * enemyDmg;
 
 	if (enemyTotal == 0.0f)
-		return 1.0f;
+		return 0.0f;
 
 	float morale = allyTotal / enemyTotal;
 
@@ -172,7 +159,7 @@ void UAttackComponent::GetTargets()
 		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
-		if (healthComp->GetHealth() == 0) {
+		if (healthComp->GetHealth() == 0 || FVector::Dist(actor->GetActorLocation(), Owner->GetActorLocation()) > RangeComponent->GetScaledSphereRadius() * 2) {
 			OverlappingEnemies.Remove(actor);
 
 			continue;
@@ -188,8 +175,8 @@ void UAttackComponent::GetTargets()
 
 	float morale = 1.0f;
 
-	if (Owner->IsA<ACitizen>())
-		morale = GetMorale();
+	if (Owner->IsA<ACitizen>() && (Cast<ACitizen>(Owner)->Building.BuildingAt == nullptr || !Cast<ACitizen>(Owner)->Building.BuildingAt->IsA<AWall>()))
+		morale = GetMorale(targets);
 
 	if (targets.IsEmpty() || morale < 1.0f) {
 		if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Building.Employment != nullptr) {
@@ -263,10 +250,6 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 		}
 	}
 
-	if (Cast<AAI>(Owner)->AIController->MoveRequest.GetGoalActor() != favoured.Actor) {
-		Cast<AAI>(Owner)->AIController->AIMoveTo(favoured.Actor);
-	}
-
 	if (*ProjectileClass || CanHit(favoured.Actor))
 		Attack(favoured.Actor);
 }
@@ -275,6 +258,10 @@ bool UAttackComponent::CanHit(AActor* Target)
 {
 	if (Cast<AAI>(Owner)->Meleeable.Contains(Target))
 		return true;
+
+	if (Cast<AAI>(Owner)->AIController->MoveRequest.GetGoalActor() != Target) {
+		Cast<AAI>(Owner)->AIController->AIMoveTo(Target);
+	}
 
 	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, 0.1, false);
 
@@ -307,9 +294,9 @@ void UAttackComponent::Throw(AActor* Target)
 	double g = FMath::Abs(GetWorld()->GetGravityZ());
 	double v = projectileMovement->InitialSpeed;
 
-	FVector startLoc = Owner->GetActorLocation() + (ownerComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z / 2) + GetOwner()->GetActorForwardVector(); 
+	FVector startLoc = Owner->GetActorLocation() + ownerComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z / 2 + GetOwner()->GetActorForwardVector(); 
 
-	FVector targetLoc = Target->GetActorLocation();
+	FVector targetLoc = Target->GetActorLocation() + targetComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z / 2;
 	targetLoc += Target->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
 
 	FRotator lookAt = (targetLoc - startLoc).Rotation();
@@ -322,11 +309,16 @@ void UAttackComponent::Throw(AActor* Target)
 	FCollisionQueryParams queryParams;
 	queryParams.AddIgnoredActor(Owner);
 
-	if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, targetLoc, ECollisionChannel::ECC_PhysicsBody, queryParams)) {
+	if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, Target->GetActorLocation(), ECollisionChannel::ECC_PhysicsBody, queryParams)) {
 		if (hit.GetActor()->IsA<AEnemy>()) {
 			d = FVector::Dist(startLoc, targetLoc);
 
-			angle = 0.5 * FMath::Asin(g * d / FMath::Square(v)) * (180.0f / PI) + lookAt.Pitch;
+			double pitch = FMath::Abs(lookAt.Pitch);
+
+			angle = 0.5 * FMath::Asin((g * FMath::Cos(lookAt.Pitch) * d) / FMath::Square(v)) * (180.0f / PI); // fix
+
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("%f"), angle));
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("%f"), lookAt.Pitch));
 		}
 		else {
 			FVector groundedLocation = FVector(startLoc.X, startLoc.Y, targetLoc.Z);
@@ -346,24 +338,15 @@ void UAttackComponent::Throw(AActor* Target)
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 	projectile->Owner = Owner;
+
 }
 
 bool UAttackComponent::CanAttack()
 {
 	UHealthComponent* healthComp = Owner->GetComponentByClass<UHealthComponent>();
 
-	if (healthComp->Health == 0)
+	if (healthComp->Health == 0 || (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->BioStruct.Age < 18))
 		return false;
-		
-
-	if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->BioStruct.Age < 18) {
-		ACitizen* citizen = Cast<ACitizen>(Owner);
-
-		if (citizen->Building.BuildingAt == nullptr || !citizen->Building.BuildingAt->IsA<ABroch>())
-			citizen->MoveToBroch();
-
-		return false;
-	}
 
 	return true;
 }

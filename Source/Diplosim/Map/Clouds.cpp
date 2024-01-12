@@ -32,7 +32,7 @@ AClouds::AClouds()
 	CloudComponent5->SetCastShadow(true);
 	CloudComponent5->bAutoActivate = false;
 
-	Height = 2000.0f;
+	Height = 3000.0f;
 }
 
 void AClouds::BeginPlay()
