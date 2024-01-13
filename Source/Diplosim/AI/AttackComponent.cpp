@@ -294,9 +294,9 @@ void UAttackComponent::Throw(AActor* Target)
 	double g = FMath::Abs(GetWorld()->GetGravityZ());
 	double v = projectileMovement->InitialSpeed;
 
-	FVector startLoc = Owner->GetActorLocation() + ownerComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z / 2 + GetOwner()->GetActorForwardVector(); 
+	FVector startLoc = Owner->GetActorLocation() + FVector(0.0f, 0.0f, ownerComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z) + GetOwner()->GetActorForwardVector(); 
 
-	FVector targetLoc = Target->GetActorLocation() + targetComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z / 2;
+	FVector targetLoc = Target->GetActorLocation();
 	targetLoc += Target->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
 
 	FRotator lookAt = (targetLoc - startLoc).Rotation();
@@ -313,12 +313,7 @@ void UAttackComponent::Throw(AActor* Target)
 		if (hit.GetActor()->IsA<AEnemy>()) {
 			d = FVector::Dist(startLoc, targetLoc);
 
-			double pitch = FMath::Abs(lookAt.Pitch);
-
-			angle = 0.5 * FMath::Asin((g * FMath::Cos(lookAt.Pitch) * d) / FMath::Square(v)) * (180.0f / PI); // fix
-
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("%f"), angle));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("%f"), lookAt.Pitch));
+			angle = 0.5f * FMath::Asin((g * FMath::Cos((45.0f + lookAt.Pitch) * (PI / 180.0f)) * d) / FMath::Square(v)) * (180.0f / PI) + lookAt.Pitch;
 		}
 		else {
 			FVector groundedLocation = FVector(startLoc.X, startLoc.Y, targetLoc.Z);
