@@ -26,6 +26,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		class USphereComponent* RangeComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
+		class UDecalComponent* DecalComponent;
+
 	class AResource* Resource = nullptr;
 
 	TArray<AResource*> ResourceList;

@@ -4,6 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/DecalComponent.h"
 
 #include "Camera.h"
 #include "Buildings/Building.h"
@@ -162,11 +163,12 @@ void UBuildComponent::Place()
 		Building->TreeList[i]->Destroy(true);
 	}
 
-	if (Building->IsA<AWall>()) {
+	if (Building->IsA<AWall>())
 		Cast<AWall>(Building)->StoreSocketLocations();
-	}
-	else if (Building->IsA<AExternalProduction>()) {
-		Cast<AExternalProduction>(Building)->RangeComponent->SetHiddenInGame(true);
+	
+	if (Building->FindComponentByClass<UDecalComponent>() != nullptr) {
+		Cast<AExternalProduction>(Building)->BuildingMesh->SetReceivesDecals(true);
+		Cast<AExternalProduction>(Building)->DecalComponent->SetHiddenInGame(true);
 	}
 
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);

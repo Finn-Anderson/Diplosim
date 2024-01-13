@@ -1,6 +1,7 @@
 #include "ExternalProduction.h"
 
 #include "Components/SphereComponent.h"
+#include "Components/DecalComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 
@@ -13,6 +14,8 @@
 
 AExternalProduction::AExternalProduction()
 {
+	BuildingMesh->SetReceivesDecals(false);
+
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetupAttachment(RootComponent);
 	RangeComponent->SetCollisionProfileName("Spectator", true);
@@ -21,7 +24,10 @@ AExternalProduction::AExternalProduction()
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
 	RangeComponent->SetSphereRadius(1500.0f);
-	RangeComponent->SetHiddenInGame(false);
+
+	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
+	DecalComponent->SetupAttachment(RootComponent);
+	DecalComponent->DecalSize = FVector(1500.0f, 1500.0f, 1500.0f);
 }
 
 void AExternalProduction::BeginPlay()
