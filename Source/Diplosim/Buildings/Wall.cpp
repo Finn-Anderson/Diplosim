@@ -10,13 +10,13 @@ AWall::AWall()
 {
 	BuildingMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
-	BuildingMesh->SetReceivesDecals(false);
 
 	bHideCitizen = false;
 
 	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
 	DecalComponent->SetupAttachment(RootComponent);
 	DecalComponent->DecalSize = FVector(400.0f, 400.0f, 400.0f);
+	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
 }
 
 void AWall::StoreSocketLocations()

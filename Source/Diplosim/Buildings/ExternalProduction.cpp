@@ -14,8 +14,6 @@
 
 AExternalProduction::AExternalProduction()
 {
-	BuildingMesh->SetReceivesDecals(false);
-
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetupAttachment(RootComponent);
 	RangeComponent->SetCollisionProfileName("Spectator", true);
@@ -28,6 +26,7 @@ AExternalProduction::AExternalProduction()
 	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
 	DecalComponent->SetupAttachment(RootComponent);
 	DecalComponent->DecalSize = FVector(1500.0f, 1500.0f, 1500.0f);
+	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
 }
 
 void AExternalProduction::BeginPlay()

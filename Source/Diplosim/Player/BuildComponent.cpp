@@ -167,8 +167,12 @@ void UBuildComponent::Place()
 		Cast<AWall>(Building)->StoreSocketLocations();
 	
 	if (Building->FindComponentByClass<UDecalComponent>() != nullptr) {
-		Cast<AExternalProduction>(Building)->BuildingMesh->SetReceivesDecals(true);
-		Cast<AExternalProduction>(Building)->DecalComponent->SetHiddenInGame(true);
+		if (Building->IsA<AWall>()) {
+			Cast<AWall>(Building)->DecalComponent->SetHiddenInGame(true);
+		}
+		else {
+			Cast<AExternalProduction>(Building)->DecalComponent->SetHiddenInGame(true);
+		}
 	}
 
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);
