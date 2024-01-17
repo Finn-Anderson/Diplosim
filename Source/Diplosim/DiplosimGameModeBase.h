@@ -88,9 +88,9 @@ public:
 
 	void EvaluateThreats();
 
-	bool PathToBuilding(class AGrid* Grid, FVector Location, float Length, bool bCheckForBroch);
+	bool PathToBuilding(FVector Location, const class ANavigationData* NavData, float Length, TArray<AActor*> Buildings);
 
-	TArray<FVector> GetSpawnPoints(class AGrid* Grid, float Length, bool bCheckForBroch);
+	TArray<FVector> GetSpawnPoints(class AGrid* Grid, const class ANavigationData* NavData, float Length, TArray<AActor*> Buildings);
 
 	TArray<FVector> PickSpawnPoints();
 

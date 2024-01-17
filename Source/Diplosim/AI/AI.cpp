@@ -8,6 +8,7 @@
 #include "HealthComponent.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
+#include "Enemy.h"
 #include "Buildings/Broch.h"
 
 AAI::AAI()
@@ -78,7 +79,36 @@ void AAI::MoveToBroch()
 	if (brochs.IsEmpty() || HealthComponent->Health == 0)
 		return;
 
-	AIController->AIMoveTo(brochs[0]);
+	AActor* target = brochs[0];
+
+	if (!AIController->CanMoveTo(brochs[0]) && IsA<AEnemy>()) {
+		TArray<AActor*> buildings;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
+
+		target = nullptr;
+
+		for (AActor* actor : buildings) {
+			if (!AIController->CanMoveTo(actor))
+				continue;
+
+			if (target == nullptr) {
+				target = actor;
+
+				continue;
+			}
+
+			FClosestStruct closestStruct = AIController->GetClosestActor(target, actor);
+
+			double targetDistToBroch = FVector::Dist(target->GetActorLocation(), brochs[0]->GetActorLocation()) + closestStruct.Magnitude;
+
+			double actorDistToBroch = FVector::Dist(actor->GetActorLocation(), brochs[0]->GetActorLocation()) - closestStruct.Magnitude;
+
+			if (targetDistToBroch > actorDistToBroch)
+				target = closestStruct.Actor;
+		}
+	}
+
+	AIController->AIMoveTo(target);
 }
 
 void AAI::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

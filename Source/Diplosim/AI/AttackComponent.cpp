@@ -51,34 +51,27 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
-		if (OtherActor->GetClass() != enemyClass)
-			continue;
-
-		UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
-
-		if (healthComp->Health == 0)
-			return;
-
-		OverlappingEnemies.Add(OtherActor);
-
-		if (GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
-			return;
-
-		GetTargets();
-
-		break;
-	}
-
-	if (!Owner->IsA<ACitizen>() || !OtherActor->IsA<ACitizen>())
-		return;
-
 	UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
 
 	if (healthComp->Health == 0)
 		return;
 
-	OverlappingAllies.Add(Cast<ACitizen>(OtherActor));
+	if (OtherActor->GetClass() == Owner->GetClass()) {
+		if (Owner->IsA<ACitizen>())
+			OverlappingAllies.Add(Cast<ACitizen>(OtherActor));
+
+		return;
+	}
+
+	if (Owner->IsA<ACitizen>() && !EnemyClasses.Contains(OtherActor->GetClass()))
+		return;
+
+	OverlappingEnemies.Add(OtherActor);
+
+	if (GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
+		return;
+
+	GetTargets();
 }
 
 void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -208,6 +201,9 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 
 			break;
 		}
+		
+		if (favoured.Actor != nullptr && EnemyClasses.Contains(favoured.Actor->GetClass()) && !EnemyClasses.Contains(target->GetClass()))
+			continue;
 
 		float hp = 0.0f;
 		float dmg = 0.0f;
@@ -242,7 +238,7 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 			currentFavoured = (Damage / favoured.Hp) * favoured.Dmg - (favoured.Length / 1000.0f);
 		}
 
-		if (favourability > currentFavoured) {
+		if (favourability > currentFavoured || (!EnemyClasses.Contains(favoured.Actor->GetClass()) && EnemyClasses.Contains(target->GetClass()))) {
 			favoured.Actor = target;
 			favoured.Hp = hp;
 			favoured.Dmg = dmg;

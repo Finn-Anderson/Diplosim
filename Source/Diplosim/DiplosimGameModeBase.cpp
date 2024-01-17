@@ -85,45 +85,37 @@ void ADiplosimGameModeBase::EvaluateThreats()
 	}*/
 }
 
-bool ADiplosimGameModeBase::PathToBuilding(class AGrid* Grid, FVector Location, float Length, bool bCheckForBroch)
+bool ADiplosimGameModeBase::PathToBuilding(FVector Location, const ANavigationData* NavData, float Length, TArray<AActor*> Buildings)
 {
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
+	int32 tally = 0;
+	bool bPathToABuilding = false;
 
-	TArray<AActor*> buildings;
-
-	if (bCheckForBroch) {
-		buildings.Add(Broch);
-	}
-	else {
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
-	}
-
-	for (AActor* actor : buildings) {
-		ABuilding* building = Cast<ABuilding>(actor);
-
-		FVector loc = building->GetActorLocation();
+	for (AActor* actor : Buildings) {
+		FVector loc = actor->GetActorLocation();
 
 		FPathFindingQuery query(this, *NavData, Location, loc);
 
-		bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
-
-		if (!path)
-			continue;
-
 		double outLength;
-		NavData->CalcPathLength(Location, loc, outLength);
+		ENavigationQueryResult::Type result = NavData->CalcPathLength(Location, loc, outLength);
 
 		if (outLength < Length)
+			break;
+
+		tally++;
+
+		if (result != ENavigationQueryResult::Success)
 			continue;
 
-		return true;
+		bPathToABuilding = true;
 	}
 
-	return false;
+	if (!bPathToABuilding || tally < Buildings.Num())
+		return false;
+
+	return true;
 }
 
-TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, float Length, bool bCheckForBroch)
+TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, const ANavigationData* NavData, float Length, TArray<AActor*> Buildings)
 {
 	TArray<FVector> validTiles;
 
@@ -138,7 +130,7 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, float L
 
 		FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
-		if (!PathToBuilding(Grid, location, Length, bCheckForBroch))
+		if (!PathToBuilding(location, NavData, Length, Buildings))
 			continue;
 
 		validTiles.Add(location);
@@ -147,11 +139,7 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, float L
 	}
 
 	if (validTiles.IsEmpty()) {
-		validTiles = GetSpawnPoints(Grid, Length, !bCheckForBroch);
-	}
-
-	if (validTiles.IsEmpty()) {
-		validTiles = GetSpawnPoints(Grid, 500.0f, !bCheckForBroch);
+		validTiles = GetSpawnPoints(Grid, NavData, 0.0f, Buildings);
 	}
 
 	return validTiles;
@@ -194,7 +182,13 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 	}
 
 	if (validTiles.IsEmpty()) {
-		validTiles = GetSpawnPoints(grid, 3000.0f, true);
+		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+		const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
+
+		TArray<AActor*> buildings;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
+
+		validTiles = GetSpawnPoints(grid, NavData, 3000.0f, buildings);
 	}
 
 	int32 index = FMath::RandRange(0, validTiles.Num() - 1);

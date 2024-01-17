@@ -163,8 +163,14 @@ void ACitizen::LoseEnergy()
 	if (Building.House->IsValidLowLevelFast()) {
 		AIController->AIMoveTo(Building.House);
 	}
-	else if (BioStruct.Age < 18 && BioStruct.Mother != nullptr && BioStruct.Mother->Building.House->IsValidLowLevelFast()) {
-		AIController->AIMoveTo(BioStruct.Mother->Building.House);
+	else if (BioStruct.Age < 18) {
+		TWeakObjectPtr<ACitizen> parent = BioStruct.Mother;
+
+		if (parent == nullptr)
+			parent = BioStruct.Father;
+
+		if (parent != nullptr && parent->Building.House->IsValidLowLevelFast())
+			AIController->AIMoveTo(BioStruct.Mother->Building.House);
 	}
 
 	if (Energy == 0) {
@@ -180,7 +186,7 @@ void ACitizen::GainEnergy()
 
 	HealthComponent->AddHealth(1);
 
-	if (Energy >= 100) {
+	if (Energy >= 100 && Building.Employment != nullptr) {
 		AIController->AIMoveTo(Building.Employment);
 	}
 }
