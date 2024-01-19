@@ -79,7 +79,7 @@ void AClouds::Tick(float DeltaTime)
 
 void AClouds::GetCloudBounds(int32 GridSize)
 {
-	XY = GridSize * 100.0f / 2.0f;
+	XY = GridSize;
 
 	ActivateCloud();
 }

@@ -94,6 +94,8 @@ public:
 
 	TArray<FVector> PickSpawnPoints();
 
+	TArray<FVector> FindSpawnsInArea(AGrid* Grid, int32 Z, struct FTileStruct* Tile, int32 Iteration);
+
 	void SpawnEnemies();
 
 	void SpawnAtValidLocation(TArray<FVector> SpawnLocations);

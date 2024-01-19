@@ -23,6 +23,8 @@ struct FTileStruct
 
 	TArray<class AActor*> Resource;
 
+	TMap<FString, FTileStruct*> AdjacentTiles;
+
 	FTileStruct() {
 		Level = -100;
 
@@ -73,7 +75,7 @@ public:
 		class UHierarchicalInstancedStaticMeshComponent* HISMWater;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMBeach;
+		class UHierarchicalInstancedStaticMeshComponent* HISMLava;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMGround;
@@ -85,25 +87,29 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
+	// Lava Particle System
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles")
+		class UNiagaraSystem* LavaSystem;
+
+	TArray<class UNiagaraComponent*> LavaComponents;
+
 	// Map
-	TArray<FTileStruct> Storage;
-	
 	void Render();
 
-	FTileStruct GetChosenTile(TArray<FTileStruct> Tiles, int32 TargetLevel);
+	void FillGaps(FTileStruct* Tile);
 
-	void FillGaps(FTileStruct Tile);
-
-	void SetBeaches();
-
-	void GenerateTile(int32 Level, int32 Fertility, int32 x, int32 y, FQuat Rotation);
+	void GenerateTile(FTileStruct* Tile);
 
 	void Clear();
 
+	TArray<TArray<FTileStruct>> Storage;
+
+	AClouds* Clouds;
+
 	// Resources
+	void GenerateResource(FTileStruct* Tile);
+
+	void SpawnResource(FTileStruct* Tile, FVector Location, TSubclassOf<class AResource> ResourceClass);
+
 	bool Forest;
-
-	void GenerateResource(int32 Pos);
-
-	void SpawnResource(int32 Pos, FVector Location, TSubclassOf<class AResource> ResourceClass);
 };

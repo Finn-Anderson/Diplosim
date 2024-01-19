@@ -89,7 +89,7 @@ bool UBuildComponent::IsValidLocation()
 		location.Y = FMath::RoundHalfFromZero(location.Y);
 		location.Z = FMath::RoundHalfFromZero(location.Z);
 
-		if (location.Z == building.Z)
+		if (building.Z == location.Z && location.Z >= 100.0f)
 			continue;
 
 		if (location.Z < 100.0f || (building.X == location.X && building.Y == location.Y))

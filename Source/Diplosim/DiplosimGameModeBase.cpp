@@ -119,23 +119,25 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(class AGrid* Grid, const A
 {
 	TArray<FVector> validTiles;
 
-	for (FTileStruct tile : Grid->Storage) {
-		if (tile.Level < 0)
-			continue;
+	float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
-		FTransform transform;
-		Grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
+	for (TArray<FTileStruct>& row : Grid->Storage) {
+		for (FTileStruct& tile : row) {
+			if (tile.Level < 0)
+				continue;
 
-		float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
+			FTransform transform;
+			Grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
 
-		FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
+			FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
-		if (!PathToBuilding(location, NavData, Length, Buildings))
-			continue;
+			if (!PathToBuilding(location, NavData, Length, Buildings))
+				continue;
 
-		validTiles.Add(location);
+			validTiles.Add(location);
 
-		validTiles.Last().Z = FMath::RoundHalfFromZero(validTiles.Last().Z);
+			validTiles.Last().Z = FMath::RoundHalfFromZero(validTiles.Last().Z);
+		}
 	}
 
 	if (validTiles.IsEmpty()) {
@@ -193,40 +195,43 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	int32 index = FMath::RandRange(0, validTiles.Num() - 1);
 
-	TArray<FVector> chosenLocations;
-	chosenLocations.Add(validTiles[index]);
-
 	WavesData.Last().SpawnLocation = validTiles[index];
 
-	FTileStruct chosenTile = grid->Storage[validTiles[index].X / 100 + 100 + (validTiles[index].Y / 100 + 100) * grid->Size];
+	FTileStruct* chosenTile = &grid->Storage[validTiles[index].X + grid->Storage.Num() / 2][validTiles[index].Y + grid->Storage.Num() / 2];
 
 	int32 z = grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
-	for (int32 y = -4; y < 5; y++)
-	{
-		for (int32 x = -4; x < 5; x++)
-		{
-			if (chosenTile.X + x < 0 || chosenTile.Y + y < 0 || chosenTile.X + x >= grid->Size || chosenTile.Y + y >= grid->Size)
-				continue;
-
-			FTileStruct tile = grid->Storage[(chosenTile.X + x) + ((chosenTile.Y + y) * grid->Size)];
-
-			if (tile.Level < 0)
-				continue;
-
-			FTransform transform;
-			grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
-
-			FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, z);
-
-			if (validTiles.Num() > 10 && !validTiles.Contains(loc))
-				continue;
-
-			chosenLocations.Add(loc);
-		}
-	}
+	TArray<FVector> chosenLocations = FindSpawnsInArea(grid, z, chosenTile, 0);
 
 	return chosenLocations;
+}
+
+TArray<FVector> ADiplosimGameModeBase::FindSpawnsInArea(AGrid* Grid, int32 Z, FTileStruct* Tile, int32 Iteration)
+{
+	TArray<FVector> locations;
+
+	FTransform transform;
+	Grid->HISMGround->GetInstanceTransform(Tile->Instance, transform);
+
+	FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, Z);
+
+	locations.Add(loc);
+
+	Iteration++;
+
+	if (Iteration == 10)
+		return locations;
+
+	for (auto& element : Tile->AdjacentTiles) {
+		FTileStruct* t = element.Value;
+
+		if (t->Level < 0)
+			continue;
+
+		locations.Append(FindSpawnsInArea(Grid, Z, t, Iteration));
+	}
+
+	return locations;
 }
 
 void ADiplosimGameModeBase::SpawnEnemies()
