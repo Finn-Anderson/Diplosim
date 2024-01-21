@@ -66,9 +66,6 @@ void ACamera::BeginPlay()
 	}
 
 	BuildUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildUI);
-
-	MapUIInstance = CreateWidget<UUserWidget>(pcontroller, MapUI);
-	MapUIInstance->AddToViewport();
 }
 
 void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

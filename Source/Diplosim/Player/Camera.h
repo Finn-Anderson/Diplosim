@@ -42,19 +42,15 @@ public:
 	UPROPERTY()
 		class AGrid* Grid;
 
-	bool start;
+	UPROPERTY()
+		bool start;
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> BuildUI;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* BuildUIInstance;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-		TSubclassOf<class UUserWidget> MapUI;
-
-	class UUserWidget* MapUIInstance;
 
 	// Inputs
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")

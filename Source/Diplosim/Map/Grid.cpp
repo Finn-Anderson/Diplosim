@@ -3,6 +3,7 @@
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
@@ -44,6 +45,9 @@ void AGrid::BeginPlay()
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
+
+	MapUIInstance = CreateWidget<UUserWidget>(PController, MapUI);
+	MapUIInstance->AddToViewport();
 
 	Camera->Grid = this;
 
@@ -447,6 +451,7 @@ void AGrid::Clear()
 
 	LavaComponents.Empty();
 
+	Camera->BuildComponent->Building->Collisions.Empty();
 	Camera->BuildComponent->Building->bMoved = false;
 
 	Clouds->Destroy();
