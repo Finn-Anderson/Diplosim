@@ -52,6 +52,20 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* BuildUIInstance;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> PauseUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* PauseUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> MenuUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* MenuUIInstance;
+
+	void TickWhenPaused(bool bTickWhenPaused);
+
 	// Inputs
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputMappingContext* InputMapping;
@@ -84,6 +98,9 @@ public:
 		class UInputAction* InputPause;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputMenu;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputDebug;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -100,6 +117,9 @@ public:
 
 	// Other
 	void Pause();
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+		void Menu();
 
 	void Debug();
 
