@@ -7,6 +7,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "Map/Grid.h"
 #include "BuildComponent.h"
@@ -15,6 +16,7 @@
 #include "Buildings/Building.h"
 #include "AI/Enemy.h"
 #include "DiplosimGameModeBase.h"
+#include "Map/Mineral.h"
 
 ACamera::ACamera()
 {
@@ -41,6 +43,9 @@ ACamera::ACamera()
 
 	ResourceManagerComponent = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManagerComponent"));
 	ResourceManagerComponent->SetTickableWhenPaused(true);
+
+	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
+	WidgetComponent->SetHiddenInGame(true);
 
 	start = true;
 
@@ -118,17 +123,39 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action()
 {
-	if (!BuildComponent->IsComponentTickEnabled() || MenuUIInstance->IsInViewport())
+	if (MenuUIInstance->IsInViewport())
 		return;
 
-	if (bQuick) {
-		BuildComponent->QuickPlace();
+	if (BuildComponent->IsComponentTickEnabled()) {
+		if (bQuick) {
+			BuildComponent->QuickPlace();
+		}
+		else {
+			BuildComponent->Place();
+
+			if (BuildComponent->Building == nullptr)
+				ClearMinusText();
+		}
 	}
 	else {
-		BuildComponent->Place();
+		FVector mouseLoc, mouseDirection;
+		APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
 
-		if (BuildComponent->Building == nullptr)
-			ClearMinusText();
+		FHitResult hit(ForceInit);
+
+		FVector endTrace = mouseLoc + (mouseDirection * 10000);
+
+		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
+			AActor* actor = hit.GetActor();
+
+			if (!actor->IsA<ABuilding>() && !actor->IsA<AAI>() && !actor->IsA<AMineral>())
+				return;
+
+			WidgetComponent->SetWorldLocation(hit.Location);
+
+			WidgetComponent->SetHiddenInGame(false);
+		}
 	}
 }
 

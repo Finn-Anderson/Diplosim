@@ -64,6 +64,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* MenuUIInstance;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		class UWidgetComponent* WidgetComponent;
+
 	void TickWhenPaused(bool bTickWhenPaused);
 
 	// Inputs

@@ -6,7 +6,6 @@ AResource::AResource()
 
 	ResourceMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ResourceMesh"));
 	ResourceMesh->SetCollisionObjectType(ECollisionChannel::ECC_Destructible);
-	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Overlap);
 	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 	ResourceMesh->SetMobility(EComponentMobility::Static);
 	ResourceMesh->SetCanEverAffectNavigation(false);
