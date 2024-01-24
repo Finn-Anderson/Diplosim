@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "InteractableInterface.h"
 #include "Building.generated.h"
 
 USTRUCT(BlueprintType)
@@ -58,7 +59,7 @@ enum class EBuildStatus : uint8
 };
 
 UCLASS()
-class DIPLOSIM_API ABuilding : public AActor
+class DIPLOSIM_API ABuilding : public AActor, public IInteractableInterface
 {
 	GENERATED_BODY()
 	

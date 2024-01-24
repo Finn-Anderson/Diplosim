@@ -2,10 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "InteractableInterface.h"
 #include "AI.generated.h"
 
 UCLASS()
-class DIPLOSIM_API AAI : public ACharacter
+class DIPLOSIM_API AAI : public ACharacter, public IInteractableInterface
 {
 	GENERATED_BODY()
 

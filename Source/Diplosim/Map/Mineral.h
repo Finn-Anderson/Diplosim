@@ -2,10 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Resource.h"
+#include "InteractableInterface.h"
 #include "Mineral.generated.h"
 
 UCLASS()
-class DIPLOSIM_API AMineral : public AResource
+class DIPLOSIM_API AMineral : public AResource, public IInteractableInterface
 {
 	GENERATED_BODY()
 

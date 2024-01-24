@@ -184,7 +184,7 @@ void UBuildComponent::Place()
 	if (Camera->start) {
 		Camera->start = false;
 		Camera->BuildUIInstance->AddToViewport();
-		Camera->Grid->MapUIInstance->RemoveFromViewport();
+		Camera->Grid->MapUIInstance->RemoveFromParent();
 
 		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 		gamemode->SetWaveTimer();

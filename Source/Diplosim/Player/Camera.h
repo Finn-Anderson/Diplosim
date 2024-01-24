@@ -67,6 +67,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		AActor* SelectedActor;
+
 	void TickWhenPaused(bool bTickWhenPaused);
 
 	// Inputs

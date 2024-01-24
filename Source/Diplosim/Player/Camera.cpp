@@ -149,7 +149,7 @@ void ACamera::Action()
 		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 			AActor* actor = hit.GetActor();
 
-			if (!actor->IsA<ABuilding>() && !actor->IsA<AAI>() && !actor->IsA<AMineral>())
+			if (!actor->GetClass()->ImplementsInterface(UInteractableInterface::StaticClass()))
 				return;
 
 			WidgetComponent->SetWorldLocation(hit.Location);
@@ -187,7 +187,7 @@ void ACamera::Pause()
 	pcontroller->SetPause(!pcontroller->IsPaused());
 
 	if (PauseUIInstance->IsInViewport()) {
-		PauseUIInstance->RemoveFromViewport();
+		PauseUIInstance->RemoveFromParent();
 	}
 	else {
 		PauseUIInstance->AddToViewport();
@@ -202,7 +202,7 @@ void ACamera::Menu()
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
 	if (MenuUIInstance->IsInViewport()) {
-		MenuUIInstance->RemoveFromViewport();
+		MenuUIInstance->RemoveFromParent();
 
 		TickWhenPaused(true);
 	}
