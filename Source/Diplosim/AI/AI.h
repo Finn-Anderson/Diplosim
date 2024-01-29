@@ -2,11 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "InteractableInterface.h"
 #include "AI.generated.h"
 
 UCLASS()
-class DIPLOSIM_API AAI : public ACharacter, public IInteractableInterface
+class DIPLOSIM_API AAI : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -24,6 +23,9 @@ public:
 
 	UFUNCTION()
 		virtual void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface")
+		class UInteractableComponent* InteractableComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
 		class UCapsuleComponent* CapsuleCollision;

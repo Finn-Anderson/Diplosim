@@ -43,6 +43,8 @@ AAI::AAI()
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 	AttackComponent->RangeComponent->SetupAttachment(RootComponent);
 
+	InteractableComponent = CreateDefaultSubobject<UInteractableComponent>(TEXT("InteractableComponent"));
+
 	AIControllerClass = ADiplosimAIController::StaticClass();
 
 	GetCharacterMovement()->MaxWalkSpeed = 200.0f;

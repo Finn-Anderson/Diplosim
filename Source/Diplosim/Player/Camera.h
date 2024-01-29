@@ -23,6 +23,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void ClearMinusText();
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void InteractableText();
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -68,7 +71,7 @@ public:
 		class UWidgetComponent* WidgetComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-		AActor* SelectedActor;
+		UInteractableComponent* SelectedInteractableComponent;
 
 	void TickWhenPaused(bool bTickWhenPaused);
 

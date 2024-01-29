@@ -39,6 +39,8 @@ ABuilding::ABuilding()
 	HealthComponent->MaxHealth = 200;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
+	InteractableComponent = CreateDefaultSubobject<UInteractableComponent>(TEXT("InteractableComponent"));
+
 	Capacity = 2;
 
 	Upkeep = 0;

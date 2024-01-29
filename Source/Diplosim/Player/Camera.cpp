@@ -17,6 +17,7 @@
 #include "AI/Enemy.h"
 #include "DiplosimGameModeBase.h"
 #include "Map/Mineral.h"
+#include "InteractableInterface.h"
 
 ACamera::ACamera()
 {
@@ -149,8 +150,15 @@ void ACamera::Action()
 		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 			AActor* actor = hit.GetActor();
 
-			if (!actor->GetClass()->ImplementsInterface(UInteractableInterface::StaticClass()))
+			SelectedInteractableComponent = actor->GetComponentByClass<UInteractableComponent>();
+
+			if (SelectedInteractableComponent == nullptr)
 				return;
+
+			SelectedInteractableComponent->SetHP();
+			SelectedInteractableComponent->SetStorage();
+
+			InteractableText();
 
 			WidgetComponent->SetWorldLocation(hit.Location);
 

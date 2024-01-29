@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "InteractableInterface.h"
 #include "Building.generated.h"
 
 USTRUCT(BlueprintType)
@@ -59,7 +58,7 @@ enum class EBuildStatus : uint8
 };
 
 UCLASS()
-class DIPLOSIM_API ABuilding : public AActor, public IInteractableInterface
+class DIPLOSIM_API ABuilding : public AActor
 {
 	GENERATED_BODY()
 	
@@ -70,6 +69,9 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface")
+		class UInteractableComponent* InteractableComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* BuildingMesh;
 

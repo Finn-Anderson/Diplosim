@@ -1,36 +1,40 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
 #include "InteractableInterface.generated.h"
 
-USTRUCT()
-struct FInfoStruct
+USTRUCT(BlueprintType)
+struct FTextStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	float Percentage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Text")
+		FName ActorName;
 
-	// Extra info such as personality and other. Percentage used for storage and hp.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Text")
+		FString Description;
 
-	FInfoStruct() 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Text")
+		TMap<FString, FString> Information;
+
+	FTextStruct()
 	{
-		Percentage = -1;
+		ActorName = "";
+		Description = "";
 	}
-}
-
-UINTERFACE(MinimalAPI, Blueprintable)
-class UInteractableInterface : public UInterface
-{
-	GENERATED_BODY()
 };
 
-class IInteractableInterface
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+class DIPLOSIM_API UInteractableComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	FName ActorName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface")
+		FTextStruct TextStruct;
 
-	FString Description;
+	void SetHP();
 
-	TMap<FString, FInfoStruct> Information;
+	void SetStorage();
 };

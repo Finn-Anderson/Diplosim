@@ -9,6 +9,8 @@ AMineral::AMineral()
 	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	ResourceMesh->SetCanEverAffectNavigation(true);
 	ResourceMesh->bFillCollisionUnderneathForNavmesh = true;
+
+	InteractableComponent = CreateDefaultSubobject<UInteractableComponent>(TEXT("InteractableComponent"));
 }
 
 void AMineral::BeginPlay()

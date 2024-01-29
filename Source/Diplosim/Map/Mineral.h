@@ -2,11 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Resource.h"
-#include "InteractableInterface.h"
 #include "Mineral.generated.h"
 
 UCLASS()
-class DIPLOSIM_API AMineral : public AResource, public IInteractableInterface
+class DIPLOSIM_API AMineral : public AResource
 {
 	GENERATED_BODY()
 
@@ -17,5 +16,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface")
+		class UInteractableComponent* InteractableComponent;
+
 	virtual void YieldStatus();
 };
