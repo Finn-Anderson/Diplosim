@@ -18,5 +18,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizens")
 		int32 NumToSpawn;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
+		class UDecalComponent* DecalComponent;
+
 	virtual void FindCitizens() override;
 };

@@ -64,11 +64,19 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			Building->SetActorLocation(location);
 		}
 
+		UDecalComponent* decalComp = Building->FindComponentByClass<UDecalComponent>();
+
 		if (!IsValidLocation() || !Building->CheckBuildCost()) {
 			Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
+
+			if (decalComp != nullptr)
+				decalComp->SetHiddenInGame(true);
 		}
 		else {
 			Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
+
+			if (decalComp != nullptr)
+				decalComp->SetHiddenInGame(false);
 		}
 	}
 }
@@ -84,6 +92,9 @@ bool UBuildComponent::IsValidLocation()
 	building.Z = FMath::RoundHalfFromZero(building.Z);
 
 	for (const FBuildStruct buildStruct : Building->Collisions) {
+		if (buildStruct.Object == Camera->Grid->HISMLava || buildStruct.Object == Camera->Grid->HISMWater)
+			return false;
+
 		FVector location = buildStruct.Location;
 		location.X = FMath::RoundHalfFromZero(location.X);
 		location.Y = FMath::RoundHalfFromZero(location.Y);
@@ -92,7 +103,7 @@ bool UBuildComponent::IsValidLocation()
 		if (building.Z == location.Z && location.Z >= 100.0f)
 			continue;
 
-		if (location.Z < 100.0f || (building.X == location.X && building.Y == location.Y))
+		if (building.X == location.X && building.Y == location.Y)
 			return false;
 
 		FVector temp;
@@ -168,14 +179,10 @@ void UBuildComponent::Place()
 	if (Building->IsA<AWall>())
 		Cast<AWall>(Building)->StoreSocketLocations();
 	
-	if (Building->FindComponentByClass<UDecalComponent>() != nullptr) {
-		if (Building->IsA<AWall>()) {
-			Cast<AWall>(Building)->DecalComponent->SetHiddenInGame(true);
-		}
-		else {
-			Cast<AExternalProduction>(Building)->DecalComponent->SetHiddenInGame(true);
-		}
-	}
+	UDecalComponent* decalComp = Building->FindComponentByClass<UDecalComponent>();
+
+	if (decalComp != nullptr)
+		decalComp->SetHiddenInGame(true);
 
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);
 
@@ -185,6 +192,10 @@ void UBuildComponent::Place()
 		Camera->start = false;
 		Camera->BuildUIInstance->AddToViewport();
 		Camera->Grid->MapUIInstance->RemoveFromParent();
+
+		Camera->Grid->DecalComponent->SetHiddenInGame(true);
+
+		Building->BuildingMesh->bReceivesDecals = true;
 
 		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 		gamemode->SetWaveTimer();

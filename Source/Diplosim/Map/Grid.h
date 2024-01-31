@@ -58,10 +58,13 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-	TSubclassOf<class AClouds> CloudsClass;
+		TSubclassOf<class AClouds> CloudsClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ground", meta = (ClampMin = "0.0", ClampMax = "100.0", UIMin = "0.0", UIMax = "100.0"))
 		int32 PercentageGround;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
+		class UDecalComponent* DecalComponent;
 
 	//UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")

@@ -88,13 +88,13 @@ public:
 
 	void EvaluateThreats();
 
-	bool PathToBuilding(FVector Location, const class ANavigationData* NavData, float Length, TArray<AActor*> Buildings);
+	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData, TArray<AActor*> Buildings);
 
-	TArray<FVector> GetSpawnPoints(class AGrid* Grid, const class ANavigationData* NavData, float Length, TArray<AActor*> Buildings);
+	TArray<FVector> GetSpawnPoints(class AGrid* Grid, class UNavigationSystemV1* Nav, const class ANavigationData* NavData, TArray<AActor*> Buildings);
 
 	TArray<FVector> PickSpawnPoints();
 
-	TArray<FVector> FindSpawnsInArea(AGrid* Grid, int32 Z, struct FTileStruct* Tile, int32 Iteration);
+	TArray<FVector> FindSpawnsInArea(AGrid* Grid, int32 Z, struct FTileStruct* Tile, TArray<FVector> ValidTiles, int32 Iteration);
 
 	void SpawnEnemies();
 

@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "Components/DecalComponent.h"
 
 #include "Clouds.h"
 #include "Mineral.h"
@@ -24,6 +25,7 @@ AGrid::AGrid()
 	HISMWater->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMWater->SetCanEverAffectNavigation(false);
 	HISMWater->NumCustomDataFloats = 1;
+	HISMWater->bReceivesDecals = false;
 
 	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
 	HISMLava->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
@@ -33,6 +35,11 @@ AGrid::AGrid()
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMGround->NumCustomDataFloats = 4;
+
+	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
+	DecalComponent->SetupAttachment(RootComponent);
+	DecalComponent->DecalSize = FVector(100000.0f, 100000.0f, 100000.0f);
+	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
 
 	Size = 22500;
 
