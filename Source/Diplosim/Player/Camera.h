@@ -24,7 +24,10 @@ public:
 		void ClearMinusText();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void InteractableText();
+		void SetInteractableText();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void EditInteractableText(const FString& Key, const FString& Value);
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
@@ -70,7 +73,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		UInteractableComponent* SelectedInteractableComponent;
 
 	void TickWhenPaused(bool bTickWhenPaused);

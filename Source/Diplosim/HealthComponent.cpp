@@ -9,6 +9,7 @@
 #include "Buildings/Work.h"
 #include "Buildings/House.h"
 #include "DiplosimGameModeBase.h"
+#include "InteractableInterface.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -18,11 +19,19 @@ UHealthComponent::UHealthComponent()
 void UHealthComponent::AddHealth(int32 Amount)
 {
 	Health = FMath::Clamp(Health + Amount, 0, MaxHealth);
+
+	UInteractableComponent* interactableComp = GetOwner()->GetComponentByClass<UInteractableComponent>();
+	interactableComp->SetHP();
+	interactableComp->ExecuteEditEvent("HP");
 }
 
 void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 {
 	Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
+
+	UInteractableComponent* interactableComp = GetOwner()->GetComponentByClass<UInteractableComponent>();
+	interactableComp->SetHP();
+	interactableComp->ExecuteEditEvent("HP");
 
 	if (Health == 0) {
 		Death(Attacker);

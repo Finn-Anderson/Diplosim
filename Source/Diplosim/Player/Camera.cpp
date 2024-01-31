@@ -150,15 +150,14 @@ void ACamera::Action()
 		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 			AActor* actor = hit.GetActor();
 
-			SelectedInteractableComponent = actor->GetComponentByClass<UInteractableComponent>();
+			UInteractableComponent* hitComp = actor->GetComponentByClass<UInteractableComponent>();
 
-			if (SelectedInteractableComponent == nullptr)
+			if (hitComp == nullptr)
 				return;
 
-			SelectedInteractableComponent->SetHP();
-			SelectedInteractableComponent->SetStorage();
+			SelectedInteractableComponent = hitComp;
 
-			InteractableText();
+			SetInteractableText();
 
 			WidgetComponent->SetWorldLocation(hit.Location);
 
@@ -204,6 +203,14 @@ void ACamera::Pause()
 
 void ACamera::Menu()
 {
+	if (!WidgetComponent->bHiddenInGame) {
+		SelectedInteractableComponent = nullptr;
+
+		WidgetComponent->SetHiddenInGame(true);
+
+		return;
+	}
+
 	if (GetWorld()->GetMapName() != "Map")
 		return;
 

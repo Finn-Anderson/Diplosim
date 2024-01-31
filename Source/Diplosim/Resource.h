@@ -31,6 +31,8 @@ public:
 
 	int32 Quantity;
 
+	int32 MaxQuantity;
+
 	int32 GenerateYield();
 
 	int32 GetYield();

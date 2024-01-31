@@ -18,7 +18,7 @@ void ABroch::FindCitizens()
 		citizen->BioStruct.Age = 17;
 		citizen->Birthday();
 
-		citizen->HealthComponent->Health = 100;
+		citizen->HealthComponent->AddHealth(100);
 
 		Enter(citizen);
 	}

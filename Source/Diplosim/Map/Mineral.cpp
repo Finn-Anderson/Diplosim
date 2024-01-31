@@ -3,6 +3,7 @@
 #include "Components/BoxComponent.h"
 
 #include "Grid.h"
+#include "InteractableInterface.h"
 
 AMineral::AMineral()
 {
@@ -24,6 +25,9 @@ void AMineral::BeginPlay()
 void AMineral::YieldStatus()
 {
 	Quantity -= Yield;
+
+	InteractableComponent->SetQuantity();
+	InteractableComponent->ExecuteEditEvent("Quantity");
 
 	if (Quantity <= 0) {
 		Destroy();

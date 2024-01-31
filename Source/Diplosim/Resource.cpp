@@ -40,6 +40,7 @@ int32 AResource::GenerateYield()
 void AResource::SetQuantity(int32 Value)
 {
 	Quantity = Value;
+	MaxQuantity = Value;
 }
 
 void AResource::YieldStatus() 

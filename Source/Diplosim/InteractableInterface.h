@@ -30,11 +30,24 @@ class DIPLOSIM_API UInteractableComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
+protected:
+	virtual void BeginPlay() override;
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface")
 		FTextStruct TextStruct;
 
+	class ACamera* Camera;
+
 	void SetHP();
 
 	void SetStorage();
+
+	void SetEnergy();
+
+	void SetHunger();
+
+	void SetQuantity();
+
+	void ExecuteEditEvent(FString Key);
 };

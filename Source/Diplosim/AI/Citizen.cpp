@@ -15,6 +15,7 @@
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 #include "Buildings/Farm.h"
+#include "InteractableInterface.h"
 
 ACitizen::ACitizen()
 {
@@ -91,16 +92,24 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 //
 void ACitizen::Eat()
 {
-	Hunger--;
+	Hunger = FMath::Clamp(Hunger - 1, 0, 100);
 
-	if (Hunger > 25)
+	InteractableComponent->SetHunger();
+	InteractableComponent->ExecuteEditEvent("Hunger");
+
+	if (Hunger > 25) {
 		return;
+	}
+	else if (Hunger == 0) {
+		HealthComponent->TakeHealth(10, this);
+	}
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	ACamera* camera = PController->GetPawn<ACamera>();
 
 	TArray<int32> foodAmounts;
 	int32 totalAmount = 0;
+
 	for (int32 i = 0; i < Food.Num(); i++) {
 		int32 curAmount = camera->ResourceManagerComponent->GetResourceAmount(Food[i]);
 
@@ -108,7 +117,7 @@ void ACitizen::Eat()
 		totalAmount += curAmount;
 	}
 
-	if (totalAmount < 0)
+	if (totalAmount <= 0)
 		return;
 
 	int32 maxF = FMath::CeilToInt((100 - Hunger) / 25.0f);
@@ -133,10 +142,6 @@ void ACitizen::Eat()
 
 		Hunger = FMath::Clamp(Hunger + 25, 0, 100);
 	}
-
-	if (Hunger == 0) {
-		HealthComponent->TakeHealth(100, this);
-	}
 }
 
 //
@@ -156,6 +161,9 @@ void ACitizen::SetEnergyTimer(bool bGain)
 void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
+
+	InteractableComponent->SetEnergy();
+	InteractableComponent->ExecuteEditEvent("Energy");
 
 	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty())
 		return;
@@ -183,6 +191,8 @@ void ACitizen::LoseEnergy()
 void ACitizen::GainEnergy()
 {
 	Energy = FMath::Clamp(Energy + 1, 0, 100);
+
+	InteractableComponent->ExecuteEditEvent("Energy");
 
 	HealthComponent->AddHealth(1);
 
