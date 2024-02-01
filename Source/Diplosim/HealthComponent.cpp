@@ -66,9 +66,9 @@ void UHealthComponent::Death(AActor* Attacker)
 		if (Attacker->IsA<AProjectile>())
 			bIsProjectile = true;
 
-		gamemode->WavesData.Last().SetDiedTo(Attacker, bIsProjectile);
+		gamemode->WavesData.Last().SetDiedTo(Cast<ACitizen>(Attacker), bIsProjectile);
 
-		gamemode->SetWaveTimer();
+		gamemode->CheckEnemiesStatus();
 	}
 
 	if (actor->IsA<AAI>()) {

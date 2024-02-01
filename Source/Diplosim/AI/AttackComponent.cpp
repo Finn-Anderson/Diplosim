@@ -90,6 +90,9 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 
 int32 UAttackComponent::GetMorale(TArray<AActor*> Targets)
 {
+	if (Targets.IsEmpty() || !Owner->IsA<ACitizen>() || (Cast<ACitizen>(Owner)->Building.BuildingAt != nullptr && Cast<ACitizen>(Owner)->Building.BuildingAt->IsA<AWall>()))
+		return 1.0f;
+
 	float allyHP = 0.0f;
 	float allyDmg = 0.0f;
 
@@ -131,9 +134,6 @@ int32 UAttackComponent::GetMorale(TArray<AActor*> Targets)
 	float allyTotal = allyHP * allyDmg;
 	float enemyTotal = enemyHP * enemyDmg;
 
-	if (enemyTotal == 0.0f)
-		return 0.0f;
-
 	float morale = allyTotal / enemyTotal;
 
 	return morale;
@@ -141,7 +141,7 @@ int32 UAttackComponent::GetMorale(TArray<AActor*> Targets)
 
 void UAttackComponent::GetTargets()
 {
-	if (OverlappingEnemies.IsEmpty() || !CanAttack())
+	if (!CanAttack() || OverlappingEnemies.IsEmpty())
 		return;
 
 	TArray<AActor*> targets;
@@ -166,10 +166,7 @@ void UAttackComponent::GetTargets()
 		}
 	}
 
-	float morale = 1.0f;
-
-	if (Owner->IsA<ACitizen>() && (Cast<ACitizen>(Owner)->Building.BuildingAt == nullptr || !Cast<ACitizen>(Owner)->Building.BuildingAt->IsA<AWall>()))
-		morale = GetMorale(targets);
+	float morale = GetMorale(targets);
 
 	if (targets.IsEmpty() || morale < 1.0f) {
 		if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Building.Employment != nullptr) {
@@ -196,8 +193,13 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 		UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
 		UAttackComponent* attackComp = target->GetComponentByClass<UAttackComponent>();
 
-		if (Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->Threats.Contains(target) && !Cast<ACitizen>(target)->AttackComponent->RangeComponent->CanEverAffectNavigation()) {
-			favoured.Actor = Cast<ACitizen>(target)->Building.Employment;
+		FThreatsStruct threatStruct;
+
+		if (target->IsA<ACitizen>())
+			threatStruct.Citizen = Cast<ACitizen>(target);
+
+		if (Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats.Contains(threatStruct)) {
+			favoured.Actor = threatStruct.Citizen->Building.Employment;
 
 			break;
 		}

@@ -29,6 +29,30 @@ struct FDiedToStruct
 };
 
 USTRUCT()
+struct FThreatsStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	TWeakObjectPtr<class ACitizen> Citizen;
+
+	FString EmploymentName;
+
+	FVector Location;
+
+	FThreatsStruct()
+	{
+		Citizen = nullptr;
+		EmploymentName = "";
+		Location = FVector::Zero();
+	}
+
+	bool operator==(const FThreatsStruct& other) const
+	{
+		return (other.Citizen == Citizen);
+	}
+};
+
+USTRUCT()
 struct FWaveStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -36,6 +60,8 @@ struct FWaveStruct
 	FVector SpawnLocation;
 
 	TArray<FDiedToStruct> DiedTo;
+
+	TArray<FThreatsStruct> Threats;
 
 	int32 NumSpawned;
 
@@ -47,14 +73,15 @@ struct FWaveStruct
 		DiedTo = {};
 		NumSpawned = 0;
 		NumKilled = 0;
+		Threats = {};
 	}
 
-	void SetDiedTo(AActor* Attacker, bool bIsProjectile)
+	void SetDiedTo(ACitizen* Attacker, bool bIsProjectile)
 	{
 		AActor* actor = Attacker;
 
 		if (bIsProjectile)
-			actor = Attacker->Owner;
+			actor = Attacker->Building.Employment;
 
 		FDiedToStruct diedTo;
 		diedTo.Actor = actor;
@@ -96,9 +123,11 @@ public:
 
 	TArray<FVector> FindSpawnsInArea(AGrid* Grid, int32 Z, struct FTileStruct* Tile, TArray<FVector> ValidTiles, int32 Iteration);
 
-	void SpawnEnemies();
+	void SpawnEnemies(bool bSpawnTrails = false);
 
-	void SpawnAtValidLocation(TArray<FVector> SpawnLocations);
+	void SpawnAtValidLocation(TArray<FVector> SpawnLocations, bool bSpawnTrails = false);
+
+	bool CheckEnemiesStatus();
 
 	int32 GetRandomTime();
 
@@ -115,8 +144,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		int32 latestSpawnTime;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+		class UNiagaraSystem* TrailSystem;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class UNavAreaBase> NavAreaThreat;
+
+	FTimerHandle WaveTimer;
 
 	TArray<FWaveStruct> WavesData;
 
@@ -124,5 +158,5 @@ public:
 
 	TArray<FVector> LastLocation;
 
-	TArray<class ACitizen*> Threats;
+	int32 TotalEnemies;
 };

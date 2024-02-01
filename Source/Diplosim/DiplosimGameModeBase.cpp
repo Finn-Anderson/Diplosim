@@ -6,6 +6,8 @@
 #include "NavigationSystem.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
@@ -60,7 +62,12 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AWall>())
 			continue;
 
-		Threats.Add(citizen);
+		FThreatsStruct threatStruct;
+		threatStruct.Citizen = citizen;
+		threatStruct.EmploymentName = citizen->Building.Employment->GetName();
+		threatStruct.Location = citizen->Building.Employment->GetActorLocation();
+
+		WavesData.Last().Threats.Add(threatStruct);
 
 		int32 chance = FMath::RandRange(1, 30);
 		chance -= threat.Kills;
@@ -71,7 +78,7 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(true);
 	}
 
-	// CODE FOR TESTING
+	// CODE FOR TESTING AVOIDANCE
 	/*TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
@@ -229,9 +236,10 @@ TArray<FVector> ADiplosimGameModeBase::FindSpawnsInArea(AGrid* Grid, int32 Z, FT
 	return locations;
 }
 
-void ADiplosimGameModeBase::SpawnEnemies()
+void ADiplosimGameModeBase::SpawnEnemies(bool bSpawnTrails)
 {
-	EvaluateThreats();
+	if (!CheckEnemiesStatus())
+		return;
 
 	TArray<FVector> spawnLocations = PickSpawnPoints();
 
@@ -241,9 +249,13 @@ void ADiplosimGameModeBase::SpawnEnemies()
 		return;
 	}
 
+	EvaluateThreats();
+
+	GetWorld()->GetTimerManager().ClearTimer(WaveTimer);
+
 	LastLocation.Empty();
 
-	int32 num = 0;
+	TotalEnemies = 0;
 
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
@@ -254,18 +266,18 @@ void ADiplosimGameModeBase::SpawnEnemies()
 		if (citizen->BioStruct.Age < 18)
 			continue;
 
-		num++;
+		TotalEnemies++;
 	}
 
-	 num /= 3;
+	TotalEnemies /= 3;
 
-	for (int32 i = 0; i < num; i++) {
+	for (int32 i = 0; i < TotalEnemies; i++) {
 		FTimerHandle locationTimer;
-		GetWorld()->GetTimerManager().SetTimer(locationTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, spawnLocations), 0.1f, false);
+		GetWorld()->GetTimerManager().SetTimer(locationTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, spawnLocations, bSpawnTrails), 0.1f, false);
 	}
 }
 
-void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> SpawnLocations)
+void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> SpawnLocations, bool bSpawnTrails)
 {
 	int32 index = FMath::RandRange(0, SpawnLocations.Num() - 1);
 
@@ -282,9 +294,30 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> SpawnLocations)
 
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, SpawnLocations[index], FRotator(0, 0, 0));
 
+	if (bSpawnTrails) {
+		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailSystem, enemy->GetMesh(), NAME_None, FVector(0.0f), FRotator(0.0f), EAttachLocation::KeepRelativeOffset, true);
+
+		float r = FMath::FRandRange(0.0f, 1.0f);
+		float g = FMath::FRandRange(0.0f, 1.0f);
+		float b = FMath::FRandRange(0.0f, 1.0f);
+
+		NiagaraComp->SetVariableLinearColor(TEXT("Color"), FLinearColor(r, g, b));
+	}
+
 	enemy->MoveToBroch();
 
 	WavesData.Last().NumSpawned++;
+}
+
+bool ADiplosimGameModeBase::CheckEnemiesStatus()
+{
+	if (!WavesData.IsEmpty() && WavesData.Last().DiedTo.Num() != TotalEnemies)
+		return false;
+
+	if (!GetWorld()->GetTimerManager().IsTimerActive(WaveTimer))
+		SetWaveTimer();
+
+	return true;
 }
 
 int32 ADiplosimGameModeBase::GetRandomTime()
@@ -296,36 +329,18 @@ int32 ADiplosimGameModeBase::GetRandomTime()
 
 void ADiplosimGameModeBase::SetWaveTimer()
 {
-	TArray<AActor*> enemies;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemy::StaticClass(), enemies);
+	if (!WavesData.IsEmpty()) {
+		for (FThreatsStruct threatStruct : WavesData.Last().Threats) {
+			if (!threatStruct.Citizen->AttackComponent->RangeComponent->CanEverAffectNavigation())
+				continue;
 
-	for (int32 i = (enemies.Num() - 1); i > -1; i--) {
-		AActor* enemy = enemies[i];
-
-		UHealthComponent* healthComp = enemy->GetComponentByClass<UHealthComponent>();
-
-		if (healthComp->Health > 0)
-			continue;
-
-		enemies.Remove(enemy);
+			threatStruct.Citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(false);
+		}
 	}
-
-	if (!enemies.IsEmpty())
-		return;
-
-	for (ACitizen* citizen : Threats) {
-		if (!citizen->AttackComponent->RangeComponent->CanEverAffectNavigation())
-			continue;
-
-		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(false);
-	}
-
-	Threats.Empty();
 
 	int32 time = GetRandomTime();
 
-	FTimerHandle spawnTimer;
-	GetWorld()->GetTimerManager().SetTimer(spawnTimer, this, &ADiplosimGameModeBase::SpawnEnemies, time, false);
+	GetWorld()->GetTimerManager().SetTimer(WaveTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnEnemies, false), time, false);
 
 	SaveToFile();
 }
@@ -349,16 +364,22 @@ void ADiplosimGameModeBase::SaveToFile()
 
 		FileContent += "Wave " + waveNum + " \n \n";
 
-		FileContent += "Spawn Location \n" + wave.SpawnLocation.ToString() + " \n \n";
+		FileContent += "Spawn location \n" + wave.SpawnLocation.ToString() + " \n \n";
 
-		FileContent += "Number of Spawned Enemies \n" + FString::FromInt(wave.NumSpawned) + " \n \n";
+		FileContent += "Number of spawned enemies \n" + FString::FromInt(wave.NumSpawned) + " \n \n";
 
-		FileContent += "Number of kills \n" + FString::FromInt(wave.NumKilled) + " \n \n";
+		FileContent += "Number of enemy kills \n" + FString::FromInt(wave.NumKilled) + " \n \n";
 
 		FileContent += "Number that died to an actor \n";
 
 		for (FDiedToStruct diedTo : wave.DiedTo) {
 			FileContent += diedTo.Name + ": " + FString::FromInt(diedTo.Kills) + "\n";
+		}
+
+		FileContent += "Threat location(s) \n";
+
+		for (FThreatsStruct threatStruct : WavesData.Last().Threats) {
+			FileContent += threatStruct.EmploymentName + ": " + threatStruct.Location.ToString() + "\n";
 		}
 
 		FileContent += "\n \n";
