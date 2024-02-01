@@ -193,8 +193,6 @@ void UBuildComponent::Place()
 		Camera->BuildUIInstance->AddToViewport();
 		Camera->Grid->MapUIInstance->RemoveFromParent();
 
-		Camera->Grid->DecalComponent->SetHiddenInGame(true);
-
 		Building->BuildingMesh->bReceivesDecals = true;
 
 		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());

@@ -36,14 +36,9 @@ AGrid::AGrid()
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMGround->NumCustomDataFloats = 4;
 
-	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
-	DecalComponent->SetupAttachment(RootComponent);
-	DecalComponent->DecalSize = FVector(100000.0f, 100000.0f, 100000.0f);
-	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
-
 	Size = 22500;
 
-	PercentageGround = 70;
+	PercentageGround = 50;
 }
 
 void AGrid::BeginPlay()

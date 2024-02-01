@@ -30,6 +30,9 @@ class DIPLOSIM_API UInteractableComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
+public:
+	UInteractableComponent();
+
 protected:
 	virtual void BeginPlay() override;
 

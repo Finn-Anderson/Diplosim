@@ -46,6 +46,7 @@ ACamera::ACamera()
 	ResourceManagerComponent->SetTickableWhenPaused(true);
 
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
+	WidgetComponent->SetTickableWhenPaused(true);
 	WidgetComponent->SetHiddenInGame(true);
 
 	start = true;
@@ -219,12 +220,14 @@ void ACamera::Menu()
 	if (MenuUIInstance->IsInViewport()) {
 		MenuUIInstance->RemoveFromParent();
 
-		TickWhenPaused(true);
+		if (!PauseUIInstance->IsInViewport())
+			TickWhenPaused(true);
 	}
 	else {
 		MenuUIInstance->AddToViewport();
 
-		TickWhenPaused(false);
+		if (!PauseUIInstance->IsInViewport())
+			TickWhenPaused(false);
 	}
 }
 

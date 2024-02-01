@@ -8,6 +8,11 @@
 #include "Map/Mineral.h"
 #include "Player/Camera.h"
 
+UInteractableComponent::UInteractableComponent()
+{
+	SetTickableWhenPaused(true);
+}
+
 void UInteractableComponent::BeginPlay()
 {
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
