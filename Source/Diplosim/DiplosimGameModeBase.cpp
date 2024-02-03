@@ -113,9 +113,15 @@ bool ADiplosimGameModeBase::PathToBuilding(FVector Location, UNavigationSystemV1
 	return false;
 }
 
-TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(AGrid* Grid, UNavigationSystemV1* Nav, const ANavigationData* NavData, TArray<AActor*> Buildings)
+TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(AGrid* Grid)
 {
 	TArray<FVector> validTiles;
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+
+	TArray<AActor*> buildings;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
 
 	float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
@@ -129,7 +135,7 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(AGrid* Grid, UNavigationSy
 
 			FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
 
-			if (!PathToBuilding(location, Nav, NavData, Buildings))
+			if (!PathToBuilding(location, nav, navData, buildings))
 				continue;
 
 			validTiles.Add(location);
@@ -141,7 +147,7 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints(AGrid* Grid, UNavigationSy
 	return validTiles;
 }
 
-TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
+void ADiplosimGameModeBase::PickSpawnPoints()
 {
 	TArray<AActor*> grids;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGrid::StaticClass(), grids);
@@ -160,33 +166,18 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 		FWaveStruct wave = WavesData[i];
 
 		if (wave.DiedTo.Num() * 0.66f > wave.NumKilled) {
-			for (FVector location : validTiles) {
-				if (location != wave.SpawnLocation)
-					continue;
-
-				validTiles.RemoveSingle(location);
-
-				break;
-			}
-
-			continue;
+			validTiles.RemoveSingle(wave.SpawnLocation);
 		}
-
-		validTiles.Add(wave.SpawnLocation);
-	}
-
-	if (validTiles.IsEmpty()) {
-		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-		const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
-
-		TArray<AActor*> buildings;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
-
-		validTiles = GetSpawnPoints(grid, nav, NavData, buildings);
+		else {
+			validTiles.Add(wave.SpawnLocation);
+		}
 	}
 
 	if (validTiles.IsEmpty())
-		return chosenLocations;
+		validTiles = GetSpawnPoints(grid);
+
+	if (validTiles.IsEmpty())
+		return;
 
 	int32 index = FMath::RandRange(0, validTiles.Num() - 1);
 
@@ -200,40 +191,31 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	int32 z = grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
-	chosenLocations = FindSpawnsInArea(grid, z, chosenTile, validTiles, 0);
-
-	return chosenLocations;
+	FindSpawnsInArea(grid, z, chosenTile, WavesData.Last().SpawnLocation, validTiles, 0);
 }
 
-TArray<FVector> ADiplosimGameModeBase::FindSpawnsInArea(AGrid* Grid, int32 Z, FTileStruct* Tile, TArray<FVector> ValidTiles, int32 Iteration)
+void ADiplosimGameModeBase::FindSpawnsInArea(AGrid* Grid, int32 Z, FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration)
 {
-	TArray<FVector> locations;
-
-	FTransform transform;
-	Grid->HISMGround->GetInstanceTransform(Tile->Instance, transform);
-
-	FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, Z);
-
-	if (!ValidTiles.Contains(loc))
-		return locations;
-
-	locations.Add(loc);
+	SpawnLocations.Add(TileLocation);
 
 	Iteration++;
 
 	if (Iteration == 10)
-		return locations;
+		return;
 
 	for (auto& element : Tile->AdjacentTiles) {
 		FTileStruct* t = element.Value;
 
-		if (t->Level < 0)
+		FTransform transform;
+		Grid->HISMGround->GetInstanceTransform(t->Instance, transform);
+
+		FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, Z);
+
+		if (t->Level < 0 || SpawnLocations.Contains(loc) || !ValidTiles.Contains(loc))
 			continue;
 
-		locations.Append(FindSpawnsInArea(Grid, Z, t, ValidTiles, Iteration));
+		FindSpawnsInArea(Grid, Z, t, loc, ValidTiles, Iteration);
 	}
-
-	return locations;
 }
 
 void ADiplosimGameModeBase::SpawnEnemies(bool bSpawnTrails)
@@ -241,9 +223,11 @@ void ADiplosimGameModeBase::SpawnEnemies(bool bSpawnTrails)
 	if (!CheckEnemiesStatus())
 		return;
 
-	TArray<FVector> spawnLocations = PickSpawnPoints();
+	SpawnLocations.Empty();
 
-	if (spawnLocations.IsEmpty()) {
+	PickSpawnPoints();
+
+	if (SpawnLocations.IsEmpty()) {
 		SetWaveTimer();
 
 		return;
@@ -273,16 +257,16 @@ void ADiplosimGameModeBase::SpawnEnemies(bool bSpawnTrails)
 
 	for (int32 i = 0; i < TotalEnemies; i++) {
 		FTimerHandle locationTimer;
-		GetWorld()->GetTimerManager().SetTimer(locationTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, spawnLocations, bSpawnTrails), 0.1f, false);
+		GetWorld()->GetTimerManager().SetTimer(locationTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, bSpawnTrails), 0.1f, false);
 	}
 }
 
-void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> SpawnLocations, bool bSpawnTrails)
+void ADiplosimGameModeBase::SpawnAtValidLocation(bool bSpawnTrails)
 {
 	int32 index = FMath::RandRange(0, SpawnLocations.Num() - 1);
 
 	if (LastLocation.Contains(SpawnLocations[index])) {
-		SpawnAtValidLocation(SpawnLocations);
+		SpawnAtValidLocation(bSpawnTrails);
 		
 		return;
 	}

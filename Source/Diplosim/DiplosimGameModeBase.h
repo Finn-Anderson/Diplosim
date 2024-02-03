@@ -117,15 +117,15 @@ public:
 
 	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData, TArray<AActor*> Buildings);
 
-	TArray<FVector> GetSpawnPoints(class AGrid* Grid, class UNavigationSystemV1* Nav, const class ANavigationData* NavData, TArray<AActor*> Buildings);
+	TArray<FVector> GetSpawnPoints(class AGrid* Grid);
 
-	TArray<FVector> PickSpawnPoints();
+	void PickSpawnPoints();
 
-	TArray<FVector> FindSpawnsInArea(AGrid* Grid, int32 Z, struct FTileStruct* Tile, TArray<FVector> ValidTiles, int32 Iteration);
+	void FindSpawnsInArea(AGrid* Grid, int32 Z, struct FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration);
 
 	void SpawnEnemies(bool bSpawnTrails = false);
 
-	void SpawnAtValidLocation(TArray<FVector> SpawnLocations, bool bSpawnTrails = false);
+	void SpawnAtValidLocation(bool bSpawnTrails);
 
 	bool CheckEnemiesStatus();
 
@@ -149,6 +149,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class UNavAreaBase> NavAreaThreat;
+
+	TArray<FVector> SpawnLocations;
 
 	FTimerHandle WaveTimer;
 
