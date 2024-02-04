@@ -103,7 +103,9 @@ public:
 	// Map
 	void Render();
 
-	void FillGaps(FTileStruct* Tile);
+	void FillHoles(FTileStruct* Tile);
+
+	void SetTileDetails(FTileStruct* Tile);
 
 	void GenerateTile(FTileStruct* Tile);
 

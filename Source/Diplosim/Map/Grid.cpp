@@ -79,6 +79,8 @@ void AGrid::Render()
 
 	int32 PercentageWater = 100 - PercentageGround;
 
+	float levelTotal = Size * (PercentageGround / 100.0f);
+
 	float levelCount = 0.0f;
 
 	int32 level = 8;
@@ -89,48 +91,21 @@ void AGrid::Render()
 		if (levelCount <= 0.0f) {
 			level--;
 
-			if (level < 0) {
-				levelCount = Size * (PercentageWater / 100.0f);
+			if (level == -1)
+				levelTotal = Size * (PercentageWater / 100.0f);
+
+			if (level == -5 || level == 0) {
+				levelCount = levelTotal;
+			}
+			else if (level < 0) {
+				levelCount = 0.2 * levelTotal;
+
+				levelTotal -= levelCount;
 			}
 			else {
-				levelCount = Size * (PercentageGround / 100.0f);
-			}
-			
-			if (level == 7) {
-				levelCount *= 0.015f;
-			}
-			else if (level == 6) {
-				levelCount *= 0.015f;
-			} 
-			else if (level == 5) {
-				levelCount *= 0.03f;
-			} 
-			else if (level == 4) {
-				levelCount *= 0.04f;
-			} 
-			else if (level == 3) {
-				levelCount *= 0.10f;
-			}
-			else if (level == 2) {
-				levelCount *= 0.15f;
-			}
-			else if (level == 1) {
-				levelCount *= 0.25f;
-			}
-			else if (level == 0) {
-				levelCount *= 0.40f;
-			}
-			else if (level == -1) {
-				levelCount *= 0.10f;
-			}
-			else if (level == -2) {
-				levelCount *= 0.20f;
-			}
-			else if (level == -3) {
-				levelCount *= 0.30f;
-			}
-			else {
-				levelCount *= 0.40f;
+				levelCount = FMath::Pow(0.5, FMath::Abs(level)) * levelTotal;
+
+				levelTotal -= levelCount;
 			}
 		}
 
@@ -140,10 +115,6 @@ void AGrid::Render()
 
 		// Set level
 		chosenTile->Level = level;
-
-		// Set fertility if water
-		if (level < 0 || level > 6)
-			chosenTile->Fertility = 1;
 
 		// Set adjacent tile information
 		TMap<FString, FTileStruct*> map;
@@ -197,7 +168,9 @@ void AGrid::Render()
 
 	for (TArray<FTileStruct> &row : Storage) {
 		for (FTileStruct &tile : row) {
-			FillGaps(&tile);
+			FillHoles(&tile);
+
+			SetTileDetails(&tile);
 		}
 	}
 
@@ -225,12 +198,11 @@ void AGrid::Render()
 	Clouds->GetCloudBounds(bound * 100 / 2);
 }
 
-void AGrid::FillGaps(FTileStruct* Tile)
+void AGrid::FillHoles(FTileStruct* Tile)
 {
-	if (Tile->Level == -100)
-		return;
-
 	// Set level
+	int32 prevLevel = Tile->Level;
+
 	float tally = Tile->Level;
 	int32 count = 1;
 
@@ -246,13 +218,25 @@ void AGrid::FillGaps(FTileStruct* Tile)
 	
 	Tile->Level = FMath::RoundHalfFromZero(tally);
 
+	if (prevLevel == Tile->Level)
+		return;
+
+	for (auto& element : Tile->AdjacentTiles) {
+		FillHoles(element.Value);
+	}
+}
+
+void AGrid::SetTileDetails(FTileStruct* Tile)
+{
 	// Set Rotation
 	int32 rand = FMath::RandRange(0, 3);
 
 	Tile->Rotation = (FRotator(0.0f, 90.0f, 0.0f) * rand).Quaternion();
 
+	int32 count = 0;
+
 	// Set fertility
-	if (Tile->Level < 0 || Tile->Level > 6)
+	if (Tile->Level < 0 || Tile->Level == 7)
 		return;
 
 	int32 value = FMath::RandRange(-1, 1);
@@ -271,20 +255,19 @@ void AGrid::FillGaps(FTileStruct* Tile)
 		}
 	}
 
-	if (count > 0) {
+	if (count > 0)
 		fTile = (fTile + 1) / count;
-	}
 
 	Tile->Fertility = FMath::Clamp(fTile + value, 1, 5);
 }
 
 void AGrid::GenerateTile(FTileStruct* Tile)
 {
-	if (Tile->Level <= -4)
+	if (Tile->Level < -4.0f)
 		return;
 
 	FTransform transform;
-	FVector loc = FVector(Tile->X * 100, Tile->Y * 100, 0);
+	FVector loc = FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0);
 	transform.SetLocation(loc);
 	transform.SetRotation(Tile->Rotation);
 
@@ -292,11 +275,11 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 	if (Tile->Level < 0) {
 		inst = HISMWater->AddInstance(transform);
 
-		float data = -Tile->Level;
+		float data = -Tile->Level / 4.0f;
 
 		HISMWater->SetCustomDataValue(inst, 0, data);
 	}
-	else if (Tile->Level > 6) {
+	else if (Tile->Level == 7) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * 5));
 
 		inst = HISMLava->AddInstance(transform);
