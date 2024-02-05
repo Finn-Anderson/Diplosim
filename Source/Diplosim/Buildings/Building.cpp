@@ -72,6 +72,14 @@ void ABuilding::BeginPlay()
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
+
+	float r = FMath::FRandRange(0.0f, 1.0f);
+	float g = FMath::FRandRange(0.0f, 1.0f);
+	float b = FMath::FRandRange(0.0f, 1.0f);
+
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(BuildingMesh->GetMaterial(0), this);
+	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
+	BuildingMesh->SetMaterial(0, material);
 }
 
 void ABuilding::Build()
