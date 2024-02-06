@@ -19,7 +19,9 @@ ABroch::ABroch()
 
 void ABroch::FindCitizens()
 {
-	FVector loc = BuildingMesh->GetSocketLocation("Entrance");
+	double yPos = -BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Y / 2;
+
+	FVector loc = GetActorLocation() + FVector(0.0f, yPos, 0.0f);
 
 	for (int i = 0; i < NumToSpawn; i++) {
 		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, loc, FRotator(0, 0, 0));
