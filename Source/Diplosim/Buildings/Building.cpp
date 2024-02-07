@@ -5,6 +5,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NavigationSystem.h"
+#include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -35,11 +36,18 @@ ABuilding::ABuilding()
 	BuildingMesh->bCastDynamicShadow = true;
 	BuildingMesh->CastShadow = true;
 
+	RootComponent = BuildingMesh;
+
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	HealthComponent->MaxHealth = 200;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	InteractableComponent = CreateDefaultSubobject<UInteractableComponent>(TEXT("InteractableComponent"));
+
+	ParticleComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ParticleComponent"));
+	ParticleComponent->SetupAttachment(RootComponent);
+	ParticleComponent->SetCastShadow(true);
+	ParticleComponent->bAutoActivate = false;
 
 	Capacity = 2;
 
@@ -57,8 +65,6 @@ ABuilding::ABuilding()
 	ActualMesh = nullptr;
 
 	bMoved = false;
-
-	RootComponent = BuildingMesh;
 }
 
 void ABuilding::BeginPlay()
@@ -280,6 +286,8 @@ void ABuilding::OnBuilt()
 	GetWorldTimerManager().SetTimer(CostTimer, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost, 0), 300.0f, true);
 
 	FindCitizens();
+
+	ParticleComponent->Activate();
 }
 
 void ABuilding::UpkeepCost(int32 Cost)

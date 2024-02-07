@@ -78,6 +78,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		class UHealthComponent* HealthComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
+		class UNiagaraComponent* ParticleComponent;
+
 	EBuildStatus BuildStatus;
 
 	TArray<FBuildStruct> Collisions;
