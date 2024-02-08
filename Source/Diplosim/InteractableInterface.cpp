@@ -11,6 +11,8 @@
 UInteractableComponent::UInteractableComponent()
 {
 	SetTickableWhenPaused(true);
+
+	
 }
 
 void UInteractableComponent::BeginPlay()

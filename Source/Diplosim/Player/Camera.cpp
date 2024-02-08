@@ -21,7 +21,7 @@
 
 ACamera::ACamera()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	SetTickableWhenPaused(true);
 
 	MovementComponent = CreateDefaultSubobject<UCameraMovementComponent>(TEXT("CameraMovementComponent"));

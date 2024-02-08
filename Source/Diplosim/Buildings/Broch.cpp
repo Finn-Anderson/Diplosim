@@ -19,8 +19,10 @@ ABroch::ABroch()
 
 void ABroch::FindCitizens()
 {
-	for (int i = 0; i < NumToSpawn; i++) {
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, GetActorLocation(), FRotator(0, 0, 0));
+	TArray<FName> names = BuildingMesh->GetAllSocketNames();
+
+	for (FName name : names) {
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, BuildingMesh->GetSocketLocation(name), FRotator(0, 0, 0));
 
 		citizen->BioStruct.Age = 17;
 		citizen->Birthday();
