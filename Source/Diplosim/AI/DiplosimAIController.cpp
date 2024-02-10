@@ -2,6 +2,7 @@
 
 #include "Navigation/CrowdFollowingComponent.h"
 #include "NavigationSystem.h"
+#include "NavigationPath.h"
 
 #include "AI.h"
 #include "Citizen.h"
@@ -12,6 +13,23 @@
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
 	
+}
+
+void ADiplosimAIController::Idle()
+{
+	if (!GetOwner()->IsValidLowLevelFast())
+		return;
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	FNavLocation location;
+
+	nav->GetRandomPointInNavigableRadius(GetOwner()->GetActorLocation(), 500, location);
+
+	MoveToLocation(location);
+
+	int32 time = FMath::RandRange(2, 10);
+	GetWorld()->GetTimerManager().SetTimer(IdleTimer, this, &ADiplosimAIController::Idle, time, false);
 }
 
 FClosestStruct ADiplosimAIController::GetClosestActor(AActor* CurrentActor, AActor* NewActor, int32 CurrentValue, int32 NewValue)
@@ -42,30 +60,23 @@ FClosestStruct ADiplosimAIController::GetClosestActor(AActor* CurrentActor, AAct
 
 bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 {
+	if (!GetOwner()->IsValidLowLevelFast() || !Actor->IsValidLowLevelFast())
+		return false;
+
 	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
 
-	if (!Actor->IsValidLowLevelFast() || healthComp->GetHealth() == 0)
+	if (healthComp->GetHealth() == 0)
 		return false;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
+	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-	MoveRequest.ResetLocation();
+	FVector loc = Actor->GetActorLocation();
 
-	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+	if (Actor->IsA<ABuilding>())
+		loc.Y -= Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Y / 2;
 
-	if (comp && comp->DoesSocketExist("Entrance"))
-		MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
-
-	FVector loc = FVector::Zero();
-	if (MoveRequest.GetLocation() != FVector::Zero()) {
-		loc = MoveRequest.GetLocation();
-	}
-	else {
-		loc = Actor->GetActorLocation();
-	}
-
-	FPathFindingQuery query(this, *NavData, GetOwner()->GetActorLocation(), loc);
+	FPathFindingQuery query(Owner, *navData, GetOwner()->GetActorLocation(), loc);
 
 	bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
@@ -80,19 +91,26 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor)
 	if (!CanMoveTo(Actor))
 		return;
 
+	GetWorld()->GetTimerManager().ClearTimer(IdleTimer);
+
+	MoveRequest.ResetLocation();
+
 	MoveRequest.SetGoalActor(Actor);
+
+	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+
+	if (comp && comp->DoesSocketExist("Entrance"))
+		MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 
 	TSubclassOf<UNavigationQueryFilter> filter = DefaultNavigationFilterClass;
 
 	if (*Cast<AAI>(GetOwner())->NavQueryFilter)
 		filter = Cast<AAI>(GetOwner())->NavQueryFilter;
 
-	if (MoveRequest.GetLocation() != FVector::Zero()) {
+	if (MoveRequest.GetLocation() != FVector::Zero())
 		MoveToLocation(MoveRequest.GetLocation(), 1.0f, true, true, false, true, filter, true);
-	}
-	else {
-		MoveToActor(MoveRequest.GetGoalActor(), 1.0f, true, true, true, filter, true);
-	}
+	else
+		MoveToActor(MoveRequest.GetGoalActor(), -1.0f, true, true, true, filter, true);
 
 	SetFocus(Actor);
 

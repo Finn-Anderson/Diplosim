@@ -54,7 +54,10 @@ void ACitizen::BeginPlay()
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
 	GetMesh()->SetMaterial(0, material);
 
-	MoveToBroch();
+	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
+		BioStruct.Mother->Building.BuildingAt->Enter(this);
+
+	AIController->Idle();
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -172,13 +175,16 @@ void ACitizen::LoseEnergy()
 		AIController->AIMoveTo(Building.House);
 	}
 	else if (BioStruct.Age < 18) {
-		TWeakObjectPtr<ACitizen> parent = BioStruct.Mother;
+		TArray<TWeakObjectPtr<ACitizen>> parents = { BioStruct.Mother, BioStruct.Father };
 
-		if (parent == nullptr)
-			parent = BioStruct.Father;
+		for (TWeakObjectPtr<ACitizen> parent : parents) {
+			if (parent == nullptr || !parent->Building.House->IsValidLowLevelFast())
+				continue;
 
-		if (parent != nullptr && parent->Building.House->IsValidLowLevelFast())
-			AIController->AIMoveTo(BioStruct.Mother->Building.House);
+			AIController->AIMoveTo(parent->Building.House);
+
+			break;
+		}
 	}
 
 	if (Energy == 0) {
@@ -353,9 +359,4 @@ void ACitizen::HaveChild()
 	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), loc, GetActorRotation());
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Father;
-
-	if (Building.BuildingAt == nullptr || !Building.BuildingAt->IsA<ABroch>())
-		return;
-
-	Building.BuildingAt->Enter(citizen);
 }

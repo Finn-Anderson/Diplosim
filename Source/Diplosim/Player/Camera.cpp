@@ -237,7 +237,7 @@ void ACamera::Debug()
 		return;
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-	gamemode->SpawnEnemies(true);
+	gamemode->SpawnEnemiesAsync(true);
 }
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)

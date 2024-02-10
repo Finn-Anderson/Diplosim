@@ -196,8 +196,10 @@ void UBuildComponent::Place()
 		Building->BuildingMesh->bReceivesDecals = true;
 
 		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-		gamemode->SetWaveTimer();
 		gamemode->Broch = Building;
+		gamemode->Grid = Camera->Grid;
+
+		gamemode->SetWaveTimer();
 	}
 
 	SetBuildingClass(Building->GetClass());

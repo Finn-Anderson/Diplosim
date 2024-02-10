@@ -51,22 +51,22 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
+	UHealthComponent* healthComp = OtherActor->FindComponentByClass<UHealthComponent>();
 
 	if (healthComp->Health == 0)
 		return;
 
-	if (OtherActor->GetClass() == Owner->GetClass()) {
-		if (Owner->IsA<ACitizen>())
-			OverlappingAllies.Add(Cast<ACitizen>(OtherActor));
+	if (OtherActor->IsA(Owner->GetClass()) && Owner->IsA<ACitizen>())
+		OverlappingAllies.Add(Cast<ACitizen>(OtherActor));
 
-		return;
+	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
+		if (!OtherActor->IsA(enemyClass))
+			continue;
+
+		OverlappingEnemies.Add(OtherActor);
+
+		break;
 	}
-
-	if (Owner->IsA<ACitizen>() && !EnemyClasses.Contains(OtherActor->GetClass()))
-		return;
-
-	OverlappingEnemies.Add(OtherActor);
 
 	if (GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
 		return;
@@ -78,6 +78,9 @@ void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, c
 {
 	if (OverlappingAllies.Contains(Cast<ACitizen>(OtherActor)))
 		OverlappingAllies.Remove(Cast<ACitizen>(OtherActor));
+
+	if (OverlappingEnemies.Contains(OtherActor))
+		OverlappingEnemies.Remove(OtherActor);
 }
 
 void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
@@ -88,91 +91,106 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 	ProjectileClass = OtherClass;
 }
 
-int32 UAttackComponent::GetMorale(TArray<AActor*> Targets)
+int32 UAttackComponent::GetMorale(TArray<TWeakObjectPtr<AActor>> Targets)
 {
 	if (Targets.IsEmpty() || !Owner->IsA<ACitizen>() || (Cast<ACitizen>(Owner)->Building.BuildingAt != nullptr && Cast<ACitizen>(Owner)->Building.BuildingAt->IsA<AWall>()))
 		return 1.0f;
 
+	if (!CanAttack())
+		return -1.0f;
+
 	float allyHP = 0.0f;
 	float allyDmg = 0.0f;
 
-	for (int32 i = (OverlappingAllies.Num() - 1); i > -1; i--) {
-		ACitizen* citizen = OverlappingAllies[i];
-
-		if (citizen->HealthComponent->GetHealth() == 0) {
-			OverlappingAllies.Remove(citizen);
-
+	for (TWeakObjectPtr<ACitizen> citizen : OverlappingAllies) {
+		if (citizen == nullptr || citizen->HealthComponent->GetHealth() == 0)
 			continue;
-		}
 
 		allyHP += citizen->HealthComponent->GetHealth();
 
-		if (*citizen->AttackComponent->ProjectileClass) {
+		if (*citizen->AttackComponent->ProjectileClass)
 			allyDmg += Cast<AProjectile>(citizen->AttackComponent->ProjectileClass->GetDefaultObject())->Damage;
-		}
-		else {
+		else
 			allyDmg += citizen->AttackComponent->Damage;
-		}
 	}
 
 	float enemyHP = 0.0f;
 	float enemyDmg = 0.0f;
 
-	for (AActor* actor : Targets) {
+	for (TWeakObjectPtr<AActor> actor : Targets) {
+		if (actor == nullptr)
+			continue;
+
 		AEnemy* enemy = Cast<AEnemy>(actor);
+
+		if (enemy->HealthComponent->GetHealth() == 0)
+			continue;
 
 		enemyHP += enemy->HealthComponent->Health;
 
-		if (*enemy->AttackComponent->ProjectileClass) {
+		if (*enemy->AttackComponent->ProjectileClass)
 			enemyDmg += Cast<AProjectile>(enemy->AttackComponent->ProjectileClass->GetDefaultObject())->Damage;
-		}
-		else {
+		else
 			enemyDmg += enemy->AttackComponent->Damage;
-		}
 	}
 
 	float allyTotal = allyHP * allyDmg;
 	float enemyTotal = enemyHP * enemyDmg;
+
+	if (enemyTotal == 0)
+		return 1.0f;
 
 	float morale = allyTotal / enemyTotal;
 
 	return morale;
 }
 
+void UAttackComponent::RunAway(TArray<TWeakObjectPtr<AActor>> Targets)
+{
+	FVector sum = FVector::Zero();
+
+	for (TWeakObjectPtr<AActor> target : Targets) {
+		sum += target->GetActorLocation();
+	}
+
+	sum /= Targets.Num();
+
+	FRotator rot = (sum - Owner->GetActorLocation()).Rotation();
+
+	FVector location = Owner->GetActorLocation() + (rot.Vector() * 300.0f);
+
+	Cast<ACitizen>(Owner)->AIController->MoveToLocation(location);
+}
+
 void UAttackComponent::GetTargets()
 {
-	if (!CanAttack() || OverlappingEnemies.IsEmpty())
-		return;
+	TArray<TWeakObjectPtr<AActor>> targets;
 
-	TArray<AActor*> targets;
-
-	for (int32 i = (OverlappingEnemies.Num() - 1); i > -1; i--) {
-		AActor* actor = OverlappingEnemies[i];
-
-		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
-		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
-
-		if (healthComp->GetHealth() == 0 || FVector::Dist(actor->GetActorLocation(), Owner->GetActorLocation()) > RangeComponent->GetScaledSphereRadius() * 2) {
-			OverlappingEnemies.Remove(actor);
-
-			continue;
-		}
-
-		if (actor->IsHidden())
+	for (TWeakObjectPtr<AActor> actor : OverlappingEnemies) {
+		if (actor == nullptr)
 			continue;
 
-		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->AIController->CanMoveTo(actor))) {
+		UHealthComponent* healthComp = actor->FindComponentByClass<UHealthComponent>();
+
+		if (healthComp->GetHealth() == 0 || actor->IsHidden())
+			continue;
+
+		UAttackComponent* attackComp = actor->FindComponentByClass<UAttackComponent>();
+
+		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->AIController->CanMoveTo(Cast<AActor>(actor))))
 			targets.Add(actor);
-		}
 	}
 
 	float morale = GetMorale(targets);
 
-	if (targets.IsEmpty() || morale < 1.0f) {
-		if (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->Building.Employment != nullptr) {
+	if (targets.IsEmpty()) {
+		if (Owner->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(Owner);
 
-			citizen->AIController->AIMoveTo(citizen->Building.Employment);
+			if (Cast<ACitizen>(Owner)->Building.Employment != nullptr)
+				citizen->AIController->AIMoveTo(citizen->Building.Employment);
+			else
+				citizen->AIController->Idle();
 		}
 		else {
 			AAI* ai = Cast<AAI>(Owner);
@@ -180,32 +198,32 @@ void UAttackComponent::GetTargets()
 			ai->MoveToBroch();
 		}
 	}
+	else if (morale < 1.0f) {
+		RunAway(targets);
+	}
 	else {
 		PickTarget(targets);
 	}
 }
 
-void UAttackComponent::PickTarget(TArray<AActor*> Targets)
+void UAttackComponent::PickTarget(TArray<TWeakObjectPtr<AActor>> Targets)
 {
 	FAttackStruct favoured;
 
-	for (AActor* target : Targets) {
-		UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
-		UAttackComponent* attackComp = target->GetComponentByClass<UAttackComponent>();
+	for (TWeakObjectPtr<AActor> target : Targets) {
+		UHealthComponent* healthComp = target->FindComponentByClass<UHealthComponent>();
+		UAttackComponent* attackComp = target->FindComponentByClass<UAttackComponent>();
 
 		FThreatsStruct threatStruct;
 
 		if (target->IsA<ACitizen>())
 			threatStruct.Citizen = Cast<ACitizen>(target);
 
-		if (Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats.Contains(threatStruct)) {
+		if (!Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats.IsEmpty() && Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats.Contains(threatStruct)) {
 			favoured.Actor = threatStruct.Citizen->Building.Employment;
 
 			break;
 		}
-		
-		if (favoured.Actor != nullptr && EnemyClasses.Contains(favoured.Actor->GetClass()) && !EnemyClasses.Contains(target->GetClass()))
-			continue;
 
 		float hp = 0.0f;
 		float dmg = 0.0f;
@@ -240,15 +258,15 @@ void UAttackComponent::PickTarget(TArray<AActor*> Targets)
 			currentFavoured = (Damage / favoured.Hp) * favoured.Dmg - (favoured.Length / 1000.0f);
 		}
 
-		if (favourability > currentFavoured || (!EnemyClasses.Contains(favoured.Actor->GetClass()) && EnemyClasses.Contains(target->GetClass()))) {
-			favoured.Actor = target;
+		if (favourability > currentFavoured) {
+			favoured.Actor = Cast<AActor>(target);
 			favoured.Hp = hp;
 			favoured.Dmg = dmg;
 			favoured.Length = outLength;
 		}
 	}
 
-	if (*ProjectileClass || CanHit(favoured.Actor))
+	if ((*ProjectileClass || CanHit(favoured.Actor)) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
 		Attack(favoured.Actor);
 }
 
@@ -257,11 +275,10 @@ bool UAttackComponent::CanHit(AActor* Target)
 	if (Cast<AAI>(Owner)->Meleeable.Contains(Target))
 		return true;
 
-	if (Cast<AAI>(Owner)->AIController->MoveRequest.GetGoalActor() != Target) {
+	if (Cast<AAI>(Owner)->AIController->MoveRequest.GetGoalActor() != Target)
 		Cast<AAI>(Owner)->AIController->AIMoveTo(Target);
-	}
 
-	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, 0.1, false);
+	GetWorld()->GetTimerManager().SetTimer(MoveTimer, this, &UAttackComponent::GetTargets, 0.1, false);
 
 	return false;
 }
@@ -274,9 +291,11 @@ void UAttackComponent::Attack(AActor* Target)
 		Throw(Target);
 	}
 	else {
-		UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
+		UHealthComponent* healthComp = Target->FindComponentByClass<UHealthComponent>();
 
 		healthComp->TakeHealth(Damage, Owner);
+
+		GetWorld()->GetTimerManager().SetTimer(MoveTimer, this, &UAttackComponent::GetTargets, 0.1, false);
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, TimeToAttack, false);
@@ -284,8 +303,8 @@ void UAttackComponent::Attack(AActor* Target)
 
 void UAttackComponent::Throw(AActor* Target)
 {
-	USkeletalMeshComponent* ownerComp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
-	USkeletalMeshComponent* targetComp = Cast<USkeletalMeshComponent>(Target->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+	USkeletalMeshComponent* ownerComp = Cast<USkeletalMeshComponent>(Owner->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
+	USkeletalMeshComponent* targetComp = Cast<USkeletalMeshComponent>(Target->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
@@ -336,7 +355,7 @@ void UAttackComponent::Throw(AActor* Target)
 
 bool UAttackComponent::CanAttack()
 {
-	UHealthComponent* healthComp = Owner->GetComponentByClass<UHealthComponent>();
+	UHealthComponent* healthComp = Owner->FindComponentByClass<UHealthComponent>();
 
 	if (healthComp->Health == 0 || (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->BioStruct.Age < 18))
 		return false;

@@ -28,7 +28,5 @@ void ABroch::FindCitizens()
 		citizen->Birthday();
 
 		citizen->HealthComponent->AddHealth(100);
-
-		Enter(citizen);
 	}
 }

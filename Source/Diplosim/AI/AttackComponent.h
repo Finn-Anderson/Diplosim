@@ -46,11 +46,13 @@ public:
 
 	void SetProjectileClass(TSubclassOf<class AProjectile> OtherClass);
 
-	int32 GetMorale(TArray<AActor*> Targets);
+	int32 GetMorale(TArray<TWeakObjectPtr<AActor>> Targets);
+
+	void RunAway(TArray<TWeakObjectPtr<AActor>> Targets);
 
 	void GetTargets();
 
-	void PickTarget(TArray<AActor*> Targets);
+	void PickTarget(TArray<TWeakObjectPtr<AActor>> Targets);
 
 	bool CanHit(AActor* Target);
 
@@ -60,9 +62,9 @@ public:
 
 	bool CanAttack();
 
-	TArray<AActor*> OverlappingEnemies;
+	TArray<TWeakObjectPtr<AActor>> OverlappingEnemies;
 
-	TArray<class ACitizen*> OverlappingAllies;
+	TArray<TWeakObjectPtr<class ACitizen>> OverlappingAllies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		class USphereComponent* RangeComponent;
@@ -81,7 +83,7 @@ public:
 
 	int32 Morale;
 
-	FTimerHandle CheckTimer;
+	FTimerHandle MoveTimer;
 
 	FTimerHandle AttackTimer;
 

@@ -1,7 +1,7 @@
 Wave 1 
  
 Spawn location 
-X=1600.000 Y=-5500.000 Z=100.000 
+X=-6700.000 Y=100.000 Z=100.000 
  
 Number of spawned enemies 
 3 
@@ -10,9 +10,81 @@ Number of enemy kills
 0 
  
 Number that died to an actor 
-BP_Citizen_C_5: 1
-BP_Citizen_C_3: 1
-BP_Citizen_C_4: 1
+Threat location(s) 
+
+ 
+Wave 1 
+ 
+Spawn location 
+X=-6700.000 Y=100.000 Z=100.000 
+ 
+Number of spawned enemies 
+3 
+ 
+Number of enemy kills 
+0 
+ 
+Number that died to an actor 
+Threat location(s) 
+
+ 
+Wave 1 
+ 
+Spawn location 
+X=-6700.000 Y=100.000 Z=100.000 
+ 
+Number of spawned enemies 
+3 
+ 
+Number of enemy kills 
+0 
+ 
+Number that died to an actor 
+Threat location(s) 
+
+ 
+Wave 1 
+ 
+Spawn location 
+X=-6700.000 Y=100.000 Z=100.000 
+ 
+Number of spawned enemies 
+3 
+ 
+Number of enemy kills 
+0 
+ 
+Number that died to an actor 
+Threat location(s) 
+
+ 
+Wave 5 
+ 
+Spawn location 
+X=-4200.000 Y=-5200.000 Z=100.000 
+ 
+Number of spawned enemies 
+3 
+ 
+Number of enemy kills 
+0 
+ 
+Number that died to an actor 
+Threat location(s) 
+
+ 
+Wave 1 
+ 
+Spawn location 
+X=-6700.000 Y=100.000 Z=100.000 
+ 
+Number of spawned enemies 
+3 
+ 
+Number of enemy kills 
+0 
+ 
+Number that died to an actor 
 Threat location(s) 
 
  

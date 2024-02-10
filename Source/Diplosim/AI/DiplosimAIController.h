@@ -69,6 +69,8 @@ class DIPLOSIM_API ADiplosimAIController : public AAIController
 public:
 	ADiplosimAIController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	void Idle();
+
 	FClosestStruct GetClosestActor(AActor* CurrentActor, AActor* NewActor, int32 CurrentValue = 1, int32 NewValue = 1);
 
 	bool CanMoveTo(AActor* Actor);
@@ -76,4 +78,6 @@ public:
 	virtual void AIMoveTo(AActor* Actor);
 
 	FMoveStruct MoveRequest;
+
+	FTimerHandle IdleTimer;
 };

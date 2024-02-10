@@ -115,17 +115,19 @@ public:
 
 	void EvaluateThreats();
 
-	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData, TArray<AActor*> Buildings);
+	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
 
-	TArray<FVector> GetSpawnPoints(class AGrid* Grid);
+	TArray<FVector> GetSpawnPoints();
 
 	void PickSpawnPoints();
 
-	void FindSpawnsInArea(AGrid* Grid, int32 Z, struct FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration);
+	void FindSpawnsInArea(int32 Z, struct FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration);
 
-	void SpawnEnemies(bool bSpawnTrails = false);
+	void SpawnEnemies(bool bSpawnTrails);
 
 	void SpawnAtValidLocation(bool bSpawnTrails);
+
+	void SpawnEnemiesAsync(bool bSpawnTrails);
 
 	bool CheckEnemiesStatus();
 
@@ -157,6 +159,12 @@ public:
 	TArray<FWaveStruct> WavesData;
 
 	class ABuilding* Broch;
+
+	TArray<AActor*> Buildings;
+
+	TArray<AActor*> Citizens;
+
+	class AGrid* Grid;
 
 	TArray<FVector> LastLocation;
 

@@ -55,6 +55,8 @@ AAI::AAI()
 
 	GetCharacterMovement()->bUseFlatBaseForFloorChecks = true;
 	GetCharacterMovement()->bCanWalkOffLedges = false;
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void AAI::BeginPlay()
@@ -87,13 +89,11 @@ void AAI::MoveToBroch()
 		TArray<AActor*> buildings;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
 
-		target = nullptr;
-
 		for (AActor* actor : buildings) {
 			if (!AIController->CanMoveTo(actor))
 				continue;
 
-			if (target == nullptr) {
+			if (target == brochs[0]) {
 				target = actor;
 
 				continue;
