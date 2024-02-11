@@ -9,20 +9,22 @@ struct FAttackStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	class AActor* Actor;
+	TWeakObjectPtr<AActor> Actor;
 
 	int32 Dmg;
 
 	int32 Hp;
 
-	FVector::FReal Length;
-
 	FAttackStruct()
 	{
+		Reset();
+	}
+
+	void Reset()
+	{
 		Actor = nullptr;
-		Dmg = 0;
-		Hp = 0;
-		Length = 0;
+		Dmg = 1000000;
+		Hp = 1000000;
 	}
 };
 
@@ -90,4 +92,6 @@ public:
 	float Theta;
 
 	AActor* Owner;
+
+	FAttackStruct Favoured;
 };

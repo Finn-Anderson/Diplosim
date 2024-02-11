@@ -68,15 +68,23 @@ bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 	if (healthComp->GetHealth() == 0)
 		return false;
 
+	MoveRequest.ResetLocation();
+
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-	FVector loc = Actor->GetActorLocation();
+	FNavLocation loc;
 
-	if (Actor->IsA<ABuilding>())
-		loc.Y -= Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Y / 2;
+	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 
-	FPathFindingQuery query(Owner, *navData, GetOwner()->GetActorLocation(), loc);
+	if (comp && comp->DoesSocketExist("Entrance"))
+		loc.Location = comp->GetSocketLocation("Entrance");
+	else
+		nav->ProjectPointToNavigation(Actor->GetActorLocation(), loc, FVector(200.0f, 200.0f, 10.0f));
+
+	MoveRequest.SetLocation(loc.Location);
+
+	FPathFindingQuery query(Owner, *navData, GetNavAgentLocation(), loc.Location);
 
 	bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
@@ -91,26 +99,16 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor)
 	if (!CanMoveTo(Actor))
 		return;
 
-	GetWorld()->GetTimerManager().ClearTimer(IdleTimer);
-
-	MoveRequest.ResetLocation();
-
 	MoveRequest.SetGoalActor(Actor);
 
-	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
-
-	if (comp && comp->DoesSocketExist("Entrance"))
-		MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
+	GetWorld()->GetTimerManager().ClearTimer(IdleTimer);
 
 	TSubclassOf<UNavigationQueryFilter> filter = DefaultNavigationFilterClass;
 
 	if (*Cast<AAI>(GetOwner())->NavQueryFilter)
 		filter = Cast<AAI>(GetOwner())->NavQueryFilter;
 
-	if (MoveRequest.GetLocation() != FVector::Zero())
-		MoveToLocation(MoveRequest.GetLocation(), 1.0f, true, true, false, true, filter, true);
-	else
-		MoveToActor(MoveRequest.GetGoalActor(), -1.0f, true, true, true, filter, true);
+	MoveToLocation(MoveRequest.GetLocation(), 1.0f, true, true, false, true, filter, true);
 
 	SetFocus(Actor);
 

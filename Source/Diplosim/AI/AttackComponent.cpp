@@ -23,7 +23,7 @@ UAttackComponent::UAttackComponent()
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetCollisionProfileName("Spectator", true);
-	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	RangeComponent->SetSphereRadius(400.0f);
@@ -51,9 +51,9 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	UHealthComponent* healthComp = OtherActor->FindComponentByClass<UHealthComponent>();
+	UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
 
-	if (healthComp->Health == 0)
+	if (healthComp->GetHealth() == 0)
 		return;
 
 	if (OtherActor->IsA(Owner->GetClass()) && Owner->IsA<ACitizen>())
@@ -170,12 +170,12 @@ void UAttackComponent::GetTargets()
 		if (actor == nullptr)
 			continue;
 
-		UHealthComponent* healthComp = actor->FindComponentByClass<UHealthComponent>();
+		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
 		if (healthComp->GetHealth() == 0 || actor->IsHidden())
 			continue;
 
-		UAttackComponent* attackComp = actor->FindComponentByClass<UAttackComponent>();
+		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
 		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->AIController->CanMoveTo(Cast<AActor>(actor))))
 			targets.Add(actor);
@@ -208,11 +208,9 @@ void UAttackComponent::GetTargets()
 
 void UAttackComponent::PickTarget(TArray<TWeakObjectPtr<AActor>> Targets)
 {
-	FAttackStruct favoured;
-
 	for (TWeakObjectPtr<AActor> target : Targets) {
-		UHealthComponent* healthComp = target->FindComponentByClass<UHealthComponent>();
-		UAttackComponent* attackComp = target->FindComponentByClass<UAttackComponent>();
+		UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
+		UAttackComponent* attackComp = target->GetComponentByClass<UAttackComponent>();
 
 		FThreatsStruct threatStruct;
 
@@ -220,9 +218,23 @@ void UAttackComponent::PickTarget(TArray<TWeakObjectPtr<AActor>> Targets)
 			threatStruct.Citizen = Cast<ACitizen>(target);
 
 		if (!Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats.IsEmpty() && Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats.Contains(threatStruct)) {
-			favoured.Actor = threatStruct.Citizen->Building.Employment;
+			Favoured.Actor = threatStruct.Citizen->Building.Employment;
 
 			break;
+		}
+
+		if (Favoured.Actor == target)
+			continue;
+
+		if (Favoured.Actor == nullptr)
+			Favoured.Reset();
+		else {
+			UHealthComponent* favouredHealth = Favoured.Actor->GetComponentByClass<UHealthComponent>();
+
+			Favoured.Hp = favouredHealth->GetHealth();
+
+			if (Favoured.Hp == 0)
+				Favoured.Reset();
 		}
 
 		float hp = 0.0f;
@@ -251,23 +263,26 @@ void UAttackComponent::PickTarget(TArray<TWeakObjectPtr<AActor>> Targets)
 
 		NavData->CalcPathLength(Owner->GetActorLocation(), target->GetActorLocation(), outLength);
 
-		float favourability = (Damage / hp) * dmg - (outLength / 1000.0f);
-		float currentFavoured = -100000.0f;
+		double favourability = outLength * hp / dmg;
 
-		if (favoured.Hp > 0) {
-			currentFavoured = (Damage / favoured.Hp) * favoured.Dmg - (favoured.Length / 1000.0f);
-		}
+		if (Favoured.Actor != nullptr)
+			NavData->CalcPathLength(Owner->GetActorLocation(), Favoured.Actor->GetActorLocation(), outLength);
+		else
+			outLength = 1000000.0f;
 
-		if (favourability > currentFavoured) {
-			favoured.Actor = Cast<AActor>(target);
-			favoured.Hp = hp;
-			favoured.Dmg = dmg;
-			favoured.Length = outLength;
+		double currentFavoured = outLength * Favoured.Hp / Favoured.Dmg;
+
+		if (favourability < currentFavoured) {
+			Favoured.Actor = target;
+			Favoured.Dmg = dmg;
+			Favoured.Hp = hp;
 		}
 	}
 
-	if ((*ProjectileClass || CanHit(favoured.Actor)) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
-		Attack(favoured.Actor);
+	if ((*ProjectileClass || CanHit(Cast<AActor>(Favoured.Actor))) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
+		Attack(Cast<AActor>(Favoured.Actor));
+	else
+		GetWorld()->GetTimerManager().SetTimer(MoveTimer, this, &UAttackComponent::GetTargets, 0.1, false);
 }
 
 bool UAttackComponent::CanHit(AActor* Target)
@@ -275,8 +290,7 @@ bool UAttackComponent::CanHit(AActor* Target)
 	if (Cast<AAI>(Owner)->Meleeable.Contains(Target))
 		return true;
 
-	if (Cast<AAI>(Owner)->AIController->MoveRequest.GetGoalActor() != Target)
-		Cast<AAI>(Owner)->AIController->AIMoveTo(Target);
+	Cast<AAI>(Owner)->AIController->AIMoveTo(Target);
 
 	GetWorld()->GetTimerManager().SetTimer(MoveTimer, this, &UAttackComponent::GetTargets, 0.1, false);
 
@@ -291,7 +305,7 @@ void UAttackComponent::Attack(AActor* Target)
 		Throw(Target);
 	}
 	else {
-		UHealthComponent* healthComp = Target->FindComponentByClass<UHealthComponent>();
+		UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
 
 		healthComp->TakeHealth(Damage, Owner);
 
@@ -303,8 +317,8 @@ void UAttackComponent::Attack(AActor* Target)
 
 void UAttackComponent::Throw(AActor* Target)
 {
-	USkeletalMeshComponent* ownerComp = Cast<USkeletalMeshComponent>(Owner->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
-	USkeletalMeshComponent* targetComp = Cast<USkeletalMeshComponent>(Target->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
+	USkeletalMeshComponent* ownerComp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+	USkeletalMeshComponent* targetComp = Cast<USkeletalMeshComponent>(Target->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
@@ -355,7 +369,7 @@ void UAttackComponent::Throw(AActor* Target)
 
 bool UAttackComponent::CanAttack()
 {
-	UHealthComponent* healthComp = Owner->FindComponentByClass<UHealthComponent>();
+	UHealthComponent* healthComp = Owner->GetComponentByClass<UHealthComponent>();
 
 	if (healthComp->Health == 0 || (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->BioStruct.Age < 18))
 		return false;

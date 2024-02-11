@@ -11,4 +11,11 @@ class DIPLOSIM_API AEnemy : public AAI
 	
 public:
 	AEnemy();
+
+protected:
+	virtual void BeginPlay() override;
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+		class UNiagaraComponent* SpawnComponent;
 };

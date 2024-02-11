@@ -177,8 +177,6 @@ void ADiplosimGameModeBase::PickSpawnPoints()
 
 	auto index = Async(EAsyncExecution::TaskGraph, [validTiles]() { return FMath::RandRange(0, validTiles.Num() - 1); });
 
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("%d"), index.Get()));
-
 	FWaveStruct waveStruct;
 
 	WavesData.Add(waveStruct);
