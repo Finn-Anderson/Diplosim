@@ -65,6 +65,12 @@ public:
 
 	//UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> LoadUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* LoadUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> MapUI;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
@@ -101,6 +107,8 @@ public:
 	TArray<class UNiagaraComponent*> LavaComponents;
 
 	// Map
+	void Load();
+
 	void Render();
 
 	void FillHoles(FTileStruct* Tile);

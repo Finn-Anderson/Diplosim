@@ -183,7 +183,7 @@ void ACamera::NewMap()
 		return;
 
 	Grid->Clear();
-	Grid->Render();
+	Grid->Load();
 }
 
 void ACamera::Pause()

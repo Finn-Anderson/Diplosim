@@ -51,13 +51,25 @@ void AGrid::BeginPlay()
 	MapUIInstance = CreateWidget<UUserWidget>(PController, MapUI);
 	MapUIInstance->AddToViewport();
 
+	LoadUIInstance = CreateWidget<UUserWidget>(PController, LoadUI);
+
 	Camera->Grid = this;
 
-	Render();
+	Load();
+}
+
+void AGrid::Load()
+{
+	// Add loading screen
+	LoadUIInstance->AddToViewport();
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::Render, 0.001, false);
 }
 
 void AGrid::Render()
 {
+	// Set tile limits for ground and water
 	int32 tileTally = 0;
 
 	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
@@ -194,8 +206,12 @@ void AGrid::Render()
 		}
 	}
 
+	// Spawn cloud spwaner
 	Clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f));
 	Clouds->GetCloudBounds(bound * 100 / 2);
+
+	// Remove loading screen
+	LoadUIInstance->RemoveFromParent();
 }
 
 void AGrid::FillHoles(FTileStruct* Tile)

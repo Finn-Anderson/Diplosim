@@ -68,7 +68,7 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 		break;
 	}
 
-	if (GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
+	if (GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || OverlappingEnemies.IsEmpty())
 		return;
 
 	GetTargets();
