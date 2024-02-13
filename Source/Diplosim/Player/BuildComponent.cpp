@@ -36,48 +36,45 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (Building) {
-		FVector mouseLoc, mouseDirection;
-		APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
+	if (!Building)
+		return;
 
-		FHitResult hit(ForceInit);
+	FVector mouseLoc, mouseDirection;
+	APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
 
-		FVector endTrace = mouseLoc + (mouseDirection * 10000);
+	FHitResult hit(ForceInit);
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
-		{
-			UHierarchicalInstancedStaticMeshComponent* comp = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent());
-			int32 instance = hit.Item;
+	FVector endTrace = mouseLoc + (mouseDirection * 10000);
 
-			FVector location;
+	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
+	{
+		UHierarchicalInstancedStaticMeshComponent* comp = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent());
+		int32 instance = hit.Item;
 
-			if (comp->IsValidLowLevelFast()) {
-				FTransform transform;
-				comp->GetInstanceTransform(instance, transform);
+		FTransform transform;
+		comp->GetInstanceTransform(instance, transform);
 
-				location = transform.GetLocation();
+		FVector location = transform.GetLocation();
 
-				location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-			}
+		location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
-			Building->SetActorLocation(location);
-		}
+		Building->SetActorLocation(location);
+	}
 
-		UDecalComponent* decalComp = Building->FindComponentByClass<UDecalComponent>();
+	UDecalComponent* decalComp = Building->FindComponentByClass<UDecalComponent>();
 
-		if (!IsValidLocation() || !Building->CheckBuildCost()) {
-			Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
+	if (!IsValidLocation() || !Building->CheckBuildCost()) {
+		Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
-			if (decalComp != nullptr)
-				decalComp->SetHiddenInGame(true);
-		}
-		else {
-			Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
+		if (decalComp != nullptr)
+			decalComp->SetHiddenInGame(true);
+	}
+	else {
+		Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
 
-			if (decalComp != nullptr)
-				decalComp->SetHiddenInGame(false);
-		}
+		if (decalComp != nullptr)
+			decalComp->SetHiddenInGame(false);
 	}
 }
 

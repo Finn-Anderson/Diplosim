@@ -188,9 +188,8 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 
 					buildStruct.Object = obj;
 
-					if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+					if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>())
 						buildStruct.Instance = OtherBodyIndex;
-					}
 
 					buildStruct.Location = location;
 
@@ -220,9 +219,8 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 
 					buildStruct.Object = obj;
 
-					if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+					if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>())
 						buildStruct.Instance = OtherBodyIndex;
-					}
 
 					buildStruct.Location = location;
 
