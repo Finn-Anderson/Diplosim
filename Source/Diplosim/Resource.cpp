@@ -1,33 +1,34 @@
 #include "Resource.h"
 
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+
 AResource::AResource()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	ResourceMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ResourceMesh"));
-	ResourceMesh->SetCollisionObjectType(ECollisionChannel::ECC_Destructible);
-	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-	ResourceMesh->SetMobility(EComponentMobility::Static);
-	ResourceMesh->SetCanEverAffectNavigation(false);
-	ResourceMesh->bCastDynamicShadow = true;
-	ResourceMesh->CastShadow = true;
+	ResourceHISM = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("ResourceMesh"));
+	ResourceHISM->SetCollisionObjectType(ECollisionChannel::ECC_Destructible);
+	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+	ResourceHISM->SetMobility(EComponentMobility::Static);
+	ResourceHISM->SetCanEverAffectNavigation(false);
+	ResourceHISM->bCastDynamicShadow = true;
+	ResourceHISM->CastShadow = true;
 
 	MinYield = 1;
 	MaxYield = 5;
 
 	MaxWorkers = 1;
-	WorkerCount = 0;
 }
 
-int32 AResource::GetYield()
+int32 AResource::GetYield(ACitizen* Citizen, int32 Instance)
 {
-	Yield = GenerateYield();
+	int32 yield = GenerateYield();
 
-	WorkerCount--;
+	RemoveWorker(Citizen, Instance);
 
-	YieldStatus();
+	YieldStatus(Instance, yield);
 
-	return Yield;
+	return yield;
 }
 
 int32 AResource::GenerateYield()
@@ -37,13 +38,40 @@ int32 AResource::GenerateYield()
 	return yield;
 }
 
-void AResource::SetQuantity(int32 Value)
+void AResource::SetQuantity(int32 Instance, int32 Value)
 {
-	Quantity = Value;
-	MaxQuantity = Value;
+	ResourceHISM->SetCustomDataValue(Instance, 0, Value);
+	ResourceHISM->SetCustomDataValue(Instance, 1, Value);
 }
 
-void AResource::YieldStatus() 
+void AResource::AddWorker(ACitizen* Citizen, int32 Instance)
+{
+	FWorkerStruct workerStruct;
+	workerStruct.Instance = Instance;
+	workerStruct.Citizens.Add(Citizen);
+
+	int32 index = WorkerStruct.Find(workerStruct);
+
+	if (index == -1)
+		WorkerStruct.Add(workerStruct);
+	else
+		WorkerStruct[index].Citizens.Add(Citizen);
+}
+
+void AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
+{
+	FWorkerStruct workerStruct;
+	workerStruct.Instance = Instance;
+
+	int32 index = WorkerStruct.Find(workerStruct);
+
+	if (index == -1)
+		return;
+
+	WorkerStruct[index].Citizens.Remove(Citizen);
+}
+
+void AResource::YieldStatus(int32 Instance, int32 Yield)
 {
 
 }

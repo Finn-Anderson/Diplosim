@@ -177,7 +177,7 @@ void UAttackComponent::GetTargets()
 
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
-		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->AIController->CanMoveTo(Cast<AActor>(actor))))
+		if (*ProjectileClass || (Owner->IsA<AAI>() && Cast<AAI>(Owner)->AIController->CanMoveTo(Cast<AActor>(actor)->GetActorLocation())))
 			targets.Add(actor);
 	}
 

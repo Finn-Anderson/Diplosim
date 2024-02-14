@@ -12,12 +12,8 @@ class DIPLOSIM_API AMineral : public AResource
 public:
 	AMineral();
 
-protected:
-	virtual void BeginPlay() override;
-
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface")
-		class UInteractableComponent* InteractableComponent;
+	void SetRandomQuantity(int32 Instance);
 
-	virtual void YieldStatus();
+	virtual void YieldStatus(int32 Instance, int32 Yield);
 };

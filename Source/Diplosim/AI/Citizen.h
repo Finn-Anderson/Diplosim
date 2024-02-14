@@ -75,6 +75,27 @@ struct FBioStruct
 	}
 };
 
+USTRUCT()
+struct FCollidingStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	AActor* Actor;
+
+	int32 Instance;
+
+	FCollidingStruct()
+	{
+		Actor = nullptr;
+		Instance = -1;
+	}
+
+	bool operator==(const FCollidingStruct& other) const
+	{
+		return (other.Actor == Actor) && (other.Instance == Instance);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ACitizen : public AAI
 {
@@ -99,13 +120,13 @@ public:
 	// Buildings
 	FBuildingStruct Building;
 
-	TArray<AActor*> StillColliding;
+	TArray<FCollidingStruct> StillColliding;
 
 
 	// Resources
-	void StartHarvestTimer(class AResource* Resource);
+	void StartHarvestTimer(class AResource* Resource, int32 Instance);
 
-	void HarvestResource(class AResource* Resource);
+	void HarvestResource(class AResource* Resource, int32 Instance);
 
 	void Carry(class AResource* Resource, int32 Amount, AActor* Location);
 

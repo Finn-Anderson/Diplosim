@@ -12,9 +12,22 @@ class DIPLOSIM_API AFarm : public AWork
 public:
 	AFarm();
 
-	class AVegetation* Crop;
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UStaticMeshComponent* CropMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
+		int32 MinYield;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
+		int32 MaxYield;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
+		int32 TimeLength;
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
-	void ProductionDone();
+	virtual void Production(class ACitizen* Citizen) override;
+
+	void ProductionDone(class ACitizen* Citizen);
 };

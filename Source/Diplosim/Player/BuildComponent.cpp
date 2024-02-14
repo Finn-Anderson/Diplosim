@@ -117,8 +117,8 @@ bool UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClas
 {
 	if (Building != nullptr) {
 		if (Building->BuildStatus == EBuildStatus::Blueprint) {
-			for (int i = 0; i < Building->TreeList.Num(); i++) {
-				Building->TreeList[i]->SetActorHiddenInGame(false);
+			for (FTreeStruct treeStruct : Building->TreeList) {
+				treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
 			}
 
 			Building->Destroy();
@@ -133,9 +133,8 @@ bool UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClas
 		} 
 	}
 
-	if (!IsComponentTickEnabled()) {
+	if (!IsComponentTickEnabled())
 		SetComponentTickEnabled(true);
-	}
 
 	Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0, 0, 50.0f), Rotation);
 	
@@ -169,8 +168,8 @@ void UBuildComponent::Place()
 	if (Building == nullptr || !IsValidLocation() || !Building->CheckBuildCost())
 		return;
 
-	for (int i = 0; i < Building->TreeList.Num(); i++) {
-		Building->TreeList[i]->Destroy(true);
+	for (FTreeStruct treeStruct : Building->TreeList) {
+		treeStruct.Resource->ResourceHISM->RemoveInstance(treeStruct.Instance);
 	}
 
 	if (Building->IsA<AWall>())

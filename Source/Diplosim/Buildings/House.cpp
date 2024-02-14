@@ -55,16 +55,16 @@ void AHouse::FindCitizens()
 		if (GetCapacity() <= GetOccupied().Num())
 			return;
 
-		if (citizen->Balance < Rent || !citizen->AIController->CanMoveTo(this))
+		if (citizen->Balance < Rent || !citizen->AIController->CanMoveTo(GetActorLocation()))
 			continue;
 
 		if (citizen->Building.House == nullptr) {
 			AddCitizen(citizen);
 		}
 		else if (citizen->Building.Employment != nullptr) {
-			FClosestStruct ClosestStruct = citizen->AIController->GetClosestActor(citizen->Building.House, this);
+			double magnitude = citizen->AIController->GetClosestActor(citizen->Building.Employment->GetActorLocation(), citizen->Building.House->GetActorLocation(), GetActorLocation());
 
-			if (ClosestStruct.Actor != this)
+			if (magnitude <= 0.0f)
 				continue;
 
 			AddCitizen(citizen);

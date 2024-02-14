@@ -124,7 +124,6 @@ void ABuilding::Build()
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), foundBuilders);
 
 		ABuilder* target = nullptr;
-		double magnitude = 1.0f;
 
 		for (int32 i = 0; i < foundBuilders.Num(); i++) {
 			ABuilder* builder = Cast<ABuilder>(foundBuilders[i]);
@@ -132,12 +131,17 @@ void ABuilding::Build()
 			if (builder->Constructing != nullptr || builder->BuildStatus != EBuildStatus::Complete || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder)
 				continue;
 
-			FClosestStruct closestStruct = builder->GetOccupied()[0]->AIController->GetClosestActor(builder, this);
+			if (target == nullptr) {
+				target = builder;
 
-			if (magnitude <= closestStruct.Magnitude)
+				continue;
+			}
+
+			double magnitude = builder->GetOccupied()[0]->AIController->GetClosestActor(GetActorLocation(), target->GetActorLocation(), builder->GetActorLocation());
+
+			if (magnitude <= 0.0f)
 				continue;
 
-			magnitude = closestStruct.Magnitude;
 			target = builder;
 		}
 
@@ -166,35 +170,39 @@ bool ABuilding::CheckBuildCost()
 
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (BuildStatus == EBuildStatus::Blueprint) {
-		if (OtherActor == this)
-			return;
+	if (BuildStatus != EBuildStatus::Blueprint)
+		return;
 
-		bMoved = true;
+	bMoved = true;
 
-		if (OtherActor->IsA<AVegetation>() && !OtherActor->IsHidden()) {
-			OtherActor->SetActorHiddenInGame(true);
+	if (OtherActor->IsA<AVegetation>()) {
+		FTreeStruct treeStruct;
+		treeStruct.Resource = Cast<AVegetation>(OtherActor);
+		treeStruct.Instance = OtherBodyIndex;
 
-			TreeList.Add(OtherActor);
-		}
-		else {
-			TArray<UObject*> objArr = { OtherComp, OtherActor };
+		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 0.0f);
 
-			for (UObject* obj : objArr) {
-				FVector location = CheckCollisions(obj, OtherBodyIndex);
+		treeStruct.Resource->ResourceHISM->MarkRenderStateDirty();
 
-				if (!location.IsZero()) {
-					FBuildStruct buildStruct;
+		TreeList.Add(treeStruct);
+	}
+	else {
+		TArray<UObject*> objArr = { OtherComp, OtherActor };
 
-					buildStruct.Object = obj;
+		for (UObject* obj : objArr) {
+			FVector location = CheckCollisions(obj, OtherBodyIndex);
 
-					if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>())
-						buildStruct.Instance = OtherBodyIndex;
+			if (!location.IsZero()) {
+				FBuildStruct buildStruct;
 
-					buildStruct.Location = location;
+				buildStruct.Object = obj;
 
-					Collisions.Add(buildStruct);
-				}
+				if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>())
+					buildStruct.Instance = OtherBodyIndex;
+
+				buildStruct.Location = location;
+
+				Collisions.Add(buildStruct);
 			}
 		}
 	}
@@ -202,30 +210,40 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 
 void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (BuildStatus == EBuildStatus::Blueprint) {
-		if (TreeList.Contains(OtherActor)) {
-			OtherActor->SetActorHiddenInGame(false);
+	if (BuildStatus != EBuildStatus::Blueprint)
+		return;
 
-			TreeList.Remove(OtherActor);
-		}
-		else {
-			TArray<UObject*> objArr = { OtherComp, OtherActor };
+	FTreeStruct treeStruct;
 
-			for (UObject* obj : objArr) {
-				FVector location = CheckCollisions(obj, OtherBodyIndex);
+	if (OtherActor->IsA<AVegetation>()) {
+		treeStruct.Resource = Cast<AVegetation>(OtherActor);
+		treeStruct.Instance = OtherBodyIndex;
+	}
 
-				if (!location.IsZero()) {
-					FBuildStruct buildStruct;
+	if (TreeList.Contains(treeStruct)) {
+		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
 
-					buildStruct.Object = obj;
+		treeStruct.Resource->ResourceHISM->MarkRenderStateDirty();
 
-					if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>())
-						buildStruct.Instance = OtherBodyIndex;
+		TreeList.Remove(treeStruct);
+	}
+	else {
+		TArray<UObject*> objArr = { OtherComp, OtherActor };
 
-					buildStruct.Location = location;
+		for (UObject* obj : objArr) {
+			FVector location = CheckCollisions(obj, OtherBodyIndex);
 
-					Collisions.RemoveSingle(buildStruct);
-				}
+			if (!location.IsZero()) {
+				FBuildStruct buildStruct;
+
+				buildStruct.Object = obj;
+
+				if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>())
+					buildStruct.Instance = OtherBodyIndex;
+
+				buildStruct.Location = location;
+
+				Collisions.RemoveSingle(buildStruct);
 			}
 		}
 	}
@@ -387,15 +405,23 @@ void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
 			if (building->BuildStatus != EBuildStatus::Complete || building->Storage < 1)
 				continue;
 
-			int32 storage = 0;
+			if (target == nullptr) {
+				target = building;
 
-			if (target != nullptr) {
-				storage = target->Storage;
+				continue;
 			}
 
-			FClosestStruct closestStruct = Citizen->AIController->GetClosestActor(target, building, storage, building->Storage);
+			int32 storage = 0;
 
-			target = Cast<ABuilding>(closestStruct.Actor);
+			if (target != nullptr)
+				storage = target->Storage;
+
+			double magnitude = Citizen->AIController->GetClosestActor(Citizen->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation(), storage, building->Storage);
+
+			if (magnitude <= 0.0f)
+				continue;
+
+			target = building;
 		}
 	}
 

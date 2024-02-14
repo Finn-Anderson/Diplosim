@@ -12,24 +12,21 @@ class DIPLOSIM_API AExternalProduction : public AWork
 public:
 	AExternalProduction();
 
-protected:
-	virtual void BeginPlay() override;
-
 public:
 	virtual void Enter(class ACitizen* Citizen) override;
 
+	virtual void FindCitizens() override;
+
+	virtual void RemoveCitizen(class ACitizen* Citizen) override;
+
 	virtual void Production(class ACitizen* Citizen) override;
-
-	UFUNCTION()
-		void OnResourceOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
-		class USphereComponent* RangeComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		class UDecalComponent* DecalComponent;
 
-	class AResource* Resource = nullptr;
+	class AResource* Resource;
 
-	TArray<AResource*> ResourceList;
+	int32 Instance;
+
+	TArray<int32> InstanceList;
 };

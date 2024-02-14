@@ -3,6 +3,7 @@
 #include "Navigation/CrowdFollowingComponent.h"
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI.h"
 #include "Citizen.h"
@@ -32,35 +33,23 @@ void ADiplosimAIController::Idle()
 	GetWorld()->GetTimerManager().SetTimer(IdleTimer, this, &ADiplosimAIController::Idle, time, false);
 }
 
-FClosestStruct ADiplosimAIController::GetClosestActor(AActor* CurrentActor, AActor* NewActor, int32 CurrentValue, int32 NewValue)
+double ADiplosimAIController::GetClosestActor(FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, int32 CurrentValue, int32 NewValue)
 {
-	FClosestStruct closestStruct;
-	closestStruct.Actor = CurrentActor;
+	if (!CanMoveTo(NewLocation))
+		return -1000000.0f;
 
-	if (!CanMoveTo(NewActor))
-		return closestStruct;
-	
-	closestStruct.Actor = NewActor;
+	double curLength = FVector::Dist(TargetLocation, CurrentLocation);
 
-	if (CurrentActor == nullptr)
-		return closestStruct;
+	double newLength = FVector::Dist(TargetLocation, NewLocation);
 
-	double curLength = FVector::Dist(GetOwner()->GetActorLocation(), CurrentActor->GetActorLocation());
+	double magnitude = curLength / CurrentValue - newLength / NewValue;
 
-	double newLength = FVector::Dist(GetOwner()->GetActorLocation(), NewActor->GetActorLocation());
-
-	closestStruct.Magnitude = curLength / CurrentValue - newLength / NewValue;
-
-	if (closestStruct.Magnitude < 0.0f) {
-		closestStruct.Actor = CurrentActor;
-	}
-
-	return closestStruct;
+	return magnitude;
 }
 
-bool ADiplosimAIController::CanMoveTo(AActor* Actor)
+bool ADiplosimAIController::CanMoveTo(FVector Location)
 {
-	if (!GetOwner()->IsValidLowLevelFast() || !Actor->IsValidLowLevelFast())
+	if (!GetOwner()->IsValidLowLevelFast())
 		return false;
 
 	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
@@ -74,13 +63,7 @@ bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 	FNavLocation loc;
-
-	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
-
-	if (comp && comp->DoesSocketExist("Entrance"))
-		loc.Location = comp->GetSocketLocation("Entrance");
-	else
-		nav->ProjectPointToNavigation(Actor->GetActorLocation(), loc, FVector(200.0f, 200.0f, 10.0f));
+	nav->ProjectPointToNavigation(Location, loc, FVector(200.0f, 200.0f, 10.0f));
 
 	MoveRequest.SetLocation(loc.Location);
 
@@ -94,12 +77,27 @@ bool ADiplosimAIController::CanMoveTo(AActor* Actor)
 	return false;
 }
 
-void ADiplosimAIController::AIMoveTo(AActor* Actor)
+void ADiplosimAIController::AIMoveTo(AActor* Actor, int32 Instance)
 {
-	if (!CanMoveTo(Actor))
+	if (!Actor->IsValidLowLevelFast())
+		return;
+
+	FTransform transform;
+	transform.SetLocation(Actor->GetActorLocation());
+
+	if (Instance > -1)
+		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(Instance, transform);
+
+	if (!CanMoveTo(transform.GetLocation()))
 		return;
 
 	MoveRequest.SetGoalActor(Actor);
+	MoveRequest.SetGoalInstance(Instance);
+
+	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+
+	if (comp && comp->DoesSocketExist("Entrance"))
+		MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 
 	GetWorld()->GetTimerManager().ClearTimer(IdleTimer);
 
@@ -120,8 +118,12 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor)
 	if (citizen->Building.BuildingAt != nullptr) {
 		citizen->Building.BuildingAt->Leave(citizen);
 	} 
+
+	FCollidingStruct collidingStruct;
+	collidingStruct.Actor = Actor;
+	collidingStruct.Instance = Instance;
 	
-	if (citizen->StillColliding.Contains(Actor)) {
+	if (citizen->StillColliding.Contains(collidingStruct)) {
 		if (Actor->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(Actor);
 
@@ -130,7 +132,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor)
 		else if (Actor->IsA<AResource>()) {
 			AResource* resource = Cast<AResource>(Actor);
 
-			citizen->StartHarvestTimer(resource);
+			citizen->StartHarvestTimer(resource, Instance);
 		}
 	}
 }

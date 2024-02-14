@@ -49,6 +49,27 @@ struct FBuildStruct
 	}
 };
 
+USTRUCT()
+struct FTreeStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	class AVegetation* Resource;
+
+	int32 Instance;
+
+	FTreeStruct()
+	{
+		Resource = nullptr;
+		Instance = -1;
+	}
+
+	bool operator==(const FTreeStruct& other) const
+	{
+		return (other.Resource == Resource) && (other.Instance == Instance);
+	}
+};
+
 UENUM()
 enum class EBuildStatus : uint8 
 {
@@ -119,7 +140,7 @@ public:
 
 	bool bMoved;
 
-	TArray<class AActor*> TreeList;
+	TArray<FTreeStruct> TreeList;
 
 	int32 BuildPercentage;
 

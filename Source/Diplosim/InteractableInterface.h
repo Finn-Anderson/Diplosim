@@ -50,7 +50,7 @@ public:
 
 	void SetHunger();
 
-	void SetQuantity();
+	void SetQuantity(int32 Instance);
 
 	void ExecuteEditEvent(FString Key);
 };

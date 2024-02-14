@@ -85,12 +85,12 @@ void AAI::MoveToBroch()
 
 	AActor* target = brochs[0];
 
-	if (!AIController->CanMoveTo(brochs[0]) && IsA<AEnemy>()) {
+	if (!AIController->CanMoveTo(brochs[0]->GetActorLocation()) && IsA<AEnemy>()) {
 		TArray<AActor*> buildings;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
 
 		for (AActor* actor : buildings) {
-			if (!AIController->CanMoveTo(actor))
+			if (!AIController->CanMoveTo(actor->GetActorLocation()))
 				continue;
 
 			if (target == brochs[0]) {
@@ -99,14 +99,14 @@ void AAI::MoveToBroch()
 				continue;
 			}
 
-			FClosestStruct closestStruct = AIController->GetClosestActor(target, actor);
+			double magnitude = AIController->GetClosestActor(GetActorLocation(), target->GetActorLocation(), actor->GetActorLocation());
 
-			double targetDistToBroch = FVector::Dist(target->GetActorLocation(), brochs[0]->GetActorLocation()) + closestStruct.Magnitude;
+			double targetDistToBroch = FVector::Dist(target->GetActorLocation(), brochs[0]->GetActorLocation()) + magnitude;
 
-			double actorDistToBroch = FVector::Dist(actor->GetActorLocation(), brochs[0]->GetActorLocation()) - closestStruct.Magnitude;
+			double actorDistToBroch = FVector::Dist(actor->GetActorLocation(), brochs[0]->GetActorLocation()) - magnitude;
 
 			if (targetDistToBroch > actorDistToBroch)
-				target = closestStruct.Actor;
+				target = actor;
 		}
 	}
 

@@ -61,16 +61,6 @@ void UInteractableComponent::SetHunger()
 	TextStruct.Information.Add("Hunger", FString::SanitizeFloat((float)citizen->Hunger / 100.0f));
 }
 
-void UInteractableComponent::SetQuantity()
-{
-	if (!TextStruct.Information.Contains("Quantity"))
-		return;
-
-	AMineral* mineral = Cast<AMineral>(GetOwner());
-
-	TextStruct.Information.Add("Quantity", FString::SanitizeFloat((float)mineral->Quantity / mineral->MaxQuantity));
-}
-
 void UInteractableComponent::ExecuteEditEvent(FString Key)
 {
 	if (Camera->SelectedInteractableComponent != this)

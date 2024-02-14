@@ -11,11 +11,14 @@ struct FMoveStruct
 
 	AActor* Actor;
 
+	int32 Instance;
+
 	FVector Location;
 
 	FMoveStruct()
 	{
 		Actor = nullptr;
+		Instance = -1;
 		Location = FVector::Zero();
 	}
 
@@ -29,6 +32,11 @@ struct FMoveStruct
 		Actor = actor;
 	}
 
+	void SetGoalInstance(int32 instance)
+	{
+		Instance = instance;
+	}
+
 	void SetLocation(FVector location)
 	{
 		Location = location;
@@ -39,25 +47,14 @@ struct FMoveStruct
 		return Actor;
 	}
 
+	int32 GetGoalInstance()
+	{
+		return Instance;
+	}
+
 	FVector GetLocation()
 	{
 		return Location;
-	}
-};
-
-USTRUCT()
-struct FClosestStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	AActor* Actor;
-
-	double Magnitude;
-
-	FClosestStruct()
-	{
-		Actor = nullptr;
-		Magnitude = 1.0f;
 	}
 };
 
@@ -71,11 +68,11 @@ public:
 
 	void Idle();
 
-	FClosestStruct GetClosestActor(AActor* CurrentActor, AActor* NewActor, int32 CurrentValue = 1, int32 NewValue = 1);
+	double GetClosestActor(FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, int32 CurrentValue = 1, int32 NewValue = 1);
 
-	bool CanMoveTo(AActor* Actor);
+	bool CanMoveTo(FVector Location);
 
-	virtual void AIMoveTo(AActor* Actor);
+	virtual void AIMoveTo(AActor* Actor, int32 Instance = -1);
 
 	FMoveStruct MoveRequest;
 

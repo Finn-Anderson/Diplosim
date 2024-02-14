@@ -7,6 +7,9 @@
 
 AInternalProduction::AInternalProduction()
 {
+	MinYield = 1;
+	MaxYield = 5;
+
 	TimeLength = 10.0f;
 }
 
@@ -37,7 +40,7 @@ void AInternalProduction::Production(ACitizen* Citizen)
 	int32 numAtWork = GetWorkers().Num();
 
 	if (!GetWorldTimerManager().IsTimerActive(ProdTimer)) {
-		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / numAtWork), false);
+		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / 100.0f / numAtWork), false);
 	}
 }
 
@@ -58,9 +61,5 @@ void AInternalProduction::Produce(ACitizen* Citizen)
 
 void AInternalProduction::ProductionDone(ACitizen* Citizen)
 {
-	AResource* r = GetWorld()->SpawnActor<AResource>(Camera->ResourceManagerComponent->GetResource(this));
-
-	Store(r->GetYield(), Citizen);
-
-	r->Destroy();
+	Store(FMath::RandRange(MinYield, MaxYield), Citizen);
 }

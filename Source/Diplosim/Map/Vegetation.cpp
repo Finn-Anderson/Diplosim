@@ -1,92 +1,83 @@
 #include "Vegetation.h"
 
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+
 #include "Buildings/Farm.h"
 
 AVegetation::AVegetation()
 {
-	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
+	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
+	ResourceHISM->NumCustomDataFloats = 4;
 
 	IntialScale = FVector(0.1f, 0.1f, 0.1f);
 
 	MaxScale = FVector(1.0f, 1.0f, 1.0f);
 
 	TimeLength = 30.0f;
-
-	bVaryScale = false;
 }
 
-void AVegetation::BeginPlay()
+void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
-	Super::BeginPlay();
+	FTransform transform;
+	ResourceHISM->GetInstanceTransform(Instance, transform);
+	transform.SetScale3D(IntialScale);
 
-	if (MeshList.Num() > 0) {
-		int32 i = FMath::RandRange(0, (MeshList.Num() - 1));
+	ResourceHISM->UpdateInstanceTransform(Instance, transform, false);
 
-		ResourceMesh->SetMobility(EComponentMobility::Movable);
+	SetQuantity(Instance, 0);
 
-		ResourceMesh->SetStaticMesh(MeshList[i]);
+	GrowingInstances.Add(Instance);
 
-		if (bVaryScale) {
-			int32 s = FMath::RandRange(-2, 2);
-			float scale = (10.0f + s) / 10.0f;
-
-			MaxScale = FVector(scale, scale, scale);
-
-			ResourceMesh->SetRelativeScale3D(MaxScale);
-		}
-
-		ResourceMesh->SetMobility(EComponentMobility::Static);
-	}
-
-	SetQuantity(MaxYield);
-}
-
-void AVegetation::YieldStatus()
-{
-	ResourceMesh->SetRelativeScale3D(IntialScale);
-
-	SetQuantity(0);
-
-	FTimerHandle growTimer;
-	GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, TimeLength / 10, false);
+	if (!GetWorldTimerManager().IsTimerActive(GrowTimer))
+		GetWorldTimerManager().SetTimer(GrowTimer, this, &AVegetation::Grow, TimeLength / 100.0f, true);
 }
 
 void AVegetation::Grow()
 {
-	FVector scale = ResourceMesh->GetRelativeScale3D();
+	for (int32 i = GrowingInstances.Num() - 1; i > -1; i--) {
+		int32 inst = GrowingInstances[i];
 
-	if (scale.X < 1.0f) {
-		scale.X += 0.1f;
-	}
-	if (scale.Y < 1.0f) {
-		scale.Y += 0.1f;
-	}
-	if (scale.Z < 1.0f) {
-		scale.Z += 0.1f;
+		ResourceHISM->SetCustomDataValue(inst, 2, FMath::Clamp(ResourceHISM->PerInstanceSMCustomData[inst * 4 + 2] + 1.0f, 0.0f, 10.0f));
+
+		if (ResourceHISM->PerInstanceSMCustomData[inst * 4 + 2] < 10)
+			continue;
+
+		FTransform transform;
+		ResourceHISM->GetInstanceTransform(inst, transform);
+
+		FVector scale = transform.GetScale3D();
+
+		if (scale.X < 1.0f)
+			scale.X += 0.1f;
+
+		if (scale.Y < 1.0f)
+			scale.Y += 0.1f;
+
+		if (scale.Z < 1.0f)
+			scale.Z += 0.1f;
+
+		transform.SetScale3D(scale);
+
+		ResourceHISM->UpdateInstanceTransform(inst, transform, false);
+
+		ResourceHISM->PerInstanceSMCustomData[inst * 4 + 2] = 0;
+
+		if (!IsHarvestable(inst, scale))
+			continue;
+
+		SetQuantity(inst, MaxYield);
+
+		GrowingInstances.Remove(inst);
 	}
 
-	ResourceMesh->SetRelativeScale3D(scale);
-
-	if (!IsChoppable()) {
-		FTimerHandle growTimer;
-		GetWorldTimerManager().SetTimer(growTimer, this, &AVegetation::Grow, TimeLength / 10, false);
-	}
+	if (GrowingInstances.IsEmpty())
+		GetWorldTimerManager().ClearTimer(GrowTimer);
 }
 
-bool AVegetation::IsChoppable()
+bool AVegetation::IsHarvestable(int32 Instance, FVector Scale)
 {
-	FVector scale = ResourceMesh->GetRelativeScale3D();
-
-	if (scale.X < MaxScale.X || scale.Y < MaxScale.Y || scale.Z < MaxScale.Z)
+	if (Scale.X < MaxScale.X || Scale.Y < MaxScale.Y || Scale.Z < MaxScale.Z)
 		return false;
-
-	SetQuantity(MaxYield);
-
-	if (Owner->IsValidLowLevelFast() && Owner->IsA<AFarm>()) {
-		AFarm* farm = Cast<AFarm>(Owner);
-
-		farm->ProductionDone();
-	}
 
 	return true;
 }

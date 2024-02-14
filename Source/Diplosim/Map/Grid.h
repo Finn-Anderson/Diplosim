@@ -21,7 +21,7 @@ struct FTileStruct
 
 	FQuat Rotation;
 
-	TArray<class AActor*> Resource;
+	int32 ResourceNum;
 
 	TMap<FString, FTileStruct*> AdjacentTiles;
 
@@ -35,6 +35,8 @@ struct FTileStruct
 		X = 0;
 
 		Y = 0;
+
+		ResourceNum = 0;
 
 		Rotation = FRotator(0.0f, 0.0f, 0.0f).Quaternion();
 	}
@@ -78,10 +80,7 @@ public:
 
 	// Resource Classes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
-		TSubclassOf<class AMineral> Rock;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
-		TSubclassOf<class AVegetation> Tree;
+		TArray<TSubclassOf<class AResource>> ResourceClasses;
 
 	// Instance Meshes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
@@ -92,6 +91,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMGround;
+
+	TMap<FString, TArray<class AResource*>> Resources;
 
 	// Dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
@@ -125,8 +126,6 @@ public:
 
 	// Resources
 	void GenerateResource(FTileStruct* Tile);
-
-	void SpawnResource(FTileStruct* Tile, FVector Location, TSubclassOf<class AResource> ResourceClass);
 
 	bool Forest;
 };

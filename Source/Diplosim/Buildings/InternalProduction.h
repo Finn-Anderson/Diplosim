@@ -13,6 +13,12 @@ public:
 	AInternalProduction();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
+		int32 MinYield;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
+		int32 MaxYield;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		float TimeLength;
 
 	virtual void Enter(class ACitizen* Citizen) override;

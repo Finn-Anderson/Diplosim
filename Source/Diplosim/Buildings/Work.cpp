@@ -35,7 +35,7 @@ void AWork::FindCitizens()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (c->BioStruct.Age < 18 || c->Building.Employment != nullptr || !c->AIController->CanMoveTo(this))
+		if (c->BioStruct.Age < 18 || c->Building.Employment != nullptr || !c->AIController->CanMoveTo(GetActorLocation()))
 			continue;
 			
 		AddCitizen(c);

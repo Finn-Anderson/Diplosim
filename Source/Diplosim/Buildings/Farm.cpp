@@ -2,64 +2,76 @@
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
-#include "Map/Vegetation.h"
 #include "Map/Grid.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
+#include "Resource.h"
 
 AFarm::AFarm()
 {
-	Crop = nullptr;
+	CropMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CropMesh"));
+	CropMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	CropMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	CropMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
+
+	MinYield = 1;
+	MaxYield = 5;
+
+	TimeLength = 30.0f;
 }
 
 void AFarm::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (Occupied.Contains(Citizen)) {
-		if (Crop == nullptr) {
-			int32 finalX = GetActorLocation().X;
-			int32 finalY = GetActorLocation().Y;
-			int32 finalZ = GetActorLocation().Z + BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	if (!Occupied.Contains(Citizen) || GetWorldTimerManager().IsTimerActive(ProdTimer))
+		return;
 
-			FVector pos = FVector(finalX, finalY, finalZ);
-
-			Crop = GetWorld()->SpawnActor<AVegetation>(Camera->ResourceManagerComponent->GetResource(this), pos, GetActorRotation());
-			Crop->IntialScale = FVector(1.0f, 1.0f, 0.0f);
-			Crop->YieldStatus();
-			Crop->SetOwner(this);
-		}
-		else {
-			Crop->IsChoppable();
-		}
-	}
+	if (CropMesh->GetRelativeScale3D().Z == 1.0f)
+		ProductionDone(Citizen);
+	else
+		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), TimeLength / 10.0f, false);
 }
 
-void AFarm::ProductionDone()
+void AFarm::Production(ACitizen* Citizen)
 {
-	TArray<ACitizen*> workers = GetWorkers();
+	CropMesh->SetRelativeScale3D(CropMesh->GetRelativeScale3D() + FVector(0.0f, 0.0f, 0.1f));
 
-	if (workers.Num() > 0) {
-		int32 yield = Crop->GetYield();
+	if (CropMesh->GetRelativeScale3D().Z >= 1.0f) {
+		TArray<ACitizen*> workers = GetWorkers();
 
-		FHitResult hit;
+		if (workers.Num() == 0)
+			return;
 
-		FVector start = GetActorLocation();
-		FVector end = GetActorLocation() - FVector(0.0f, 0.0f, 100.0f);
-
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(this);
-
-		if (GetWorld()->LineTraceSingleByChannel(hit, start, end, ECollisionChannel::ECC_Visibility, QueryParams)) {
-			if (hit.GetActor()->IsA<AGrid>()) {
-				AGrid* grid = Cast<AGrid>(hit.GetActor());
-
-				int32 fertility = grid->HISMGround->PerInstanceSMCustomData[hit.Item * 4 + 3];
-
-				yield *= fertility;
-			}
-		}
-
-		Store(yield, workers[0]);
+		ProductionDone(workers[0]);
 	}
+	else
+		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), TimeLength / 10.0f, false);
+}
+
+void AFarm::ProductionDone(ACitizen* Citizen)
+{
+	int32 yield = FMath::RandRange(MinYield, MaxYield);
+
+	FHitResult hit;
+
+	FVector start = GetActorLocation();
+	FVector end = GetActorLocation() - FVector(0.0f, 0.0f, 100.0f);
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	if (GetWorld()->LineTraceSingleByChannel(hit, start, end, ECollisionChannel::ECC_GameTraceChannel1, QueryParams)) {
+		AGrid* grid = Cast<AGrid>(hit.GetActor());
+
+		int32 fertility = grid->HISMGround->PerInstanceSMCustomData[hit.Item * 4 + 3];
+
+		yield *= fertility;
+	}
+
+	Store(yield, Citizen);
+
+	CropMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
+
+	GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), TimeLength / 10.0f, false);
 }

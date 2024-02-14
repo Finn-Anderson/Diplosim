@@ -4,6 +4,26 @@
 #include "GameFramework/Actor.h"
 #include "Resource.generated.h"
 
+USTRUCT()
+struct FWorkerStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	TArray<class ACitizen*> Citizens;
+
+	int32 Instance;
+
+	FWorkerStruct() {
+		Citizens = {};
+		Instance = -1;
+	}
+
+	bool operator==(const FWorkerStruct& other) const
+	{
+		return (other.Instance == Instance);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API AResource : public AActor
 {
@@ -14,7 +34,7 @@ public:
 
 public:	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UStaticMeshComponent* ResourceMesh;
+		class UHierarchicalInstancedStaticMeshComponent* ResourceHISM;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 MinYield;
@@ -25,19 +45,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 MaxWorkers;
 
-	int32 WorkerCount;
-
-	int32 Yield;
-
-	int32 Quantity;
-
-	int32 MaxQuantity;
+	TArray<FWorkerStruct> WorkerStruct;
 
 	int32 GenerateYield();
 
-	int32 GetYield();
+	int32 GetYield(class ACitizen* Citizen, int32 Instance);
 
-	void SetQuantity(int32 Value);
+	void SetQuantity(int32 Instance, int32 Value);
 
-	virtual void YieldStatus();
+	void AddWorker(class ACitizen* citizen, int32 Instance);
+
+	void RemoveWorker(class ACitizen* citizen, int32 Instance);
+
+	virtual void YieldStatus(int32 Instance, int32 Yield);
 };

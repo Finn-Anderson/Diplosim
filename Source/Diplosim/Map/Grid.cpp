@@ -55,6 +55,18 @@ void AGrid::BeginPlay()
 
 	Camera->Grid = this;
 
+	Resources.Add("Mineral");
+	Resources.Add("Vegetation");
+
+	for (TSubclassOf<AResource> resourceClass : ResourceClasses) {
+		AResource* resource = GetWorld()->SpawnActor<AResource>(resourceClass, FVector::Zero(), FRotator(0.0f));
+
+		if (resource->IsA<AMineral>())
+			Resources.Find("Mineral")->Add(resource);
+		else
+			Resources.Find("Vegetation")->Add(resource);
+	}
+
 	Load();
 }
 
@@ -360,20 +372,27 @@ void AGrid::GenerateResource(FTileStruct* Tile)
 
 	FTransform transform;
 	HISMGround->GetInstanceTransform(Tile->Instance, transform);
-	FVector loc = transform.GetLocation();
 
-	int32 z = HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z + 75.0f * Tile->Level;
-	loc.Z = z;
+	int32 z = HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, z));
 
 	if (choiceVal == 1) {
-		SpawnResource(Tile, loc, Rock);
+		TArray<AResource*>* arr = Resources.Find("Mineral");
+
+		int32 index = FMath::RandRange(0, arr->Num() - 1);
+
+		AMineral* resource = Cast<AMineral>((*arr)[index]);
+
+		int32 inst = resource->ResourceHISM->AddInstance(transform);
+		
+		resource->SetRandomQuantity(inst);
 	}
 	else {
 		int32 tally = 0;
 		int32 count = 0;
 
 		for (auto& element : Tile->AdjacentTiles) {
-			tally += element.Value->Resource.Num();
+			tally += element.Value->ResourceNum;
 
 			count++;
 		}
@@ -382,21 +401,22 @@ void AGrid::GenerateResource(FTileStruct* Tile)
 
 		int32 value = 0;
 
-		if (choiceVal == 100) {
+		if (choiceVal == 100)
 			value = 3;
-		}
-		else if (choiceVal > 80) {
+		else if (choiceVal > 80)
 			value = FMath::RandRange(0, 1);
-		}
 
 		int32 mean = FMath::Clamp(trees + value, 0, 5);
 
 		TArray<int32> locListX;
 		TArray<int32> locListY;
+
 		for (int32 i = -40; i <= 40; i++) {
 			locListX.Add(i);
 			locListY.Add(i);
 		}
+
+		Tile->ResourceNum = mean;
 
 		for (int32 i = 0; i < mean; i++) {
 			int32 indexX = FMath::RandRange(0, (locListX.Num() - 1));
@@ -405,10 +425,19 @@ void AGrid::GenerateResource(FTileStruct* Tile)
 			int32 x = locListX[indexX];
 			int32 y = locListY[indexY];
 
-			loc.X += x;
-			loc.Y += y;
+			transform.SetLocation(transform.GetLocation() + FVector(x, y, 0.0f));
 
-			SpawnResource(Tile, loc, Tree);
+			TArray<AResource*>* arr = Resources.Find("Vegetation");
+
+			int32 index = FMath::RandRange(0, arr->Num() - 1);
+
+			AVegetation* resource = Cast<AVegetation>((*arr)[index]);
+
+			int32 inst = resource->ResourceHISM->AddInstance(transform);
+
+			resource->SetQuantity(inst, resource->MaxYield);
+
+			resource->ResourceHISM->SetCustomDataValue(inst, 3, 1.0f);
 
 			for (int32 j = x - 10; j <= x + 10; j++) {
 				if (locListX.Contains(j)) {
@@ -425,22 +454,16 @@ void AGrid::GenerateResource(FTileStruct* Tile)
 	}
 }
 
-void AGrid::SpawnResource(FTileStruct* Tile, FVector Location, TSubclassOf<AResource> ResourceClass)
-{
-	AResource* resource = GetWorld()->SpawnActor<AResource>(ResourceClass, Location, GetActorRotation());
-
-	Tile->Resource.Add(resource);
-}
-
 void AGrid::Clear()
 {
-	for (TArray<FTileStruct>& row : Storage) {
-		for (FTileStruct& tile : row) {
-			for (int j = 0; j < tile.Resource.Num(); j++) {
-				tile.Resource[j]->Destroy();
-			}
+	FTransform transform;
+	transform.SetLocation(FVector(0.0f, 0.0f, -1000000.0f));
 
-			tile.Resource.Empty();
+	for (const TPair<FString, TArray<AResource*>>& pair : Resources) {
+		for (AResource* r : pair.Value) {
+			r->ResourceHISM->ClearInstances();
+
+			r->ResourceHISM->AddInstance(transform);
 		}
 	}
 
@@ -460,4 +483,8 @@ void AGrid::Clear()
 	HISMWater->ClearInstances();
 	HISMLava->ClearInstances();
 	HISMGround->ClearInstances();
+
+	HISMWater->AddInstance(transform);
+	HISMLava->AddInstance(transform);
+	HISMGround->AddInstance(transform);
 }

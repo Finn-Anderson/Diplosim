@@ -3,6 +3,7 @@
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
 #include "AIController.h"
+#include "NavigationSystem.h"
 #include "Components/CapsuleComponent.h"
 
 #include "Buildings/Work.h"
@@ -15,6 +16,7 @@
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 #include "Buildings/Farm.h"
+#include "Buildings/ExternalProduction.h"
 #include "InteractableInterface.h"
 
 ACitizen::ACitizen()
@@ -64,16 +66,23 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 {
 	Super::OnOverlapBegin(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 
-	if (OtherActor->IsA<AResource>() || OtherActor->IsA<ABuilding>())
-		StillColliding.Add(OtherActor);
+	if (OtherActor->IsA<AResource>() || OtherActor->IsA<ABuilding>()) {
+		FCollidingStruct collidingStruct;
+		collidingStruct.Actor = OtherActor;
 
-	if (OtherActor != AIController->MoveRequest.GetGoalActor())
+		if (OtherActor->IsA<AResource>())
+			collidingStruct.Instance = OtherBodyIndex;
+
+		StillColliding.Add(collidingStruct);
+	}
+
+	if (OtherActor != AIController->MoveRequest.GetGoalActor() || (OtherBodyIndex != AIController->MoveRequest.GetGoalInstance() && AIController->MoveRequest.GetGoalInstance() > -1))
 		return;
 
 	if (OtherActor->IsA<AResource>()) {
 		AResource* r = Cast<AResource>(OtherActor);
 
-		StartHarvestTimer(r);
+		StartHarvestTimer(r, OtherBodyIndex);
 	}
 	else if (OtherActor->IsA<ABuilding>()) {
 		ABuilding* b = Cast<ABuilding>(OtherActor);
@@ -86,8 +95,14 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 {
 	Super::OnOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
 
-	if (StillColliding.Contains(OtherActor))
-		StillColliding.Remove(OtherActor);
+	FCollidingStruct collidingStruct;
+	collidingStruct.Actor = OtherActor;
+
+	if (OtherActor->IsA<AResource>())
+		collidingStruct.Instance = OtherBodyIndex;
+
+	if (StillColliding.Contains(collidingStruct))
+		StillColliding.Remove(collidingStruct);
 }
 
 //
@@ -173,6 +188,18 @@ void ACitizen::LoseEnergy()
 
 	if (Building.House->IsValidLowLevelFast()) {
 		AIController->AIMoveTo(Building.House);
+
+		if (!Building.Employment->IsA<AExternalProduction>())
+			return;
+
+		for (FWorkerStruct workerStruct : Cast<AExternalProduction>(Building.Employment)->Resource->WorkerStruct) {
+			if (!workerStruct.Citizens.Contains(this))
+				continue;
+
+			workerStruct.Citizens.Remove(this);
+
+			break;
+		}
 	}
 	else if (BioStruct.Age < 18) {
 		TArray<TWeakObjectPtr<ACitizen>> parents = { BioStruct.Mother, BioStruct.Father };
@@ -210,18 +237,18 @@ void ACitizen::GainEnergy()
 //
 // Resources
 //
-void ACitizen::StartHarvestTimer(AResource* Resource)
+void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 {
 	FTimerHandle harvestTimer;
 	float time = FMath::RandRange(6.0f, 10.0f);
-	GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource), time, false);
+	GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), time, false);
 
 	AIController->StopMovement();
 }
 
-void ACitizen::HarvestResource(AResource* Resource)
+void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 {
-	Carry(Resource, Resource->GetYield(), Building.Employment);
+	Carry(Resource, Resource->GetYield(this, Instance), Building.Employment);
 }
 
 void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
@@ -262,13 +289,11 @@ void ACitizen::Birthday()
 		int32 scale = (BioStruct.Age * 0.04) + 0.28;
 		GetMesh()->SetWorldScale3D(FVector(scale, scale, scale));
 	}
-	else if (BioStruct.Partner != nullptr) {
+	else if (BioStruct.Partner != nullptr)
 		HaveChild();
-	}
 
-	if (BioStruct.Age >= 18) {
+	if (BioStruct.Age >= 18)
 		FindPartner();
-	}
 }
 
 void ACitizen::SetSex()
@@ -318,13 +343,21 @@ void ACitizen::FindPartner()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18) {
+		if (c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
+			continue;
+
+		if (citizen == nullptr) {
+			citizen = c;
+
 			continue;
 		}
 
-		FClosestStruct closestStruct = AIController->GetClosestActor(citizen, c);
+		double magnitude = AIController->GetClosestActor(GetActorLocation(), citizen->GetActorLocation(), c->GetActorLocation());
 
-		citizen = Cast<ACitizen>(closestStruct.Actor);
+		if (magnitude <= 0.0f)
+			continue;
+
+		citizen = c;
 	}
 
 	if (citizen != nullptr) {
@@ -338,9 +371,8 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 {
 	BioStruct.Partner = Citizen;
 
-	if (BioStruct.Sex == ESex::Female) {
+	if (BioStruct.Sex == ESex::Female)
 		GetWorld()->GetTimerManager().SetTimer(ChildTimer, this, &ACitizen::HaveChild, 45.0f, true);
-	}
 }
 
 void ACitizen::HaveChild()
@@ -351,12 +383,16 @@ void ACitizen::HaveChild()
 	if (chance < passMark)
 		return;
 
-	FVector loc = GetActorLocation() + GetActorForwardVector() * 10.0f;
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	if (Building.BuildingAt != nullptr && !Building.BuildingAt->IsA<AFarm>())
-		loc = Building.EnterLocation;
+	FNavLocation loc;
+	nav->ProjectPointToNavigation(GetActorLocation() + GetActorForwardVector() * 10.0f, loc, FVector(200.0f, 200.0f, 10.0f));
 
-	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), loc, GetActorRotation());
+	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), loc.Location, GetActorRotation());
+	
+	if (!citizen->IsValidLowLevelFast())
+		return;
+
 	citizen->BioStruct.Mother = this;
-	citizen->BioStruct.Father = BioStruct.Father;
+	citizen->BioStruct.Father = BioStruct.Partner;
 }

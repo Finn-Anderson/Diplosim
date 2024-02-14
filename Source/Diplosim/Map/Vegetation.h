@@ -12,26 +12,21 @@ class DIPLOSIM_API AVegetation : public AResource
 public:
 	AVegetation();
 
-protected:
-	virtual void BeginPlay();
-
 public:
-	virtual void YieldStatus();
+	virtual void YieldStatus(int32 Instance, int32 Yield);
 
 	void Grow();
 
-	bool IsChoppable();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Meshes")
-		TArray<class UStaticMesh*> MeshList;
+	bool IsHarvestable(int32 Instance, FVector Scale);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
 		int32 TimeLength;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scale")
-		bool bVaryScale;
-
 	FVector IntialScale;
 
 	FVector MaxScale;
+
+	TArray<int32> GrowingInstances;
+
+	FTimerHandle GrowTimer;
 };

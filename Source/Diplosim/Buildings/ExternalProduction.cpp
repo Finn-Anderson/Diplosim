@@ -4,6 +4,7 @@
 #include "Components/DecalComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -14,41 +15,45 @@
 
 AExternalProduction::AExternalProduction()
 {
-	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
-	RangeComponent->SetupAttachment(RootComponent);
-	RangeComponent->SetCollisionProfileName("Spectator", true);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
-	RangeComponent->SetSphereRadius(1500.0f);
-
 	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
 	DecalComponent->SetupAttachment(RootComponent);
 	DecalComponent->DecalSize = FVector(1500.0f, 1500.0f, 1500.0f);
 	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
-}
 
-void AExternalProduction::BeginPlay()
-{
-	Super::BeginPlay();
-
-	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &AExternalProduction::OnResourceOverlapBegin);
-}
-
-void AExternalProduction::OnResourceOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (OtherActor->IsA(Camera->ResourceManagerComponent->GetResource(this))) {
-		ResourceList.Add(Cast<AResource>(OtherActor));
-	}
+	Instance = -1;
 }
 
 void AExternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (GetOccupied().Contains(Citizen)) {
+	if (GetOccupied().Contains(Citizen))
 		Store(Citizen->Carrying.Amount, Citizen);
+}
+
+void AExternalProduction::FindCitizens()
+{
+	Super::FindCitizens();
+
+	TArray<AActor*> actors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), Camera->ResourceManagerComponent->GetResource(this), actors);
+
+	Resource = Cast<AResource>(actors[0]);
+
+	InstanceList = Resource->ResourceHISM->GetInstancesOverlappingSphere(GetActorLocation(), 1500.0f);
+}
+
+void AExternalProduction::RemoveCitizen(ACitizen* Citizen)
+{
+	Super::RemoveCitizen(Citizen);
+
+	for (FWorkerStruct workerStruct : Resource->WorkerStruct) {
+		if (!workerStruct.Citizens.Contains(Citizen))
+			continue;
+
+		workerStruct.Citizens.Remove(Citizen);
+
+		break;
 	}
 }
 
@@ -57,25 +62,50 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	if (Citizen->Building.BuildingAt != this)
 		return;
 
-	if (!Resource->IsValidLowLevelFast() || Resource->WorkerCount == Resource->MaxWorkers || Resource->Quantity <= 0) {
-		Resource = nullptr;
+	Instance = -1;
 
-		for (AResource* r : ResourceList) {
-			if (r->IsHidden() || r->Quantity <= 0 || r->WorkerCount == r->MaxWorkers)
-				continue;
+	for (int32 inst : InstanceList) {
+		if (Resource->IsA<AVegetation>() && Resource->ResourceHISM->PerInstanceSMCustomData[inst * 4 + 3] == 0.0f)
+			continue;
 
-			FClosestStruct closestStruct = Citizen->AIController->GetClosestActor(Resource, r);
+		FTransform transform;
+		Resource->ResourceHISM->GetInstanceTransform(inst, transform);
 
-			Resource = Cast<AResource>(closestStruct.Actor);
+		FWorkerStruct workerStruct;
+		workerStruct.Instance = inst;
+
+		int32 index = Resource->WorkerStruct.Find(workerStruct);
+
+		int32 quantity = Resource->ResourceHISM->PerInstanceSMCustomData[inst * 4 + 0];
+
+		if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || quantity == 0 || (index > -1 && Resource->WorkerStruct[index].Citizens.Num() == Resource->MaxWorkers))
+			continue;
+
+		if (Instance == -1) {
+			Instance = inst;
+			
+			continue;
 		}
+
+		FTransform currentTransform;
+		FTransform newTransform;
+
+		Resource->ResourceHISM->GetInstanceTransform(Instance, currentTransform);
+		Resource->ResourceHISM->GetInstanceTransform(inst, newTransform);
+
+		double magnitude = Citizen->AIController->GetClosestActor(Citizen->GetActorLocation(), currentTransform.GetLocation(), newTransform.GetLocation());
+
+		if (magnitude <= 0.0f)
+			continue;
+
+		Instance = inst;
 	}
 
 	if (Resource != nullptr) {
-		Resource->WorkerCount++;
+		Resource->AddWorker(Citizen, Instance);
 
-		Citizen->AIController->AIMoveTo(Resource);
+		Citizen->AIController->AIMoveTo(Resource, Instance);
 	}
-	else {
+	else
 		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);
-	}
 }

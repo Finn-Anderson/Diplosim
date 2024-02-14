@@ -1,37 +1,45 @@
 #include "Mineral.h"
 
-#include "Components/BoxComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
-#include "Grid.h"
-#include "InteractableInterface.h"
+#include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
+#include "Buildings/Building.h"
 
 AMineral::AMineral()
 {
-	ResourceMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	ResourceMesh->SetCanEverAffectNavigation(true);
-	ResourceMesh->bFillCollisionUnderneathForNavmesh = true;
-
-	InteractableComponent = CreateDefaultSubobject<UInteractableComponent>(TEXT("InteractableComponent"));
+	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	ResourceHISM->SetCanEverAffectNavigation(true);
+	ResourceHISM->bFillCollisionUnderneathForNavmesh = true;
+	ResourceHISM->NumCustomDataFloats = 2;
 }
 
-void AMineral::BeginPlay()
+void AMineral::SetRandomQuantity(int32 Instance)
 {
-	Super::BeginPlay();
-
-	int32 q = FMath::RandRange(1000, 10000); 
-	SetQuantity(q);
+	int32 q = FMath::RandRange(1000, 10000);
+	SetQuantity(Instance, q);
 }
 
-void AMineral::YieldStatus()
+void AMineral::YieldStatus(int32 Instance, int32 Yield)
 {
-	Quantity -= Yield;
+	int32 quantity = ResourceHISM->PerInstanceSMCustomData[Instance * 4] - Yield;
 
-	InteractableComponent->SetQuantity();
-	InteractableComponent->ExecuteEditEvent("Quantity");
+	ResourceHISM->SetCustomDataValue(Instance, 0, FMath::Clamp(quantity, 0, MaxWorkers));
 
-	if (Quantity <= 0) {
-		Destroy();
-	} else if (Quantity < MaxYield) {
-		MaxYield = Quantity;
+	if (quantity == 0) {
+		for (FWorkerStruct workerStruct : WorkerStruct) {
+			if (workerStruct.Instance != Instance)
+				continue;
+
+			for (ACitizen* citizen : workerStruct.Citizens)
+				citizen->AIController->AIMoveTo(citizen->Building.Employment);
+
+			workerStruct.Citizens.Empty();
+		}
+
+
+		ResourceHISM->RemoveInstance(Instance);
 	}
+	else if (quantity < MaxYield)
+		MaxYield = quantity;
 }
