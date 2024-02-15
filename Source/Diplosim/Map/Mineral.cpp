@@ -22,7 +22,7 @@ void AMineral::SetRandomQuantity(int32 Instance)
 
 void AMineral::YieldStatus(int32 Instance, int32 Yield)
 {
-	int32 quantity = ResourceHISM->PerInstanceSMCustomData[Instance * 4] - Yield;
+	int32 quantity = ResourceHISM->PerInstanceSMCustomData[Instance * 2] - Yield;
 
 	ResourceHISM->SetCustomDataValue(Instance, 0, FMath::Clamp(quantity, 0, MaxWorkers));
 

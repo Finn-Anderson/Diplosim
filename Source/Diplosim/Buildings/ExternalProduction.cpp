@@ -19,8 +19,6 @@ AExternalProduction::AExternalProduction()
 	DecalComponent->SetupAttachment(RootComponent);
 	DecalComponent->DecalSize = FVector(1500.0f, 1500.0f, 1500.0f);
 	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
-
-	Instance = -1;
 }
 
 void AExternalProduction::Enter(ACitizen* Citizen)
@@ -35,25 +33,33 @@ void AExternalProduction::FindCitizens()
 {
 	Super::FindCitizens();
 
-	TArray<AActor*> actors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), Camera->ResourceManagerComponent->GetResource(this), actors);
+	for (TSubclassOf<AResource> resource : Camera->ResourceManagerComponent->GetResource(this)) {
+		FValidResourceStruct validResourceStruct;
 
-	Resource = Cast<AResource>(actors[0]);
+		TArray<AActor*> actors;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), resource, actors);
 
-	InstanceList = Resource->ResourceHISM->GetInstancesOverlappingSphere(GetActorLocation(), 1500.0f);
+		validResourceStruct.Resource = Cast<AResource>(actors[0]);
+
+		validResourceStruct.Instances = validResourceStruct.Resource->ResourceHISM->GetInstancesOverlappingSphere(GetActorLocation(), 1500.0f);
+
+		ValidResourceList.Add(validResourceStruct);
+	}
 }
 
 void AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 {
 	Super::RemoveCitizen(Citizen);
 
-	for (FWorkerStruct workerStruct : Resource->WorkerStruct) {
-		if (!workerStruct.Citizens.Contains(Citizen))
-			continue;
+	for (FValidResourceStruct validResourceStruct : ValidResourceList) {
+		for (FWorkerStruct workerStruct : validResourceStruct.Resource->WorkerStruct) {
+			if (!workerStruct.Citizens.Contains(Citizen))
+				continue;
 
-		workerStruct.Citizens.Remove(Citizen);
+			workerStruct.Citizens.Remove(Citizen);
 
-		break;
+			return;
+		}
 	}
 }
 
@@ -62,49 +68,49 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	if (Citizen->Building.BuildingAt != this)
 		return;
 
-	Instance = -1;
+	int32 instance = -1;
+	AResource* resource = nullptr;
 
-	for (int32 inst : InstanceList) {
-		if (Resource->IsA<AVegetation>() && Resource->ResourceHISM->PerInstanceSMCustomData[inst * 4 + 3] == 0.0f)
-			continue;
+	for (FValidResourceStruct validResourceStruct : ValidResourceList) {
+		for (int32 inst : validResourceStruct.Instances) {
+			FTransform transform;
+			validResourceStruct.Resource->ResourceHISM->GetInstanceTransform(inst, transform);
 
-		FTransform transform;
-		Resource->ResourceHISM->GetInstanceTransform(inst, transform);
+			FWorkerStruct workerStruct;
+			workerStruct.Instance = inst;
 
-		FWorkerStruct workerStruct;
-		workerStruct.Instance = inst;
+			int32 index = validResourceStruct.Resource->WorkerStruct.Find(workerStruct);
 
-		int32 index = Resource->WorkerStruct.Find(workerStruct);
+			if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < 1.0f || (index > -1 && validResourceStruct.Resource->WorkerStruct[index].Citizens.Num() == validResourceStruct.Resource->MaxWorkers))
+				continue;
 
-		int32 quantity = Resource->ResourceHISM->PerInstanceSMCustomData[inst * 4 + 0];
+			if (instance == -1) {
+				resource = validResourceStruct.Resource;
+				instance = inst;
 
-		if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || quantity == 0 || (index > -1 && Resource->WorkerStruct[index].Citizens.Num() == Resource->MaxWorkers))
-			continue;
+				continue;
+			}
 
-		if (Instance == -1) {
-			Instance = inst;
-			
-			continue;
+			FTransform currentTransform;
+			FTransform newTransform;
+
+			resource->ResourceHISM->GetInstanceTransform(instance, currentTransform);
+			validResourceStruct.Resource->ResourceHISM->GetInstanceTransform(inst, newTransform);
+
+			double magnitude = Citizen->AIController->GetClosestActor(GetActorLocation(), currentTransform.GetLocation(), newTransform.GetLocation());
+
+			if (magnitude <= 0.0f)
+				continue;
+
+			resource = validResourceStruct.Resource;
+			instance = inst;
 		}
-
-		FTransform currentTransform;
-		FTransform newTransform;
-
-		Resource->ResourceHISM->GetInstanceTransform(Instance, currentTransform);
-		Resource->ResourceHISM->GetInstanceTransform(inst, newTransform);
-
-		double magnitude = Citizen->AIController->GetClosestActor(Citizen->GetActorLocation(), currentTransform.GetLocation(), newTransform.GetLocation());
-
-		if (magnitude <= 0.0f)
-			continue;
-
-		Instance = inst;
 	}
 
-	if (Resource != nullptr) {
-		Resource->AddWorker(Citizen, Instance);
+	if (resource != nullptr) {
+		resource->AddWorker(Citizen, instance);
 
-		Citizen->AIController->AIMoveTo(Resource, Instance);
+		Citizen->AIController->AIMoveTo(resource, instance);
 	}
 	else
 		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);

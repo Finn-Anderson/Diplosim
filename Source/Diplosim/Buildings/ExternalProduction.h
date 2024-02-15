@@ -4,6 +4,22 @@
 #include "Buildings/Work.h"
 #include "ExternalProduction.generated.h"
 
+USTRUCT()
+struct FValidResourceStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	class AResource* Resource;
+
+	TArray<int32> Instances;
+
+	FValidResourceStruct()
+	{
+		Resource = nullptr;
+		Instances = {};
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API AExternalProduction : public AWork
 {
@@ -24,9 +40,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		class UDecalComponent* DecalComponent;
 
-	class AResource* Resource;
-
-	int32 Instance;
-
-	TArray<int32> InstanceList;
+	TArray<FValidResourceStruct> ValidResourceList;
 };

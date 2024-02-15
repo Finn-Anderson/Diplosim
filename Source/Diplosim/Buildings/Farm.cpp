@@ -3,9 +3,6 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Map/Grid.h"
-#include "Player/Camera.h"
-#include "Player/ResourceManager.h"
-#include "Resource.h"
 
 AFarm::AFarm()
 {
