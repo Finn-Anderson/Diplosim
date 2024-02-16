@@ -52,6 +52,8 @@ ACamera::ACamera()
 	start = true;
 
 	bQuick = false;
+
+	bInMenu = false;
 }
 
 void ACamera::BeginPlay()
@@ -75,6 +77,8 @@ void ACamera::BeginPlay()
 	PauseUIInstance = CreateWidget<UUserWidget>(pcontroller, PauseUI);
 
 	MenuUIInstance = CreateWidget<UUserWidget>(pcontroller, MenuUI);
+
+	SettingsUIInstance = CreateWidget<UUserWidget>(pcontroller, SettingsUI);
 }
 
 void ACamera::TickWhenPaused(bool bTickWhenPaused)
@@ -125,7 +129,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action()
 {
-	if (MenuUIInstance->IsInViewport())
+	if (bInMenu)
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {
@@ -169,7 +173,7 @@ void ACamera::Action()
 
 void ACamera::Cancel()
 {
-	if (!BuildComponent->IsComponentTickEnabled() || start || MenuUIInstance->IsInViewport())
+	if (!BuildComponent->IsComponentTickEnabled() || start || bInMenu)
 		return;
 
 	BuildComponent->SetBuildingClass(BuildComponent->Building->GetClass());
@@ -179,7 +183,7 @@ void ACamera::Cancel()
 
 void ACamera::NewMap()
 {
-	if (!start || MenuUIInstance->IsInViewport())
+	if (!start || bInMenu)
 		return;
 
 	Grid->Clear();
@@ -188,7 +192,7 @@ void ACamera::NewMap()
 
 void ACamera::Pause()
 {
-	if (GetWorld()->GetMapName() != "Map" || MenuUIInstance->IsInViewport())
+	if (GetWorld()->GetMapName() != "Map" || bInMenu)
 		return;
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -217,14 +221,19 @@ void ACamera::Menu()
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
-	if (MenuUIInstance->IsInViewport()) {
+	if (bInMenu) {
 		MenuUIInstance->RemoveFromParent();
+		SettingsUIInstance->RemoveFromParent();
+
+		bInMenu = false;
 
 		if (!PauseUIInstance->IsInViewport())
 			TickWhenPaused(true);
 	}
 	else {
 		MenuUIInstance->AddToViewport();
+
+		bInMenu = true;
 
 		if (!PauseUIInstance->IsInViewport())
 			TickWhenPaused(false);
@@ -233,7 +242,7 @@ void ACamera::Menu()
 
 void ACamera::Debug()
 {
-	if (MenuUIInstance->IsInViewport())
+	if (bInMenu)
 		return;
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
@@ -242,7 +251,7 @@ void ACamera::Debug()
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)
 {
-	if (MenuUIInstance->IsInViewport())
+	if (bInMenu)
 		return;
 
 	BuildComponent->RotateBuilding(Instance.GetValue().Get<bool>());
@@ -250,7 +259,7 @@ void ACamera::Rotate(const struct FInputActionInstance& Instance)
 
 void ACamera::Look(const struct FInputActionInstance& Instance)
 {
-	if (MenuUIInstance->IsInViewport())
+	if (bInMenu)
 		return;
 
 	MovementComponent->Look(Instance);
@@ -258,7 +267,7 @@ void ACamera::Look(const struct FInputActionInstance& Instance)
 
 void ACamera::Move(const struct FInputActionInstance& Instance)
 {
-	if (MenuUIInstance->IsInViewport())
+	if (bInMenu)
 		return;
 
 	MovementComponent->Move(Instance);
@@ -266,7 +275,7 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 
 void ACamera::Speed(const struct FInputActionInstance& Instance)
 {
-	if (MenuUIInstance->IsInViewport())
+	if (bInMenu)
 		return;
 
 	MovementComponent->Speed(Instance);
@@ -276,7 +285,7 @@ void ACamera::Speed(const struct FInputActionInstance& Instance)
 
 void ACamera::Scroll(const struct FInputActionInstance& Instance)
 {
-	if (MenuUIInstance->IsInViewport())
+	if (bInMenu)
 		return;
 
 	MovementComponent->Scroll(Instance);
