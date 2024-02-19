@@ -9,6 +9,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "NavigationPath.h"
+#include "DiplosimUserSettings.h"
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
@@ -231,6 +232,14 @@ void ADiplosimGameModeBase::SpawnEnemies(bool bSpawnTrails)
 
 	TotalEnemies /= 3;
 
+	int32 num = TotalEnemies;
+	int32 max = UDiplosimUserSettings::GetDiplosimUserSettings()->GetMaxEnemies();
+		
+	if (TotalEnemies > max) {
+		num = max;
+		DeferredEnemies = TotalEnemies - num;
+	}
+
 	PickSpawnPoints();
 
 	if (SpawnLocations.IsEmpty()) {
@@ -243,8 +252,8 @@ void ADiplosimGameModeBase::SpawnEnemies(bool bSpawnTrails)
 
 	LastLocation.Empty();
 
-	AsyncTask(ENamedThreads::GameThread, [this, bSpawnTrails]() {
-		for (int32 i = 0; i < TotalEnemies; i++) {
+	AsyncTask(ENamedThreads::GameThread, [this, num, bSpawnTrails]() {
+		for (int32 i = 0; i < num; i++) {
 			FTimerHandle locationTimer;
 			GetWorld()->GetTimerManager().SetTimer(locationTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, bSpawnTrails), 0.1f, false);
 		}
@@ -297,6 +306,14 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(bool bSpawnTrails)
 
 bool ADiplosimGameModeBase::CheckEnemiesStatus()
 {
+	if (DeferredEnemies > 0) {
+		SpawnAtValidLocation(false);
+
+		DeferredEnemies--;
+
+		return false;
+	}
+
 	if (!WavesData.IsEmpty() && WavesData.Last().DiedTo.Num() != TotalEnemies)
 		return false;
 

@@ -169,4 +169,6 @@ public:
 	TArray<FVector> LastLocation;
 
 	int32 TotalEnemies;
+
+	int32 DeferredEnemies;
 };
