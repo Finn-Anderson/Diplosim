@@ -11,8 +11,6 @@
 UInteractableComponent::UInteractableComponent()
 {
 	SetTickableWhenPaused(true);
-
-	
 }
 
 void UInteractableComponent::BeginPlay()
@@ -59,6 +57,18 @@ void UInteractableComponent::SetHunger()
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
 	TextStruct.Information.Add("Hunger", FString::SanitizeFloat((float)citizen->Hunger / 100.0f));
+}
+
+void UInteractableComponent::SetOccupied()
+{
+	if (!TextStruct.Information.Contains("Occupied"))
+		return;
+
+	ABuilding* building = Cast<ABuilding>(GetOwner());
+
+	TextStruct.Citizens = building->GetOccupied();
+
+	TextStruct.Information.Add("Occupied", FString::SanitizeFloat((float)building->GetCapacity()));
 }
 
 void UInteractableComponent::ExecuteEditEvent(FString Key)

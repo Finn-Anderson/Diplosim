@@ -77,7 +77,7 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 	return false;
 }
 
-void ADiplosimAIController::AIMoveTo(AActor* Actor, int32 Instance)
+void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
 	if (!Actor->IsValidLowLevelFast())
 		return;
@@ -85,8 +85,8 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, int32 Instance)
 	FTransform transform;
 	transform.SetLocation(Actor->GetActorLocation());
 
-	if (Instance > -1)
-		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(Instance, transform);
+	if (Location != FVector::Zero())
+		transform.SetLocation(Location);
 
 	if (!CanMoveTo(transform.GetLocation()))
 		return;
@@ -115,24 +115,24 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, int32 Instance)
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (citizen->Building.BuildingAt != nullptr) {
+	if (citizen->Building.BuildingAt != nullptr)
 		citizen->Building.BuildingAt->Leave(citizen);
-	} 
 
 	FCollidingStruct collidingStruct;
 	collidingStruct.Actor = Actor;
 	collidingStruct.Instance = Instance;
 	
-	if (citizen->StillColliding.Contains(collidingStruct)) {
-		if (Actor->IsA<ABuilding>()) {
-			ABuilding* building = Cast<ABuilding>(Actor);
+	if (!citizen->StillColliding.Contains(collidingStruct))
+		return;
 
-			building->Enter(citizen);
-		}
-		else if (Actor->IsA<AResource>()) {
-			AResource* resource = Cast<AResource>(Actor);
+	if (Actor->IsA<ABuilding>()) {
+		ABuilding* building = Cast<ABuilding>(Actor);
 
-			citizen->StartHarvestTimer(resource, Instance);
-		}
+		building->Enter(citizen);
+	}
+	else if (Actor->IsA<AResource>()) {
+		AResource* resource = Cast<AResource>(Actor);
+
+		citizen->StartHarvestTimer(resource, Instance);
 	}
 }

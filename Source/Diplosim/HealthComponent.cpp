@@ -95,9 +95,8 @@ void UHealthComponent::Death(AActor* Attacker)
 		}
 	}
 
-	if (Attacker->IsA<AEnemy>()) {
+	if (Attacker->IsA<AEnemy>())
 		gamemode->WavesData.Last().NumKilled++;
-	}
 
 	FTimerHandle clearTimer;
 	GetWorld()->GetTimerManager().SetTimer(clearTimer, this, &UHealthComponent::ClearRagdoll, 10.0f, false);

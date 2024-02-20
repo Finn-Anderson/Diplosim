@@ -110,7 +110,10 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	if (resource != nullptr) {
 		resource->AddWorker(Citizen, instance);
 
-		Citizen->AIController->AIMoveTo(resource, instance);
+		FTransform transform;
+		resource->ResourceHISM->GetInstanceTransform(instance, transform);
+
+		Citizen->AIController->AIMoveTo(resource, transform.GetLocation(), instance);
 	}
 	else
 		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);

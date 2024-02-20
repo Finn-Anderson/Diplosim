@@ -18,6 +18,9 @@ struct FTextStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Text")
 		TMap<FString, FString> Information;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Text")
+		TArray<class ACitizen*> Citizens;
+
 	FTextStruct()
 	{
 		ActorName = "";
@@ -50,7 +53,7 @@ public:
 
 	void SetHunger();
 
-	void SetQuantity(int32 Instance);
+	void SetOccupied();
 
 	void ExecuteEditEvent(FString Key);
 };

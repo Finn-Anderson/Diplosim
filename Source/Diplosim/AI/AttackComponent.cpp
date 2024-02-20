@@ -1,6 +1,7 @@
 #include "AttackComponent.h"
 
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -16,6 +17,7 @@
 #include "Buildings/Broch.h"
 #include "Buildings/Wall.h"
 #include "DiplosimGameModeBase.h"
+#include "Map/Grid.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -99,50 +101,21 @@ int32 UAttackComponent::GetMorale(TArray<TWeakObjectPtr<AActor>> Targets)
 	if (!CanAttack())
 		return -1.0f;
 
-	float allyHP = 0.0f;
-	float allyDmg = 0.0f;
+	TArray<TWeakObjectPtr<AActor>> allies;
 
-	for (TWeakObjectPtr<ACitizen> citizen : OverlappingAllies) {
-		if (citizen == nullptr || citizen->HealthComponent->GetHealth() == 0)
-			continue;
-
-		allyHP += citizen->HealthComponent->GetHealth();
-
-		if (*citizen->AttackComponent->ProjectileClass)
-			allyDmg += Cast<AProjectile>(citizen->AttackComponent->ProjectileClass->GetDefaultObject())->Damage;
-		else
-			allyDmg += citizen->AttackComponent->Damage;
-	}
-
-	float enemyHP = 0.0f;
-	float enemyDmg = 0.0f;
-
-	for (TWeakObjectPtr<AActor> actor : Targets) {
+	for (TWeakObjectPtr<AActor> actor : OverlappingAllies) {
 		if (actor == nullptr)
 			continue;
 
-		AEnemy* enemy = Cast<AEnemy>(actor);
+		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
-		if (enemy->HealthComponent->GetHealth() == 0)
+		if (healthComp->GetHealth() == 0 || actor->IsHidden())
 			continue;
 
-		enemyHP += enemy->HealthComponent->Health;
-
-		if (*enemy->AttackComponent->ProjectileClass)
-			enemyDmg += Cast<AProjectile>(enemy->AttackComponent->ProjectileClass->GetDefaultObject())->Damage;
-		else
-			enemyDmg += enemy->AttackComponent->Damage;
+		allies.Add(actor);
 	}
 
-	float allyTotal = allyHP * allyDmg;
-	float enemyTotal = enemyHP * enemyDmg;
-
-	if (enemyTotal == 0)
-		return 1.0f;
-
-	float morale = allyTotal / enemyTotal;
-
-	return morale;
+	return allies.Num() - Targets.Num();
 }
 
 void UAttackComponent::RunAway(TArray<TWeakObjectPtr<AActor>> Targets)
@@ -155,11 +128,37 @@ void UAttackComponent::RunAway(TArray<TWeakObjectPtr<AActor>> Targets)
 
 	sum /= Targets.Num();
 
-	FRotator rot = (sum - Owner->GetActorLocation()).Rotation();
+	ACitizen* citizen = Cast<ACitizen>(Owner);
 
-	FVector location = Owner->GetActorLocation() + (rot.Vector() * 300.0f);
+	TArray<AActor*> grids;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGrid::StaticClass(), grids);
 
-	Cast<ACitizen>(Owner)->AIController->MoveToLocation(location);
+	AGrid* grid = Cast<AGrid>(grids[0]);
+
+	TArray<int32> instances = grid->HISMGround->GetInstancesOverlappingSphere(citizen->GetActorLocation(), 1500.0f);
+
+	FVector current = FVector(100000000.0f);
+	int32 currentInst;
+
+	for (int32 inst : instances) {
+		FTransform transform;
+		grid->HISMGround->GetInstanceTransform(inst, transform);
+
+		if (!citizen->AIController->CanMoveTo(transform.GetLocation()))
+			continue;
+
+		double currentDist = FVector::Dist(sum, current);
+		double newDist = FVector::Dist(sum, transform.GetLocation());
+
+		if (currentDist > newDist)
+			continue;
+
+		current = transform.GetLocation();
+		currentInst = inst;
+
+	}
+
+	citizen->AIController->AIMoveTo(grid, current);
 }
 
 void UAttackComponent::GetTargets()
