@@ -73,8 +73,8 @@ void UInteractableComponent::SetOccupied()
 
 void UInteractableComponent::ExecuteEditEvent(FString Key)
 {
-	if (Camera->SelectedInteractableComponent != this)
+	if (Camera->SelectedInteractableComponent != this || !TextStruct.Information.Contains(Key))
 		return;
 
-	Camera->EditInteractableText(Key, *TextStruct.Information.Find(Key));
+	Camera->EditInteractableText(Key, *TextStruct.Information.Find(Key), TextStruct.Citizens);
 }

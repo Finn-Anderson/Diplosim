@@ -7,7 +7,7 @@
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
-
+#include "InteractableInterface.h"
 
 AWork::AWork()
 {
@@ -39,37 +39,42 @@ void AWork::FindCitizens()
 			continue;
 			
 		AddCitizen(c);
+
+		if (GetCapacity() == GetOccupied().Num())
+			return;
 	}
 
-	if (GetCapacity() > GetOccupied().Num()) {
+	if (GetCapacity() > GetOccupied().Num())
 		GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
-	}
 }
 
-void AWork::AddCitizen(ACitizen* Citizen)
+bool AWork::AddCitizen(ACitizen* Citizen)
 {
-	if (GetCapacity() > GetOccupied().Num()) {
-		Occupied.Add(Citizen);
+	bool bCheck = Super::AddCitizen(Citizen);
 
-		Citizen->Building.Employment = this;
+	if (!bCheck)
+		return false;
 
-		Citizen->AIController->AIMoveTo(this);
-	}
+	Citizen->Building.Employment = this;
+
+	Citizen->AIController->AIMoveTo(this);
+
+	return true;
 }
 
-void AWork::RemoveCitizen(ACitizen* Citizen)
+bool AWork::RemoveCitizen(ACitizen* Citizen)
 {
-	if (GetOccupied().Contains(Citizen)) {
-		Leave(Citizen);
+	bool bCheck = Super::RemoveCitizen(Citizen);
 
-		Occupied.Remove(Citizen);
+	if (!bCheck)
+		return false;
 
-		Citizen->Building.Employment = nullptr;
+	Citizen->Building.Employment = nullptr;
 
-		if (!GetWorldTimerManager().IsTimerActive(FindTimer)) {
-			GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
-		}
-	}
+	if (!GetWorldTimerManager().IsTimerActive(FindTimer))
+		GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
+
+	return true;
 }
 
 void AWork::Store(int32 Amount, ACitizen* Citizen)

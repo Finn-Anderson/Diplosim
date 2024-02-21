@@ -22,9 +22,9 @@ public:
 
 	virtual void FindCitizens() override;
 
-	virtual void AddCitizen(class ACitizen* Citizen) override;
+	virtual bool AddCitizen(class ACitizen* Citizen) override;
 
-	virtual void RemoveCitizen(class ACitizen* Citizen) override;
+	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
 
 	TArray<ACitizen*> GetWorkers();
 

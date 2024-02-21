@@ -47,9 +47,12 @@ void AExternalProduction::FindCitizens()
 	}
 }
 
-void AExternalProduction::RemoveCitizen(ACitizen* Citizen)
+bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 {
-	Super::RemoveCitizen(Citizen);
+	bool bCheck = Super::RemoveCitizen(Citizen);
+
+	if (!bCheck)
+		return false;
 
 	for (FValidResourceStruct validResourceStruct : ValidResourceList) {
 		for (FWorkerStruct workerStruct : validResourceStruct.Resource->WorkerStruct) {
@@ -58,9 +61,11 @@ void AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 
 			workerStruct.Citizens.Remove(Citizen);
 
-			return;
+			return true;
 		}
 	}
+
+	return true;
 }
 
 void AExternalProduction::Production(ACitizen* Citizen)

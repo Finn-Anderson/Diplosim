@@ -27,7 +27,7 @@ public:
 		void SetInteractableText();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void EditInteractableText(const FString& Key, const FString& Value);
+		void EditInteractableText(const FString& Key, const FString& Value, const TArray<class ACitizen*>& Citizens);
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)

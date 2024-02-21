@@ -18,6 +18,7 @@
 #include "Map/Grid.h"
 #include "Buildings/Builder.h"
 #include "Buildings/Farm.h"
+#include "InteractableInterface.h"
 
 ABuilding::ABuilding()
 {
@@ -316,14 +317,32 @@ void ABuilding::FindCitizens()
 
 }
 
-void ABuilding::AddCitizen(ACitizen* Citizen)
+bool ABuilding::AddCitizen(ACitizen* Citizen)
 {
+	if (GetCapacity() <= Occupied.Num())
+		return false;
 
+	Occupied.Add(Citizen);
+
+	InteractableComponent->SetOccupied();
+	InteractableComponent->ExecuteEditEvent("Occupied");
+
+	return true;
 }
 
-void ABuilding::RemoveCitizen(ACitizen* Citizen)
+bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 {
+	if (!Occupied.Contains(Citizen))
+		return false;
 
+	Leave(Citizen);
+
+	Occupied.Remove(Citizen);
+
+	InteractableComponent->SetOccupied();
+	InteractableComponent->ExecuteEditEvent("Occupied");
+
+	return true;
 }
 
 void ABuilding::Enter(ACitizen* Citizen)

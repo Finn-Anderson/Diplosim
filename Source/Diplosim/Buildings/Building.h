@@ -119,9 +119,9 @@ public:
 
 	virtual void FindCitizens();
 
-	virtual void AddCitizen(class ACitizen* Citizen);
+	virtual bool AddCitizen(class ACitizen* Citizen);
 
-	virtual void RemoveCitizen(class ACitizen* Citizen);
+	virtual bool RemoveCitizen(class ACitizen* Citizen);
 
 	virtual bool CheckInstant();
 

@@ -33,7 +33,7 @@ public:
 
 	virtual void FindCitizens() override;
 
-	virtual void RemoveCitizen(class ACitizen* Citizen) override;
+	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
 
 	virtual void Production(class ACitizen* Citizen) override;
 

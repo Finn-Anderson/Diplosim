@@ -52,9 +52,6 @@ void AHouse::FindCitizens()
 	for (AActor* actor : citizens) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
-		if (GetCapacity() <= GetOccupied().Num())
-			return;
-
 		if (citizen->Balance < Rent || !citizen->AIController->CanMoveTo(GetActorLocation()))
 			continue;
 
@@ -69,31 +66,38 @@ void AHouse::FindCitizens()
 
 			AddCitizen(citizen);
 		}
+
+		if (GetCapacity() == GetOccupied().Num())
+			return;
 	}
 
-	if (GetCapacity() > Occupied.Num()) {
+	if (GetCapacity() > Occupied.Num())
 		GetWorldTimerManager().SetTimer(FindTimer, this, &AHouse::FindCitizens, 30.0f, false);
-	}
 }
 
-void AHouse::AddCitizen(ACitizen* Citizen)
+bool AHouse::AddCitizen(ACitizen* Citizen)
 {
-	if (GetCapacity() > Occupied.Num()) {
-		Occupied.Add(Citizen);
+	bool bCheck = Super::AddCitizen(Citizen);
 
-		Citizen->Building.House = this;
-	}
+	if (!bCheck)
+		return false;
+
+	Citizen->Building.House = this;
+
+	return true;
 }
 
-void AHouse::RemoveCitizen(ACitizen* Citizen)
+bool AHouse::RemoveCitizen(ACitizen* Citizen)
 {
-	if (Occupied.Contains(Citizen)) {
-		Citizen->Building.House = nullptr;
+	bool bCheck = Super::RemoveCitizen(Citizen);
 
-		Occupied.Remove(Citizen);
+	if (!bCheck)
+		return false;
 
-		if (!GetWorldTimerManager().IsTimerActive(FindTimer)) {
-			GetWorldTimerManager().SetTimer(FindTimer, this, &AHouse::FindCitizens, 30.0f, false);
-		}
-	}
+	Citizen->Building.House = nullptr;
+
+	if (!GetWorldTimerManager().IsTimerActive(FindTimer))
+		GetWorldTimerManager().SetTimer(FindTimer, this, &AHouse::FindCitizens, 30.0f, false);
+
+	return true;
 }
