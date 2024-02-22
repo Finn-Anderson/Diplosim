@@ -38,6 +38,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		class ABuilding* Building;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+		class ABuilding* BuildingToMove;
+
 	bool IsValidLocation();
 
 	void RotateBuilding(bool Rotate);

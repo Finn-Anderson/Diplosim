@@ -96,17 +96,3 @@ void AWork::Production(ACitizen* Citizen)
 {
 
 }
-
-TArray<ACitizen*> AWork::GetWorkers()
-{
-	TArray<ACitizen*> workers;
-
-	for (ACitizen* citizen : GetOccupied()) {
-		if (citizen->Building.BuildingAt != this)
-			continue;
-
-		workers.Add(citizen);
-	}
-
-	return workers;
-}

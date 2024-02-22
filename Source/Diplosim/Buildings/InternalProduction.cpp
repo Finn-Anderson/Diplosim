@@ -17,7 +17,7 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	int32 numAtWork = GetWorkers().Num();
+	int32 numAtWork = GetCitizensAtBuilding().Num();
 
 	if (numAtWork == 1) {
 		Store(0, Citizen);
@@ -28,7 +28,7 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
-	int32 numAtWork = GetWorkers().Num();
+	int32 numAtWork = GetCitizensAtBuilding().Num();
 
 	if (numAtWork == 0) {
 		GetWorldTimerManager().ClearTimer(ProdTimer);
@@ -37,7 +37,7 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 
 void AInternalProduction::Production(ACitizen* Citizen)
 {
-	int32 numAtWork = GetWorkers().Num();
+	int32 numAtWork = GetCitizensAtBuilding().Num();
 
 	if (!GetWorldTimerManager().IsTimerActive(ProdTimer)) {
 		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / 100.0f / numAtWork), false);

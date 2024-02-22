@@ -13,6 +13,7 @@
 #include "Map/Grid.h"
 #include "Map/Vegetation.h"
 #include "DiplosimGameModeBase.h"
+#include "AI/Citizen.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -23,6 +24,8 @@ UBuildComponent::UBuildComponent()
 	Building = nullptr;
 
 	Rotation.Yaw = 90.0f;
+
+	BuildingToMove = nullptr;
 }
 
 void UBuildComponent::BeginPlay()
@@ -168,8 +171,22 @@ void UBuildComponent::Place()
 	if (Building == nullptr || !IsValidLocation() || !Building->CheckBuildCost())
 		return;
 
-	for (FTreeStruct treeStruct : Building->TreeList) {
+	for (FTreeStruct treeStruct : Building->TreeList)
 		treeStruct.Resource->ResourceHISM->RemoveInstance(treeStruct.Instance);
+
+	if (BuildingToMove->IsValidLowLevelFast()) {
+		BuildingToMove->SetActorLocation(Building->GetActorLocation());
+
+		TArray<ACitizen*> citizens = BuildingToMove->GetCitizensAtBuilding();
+
+		for (ACitizen* citizen : citizens)
+			citizen->SetActorLocation(BuildingToMove->GetActorLocation());
+
+		BuildingToMove = nullptr;
+
+		SetBuildingClass(Building->GetClass());
+
+		return;
 	}
 
 	if (Building->IsA<AWall>())
@@ -203,7 +220,7 @@ void UBuildComponent::Place()
 
 void UBuildComponent::QuickPlace()
 {
-	if (Camera->start) {
+	if (Camera->start || BuildingToMove->IsValidLowLevelFast()) {
 		Place();
 
 		return;

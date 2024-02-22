@@ -93,6 +93,17 @@ void ACamera::TickWhenPaused(bool bTickWhenPaused)
 	pcontroller->SetPause(!bTickWhenPaused);
 }
 
+void ACamera::DisplayInteract(UInteractableComponent* InteractableComponent, FVector Location)
+{
+	SelectedInteractableComponent = InteractableComponent;
+
+	SetInteractableText();
+
+	WidgetComponent->SetWorldLocation(Location);
+
+	WidgetComponent->SetHiddenInGame(false);
+}
+
 void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -160,13 +171,7 @@ void ACamera::Action()
 			if (hitComp == nullptr)
 				return;
 
-			SelectedInteractableComponent = hitComp;
-
-			SetInteractableText();
-
-			WidgetComponent->SetWorldLocation(hit.Location);
-
-			WidgetComponent->SetHiddenInGame(false);
+			DisplayInteract(hitComp, hit.Location);
 		}
 	}
 }

@@ -35,7 +35,7 @@ void AFarm::Production(ACitizen* Citizen)
 	CropMesh->SetRelativeScale3D(CropMesh->GetRelativeScale3D() + FVector(0.0f, 0.0f, 0.1f));
 
 	if (CropMesh->GetRelativeScale3D().Z >= 1.0f) {
-		TArray<ACitizen*> workers = GetWorkers();
+		TArray<ACitizen*> workers = GetCitizensAtBuilding();
 
 		if (workers.Num() == 0)
 			return;

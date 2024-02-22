@@ -280,12 +280,9 @@ FVector ABuilding::CheckCollisions(class UObject* Object, int32 Index)
 void ABuilding::DestroyBuilding()
 {
 	for (ACitizen* citizen : GetOccupied()) {
-		if (Cast<ABuilding>(citizen->Building.House) == this) {
-			citizen->Building.House = nullptr;
-		}
-		else {
-			citizen->Building.Employment = nullptr;
-		}
+		RemoveCitizen(citizen);
+
+		citizen->AIController->Idle();
 	}
 
 	Destroy();
@@ -343,6 +340,20 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	InteractableComponent->ExecuteEditEvent("Occupied");
 
 	return true;
+}
+
+TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()
+{
+	TArray<ACitizen*> citizens;
+
+	for (ACitizen* citizen : GetOccupied()) {
+		if (citizen->Building.BuildingAt != this)
+			continue;
+
+		citizens.Add(citizen);
+	}
+
+	return citizens;
 }
 
 void ABuilding::Enter(ACitizen* Citizen)

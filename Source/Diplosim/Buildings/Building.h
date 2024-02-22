@@ -110,8 +110,9 @@ public:
 		class ACamera* Camera;
 
 	FVector CheckCollisions(class UObject* Object, int32 Index);
-
-	void DestroyBuilding();
+	
+	UFUNCTION(BlueprintCallable)
+		void DestroyBuilding();
 
 	virtual void Enter(class ACitizen* Citizen);
 
@@ -122,6 +123,8 @@ public:
 	virtual bool AddCitizen(class ACitizen* Citizen);
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen);
+
+	TArray<class ACitizen*> GetCitizensAtBuilding();
 
 	virtual bool CheckInstant();
 

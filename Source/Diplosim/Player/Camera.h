@@ -84,6 +84,9 @@ public:
 
 	void TickWhenPaused(bool bTickWhenPaused);
 
+	UFUNCTION(BlueprintCallable)
+		void DisplayInteract(UInteractableComponent* InteractableComponent, FVector Location);
+
 	bool bInMenu;
 
 	// Inputs

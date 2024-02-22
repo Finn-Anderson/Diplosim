@@ -21,6 +21,9 @@ struct FTextStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Text")
 		TArray<class ACitizen*> Citizens;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Text")
+		class ABuilding* Building;
+
 	FTextStruct()
 	{
 		ActorName = "";

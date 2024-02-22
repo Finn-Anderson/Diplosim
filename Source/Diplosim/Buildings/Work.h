@@ -26,8 +26,6 @@ public:
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
 
-	TArray<ACitizen*> GetWorkers();
-
 	// Resources
 	FTimerHandle ProdTimer;
 

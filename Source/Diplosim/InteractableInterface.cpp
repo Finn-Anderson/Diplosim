@@ -5,7 +5,6 @@
 #include "HealthComponent.h"
 #include "Buildings/Building.h"
 #include "AI/Citizen.h"
-#include "Map/Mineral.h"
 #include "Player/Camera.h"
 
 UInteractableComponent::UInteractableComponent()
@@ -17,6 +16,11 @@ void UInteractableComponent::BeginPlay()
 {
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
+
+	if (GetOwner()->IsA<ABuilding>())
+		TextStruct.Building = Cast<ABuilding>(GetOwner());
+	else
+		TextStruct.Building = nullptr;
 }
 
 void UInteractableComponent::SetHP()
