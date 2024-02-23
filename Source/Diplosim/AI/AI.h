@@ -37,8 +37,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		class UAttackComponent* AttackComponent;
 
-	TArray<class AAI*> Meleeable;
-
 	// Movement
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 		TSubclassOf<class UNavigationQueryFilter> NavQueryFilter;

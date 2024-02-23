@@ -33,9 +33,8 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 	interactableComp->SetHP();
 	interactableComp->ExecuteEditEvent("HP");
 
-	if (Health == 0) {
+	if (Health == 0)
 		Death(Attacker);
-	}
 }
 
 void UHealthComponent::Death(AActor* Attacker)
@@ -76,7 +75,7 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		mesh->SetSimulatePhysics(true);
 
-		const FVector direction = (actor->GetActorLocation() - (Attacker->GetActorLocation() + actor->GetVelocity())) * 10;
+		const FVector direction = (actor->GetActorLocation() - Attacker->GetActorLocation()).Rotation().Vector() * 50;
 		mesh->SetPhysicsLinearVelocity(direction, false);
 
 		Cast<AAI>(actor)->DetachFromControllerPendingDestroy();

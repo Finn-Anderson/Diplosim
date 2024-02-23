@@ -122,9 +122,8 @@ void UAttackComponent::RunAway(TArray<TWeakObjectPtr<AActor>> Targets)
 {
 	FVector sum = FVector::Zero();
 
-	for (TWeakObjectPtr<AActor> target : Targets) {
+	for (TWeakObjectPtr<AActor> target : Targets)
 		sum += target->GetActorLocation();
-	}
 
 	sum /= Targets.Num();
 
@@ -197,12 +196,10 @@ void UAttackComponent::GetTargets()
 			ai->MoveToBroch();
 		}
 	}
-	else if (morale < 1.0f) {
+	else if (morale < 0.0f)
 		RunAway(targets);
-	}
-	else {
+	else
 		PickTarget(targets);
-	}
 }
 
 void UAttackComponent::PickTarget(TArray<TWeakObjectPtr<AActor>> Targets)
@@ -286,12 +283,15 @@ void UAttackComponent::PickTarget(TArray<TWeakObjectPtr<AActor>> Targets)
 
 bool UAttackComponent::CanHit(AActor* Target)
 {
-	if (Cast<AAI>(Owner)->Meleeable.Contains(Target))
+	if (!Target->IsValidLowLevelFast())
+		return false;
+
+	double length = FVector::Dist(GetOwner()->GetActorLocation(), Target->GetActorLocation());
+
+	if (length < 50.0f)
 		return true;
 
 	Cast<AAI>(Owner)->AIController->AIMoveTo(Target);
-
-	GetWorld()->GetTimerManager().SetTimer(MoveTimer, this, &UAttackComponent::GetTargets, 0.1, false);
 
 	return false;
 }

@@ -115,12 +115,10 @@ void AAI::MoveToBroch()
 
 void AAI::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor->IsA<AAI>() && OtherActor->StaticClass() != StaticClass())
-		Meleeable.Add(Cast<AAI>(OtherActor));
+
 }
 
 void AAI::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (Meleeable.Contains(Cast<AAI>(OtherActor)))
-		Meleeable.Remove(Cast<AAI>(OtherActor));
+	
 }
