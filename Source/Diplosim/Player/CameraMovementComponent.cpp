@@ -2,8 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Camera/CameraComponent.h"
-#include "EnhancedInputComponent.h"
+#include "InputAction.h"
 
 #include "Camera.h"
 

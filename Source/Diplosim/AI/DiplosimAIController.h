@@ -72,7 +72,9 @@ public:
 
 	bool CanMoveTo(FVector Location);
 
-	virtual void AIMoveTo(AActor* Actor, FVector Location = FVector::Zero(), int32 Instance = -1);
+	void AIMoveTo(AActor* Actor, FVector Location = FVector::Zero(), int32 Instance = -1);
+
+	void RecalculateMovement(AActor* Actor);
 
 	FMoveStruct MoveRequest;
 

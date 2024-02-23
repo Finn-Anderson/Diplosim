@@ -16,6 +16,9 @@ protected:
 	UPROPERTY(Config)
 		int32 MaxCitizens;
 
+	UPROPERTY(Config)
+		bool bRenderClouds;
+
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
@@ -31,4 +34,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Citizens")
 		int32 GetMaxCitizens() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Clouds")
+		void SetRenderClouds(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Clouds")
+		bool GetRenderClouds() const;
+
+	class AClouds* Clouds;
 };

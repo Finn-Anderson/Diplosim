@@ -6,7 +6,6 @@
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
-#include "Work.h"
 
 AHouse::AHouse()
 {

@@ -2,8 +2,6 @@
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
-#include "Buildings/Farm.h"
-
 AVegetation::AVegetation()
 {
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);

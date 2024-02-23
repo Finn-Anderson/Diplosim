@@ -3,17 +3,17 @@
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "Components/SphereComponent.h"
 #include "Components/DecalComponent.h"
 
 #include "Camera.h"
 #include "Buildings/Building.h"
+#include "Buildings/Builder.h"
 #include "Buildings/Wall.h"
-#include "Buildings/ExternalProduction.h"
 #include "Map/Grid.h"
 #include "Map/Vegetation.h"
 #include "DiplosimGameModeBase.h"
 #include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -181,6 +181,27 @@ void UBuildComponent::Place()
 
 		for (ACitizen* citizen : citizens)
 			citizen->SetActorLocation(BuildingToMove->GetActorLocation());
+
+		if (BuildingToMove->BuildStatus == EBuildStatus::Construction) {
+			TArray<AActor*> builders;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), builders);
+
+			for (AActor* actor : builders) {
+				ABuilder* builder = Cast<ABuilder>(actor);
+
+				if (builder->Constructing != BuildingToMove)
+					continue;
+
+				if (!builder->GetOccupied().IsEmpty())
+					builder->GetOccupied()[0]->AIController->RecalculateMovement(BuildingToMove);
+
+				break;
+			}
+		}
+		else {
+			for (ACitizen* citizen : BuildingToMove->GetOccupied())
+				citizen->AIController->RecalculateMovement(BuildingToMove);
+		}
 
 		BuildingToMove = nullptr;
 

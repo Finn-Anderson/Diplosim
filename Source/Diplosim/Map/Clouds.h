@@ -59,6 +59,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		float Height;
 
+	FTimerHandle CloudTimer;
+
 	float XY;
 
 	void GetCloudBounds(int32 GridSize);

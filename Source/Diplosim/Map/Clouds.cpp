@@ -1,12 +1,10 @@
 #include "Map/Clouds.h"
 
-#include "Kismet/GameplayStatics.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
 #include "Map/Grid.h"
+#include "DiplosimUserSettings.h"
 
 AClouds::AClouds()
 {
@@ -41,7 +39,13 @@ void AClouds::BeginPlay()
 
 	TArray<UNiagaraComponent*> cloudComps = { CloudComponent1, CloudComponent2, CloudComponent3, CloudComponent4, CloudComponent5 };
 
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	settings->Clouds = this;
+
 	for (UNiagaraComponent* comp : cloudComps) {
+		if (!settings->GetRenderClouds())
+			comp->SetHiddenInGame(true);
+
 		FCloudStruct cloud;
 		cloud.CloudComponent = comp;
 

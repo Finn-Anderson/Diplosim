@@ -5,7 +5,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "Components/WidgetComponent.h"
 
@@ -14,9 +13,7 @@
 #include "CameraMovementComponent.h"
 #include "ResourceManager.h"
 #include "Buildings/Building.h"
-#include "AI/Enemy.h"
 #include "DiplosimGameModeBase.h"
-#include "Map/Mineral.h"
 #include "InteractableInterface.h"
 
 ACamera::ACamera()

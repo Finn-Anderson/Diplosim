@@ -5,7 +5,6 @@
 #include "Resource.h"
 #include "Camera.h"
 #include "Buildings/Building.h"
-#include "Buildings/Builder.h"
 #include "InteractableInterface.h"
 
 UResourceManager::UResourceManager()

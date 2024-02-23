@@ -1,13 +1,11 @@
 #include "Work.h"
 
 #include "Kismet/GameplayStatics.h"
-#include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
-#include "InteractableInterface.h"
 
 AWork::AWork()
 {

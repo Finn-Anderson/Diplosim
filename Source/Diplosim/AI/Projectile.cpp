@@ -2,12 +2,8 @@
 
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "NiagaraComponent.h"
 
-#include "AI.h"
-#include "Buildings/Building.h"
 #include "HealthComponent.h"
-#include "AttackComponent.h"
 
 AProjectile::AProjectile()
 {
@@ -35,9 +31,8 @@ void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (TrailSystem) {
+	if (TrailSystem)
 		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailSystem, ProjectileMesh, FName("Trail1"), FVector(0.0f), FRotator(0.0f), EAttachLocation::Type::KeepRelativeOffset, true);
-	}
 	
 	ProjectileMesh->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
 }
@@ -49,9 +44,8 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 
 	UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
 
-	if (healthComp) {
+	if (healthComp)
 		healthComp->TakeHealth(Damage, this);
-	}
 
 	Destroy();
 }

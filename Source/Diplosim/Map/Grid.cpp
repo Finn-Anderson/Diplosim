@@ -6,7 +6,6 @@
 #include "Blueprint/UserWidget.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
-#include "Components/DecalComponent.h"
 
 #include "Clouds.h"
 #include "Mineral.h"
@@ -469,9 +468,8 @@ void AGrid::Clear()
 
 	Storage.Empty();
 
-	for (UNiagaraComponent* comp : LavaComponents) {
+	for (UNiagaraComponent* comp : LavaComponents)
 		comp->DestroyComponent();
-	}
 
 	LavaComponents.Empty();
 

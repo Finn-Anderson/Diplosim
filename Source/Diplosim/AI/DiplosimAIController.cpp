@@ -2,8 +2,6 @@
 
 #include "Navigation/CrowdFollowingComponent.h"
 #include "NavigationSystem.h"
-#include "NavigationPath.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI.h"
 #include "Citizen.h"
@@ -135,4 +133,12 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 		citizen->StartHarvestTimer(resource, Instance);
 	}
+}
+
+void ADiplosimAIController::RecalculateMovement(AActor* Actor)
+{
+	if (MoveRequest.GetGoalActor() != Actor)
+		return;
+
+	AIMoveTo(Actor);
 }

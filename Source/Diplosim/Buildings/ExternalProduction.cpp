@@ -1,15 +1,12 @@
 #include "ExternalProduction.h"
 
-#include "Components/SphereComponent.h"
 #include "Components/DecalComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "NavigationSystem.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Resource.h"
-#include "Map/Vegetation.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 

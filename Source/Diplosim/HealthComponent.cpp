@@ -4,10 +4,8 @@
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
-#include "AI/AttackComponent.h"
 #include "AI/Projectile.h"
-#include "Buildings/Work.h"
-#include "Buildings/House.h"
+#include "Buildings/Building.h"
 #include "DiplosimGameModeBase.h"
 #include "InteractableInterface.h"
 

@@ -8,7 +8,6 @@
 #include "Misc/Paths.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
-#include "NavigationPath.h"
 #include "DiplosimUserSettings.h"
 
 #include "AI/Citizen.h"
@@ -17,7 +16,6 @@
 #include "Map/Grid.h"
 #include "Buildings/Broch.h"
 #include "Buildings/Wall.h"
-#include "HealthComponent.h"
 
 ADiplosimGameModeBase::ADiplosimGameModeBase()
 {

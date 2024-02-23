@@ -1,9 +1,17 @@
 #include "DiplosimUserSettings.h"
 
+#include "NiagaraComponent.h"
+
+#include "Map/Clouds.h"
+
 UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	MaxEnemies = 333;
 	MaxCitizens = 1000;
+
+	bRenderClouds = true;
+
+	Clouds = nullptr;
 }
 
 void UDiplosimUserSettings::SetMaxEnemies(int32 Value)
@@ -24,6 +32,22 @@ void UDiplosimUserSettings::SetMaxCitizens(int32 Value)
 int32 UDiplosimUserSettings::GetMaxCitizens() const
 {
 	return MaxCitizens;
+}
+
+void UDiplosimUserSettings::SetRenderClouds(bool Value)
+{
+	bRenderClouds = Value;
+
+	if (Clouds == nullptr)
+		return;
+
+	for (FCloudStruct cloud : Clouds->Clouds)
+		cloud.CloudComponent->SetHiddenInGame(!Value);	
+}
+
+bool UDiplosimUserSettings::GetRenderClouds() const
+{
+	return bRenderClouds;
 }
 
 UDiplosimUserSettings* UDiplosimUserSettings::GetDiplosimUserSettings()

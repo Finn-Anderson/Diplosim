@@ -1,6 +1,5 @@
 #include "Buildings/Wall.h"
 
-#include "AIController.h"
 #include "Components/DecalComponent.h"
 
 #include "AI/Citizen.h"

@@ -1,10 +1,7 @@
 #include "Building.h"
 
 #include "Kismet/GameplayStatics.h"
-#include "Components/BoxComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "NavigationSystem.h"
 #include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
@@ -12,9 +9,7 @@
 #include "HealthComponent.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
-#include "Player/BuildComponent.h"
 #include "Map/Vegetation.h"
-#include "Map/Mineral.h"
 #include "Map/Grid.h"
 #include "Buildings/Builder.h"
 #include "Buildings/Farm.h"
@@ -279,10 +274,30 @@ FVector ABuilding::CheckCollisions(class UObject* Object, int32 Index)
 
 void ABuilding::DestroyBuilding()
 {
-	for (ACitizen* citizen : GetOccupied()) {
-		RemoveCitizen(citizen);
+	if (BuildStatus == EBuildStatus::Construction) {
+		TArray<AActor*> builders;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), builders);
 
-		citizen->AIController->Idle();
+		for (AActor* actor : builders) {
+			ABuilder* builder = Cast<ABuilder>(actor);
+
+			if (builder->Constructing != this)
+				continue;
+
+			builder->Constructing = nullptr;
+
+			if (!builder->GetOccupied().IsEmpty())
+				builder->GetOccupied()[0]->AIController->AIMoveTo(builder);
+
+			break;
+		}
+	}
+	else {
+		for (ACitizen* citizen : GetOccupied()) {
+			RemoveCitizen(citizen);
+
+			citizen->AIController->Idle();
+		}
 	}
 
 	Destroy();

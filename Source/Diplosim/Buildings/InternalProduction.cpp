@@ -1,8 +1,5 @@
 #include "InternalProduction.h"
 
-#include "Resource.h"
-#include "Player/Camera.h"
-#include "Player/ResourceManager.h"
 #include "AI/Citizen.h"
 
 AInternalProduction::AInternalProduction()
