@@ -45,6 +45,8 @@ ABuilding::ABuilding()
 	ParticleComponent->SetCastShadow(true);
 	ParticleComponent->bAutoActivate = false;
 
+	Emissiveness = 0.0f;
+
 	Capacity = 2;
 
 	Upkeep = 0;
@@ -81,6 +83,7 @@ void ABuilding::BeginPlay()
 
 	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(BuildingMesh->GetMaterial(0), this);
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
+	material->SetScalarParameterValue("Emissiveness", Emissiveness);
 	BuildingMesh->SetMaterial(0, material);
 }
 

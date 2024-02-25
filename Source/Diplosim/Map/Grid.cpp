@@ -23,12 +23,14 @@ AGrid::AGrid()
 	HISMWater->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMWater->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMWater->SetCanEverAffectNavigation(false);
+	HISMWater->SetCastShadow(false);
 	HISMWater->NumCustomDataFloats = 1;
 	HISMWater->bReceivesDecals = false;
 
 	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
 	HISMLava->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMLava->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMLava->SetCastShadow(false);
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
