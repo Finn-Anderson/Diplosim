@@ -60,7 +60,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 		FVector location = transform.GetLocation();
 
-		location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+		if (comp == Camera->Grid->HISMFlatGround)
+			location.Z += Camera->Grid->HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+		else
+			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
 		Building->SetActorLocation(location);
 	}

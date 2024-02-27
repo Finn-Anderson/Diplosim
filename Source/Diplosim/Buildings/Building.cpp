@@ -261,7 +261,11 @@ FVector ABuilding::CheckCollisions(class UObject* Object, int32 Index)
 		UHierarchicalInstancedStaticMeshComponent* HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(Object);
 
 		HISM->GetInstanceTransform(Index, transform);
-		z = HISM->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+
+		if (HISM == Camera->Grid->HISMFlatGround)
+			z = Camera->Grid->HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+		else
+			z = HISM->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 	}
 	else if (Object->IsA<AResource>() || (Object->IsA<ABuilding>())) {
 		UStaticMeshComponent* MeshComp = Cast<AActor>(Object)->GetComponentByClass<UStaticMeshComponent>();

@@ -37,6 +37,12 @@ AGrid::AGrid()
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMGround->NumCustomDataFloats = 4;
 
+	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
+	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	HISMFlatGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMFlatGround->SetCastShadow(false);
+	HISMFlatGround->NumCustomDataFloats = 4;
+
 	Size = 22500;
 
 	PercentageGround = 50;
@@ -354,11 +360,33 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		g /= 255.0f;
 		b /= 255.0f;
 
-		inst = HISMGround->AddInstance(transform);
-		HISMGround->SetCustomDataValue(inst, 0, r);
-		HISMGround->SetCustomDataValue(inst, 1, g);
-		HISMGround->SetCustomDataValue(inst, 2, b);
-		HISMGround->SetCustomDataValue(inst, 3, Tile->Fertility);
+		bool bFlat = true;
+
+		for (auto& element : Tile->AdjacentTiles) {
+			FTileStruct* t = element.Value;
+
+			if (t->Level == Tile->Level)
+				continue;
+
+			bFlat = false;
+
+			break;
+		}
+
+		if (bFlat) {
+			inst = HISMFlatGround->AddInstance(transform);
+			HISMFlatGround->SetCustomDataValue(inst, 0, r);
+			HISMFlatGround->SetCustomDataValue(inst, 1, g);
+			HISMFlatGround->SetCustomDataValue(inst, 2, b);
+			HISMFlatGround->SetCustomDataValue(inst, 3, Tile->Fertility);
+		}
+		else {
+			inst = HISMGround->AddInstance(transform);
+			HISMGround->SetCustomDataValue(inst, 0, r);
+			HISMGround->SetCustomDataValue(inst, 1, g);
+			HISMGround->SetCustomDataValue(inst, 2, b);
+			HISMGround->SetCustomDataValue(inst, 3, Tile->Fertility);
+		}
 	}
 
 	Tile->Instance = inst;
@@ -371,10 +399,27 @@ void AGrid::GenerateResource(FTileStruct* Tile)
 
 	int32 choiceVal = FMath::RandRange(1, 100);
 
-	FTransform transform;
-	HISMGround->GetInstanceTransform(Tile->Instance, transform);
+	bool bFlat = true;
 
+	for (auto& element : Tile->AdjacentTiles) {
+		FTileStruct* t = element.Value;
+
+		if (t->Level == Tile->Level)
+			continue;
+
+		bFlat = false;
+
+		break;
+	}
+
+	FTransform transform;
 	int32 z = HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+
+	if (bFlat)
+		HISMFlatGround->GetInstanceTransform(Tile->Instance, transform);
+	else
+		HISMGround->GetInstanceTransform(Tile->Instance, transform);
+
 	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, z));
 
 	if (choiceVal == 1) {
