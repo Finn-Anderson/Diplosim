@@ -11,11 +11,32 @@ AFarm::AFarm()
 	CropMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	CropMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 
-	MinYield = 1;
-	MaxYield = 5;
+	Yield = 5;
 
 	TimeLength = 30.0f;
 }
+
+void AFarm::BeginPlay()
+{
+	Super::BeginPlay();
+
+	FHitResult hit;
+
+	FVector start = GetActorLocation();
+	FVector end = GetActorLocation() - FVector(0.0f, 0.0f, 100.0f);
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	if (GetWorld()->LineTraceSingleByChannel(hit, start, end, ECollisionChannel::ECC_GameTraceChannel1, QueryParams)) {
+		AGrid* grid = Cast<AGrid>(hit.GetActor());
+
+		int32 fertility = grid->HISMGround->PerInstanceSMCustomData[hit.Item * 4 + 3];
+
+		Yield *= fertility;
+	}
+}
+
 
 void AFarm::Enter(ACitizen* Citizen)
 {
@@ -48,25 +69,7 @@ void AFarm::Production(ACitizen* Citizen)
 
 void AFarm::ProductionDone(ACitizen* Citizen)
 {
-	int32 yield = FMath::RandRange(MinYield, MaxYield);
-
-	FHitResult hit;
-
-	FVector start = GetActorLocation();
-	FVector end = GetActorLocation() - FVector(0.0f, 0.0f, 100.0f);
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-
-	if (GetWorld()->LineTraceSingleByChannel(hit, start, end, ECollisionChannel::ECC_GameTraceChannel1, QueryParams)) {
-		AGrid* grid = Cast<AGrid>(hit.GetActor());
-
-		int32 fertility = grid->HISMGround->PerInstanceSMCustomData[hit.Item * 4 + 3];
-
-		yield *= fertility;
-	}
-
-	Store(yield, Citizen);
+	Store(Yield, Citizen);
 
 	CropMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 

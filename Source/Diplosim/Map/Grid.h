@@ -84,15 +84,12 @@ public:
 
 	// Instance Meshes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMWater;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMLava;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMGround;
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMFlatGround;
 
 	TMap<FString, TArray<class AResource*>> Resources;

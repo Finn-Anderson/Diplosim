@@ -12,15 +12,15 @@ class DIPLOSIM_API AFarm : public AWork
 public:
 	AFarm();
 
+protected:
+	virtual void BeginPlay() override;
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* CropMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
-		int32 MinYield;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
-		int32 MaxYield;
+		int32 Yield;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
 		int32 TimeLength;

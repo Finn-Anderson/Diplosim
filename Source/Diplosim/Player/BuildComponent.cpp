@@ -95,7 +95,7 @@ bool UBuildComponent::IsValidLocation()
 	building.Z = FMath::RoundHalfFromZero(building.Z);
 
 	for (const FBuildStruct buildStruct : Building->Collisions) {
-		if (buildStruct.Object == Camera->Grid->HISMLava || buildStruct.Object == Camera->Grid->HISMWater)
+		if (buildStruct.Object == Camera->Grid->HISMLava)
 			return false;
 
 		FVector location = buildStruct.Location;

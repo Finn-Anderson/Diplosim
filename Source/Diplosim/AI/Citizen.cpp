@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 #include "Resource.h"
 #include "HealthComponent.h"
@@ -29,6 +30,8 @@ ACitizen::ACitizen()
 
 	HealthComponent->MaxHealth = 10;
 	HealthComponent->Health = HealthComponent->MaxHealth;
+
+	InitialSpeed = GetCharacterMovement()->MaxWalkSpeed;
 }
 
 void ACitizen::BeginPlay()
@@ -111,12 +114,10 @@ void ACitizen::Eat()
 	InteractableComponent->SetHunger();
 	InteractableComponent->ExecuteEditEvent("Hunger");
 
-	if (Hunger > 25) {
+	if (Hunger > 25)
 		return;
-	}
-	else if (Hunger == 0) {
+	else if (Hunger == 0)
 		HealthComponent->TakeHealth(10, this);
-	}
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	ACamera* camera = PController->GetPawn<ACamera>();
@@ -165,9 +166,8 @@ void ACitizen::SetEnergyTimer(bool bGain)
 {
 	auto func = &ACitizen::LoseEnergy;
 
-	if (bGain) {
+	if (bGain)
 		func = &ACitizen::GainEnergy;
-	}
 
 	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, func, 6.0f, true);
 }
@@ -178,6 +178,8 @@ void ACitizen::LoseEnergy()
 
 	InteractableComponent->SetEnergy();
 	InteractableComponent->ExecuteEditEvent("Energy");
+
+	GetCharacterMovement()->MaxWalkSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, 60.0f, InitialSpeed);
 
 	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty())
 		return;
@@ -211,12 +213,6 @@ void ACitizen::LoseEnergy()
 			break;
 		}
 	}
-
-	if (Energy == 0) {
-		HealthComponent->TakeHealth(100, this);
-
-		GetWorld()->GetTimerManager().ClearTimer(EnergyTimer);
-	}
 }
 
 void ACitizen::GainEnergy()
@@ -239,6 +235,8 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 {
 	FTimerHandle harvestTimer;
 	float time = FMath::RandRange(6.0f, 10.0f);
+	time /= FMath::LogX(100.0f, FMath::Clamp(Energy, 2, 100));
+
 	GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), time, false);
 
 	AIController->StopMovement();

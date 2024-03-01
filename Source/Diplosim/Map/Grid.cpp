@@ -19,14 +19,6 @@ AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	HISMWater = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWater"));
-	HISMWater->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMWater->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMWater->SetCanEverAffectNavigation(false);
-	HISMWater->SetCastShadow(false);
-	HISMWater->NumCustomDataFloats = 1;
-	HISMWater->bReceivesDecals = false;
-
 	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
 	HISMLava->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMLava->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
@@ -256,9 +248,8 @@ void AGrid::FillHoles(FTileStruct* Tile)
 	if (prevLevel == Tile->Level)
 		return;
 
-	for (auto& element : Tile->AdjacentTiles) {
+	for (auto& element : Tile->AdjacentTiles)
 		FillHoles(element.Value);
-	}
 }
 
 void AGrid::SetTileDetails(FTileStruct* Tile)
@@ -298,7 +289,7 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 
 void AGrid::GenerateTile(FTileStruct* Tile)
 {
-	if (Tile->Level < -4.0f)
+	if (Tile->Level < 0.0f)
 		return;
 
 	FTransform transform;
@@ -307,14 +298,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 	transform.SetRotation(Tile->Rotation);
 
 	int32 inst;
-	if (Tile->Level < 0) {
-		inst = HISMWater->AddInstance(transform);
-
-		float data = -Tile->Level / 4.0f;
-
-		HISMWater->SetCustomDataValue(inst, 0, data);
-	}
-	else if (Tile->Level == 7) {
+	if (Tile->Level == 7) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * 5));
 
 		inst = HISMLava->AddInstance(transform);
@@ -525,11 +509,11 @@ void AGrid::Clear()
 
 	Clouds->Destroy();
 
-	HISMWater->ClearInstances();
 	HISMLava->ClearInstances();
 	HISMGround->ClearInstances();
+	HISMFlatGround->ClearInstances();
 
-	HISMWater->AddInstance(transform);
 	HISMLava->AddInstance(transform);
 	HISMGround->AddInstance(transform);
+	HISMFlatGround->AddInstance(transform);
 }

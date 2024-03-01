@@ -155,6 +155,8 @@ public:
 
 	int32 Energy;
 
+	float InitialSpeed;
+
 
 	// Bio
 	void Birthday();

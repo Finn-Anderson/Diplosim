@@ -309,7 +309,12 @@ void UAttackComponent::Attack(AActor* Target)
 		GetWorld()->GetTimerManager().SetTimer(MoveTimer, this, &UAttackComponent::GetTargets, 0.1, false);
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, TimeToAttack, false);
+	float time = TimeToAttack;
+
+	if (Owner->IsA<ACitizen>())
+		time /= FMath::LogX(100.0f, FMath::Clamp(Cast<ACitizen>(Owner)->Energy, 2, 100));
+
+	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::GetTargets, time, false);
 }
 
 void UAttackComponent::Throw(AActor* Target)
