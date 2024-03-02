@@ -19,6 +19,10 @@ AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	HISMWater = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWater"));
+	HISMWater->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	HISMWater->SetCastShadow(false);
+
 	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
 	HISMLava->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMLava->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
@@ -289,9 +293,6 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 
 void AGrid::GenerateTile(FTileStruct* Tile)
 {
-	if (Tile->Level < 0.0f)
-		return;
-
 	FTransform transform;
 	FVector loc = FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0);
 	transform.SetLocation(loc);
@@ -306,6 +307,26 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		UNiagaraComponent* comp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LavaSystem, transform.GetLocation());
 
 		LavaComponents.Add(comp);
+	}
+	else if (Tile->Level < 0.0f) {
+		bool bShore = false;
+
+		for (auto& element : Tile->AdjacentTiles) {
+			FTileStruct* t = element.Value;
+
+			if (t->Level < 0.0f)
+				continue;
+
+			bShore = true;
+
+			break;
+		}
+
+		if (!bShore)
+			return;
+		transform.SetLocation(loc + FVector(0.0f, 0.0f, -200.0f));
+
+		inst = HISMWater->AddInstance(transform);
 	}
 	else {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
@@ -510,10 +531,12 @@ void AGrid::Clear()
 	Clouds->Destroy();
 
 	HISMLava->ClearInstances();
+	HISMWater->ClearInstances();
 	HISMGround->ClearInstances();
 	HISMFlatGround->ClearInstances();
 
 	HISMLava->AddInstance(transform);
+	HISMWater->AddInstance(transform);
 	HISMGround->AddInstance(transform);
 	HISMFlatGround->AddInstance(transform);
 }

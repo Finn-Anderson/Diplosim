@@ -87,6 +87,9 @@ public:
 		class UHierarchicalInstancedStaticMeshComponent* HISMLava;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* HISMWater;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMGround;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
