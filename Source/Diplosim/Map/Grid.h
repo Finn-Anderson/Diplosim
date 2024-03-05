@@ -21,8 +21,6 @@ struct FTileStruct
 
 	FQuat Rotation;
 
-	int32 ResourceNum;
-
 	TMap<FString, FTileStruct*> AdjacentTiles;
 
 	FTileStruct() {
@@ -35,8 +33,6 @@ struct FTileStruct
 		X = 0;
 
 		Y = 0;
-
-		ResourceNum = 0;
 
 		Rotation = FRotator(0.0f, 0.0f, 0.0f).Quaternion();
 	}
@@ -131,7 +127,13 @@ public:
 	AClouds* Clouds;
 
 	// Resources
-	void GenerateResource(FTileStruct* Tile);
+	void GenerateMinerals(FTileStruct* Tile);
+
+	void GenerateTrees(FTileStruct* Tile, int32 Amount);
+
+	FTransform GetTransform(FTileStruct* Tile);
+
+	TArray<FTileStruct*> ResourceTiles;
 
 	bool Forest;
 };
