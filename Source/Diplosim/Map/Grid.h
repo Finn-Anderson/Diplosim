@@ -101,6 +101,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Size;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
+		int32 Peaks;
+
 	UPROPERTY()
 		class ACamera* Camera;
 

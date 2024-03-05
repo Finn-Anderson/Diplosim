@@ -40,8 +40,9 @@ AGrid::AGrid()
 	HISMFlatGround->NumCustomDataFloats = 4;
 
 	Size = 22500;
+	Peaks = 2;
 
-	PercentageGround = 50;
+	PercentageGround = 30;
 }
 
 void AGrid::BeginPlay()
@@ -102,7 +103,7 @@ void AGrid::Render()
 		}
 	}
 
-	TArray<FTileStruct*> chooseableTiles = {&Storage[bound / 2][bound / 2]};
+	TArray<FTileStruct*> chooseableTiles = {};
 
 	int32 PercentageWater = 100 - PercentageGround;
 
@@ -137,8 +138,21 @@ void AGrid::Render()
 		}
 
 		// Get Tile and adjacent tiles
-		int32 chosenNum = FMath::RandRange(0, chooseableTiles.Num() - 1);
-		FTileStruct* chosenTile = chooseableTiles[chosenNum];
+		FTileStruct* chosenTile;
+
+		if (tileTally < Peaks) {
+			int32 x = Storage.Num();
+			int32 y = Storage[0].Num();
+
+			int32 chosenX = FMath::RandRange(bound / 4, x - bound / 4 - 1);
+			int32 chosenY = FMath::RandRange(bound / 4, y - bound / 4 - 1);
+
+			chosenTile = &Storage[chosenX][chosenY];
+		}
+		else {
+			int32 chosenNum = FMath::RandRange(0, chooseableTiles.Num() - 1);
+			chosenTile = chooseableTiles[chosenNum];
+		}
 
 		// Set level
 		chosenTile->Level = level;
@@ -370,7 +384,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		for (auto& element : Tile->AdjacentTiles) {
 			FTileStruct* t = element.Value;
 
-			if (t->Level == Tile->Level)
+			if (Tile->AdjacentTiles.Num() == 4 && t->Level == Tile->Level)
 				continue;
 
 			bFlat = false;
