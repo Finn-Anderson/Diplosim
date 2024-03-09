@@ -32,7 +32,10 @@ class DIPLOSIM_API AResource : public AActor
 public:	
 	AResource();
 
-public:	
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface")
+		class UInteractableComponent* InteractableComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UHierarchicalInstancedStaticMeshComponent* ResourceHISM;
 

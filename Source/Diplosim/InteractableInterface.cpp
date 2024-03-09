@@ -16,11 +16,6 @@ void UInteractableComponent::BeginPlay()
 {
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
-
-	if (GetOwner()->IsA<ABuilding>())
-		TextStruct.Building = Cast<ABuilding>(GetOwner());
-	else
-		TextStruct.Building = nullptr;
 }
 
 void UInteractableComponent::SetHP()

@@ -22,12 +22,17 @@ struct FTextStruct
 		TArray<class ACitizen*> Citizens;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Text")
-		class ABuilding* Building;
+		bool bCanMove;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Text")
+		bool bCanDestroy;
 
 	FTextStruct()
 	{
 		ActorName = "";
 		Description = "";
+		bCanMove = false;
+		bCanDestroy = false;
 	}
 };
 
