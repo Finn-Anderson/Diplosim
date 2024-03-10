@@ -10,6 +10,7 @@
 #include "Clouds.h"
 #include "Mineral.h"
 #include "Vegetation.h"
+#include "WindComponent.h"
 #include "Player/Camera.h"
 #include "Player/CameraMovementComponent.h"
 #include "Player/BuildComponent.h"
@@ -38,6 +39,8 @@ AGrid::AGrid()
 	HISMFlatGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMFlatGround->SetCastShadow(false);
 	HISMFlatGround->NumCustomDataFloats = 4;
+
+	WindComponent = CreateDefaultSubobject<UWindComponent>(TEXT("WindComponent"));
 
 	Size = 22500;
 	Peaks = 2;
@@ -261,7 +264,7 @@ void AGrid::Render()
 
 	// Spawn cloud spwaner
 	Clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f));
-	Clouds->GetCloudBounds(bound * 100 / 2);
+	Clouds->GetCloudBounds(this);
 
 	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();

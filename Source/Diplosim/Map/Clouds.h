@@ -61,9 +61,9 @@ public:
 
 	FTimerHandle CloudTimer;
 
-	float XY;
+	AGrid* Grid;
 
-	void GetCloudBounds(int32 GridSize);
+	void GetCloudBounds(AGrid* GridPtr);
 
 	UFUNCTION()
 		void ActivateCloud();

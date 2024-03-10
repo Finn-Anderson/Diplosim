@@ -3,7 +3,8 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "NiagaraComponent.h"
 
-#include "Map/Grid.h"
+#include "WindComponent.h"
+#include "Grid.h"
 #include "DiplosimUserSettings.h"
 
 AClouds::AClouds()
@@ -65,14 +66,16 @@ void AClouds::Tick(float DeltaTime)
 		if (!cloud.Active)
 			continue;
 
-		FVector location = cloud.CloudComponent->GetRelativeLocation() + FVector(0.0f, 1.0f, 0.0f);
+		FVector location = cloud.CloudComponent->GetRelativeLocation() + Grid->WindComponent->WindRotation.Vector();
 
 		cloud.CloudComponent->SetRelativeLocation(location);
 
-		if (location.Y >= XY - cloud.CloudComponent->GetRelativeScale3D().Y * 800.0f) {
+		double distance = FVector::Dist(location, FVector(0.0f, 0.0f, 0.0f));
+
+		if (distance > 20000.0f) {
 			cloud.CloudComponent->Deactivate();
 
-			if (location.Y >= XY * 2) {
+			if (distance > 40000.0f) {
 				cloud.Active = false;
 
 				Clouds[i] = cloud;
@@ -81,9 +84,9 @@ void AClouds::Tick(float DeltaTime)
 	}
 }
 
-void AClouds::GetCloudBounds(int32 GridSize)
+void AClouds::GetCloudBounds(AGrid* GridPtr)
 {
-	XY = GridSize;
+	Grid = GridPtr;
 
 	ActivateCloud();
 }
@@ -107,24 +110,22 @@ void AClouds::ActivateCloud()
 
 	FTransform transform;
 
-	float x;
-	float y;
-	float z;
-
-	x = FMath::FRandRange(1.0f, 5.0f);
-	y = FMath::FRandRange(1.0f, 5.0f);
-	z = FMath::FRandRange(1.0f, 2.0f);
+	float x = FMath::FRandRange(1.0f, 5.0f);
+	float y = FMath::FRandRange(1.0f, 5.0f);
+	float z = FMath::FRandRange(1.0f, 2.0f);
 	transform.SetScale3D(FVector(x, y, z));
 
 	float spawnRate = 0.0f;
 
-	x = FMath::FRandRange(-XY, XY);
-	y = -XY * 2;
-	z = Height + FMath::FRandRange(-200.0f, 200.0f);
-	transform.SetLocation(FVector(x, y, z));
+	transform.SetRotation((Grid->WindComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
+
+	FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f;
+	spawnLoc.Z = Height + FMath::FRandRange(-200.0f, 200.0f);
+	transform.SetLocation(spawnLoc);
 
 	cloud.CloudComponent->SetWorldScale3D(transform.GetScale3D());
 	cloud.CloudComponent->SetWorldLocation(transform.GetLocation());
+	cloud.CloudComponent->SetWorldRotation(transform.GetRotation());
 
 	int32 chance = FMath::RandRange(1, 100);
 
