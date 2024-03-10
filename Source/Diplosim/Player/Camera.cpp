@@ -15,6 +15,7 @@
 #include "Buildings/Building.h"
 #include "DiplosimGameModeBase.h"
 #include "InteractableInterface.h"
+#include "AI/AI.h"
 
 ACamera::ACamera()
 {
@@ -90,13 +91,13 @@ void ACamera::TickWhenPaused(bool bTickWhenPaused)
 	pcontroller->SetPause(!bTickWhenPaused);
 }
 
-void ACamera::DisplayInteract(UInteractableComponent* InteractableComponent, FVector Location)
+void ACamera::DisplayInteract(UInteractableComponent* InteractableComponent, AActor* Actor)
 {
 	SelectedInteractableComponent = InteractableComponent;
 
 	SetInteractableText();
 
-	WidgetComponent->SetWorldLocation(Location);
+	WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 	WidgetComponent->SetHiddenInGame(false);
 }
@@ -163,12 +164,17 @@ void ACamera::Action()
 		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 			AActor* actor = hit.GetActor();
 
+			if (actor->IsA<AAI>()) {
+				AttachToActor(actor, FAttachmentTransformRules::KeepRelativeTransform);
+				SetActorLocation(actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
+			}
+
 			UInteractableComponent* hitComp = actor->GetComponentByClass<UInteractableComponent>();
 
 			if (hitComp == nullptr)
 				return;
 
-			DisplayInteract(hitComp, hit.Location);
+			DisplayInteract(hitComp, actor);
 		}
 	}
 }
@@ -271,6 +277,12 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 {
 	if (bInMenu)
 		return;
+
+	DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
+
+	FVector location = GetActorLocation();
+	location.Z = 800.0f;
+	SetActorLocation(location);
 
 	MovementComponent->Move(Instance);
 }
