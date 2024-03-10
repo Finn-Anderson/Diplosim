@@ -106,5 +106,5 @@ void UCameraMovementComponent::Scroll(const struct FInputActionInstance& Instanc
 {
 	float target = 250.0f * Instance.GetValue().Get<float>();
 
-	TargetLength = FMath::Clamp(TargetLength + target, 0.0f, 6000.0f);
+	TargetLength = FMath::Clamp(TargetLength + target, 50.0f, 6000.0f);
 }

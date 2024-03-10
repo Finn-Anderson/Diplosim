@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NiagaraComponent.h"
+#include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -381,7 +382,6 @@ TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()
 void ABuilding::Enter(ACitizen* Citizen)
 {
 	Citizen->Building.BuildingAt = this;
-	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
 
 	if (!IsA<AFarm>())
 		Citizen->AIController->StopMovement();
@@ -528,7 +528,11 @@ void ABuilding::Leave(ACitizen* Citizen)
 
 	TArray<FVector> possibleLocations;
 
-	FVector loc = Citizen->Building.EnterLocation;
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+
+	FNavLocation loc;
+	nav->ProjectPointToNavigation(GetActorLocation(), loc, FVector(200.0f, 200.0f, 10.0f));
 
 	if (BuildingMesh->DoesSocketExist("Entrance")) {
 		for (int32 i = -5; i < 5; i++) {
@@ -543,18 +547,18 @@ void ABuilding::Leave(ACitizen* Citizen)
 		}
 
 		for (FVector location : possibleLocations) {
-			double currentDist = FVector::Dist(loc, BuildingMesh->GetSocketLocation("Entrance"));
+			double currentDist = FVector::Dist(loc.Location, BuildingMesh->GetSocketLocation("Entrance"));
 
 			double newDist = FVector::Dist(location, BuildingMesh->GetSocketLocation("Entrance"));
 
-			if (newDist >= currentDist && loc != Citizen->Building.EnterLocation)
+			if (newDist >= currentDist)
 				continue;
 
-			loc = location;
+			loc.Location = location;
 		}
 	}
 
-	Citizen->SetActorLocation(loc);
+	Citizen->SetActorLocation(loc.Location);
 
 	Citizen->SetActorHiddenInGame(false);
 }

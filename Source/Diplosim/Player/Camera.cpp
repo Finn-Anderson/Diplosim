@@ -97,7 +97,22 @@ void ACamera::DisplayInteract(UInteractableComponent* InteractableComponent, AAc
 
 	SetInteractableText();
 
-	WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	float height;
+
+	if (Actor->IsA<AAI>()) {
+		height = Cast<AAI>(Actor)->GetMesh()->GetLocalBounds().GetBox().GetSize().Z;
+
+		AttachToActor(Actor, FAttachmentTransformRules::KeepRelativeTransform);
+		SetActorLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
+	}
+	else {
+		UStaticMeshComponent* mesh = Actor->GetComponentByClass<UStaticMeshComponent>();
+
+		height = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	}
+
+	WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	WidgetComponent->SetWorldLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, height));
 
 	WidgetComponent->SetHiddenInGame(false);
 }
@@ -163,11 +178,6 @@ void ACamera::Action()
 
 		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 			AActor* actor = hit.GetActor();
-
-			if (actor->IsA<AAI>()) {
-				AttachToActor(actor, FAttachmentTransformRules::KeepRelativeTransform);
-				SetActorLocation(actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
-			}
 
 			UInteractableComponent* hitComp = actor->GetComponentByClass<UInteractableComponent>();
 

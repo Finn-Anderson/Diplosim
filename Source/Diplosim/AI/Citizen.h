@@ -31,14 +31,11 @@ struct FBuildingStruct
 
 	class ABuilding* BuildingAt;
 
-	FVector EnterLocation;
-
 	FBuildingStruct()
 	{
 		House = nullptr;
 		Employment = nullptr;
 		BuildingAt = nullptr;
-		EnterLocation = FVector(0.0f, 0.0f, 0.0f);
 	}
 };
 
