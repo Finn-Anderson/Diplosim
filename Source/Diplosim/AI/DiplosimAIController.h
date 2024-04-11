@@ -76,6 +76,8 @@ public:
 
 	void RecalculateMovement(AActor* Actor);
 
+	void SaveToFile();
+
 	FMoveStruct MoveRequest;
 
 	FTimerHandle IdleTimer;

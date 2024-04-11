@@ -25,6 +25,16 @@ ADiplosimGameModeBase::ADiplosimGameModeBase()
 	latestSpawnTime = 1800;
 }
 
+void ADiplosimGameModeBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	const FString file = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()) + TEXT("/MovementLog.txt");
+
+	IFileManager& fileMgr = IFileManager::Get();
+	fileMgr.Delete(*file);
+}
+
 void ADiplosimGameModeBase::EvaluateThreats()
 {
 	int32 num = -1;
@@ -354,9 +364,9 @@ void ADiplosimGameModeBase::SaveToFile()
 	if (WavesData.IsEmpty())
 		return;
 
-	FString FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()) + TEXT("/WaveLog.txt");
+	FString filePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()) + TEXT("/WaveLog.txt");
 
-	FString FileContent;
+	FString fileContent;
 
 	for (FWaveStruct wave : WavesData) {
 		int32 index = 0;
@@ -365,28 +375,28 @@ void ADiplosimGameModeBase::SaveToFile()
 
 		FString waveNum = FString::FromInt(index);
 
-		FileContent += "Wave " + waveNum + " \n \n";
+		fileContent += "Wave " + waveNum + " \n \n";
 
-		FileContent += "Spawn location \n" + wave.SpawnLocation.ToString() + " \n \n";
+		fileContent += "Spawn location \n" + wave.SpawnLocation.ToString() + " \n \n";
 
-		FileContent += "Number of spawned enemies \n" + FString::FromInt(wave.NumSpawned) + " \n \n";
+		fileContent += "Number of spawned enemies \n" + FString::FromInt(wave.NumSpawned) + " \n \n";
 
-		FileContent += "Number of enemy kills \n" + FString::FromInt(wave.NumKilled) + " \n \n";
+		fileContent += "Number of enemy kills \n" + FString::FromInt(wave.NumKilled) + " \n \n";
 
-		FileContent += "Number that died to an actor \n";
+		fileContent += "Number that died to an actor \n";
 
 		for (FDiedToStruct diedTo : wave.DiedTo) {
-			FileContent += diedTo.Name + ": " + FString::FromInt(diedTo.Kills) + "\n";
+			fileContent += diedTo.Name + ": " + FString::FromInt(diedTo.Kills) + "\n";
 		}
 
-		FileContent += "Threat location(s) \n";
+		fileContent += "Threat location(s) \n";
 
 		for (FThreatsStruct threatStruct : WavesData.Last().Threats) {
-			FileContent += threatStruct.EmploymentName + ": " + threatStruct.Location.ToString() + "\n";
+			fileContent += threatStruct.EmploymentName + ": " + threatStruct.Location.ToString() + "\n";
 		}
 
-		FileContent += "\n \n";
+		fileContent += "\n \n";
 	}
 
-	FFileHelper::SaveStringToFile(FileContent, *FilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get());
+	FFileHelper::SaveStringToFile(fileContent, *filePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get());
 }

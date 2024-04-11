@@ -113,6 +113,10 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 public:
 	ADiplosimGameModeBase();
 
+protected:
+	virtual void BeginPlay() override;
+
+public:
 	void EvaluateThreats();
 
 	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData);

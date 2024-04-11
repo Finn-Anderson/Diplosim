@@ -108,6 +108,8 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	SetFocus(Actor);
 
+	SaveToFile();
+
 	if (!GetOwner()->IsA<ACitizen>() || Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor)
 		return;
 
@@ -141,4 +143,14 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 		return;
 
 	AIMoveTo(Actor);
+}
+
+void ADiplosimAIController::SaveToFile()
+{
+	// Saving movement data to file for dissertation
+	FString filePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()) + TEXT("/MovementLog.txt");
+
+	FString line = GetOwner()->GetName() + " " + GetOwner()->GetActorLocation().ToString() + ", " + MoveRequest.GetGoalActor()->GetName() + " " + MoveRequest.GetLocation().ToString() + ", " + FDateTime::Now().ToString() + "\n";
+
+	FFileHelper::SaveStringToFile(line, *filePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), EFileWrite::FILEWRITE_Append);
 }
