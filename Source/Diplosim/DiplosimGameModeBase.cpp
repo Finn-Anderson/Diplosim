@@ -88,18 +88,23 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(true);
 	}
 
-	// CODE FOR TESTING AVOIDANCE
-	/*TArray<AActor*> citizens;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
-
-	for (AActor* actor : citizens) {
+	// THIS SECTION OF CODE IS FOR TESTING. THE ABOVE CODE IS THE PRODUCTION CODE
+	for (AActor* actor : Citizens) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
 		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AWall>())
 			continue;
 
+		FThreatsStruct threatStruct;
+		threatStruct.Citizen = citizen;
+		threatStruct.EmploymentName = citizen->Building.Employment->GetName();
+		threatStruct.Location = citizen->Building.Employment->GetActorLocation();
+
+		WavesData.Last().Threats.Add(threatStruct);
+
+		// CODE FOR TESTING AVOIDANCE. REMOVE TO TEST TARGETING.
 		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(true);
-	}*/
+	}
 }
 
 bool ADiplosimGameModeBase::PathToBuilding(FVector Location, UNavigationSystemV1* Nav, const ANavigationData* NavData)
@@ -138,16 +143,12 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints()
 			if (tile.Level < 0)
 				continue;
 
-			FTransform transform;
-			Grid->HISMGround->GetInstanceTransform(tile.Instance, transform);
+			FVector loc = Grid->GetTransform(&tile).GetLocation();
 
-			FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
-			location.Z = FMath::RoundHalfFromZero(location.Z);
-
-			if (!PathToBuilding(location, nav, navData))
+			if (!PathToBuilding(loc, nav, navData))
 				continue;
 
-			validTiles.Add(location);
+			validTiles.Add(loc);
 		}
 	}
 
@@ -211,12 +212,12 @@ void ADiplosimGameModeBase::FindSpawnsInArea(int32 Z, FTileStruct* Tile, FVector
 	for (auto& element : Tile->AdjacentTiles) {
 		FTileStruct* t = element.Value;
 
-		FTransform transform;
-		Grid->HISMGround->GetInstanceTransform(t->Instance, transform);
+		if (t->Level < 0 || t->Level == 7)
+			return;
 
-		FVector loc = transform.GetLocation() + FVector(0.0f, 0.0f, Z);
+		FVector loc = Grid->GetTransform(t).GetLocation();
 
-		if (t->Level < 0 || SpawnLocations.Contains(loc) || !ValidTiles.Contains(loc))
+		if (SpawnLocations.Contains(loc) || !ValidTiles.Contains(loc))
 			continue;
 
 		FindSpawnsInArea(Z, t, loc, ValidTiles, Iteration);

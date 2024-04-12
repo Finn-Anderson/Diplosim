@@ -5,6 +5,7 @@
 AVegetation::AVegetation()
 {
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
+	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->NumCustomDataFloats = 4;
 
 	IntialScale = FVector(0.1f, 0.1f, 0.1f);

@@ -366,7 +366,6 @@ void UAttackComponent::Throw(AActor* Target)
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 	projectile->Owner = Owner;
-
 }
 
 bool UAttackComponent::CanAttack()

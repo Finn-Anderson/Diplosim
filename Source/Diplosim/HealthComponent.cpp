@@ -58,12 +58,20 @@ void UHealthComponent::Death(AActor* Attacker)
 		}
 	} 
 	else if (actor->IsA<AEnemy>()) {
-		bool bIsProjectile = false;
+		ABuilding* building = nullptr;
 
-		if (Attacker->IsA<AProjectile>())
-			bIsProjectile = true;
+		ACitizen* citizen;
 
-		gamemode->WavesData.Last().SetDiedTo(Cast<ACitizen>(Attacker), bIsProjectile);
+		if (Attacker->IsA<AProjectile>()) {
+			citizen = Cast<ACitizen>(Attacker->GetOwner());
+
+			building = citizen->Building.Employment;
+		}
+		else {
+			citizen = Cast<ACitizen>(Attacker);
+		}
+
+		gamemode->WavesData.Last().SetDiedTo(citizen, building);
 
 		gamemode->CheckEnemiesStatus();
 	}
