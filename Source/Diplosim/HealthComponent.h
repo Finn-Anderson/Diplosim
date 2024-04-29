@@ -31,5 +31,5 @@ public:
 	// Death
 	void Death(AActor* Attacker);
 
-	void ClearRagdoll();
+	void Clear(AActor* Attacker);
 };

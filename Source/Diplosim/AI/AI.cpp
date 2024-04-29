@@ -34,7 +34,7 @@ AAI::AAI()
 	GetMesh()->bCastDynamicShadow = true;
 	GetMesh()->CastShadow = true;
 
-	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("BuildCapsuleCollision"));
+	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("InteractCapsuleCollision"));
 	CapsuleCollision->SetCapsuleSize(27.0f, 27.0f);
 	CapsuleCollision->SetupAttachment(RootComponent);
 
@@ -115,10 +115,12 @@ void AAI::MoveToBroch()
 
 void AAI::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-
+	if (AttackComponent->OverlappingEnemies.Contains(OtherActor) && !AttackComponent->MeleeableEnemies.Contains(OtherActor))
+		AttackComponent->CanHit(OtherActor);
 }
 
 void AAI::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	
+	if (AttackComponent->MeleeableEnemies.Contains(OtherActor))
+		AttackComponent->MeleeableEnemies.Remove(OtherActor);
 }

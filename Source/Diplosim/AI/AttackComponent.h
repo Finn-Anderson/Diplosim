@@ -9,7 +9,7 @@ struct FAttackStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	TWeakObjectPtr<AActor> Actor;
+	AActor* Actor;
 
 	int32 Dmg;
 
@@ -17,13 +17,8 @@ struct FAttackStruct
 
 	FAttackStruct()
 	{
-		Reset();
-	}
-
-	void Reset()
-	{
 		Actor = nullptr;
-		Dmg = 1000000;
+		Dmg = 1;
 		Hp = 1000000;
 	}
 };
@@ -48,15 +43,9 @@ public:
 
 	void SetProjectileClass(TSubclassOf<class AProjectile> OtherClass);
 
-	int32 GetMorale(TArray<TWeakObjectPtr<AActor>> Targets);
+	void PickTarget();
 
-	void RunAway(TArray<TWeakObjectPtr<AActor>> Targets);
-
-	void GetTargets();
-
-	void PickTarget(TArray<TWeakObjectPtr<AActor>> Targets);
-
-	bool CanHit(AActor* Target);
+	void CanHit(AActor* Target);
 
 	void Attack(AActor* Target);
 
@@ -66,7 +55,7 @@ public:
 
 	TArray<TWeakObjectPtr<AActor>> OverlappingEnemies;
 
-	TArray<TWeakObjectPtr<class ACitizen>> OverlappingAllies;
+	TArray<TWeakObjectPtr<AActor>> MeleeableEnemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		class USphereComponent* RangeComponent;
@@ -83,15 +72,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TArray<TSubclassOf<class AActor>> EnemyClasses;
 
-	int32 Morale;
-
-	FTimerHandle MoveTimer;
-
 	FTimerHandle AttackTimer;
 
-	float Theta;
-
-	AActor* Owner;
-
-	FAttackStruct Favoured;
+	AAI* Owner;
 };
