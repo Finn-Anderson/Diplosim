@@ -24,9 +24,6 @@ public:
 	UFUNCTION()
 		virtual void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface")
-		class UInteractableComponent* InteractableComponent;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
 		class UCapsuleComponent* CapsuleCollision;
 

@@ -14,7 +14,6 @@
 #include "Map/Grid.h"
 #include "Buildings/Builder.h"
 #include "Buildings/Farm.h"
-#include "InteractableInterface.h"
 
 ABuilding::ABuilding()
 {
@@ -38,8 +37,6 @@ ABuilding::ABuilding()
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	HealthComponent->MaxHealth = 200;
 	HealthComponent->Health = HealthComponent->MaxHealth;
-
-	InteractableComponent = CreateDefaultSubobject<UInteractableComponent>(TEXT("InteractableComponent"));
 
 	ParticleComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ParticleComponent"));
 	ParticleComponent->SetupAttachment(RootComponent);
@@ -344,9 +341,6 @@ bool ABuilding::AddCitizen(ACitizen* Citizen)
 
 	Occupied.Add(Citizen);
 
-	InteractableComponent->SetOccupied();
-	InteractableComponent->ExecuteEditEvent("Occupied");
-
 	return true;
 }
 
@@ -358,9 +352,6 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	Leave(Citizen);
 
 	Occupied.Remove(Citizen);
-
-	InteractableComponent->SetOccupied();
-	InteractableComponent->ExecuteEditEvent("Occupied");
 
 	return true;
 }

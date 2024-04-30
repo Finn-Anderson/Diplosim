@@ -14,8 +14,6 @@ AResource::AResource()
 	ResourceHISM->bCastDynamicShadow = true;
 	ResourceHISM->CastShadow = true;
 
-	InteractableComponent = CreateDefaultSubobject<UInteractableComponent>(TEXT("InteractableComponent"));
-
 	MinYield = 1;
 	MaxYield = 5;
 

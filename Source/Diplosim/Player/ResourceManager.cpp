@@ -5,7 +5,6 @@
 #include "Resource.h"
 #include "Camera.h"
 #include "Buildings/Building.h"
-#include "InteractableInterface.h"
 
 UResourceManager::UResourceManager()
 {
@@ -50,8 +49,6 @@ bool UResourceManager::AddLocalResource(ABuilding* Building, int32 Amount)
 	else {
 		Building->Storage = target;
 	}
-
-	DisplayStorage(Building);
 
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Buildings.Contains(Building->GetClass())) {
@@ -106,8 +103,6 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 
 					b->Storage = FMath::Clamp(b->Storage + Amount, 0, 1000);
 
-					DisplayStorage(b);
-
 					if (AmountLeft <= 0) {
 						SetResourceStruct(Resource);
 						return true;
@@ -128,8 +123,6 @@ bool UResourceManager::TakeLocalResource(ABuilding* Building, int32 Amount)
 		return false;
 
 	Building->Storage = target;
-
-	DisplayStorage(Building);
 
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Buildings.Contains(Building->GetClass())) {
@@ -183,8 +176,6 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 					AmountLeft -= b->Storage - Min;
 
 					b->Storage = FMath::Clamp(b->Storage - Amount, Min, 1000);
-
-					DisplayStorage(b);
 
 					if (AmountLeft <= 0) {
 						SetResourceStruct(Resource);
@@ -271,11 +262,4 @@ TArray<TSubclassOf<class ABuilding>> UResourceManager::GetBuildings(TSubclassOf<
 FResourceStruct UResourceManager::GetUpdatedResource()
 {
 	return ResourceStruct;
-}
-
-void UResourceManager::DisplayStorage(ABuilding* Building)
-{
-	UInteractableComponent* interactableComp = Building->GetComponentByClass<UInteractableComponent>();
-	interactableComp->SetStorage();
-	interactableComp->ExecuteEditEvent("Storage");
 }

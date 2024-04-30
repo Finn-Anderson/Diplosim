@@ -14,7 +14,6 @@
 #include "ResourceManager.h"
 #include "Buildings/Building.h"
 #include "DiplosimGameModeBase.h"
-#include "InteractableInterface.h"
 #include "AI/AI.h"
 
 ACamera::ACamera()
@@ -91,11 +90,9 @@ void ACamera::TickWhenPaused(bool bTickWhenPaused)
 	pcontroller->SetPause(!bTickWhenPaused);
 }
 
-void ACamera::DisplayInteract(UInteractableComponent* InteractableComponent, AActor* Actor)
+void ACamera::DisplayInteract(AActor* Actor)
 {
-	SelectedInteractableComponent = InteractableComponent;
-
-	SetInteractableText();
+	SetInteractableText(Actor);
 
 	float height;
 
@@ -179,12 +176,7 @@ void ACamera::Action()
 		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 			AActor* actor = hit.GetActor();
 
-			UInteractableComponent* hitComp = actor->GetComponentByClass<UInteractableComponent>();
-
-			if (hitComp == nullptr)
-				return;
-
-			DisplayInteract(hitComp, actor);
+			DisplayInteract(actor);
 		}
 	}
 }
@@ -227,8 +219,6 @@ void ACamera::Pause()
 void ACamera::Menu()
 {
 	if (!WidgetComponent->bHiddenInGame) {
-		SelectedInteractableComponent = nullptr;
-
 		WidgetComponent->SetHiddenInGame(true);
 
 		return;

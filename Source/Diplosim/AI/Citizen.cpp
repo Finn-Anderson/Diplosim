@@ -13,7 +13,6 @@
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 #include "Buildings/ExternalProduction.h"
-#include "InteractableInterface.h"
 #include "DiplosimUserSettings.h"
 
 ACitizen::ACitizen()
@@ -111,9 +110,6 @@ void ACitizen::Eat()
 {
 	Hunger = FMath::Clamp(Hunger - 1, 0, 100);
 
-	InteractableComponent->SetHunger();
-	InteractableComponent->ExecuteEditEvent("Hunger");
-
 	if (Hunger > 25)
 		return;
 	else if (Hunger == 0)
@@ -176,9 +172,6 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	InteractableComponent->SetEnergy();
-	InteractableComponent->ExecuteEditEvent("Energy");
-
 	GetCharacterMovement()->MaxWalkSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, 60.0f, InitialSpeed);
 
 	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty())
@@ -218,8 +211,6 @@ void ACitizen::LoseEnergy()
 void ACitizen::GainEnergy()
 {
 	Energy = FMath::Clamp(Energy + 1, 0, 100);
-
-	InteractableComponent->ExecuteEditEvent("Energy");
 
 	HealthComponent->AddHealth(1);
 

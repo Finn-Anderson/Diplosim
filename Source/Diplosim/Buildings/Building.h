@@ -90,9 +90,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface")
-		class UInteractableComponent* InteractableComponent;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* BuildingMesh;
 
@@ -141,6 +138,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		bool bInstantConstruction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		bool bCanMove;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		bool bCanDestroy;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen")
 		bool bHideCitizen;
 
@@ -184,7 +187,7 @@ public:
 		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	// Citizens
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
 		TArray<class ACitizen*> Occupied;
 
 	FTimerHandle CostTimer;

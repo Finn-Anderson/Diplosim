@@ -56,8 +56,6 @@ public:
 
 	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
 
-	void DisplayStorage(ABuilding* Building);
-
 public:
 	// UI
 	UFUNCTION(BlueprintCallable)

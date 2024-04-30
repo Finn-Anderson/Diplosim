@@ -138,7 +138,8 @@ public:
 
 	FTimerHandle HungerTimer;
 
-	int32 Hunger;
+	UPROPERTY(BlueprintReadOnly, Category = "Food")
+		int32 Hunger;
 
 
 	// Energy
@@ -150,7 +151,8 @@ public:
 
 	FTimerHandle EnergyTimer;
 
-	int32 Energy;
+	UPROPERTY(BlueprintReadOnly, Category = "Energy")
+		int32 Energy;
 
 	float InitialSpeed;
 
