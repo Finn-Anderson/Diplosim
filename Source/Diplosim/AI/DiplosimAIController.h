@@ -66,6 +66,8 @@ class DIPLOSIM_API ADiplosimAIController : public AAIController
 public:
 	ADiplosimAIController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	void Tick(float DeltaTime) override;
+
 	void Idle();
 
 	double GetClosestActor(FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, int32 CurrentValue = 1, int32 NewValue = 1);

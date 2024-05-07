@@ -76,16 +76,13 @@ struct FWaveStruct
 		Threats = {};
 	}
 
-	void SetDiedTo(ACitizen* Attacker, ABuilding* Building)
+	void SetDiedTo(ACitizen* Attacker, FString Name)
 	{
 		AActor* actor = Attacker;
 
-		if (Building != nullptr)
-			actor = Building;
-
 		FDiedToStruct diedTo;
 		diedTo.Actor = actor;
-		diedTo.Name = actor->GetName();
+		diedTo.Name = Name;
 		diedTo.Kills = 1;
 
 		if (DiedTo.Contains(diedTo)) {

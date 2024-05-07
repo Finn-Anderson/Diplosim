@@ -176,6 +176,9 @@ void ACamera::Action()
 		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 			AActor* actor = hit.GetActor();
 
+			if (!actor->IsA<AAI>() && !actor->IsA<ABuilding>())
+				return;
+
 			DisplayInteract(actor);
 		}
 	}
@@ -278,7 +281,7 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 	if (bInMenu)
 		return;
 
-	DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	FVector location = GetActorLocation();
 	location.Z = 800.0f;

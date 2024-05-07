@@ -11,7 +11,16 @@
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
-	
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickInterval(0.4f);
+}
+
+void ADiplosimAIController::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (MoveRequest.GetGoalActor() != nullptr && MoveRequest.GetGoalActor()->IsValidLowLevelFast() && MoveRequest.GetGoalActor()->IsA<AAI>())
+		AIMoveTo(MoveRequest.GetGoalActor());
 }
 
 void ADiplosimAIController::Idle()
@@ -99,10 +108,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	GetWorld()->GetTimerManager().ClearTimer(IdleTimer);
 
-	TSubclassOf<UNavigationQueryFilter> filter = DefaultNavigationFilterClass;
-
-	if (*Cast<AAI>(GetOwner())->NavQueryFilter)
-		filter = Cast<AAI>(GetOwner())->NavQueryFilter;
+	TSubclassOf<UNavigationQueryFilter> filter = Cast<AAI>(GetOwner())->NavQueryFilter;
 
 	MoveToLocation(MoveRequest.GetLocation(), 1.0f, true, true, false, true, filter, true);
 

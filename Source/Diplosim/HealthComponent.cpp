@@ -95,20 +95,21 @@ void UHealthComponent::Clear(AActor* Attacker)
 		}
 	}
 	else if (actor->IsA<AEnemy>()) {
-		ABuilding* building = nullptr;
-
 		ACitizen* citizen;
+		FString name;
 
 		if (Attacker->IsA<AProjectile>()) {
 			citizen = Cast<ACitizen>(Attacker->GetOwner());
 
-			building = citizen->Building.Employment;
+			name = citizen->Building.Employment->GetName();
 		}
 		else {
 			citizen = Cast<ACitizen>(Attacker);
+
+			name = citizen->GetName();
 		}
 
-		gamemode->WavesData.Last().SetDiedTo(citizen, building);
+		gamemode->WavesData.Last().SetDiedTo(citizen, name);
 
 		gamemode->CheckEnemiesStatus();
 	}
