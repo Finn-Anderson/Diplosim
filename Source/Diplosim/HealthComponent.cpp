@@ -36,7 +36,7 @@ void UHealthComponent::Death(AActor* Attacker)
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
 		for (TWeakObjectPtr<AActor> target : attackComp->OverlappingEnemies) {
-			if (!target->IsA<AAI>())
+			if (!target->IsValidLowLevelFast() || !target->IsA<AAI>())
 				continue;
 
 			AAI* ai = Cast<AAI>(target);

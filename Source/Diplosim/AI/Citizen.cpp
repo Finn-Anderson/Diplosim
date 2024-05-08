@@ -19,7 +19,7 @@ ACitizen::ACitizen()
 {
 	GetCapsuleComponent()->SetCapsuleSize(9.0f, 11.5f);
 
-	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
+	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -14.0f));
 	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	Balance = 20;
@@ -264,22 +264,21 @@ void ACitizen::Birthday()
 
 		int32 chance = FMath::RandRange(1, 100);
 
-		if (chance < 5) {
+		if (chance < 5)
 			HealthComponent->TakeHealth(50, this);
-		}
 	}
 
 	if (BioStruct.Age <= 18) {
 		HealthComponent->MaxHealth = 5 * BioStruct.Age + 10.0f;
 		HealthComponent->AddHealth(5);
 
-		int32 scale = (BioStruct.Age * 0.04) + 0.28;
+		float scale = (BioStruct.Age * 0.04f) + 0.28f;
 		GetMesh()->SetWorldScale3D(FVector(scale, scale, scale));
 	}
 	else if (BioStruct.Partner != nullptr)
 		HaveChild();
 
-	if (BioStruct.Age >= 18)
+	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
 		FindPartner();
 }
 

@@ -87,6 +87,9 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 
 void UAttackComponent::PickTarget()
 {
+	if (!CanAttack())
+		return;
+
 	FAttackStruct favoured;
 
 	for (TWeakObjectPtr<AActor> target : OverlappingEnemies) {
@@ -115,16 +118,14 @@ void UAttackComponent::PickTarget()
 			break;
 		}
 
-		float hp = 0.0f;
-		float dmg = 0.0f;
+		float hp = healthComp->Health;
+		float dmg = 1.0f;
 		double outLength;
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-		hp = healthComp->Health;
-
-		if (attackComp) {
+		if (attackComp && attackComp->CanAttack()) {
 			if (*attackComp->ProjectileClass) {
 				dmg = Cast<AProjectile>(attackComp->ProjectileClass->GetDefaultObject())->Damage;
 			}
@@ -132,11 +133,7 @@ void UAttackComponent::PickTarget()
 				dmg = attackComp->Damage;
 			}
 		}
-
-		if (target->IsA<ACitizen>() && Cast<ACitizen>(target)->BioStruct.Age < 18)
-			dmg = 0.0f;
-
-		if (target->IsA<AWall>())
+		else if (target->IsA<AWall>())
 			dmg = Cast<AProjectile>(Cast<AWall>(target)->BuildingProjectileClass->GetDefaultObject())->Damage;
 
 		NavData->CalcPathLength(Owner->GetActorLocation(), target->GetActorLocation(), outLength);
@@ -156,9 +153,6 @@ void UAttackComponent::PickTarget()
 			favoured.Hp = hp;
 		}
 	}
-
-	if (!CanAttack())
-		return;
 
 	if (favoured.Actor == nullptr)
 		Owner->MoveToBroch();

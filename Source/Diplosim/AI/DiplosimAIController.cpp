@@ -8,6 +8,7 @@
 #include "HealthComponent.h"
 #include "Buildings/Building.h"
 #include "Resource.h"
+#include "AttackComponent.h"
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
@@ -19,7 +20,7 @@ void ADiplosimAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (MoveRequest.GetGoalActor() != nullptr && MoveRequest.GetGoalActor()->IsValidLowLevelFast() && MoveRequest.GetGoalActor()->IsA<AAI>())
+	if (MoveRequest.GetGoalActor() != nullptr && MoveRequest.GetGoalActor()->IsValidLowLevelFast() && MoveRequest.GetGoalActor()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()))
 		AIMoveTo(MoveRequest.GetGoalActor());
 }
 
