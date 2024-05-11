@@ -51,6 +51,8 @@ ACamera::ACamera()
 	bQuick = false;
 
 	bInMenu = false;
+
+	bLost = false;
 }
 
 void ACamera::BeginPlay()
@@ -74,6 +76,8 @@ void ACamera::BeginPlay()
 	PauseUIInstance = CreateWidget<UUserWidget>(pcontroller, PauseUI);
 
 	MenuUIInstance = CreateWidget<UUserWidget>(pcontroller, MenuUI);
+
+	LostUIInstance = CreateWidget<UUserWidget>(pcontroller, LostUI);
 
 	SettingsUIInstance = CreateWidget<UUserWidget>(pcontroller, SettingsUI);
 }
@@ -112,6 +116,16 @@ void ACamera::DisplayInteract(AActor* Actor)
 	WidgetComponent->SetWorldLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, height));
 
 	WidgetComponent->SetHiddenInGame(false);
+}
+
+void ACamera::Lose()
+{
+	bLost = true;
+	bInMenu = true;
+
+	TickWhenPaused(false);
+
+	LostUIInstance->AddToViewport();
 }
 
 void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -221,6 +235,9 @@ void ACamera::Pause()
 
 void ACamera::Menu()
 {
+	if (bLost)
+		return;
+
 	if (!WidgetComponent->bHiddenInGame) {
 		WidgetComponent->SetHiddenInGame(true);
 
@@ -256,8 +273,10 @@ void ACamera::Debug()
 	if (bInMenu)
 		return;
 
-	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-	gamemode->SpawnEnemiesAsync(true);
+	Lose();
+
+	//ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	//gamemode->SpawnEnemiesAsync();
 }
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)

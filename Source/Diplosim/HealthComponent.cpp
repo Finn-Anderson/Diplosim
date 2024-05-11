@@ -6,8 +6,11 @@
 #include "AI/Enemy.h"
 #include "AI/Projectile.h"
 #include "AI/AttackComponent.h"
+#include "AI/DiplosimAIController.h"
 #include "Buildings/Building.h"
+#include "Buildings/Broch.h"
 #include "DiplosimGameModeBase.h"
+#include "Player/Camera.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -31,21 +34,17 @@ void UHealthComponent::Death(AActor* Attacker)
 {
 	AActor* actor = GetOwner();
 
-	if (actor->IsA<AAI>()) {
+	if (actor->IsA<ABroch>()) {
+		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		ACamera* camera = PController->GetPawn<ACamera>();
+
+		camera->Lose();
+	}
+	else if (actor->IsA<AAI>()) {
 		USkeletalMeshComponent* mesh = actor->GetComponentByClass<USkeletalMeshComponent>();
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
-		for (TWeakObjectPtr<AActor> target : attackComp->OverlappingEnemies) {
-			if (!target->IsValidLowLevelFast() || !target->IsA<AAI>())
-				continue;
-
-			AAI* ai = Cast<AAI>(target);
-
-			ai->AttackComponent->OverlappingEnemies.Remove(actor);
-
-			if (!GetWorld()->GetTimerManager().IsTimerActive(ai->AttackComponent->AttackTimer))
-				ai->AttackComponent->PickTarget();
-		}
+		attackComp->ClearAttacks();
 
 		mesh->SetSimulatePhysics(true);
 
@@ -70,6 +69,8 @@ void UHealthComponent::Death(AActor* Attacker)
 
 	FTimerHandle clearTimer;
 	GetWorld()->GetTimerManager().SetTimer(clearTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), 10.0f, false);
+
+	actor->SetActorTickEnabled(false);
 }
 
 void UHealthComponent::Clear(AActor* Attacker)
@@ -81,41 +82,28 @@ void UHealthComponent::Clear(AActor* Attacker)
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
-		if (citizen->Building.Employment != nullptr) {
+		if (citizen->Building.Employment != nullptr)
 			citizen->Building.Employment->RemoveCitizen(citizen);
-		}
 
-		if (citizen->Building.House != nullptr) {
+		if (citizen->Building.House != nullptr)
 			citizen->Building.House->RemoveCitizen(citizen);
-		}
 
 		if (citizen->BioStruct.Partner != nullptr) {
 			citizen->BioStruct.Partner->BioStruct.Partner = nullptr;
 			citizen->BioStruct.Partner = nullptr;
 		}
+
+		if (Attacker->IsA<AEnemy>())
+			gamemode->WavesData.Last().NumKilled++;
 	}
 	else if (actor->IsA<AEnemy>()) {
-		ACitizen* citizen;
-		FString name;
-
-		if (Attacker->IsA<AProjectile>()) {
-			citizen = Cast<ACitizen>(Attacker->GetOwner());
-
-			name = citizen->Building.Employment->GetName();
-		}
-		else {
-			citizen = Cast<ACitizen>(Attacker);
-
-			name = citizen->GetName();
-		}
-
-		gamemode->WavesData.Last().SetDiedTo(citizen, name);
+		if (Attacker->IsA<AProjectile>())
+			gamemode->WavesData.Last().SetDiedTo(Attacker->GetOwner());
+		else
+			gamemode->WavesData.Last().SetDiedTo(Attacker);
 
 		gamemode->CheckEnemiesStatus();
 	}
-
-	if (Attacker->IsA<AEnemy>())
-		gamemode->WavesData.Last().NumKilled++;
 
 	actor->Destroy();
 }

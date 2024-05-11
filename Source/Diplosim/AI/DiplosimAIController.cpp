@@ -2,11 +2,13 @@
 
 #include "Navigation/CrowdFollowingComponent.h"
 #include "NavigationSystem.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "AI.h"
 #include "Citizen.h"
 #include "HealthComponent.h"
 #include "Buildings/Building.h"
+#include "Buildings/Broch.h"
 #include "Resource.h"
 #include "AttackComponent.h"
 
@@ -20,8 +22,11 @@ void ADiplosimAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (MoveRequest.GetGoalActor() != nullptr && MoveRequest.GetGoalActor()->IsValidLowLevelFast() && MoveRequest.GetGoalActor()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()))
-		AIMoveTo(MoveRequest.GetGoalActor());
+	if (MoveRequest.GetGoalActor() == nullptr || !MoveRequest.GetGoalActor()->IsValidLowLevelFast())
+		return;
+
+	if (MoveRequest.GetGoalActor()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()))
+		MoveToActor(MoveRequest.GetGoalActor());
 }
 
 void ADiplosimAIController::Idle()
@@ -33,7 +38,10 @@ void ADiplosimAIController::Idle()
 
 	FNavLocation location;
 
-	nav->GetRandomPointInNavigableRadius(GetOwner()->GetActorLocation(), 500, location);
+	TArray<AActor*> brochs;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
+
+	nav->GetRandomPointInNavigableRadius(brochs[0]->GetActorLocation(), 1000, location);
 
 	MoveToLocation(location);
 
@@ -102,10 +110,12 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);
 
-	UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+	if (Actor->IsA<ABuilding>()) {
+		UStaticMeshComponent* comp = Actor->GetComponentByClass<UStaticMeshComponent>();
 
-	if (comp && comp->DoesSocketExist("Entrance"))
-		MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
+		if (comp && comp->DoesSocketExist("Entrance"))
+			MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
+	}
 
 	GetWorld()->GetTimerManager().ClearTimer(IdleTimer);
 
@@ -114,8 +124,6 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	MoveToLocation(MoveRequest.GetLocation(), 1.0f, true, true, false, true, filter, true);
 
 	SetFocus(Actor);
-
-	SaveToFile();
 
 	if (!GetOwner()->IsA<ACitizen>() || Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor)
 		return;
@@ -150,14 +158,4 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 		return;
 
 	AIMoveTo(Actor);
-}
-
-void ADiplosimAIController::SaveToFile()
-{
-	// Saving movement data to file for dissertation
-	FString filePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()) + TEXT("/MovementLog.txt");
-
-	FString line = GetOwner()->GetName() + " " + GetOwner()->GetActorLocation().ToString() + ", " + MoveRequest.GetGoalActor()->GetName() + " " + MoveRequest.GetLocation().ToString() + ", " + FDateTime::Now().ToString() + "\n";
-
-	FFileHelper::SaveStringToFile(line, *filePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), EFileWrite::FILEWRITE_Append);
 }

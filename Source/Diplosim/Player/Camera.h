@@ -68,6 +68,12 @@ public:
 		class UUserWidget* MenuUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> LostUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* LostUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> SettingsUI;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
@@ -76,12 +82,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;
 
+	bool bInMenu;
+
+	bool bLost;
+
 	void TickWhenPaused(bool bTickWhenPaused);
 
 	UFUNCTION(BlueprintCallable)
 		void DisplayInteract(AActor* Actor);
 
-	bool bInMenu;
+	void Lose();
 
 	// Inputs
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")

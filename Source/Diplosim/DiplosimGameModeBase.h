@@ -11,20 +11,17 @@ struct FDiedToStruct
 
 	TWeakObjectPtr<AActor> Actor;
 
-	FString Name;
-
 	int32 Kills;
 
 	FDiedToStruct()
 	{
 		Actor = nullptr;
-		Name = "";
 		Kills = 0;
 	}
 
 	bool operator==(const FDiedToStruct& other) const
 	{
-		return (other.Actor == Actor) && (other.Name == Name);
+		return (other.Actor == Actor);
 	}
 };
 
@@ -35,15 +32,9 @@ struct FThreatsStruct
 
 	TWeakObjectPtr<class ACitizen> Citizen;
 
-	FString EmploymentName;
-
-	FVector Location;
-
 	FThreatsStruct()
 	{
 		Citizen = nullptr;
-		EmploymentName = "";
-		Location = FVector::Zero();
 	}
 
 	bool operator==(const FThreatsStruct& other) const
@@ -67,22 +58,27 @@ struct FWaveStruct
 
 	int32 NumKilled;
 
+	int32 TotalEnemies;
+
+	int32 DeferredEnemies;
+
 	FWaveStruct()
 	{
 		SpawnLocation = FVector(0.0f, 0.0f, 0.0f);
 		DiedTo = {};
+		Threats = {};
 		NumSpawned = 0;
 		NumKilled = 0;
-		Threats = {};
+		TotalEnemies = 0;
+		DeferredEnemies = 0;
 	}
 
-	void SetDiedTo(ACitizen* Attacker, FString Name)
+	void SetDiedTo(AActor* Attacker)
 	{
 		AActor* actor = Attacker;
 
 		FDiedToStruct diedTo;
 		diedTo.Actor = actor;
-		diedTo.Name = Name;
 		diedTo.Kills = 1;
 
 		if (DiedTo.Contains(diedTo)) {
@@ -124,19 +120,15 @@ public:
 
 	void FindSpawnsInArea(int32 Z, struct FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration);
 
-	void SpawnEnemies(bool bSpawnTrails);
+	void SpawnEnemies();
 
-	void SpawnAtValidLocation(bool bSpawnTrails);
+	void SpawnAtValidLocation();
 
-	void SpawnEnemiesAsync(bool bSpawnTrails);
+	void SpawnEnemiesAsync();
 
 	bool CheckEnemiesStatus();
 
-	int32 GetRandomTime();
-
 	void SetWaveTimer();
-
-	void SaveToFile();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		TSubclassOf<class AEnemy> EnemyClass;
@@ -146,9 +138,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		int32 latestSpawnTime;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
-		class UNiagaraSystem* TrailSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class UNavAreaBase> NavAreaThreat;
@@ -168,8 +157,4 @@ public:
 	class AGrid* Grid;
 
 	TArray<FVector> LastLocation;
-
-	int32 TotalEnemies;
-
-	int32 DeferredEnemies;
 };

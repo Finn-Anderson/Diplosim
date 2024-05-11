@@ -74,8 +74,6 @@ void ADiplosimGameModeBase::EvaluateThreats()
 
 		FThreatsStruct threatStruct;
 		threatStruct.Citizen = citizen;
-		threatStruct.EmploymentName = citizen->Building.Employment->GetName();
-		threatStruct.Location = citizen->Building.Employment->GetActorLocation();
 
 		WavesData.Last().Threats.Add(threatStruct);
 
@@ -85,24 +83,6 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		if (chance > 15)
 			continue;
 
-		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(true);
-	}
-
-	// THIS SECTION OF CODE IS FOR TESTING. THE ABOVE CODE IS THE PRODUCTION CODE
-	for (AActor* actor : Citizens) {
-		ACitizen* citizen = Cast<ACitizen>(actor);
-
-		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AWall>())
-			continue;
-
-		FThreatsStruct threatStruct;
-		threatStruct.Citizen = citizen;
-		threatStruct.EmploymentName = citizen->Building.Employment->GetName();
-		threatStruct.Location = citizen->Building.Employment->GetActorLocation();
-
-		WavesData.Last().Threats.Add(threatStruct);
-
-		// CODE FOR TESTING AVOIDANCE. REMOVE TO TEST TARGETING.
 		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(true);
 	}
 }
@@ -187,10 +167,6 @@ void ADiplosimGameModeBase::PickSpawnPoints()
 
 	auto index = Async(EAsyncExecution::TaskGraph, [validTiles]() { return FMath::RandRange(0, validTiles.Num() - 1); });
 
-	FWaveStruct waveStruct;
-
-	WavesData.Add(waveStruct);
-
 	WavesData.Last().SpawnLocation = validTiles[index.Get()];
 
 	FTileStruct* chosenTile = &Grid->Storage[validTiles[index.Get()].X / 100 + Grid->Storage.Num() / 2][validTiles[index.Get()].Y / 100 + Grid->Storage.Num() / 2];
@@ -224,11 +200,13 @@ void ADiplosimGameModeBase::FindSpawnsInArea(int32 Z, FTileStruct* Tile, FVector
 	}
 }
 
-void ADiplosimGameModeBase::SpawnEnemies(bool bSpawnTrails)
+void ADiplosimGameModeBase::SpawnEnemies()
 {
-	SpawnLocations.Empty();
+	FWaveStruct waveStruct;
 
-	TotalEnemies = 0;
+	WavesData.Add(waveStruct);
+
+	SpawnLocations.Empty();
 
 	for (AActor* actor : Citizens) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
@@ -236,22 +214,24 @@ void ADiplosimGameModeBase::SpawnEnemies(bool bSpawnTrails)
 		if (citizen->BioStruct.Age < 18)
 			continue;
 
-		TotalEnemies++;
+		WavesData.Last().TotalEnemies++;
 	}
 
-	TotalEnemies /= 3;
+	WavesData.Last().TotalEnemies /= 3;
 
-	int32 num = TotalEnemies;
+	int32 num = WavesData.Last().TotalEnemies;
 	int32 max = UDiplosimUserSettings::GetDiplosimUserSettings()->GetMaxEnemies();
 		
-	if (TotalEnemies > max) {
+	if (num > max) {
+		WavesData.Last().DeferredEnemies = num - max;
 		num = max;
-		DeferredEnemies = TotalEnemies - num;
 	}
 
 	PickSpawnPoints();
 
 	if (SpawnLocations.IsEmpty()) {
+		WavesData.Remove(WavesData.Last());
+
 		AsyncTask(ENamedThreads::GameThread, [this]() { SetWaveTimer(); });
 
 		return;
@@ -261,15 +241,15 @@ void ADiplosimGameModeBase::SpawnEnemies(bool bSpawnTrails)
 
 	LastLocation.Empty();
 
-	AsyncTask(ENamedThreads::GameThread, [this, num, bSpawnTrails]() {
+	AsyncTask(ENamedThreads::GameThread, [this, num]() {
 		for (int32 i = 0; i < num; i++) {
 			FTimerHandle locationTimer;
-			GetWorld()->GetTimerManager().SetTimer(locationTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, bSpawnTrails), 0.1f, false);
+			GetWorld()->GetTimerManager().SetTimer(locationTimer, this, &ADiplosimGameModeBase::SpawnAtValidLocation, 0.1f, false);
 		}
 	});
 }
 
-void ADiplosimGameModeBase::SpawnEnemiesAsync(bool bSpawnTrails)
+void ADiplosimGameModeBase::SpawnEnemiesAsync()
 {
 	if (!CheckEnemiesStatus())
 		return;
@@ -278,15 +258,15 @@ void ADiplosimGameModeBase::SpawnEnemiesAsync(bool bSpawnTrails)
 	
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), Citizens);
 
-	Async(EAsyncExecution::Thread, [this, bSpawnTrails]() { SpawnEnemies(bSpawnTrails); });
+	Async(EAsyncExecution::Thread, [this]() { SpawnEnemies(); });
 }
 
-void ADiplosimGameModeBase::SpawnAtValidLocation(bool bSpawnTrails)
+void ADiplosimGameModeBase::SpawnAtValidLocation()
 {
 	int32 index = FMath::RandRange(0, SpawnLocations.Num() - 1);
 
 	if (LastLocation.Contains(SpawnLocations[index])) {
-		SpawnAtValidLocation(bSpawnTrails);
+		SpawnAtValidLocation();
 		
 		return;
 	}
@@ -298,16 +278,6 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(bool bSpawnTrails)
 
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, SpawnLocations[index], FRotator(0, 0, 0));
 
-	if (bSpawnTrails) {
-		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailSystem, enemy->GetMesh(), NAME_None, FVector(0.0f), FRotator(0.0f), EAttachLocation::KeepRelativeOffset, true);
-
-		float r = FMath::FRandRange(0.0f, 1.0f);
-		float g = FMath::FRandRange(0.0f, 1.0f);
-		float b = FMath::FRandRange(0.0f, 1.0f);
-
-		NiagaraComp->SetVariableLinearColor(TEXT("Color"), FLinearColor(r, g, b));
-	}
-
 	enemy->MoveToBroch();
 
 	WavesData.Last().NumSpawned++;
@@ -315,16 +285,23 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(bool bSpawnTrails)
 
 bool ADiplosimGameModeBase::CheckEnemiesStatus()
 {
-	if (DeferredEnemies > 0) {
-		SpawnAtValidLocation(false);
+	if (!WavesData.IsEmpty()) {
+		if (WavesData.Last().DeferredEnemies > 0) {
+			SpawnAtValidLocation();
 
-		DeferredEnemies--;
+			WavesData.Last().DeferredEnemies--;
 
-		return false;
+			return false;
+		}
+
+		int32 tally = 0;
+
+		for (FDiedToStruct death : WavesData.Last().DiedTo)
+			tally += death.Kills; 
+
+		if (tally != WavesData.Last().TotalEnemies)
+			return false;
 	}
-
-	if (!WavesData.IsEmpty() && WavesData.Last().DiedTo.Num() != TotalEnemies)
-		return false;
 
 	if (!GetWorld()->GetTimerManager().IsTimerActive(WaveTimer))
 		SetWaveTimer();
@@ -332,13 +309,6 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 		GetWorld()->GetTimerManager().ClearTimer(WaveTimer);
 
 	return true;
-}
-
-int32 ADiplosimGameModeBase::GetRandomTime()
-{
-	int32 time = FMath::RandRange(earliestSpawnTime, latestSpawnTime);
-
-	return time;
 }
 
 void ADiplosimGameModeBase::SetWaveTimer()
@@ -352,52 +322,7 @@ void ADiplosimGameModeBase::SetWaveTimer()
 		}
 	}
 
-	int32 time = GetRandomTime();
+	int32 time = FMath::RandRange(earliestSpawnTime, latestSpawnTime);
 
-	GetWorld()->GetTimerManager().SetTimer(WaveTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnEnemiesAsync, false), time, false);
-
-	SaveToFile();
-}
-
-void ADiplosimGameModeBase::SaveToFile()
-{
-	// Saving wave data to file for dissertation
-	if (WavesData.IsEmpty())
-		return;
-
-	FString filePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()) + TEXT("/WaveLog.txt");
-
-	FString fileContent;
-
-	for (FWaveStruct wave : WavesData) {
-		int32 index = 0;
-		WavesData.Find(wave, index);
-		index++;
-
-		FString waveNum = FString::FromInt(index);
-
-		fileContent += "Wave " + waveNum + " \n \n";
-
-		fileContent += "Spawn location \n" + wave.SpawnLocation.ToString() + " \n \n";
-
-		fileContent += "Number of spawned enemies \n" + FString::FromInt(wave.NumSpawned) + " \n \n";
-
-		fileContent += "Number of enemy kills \n" + FString::FromInt(wave.NumKilled) + " \n \n";
-
-		fileContent += "Number that died to an actor \n";
-
-		for (FDiedToStruct diedTo : wave.DiedTo) {
-			fileContent += diedTo.Name + ": " + FString::FromInt(diedTo.Kills) + "\n";
-		}
-
-		fileContent += "Threat location(s) \n";
-
-		for (FThreatsStruct threatStruct : WavesData.Last().Threats) {
-			fileContent += threatStruct.EmploymentName + ": " + threatStruct.Location.ToString() + "\n";
-		}
-
-		fileContent += "\n \n";
-	}
-
-	FFileHelper::SaveStringToFile(fileContent, *filePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get());
+	GetWorld()->GetTimerManager().SetTimer(WaveTimer, this, &ADiplosimGameModeBase::SpawnEnemiesAsync, time, false);
 }

@@ -53,6 +53,10 @@ public:
 
 	bool CanAttack();
 
+	void ClearTimer();
+
+	void ClearAttacks();
+
 	TArray<TWeakObjectPtr<AActor>> OverlappingEnemies;
 
 	TArray<TWeakObjectPtr<AActor>> MeleeableEnemies;

@@ -51,9 +51,7 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
-
-	if (healthComp->GetHealth() == 0 || !CanAttack() || (!*ProjectileClass && !Owner->AIController->CanMoveTo(OtherActor->GetActorLocation())))
+	if (!CanAttack() || (!*ProjectileClass && !Owner->AIController->CanMoveTo(OtherActor->GetActorLocation())))
 		return;
 
 	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
@@ -65,7 +63,7 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 		break;
 	}
 
-	if (GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) || OverlappingEnemies.IsEmpty())
+	if (!OverlappingEnemies.Contains(OtherActor))
 		return;
 
 	PickTarget();
@@ -122,6 +120,12 @@ void UAttackComponent::PickTarget()
 		float dmg = 1.0f;
 		double outLength;
 
+		if (hp == 0) {
+			OverlappingEnemies.Remove(target);
+
+			continue;
+		}
+
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
@@ -157,7 +161,7 @@ void UAttackComponent::PickTarget()
 	if (favoured.Actor == nullptr)
 		Owner->MoveToBroch();
 
-	if (*ProjectileClass || MeleeableEnemies.Contains(favoured.Actor))
+	if (!GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) && (*ProjectileClass || MeleeableEnemies.Contains(favoured.Actor)))
 		Attack(favoured.Actor);
 	else
 		Owner->AIController->AIMoveTo(favoured.Actor);
@@ -198,7 +202,7 @@ void UAttackComponent::Attack(AActor* Target)
 	if (Owner->IsA<ACitizen>())
 		time *= FMath::LogX(100.0f, FMath::Clamp(Cast<ACitizen>(Owner)->Energy, 2, 100));
 
-	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::PickTarget, time, false);
+	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::ClearTimer, time, false);
 }
 
 void UAttackComponent::Throw(AActor* Target)
@@ -250,4 +254,28 @@ void UAttackComponent::Throw(AActor* Target)
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 	projectile->Owner = Owner;
+}
+
+void UAttackComponent::ClearTimer()
+{
+	GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
+
+	PickTarget();
+}
+
+void UAttackComponent::ClearAttacks()
+{
+	for (TWeakObjectPtr<AActor> target : OverlappingEnemies) {
+		if (!target->IsValidLowLevelFast() || !target->IsA<AAI>())
+			continue;
+
+		AAI* ai = Cast<AAI>(target);
+
+		ai->AttackComponent->OverlappingEnemies.Remove(Owner);
+		ai->AttackComponent->MeleeableEnemies.Remove(Owner);
+
+		ai->AttackComponent->PickTarget();
+	}
+
+	GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
 }
