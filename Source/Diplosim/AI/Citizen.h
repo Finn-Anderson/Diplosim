@@ -47,20 +47,25 @@ enum class ESex : uint8
 	Female
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FBioStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	TWeakObjectPtr<class ACitizen> Mother;
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		TWeakObjectPtr<class ACitizen> Mother;
 
-	TWeakObjectPtr<class ACitizen> Father;
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		TWeakObjectPtr<class ACitizen> Father;
 
-	TWeakObjectPtr<class ACitizen> Partner;
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		TWeakObjectPtr<class ACitizen> Partner;
 
-	ESex Sex;
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		ESex Sex;
 
-	int32 Age;
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		int32 Age;
 
 	FBioStruct()
 	{
@@ -168,7 +173,8 @@ public:
 
 	void HaveChild();
 
-	FBioStruct BioStruct;
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		FBioStruct BioStruct;
 
 	FTimerHandle ChildTimer;
 };

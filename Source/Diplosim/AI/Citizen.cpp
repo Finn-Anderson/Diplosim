@@ -42,7 +42,7 @@ void ACitizen::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(HungerTimer, this, &ACitizen::Eat, 3.0f, true);
 
 	FTimerHandle ageTimer;
-	GetWorld()->GetTimerManager().SetTimer(ageTimer, this, &ACitizen::Birthday, 20.0f, false);
+	GetWorld()->GetTimerManager().SetTimer(ageTimer, this, &ACitizen::Birthday, 45.0f, false);
 
 	SetSex();
 
