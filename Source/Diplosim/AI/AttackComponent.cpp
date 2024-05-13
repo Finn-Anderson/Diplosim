@@ -158,8 +158,13 @@ void UAttackComponent::PickTarget()
 		}
 	}
 
-	if (favoured.Actor == nullptr)
-		Owner->MoveToBroch();
+	if (favoured.Actor == nullptr) {
+		Owner->AIController->DefaultAction();
+
+		GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
+
+		return;
+	}
 
 	if (!GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) && (*ProjectileClass || MeleeableEnemies.Contains(favoured.Actor)))
 		Attack(favoured.Actor);

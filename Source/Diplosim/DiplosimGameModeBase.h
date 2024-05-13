@@ -118,7 +118,7 @@ public:
 
 	void PickSpawnPoints();
 
-	void FindSpawnsInArea(int32 Z, struct FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration);
+	void FindSpawnsInArea(struct FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration);
 
 	void SpawnEnemies();
 

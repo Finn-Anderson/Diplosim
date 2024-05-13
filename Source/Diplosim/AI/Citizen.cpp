@@ -45,6 +45,7 @@ void ACitizen::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(ageTimer, this, &ACitizen::Birthday, 45.0f, false);
 
 	SetSex();
+	SetName();
 
 	float r = FMath::FRandRange(0.0f, 1.0f);
 	float g = FMath::FRandRange(0.0f, 1.0f);
@@ -317,6 +318,23 @@ void ACitizen::SetSex()
 	else {
 		BioStruct.Sex = ESex::Female;
 	}
+}
+
+void ACitizen::SetName()
+{
+	FString names;
+		
+	if (BioStruct.Sex == ESex::Male)
+		FFileHelper::LoadFileToString(names, *(FPaths::ProjectDir() + "/Custom/Citizen/MaleNames.txt"));
+	else
+		FFileHelper::LoadFileToString(names, *(FPaths::ProjectDir() + "/Custom/Citizen/FemaleNames.txt"));
+
+	TArray<FString> parsed;
+	names.ParseIntoArray(parsed, TEXT(","));
+
+	int32 index = FMath::RandRange(0, parsed.Num() - 1);
+
+	BioStruct.Name = parsed[index];
 }
 
 void ACitizen::FindPartner()

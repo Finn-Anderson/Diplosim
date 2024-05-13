@@ -68,6 +68,8 @@ public:
 
 	void Tick(float DeltaTime) override;
 
+	void DefaultAction();
+
 	void Idle();
 
 	double GetClosestActor(FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, int32 CurrentValue = 1, int32 NewValue = 1);
@@ -81,4 +83,6 @@ public:
 	FMoveStruct MoveRequest;
 
 	FTimerHandle IdleTimer;
+
+	AActor* PrevGoal;
 };

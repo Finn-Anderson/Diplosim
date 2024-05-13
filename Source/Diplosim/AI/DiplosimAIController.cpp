@@ -16,6 +16,8 @@ ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectIni
 {
 	PrimaryActorTick.bCanEverTick = true;
 	SetActorTickInterval(0.4f);
+
+	PrevGoal = nullptr;
 }
 
 void ADiplosimAIController::Tick(float DeltaTime)
@@ -29,10 +31,25 @@ void ADiplosimAIController::Tick(float DeltaTime)
 		MoveToActor(MoveRequest.GetGoalActor());
 }
 
+void ADiplosimAIController::DefaultAction()
+{
+	if (MoveRequest.GetGoalActor() == PrevGoal)
+		return;
+
+	MoveRequest.SetGoalActor(nullptr);
+
+	if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast())
+		Idle();
+	else
+		AIMoveTo(PrevGoal);
+}
+
 void ADiplosimAIController::Idle()
 {
 	if (!GetOwner()->IsValidLowLevelFast())
 		return;
+
+	PrevGoal = nullptr;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
@@ -106,6 +123,9 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	if (!CanMoveTo(transform.GetLocation()))
 		return;
+
+	if (Actor->IsA<AAI>() && (MoveRequest.GetGoalActor() == nullptr || !MoveRequest.GetGoalActor()->IsA<AAI>()))
+		PrevGoal = MoveRequest.GetGoalActor();
 
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);

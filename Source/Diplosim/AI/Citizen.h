@@ -67,6 +67,9 @@ struct FBioStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		int32 Age;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		FString Name;
+
 	FBioStruct()
 	{
 		Mother = nullptr;
@@ -74,6 +77,7 @@ struct FBioStruct
 		Partner = nullptr;
 		Sex = ESex::NaN;
 		Age = 0;
+		Name = "Citizen";
 	}
 };
 
@@ -166,6 +170,8 @@ public:
 	void Birthday();
 
 	void SetSex();
+
+	void SetName();
 
 	void FindPartner();
 

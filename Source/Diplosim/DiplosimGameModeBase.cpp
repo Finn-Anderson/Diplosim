@@ -4,8 +4,6 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "NavigationSystem.h"
-#include "Misc/FileHelper.h"
-#include "Misc/Paths.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "DiplosimUserSettings.h"
@@ -95,10 +93,10 @@ bool ADiplosimGameModeBase::PathToBuilding(FVector Location, UNavigationSystemV1
 		return false;
 
 	for (AActor* actor : Buildings) {
-		FVector loc = actor->GetActorLocation();
-		loc.Y -= Cast<ABuilding>(actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Y / 2;
+		FNavLocation loc;
+		Nav->ProjectPointToNavigation(actor->GetActorLocation(), loc, FVector(200.0f, 200.0f, 10.0f));
 
-		FPathFindingQuery query(NULL, *NavData, Location, loc);
+		FPathFindingQuery query(NULL, *NavData, Location, loc.Location);
 
 		bool path = Nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
@@ -115,8 +113,6 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints()
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
-
-	float z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
 
 	for (TArray<FTileStruct>& row : Grid->Storage) {
 		for (FTileStruct& tile : row) {
@@ -140,23 +136,11 @@ void ADiplosimGameModeBase::PickSpawnPoints()
 	TArray<FVector> validTiles;
 	TArray<FVector> chosenLocations;
 
-	int32 num = -1;
+	if (WavesData.Num() >= 2) {
+		FWaveStruct wave = WavesData[WavesData.Num() - 2];
 
-	if (WavesData.Num() > 5)
-		num = WavesData.Num() - 6;
-
-	for (int32 i = WavesData.Num() - 1; i > num; i--) {
-		FWaveStruct wave = WavesData[i];
-
-		if (wave == WavesData.Last())
-			continue;
-
-		if (wave.DiedTo.Num() * 0.66f > wave.NumKilled) {
-			validTiles.RemoveSingle(wave.SpawnLocation);
-		}
-		else {
-			validTiles.Add(wave.SpawnLocation);
-		}
+		if (wave.DiedTo.Num() * 0.66f < wave.NumKilled)
+			return;
 	}
 
 	if (validTiles.IsEmpty())
@@ -165,18 +149,18 @@ void ADiplosimGameModeBase::PickSpawnPoints()
 	if (validTiles.IsEmpty())
 		return;
 
+	SpawnLocations.Empty();
+
 	auto index = Async(EAsyncExecution::TaskGraph, [validTiles]() { return FMath::RandRange(0, validTiles.Num() - 1); });
 
 	WavesData.Last().SpawnLocation = validTiles[index.Get()];
 
 	FTileStruct* chosenTile = &Grid->Storage[validTiles[index.Get()].X / 100 + Grid->Storage.Num() / 2][validTiles[index.Get()].Y / 100 + Grid->Storage.Num() / 2];
 
-	int32 z = Grid->HISMGround->GetStaticMesh()->GetBoundingBox().GetSize().Z;
-
-	FindSpawnsInArea(z, chosenTile, WavesData.Last().SpawnLocation, validTiles, 0);
+	FindSpawnsInArea(chosenTile, WavesData.Last().SpawnLocation, validTiles, 0);
 }
 
-void ADiplosimGameModeBase::FindSpawnsInArea(int32 Z, FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration)
+void ADiplosimGameModeBase::FindSpawnsInArea(FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration)
 {
 	SpawnLocations.Add(TileLocation);
 
@@ -196,7 +180,7 @@ void ADiplosimGameModeBase::FindSpawnsInArea(int32 Z, FTileStruct* Tile, FVector
 		if (SpawnLocations.Contains(loc) || !ValidTiles.Contains(loc))
 			continue;
 
-		FindSpawnsInArea(Z, t, loc, ValidTiles, Iteration);
+		FindSpawnsInArea(t, loc, ValidTiles, Iteration);
 	}
 }
 
@@ -206,7 +190,17 @@ void ADiplosimGameModeBase::SpawnEnemies()
 
 	WavesData.Add(waveStruct);
 
-	SpawnLocations.Empty();
+	PickSpawnPoints();
+
+	if (SpawnLocations.IsEmpty()) {
+		WavesData.Remove(WavesData.Last());
+
+		AsyncTask(ENamedThreads::GameThread, [this]() { SetWaveTimer(); });
+
+		return;
+	}
+
+	EvaluateThreats();
 
 	for (AActor* actor : Citizens) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
@@ -226,18 +220,6 @@ void ADiplosimGameModeBase::SpawnEnemies()
 		WavesData.Last().DeferredEnemies = num - max;
 		num = max;
 	}
-
-	PickSpawnPoints();
-
-	if (SpawnLocations.IsEmpty()) {
-		WavesData.Remove(WavesData.Last());
-
-		AsyncTask(ENamedThreads::GameThread, [this]() { SetWaveTimer(); });
-
-		return;
-	}
-
-	EvaluateThreats();
 
 	LastLocation.Empty();
 
