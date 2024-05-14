@@ -33,6 +33,8 @@ UAttackComponent::UAttackComponent()
 
 	Damage = 10;
 	TimeToAttack = 2.0f;
+
+	CanAttack = ECanAttack::Valid;
 }
 
 void UAttackComponent::BeginPlay()
@@ -41,9 +43,12 @@ void UAttackComponent::BeginPlay()
 
 	Owner = Cast<AAI>(GetOwner());
 
-	if (GetOwner()->IsA<ACitizen>()) {
+	if (Owner->IsA<ACitizen>()) {
 		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 		RangeComponent->SetAreaClassOverride(gamemode->NavAreaThreat);
+
+		if (!Cast<ACitizen>(Owner)->CanWork())
+			CanAttack = ECanAttack::Invalid;
 	}
 
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
@@ -51,7 +56,7 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!CanAttack() || (!*ProjectileClass && !Owner->AIController->CanMoveTo(OtherActor->GetActorLocation())))
+	if (CanAttack == ECanAttack::Invalid || (!*ProjectileClass && !Owner->AIController->CanMoveTo(OtherActor->GetActorLocation())))
 		return;
 
 	for (TSubclassOf<AActor> enemyClass : EnemyClasses) {
@@ -66,7 +71,7 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 	if (!OverlappingEnemies.Contains(OtherActor))
 		return;
 
-	PickTarget();
+	Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
 }
 
 void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -85,8 +90,13 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 
 void UAttackComponent::PickTarget()
 {
-	if (!CanAttack())
+	UHealthComponent* ownerHP = Owner->GetComponentByClass<UHealthComponent>();
+
+	if (ownerHP->Health == 0) {
+		CanAttack = ECanAttack::Invalid;
+
 		return;
+	}
 
 	FAttackStruct favoured;
 
@@ -129,7 +139,7 @@ void UAttackComponent::PickTarget()
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-		if (attackComp && attackComp->CanAttack()) {
+		if (attackComp && attackComp->CanAttack != ECanAttack::Invalid) {
 			if (*attackComp->ProjectileClass) {
 				dmg = Cast<AProjectile>(attackComp->ProjectileClass->GetDefaultObject())->Damage;
 			}
@@ -159,34 +169,29 @@ void UAttackComponent::PickTarget()
 	}
 
 	if (favoured.Actor == nullptr) {
-		Owner->AIController->DefaultAction();
+		AsyncTask(ENamedThreads::GameThread, [this]() {
+			Owner->AIController->DefaultAction();
 
-		GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
+			GetWorld()->GetTimerManager().ClearTimer(AttackTimer); 
+		});
 
 		return;
 	}
 
-	if (!GetWorld()->GetTimerManager().IsTimerActive(AttackTimer) && (*ProjectileClass || MeleeableEnemies.Contains(favoured.Actor)))
+	if (CanAttack == ECanAttack::Valid && (*ProjectileClass || MeleeableEnemies.Contains(favoured.Actor)))
 		Attack(favoured.Actor);
 	else
-		Owner->AIController->AIMoveTo(favoured.Actor);
+		AsyncTask(ENamedThreads::GameThread, [this, favoured]() { Owner->AIController->AIMoveTo(favoured.Actor); });
 }
 
 void UAttackComponent::CanHit(AActor* Target)
 {
+	if (Owner->IsA<ACitizen>() && !Cast<ACitizen>(Owner)->CanWork())
+		return;
+
 	MeleeableEnemies.Add(Target);
 
-	PickTarget();
-}
-
-bool UAttackComponent::CanAttack()
-{
-	UHealthComponent* healthComp = Owner->GetComponentByClass<UHealthComponent>();
-
-	if (healthComp->Health == 0 || (Owner->IsA<ACitizen>() && Cast<ACitizen>(Owner)->BioStruct.Age < 18))
-		return false;
-
-	return true;
+	Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
 }
 
 void UAttackComponent::Attack(AActor* Target)
@@ -199,7 +204,7 @@ void UAttackComponent::Attack(AActor* Target)
 	else {
 		UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
 
-		healthComp->TakeHealth(Damage, Owner);
+		AsyncTask(ENamedThreads::GameThread, [this, healthComp]() { healthComp->TakeHealth(Damage, Owner); });
 	}
 
 	float time = TimeToAttack;
@@ -207,7 +212,9 @@ void UAttackComponent::Attack(AActor* Target)
 	if (Owner->IsA<ACitizen>())
 		time *= FMath::LogX(100.0f, FMath::Clamp(Cast<ACitizen>(Owner)->Energy, 2, 100));
 
-	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::ClearTimer, time, false);
+	CanAttack = ECanAttack::Timer;
+
+	AsyncTask(ENamedThreads::GameThread, [this, time]() { GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::ClearTimer, time, false); });
 }
 
 void UAttackComponent::Throw(AActor* Target)
@@ -265,7 +272,9 @@ void UAttackComponent::ClearTimer()
 {
 	GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
 
-	PickTarget();
+	CanAttack = ECanAttack::Valid;
+
+	Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
 }
 
 void UAttackComponent::ClearAttacks()
@@ -282,5 +291,5 @@ void UAttackComponent::ClearAttacks()
 		ai->AttackComponent->PickTarget();
 	}
 
-	GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
+	AsyncTask(ENamedThreads::GameThread, [this]() { GetWorld()->GetTimerManager().ClearTimer(AttackTimer); });
 }

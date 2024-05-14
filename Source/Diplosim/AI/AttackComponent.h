@@ -23,6 +23,14 @@ struct FAttackStruct
 	}
 };
 
+UENUM()
+enum class ECanAttack : uint8
+{
+	Invalid,
+	Timer,
+	Valid
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UAttackComponent : public UActorComponent
 {
@@ -51,8 +59,6 @@ public:
 
 	void Throw(AActor* Target);
 
-	bool CanAttack();
-
 	void ClearTimer();
 
 	void ClearAttacks();
@@ -77,6 +83,8 @@ public:
 		TArray<TSubclassOf<class AActor>> EnemyClasses;
 
 	FTimerHandle AttackTimer;
+
+	ECanAttack CanAttack;
 
 	AAI* Owner;
 };

@@ -118,7 +118,9 @@ public:
 		
 	virtual void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
-	// Money
+	// Work
+	bool CanWork();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		int32 Balance;
 

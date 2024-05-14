@@ -105,6 +105,17 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 }
 
 //
+// Work
+//
+bool ACitizen::CanWork()
+{
+	if (BioStruct.Age < 18)
+		return false;
+
+	return true;
+}
+
+//
 // Food
 //
 void ACitizen::Eat()
@@ -281,6 +292,9 @@ void ACitizen::Birthday()
 
 	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
 		FindPartner();
+
+	if (BioStruct.Age == 18)
+		AttackComponent->CanAttack = ECanAttack::Valid;
 }
 
 void ACitizen::SetSex()
