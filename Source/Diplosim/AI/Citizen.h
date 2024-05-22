@@ -20,14 +20,16 @@ struct FCarryStruct
 	}
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FBuildingStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	class ABuilding* House;
+	UPROPERTY(BlueprintReadOnly, Category = "Building")
+		class ABuilding* House;
 
-	class ABuilding* Employment;
+	UPROPERTY(BlueprintReadOnly, Category = "Building")
+		class ABuilding* Employment;
 
 	class ABuilding* BuildingAt;
 
@@ -126,7 +128,8 @@ public:
 
 
 	// Buildings
-	FBuildingStruct Building;
+	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
+		FBuildingStruct Building;
 
 	TArray<FCollidingStruct> StillColliding;
 

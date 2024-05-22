@@ -195,6 +195,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		int32 Capacity;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
+		int32 MaxCapacity;
+
+	UFUNCTION(BlueprintCallable)
+		void AddCapacity();
+
+	UFUNCTION(BlueprintCallable)
+		void RemoveCapacity();
+
 	int32 GetCapacity();
 
 	TArray<class ACitizen*> GetOccupied();

@@ -349,9 +349,12 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	if (!Occupied.Contains(Citizen))
 		return false;
 
-	Leave(Citizen);
+	if (Citizen->Building.BuildingAt == this)
+		Leave(Citizen);
 
 	Occupied.Remove(Citizen);
+
+	Citizen->AIController->DefaultAction();
 
 	return true;
 }
@@ -557,6 +560,29 @@ void ABuilding::Leave(ACitizen* Citizen)
 bool ABuilding::CheckInstant()
 {
 	return bInstantConstruction;
+}
+
+void ABuilding::AddCapacity()
+{
+	if (Capacity == MaxCapacity)
+		return;
+
+	Capacity++;
+
+	FindCitizens();
+}
+
+void ABuilding::RemoveCapacity()
+{
+	if (Capacity == 0)
+		return;
+
+	Capacity--;
+
+	if (GetOccupied().Num() <= GetCapacity())
+		return;
+
+	RemoveCitizen(GetOccupied().Last());
 }
 
 int32 ABuilding::GetCapacity()
