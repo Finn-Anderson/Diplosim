@@ -173,9 +173,6 @@ void ACamera::Action()
 		}
 		else {
 			BuildComponent->Place();
-
-			if (BuildComponent->Building == nullptr)
-				ClearMinusText();
 		}
 	}
 	else {
@@ -204,8 +201,6 @@ void ACamera::Cancel()
 		return;
 
 	BuildComponent->SetBuildingClass(BuildComponent->Building->GetClass());
-
-	ClearMinusText();
 }
 
 void ACamera::NewMap()

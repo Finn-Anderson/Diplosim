@@ -4,6 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "Camera.h"
 #include "Buildings/Building.h"
@@ -66,6 +67,8 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
 		Building->SetActorLocation(location);
+
+		Camera->WidgetComponent->SetWorldLocation(location + FVector(0.0f, 0.0f, Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z));
 	}
 
 	UDecalComponent* decalComp = Building->FindComponentByClass<UDecalComponent>();
@@ -122,6 +125,8 @@ bool UBuildComponent::IsValidLocation()
 bool UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass)
 {
 	if (Building != nullptr) {
+		Camera->WidgetComponent->SetHiddenInGame(true);
+
 		if (Building->BuildStatus == EBuildStatus::Blueprint) {
 			for (FTreeStruct treeStruct : Building->TreeList) {
 				treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
@@ -143,6 +148,8 @@ bool UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClas
 		SetComponentTickEnabled(true);
 
 	Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0, 0, 50.0f), Rotation);
+
+	Camera->DisplayInteract(Building);
 	
 	return true;
 }

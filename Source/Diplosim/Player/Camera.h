@@ -21,9 +21,6 @@ public:
 		void UpdateResourceText();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void ClearMinusText();
-
-	UFUNCTION(BlueprintImplementableEvent)
 		void SetInteractableText(AActor* Actor);
 
 public:

@@ -102,7 +102,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		float Emissiveness;
 
-	EBuildStatus BuildStatus;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build Status")
+		EBuildStatus BuildStatus;
 
 	TArray<FBuildStruct> Collisions;
 
@@ -151,7 +152,8 @@ public:
 
 	TArray<FTreeStruct> TreeList;
 
-	int32 BuildPercentage;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build Status")
+		int32 BuildPercentage;
 
 	FTimerHandle ConstructTimer;
 

@@ -4,6 +4,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NiagaraComponent.h"
 #include "NavigationSystem.h"
+#include "Components/WidgetComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -505,6 +506,9 @@ void ABuilding::AddBuildPercentage(ACitizen* Citizen)
 		Citizen->AIController->AIMoveTo(Citizen->Building.Employment);
 
 		GetWorldTimerManager().ClearTimer(ConstructTimer);
+
+		if (Camera->WidgetComponent->GetAttachParent() == GetRootComponent())
+			Camera->DisplayInteract(this);
 	}
 }
 
