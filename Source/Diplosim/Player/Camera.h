@@ -42,7 +42,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")
 		class UCameraMovementComponent* MovementComponent;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 		class AGrid* Grid;
 
 	UPROPERTY()
