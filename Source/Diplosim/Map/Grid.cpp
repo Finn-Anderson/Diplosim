@@ -75,6 +75,8 @@ void AGrid::BeginPlay()
 	}
 
 	Load();
+
+	Clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f));
 }
 
 void AGrid::Load()
@@ -260,10 +262,8 @@ void AGrid::Render()
 
 		GenerateTrees(chosenTile, amount);
 	}
-		
 
-	// Spawn cloud spwaner
-	Clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f));
+	// Spawn clouds
 	Clouds->GetCloudBounds(this);
 
 	// Remove loading screen

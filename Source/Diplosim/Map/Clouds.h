@@ -4,27 +4,6 @@
 #include "GameFramework/Actor.h"
 #include "Clouds.generated.h"
 
-USTRUCT(BlueprintType)
-struct FCloudStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	class UNiagaraComponent* CloudComponent;
-
-	bool Active;
-
-	FCloudStruct() {
-		CloudComponent = nullptr;
-
-		Active = false;
-	}
-
-	bool operator==(const FCloudStruct& other) const
-	{
-		return (other.CloudComponent == CloudComponent) && (other.Active == Active);
-	}
-};
-
 UCLASS()
 class DIPLOSIM_API AClouds : public AActor
 {
@@ -40,28 +19,16 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-		class UNiagaraComponent* CloudComponent1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-		class UNiagaraComponent* CloudComponent2;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-		class UNiagaraComponent* CloudComponent3;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-		class UNiagaraComponent* CloudComponent4;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-		class UNiagaraComponent* CloudComponent5;
-
-	TArray<FCloudStruct> Clouds;
+		class UNiagaraSystem* CloudSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		float Height;
 
-	FTimerHandle CloudTimer;
+	class UDiplosimUserSettings* Settings;
 
-	AGrid* Grid;
+	TArray<class UNiagaraComponent*> Clouds;
+
+	class AGrid* Grid;
 
 	void GetCloudBounds(AGrid* GridPtr);
 
