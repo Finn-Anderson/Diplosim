@@ -55,36 +55,35 @@ void AClouds::GetCloudBounds(AGrid* GridPtr)
 
 void AClouds::ActivateCloud()
 {
-	if (!Settings->GetRenderClouds())
-		return;
+	if (Settings->GetRenderClouds()) {
+		FTransform transform;
 
-	FTransform transform;
+		float x = FMath::FRandRange(1.0f, 5.0f);
+		float y = FMath::FRandRange(1.0f, 5.0f);
+		float z = FMath::FRandRange(1.0f, 2.0f);
+		transform.SetScale3D(FVector(x, y, z));
 
-	float x = FMath::FRandRange(1.0f, 5.0f);
-	float y = FMath::FRandRange(1.0f, 5.0f);
-	float z = FMath::FRandRange(1.0f, 2.0f);
-	transform.SetScale3D(FVector(x, y, z));
+		float spawnRate = 0.0f;
 
-	float spawnRate = 0.0f;
+		transform.SetRotation((Grid->WindComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
 
-	transform.SetRotation((Grid->WindComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
+		FVector spawnLoc = transform.GetRotation().Vector() * 19750.0f;
+		spawnLoc.Z = Height + FMath::FRandRange(-200.0f, 200.0f);
+		transform.SetLocation(spawnLoc);
 
-	FVector spawnLoc = transform.GetRotation().Vector() * 19750.0f;
-	spawnLoc.Z = Height + FMath::FRandRange(-200.0f, 200.0f);
-	transform.SetLocation(spawnLoc);
+		UNiagaraComponent* cloud = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), CloudSystem, transform.GetLocation(), transform.GetRotation().Rotator(), transform.GetScale3D());
 
-	UNiagaraComponent* cloud = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), CloudSystem, transform.GetLocation(), transform.GetRotation().Rotator(), transform.GetScale3D());
+		int32 chance = FMath::RandRange(1, 100);
 
-	int32 chance = FMath::RandRange(1, 100);
+		if (chance > 75) {
+			cloud->SetVariableLinearColor(TEXT("Color"), FLinearColor(0.1f, 0.1f, 0.1f));
+			spawnRate = 400.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
+		}
 
-	if (chance > 75) {
-		cloud->SetVariableLinearColor(TEXT("Color"), FLinearColor(0.1f, 0.1f, 0.1f));
-		spawnRate = 400.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
+		cloud->SetVariableFloat(TEXT("SpawnRate"), spawnRate);
+
+		Clouds.Add(cloud);
 	}
-
-	cloud->SetVariableFloat(TEXT("SpawnRate"), spawnRate);
-
-	Clouds.Add(cloud);
 
 	FLatentActionInfo info;
 	info.Linkage = 0;
