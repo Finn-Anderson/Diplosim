@@ -90,6 +90,8 @@ void ABuilding::Build()
 {
 	BuildStatus = EBuildStatus::Construction;
 
+	BuildingMesh->SetOverlayMaterial(DamagedMaterialOverlay);
+
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
 
 	BuildingMesh->SetCanEverAffectNavigation(true);

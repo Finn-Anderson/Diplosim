@@ -26,8 +26,26 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 {
 	Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
 
+	if (GetOwner()->IsA<ABuilding>()) {
+		ABuilding* building = Cast<ABuilding>(GetOwner());
+
+		float opacity = (MaxHealth - Health) / float(MaxHealth);
+
+		UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(building->DamagedMaterialOverlay, building);
+		material->SetScalarParameterValue("Opacity", opacity);
+		building->BuildingMesh->SetOverlayMaterial(material);
+
+		FTimerHandle matTimer;
+		GetWorld()->GetTimerManager().SetTimer(matTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay, building), 0.15f, false);
+	}
+
 	if (Health == 0)
 		Death(Attacker);
+}
+
+void UHealthComponent::RemoveDamageOverlay(ABuilding* Building)
+{
+	Building->BuildingMesh->SetOverlayMaterial(nullptr);
 }
 
 void UHealthComponent::Death(AActor* Attacker)

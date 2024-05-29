@@ -25,9 +25,11 @@ public:
 
 	void TakeHealth(int32 Amount, AActor* Attacker);
 
+	void RemoveDamageOverlay(ABuilding* Building);
+
 	int32 GetHealth();
 
-public:
+
 	// Death
 	void Death(AActor* Attacker);
 
