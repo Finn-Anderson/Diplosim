@@ -70,14 +70,6 @@ struct FTreeStruct
 	}
 };
 
-UENUM()
-enum class EBuildStatus : uint8 
-{
-	Blueprint,
-	Construction,
-	Complete
-};
-
 UCLASS()
 class DIPLOSIM_API ABuilding : public AActor
 {
@@ -104,9 +96,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		float Emissiveness;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build Status")
-		EBuildStatus BuildStatus;
 
 	TArray<FBuildStruct> Collisions;
 
@@ -155,11 +144,6 @@ public:
 
 	TArray<FTreeStruct> TreeList;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build Status")
-		int32 BuildPercentage;
-
-	FTimerHandle ConstructTimer;
-
 	UStaticMesh* ActualMesh;
 
 	void Build();
@@ -170,10 +154,6 @@ public:
 		TArray<FCostStruct> GetCosts();
 
 	void OnBuilt();
-
-	void CheckGatherSites(class ACitizen* Citizen, struct FCostStruct Stock);
-
-	void AddBuildPercentage(class ACitizen* Citizen);
 
 	// Upkeep
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")

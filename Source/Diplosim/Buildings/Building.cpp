@@ -4,13 +4,14 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NiagaraComponent.h"
 #include "NavigationSystem.h"
-#include "Components/WidgetComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "HealthComponent.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
+#include "Player/ConstructionManager.h"
+#include "Player/BuildComponent.h"
 #include "Map/Vegetation.h"
 #include "Map/Grid.h"
 #include "Buildings/Builder.h"
@@ -53,8 +54,6 @@ ABuilding::ABuilding()
 	Storage = 0;
 	StorageCap = 1000;
 
-	BuildStatus = EBuildStatus::Blueprint;
-
 	bHideCitizen = true;
 
 	bInstantConstruction = false;
@@ -88,8 +87,6 @@ void ABuilding::BeginPlay()
 
 void ABuilding::Build()
 {
-	BuildStatus = EBuildStatus::Construction;
-
 	BuildingMesh->SetOverlayMaterial(DamagedMaterialOverlay);
 
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
@@ -97,6 +94,7 @@ void ABuilding::Build()
 	BuildingMesh->SetCanEverAffectNavigation(true);
 
 	UResourceManager* rm = Camera->ResourceManagerComponent;
+	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 
 	if (CheckInstant()) {
 		OnBuilt();
@@ -120,36 +118,7 @@ void ABuilding::Build()
 		BuildingMesh->SetRelativeScale3D(size);
 		BuildingMesh->SetStaticMesh(ConstructionMesh);
 
-		TArray<AActor*> foundBuilders;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), foundBuilders);
-
-		ABuilder* target = nullptr;
-
-		for (int32 i = 0; i < foundBuilders.Num(); i++) {
-			ABuilder* builder = Cast<ABuilder>(foundBuilders[i]);
-
-			if (builder->Constructing != nullptr || builder->BuildStatus != EBuildStatus::Complete || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder)
-				continue;
-
-			if (target == nullptr) {
-				target = builder;
-
-				continue;
-			}
-
-			double magnitude = builder->GetOccupied()[0]->AIController->GetClosestActor(GetActorLocation(), target->GetActorLocation(), builder->GetActorLocation());
-
-			if (magnitude <= 0.0f)
-				continue;
-
-			target = builder;
-		}
-
-		if (target != nullptr) {
-			target->Constructing = this;
-
-			target->GetOccupied()[0]->AIController->AIMoveTo(target->Constructing);
-		}
+		cm->AddBuilding(this, EBuildStatus::Construction);
 	}
 }
 
@@ -170,7 +139,7 @@ bool ABuilding::CheckBuildCost()
 
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (BuildStatus != EBuildStatus::Blueprint)
+	if (Camera->BuildComponent->Building != this)
 		return;
 
 	bMoved = true;
@@ -210,7 +179,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 
 void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (BuildStatus != EBuildStatus::Blueprint)
+	if (Camera->BuildComponent->Building != this)
 		return;
 
 	FTreeStruct treeStruct;
@@ -282,30 +251,15 @@ FVector ABuilding::CheckCollisions(class UObject* Object, int32 Index)
 
 void ABuilding::DestroyBuilding()
 {
-	if (BuildStatus == EBuildStatus::Construction) {
-		TArray<AActor*> builders;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), builders);
+	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 
-		for (AActor* actor : builders) {
-			ABuilder* builder = Cast<ABuilder>(actor);
+	if (cm->IsBeingConstructed(this, nullptr))
+		cm->RemoveBuilding(this);
 
-			if (builder->Constructing != this)
-				continue;
+	for (ACitizen* citizen : GetOccupied()) {
+		RemoveCitizen(citizen);
 
-			builder->Constructing = nullptr;
-
-			if (!builder->GetOccupied().IsEmpty())
-				builder->GetOccupied()[0]->AIController->AIMoveTo(builder);
-
-			break;
-		}
-	}
-	else {
-		for (ACitizen* citizen : GetOccupied()) {
-			RemoveCitizen(citizen);
-
-			citizen->AIController->Idle();
-		}
+		citizen->AIController->Idle();
 	}
 
 	Destroy();
@@ -318,7 +272,8 @@ void ABuilding::OnBuilt()
 		BuildingMesh->SetStaticMesh(ActualMesh);
 	}
 
-	BuildStatus = EBuildStatus::Complete;
+	UConstructionManager* cm = Camera->ConstructionManagerComponent;
+	cm->RemoveBuilding(this);
 
 	GetWorldTimerManager().SetTimer(CostTimer, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost, 0), 300.0f, true);
 
@@ -381,136 +336,35 @@ void ABuilding::Enter(ACitizen* Citizen)
 	Citizen->Building.BuildingAt = this;
 
 	if (!IsA<AFarm>())
-		Citizen->AIController->StopMovement();
+		Citizen->AIController->StopMovement(); 
+	
+	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 
-	if (bHideCitizen || BuildStatus == EBuildStatus::Construction)
+	if (Citizen->Building.Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
+		Citizen->SetActorHiddenInGame(true);
+
 		Citizen->SetActorLocation(GetActorLocation());
 
-	if (BuildStatus != EBuildStatus::Construction) {
-		Citizen->SetActorHiddenInGame(bHideCitizen);
+		ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
 
-		if (GetOccupied().Contains(Citizen) || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
+		if (Citizen->Carrying.Amount > 0)
+			builder->StoreMaterials(Citizen, this);
+
+		builder->CheckCosts(Citizen, this);
+	}
+	else {
+		if (bHideCitizen) {
+			Citizen->SetActorHiddenInGame(true);
+
+			Citizen->SetActorLocation(GetActorLocation());
+		}
+
+		if (Citizen->Building.House == this || IsA<ABuilder>() || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
 			return;
 
 		ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
-			
-		if (builder->Constructing == nullptr)
-			return;
 
 		builder->CarryResources(Citizen, this);
-	}
-	else if (Citizen->Building.Employment->IsA<ABuilder>()) {
-		Citizen->SetActorHiddenInGame(true);
-
-		if (Citizen->Carrying.Amount > 0) {
-			for (int32 i = 0; i < GetCosts().Num(); i++) {
-				FCostStruct costStruct = CostList[i];
-
-				if (costStruct.Type->GetDefaultObject<AResource>() != Citizen->Carrying.Type)
-					continue;
-
-				costStruct.Stored += Citizen->Carrying.Amount;
-
-				CostList[i] = costStruct;
-
-				Citizen->Carry(nullptr, 0, nullptr);
-
-				break;
-			}
-		}
-
-		bool construct = true;
-
-		for (FCostStruct costStruct : GetCosts()) {
-			if (costStruct.Stored == costStruct.Cost)
-				continue;
-
-			construct = false;
-
-			CheckGatherSites(Citizen, costStruct);
-
-			break;
-		}
-
-		if (construct) {
-			GetWorldTimerManager().SetTimer(ConstructTimer, FTimerDelegate::CreateUObject(this, &ABuilding::AddBuildPercentage, Citizen), 0.1f, true);
-		}
-	}
-}
-
-void ABuilding::CheckGatherSites(ACitizen* Citizen, FCostStruct Stock)
-{
-	TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(Stock.Type);
-
-	ABuilding* target = nullptr;
-
-	for (int32 j = 0; j < buildings.Num(); j++) {
-		TArray<AActor*> foundBuildings;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
-
-		for (int32 k = 0; k < foundBuildings.Num(); k++) {
-			ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
-
-			if (building->BuildStatus != EBuildStatus::Complete || building->Storage < 1)
-				continue;
-
-			if (target == nullptr) {
-				target = building;
-
-				continue;
-			}
-
-			int32 storage = 0;
-
-			if (target != nullptr)
-				storage = target->Storage;
-
-			double magnitude = Citizen->AIController->GetClosestActor(Citizen->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation(), storage, building->Storage);
-
-			if (magnitude <= 0.0f)
-				continue;
-
-			target = building;
-		}
-	}
-
-	if (target != nullptr) {
-		Citizen->AIController->AIMoveTo(target);
-
-		return;
-	}
-	else {
-		ABuilder* e = Cast<ABuilder>(Citizen->Building.Employment);
-
-		e->CheckConstruction(Citizen);
-
-		if (e->Constructing != this)
-			return;
-
-		FTimerHandle checkSitesTimer;
-		GetWorldTimerManager().SetTimer(checkSitesTimer, FTimerDelegate::CreateUObject(this, &ABuilding::CheckGatherSites, Citizen, Stock), 30.0f, false);
-	}
-}
-
-void ABuilding::AddBuildPercentage(ACitizen* Citizen)
-{
-	if (Citizen->Building.BuildingAt != this)
-		return;
-
-	BuildPercentage += 1;
-
-	if (BuildPercentage == 100) {
-		OnBuilt();
-
-		ABuilder* e = Cast<ABuilder>(Citizen->Building.Employment);
-		e->Constructing = nullptr;
-
-		Citizen->AIController->AIMoveTo(Citizen->Building.Employment);
-
-		GetWorldTimerManager().ClearTimer(ConstructTimer);
-
-		if (Camera->WidgetComponent->GetAttachParent() == GetRootComponent())
-			Camera->DisplayInteract(this);
 	}
 }
 

@@ -11,6 +11,7 @@
 #include "Buildings/Broch.h"
 #include "DiplosimGameModeBase.h"
 #include "Player/Camera.h"
+#include "Player/ConstructionManager.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -28,6 +29,9 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 
 	if (GetOwner()->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(GetOwner());
+
+		UConstructionManager* cm = building->Camera->ConstructionManagerComponent;
+		cm->AddBuilding(building, EBuildStatus::Damaged);
 
 		float opacity = (MaxHealth - Health) / float(MaxHealth);
 
@@ -83,6 +87,11 @@ void UHealthComponent::Death(AActor* Attacker)
 
 			citizen->HealthComponent->TakeHealth(100, Attacker);
 		}
+
+		ABuilding* building = Cast<ABuilding>(actor);
+
+		UConstructionManager* cm = building->Camera->ConstructionManagerComponent;
+		cm->RemoveBuilding(building);
 	}
 
 	FTimerHandle clearTimer;

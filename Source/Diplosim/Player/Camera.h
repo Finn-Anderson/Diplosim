@@ -33,6 +33,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource Manager")
 		class UResourceManager* ResourceManagerComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction Manager")
+		class UConstructionManager* ConstructionManagerComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		class UBuildComponent* BuildComponent;
 

@@ -16,9 +16,18 @@ public:
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
-	void CheckConstruction(class ACitizen* Citizen);
-
 	void CarryResources(class ACitizen* Citizen, class ABuilding* Building);
 
-	class ABuilding* Constructing;
+	void StoreMaterials(class ACitizen* Citizen, class ABuilding* Building);
+
+	void CheckCosts(class ACitizen* Citizen, class ABuilding* Building);
+
+	void CheckGatherSites(class ACitizen* Citizen, struct FCostStruct Stock);
+
+	void AddBuildPercentage(class ACitizen* Citizen, ABuilding* Building);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build Status")
+		int32 BuildPercentage;
+
+	FTimerHandle ConstructTimer;
 };

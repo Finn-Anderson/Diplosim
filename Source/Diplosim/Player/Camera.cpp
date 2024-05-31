@@ -12,6 +12,7 @@
 #include "BuildComponent.h"
 #include "CameraMovementComponent.h"
 #include "ResourceManager.h"
+#include "ConstructionManager.h"
 #include "Buildings/Building.h"
 #include "DiplosimGameModeBase.h"
 #include "AI/AI.h"
@@ -41,6 +42,9 @@ ACamera::ACamera()
 
 	ResourceManagerComponent = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManagerComponent"));
 	ResourceManagerComponent->SetTickableWhenPaused(true);
+
+	ConstructionManagerComponent = CreateDefaultSubobject<UConstructionManager>(TEXT("ConstructionManagerComponent"));
+	ConstructionManagerComponent->SetTickableWhenPaused(true);
 
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
 	WidgetComponent->SetTickableWhenPaused(true);

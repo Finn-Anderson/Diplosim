@@ -7,6 +7,7 @@
 #include "Components/WidgetComponent.h"
 
 #include "Camera.h"
+#include "ConstructionManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/Builder.h"
 #include "Buildings/Wall.h"
@@ -127,12 +128,13 @@ bool UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClas
 	if (Building != nullptr) {
 		Camera->WidgetComponent->SetHiddenInGame(true);
 
-		if (Building->BuildStatus == EBuildStatus::Blueprint) {
-			for (FTreeStruct treeStruct : Building->TreeList) {
-				treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
-			}
+		UConstructionManager* cm = Camera->ConstructionManagerComponent;
 
-			Building->Destroy();
+		if (!cm->IsBeingConstructed(Building, nullptr) && !Building->CheckInstant()) {
+			for (FTreeStruct treeStruct : Building->TreeList)
+				treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
+
+			Building->DestroyBuilding();
 		}
 
 		if (BuildingClass == Building->GetClass()) {
@@ -186,32 +188,24 @@ void UBuildComponent::Place()
 
 	if (BuildingToMove->IsValidLowLevelFast()) {
 		BuildingToMove->SetActorLocation(Building->GetActorLocation());
+		BuildingToMove->SetActorRotation(Building->GetActorRotation());
 
 		TArray<ACitizen*> citizens = BuildingToMove->GetCitizensAtBuilding();
 
 		for (ACitizen* citizen : citizens)
 			citizen->SetActorLocation(BuildingToMove->GetActorLocation());
 
-		if (BuildingToMove->BuildStatus == EBuildStatus::Construction) {
-			TArray<AActor*> builders;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), builders);
+		UConstructionManager* cm = Camera->ConstructionManagerComponent;
 
-			for (AActor* actor : builders) {
-				ABuilder* builder = Cast<ABuilder>(actor);
+		if (cm->IsBeingConstructed(BuildingToMove, nullptr)) {
+			ABuilder* builder = cm->GetBuilder(BuildingToMove);
 
-				if (builder->Constructing != BuildingToMove)
-					continue;
-
-				if (!builder->GetOccupied().IsEmpty())
-					builder->GetOccupied()[0]->AIController->RecalculateMovement(BuildingToMove);
-
-				break;
-			}
+			if (builder != nullptr && !builder->GetOccupied().IsEmpty())
+				builder->GetOccupied()[0]->AIController->RecalculateMovement(BuildingToMove);
 		}
-		else {
-			for (ACitizen* citizen : BuildingToMove->GetOccupied())
-				citizen->AIController->RecalculateMovement(BuildingToMove);
-		}
+
+		for (ACitizen* citizen : BuildingToMove->GetOccupied())
+			citizen->AIController->RecalculateMovement(BuildingToMove);
 
 		BuildingToMove = nullptr;
 
