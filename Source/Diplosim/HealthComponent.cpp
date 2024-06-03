@@ -47,6 +47,14 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 		Death(Attacker);
 }
 
+bool UHealthComponent::IsMaxHealth()
+{
+	if (Health != MaxHealth)
+		return false;
+
+	return true;
+}
+
 void UHealthComponent::RemoveDamageOverlay(ABuilding* Building)
 {
 	Building->BuildingMesh->SetOverlayMaterial(nullptr);

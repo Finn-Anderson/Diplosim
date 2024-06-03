@@ -55,6 +55,9 @@ public:
 		bool IsBeingConstructed(class ABuilding* Building, class ABuilder* Builder);
 
 	UFUNCTION(BlueprintCallable)
+		bool IsRepairJob(class ABuilding* Building, class ABuilder* Builder);
+
+	UFUNCTION(BlueprintCallable)
 		class ABuilder* GetBuilder(class ABuilding* Building);
 
 	class ABuilding* GetBuilding(class ABuilder* Builder);

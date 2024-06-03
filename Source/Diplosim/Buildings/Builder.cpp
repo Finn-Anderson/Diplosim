@@ -8,6 +8,7 @@
 #include "Player/ResourceManager.h"
 #include "Player/ConstructionManager.h"
 #include "Components/WidgetComponent.h"
+#include "HealthComponent.h"
 
 ABuilder::ABuilder()
 {
@@ -160,16 +161,35 @@ void ABuilder::AddBuildPercentage(ACitizen* Citizen, ABuilding* Building)
 	if (BuildPercentage == 100) {
 		Building->OnBuilt();
 
-		UConstructionManager* cm = Camera->ConstructionManagerComponent;
-		cm->RemoveBuilding(Building);
+		Done(Citizen, Building);
 
 		BuildPercentage = 0;
-
-		Citizen->AIController->AIMoveTo(Citizen->Building.Employment);
 
 		GetWorldTimerManager().ClearTimer(ConstructTimer);
 
 		if (Camera->WidgetComponent->GetAttachParent() == GetRootComponent())
 			Camera->DisplayInteract(this);
 	}
+}
+
+void ABuilder::Repair(ACitizen* Citizen, ABuilding* Building)
+{
+	Building->HealthComponent->AddHealth(1);
+
+	if (Building->HealthComponent->IsMaxHealth()) {
+		Done(Citizen, Building);
+
+		return;
+	}
+
+	FTimerHandle checkSitesTimer;
+	GetWorldTimerManager().SetTimer(checkSitesTimer, FTimerDelegate::CreateUObject(this, &ABuilder::Repair, Citizen, Building), 0.1f, false);
+}
+
+void ABuilder::Done(ACitizen* Citizen, ABuilding* Building)
+{
+	UConstructionManager* cm = Camera->ConstructionManagerComponent;
+	cm->RemoveBuilding(Building);
+
+	Citizen->AIController->AIMoveTo(Citizen->Building.Employment);
 }

@@ -14,8 +14,10 @@
 #include "ResourceManager.h"
 #include "ConstructionManager.h"
 #include "Buildings/Building.h"
+#include "Buildings/Broch.h"
 #include "DiplosimGameModeBase.h"
 #include "AI/AI.h"
+#include "HealthComponent.h"
 
 ACamera::ACamera()
 {
@@ -272,6 +274,13 @@ void ACamera::Debug()
 	if (bInMenu)
 		return;
 
+	// Damage Building
+	TArray<AActor*> brochs;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
+
+	Cast<ABroch>(brochs[0])->HealthComponent->TakeHealth(50, this);
+
+	// Spawn Enemies
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 	gamemode->SpawnEnemiesAsync();
 }

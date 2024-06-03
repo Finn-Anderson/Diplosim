@@ -83,15 +83,32 @@ void UConstructionManager::FindBuilder(class ABuilding* Building)
 
 void UConstructionManager::FindConstruction(class ABuilder* Builder)
 {
+	int32 constructionIndex = -1;
+	int32 repairIndex = -1;
+
 	for (int32 i = 0; i < Construction.Num(); i++) {
 		if (Construction[i].Builder != nullptr)
 			continue;
 
-		Construction[i].Builder = Builder;
+		if (constructionIndex == -1)
+			constructionIndex = i;
 
-		Builder->GetOccupied()[0]->AIController->AIMoveTo(Construction[i].Building);
+		if (repairIndex == -1 && IsRepairJob(Construction[i].Building, Construction[i].Builder))
+			repairIndex = i;
 
-		break;
+		if (constructionIndex > -1 && repairIndex > -1)
+			break;
+	}
+
+	if (repairIndex > -1) {
+		Construction[repairIndex].Builder = Builder;
+
+		Builder->GetOccupied()[0]->AIController->AIMoveTo(Construction[repairIndex].Building);
+	}
+	else if (constructionIndex > -1) {
+		Construction[constructionIndex].Builder = Builder;
+
+		Builder->GetOccupied()[0]->AIController->AIMoveTo(Construction[constructionIndex].Building);
 	}
 }
 
@@ -102,6 +119,20 @@ bool UConstructionManager::IsBeingConstructed(class ABuilding* Building, class A
 	constructionStruct.Builder = Builder;
 
 	if (!Construction.Contains(constructionStruct))
+		return false;
+
+	return true;
+}
+
+bool UConstructionManager::IsRepairJob(class ABuilding* Building, class ABuilder* Builder)
+{
+	FConstructionStruct constructionStruct;
+	constructionStruct.Building = Building;
+	constructionStruct.Builder = Builder;
+
+	int32 index = Construction.Find(constructionStruct);
+
+	if (Construction[index].Status == EBuildStatus::Construction)
 		return false;
 
 	return true;

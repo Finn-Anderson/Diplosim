@@ -24,7 +24,11 @@ public:
 
 	void CheckGatherSites(class ACitizen* Citizen, struct FCostStruct Stock);
 
-	void AddBuildPercentage(class ACitizen* Citizen, ABuilding* Building);
+	void AddBuildPercentage(class ACitizen* Citizen, class ABuilding* Building);
+
+	void Repair(class ACitizen* Citizen, class ABuilding* Building);
+
+	void Done(class ACitizen* Citizen, class ABuilding* Building);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build Status")
 		int32 BuildPercentage;

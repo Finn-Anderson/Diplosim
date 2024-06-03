@@ -226,9 +226,8 @@ void ACitizen::GainEnergy()
 
 	HealthComponent->AddHealth(1);
 
-	if (Energy >= 100 && Building.Employment != nullptr) {
+	if (Energy >= 100 && Building.Employment != nullptr)
 		AIController->AIMoveTo(Building.Employment);
-	}
 }
 
 //

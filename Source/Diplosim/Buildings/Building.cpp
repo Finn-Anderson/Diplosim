@@ -340,25 +340,29 @@ void ABuilding::Enter(ACitizen* Citizen)
 	
 	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 
-	if (Citizen->Building.Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
+	if (bHideCitizen) {
 		Citizen->SetActorHiddenInGame(true);
 
 		Citizen->SetActorLocation(GetActorLocation());
+	}
 
+	if (Citizen->Building.Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
 		ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
 
-		if (Citizen->Carrying.Amount > 0)
-			builder->StoreMaterials(Citizen, this);
-
-		builder->CheckCosts(Citizen, this);
-	}
-	else {
-		if (bHideCitizen) {
+		if (cm->IsRepairJob(this, builder))
+			builder->Repair(Citizen, this);
+		else {
 			Citizen->SetActorHiddenInGame(true);
 
 			Citizen->SetActorLocation(GetActorLocation());
-		}
 
+			if (Citizen->Carrying.Amount > 0)
+				builder->StoreMaterials(Citizen, this);
+
+			builder->CheckCosts(Citizen, this);
+		}
+	}
+	else {
 		if (Citizen->Building.House == this || IsA<ABuilder>() || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
 			return;
 
