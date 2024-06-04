@@ -30,11 +30,13 @@ void AExternalProduction::FindCitizens()
 {
 	Super::FindCitizens();
 
-	for (TSubclassOf<AResource> resource : Camera->ResourceManagerComponent->GetResource(this)) {
+	TSubclassOf<AResource> resource = Camera->ResourceManagerComponent->GetResource(this);
+
+	for (TSubclassOf<AResource> parentClass : Cast<AResource>(resource->GetDefaultObject())->GetParentResources()) {
 		FValidResourceStruct validResourceStruct;
 
 		TArray<AActor*> actors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), resource, actors);
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), parentClass, actors);
 
 		validResourceStruct.Resource = Cast<AResource>(actors[0]);
 

@@ -13,6 +13,8 @@ AClouds::AClouds()
 	PrimaryActorTick.bCanEverTick = true;
 
 	Height = 3000.0f;
+
+	Grid = nullptr;
 }
 
 void AClouds::BeginPlay()
@@ -41,10 +43,8 @@ void AClouds::Tick(float DeltaTime)
 	}
 }
 
-void AClouds::GetCloudBounds(AGrid* GridPtr)
+void AClouds::Start()
 {
-	Grid = GridPtr;
-
 	for (UNiagaraComponent* cloud : Clouds)
 		cloud->DestroyComponent();
 
@@ -81,6 +81,8 @@ void AClouds::ActivateCloud()
 		}
 
 		cloud->SetVariableFloat(TEXT("SpawnRate"), spawnRate);
+
+		cloud->SetBoundsScale(3.0f);
 
 		Clouds.Add(cloud);
 	}

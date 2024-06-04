@@ -14,6 +14,8 @@ AResource::AResource()
 	ResourceHISM->bCastDynamicShadow = true;
 	ResourceHISM->CastShadow = true;
 
+	DroppedResource = nullptr;
+
 	MinYield = 1;
 	MaxYield = 5;
 
@@ -69,6 +71,25 @@ void AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
 		return;
 
 	WorkerStruct[index].Citizens.Remove(Citizen);
+}
+
+AResource* AResource::GetHarvestedResource()
+{
+	if (DroppedResource == nullptr)
+		return this;
+
+	return Cast<AResource>(DroppedResource->GetDefaultObject());
+}
+
+TArray<TSubclassOf<class AResource>> AResource::GetParentResources()
+{
+	TArray<TSubclassOf<class AResource>> parent;
+	parent.Add(GetClass());
+
+	if (ParentResource.IsEmpty())
+		return parent;
+
+	return ParentResource;
 }
 
 void AResource::YieldStatus(int32 Instance, int32 Yield)

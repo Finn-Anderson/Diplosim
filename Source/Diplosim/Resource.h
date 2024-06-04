@@ -37,6 +37,12 @@ public:
 		class UHierarchicalInstancedStaticMeshComponent* ResourceHISM;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		 TSubclassOf<class AResource> DroppedResource;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		 TArray<TSubclassOf<class AResource>> ParentResource;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 MinYield;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
@@ -56,6 +62,10 @@ public:
 	void AddWorker(class ACitizen* citizen, int32 Instance);
 
 	void RemoveWorker(class ACitizen* citizen, int32 Instance);
+
+	class AResource* GetHarvestedResource();
+
+	TArray<TSubclassOf<class AResource>> GetParentResources();
 
 	virtual void YieldStatus(int32 Instance, int32 Yield);
 };

@@ -246,7 +246,9 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 
 void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 {
-	Carry(Resource, Resource->GetYield(this, Instance), Building.Employment);
+	AResource* resource = Resource->GetHarvestedResource();
+
+	Carry(resource, Resource->GetYield(this, Instance), Building.Employment);
 }
 
 void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
@@ -254,12 +256,10 @@ void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 	Carrying.Type = Resource;
 	Carrying.Amount = Amount;
 
-	if (Location == nullptr) {
+	if (Location == nullptr)
 		AIController->StopMovement();
-	}
-	else {
+	else
 		AIController->AIMoveTo(Location);
-	}
 }
 
 //

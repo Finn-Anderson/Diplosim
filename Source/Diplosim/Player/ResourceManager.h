@@ -52,7 +52,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Resource")
 		int32 GetResourceAmount(TSubclassOf<class AResource> Resource);
 
-	TArray<TSubclassOf<AResource>> GetResource(class ABuilding* Building);
+	TSubclassOf<AResource> GetResource(class ABuilding* Building);
 
 	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
 

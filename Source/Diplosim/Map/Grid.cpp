@@ -77,6 +77,7 @@ void AGrid::BeginPlay()
 	Load();
 
 	Clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f));
+	Clouds->Grid = this;
 }
 
 void AGrid::Load()
@@ -264,7 +265,7 @@ void AGrid::Render()
 	}
 
 	// Spawn clouds
-	Clouds->GetCloudBounds(this);
+	Clouds->Start();
 
 	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();
@@ -543,8 +544,6 @@ void AGrid::Clear()
 
 	Camera->BuildComponent->Building->Collisions.Empty();
 	Camera->BuildComponent->Building->bMoved = false;
-
-	Clouds->Destroy();
 
 	HISMLava->ClearInstances();
 	HISMWater->ClearInstances();

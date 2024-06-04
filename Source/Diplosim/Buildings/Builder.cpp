@@ -47,21 +47,17 @@ void ABuilder::CarryResources(ACitizen* Citizen, ABuilding* Building)
 	int32 amount = 0;
 	int32 capacity = 10;
 
-	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManagerComponent->GetResource(Building);
+	TSubclassOf<AResource> resource = Camera->ResourceManagerComponent->GetResource(Building);
 
 	if (capacity > Building->Storage)
 		capacity = Building->Storage;
-
-	TSubclassOf<AResource> resource;
 
 	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 	ABuilding* construction = cm->GetBuilding(this);
 
 	for (FCostStruct costStruct : construction->GetCosts()) {
-		if (resources.Contains(costStruct.Type)) {
+		if (resource == costStruct.Type) {
 			amount = FMath::Clamp(costStruct.Cost - costStruct.Stored, 0, capacity);
-
-			resource = costStruct.Type;
 
 			break;
 		}

@@ -30,7 +30,7 @@ public:
 
 	class AGrid* Grid;
 
-	void GetCloudBounds(AGrid* GridPtr);
+	void Start();
 
 	UFUNCTION()
 		void ActivateCloud();
