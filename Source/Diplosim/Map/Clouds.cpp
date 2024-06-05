@@ -12,7 +12,7 @@ AClouds::AClouds()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	Height = 3000.0f;
+	Height = 4000.0f;
 
 	Grid = nullptr;
 }
@@ -31,26 +31,29 @@ void AClouds::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	for (UNiagaraComponent* cloud : Clouds) {
+	for (int32 i = Clouds.Num() - 1; i > -1; i--) {
+		UNiagaraComponent* cloud = Clouds[i];
+
 		FVector location = cloud->GetRelativeLocation() + Grid->WindComponent->WindRotation.Vector();
 
 		cloud->SetRelativeLocation(location);
 
-		double distance = FVector::Dist(location, FVector(0.0f, 0.0f, 0.0f));
+		double distance = FVector::Dist(location, Grid->GetActorLocation());
 
-		if (distance > 20000.0f)
+		if (distance > 21000.0f) {
 			cloud->Deactivate();
+
+			Clouds.Remove(cloud);
+		}
 	}
 }
 
-void AClouds::Start()
+void AClouds::Clear()
 {
 	for (UNiagaraComponent* cloud : Clouds)
 		cloud->DestroyComponent();
 
 	Clouds.Empty();
-
-	ActivateCloud();
 }
 
 void AClouds::ActivateCloud()
@@ -58,16 +61,16 @@ void AClouds::ActivateCloud()
 	if (Settings->GetRenderClouds()) {
 		FTransform transform;
 
-		float x = FMath::FRandRange(1.0f, 5.0f);
-		float y = FMath::FRandRange(1.0f, 5.0f);
-		float z = FMath::FRandRange(1.0f, 2.0f);
+		float x = FMath::FRandRange(1.0f, 10.0f);
+		float y = FMath::FRandRange(1.0f, 10.0f);
+		float z = FMath::FRandRange(1.0f, 4.0f);
 		transform.SetScale3D(FVector(x, y, z));
 
 		float spawnRate = 0.0f;
 
 		transform.SetRotation((Grid->WindComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
 
-		FVector spawnLoc = transform.GetRotation().Vector() * 19750.0f;
+		FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f;
 		spawnLoc.Z = Height + FMath::FRandRange(-200.0f, 200.0f);
 		transform.SetLocation(spawnLoc);
 

@@ -30,7 +30,7 @@ public:
 
 	class AGrid* Grid;
 
-	void Start();
+	void Clear();
 
 	UFUNCTION()
 		void ActivateCloud();

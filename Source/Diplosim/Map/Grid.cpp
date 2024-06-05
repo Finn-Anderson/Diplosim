@@ -265,7 +265,7 @@ void AGrid::Render()
 	}
 
 	// Spawn clouds
-	Clouds->Start();
+	Clouds->ActivateCloud();
 
 	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();
@@ -541,6 +541,8 @@ void AGrid::Clear()
 		comp->DestroyComponent();
 
 	LavaComponents.Empty();
+
+	Clouds->Clear();
 
 	Camera->BuildComponent->Building->Collisions.Empty();
 	Camera->BuildComponent->Building->bMoved = false;

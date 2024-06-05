@@ -1,10 +1,12 @@
 #include "Player/ConstructionManager.h"
 
+#include "Components/WidgetComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 #include "Buildings/Builder.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "Camera.h"
 
 UConstructionManager::UConstructionManager()
 {
@@ -27,6 +29,11 @@ void UConstructionManager::RemoveBuilding(class ABuilding* Building)
 	if (!IsBeingConstructed(Building, nullptr))
 		return;
 
+	ACamera* Camera = Cast<ACamera>(GetOwner());
+
+	if (Camera->WidgetComponent->IsAttachedTo(Building->GetRootComponent()))
+		Camera->WidgetComponent->SetHiddenInGame(true);
+
 	FConstructionStruct constructionStruct;
 	constructionStruct.Building = Building;
 
@@ -36,6 +43,8 @@ void UConstructionManager::RemoveBuilding(class ABuilding* Building)
 		builder->GetOccupied()[0]->AIController->AIMoveTo(builder);
 
 	Construction.Remove(constructionStruct);
+
+	Camera->DisplayInteract(Building);
 }
 
 void UConstructionManager::FindBuilder(class ABuilding* Building)

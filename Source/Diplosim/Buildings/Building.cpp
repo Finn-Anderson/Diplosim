@@ -253,8 +253,7 @@ void ABuilding::DestroyBuilding()
 {
 	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 
-	if (cm->IsBeingConstructed(this, nullptr))
-		cm->RemoveBuilding(this);
+	cm->RemoveBuilding(this);
 
 	for (ACitizen* citizen : GetOccupied()) {
 		RemoveCitizen(citizen);
