@@ -5,6 +5,7 @@
 #include "NavigationSystem.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "NiagaraComponent.h"
 
 #include "Resource.h"
 #include "HealthComponent.h"
@@ -21,6 +22,20 @@ ACitizen::ACitizen()
 
 	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -14.0f));
 	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
+
+	ItemMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ItemMesh"));
+	ItemMesh->SetupAttachment(GetMesh(), "ItemSocket");
+
+	HatMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("HatMesh"));
+	HatMesh->SetupAttachment(GetMesh(), "HatSocket");
+
+	TorchMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TorchMesh"));
+	TorchMesh->SetupAttachment(GetMesh(), "TorchSocket");
+	TorchMesh->SetHiddenInGame(true);
+
+	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
+	TorchNiagaraComponent->SetupAttachment(TorchMesh, "ParticleSocket");
+	TorchNiagaraComponent->SetHiddenInGame(true);
 
 	Balance = 20;
 
@@ -102,6 +117,29 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 
 	if (StillColliding.Contains(collidingStruct))
 		StillColliding.Remove(collidingStruct);
+}
+
+//
+// Cosmetics
+//
+void ACitizen::SetTorch()
+{
+	TorchMesh->SetHiddenInGame(!TorchMesh->bHiddenInGame);
+	TorchNiagaraComponent->SetHiddenInGame(!TorchNiagaraComponent->bHiddenInGame);
+}
+
+void ACitizen::SetCosmetics(FString ID)
+{
+	FCosmeticStruct cosmeticStruct;
+	cosmeticStruct.ID = ID;
+
+	int32 index = CosmeticStruct.Find(cosmeticStruct);
+
+	if (index == -1)
+		return;
+
+	ItemMesh->SetMaterial(0, CosmeticStruct[index].ItemMaterial);
+	HatMesh->SetMaterial(0, CosmeticStruct[index].HatMaterial);
 }
 
 //
@@ -415,6 +453,9 @@ void ACitizen::HaveChild()
 	
 	if (!citizen->IsValidLowLevelFast())
 		return;
+
+	if (!TorchMesh->bHiddenInGame)
+		citizen->SetTorch();
 
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Partner;

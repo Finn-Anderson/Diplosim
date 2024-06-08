@@ -104,6 +104,30 @@ struct FCollidingStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FCosmeticStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	FString ID;
+
+	class UMaterial* ItemMaterial;
+
+	class UMaterial* HatMaterial;
+
+	FCosmeticStruct()
+	{
+		ID = "";
+		ItemMaterial = nullptr;
+		HatMaterial = nullptr;
+	}
+
+	bool operator==(const FCosmeticStruct& other) const
+	{
+		return (other.ID == ID);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ACitizen : public AAI
 {
@@ -119,6 +143,27 @@ public:
 	virtual void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 		
 	virtual void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
+
+	// Cosmetics
+	UFUNCTION(BlueprintCallable)
+		void SetTorch();
+
+		void SetCosmetics(FString ID);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
+		class USkeletalMeshComponent* ItemMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
+		class USkeletalMeshComponent* HatMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
+		class USkeletalMeshComponent* TorchMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
+		class UNiagaraComponent* TorchNiagaraComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
+		TArray<FCosmeticStruct> CosmeticStruct;
 
 	// Work
 	bool CanWork();
