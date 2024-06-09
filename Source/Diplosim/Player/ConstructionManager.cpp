@@ -44,7 +44,8 @@ void UConstructionManager::RemoveBuilding(class ABuilding* Building)
 
 	Construction.Remove(constructionStruct);
 
-	Camera->DisplayInteract(Building);
+	if (Camera->WidgetComponent->GetAttachParentActor() == Building)
+		Camera->DisplayInteract(Building);
 }
 
 void UConstructionManager::FindBuilder(class ABuilding* Building)

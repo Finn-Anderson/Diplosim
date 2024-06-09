@@ -22,13 +22,12 @@ void AWall::StoreSocketLocations()
 {
 	TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
 
-	if (sockets.Contains("Entrace")) {
-		sockets.Remove("Entrance");
-	}
-
 	FSocketStruct socketStruct;
 
 	for (FName socket : sockets) {
+		if (socket == "LeftGateSocket" || socket == "RightGateSocket" || socket == "Entrance")
+			continue;
+
 		socketStruct.Name = socket;
 		socketStruct.SocketLocation = BuildingMesh->GetSocketLocation(socket);
 
