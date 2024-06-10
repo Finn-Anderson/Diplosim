@@ -273,16 +273,9 @@ void ACamera::Debug()
 	if (bInMenu)
 		return;
 
-	// Damage Building
-	TArray<AActor*> gates;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGate::StaticClass(), gates);
-
-	Cast<AGate>(gates[0])->Enemies++;
-	Cast<AGate>(gates[0])->CloseGate();
-
 	// Spawn Enemies
-	//ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-	//gamemode->SpawnEnemiesAsync();
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	gamemode->SpawnEnemiesAsync();
 }
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)

@@ -22,7 +22,7 @@ public:
 	UFUNCTION()
 		void OnGateEndOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	virtual void Enter(ACitizen* Citizen) override;
+	virtual void Enter(class ACitizen* Citizen) override;
 
 	void OpenGate();
 
