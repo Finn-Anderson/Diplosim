@@ -449,7 +449,12 @@ void ACitizen::HaveChild()
 	FNavLocation loc;
 	nav->ProjectPointToNavigation(GetActorLocation() + GetActorForwardVector() * 10.0f, loc, FVector(200.0f, 200.0f, 10.0f));
 
-	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), loc.Location, GetActorRotation());
+	FVector location = loc.Location;
+
+	if (Building.BuildingAt != nullptr)
+		location = Building.EnterLocation;
+
+	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), location, GetActorRotation());
 	
 	if (!citizen->IsValidLowLevelFast())
 		return;

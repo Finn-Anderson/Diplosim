@@ -14,10 +14,9 @@
 #include "ResourceManager.h"
 #include "ConstructionManager.h"
 #include "Buildings/Building.h"
-#include "Buildings/Broch.h"
-#include "DiplosimGameModeBase.h"
 #include "AI/AI.h"
-#include "HealthComponent.h"
+#include "DiplosimGameModeBase.h"
+#include "Buildings/Gate.h"
 
 ACamera::ACamera()
 {
@@ -275,14 +274,15 @@ void ACamera::Debug()
 		return;
 
 	// Damage Building
-	TArray<AActor*> brochs;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
+	TArray<AActor*> gates;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGate::StaticClass(), gates);
 
-	Cast<ABroch>(brochs[0])->HealthComponent->TakeHealth(50, this);
+	Cast<AGate>(gates[0])->Enemies++;
+	Cast<AGate>(gates[0])->CloseGate();
 
 	// Spawn Enemies
-	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-	gamemode->SpawnEnemiesAsync();
+	//ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	//gamemode->SpawnEnemiesAsync();
 }
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)

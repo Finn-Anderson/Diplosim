@@ -28,11 +28,9 @@ ABuilding::ABuilding()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
-	BuildingMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	BuildingMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	BuildingMesh->SetCanEverAffectNavigation(false);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
-	BuildingMesh->bCastDynamicShadow = true;
-	BuildingMesh->CastShadow = true;
 
 	RootComponent = BuildingMesh;
 
@@ -88,8 +86,6 @@ void ABuilding::BeginPlay()
 void ABuilding::Build()
 {
 	BuildingMesh->SetOverlayMaterial(DamagedMaterialOverlay);
-
-	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
 
 	BuildingMesh->SetCanEverAffectNavigation(true);
 
@@ -333,6 +329,7 @@ TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()
 void ABuilding::Enter(ACitizen* Citizen)
 {
 	Citizen->Building.BuildingAt = this;
+	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
 
 	if (!IsA<AFarm>())
 		Citizen->AIController->StopMovement(); 
@@ -383,39 +380,17 @@ void ABuilding::Leave(ACitizen* Citizen)
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
 
-	TArray<FVector> possibleLocations;
-
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
-
-	FNavLocation loc;
-	nav->ProjectPointToNavigation(GetActorLocation(), loc, FVector(200.0f, 200.0f, 10.0f));
+	FVector location = Citizen->Building.EnterLocation;
 
 	if (BuildingMesh->DoesSocketExist("Entrance")) {
-		for (int32 i = -5; i < 5; i++) {
-			FVector pos = BuildingMesh->GetSocketLocation("Entrance") + GetActorForwardVector() * 20.0f * i;
+			FVector pos = BuildingMesh->GetSocketLocation("Entrance");
 
-			if (GetWorld()->LineTraceSingleByChannel(hit, pos, pos - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_WorldStatic, QueryParams)) {
-				if (!hit.GetActor()->IsA<AGrid>() || hit.GetComponent() != Cast<AGrid>(hit.GetActor())->HISMGround)
-					continue;
-
-				possibleLocations.Add(pos);
-			}
-		}
-
-		for (FVector location : possibleLocations) {
-			double currentDist = FVector::Dist(loc.Location, BuildingMesh->GetSocketLocation("Entrance"));
-
-			double newDist = FVector::Dist(location, BuildingMesh->GetSocketLocation("Entrance"));
-
-			if (newDist >= currentDist)
-				continue;
-
-			loc.Location = location;
-		}
+			if (GetWorld()->LineTraceSingleByChannel(hit, pos, pos - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_WorldStatic, QueryParams))
+				if (hit.GetActor()->IsA<AGrid>() && hit.GetComponent() == Cast<AGrid>(hit.GetActor())->HISMGround)
+					location = pos;
 	}
 
-	Citizen->SetActorLocation(loc.Location);
+	Citizen->SetActorLocation(location);
 
 	Citizen->SetActorHiddenInGame(false);
 }

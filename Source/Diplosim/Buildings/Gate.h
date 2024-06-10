@@ -17,12 +17,18 @@ protected:
 
 public:
 	UFUNCTION()
-		void CloseGate(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+		void OnGateBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-		void OpenGate(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+		void OnGateEndOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	virtual void Enter(ACitizen* Citizen) override;
+
+	void OpenGate();
+
+	void CloseGate();
+
+	void UpdateNavigation();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate")
 		class USphereComponent* EnemyDetectionComponent;

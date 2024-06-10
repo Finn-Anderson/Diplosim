@@ -33,6 +33,8 @@ struct FBuildingStruct
 
 	class ABuilding* BuildingAt;
 
+	FVector EnterLocation;
+
 	FBuildingStruct()
 	{
 		House = nullptr;

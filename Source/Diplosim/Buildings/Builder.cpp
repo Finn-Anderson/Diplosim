@@ -186,6 +186,4 @@ void ABuilder::Done(ACitizen* Citizen, ABuilding* Building)
 {
 	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 	cm->RemoveBuilding(Building);
-
-	Citizen->AIController->AIMoveTo(Citizen->Building.Employment);
 }

@@ -127,6 +127,7 @@ bool UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClas
 {
 	if (Building != nullptr) {
 		Camera->WidgetComponent->SetHiddenInGame(true);
+		Camera->WidgetComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 
 		UConstructionManager* cm = Camera->ConstructionManagerComponent;
 

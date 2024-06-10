@@ -62,7 +62,7 @@ void UConstructionManager::FindBuilder(class ABuilding* Building)
 		constructionStruct.Builder = builder;
 		constructionStruct.Building = builder;
 
-		if (Construction.Contains(constructionStruct) || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder)
+		if (Construction.Contains(constructionStruct) || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder || !builder->GetOccupied()[0]->AIController->CanMoveTo(Building->GetActorLocation()))
 			continue;
 
 		if (target == nullptr) {
@@ -97,7 +97,7 @@ void UConstructionManager::FindConstruction(class ABuilder* Builder)
 	int32 repairIndex = -1;
 
 	for (int32 i = 0; i < Construction.Num(); i++) {
-		if (Construction[i].Builder != nullptr)
+		if (Construction[i].Builder != nullptr || !Builder->GetOccupied()[0]->AIController->CanMoveTo(Construction[i].Building->GetActorLocation()))
 			continue;
 
 		if (constructionIndex == -1)

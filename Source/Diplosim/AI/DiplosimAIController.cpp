@@ -2,6 +2,7 @@
 
 #include "Navigation/CrowdFollowingComponent.h"
 #include "NavigationSystem.h"
+#include "NavigationPath.h"
 #include "Kismet/GameplayStatics.h"
 
 #include "AI.h"
@@ -100,11 +101,9 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 	MoveRequest.SetLocation(loc.Location);
 
-	FPathFindingQuery query(Owner, *navData, GetNavAgentLocation(), loc.Location);
+	UNavigationPath* ResultPath = nav->FindPathToLocationSynchronously(GetWorld(), GetNavAgentLocation(), loc.Location, GetOwner());
 
-	bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
-
-	if (path)
+	if (ResultPath->GetPath().IsValid())
 		return true;
 
 	return false;
@@ -112,17 +111,11 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	if (!Actor->IsValidLowLevelFast())
-		return;
-
 	FTransform transform;
 	transform.SetLocation(Actor->GetActorLocation());
 
 	if (Location != FVector::Zero())
 		transform.SetLocation(Location);
-
-	if (!CanMoveTo(transform.GetLocation()))
-		return;
 
 	if (Actor->IsA<AAI>() && (MoveRequest.GetGoalActor() == nullptr || !MoveRequest.GetGoalActor()->IsA<AAI>()))
 		PrevGoal = MoveRequest.GetGoalActor();
