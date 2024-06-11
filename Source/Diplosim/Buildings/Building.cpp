@@ -47,8 +47,6 @@ ABuilding::ABuilding()
 
 	Capacity = 2;
 
-	Upkeep = 0;
-
 	Storage = 0;
 	StorageCap = 1000;
 
@@ -270,16 +268,16 @@ void ABuilding::OnBuilt()
 	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 	cm->RemoveBuilding(this);
 
-	GetWorldTimerManager().SetTimer(CostTimer, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost, 0), 300.0f, true);
+	GetWorldTimerManager().SetTimer(CostTimer, this, &ABuilding::UpkeepCost, 300.0f, true);
 
 	FindCitizens();
 
 	ParticleComponent->Activate();
 }
 
-void ABuilding::UpkeepCost(int32 Cost)
+void ABuilding::UpkeepCost()
 {
-	Camera->ResourceManagerComponent->TakeUniversalResource(Money, Cost, -1000000000);
+
 }
 
 void ABuilding::FindCitizens()

@@ -28,8 +28,10 @@ void ADiplosimAIController::Tick(float DeltaTime)
 	if (MoveRequest.GetGoalActor() == nullptr || !MoveRequest.GetGoalActor()->IsValidLowLevelFast())
 		return;
 
+	TSubclassOf<UNavigationQueryFilter> filter = Cast<AAI>(GetOwner())->NavQueryFilter;
+
 	if (MoveRequest.GetGoalActor()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()))
-		MoveToActor(MoveRequest.GetGoalActor());
+		MoveToActor(MoveRequest.GetGoalActor(), 1.0f, true, true, true, filter, true);
 }
 
 void ADiplosimAIController::DefaultAction()
@@ -91,15 +93,11 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 	if (healthComp->GetHealth() == 0)
 		return false;
 
-	MoveRequest.ResetLocation();
-
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 	FNavLocation loc;
 	nav->ProjectPointToNavigation(Location, loc, FVector(200.0f, 200.0f, 10.0f));
-
-	MoveRequest.SetLocation(loc.Location);
 
 	UNavigationPath* ResultPath = nav->FindPathToLocationSynchronously(GetWorld(), GetNavAgentLocation(), loc.Location, GetOwner());
 
@@ -111,17 +109,17 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	FTransform transform;
-	transform.SetLocation(Actor->GetActorLocation());
-
-	if (Location != FVector::Zero())
-		transform.SetLocation(Location);
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, Actor->GetName());
 
 	if (Actor->IsA<AAI>() && (MoveRequest.GetGoalActor() == nullptr || !MoveRequest.GetGoalActor()->IsA<AAI>()))
 		PrevGoal = MoveRequest.GetGoalActor();
 
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);
+	MoveRequest.SetLocation(Actor->GetActorLocation());
+
+	if (Location != FVector::Zero())
+		MoveRequest.SetLocation(Location);
 
 	if (Actor->IsA<ABuilding>()) {
 		UStaticMeshComponent* comp = Actor->GetComponentByClass<UStaticMeshComponent>();

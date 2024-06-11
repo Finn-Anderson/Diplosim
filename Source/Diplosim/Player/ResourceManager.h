@@ -56,10 +56,17 @@ public:
 
 	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
 
-public:
+
 	// UI
 	UFUNCTION(BlueprintCallable)
 		FResourceStruct GetUpdatedResource();
 
 	FResourceStruct ResourceStruct;
+
+
+	// Interest
+	void Interest();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
+		TSubclassOf<class AResource> Money;
 };

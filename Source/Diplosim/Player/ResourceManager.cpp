@@ -264,3 +264,12 @@ FResourceStruct UResourceManager::GetUpdatedResource()
 {
 	return ResourceStruct;
 }
+
+void UResourceManager::Interest()
+{
+	int32 amount = GetResourceAmount(Money);
+
+	amount = FMath::CeilToInt32(amount * 0.02f);
+
+	AddUniversalResource(Money, amount);
+}

@@ -123,38 +123,40 @@ bool UBuildComponent::IsValidLocation()
 	return true;
 }
 
-bool UBuildComponent::SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass)
+void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass)
 {
-	if (Building != nullptr) {
-		Camera->WidgetComponent->SetHiddenInGame(true);
-		Camera->WidgetComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-
-		UConstructionManager* cm = Camera->ConstructionManagerComponent;
-
-		if (!cm->IsBeingConstructed(Building, nullptr) && !Building->CheckInstant()) {
-			for (FTreeStruct treeStruct : Building->TreeList)
-				treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
-
-			Building->DestroyBuilding();
-		}
-
-		if (BuildingClass == Building->GetClass()) {
-			SetComponentTickEnabled(false);
-
-			Building = nullptr;
-
-			return false;
-		} 
-	}
-
 	if (!IsComponentTickEnabled())
 		SetComponentTickEnabled(true);
 
 	Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0, 0, 50.0f), Rotation);
 
 	Camera->DisplayInteract(Building);
-	
-	return true;
+}
+
+void UBuildComponent::DetachBuilding()
+{
+	if (Building == nullptr)
+		return;
+
+	Camera->WidgetComponent->SetHiddenInGame(true);
+	Camera->WidgetComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+
+	SetComponentTickEnabled(false);
+
+	Building = nullptr;
+}
+
+void UBuildComponent::RemoveBuilding()
+{
+	if (Building == nullptr)
+		return;
+
+	for (FTreeStruct treeStruct : Building->TreeList)
+		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
+
+	Building->DestroyBuilding();
+
+	DetachBuilding();
 }
 
 void UBuildComponent::RotateBuilding(bool Rotate)
@@ -210,7 +212,7 @@ void UBuildComponent::Place()
 
 		BuildingToMove = nullptr;
 
-		SetBuildingClass(Building->GetClass());
+		DetachBuilding();
 
 		return;
 	}
@@ -241,7 +243,7 @@ void UBuildComponent::Place()
 		gamemode->SetWaveTimer();
 	}
 
-	SetBuildingClass(Building->GetClass());
+	DetachBuilding();
 }
 
 void UBuildComponent::QuickPlace()
@@ -256,5 +258,5 @@ void UBuildComponent::QuickPlace()
 
 	Place();
 
-	SetBuildingClass(building->GetClass());
+	SpawnBuilding(building->GetClass());
 }

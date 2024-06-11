@@ -15,7 +15,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		int32 Wage;
 
-	virtual void UpkeepCost(int32 Cost = 0) override;
+	virtual void UpkeepCost() override;
 
 	// Citizens
 	FTimerHandle FindTimer;

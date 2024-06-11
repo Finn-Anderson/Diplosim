@@ -12,7 +12,7 @@ AHouse::AHouse()
 	Rent = 0;
 }
 
-void AHouse::UpkeepCost(int32 Cost)
+void AHouse::UpkeepCost()
 {
 	for (ACitizen* citizen : GetOccupied()) {
 		if (citizen->Balance < Rent) {
@@ -25,8 +25,6 @@ void AHouse::UpkeepCost(int32 Cost)
 
 	int32 rent = Rent * Occupied.Num();
 	Camera->ResourceManagerComponent->AddUniversalResource(Money, rent);
-
-	Super::UpkeepCost(Upkeep);
 }
 
 void AHouse::Enter(ACitizen* Citizen)

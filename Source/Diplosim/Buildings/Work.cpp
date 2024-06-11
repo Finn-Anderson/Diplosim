@@ -12,17 +12,13 @@ AWork::AWork()
 	Wage = 0;
 }
 
-void AWork::UpkeepCost(int32 Cost)
+void AWork::UpkeepCost()
 {
 	for (int i = 0; i < Occupied.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(Occupied[i]);
 
 		c->Balance += Wage;
 	}
-
-	Cost = Wage * Occupied.Num() + Upkeep;
-
-	Super::UpkeepCost(Cost);
 }
 
 void AWork::FindCitizens()

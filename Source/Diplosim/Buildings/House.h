@@ -15,7 +15,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		int32 Rent;
 
-	virtual void UpkeepCost(int32 Cost = 0) override;
+	virtual void UpkeepCost() override;
 
 	virtual void Enter(class ACitizen* Citizen) override;
 

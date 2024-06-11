@@ -50,5 +50,11 @@ public:
 	void QuickPlace();
 
 	UFUNCTION(BlueprintCallable)
-		bool SetBuildingClass(TSubclassOf<class ABuilding> BuildingClass);
+		void SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass);
+
+	UFUNCTION(BlueprintCallable)
+		void DetachBuilding();
+
+	UFUNCTION(BlueprintCallable)
+		void RemoveBuilding();
 };

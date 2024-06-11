@@ -65,7 +65,7 @@ void ACamera::BeginPlay()
 	Super::BeginPlay();
 
 	if (start)
-		BuildComponent->SetBuildingClass(StartBuilding);
+		BuildComponent->SpawnBuilding(StartBuilding);
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
@@ -85,6 +85,9 @@ void ACamera::BeginPlay()
 	LostUIInstance = CreateWidget<UUserWidget>(pcontroller, LostUI);
 
 	SettingsUIInstance = CreateWidget<UUserWidget>(pcontroller, SettingsUI);
+
+	FTimerHandle interestTimer;
+	GetWorld()->GetTimerManager().SetTimer(interestTimer, ResourceManagerComponent, &UResourceManager::Interest, 300.0f, true);
 }
 
 void ACamera::TickWhenPaused(bool bTickWhenPaused)
@@ -205,7 +208,7 @@ void ACamera::Cancel()
 	if (!BuildComponent->IsComponentTickEnabled() || start || bInMenu)
 		return;
 
-	BuildComponent->SetBuildingClass(BuildComponent->Building->GetClass());
+	BuildComponent->RemoveBuilding();
 }
 
 void ACamera::NewMap()
