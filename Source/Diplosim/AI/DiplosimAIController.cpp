@@ -109,8 +109,6 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, Actor->GetName());
-
 	if (Actor->IsA<AAI>() && (MoveRequest.GetGoalActor() == nullptr || !MoveRequest.GetGoalActor()->IsA<AAI>()))
 		PrevGoal = MoveRequest.GetGoalActor();
 

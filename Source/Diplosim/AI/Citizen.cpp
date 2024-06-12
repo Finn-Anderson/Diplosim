@@ -60,7 +60,7 @@ void ACitizen::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(ageTimer, this, &ACitizen::Birthday, 45.0f, false);
 
 	SetSex();
-	SetName();
+	Async(EAsyncExecution::Thread, [this]() { SetName(); });
 
 	float r = FMath::FRandRange(0.0f, 1.0f);
 	float g = FMath::FRandRange(0.0f, 1.0f);
@@ -344,31 +344,27 @@ void ACitizen::SetSex()
 	float male = 0.0f;
 	float total = 0.0f;
 
-	for (int i = 0; i < citizens.Num(); i++) {
-		ACitizen* c = Cast<ACitizen>(citizens[i]);
+	for (AActor* actor : citizens) {
+		ACitizen* citizen = Cast<ACitizen>(actor);
 
-		if (c == this)
+		if (citizen == this)
 			continue;
 
-		if (c->BioStruct.Sex == ESex::Male) {
+		if (citizen->BioStruct.Sex == ESex::Male)
 			male += 1.0f;
-		}
 
 		total += 1.0f;
 	}
 
 	float mPerc = 50.0f;
 
-	if (total > 0) {
+	if (total > 0)
 		mPerc = (male / total) * 100.0f;
-	}
 
-	if (choice > mPerc) {
+	if (choice > mPerc)
 		BioStruct.Sex = ESex::Male;
-	}
-	else {
+	else
 		BioStruct.Sex = ESex::Female;
-	}
 }
 
 void ACitizen::SetName()
@@ -376,9 +372,9 @@ void ACitizen::SetName()
 	FString names;
 		
 	if (BioStruct.Sex == ESex::Male)
-		FFileHelper::LoadFileToString(names, *(FPaths::ProjectDir() + "/Custom/Citizen/MaleNames.txt"));
+		FFileHelper::LoadFileToString(names, *(FPaths::ProjectDir() + "/Content/Custom/Citizen/MaleNames.txt"));
 	else
-		FFileHelper::LoadFileToString(names, *(FPaths::ProjectDir() + "/Custom/Citizen/FemaleNames.txt"));
+		FFileHelper::LoadFileToString(names, *(FPaths::ProjectDir() + "/Content/Custom/Citizen/FemaleNames.txt"));
 
 	TArray<FString> parsed;
 	names.ParseIntoArray(parsed, TEXT(","));
@@ -395,8 +391,8 @@ void ACitizen::FindPartner()
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
-	for (int i = 0; i < citizens.Num(); i++) {
-		ACitizen* c = Cast<ACitizen>(citizens[i]);
+	for (AActor* actor : citizens) {
+		ACitizen* c = Cast<ACitizen>(actor);
 
 		if (c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
 			continue;
