@@ -74,22 +74,7 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 	return true;
 }
 
-void AWork::Store(int32 Amount, ACitizen* Citizen)
-{
-	if (Camera->ResourceManagerComponent->AddLocalResource(this, Amount)) {
-		Citizen->Carry(nullptr, 0, nullptr);
-
-		Production(Citizen);
-	}
-	else {
-		GetWorldTimerManager().ClearTimer(ProdTimer);
-
-		FTimerHandle StoreCheckTimer;
-		GetWorldTimerManager().SetTimer(StoreCheckTimer, FTimerDelegate::CreateUObject(this, &AWork::Store, Amount, Citizen), 30.0f, false);
-	}
-}
-
 void AWork::Production(ACitizen* Citizen)
 {
-
+	StoreResource(Citizen);
 }

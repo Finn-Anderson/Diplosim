@@ -16,13 +16,7 @@ public:
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
-	void CarryResources(class ACitizen* Citizen, class ABuilding* Building);
-
-	void StoreMaterials(class ACitizen* Citizen, class ABuilding* Building);
-
 	void CheckCosts(class ACitizen* Citizen, class ABuilding* Building);
-
-	void CheckGatherSites(class ACitizen* Citizen, struct FCostStruct Stock);
 
 	void AddBuildPercentage(class ACitizen* Citizen, class ABuilding* Building);
 

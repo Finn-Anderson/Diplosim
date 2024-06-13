@@ -29,7 +29,5 @@ public:
 
 	void Produce(class ACitizen* Citizen);
 
-	void ProductionDone(class ACitizen* Citizen);
-
 	int32 PercentageDone;
 };

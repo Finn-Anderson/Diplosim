@@ -5,24 +5,33 @@
 #include "Building.generated.h"
 
 USTRUCT(BlueprintType)
-struct FCostStruct
+struct FItemStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> Type;
+		TSubclassOf<class AResource> Resource;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Cost;
+		int32 Amount;
 
 	int32 Stored;
 
-	FCostStruct()
+	FItemStruct()
 	{
-		Type = nullptr;
-		Cost = 0;
+		Resource = nullptr;
+		Amount = 0;
 		Stored = 0;
 	}
+};
+
+USTRUCT(BlueprintType)
+struct FQueueStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<FItemStruct> Items;
 };
 
 USTRUCT()
@@ -94,6 +103,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* ParticleComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
+		bool bConstant;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		float Emissiveness;
 
@@ -123,7 +135,7 @@ public:
 
 	// Construct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
-		TArray<FCostStruct> CostList;
+		FQueueStruct CostList;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		class UStaticMesh* ConstructionMesh;
@@ -149,9 +161,6 @@ public:
 	void Build();
 
 	bool CheckBuildCost();
-
-	UFUNCTION(BlueprintCallable)
-		TArray<FCostStruct> GetCosts();
 
 	void OnBuilt();
 
@@ -196,4 +205,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 StorageCap;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Resource")
+		TArray<FQueueStruct> Orders;
+
+	bool CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items);
+
+	void CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<FItemStruct> Items);
+
+	void StoreResource(class ACitizen* Citizen);
 };

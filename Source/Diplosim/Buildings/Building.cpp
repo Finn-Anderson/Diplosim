@@ -15,7 +15,7 @@
 #include "Map/Vegetation.h"
 #include "Map/Grid.h"
 #include "Buildings/Builder.h"
-#include "Buildings/Farm.h"
+#include "Buildings/Trader.h"
 
 ABuilding::ABuilding()
 {
@@ -39,7 +39,7 @@ ABuilding::ABuilding()
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	ParticleComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ParticleComponent"));
-	ParticleComponent->SetupAttachment(RootComponent);
+	ParticleComponent->SetupAttachment(RootComponent, "ParticleSocket");
 	ParticleComponent->SetCastShadow(true);
 	ParticleComponent->bAutoActivate = false;
 
@@ -57,6 +57,8 @@ ABuilding::ABuilding()
 	ActualMesh = nullptr;
 
 	bMoved = false;
+
+	bConstant = true;
 }
 
 void ABuilding::BeginPlay()
@@ -93,13 +95,11 @@ void ABuilding::Build()
 	if (CheckInstant()) {
 		OnBuilt();
 
-		for (FCostStruct costStruct : GetCosts()) {
-			rm->TakeUniversalResource(costStruct.Type, costStruct.Cost, 0);
-		}
+		for (FItemStruct items : CostList.Items)
+			rm->TakeUniversalResource(items.Resource, items.Amount, 0);
 	} else {
-		for (FCostStruct costStruct : GetCosts()) {
-			rm->AddCommittedResource(costStruct.Type, costStruct.Cost);
-		}
+		for (FItemStruct items : CostList.Items)
+			rm->AddCommittedResource(items.Resource, items.Amount);
 
 		ActualMesh = BuildingMesh->GetStaticMesh();
 		FVector bSize = ActualMesh->GetBounds().GetBox().GetSize();
@@ -120,12 +120,11 @@ bool ABuilding::CheckBuildCost()
 {
 	UResourceManager* rm = Camera->ResourceManagerComponent;
 
-	for (FCostStruct costStruct : GetCosts()) {
-		int32 maxAmount = rm->GetResourceAmount(costStruct.Type);
+	for (FItemStruct items : CostList.Items) {
+		int32 maxAmount = rm->GetResourceAmount(items.Resource);
 
-		if (maxAmount < costStruct.Cost) {
+		if (maxAmount < items.Amount)
 			return false;
-		}
 	}
 
 	return true;
@@ -245,7 +244,10 @@ FVector ABuilding::CheckCollisions(class UObject* Object, int32 Index)
 
 void ABuilding::DestroyBuilding()
 {
+	UResourceManager* rm = Camera->ResourceManagerComponent;
 	UConstructionManager* cm = Camera->ConstructionManagerComponent;
+
+	rm->TakeLocalResource(this, Capacity);
 
 	cm->RemoveBuilding(this);
 
@@ -272,7 +274,8 @@ void ABuilding::OnBuilt()
 
 	FindCitizens();
 
-	ParticleComponent->Activate();
+	if (bConstant)
+		ParticleComponent->Activate();
 }
 
 void ABuilding::UpkeepCost()
@@ -329,8 +332,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 	Citizen->Building.BuildingAt = this;
 	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
 
-	if (!IsA<AFarm>())
-		Citizen->AIController->StopMovement(); 
+	Citizen->AIController->StopMovement();
 	
 	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 
@@ -339,6 +341,9 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 		Citizen->SetActorLocation(GetActorLocation());
 	}
+
+	if (Citizen->Carrying.Amount > 0)
+		StoreResource(Citizen);
 
 	if (Citizen->Building.Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
 		ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
@@ -350,19 +355,33 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 			Citizen->SetActorLocation(GetActorLocation());
 
-			if (Citizen->Carrying.Amount > 0)
-				builder->StoreMaterials(Citizen, this);
-
 			builder->CheckCosts(Citizen, this);
 		}
 	}
 	else {
-		if (Citizen->Building.House == this || IsA<ABuilder>() || Citizen->Building.Employment == nullptr || !Citizen->Building.Employment->IsA<ABuilder>())
+		if (Citizen->Building.House == this || IsA<ABuilder>() || IsA<ATrader>() || Citizen->Building.Employment == nullptr)
 			return;
 
-		ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
+		TArray<FItemStruct> items;
+		ABuilding* deliverTo = nullptr;
 
-		builder->CarryResources(Citizen, this);
+		if (Citizen->Building.Employment->IsA<ABuilder>()) {
+			ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
+
+			deliverTo = cm->GetBuilding(builder);
+			items = deliverTo->CostList.Items;
+		}
+		else if (Citizen->Building.Employment->IsA<ATrader>()) {
+			ATrader* trader = Cast<ATrader>(Citizen->Building.Employment);
+
+			deliverTo = trader;
+			items = trader->Orders[0].Items;
+		}
+
+		if (items.IsEmpty())
+			return;
+
+		CarryResources(Citizen, deliverTo, items);
 	}
 }
 
@@ -431,7 +450,87 @@ TArray<class ACitizen*> ABuilding::GetOccupied()
 	return Occupied;
 }
 
-TArray<FCostStruct> ABuilding::GetCosts()
+bool ABuilding::CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items)
 {
-	return CostList;
+	for (FItemStruct item : Items) {
+		if (item.Stored == item.Amount)
+			continue;
+
+		Citizen->AIController->GetGatherSite(Camera, item.Resource);
+
+		return false;
+	}
+
+	return true;
+}
+
+void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<FItemStruct> Items)
+{
+	int32 amount = 0;
+	int32 capacity = 10;
+
+	TSubclassOf<AResource> resource = Camera->ResourceManagerComponent->GetResource(this);
+
+	if (capacity > Storage)
+		capacity = Storage;
+
+	for (FItemStruct item : Items) {
+		if (resource == item.Resource) {
+			amount = FMath::Clamp(item.Amount - item.Stored, 0, capacity);
+
+			break;
+		}
+	}
+
+	Camera->ResourceManagerComponent->TakeLocalResource(this, amount);
+
+	Citizen->Carry(Cast<AResource>(resource->GetDefaultObject()), amount, DeliverTo);
+}
+
+void ABuilding::StoreResource(ACitizen* Citizen)
+{
+	if (Citizen->Carrying.Type == nullptr)
+		return;
+
+	if (Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject() == Citizen->Carrying.Type) {
+		bool canStore = Camera->ResourceManagerComponent->AddLocalResource(this, Citizen->Carrying.Amount);
+
+		if (canStore) {
+			Citizen->Carry(nullptr, 0, nullptr);
+
+			AWork* work = Cast<AWork>(this);
+
+			work->Production(Citizen);
+		}
+		else {
+			FTimerHandle StoreCheckTimer;
+			GetWorldTimerManager().SetTimer(StoreCheckTimer, FTimerDelegate::CreateUObject(this, &ABuilding::StoreResource, Citizen), 30.0f, false);
+		}
+	}
+	else {
+		UConstructionManager* cm = Camera->ConstructionManagerComponent;
+
+		Camera->ResourceManagerComponent->TakeCommittedResource(Citizen->Carrying.Type->GetClass(), Citizen->Carrying.Amount);
+
+		TArray<FItemStruct> items;
+
+		if (cm->IsBeingConstructed(this, nullptr))
+			items = CostList.Items;
+		else
+			items = Orders[0].Items;
+
+		for (int32 i = 0; i < items.Num(); i++) {
+			if (items[i].Resource->GetDefaultObject<AResource>() != Citizen->Carrying.Type)
+				continue;
+
+			if (cm->IsBeingConstructed(this, nullptr))
+				CostList.Items[i].Stored += Citizen->Carrying.Amount;
+			else
+				Orders[0].Items[i].Stored += Citizen->Carrying.Amount;
+
+			Citizen->Carry(nullptr, 0, nullptr);
+
+			break;
+		}
+	}
 }

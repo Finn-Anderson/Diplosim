@@ -3,6 +3,9 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Map/Grid.h"
+#include "AI/Citizen.h"
+#include "Player/Camera.h"
+#include "Player/ResourceManager.h"
 
 AFarm::AFarm()
 {
@@ -69,7 +72,9 @@ void AFarm::Production(ACitizen* Citizen)
 
 void AFarm::ProductionDone(ACitizen* Citizen)
 {
-	Store(Yield, Citizen);
+	Citizen->Carry(Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject<AResource>(), Yield, this);
+
+	StoreResource(Citizen);
 
 	CropMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 

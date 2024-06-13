@@ -23,7 +23,7 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 	Super::Enter(Citizen);
 
 	if (GetOccupied().Contains(Citizen))
-		Store(Citizen->Carrying.Amount, Citizen);
+		Production(Citizen);
 }
 
 void AExternalProduction::FindCitizens()
@@ -69,6 +69,8 @@ bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 
 void AExternalProduction::Production(ACitizen* Citizen)
 {
+	Super::Production(Citizen);
+
 	if (Citizen->Building.BuildingAt != this)
 		return;
 

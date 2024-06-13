@@ -12,6 +12,8 @@
 #include "Buildings/Broch.h"
 #include "Resource.h"
 #include "AttackComponent.h"
+#include "Player/Camera.h"
+#include "Player/ResourceManager.h"
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
@@ -83,6 +85,50 @@ double ADiplosimAIController::GetClosestActor(FVector TargetLocation, FVector Cu
 	return magnitude;
 }
 
+void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource> Resource)
+{
+	TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(Resource);
+
+	ABuilding* target = nullptr;
+
+	for (int32 j = 0; j < buildings.Num(); j++) {
+		TArray<AActor*> foundBuildings;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
+
+		for (int32 k = 0; k < foundBuildings.Num(); k++) {
+			ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
+
+			if (building->Storage < 1)
+				continue;
+
+			if (target == nullptr) {
+				target = building;
+
+				continue;
+			}
+
+			int32 storage = 0;
+
+			if (target != nullptr)
+				storage = target->Storage;
+
+			double magnitude = GetClosestActor(GetOwner()->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation(), storage, building->Storage);
+
+			if (magnitude <= 0.0f)
+				continue;
+
+			target = building;
+		}
+	}
+
+	if (target != nullptr)
+		AIMoveTo(target);
+	else {
+		FTimerHandle checkSitesTimer;
+		GetWorldTimerManager().SetTimer(checkSitesTimer, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Camera, Resource), 30.0f, false);
+	}
+}
+
 bool ADiplosimAIController::CanMoveTo(FVector Location)
 {
 	if (!GetOwner()->IsValidLowLevelFast())
@@ -99,9 +145,11 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 	FNavLocation loc;
 	nav->ProjectPointToNavigation(Location, loc, FVector(200.0f, 200.0f, 10.0f));
 
-	UNavigationPath* ResultPath = nav->FindPathToLocationSynchronously(GetWorld(), GetNavAgentLocation(), loc.Location, GetOwner());
+	FPathFindingQuery query(GetOwner(), *navData, GetNavAgentLocation(), loc.Location);
 
-	if (ResultPath->GetPath().IsValid())
+	bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
+
+	if (path)
 		return true;
 
 	return false;

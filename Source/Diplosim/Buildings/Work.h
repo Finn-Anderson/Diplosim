@@ -30,6 +30,4 @@ public:
 	FTimerHandle ProdTimer;
 
 	virtual void Production(class ACitizen* Citizen);
-
-	void Store(int32 Amount, class ACitizen* Citizen);
 };

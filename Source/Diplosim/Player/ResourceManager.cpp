@@ -234,7 +234,7 @@ int32 UResourceManager::GetResourceAmount(TSubclassOf<AResource> Resource)
 
 TSubclassOf<AResource> UResourceManager::GetResource(ABuilding* Building)
 {
-	TSubclassOf<AResource> resource;
+	TSubclassOf<AResource> resource = nullptr;
 
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
