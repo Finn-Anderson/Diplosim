@@ -5,7 +5,6 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
-#include "Player/ResourceManager.h"
 #include "Player/ConstructionManager.h"
 #include "Components/WidgetComponent.h"
 #include "HealthComponent.h"

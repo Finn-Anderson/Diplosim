@@ -3,7 +3,6 @@
 #include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
-#include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
 
@@ -29,6 +28,19 @@ void ATrader::Enter(ACitizen* Citizen)
 void ATrader::SubmitOrder(class ACitizen* Citizen)
 {
 	ParticleComponent->Activate();
+
+	int32 money = 0;
+
+	for (FItemStruct item : Orders[0].Items) {
+		FValueStruct value;
+		value.Resource = item.Resource;
+
+		int32 index = ResourceValues.Find(value);
+
+		money += ResourceValues[index].Value * item.Amount;
+	}
+
+	Camera->ResourceManagerComponent->AddUniversalResource(Money, money);
 
 	Orders.RemoveAt(0);
 
