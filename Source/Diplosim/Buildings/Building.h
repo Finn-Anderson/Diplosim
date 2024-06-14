@@ -214,4 +214,7 @@ public:
 	void CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<FItemStruct> Items);
 
 	void StoreResource(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		void SetNewOrder(FQueueStruct Order);
 };

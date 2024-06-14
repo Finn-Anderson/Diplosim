@@ -32,6 +32,9 @@ void ADiplosimAIController::Tick(float DeltaTime)
 
 	TSubclassOf<UNavigationQueryFilter> filter = Cast<AAI>(GetOwner())->NavQueryFilter;
 
+	if (GetOwner()->GetVelocity() == FVector::Zero() && (GetOwner()->IsA<AAI>() || Cast<ACitizen>(GetOwner())->Building.BuildingAt == nullptr))
+		RecalculateMovement(MoveRequest.GetGoalActor());
+
 	if (MoveRequest.GetGoalActor()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()))
 		MoveToActor(MoveRequest.GetGoalActor(), 1.0f, true, true, true, filter, true);
 }

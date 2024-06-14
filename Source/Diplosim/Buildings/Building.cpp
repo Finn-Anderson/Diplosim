@@ -40,7 +40,9 @@ ABuilding::ABuilding()
 
 	ParticleComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ParticleComponent"));
 	ParticleComponent->SetupAttachment(RootComponent, "ParticleSocket");
+	ParticleComponent->SetUseAutoManageAttachment(true);
 	ParticleComponent->SetCastShadow(true);
+	ParticleComponent->AutoAttachSocketName = "ParticleSocket";
 	ParticleComponent->bAutoActivate = false;
 
 	Emissiveness = 0.0f;
@@ -484,6 +486,8 @@ void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<F
 
 	Camera->ResourceManagerComponent->TakeLocalResource(this, amount);
 
+	Camera->ResourceManagerComponent->TakeCommittedResource(resource, amount);
+
 	Citizen->Carry(Cast<AResource>(resource->GetDefaultObject()), amount, DeliverTo);
 }
 
@@ -492,7 +496,9 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 	if (Citizen->Carrying.Type == nullptr)
 		return;
 
-	if (Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject() == Citizen->Carrying.Type) {
+	TSubclassOf<AResource> resource = Camera->ResourceManagerComponent->GetResource(this);
+
+	if (resource != nullptr && resource->GetDefaultObject() == Citizen->Carrying.Type) {
 		bool canStore = Camera->ResourceManagerComponent->AddLocalResource(this, Citizen->Carrying.Amount);
 
 		if (canStore) {
@@ -509,8 +515,6 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 	}
 	else {
 		UConstructionManager* cm = Camera->ConstructionManagerComponent;
-
-		Camera->ResourceManagerComponent->TakeCommittedResource(Citizen->Carrying.Type->GetClass(), Citizen->Carrying.Amount);
 
 		TArray<FItemStruct> items;
 
@@ -533,4 +537,22 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			break;
 		}
 	}
+}
+
+void ABuilding::SetNewOrder(FQueueStruct Order)
+{
+	Orders.Add(Order);
+
+	UResourceManager* rm = Camera->ResourceManagerComponent;
+
+	for (FItemStruct items : Order.Items)
+		rm->AddCommittedResource(items.Resource, items.Amount);
+
+	if (Orders.Num() != 1)
+		return;
+
+	TArray<ACitizen*> citizens = GetCitizensAtBuilding();
+
+	for (ACitizen* citizen : citizens)
+		CheckStored(citizen, Orders[0].Items);
 }

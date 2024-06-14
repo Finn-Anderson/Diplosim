@@ -39,5 +39,6 @@ public:
 
 	void SubmitOrder(class ACitizen* Citizen);
 
-	TArray<FValueStruct> ResourceValues;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<FValueStruct> ResourceValues;
 };
