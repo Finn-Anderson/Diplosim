@@ -10,10 +10,10 @@ struct FValueStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-	TSubclassOf<class AResource> Resource;
+		TSubclassOf<class AResource> Resource;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-	int32 Value;
+		int32 Value;
 
 	FValueStruct()
 	{

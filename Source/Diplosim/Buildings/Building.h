@@ -31,7 +31,15 @@ struct FQueueStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		class UWidget* OrderWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FItemStruct> Items;
+
+	FQueueStruct()
+	{
+		OrderWidget = nullptr;
+	}
 };
 
 USTRUCT()
@@ -217,4 +225,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void SetNewOrder(FQueueStruct Order);
+
+	UFUNCTION(BlueprintCallable)
+	void SetOrderWidget(int32 index, class UWidget* Widget);
 };

@@ -47,22 +47,12 @@ public:
 
 	bool TakeUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount, int32 Min);
 
-	void SetResourceStruct(TSubclassOf<AResource> Resource);
-
 	UFUNCTION(BlueprintCallable, Category = "Resource")
 		int32 GetResourceAmount(TSubclassOf<class AResource> Resource);
 
 	TSubclassOf<AResource> GetResource(class ABuilding* Building);
 
 	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
-
-
-	// UI
-	UFUNCTION(BlueprintCallable)
-		FResourceStruct GetUpdatedResource();
-
-	FResourceStruct ResourceStruct;
-
 
 	// Interest
 	void Interest();

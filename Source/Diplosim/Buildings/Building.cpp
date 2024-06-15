@@ -556,3 +556,8 @@ void ABuilding::SetNewOrder(FQueueStruct Order)
 	for (ACitizen* citizen : citizens)
 		CheckStored(citizen, Orders[0].Items);
 }
+
+void ABuilding::SetOrderWidget(int32 index, UWidget* Widget)
+{
+	Orders[index].OrderWidget = Widget;
+}

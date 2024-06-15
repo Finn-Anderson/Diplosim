@@ -60,7 +60,7 @@ void ACitizen::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(ageTimer, this, &ACitizen::Birthday, 45.0f, false);
 
 	SetSex();
-	Async(EAsyncExecution::Thread, [this]() { SetName(); });
+	SetName();
 
 	float r = FMath::FRandRange(0.0f, 1.0f);
 	float g = FMath::FRandRange(0.0f, 1.0f);

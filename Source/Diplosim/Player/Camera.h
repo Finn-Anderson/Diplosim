@@ -16,10 +16,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	// For Resource Manager. This is here because Resource Manager is not a blueprint.
-	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateResourceText();
-
 	UFUNCTION(BlueprintImplementableEvent)
 		void SetInteractableText(AActor* Actor);
 

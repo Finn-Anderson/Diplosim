@@ -17,8 +17,6 @@ void UResourceManager::AddCommittedResource(TSubclassOf<class AResource> Resourc
 		if (ResourceList[i].Type == Resource) {
 			ResourceList[i].Committed += Amount;
 
-			SetResourceStruct(Resource);
-
 			break;
 		}
 	}
@@ -48,14 +46,6 @@ bool UResourceManager::AddLocalResource(ABuilding* Building, int32 Amount)
 	}
 	else {
 		Building->Storage = target;
-	}
-
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Buildings.Contains(Building->GetClass())) {
-			SetResourceStruct(ResourceList[i].Type);
-
-			break;
-		}
 	}
 
 	return space;
@@ -103,10 +93,8 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 
 					b->Storage = FMath::Clamp(b->Storage + Amount, 0, 1000);
 
-					if (AmountLeft <= 0) {
-						SetResourceStruct(Resource);
+					if (AmountLeft <= 0)
 						return true;
-					}
 				}
 			}
 		}
@@ -123,14 +111,6 @@ bool UResourceManager::TakeLocalResource(ABuilding* Building, int32 Amount)
 		return false;
 
 	Building->Storage = target;
-
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Buildings.Contains(Building->GetClass())) {
-			SetResourceStruct(ResourceList[i].Type);
-
-			break;
-		}
-	}
 
 	return true;
 }
@@ -161,8 +141,6 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 	if (target < 0)
 		return false;
 
-	SetResourceStruct(Resource);
-
 	int32 AmountLeft = Amount;
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Type == Resource) {
@@ -177,10 +155,8 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 
 					b->Storage = FMath::Clamp(b->Storage - Amount, Min, 1000);
 
-					if (AmountLeft <= 0) {
-						SetResourceStruct(Resource);
+					if (AmountLeft <= 0)
 						return true;
-					}
 				}
 			}
 
@@ -189,20 +165,6 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 	}
 
 	return false;
-}
-
-void UResourceManager::SetResourceStruct(TSubclassOf<AResource> Resource)
-{
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Type == Resource) {
-			ResourceStruct = ResourceList[i];
-
-			ACamera* player = Cast<ACamera>(GetOwner());
-			player->UpdateResourceText();
-
-			return;
-		}
-	}
 }
 
 int32 UResourceManager::GetResourceAmount(TSubclassOf<AResource> Resource)
@@ -258,11 +220,6 @@ TArray<TSubclassOf<class ABuilding>> UResourceManager::GetBuildings(TSubclassOf<
 	TArray<TSubclassOf<class ABuilding>> null;
 
 	return null;
-}
-
-FResourceStruct UResourceManager::GetUpdatedResource()
-{
-	return ResourceStruct;
 }
 
 void UResourceManager::Interest()

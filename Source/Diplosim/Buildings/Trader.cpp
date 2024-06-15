@@ -1,6 +1,7 @@
 #include "Buildings/Trader.h"
 
 #include "NiagaraComponent.h"
+#include "Components/Widget.h"
 
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
@@ -41,6 +42,8 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 	}
 
 	Camera->ResourceManagerComponent->AddUniversalResource(Money, money);
+
+	Orders[0].OrderWidget->RemoveFromParent();
 
 	Orders.RemoveAt(0);
 
