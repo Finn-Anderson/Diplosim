@@ -4,6 +4,27 @@
 #include "GameFramework/Actor.h"
 #include "Clouds.generated.h"
 
+USTRUCT()
+struct FCloudStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	class UNiagaraComponent* Cloud;
+
+	double Distance;
+
+	FCloudStruct()
+	{
+		Cloud = nullptr;
+		Distance = 0.0f;
+	}
+
+	bool operator==(const FCloudStruct& other) const
+	{
+		return (other.Cloud == Cloud);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API AClouds : public AActor
 {
@@ -26,7 +47,7 @@ public:
 
 	class UDiplosimUserSettings* Settings;
 
-	TArray<class UNiagaraComponent*> Clouds;
+	TArray<FCloudStruct> Clouds;
 
 	class AGrid* Grid;
 

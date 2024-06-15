@@ -41,8 +41,8 @@ void UDiplosimUserSettings::SetRenderClouds(bool Value)
 	if (Clouds == nullptr)
 		return;
 
-	for (UNiagaraComponent* cloud : Clouds->Clouds)
-		cloud->SetHiddenInGame(!Value);	
+	for (FCloudStruct cloudStruct : Clouds->Clouds)
+		cloudStruct.Cloud->SetHiddenInGame(!Value);	
 }
 
 bool UDiplosimUserSettings::GetRenderClouds() const
