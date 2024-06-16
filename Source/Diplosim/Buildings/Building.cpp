@@ -4,6 +4,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NiagaraComponent.h"
 #include "NavigationSystem.h"
+#include "Components/Widget.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -16,6 +17,7 @@
 #include "Map/Grid.h"
 #include "Buildings/Builder.h"
 #include "Buildings/Trader.h"
+#include "Buildings/House.h"
 
 ABuilding::ABuilding()
 {
@@ -249,6 +251,14 @@ void ABuilding::DestroyBuilding()
 	UResourceManager* rm = Camera->ResourceManagerComponent;
 	UConstructionManager* cm = Camera->ConstructionManagerComponent;
 
+	if (cm->IsBeingConstructed(this, nullptr)) {
+		for (FItemStruct items : CostList.Items) {
+			rm->AddUniversalResource(items.Resource, items.Stored);
+
+			rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);
+		}
+	}
+
 	rm->TakeLocalResource(this, Capacity);
 
 	cm->RemoveBuilding(this);
@@ -360,10 +370,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 			builder->CheckCosts(Citizen, this);
 		}
 	}
-	else {
-		if (Citizen->Building.House == this || IsA<ABuilder>() || IsA<ATrader>() || Citizen->Building.Employment == nullptr)
-			return;
-
+	else if (!IsA<AHouse>() && Citizen->Building.Employment != this) {
 		TArray<FItemStruct> items;
 		ABuilding* deliverTo = nullptr;
 
@@ -377,13 +384,15 @@ void ABuilding::Enter(ACitizen* Citizen)
 			ATrader* trader = Cast<ATrader>(Citizen->Building.Employment);
 
 			deliverTo = trader;
-			items = trader->Orders[0].Items;
+
+			if (!trader->Orders[0].bCancelled)
+				items = trader->Orders[0].Items;
 		}
 
 		if (items.IsEmpty())
-			return;
-
-		CarryResources(Citizen, deliverTo, items);
+			Citizen->AIController->AIMoveTo(deliverTo);
+		else
+			CarryResources(Citizen, deliverTo, items);
 	}
 }
 
@@ -539,6 +548,66 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 	}
 }
 
+void ABuilding::ReturnResource(class ACitizen* Citizen)
+{
+	for (int32 i = 0; i < Orders[0].Items.Num(); i++) {
+		if (Orders[0].Items[i].Stored == 0)
+			continue;
+
+		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(Orders[0].Items[i].Resource);
+
+		ABuilding* target = nullptr;
+
+		int32 amount = FMath::Clamp(Orders[0].Items[i].Stored, 0, 10);
+
+		for (int32 j = 0; j < buildings.Num(); j++) {
+			TArray<AActor*> foundBuildings;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
+
+			for (int32 k = 0; k < foundBuildings.Num(); k++) {
+				ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
+
+				if (building->Storage + amount > building->StorageCap)
+					continue;
+
+				if (target == nullptr) {
+					target = building;
+
+					continue;
+				}
+
+				double magnitude = Citizen->AIController->GetClosestActor(Citizen->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation());
+
+				if (magnitude <= 0.0f)
+					continue;
+
+				target = building;
+			}
+		}
+
+		Orders[0].Items[i].Stored -= amount;
+
+		if (target != nullptr) {
+			Citizen->Carry(Orders[0].Items[i].Resource->GetDefaultObject<AResource>(), amount, target);
+
+			return;
+		}
+		else
+			Orders[0].Items[i].Stored = 0;
+	}
+
+	Orders[0].OrderWidget->RemoveFromParent();
+
+	Orders.RemoveAt(0);
+
+	if (Orders.Num() > 0) {
+		if (Orders[0].bCancelled)
+			ReturnResource(Citizen);
+		else
+			CheckStored(Citizen, Orders[0].Items);
+	}
+}
+
 void ABuilding::SetNewOrder(FQueueStruct Order)
 {
 	Orders.Add(Order);
@@ -560,4 +629,17 @@ void ABuilding::SetNewOrder(FQueueStruct Order)
 void ABuilding::SetOrderWidget(int32 index, UWidget* Widget)
 {
 	Orders[index].OrderWidget = Widget;
+}
+
+void ABuilding::SetOrderCancelled(int32 index, bool bCancel)
+{
+	Orders[index].bCancelled = bCancel;
+
+	UResourceManager* rm = Camera->ResourceManagerComponent;
+
+	for (FItemStruct items : Orders[index].Items)
+		rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);
+
+	for (ACitizen* Citizen : GetOccupied())
+		Citizen->AIController->AIMoveTo(this);
 }

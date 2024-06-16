@@ -34,11 +34,15 @@ struct FQueueStruct
 		class UWidget* OrderWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		bool bCancelled;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FItemStruct> Items;
 
 	FQueueStruct()
 	{
 		OrderWidget = nullptr;
+		bCancelled = false;
 	}
 };
 
@@ -223,9 +227,14 @@ public:
 
 	void StoreResource(class ACitizen* Citizen);
 
+	void ReturnResource(class ACitizen* Citizen);
+
 	UFUNCTION(BlueprintCallable)
 		void SetNewOrder(FQueueStruct Order);
 
 	UFUNCTION(BlueprintCallable)
-	void SetOrderWidget(int32 index, class UWidget* Widget);
+		void SetOrderWidget(int32 index, class UWidget* Widget);
+
+	UFUNCTION(BlueprintCallable)
+	void SetOrderCancelled(int32 index, bool bCancel);
 };
