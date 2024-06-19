@@ -16,7 +16,7 @@
 #include "Buildings/Building.h"
 #include "AI/AI.h"
 #include "DiplosimGameModeBase.h"
-#include "Buildings/Gate.h"
+#include "EggBasket.h"
 
 ACamera::ACamera()
 {
@@ -51,7 +51,7 @@ ACamera::ACamera()
 	WidgetComponent->SetTickableWhenPaused(true);
 	WidgetComponent->SetHiddenInGame(true);
 
-	start = true;
+	Start = true;
 
 	bQuick = false;
 
@@ -64,7 +64,7 @@ void ACamera::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (start)
+	if (Start)
 		BuildComponent->SpawnBuilding(StartBuilding);
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -88,6 +88,39 @@ void ACamera::BeginPlay()
 
 	FTimerHandle interestTimer;
 	GetWorld()->GetTimerManager().SetTimer(interestTimer, ResourceManagerComponent, &UResourceManager::Interest, 300.0f, true);
+}
+
+void ACamera::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+
+	HoveredActor = nullptr;
+
+	pcontroller->CurrentMouseCursor = EMouseCursor::Default;
+
+	FVector mouseLoc, mouseDirection;
+	APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
+
+	FHitResult hit(ForceInit);
+
+	FVector endTrace = mouseLoc + (mouseDirection * 10000);
+
+	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
+		AActor* actor = hit.GetActor();
+
+		if (!actor->IsA<AAI>() && !actor->IsA<ABuilding>() && !actor->IsA<AEggBasket>())
+			return;
+
+		if (WidgetComponent->IsAttachedTo(actor->GetRootComponent()))
+			return;
+
+		HoveredActor = actor;
+
+		pcontroller->CurrentMouseCursor = EMouseCursor::Hand;
+	}
 }
 
 void ACamera::TickWhenPaused(bool bTickWhenPaused)
@@ -184,28 +217,19 @@ void ACamera::Action()
 		}
 	}
 	else {
-		FVector mouseLoc, mouseDirection;
-		APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
+		if (!HoveredActor->IsValidLowLevelFast())
+			return;
 
-		FHitResult hit(ForceInit);
-
-		FVector endTrace = mouseLoc + (mouseDirection * 10000);
-
-		if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
-			AActor* actor = hit.GetActor();
-
-			if (!actor->IsA<AAI>() && !actor->IsA<ABuilding>())
-				return;
-
-			DisplayInteract(actor);
-		}
+		if (HoveredActor->IsA<AAI>() || HoveredActor->IsA<ABuilding>())
+			DisplayInteract(HoveredActor);
+		else if (HoveredActor->IsA<AEggBasket>())
+			Cast<AEggBasket>(HoveredActor)->RedeemReward();
 	}
 }
 
 void ACamera::Cancel()
 {
-	if (!BuildComponent->IsComponentTickEnabled() || start || bInMenu)
+	if (!BuildComponent->IsComponentTickEnabled() || Start || bInMenu)
 		return;
 
 	BuildComponent->RemoveBuilding();
@@ -213,7 +237,7 @@ void ACamera::Cancel()
 
 void ACamera::NewMap()
 {
-	if (!start || bInMenu)
+	if (!Start || bInMenu)
 		return;
 
 	Grid->Clear();

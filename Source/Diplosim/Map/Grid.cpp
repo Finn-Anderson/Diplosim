@@ -13,8 +13,7 @@
 #include "WindComponent.h"
 #include "Player/Camera.h"
 #include "Player/CameraMovementComponent.h"
-#include "Player/BuildComponent.h"
-#include "Buildings/Building.h"
+#include "EggBasket.h"
 
 AGrid::AGrid()
 {
@@ -267,6 +266,9 @@ void AGrid::Render()
 	// Spawn clouds
 	Clouds->ActivateCloud();
 
+	// Spawn egg basket
+	GetWorld()->GetTimerManager().SetTimer(EggBasketTimer, this, &AGrid::SpawnEggBasket, 300.0f, true, 0.0f);
+
 	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();
 }
@@ -499,6 +501,22 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 		GenerateTrees(element.Value, value);
 }
 
+void AGrid::SpawnEggBasket()
+{
+	int32 index = FMath::RandRange(0, ResourceTiles.Num() - 1);
+
+	if (index == INDEX_NONE)
+		return;
+
+	FTransform transform = GetTransform(ResourceTiles[index]);
+
+	AEggBasket* eggBasket = GetWorld()->SpawnActor<AEggBasket>(EggBasketClass, transform.GetLocation(), transform.Rotator());
+	eggBasket->Grid = this;
+	eggBasket->Tile = ResourceTiles[index];
+
+	ResourceTiles.RemoveAt(index);
+}
+
 FTransform AGrid::GetTransform(FTileStruct* Tile)
 {
 	bool bFlat = true;
@@ -544,8 +562,13 @@ void AGrid::Clear()
 
 	Clouds->Clear();
 
-	Camera->BuildComponent->Building->Collisions.Empty();
-	Camera->BuildComponent->Building->bMoved = false;
+	GetWorld()->GetTimerManager().ClearTimer(EggBasketTimer);
+
+	TArray<AActor*> baskets;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEggBasket::StaticClass(), baskets);
+
+	for (AActor* actor : baskets)
+		actor->Destroy();
 
 	HISMLava->ClearInstances();
 	HISMWater->ClearInstances();

@@ -17,15 +17,15 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UPROPERTY()
-		class ACamera* Camera;
+	class ACamera* Camera;
 
-public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	bool bCanRotate;
 
-public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+		TSubclassOf<ABuilding> FoundationClass;
+
 	// Building
 	UPROPERTY(EditAnywhere)
 		class UMaterial* BlueprintMaterial;

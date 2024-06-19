@@ -18,6 +18,7 @@
 #include "Buildings/Builder.h"
 #include "Buildings/Trader.h"
 #include "Buildings/House.h"
+#include "EggBasket.h"
 
 ABuilding::ABuilding()
 {
@@ -60,9 +61,9 @@ ABuilding::ABuilding()
 
 	ActualMesh = nullptr;
 
-	bMoved = false;
-
 	bConstant = true;
+
+	bOffset = false;
 }
 
 void ABuilding::BeginPlay()
@@ -139,8 +140,6 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 	if (Camera->BuildComponent->Building != this)
 		return;
 
-	bMoved = true;
-
 	if (OtherActor->IsA<AVegetation>()) {
 		FTreeStruct treeStruct;
 		treeStruct.Resource = Cast<AVegetation>(OtherActor);
@@ -152,26 +151,18 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 
 		TreeList.Add(treeStruct);
 	}
-	else {
-		TArray<UObject*> objArr = { OtherComp, OtherActor };
+	else if (OtherActor->IsA<AResource>() || OtherActor->IsA<ABuilding>() || OtherActor->IsA<AGrid>() || OtherActor->IsA<AEggBasket>()) {
+		FCollisionStruct collision;
+		collision.Actor = OtherActor;
 
-		for (UObject* obj : objArr) {
-			FVector location = CheckCollisions(obj, OtherBodyIndex);
-
-			if (!location.IsZero()) {
-				FBuildStruct buildStruct;
-
-				buildStruct.Object = obj;
-
-				if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>())
-					buildStruct.Instance = OtherBodyIndex;
-
-				buildStruct.Location = location;
-
-				Collisions.Add(buildStruct);
-			}
+		if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+			collision.HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
+			collision.Instance = OtherBodyIndex;
 		}
+		
+		Collisions.Add(collision);
 	}
+		
 }
 
 void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -194,56 +185,16 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 		TreeList.Remove(treeStruct);
 	}
 	else {
-		TArray<UObject*> objArr = { OtherComp, OtherActor };
+		FCollisionStruct collision;
+		collision.Actor = OtherActor;
 
-		for (UObject* obj : objArr) {
-			FVector location = CheckCollisions(obj, OtherBodyIndex);
-
-			if (!location.IsZero()) {
-				FBuildStruct buildStruct;
-
-				buildStruct.Object = obj;
-
-				if (obj->IsA<UHierarchicalInstancedStaticMeshComponent>())
-					buildStruct.Instance = OtherBodyIndex;
-
-				buildStruct.Location = location;
-
-				Collisions.RemoveSingle(buildStruct);
-			}
+		if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+			collision.HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
+			collision.Instance = OtherBodyIndex;
 		}
+
+		Collisions.Remove(collision);
 	}
-}
-
-FVector ABuilding::CheckCollisions(class UObject* Object, int32 Index)
-{
-	FVector location;
-
-	FTransform transform;
-	transform.SetLocation(FVector(0.0f, 0.0f, 0.0f));
-
-	double z = 0.0f;
-
-	if (Object->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
-		UHierarchicalInstancedStaticMeshComponent* HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(Object);
-
-		HISM->GetInstanceTransform(Index, transform);
-
-		if (HISM == Camera->Grid->HISMFlatGround)
-			z = Camera->Grid->HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-		else
-			z = HISM->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-	}
-	else if (Object->IsA<AResource>() || (Object->IsA<ABuilding>())) {
-		UStaticMeshComponent* MeshComp = Cast<AActor>(Object)->GetComponentByClass<UStaticMeshComponent>();
-
-		transform = MeshComp->GetComponentTransform();
-		z = MeshComp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-	}
-
-	location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
-
-	return location;
 }
 
 void ABuilding::DestroyBuilding()

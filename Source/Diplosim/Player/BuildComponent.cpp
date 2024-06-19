@@ -13,9 +13,11 @@
 #include "Buildings/Wall.h"
 #include "Map/Grid.h"
 #include "Map/Vegetation.h"
+#include "Map/Mineral.h"
 #include "DiplosimGameModeBase.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "Buildings/Broch.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -63,9 +65,9 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		FVector location = transform.GetLocation();
 
 		if (comp == Camera->Grid->HISMFlatGround)
-			location.Z += Camera->Grid->HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+			location.Z += Camera->Grid->HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 2.0f;
 		else
-			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 2.0f;
 
 		Building->SetActorLocation(location);
 
@@ -90,33 +92,43 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 bool UBuildComponent::IsValidLocation()
 {
-	if (Building->Collisions.Num() == 0)
+	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+
+	FVector location = Building->BuildingMesh->GetRelativeLocation();
+
+	int32 numCollisionsX = (FMath::Floor(size.X / 105.0f) * 3);
+	int32 numCollisionsY = (FMath::Floor(size.Y / 105.0f) * 3);
+
+	if (numCollisionsX == 0)
+		numCollisionsX = 1;
+
+	if (numCollisionsY == 0)
+		numCollisionsY = 1;
+
+	int32 numCollisions = numCollisionsX * numCollisionsY;
+
+	if (Building->bOffset)
+		numCollisions -= 1;
+
+	if (numCollisions > Building->Collisions.Num())
 		return false;
 
-	FVector building = Building->GetActorLocation();
-	building.X = FMath::RoundHalfFromZero(building.X);
-	building.Y = FMath::RoundHalfFromZero(building.Y);
-	building.Z = FMath::RoundHalfFromZero(building.Z);
-
-	for (const FBuildStruct buildStruct : Building->Collisions) {
-		if (buildStruct.Object == Camera->Grid->HISMLava || buildStruct.Object == Camera->Grid->HISMWater)
-			return false;
-
-		FVector location = buildStruct.Location;
-		location.X = FMath::RoundHalfFromZero(location.X);
-		location.Y = FMath::RoundHalfFromZero(location.Y);
-		location.Z = FMath::RoundHalfFromZero(location.Z);
-
-		if (building.Z == location.Z && location.Z >= 100.0f)
+	for (FCollisionStruct collision : Building->Collisions) {
+		if (Building->StaticClass() == FoundationClass->StaticClass() && collision.Actor->IsA<AGrid>())
 			continue;
 
-		if (building.X == location.X && building.Y == location.Y)
-			return false;
+		FTransform transform;
 
-		FVector temp;
-		float d = Building->BuildingMesh->GetClosestPointOnCollision(location, temp);
+		if (collision.HISM->IsValidLowLevelFast())
+			collision.HISM->GetInstanceTransform(collision.Instance, transform);
+		else
+			transform = collision.Actor->GetTransform();
 
-		if (d < 49.0f)
+		if (Building->IsA<AWall>() && collision.Actor->IsA<AWall>()) {
+			if (Building->GetActorLocation() == collision.Actor->GetActorLocation())
+				return false;
+		}	
+		else if (transform.GetLocation().Z != FMath::Floor(Building->GetActorLocation().Z) - 100.0f)
 			return false;
 	}
 
@@ -229,8 +241,8 @@ void UBuildComponent::Place()
 
 	Building->Build();
 
-	if (Camera->start) {
-		Camera->start = false;
+	if (Camera->Start) {
+		Camera->Start = false;
 		Camera->BuildUIInstance->AddToViewport();
 		Camera->Grid->MapUIInstance->RemoveFromParent();
 
@@ -248,7 +260,7 @@ void UBuildComponent::Place()
 
 void UBuildComponent::QuickPlace()
 {
-	if (Camera->start || BuildingToMove->IsValidLowLevelFast()) {
+	if (Camera->Start || BuildingToMove->IsValidLowLevelFast()) {
 		Place();
 
 		return;

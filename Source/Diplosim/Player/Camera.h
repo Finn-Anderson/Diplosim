@@ -42,7 +42,9 @@ public:
 		class AGrid* Grid;
 
 	UPROPERTY()
-		bool start;
+		bool Start;
+
+	void Tick(float DeltaTime) override;
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -127,6 +129,8 @@ public:
 		class UInputAction* InputDebug;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	AActor* HoveredActor;
 
 	// Commands
 	void Action();

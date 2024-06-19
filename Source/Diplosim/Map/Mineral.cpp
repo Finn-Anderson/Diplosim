@@ -8,7 +8,6 @@
 
 AMineral::AMineral()
 {
-	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	ResourceHISM->SetCanEverAffectNavigation(true);
 	ResourceHISM->bFillCollisionUnderneathForNavmesh = true;
 	ResourceHISM->NumCustomDataFloats = 2;

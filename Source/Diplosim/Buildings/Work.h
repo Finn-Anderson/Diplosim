@@ -20,6 +20,12 @@ public:
 	// Citizens
 	FTimerHandle FindTimer;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
+		class USkeletalMeshComponent* WorkItem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
+		class USkeletalMeshComponent* WorkHat;
+
 	virtual void FindCitizens() override;
 
 	virtual bool AddCitizen(class ACitizen* Citizen) override;

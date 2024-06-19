@@ -138,4 +138,12 @@ public:
 	TArray<FTileStruct*> ResourceTiles;
 
 	bool Forest;
+
+	// Egg Basket
+	void SpawnEggBasket();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Egg Basket")
+		TSubclassOf<class AEggBasket> EggBasketClass;
+
+	FTimerHandle EggBasketTimer;
 };

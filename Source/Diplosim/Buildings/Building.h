@@ -47,26 +47,26 @@ struct FQueueStruct
 };
 
 USTRUCT()
-struct FBuildStruct
+struct FCollisionStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	UObject* Object;
+	AActor* Actor;
+
+	class UHierarchicalInstancedStaticMeshComponent* HISM;
 
 	int32 Instance;
 
-	FVector Location;
-
-	FBuildStruct()
+	FCollisionStruct()
 	{
-		Object = nullptr;
+		Actor = nullptr;
+		HISM = nullptr;
 		Instance = -1;
-		Location = FVector::Zero();
 	}
 
-	bool operator==(const FBuildStruct& other) const
+	bool operator==(const FCollisionStruct& other) const
 	{
-		return (other.Object == Object) && (other.Instance == Instance) && (other.Location == Location);
+		return (other.Actor == Actor) && (other.HISM == HISM) && (other.Instance == Instance);
 	}
 };
 
@@ -121,12 +121,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		float Emissiveness;
 
-	TArray<FBuildStruct> Collisions;
-
 	UPROPERTY()
 		class ACamera* Camera;
 
-	FVector CheckCollisions(class UObject* Object, int32 Index);
+	TArray<FCollisionStruct> Collisions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+		bool bOffset;
 	
 	UFUNCTION(BlueprintCallable)
 		void DestroyBuilding();
@@ -163,8 +164,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen")
 		bool bHideCitizen;
-
-	bool bMoved;
 
 	TArray<FTreeStruct> TreeList;
 

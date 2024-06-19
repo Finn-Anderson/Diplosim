@@ -54,6 +54,9 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 
 	Citizen->Building.Employment = this;
 
+	Citizen->ItemMesh = WorkItem;
+	Citizen->HatMesh = WorkHat;
+
 	Citizen->AIController->AIMoveTo(this);
 
 	return true;
@@ -67,6 +70,9 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 		return false;
 
 	Citizen->Building.Employment = nullptr;
+
+	Citizen->ItemMesh = nullptr;
+	Citizen->HatMesh = nullptr;
 
 	if (!GetWorldTimerManager().IsTimerActive(FindTimer))
 		GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
