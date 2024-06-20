@@ -56,8 +56,7 @@ void ACitizen::BeginPlay()
 
 	GetWorld()->GetTimerManager().SetTimer(HungerTimer, this, &ACitizen::Eat, 3.0f, true);
 
-	FTimerHandle ageTimer;
-	GetWorld()->GetTimerManager().SetTimer(ageTimer, this, &ACitizen::Birthday, 45.0f, false);
+	GetWorld()->GetTimerManager().SetTimer(AgeTimer, this, &ACitizen::Birthday, 45.0f, true);
 
 	SetSex();
 	SetName();
@@ -332,6 +331,9 @@ void ACitizen::Birthday()
 
 	if (BioStruct.Age == 18)
 		AttackComponent->CanAttack = ECanAttack::Valid;
+
+	if (BioStruct.Age >= 12)
+		SetPolticalLeanings();
 }
 
 void ACitizen::SetSex()
@@ -460,4 +462,73 @@ void ACitizen::HaveChild()
 
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Partner;
+}
+
+//
+// Politics
+//
+void ACitizen::SetPolticalLeanings()
+{
+	if (Politics.Ideology.Leaning == ESway::Radical)
+		return;
+
+	TArray<EParty> partyList;
+
+	FPartyStruct partnersParty;
+	TArray<FPartyStruct> jobParties;
+
+	if (BioStruct.Mother->IsValidLowLevelFast())
+		Politics.MothersIdeology = BioStruct.Mother->Politics.Ideology;
+
+	if (BioStruct.Father->IsValidLowLevelFast())
+		Politics.FathersIdeology = BioStruct.Father->Politics.Ideology;
+
+	if (BioStruct.Partner->IsValidLowLevelFast())
+		partnersParty = BioStruct.Partner->Politics.Ideology;
+
+	if (Building.Employment->IsValidLowLevelFast())
+		jobParties = Building.Employment->Swing;
+
+	for (int32 i = 0; i < Politics.MothersIdeology.Leaning; i++)
+		partyList.Add(Politics.MothersIdeology.Party);
+
+	for (int32 i = 0; i < Politics.FathersIdeology.Leaning; i++)
+		partyList.Add(Politics.FathersIdeology.Party);
+
+	for (int32 i = 0; i < partnersParty.Leaning; i++)
+		partyList.Add(partnersParty.Party);
+
+	for (FPartyStruct party : jobParties)
+		for (int32 i = 0; i < party.Leaning; i++)
+			partyList.Add(party.Party);
+
+	for (int32 i = 0; i < Politics.Ideology.Leaning; i++)
+		partyList.Add(Politics.Ideology.Party);
+
+	if (partyList.IsEmpty())
+		return;
+
+	int32 index = FMath::RandRange(0, partyList.Num() - 1);
+
+	if (Politics.Ideology.Party == partyList[index]) {
+		int32 pass = 80;
+
+		if (Politics.Ideology.Leaning == ESway::Strong)
+			pass = 95;
+
+		int32 mark = FMath::RandRange(0, 100);
+
+		if (pass < mark) {
+			if (Politics.Ideology.Leaning == ESway::Strong)
+				Politics.Ideology.Leaning = ESway::Radical;
+			else
+				Politics.Ideology.Leaning = ESway::Strong;
+		}
+	}
+	else {
+		if (Politics.Ideology.Leaning != ESway::Strong)
+			Politics.Ideology.Party = partyList[index];
+
+		Politics.Ideology.Leaning = ESway::Moderate;
+	}
 }

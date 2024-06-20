@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AI/Citizen.h"
 #include "GameFramework/Actor.h"
 #include "Building.generated.h"
 
@@ -236,4 +237,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetOrderCancelled(int32 index, bool bCancel);
+
+	// Politics
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<FPartyStruct> Swing;
 };

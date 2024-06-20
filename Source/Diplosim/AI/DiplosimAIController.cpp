@@ -37,7 +37,7 @@ void ADiplosimAIController::Tick(float DeltaTime)
 	collidingStruct.Actor = MoveRequest.GetGoalActor();
 	collidingStruct.Instance = MoveRequest.GetGoalInstance();
 
-	if (GetOwner()->GetVelocity() == FVector::Zero() && (GetOwner()->IsA<AEnemy>() || (Cast<ACitizen>(GetOwner())->Building.BuildingAt == nullptr && !Cast<ACitizen>(GetOwner())->StillColliding.Contains(collidingStruct))))
+	if (GetOwner()->GetVelocity() == FVector::Zero() && (GetOwner()->IsA<AEnemy>() || !Cast<ACitizen>(GetOwner())->StillColliding.Contains(collidingStruct)))
 		RecalculateMovement(MoveRequest.GetGoalActor());
 
 	if (MoveRequest.GetGoalActor()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()))

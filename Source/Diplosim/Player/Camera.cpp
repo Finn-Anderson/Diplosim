@@ -94,6 +94,9 @@ void ACamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (BuildComponent->IsComponentTickEnabled())
+		return;
+
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
 	HoveredActor = nullptr;

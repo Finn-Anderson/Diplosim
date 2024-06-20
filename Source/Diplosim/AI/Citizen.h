@@ -85,6 +85,56 @@ struct FBioStruct
 	}
 };
 
+UENUM()
+enum class EParty : uint8
+{
+	Undecided,
+	Religious,
+	Militarist,
+	Industrialist,
+	Environmentalist
+};
+
+UENUM()
+enum ESway : uint8
+{
+	NaN,
+	Moderate,
+	Strong,
+	Radical
+};
+
+USTRUCT(BlueprintType)
+struct FPartyStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		EParty Party;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TEnumAsByte<ESway> Leaning;
+
+	FPartyStruct()
+	{
+		Party = EParty::Undecided;
+		Leaning = ESway::NaN;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FPoliticalStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Politics")
+		FPartyStruct Ideology;
+
+	FPartyStruct FathersIdeology;
+
+	FPartyStruct MothersIdeology;
+};
+
 USTRUCT()
 struct FCollidingStruct
 {
@@ -234,5 +284,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		FBioStruct BioStruct;
 
+	FTimerHandle AgeTimer;
+
 	FTimerHandle ChildTimer;
+
+	// Politics
+	UPROPERTY(BlueprintReadOnly, Category = "Politics")
+		FPoliticalStruct Politics;
+
+	void SetPolticalLeanings();
 };
