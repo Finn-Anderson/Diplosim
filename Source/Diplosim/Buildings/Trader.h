@@ -41,4 +41,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FValueStruct> ResourceValues;
+
+	FTimerHandle WaitTimer;
 };

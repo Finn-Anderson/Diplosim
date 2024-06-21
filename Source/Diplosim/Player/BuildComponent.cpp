@@ -96,8 +96,8 @@ bool UBuildComponent::IsValidLocation()
 
 	FVector location = Building->BuildingMesh->GetRelativeLocation();
 
-	int32 numCollisionsX = (FMath::Floor(size.X / 105.0f) * 3);
-	int32 numCollisionsY = (FMath::Floor(size.Y / 105.0f) * 3);
+	int32 numCollisionsX = (FMath::Floor(size.X / 151.0f) * 3);
+	int32 numCollisionsY = (FMath::Floor(size.Y / 151.0f) * 3);
 
 	if (numCollisionsX == 0)
 		numCollisionsX = 1;
@@ -114,7 +114,7 @@ bool UBuildComponent::IsValidLocation()
 		return false;
 
 	for (FCollisionStruct collision : Building->Collisions) {
-		if (Building->StaticClass() == FoundationClass->StaticClass() && collision.Actor->IsA<AGrid>())
+		if (Building->GetClass() == FoundationClass->GetDefaultObject()->GetClass() && collision.Actor->IsA<AGrid>())
 			continue;
 
 		FTransform transform;

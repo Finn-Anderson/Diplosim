@@ -38,12 +38,20 @@ struct FQueueStruct
 		bool bCancelled;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Wait;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		bool bRepeat;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FItemStruct> Items;
 
 	FQueueStruct()
 	{
 		OrderWidget = nullptr;
 		bCancelled = false;
+		Wait = 0;
+		bRepeat = false;
 	}
 };
 

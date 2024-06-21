@@ -332,8 +332,10 @@ void ACitizen::Birthday()
 	if (BioStruct.Age == 18)
 		AttackComponent->CanAttack = ECanAttack::Valid;
 
-	if (BioStruct.Age >= 12)
+	if (BioStruct.Age >= 12) {
 		SetPolticalLeanings();
+		SetReligionLeanings();
+	}
 }
 
 void ACitizen::SetSex()
@@ -462,6 +464,9 @@ void ACitizen::HaveChild()
 
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Partner;
+
+	BioStruct.Children.Add(citizen);
+	BioStruct.Partner->BioStruct.Children.Add(citizen);
 }
 
 //
@@ -477,23 +482,28 @@ void ACitizen::SetPolticalLeanings()
 	FPartyStruct partnersParty;
 	TArray<FPartyStruct> jobParties;
 
-	if (BioStruct.Mother->IsValidLowLevelFast())
-		Politics.MothersIdeology = BioStruct.Mother->Politics.Ideology;
-
 	if (BioStruct.Father->IsValidLowLevelFast())
 		Politics.FathersIdeology = BioStruct.Father->Politics.Ideology;
+
+	if (BioStruct.Mother->IsValidLowLevelFast())
+		Politics.MothersIdeology = BioStruct.Mother->Politics.Ideology;
 
 	if (BioStruct.Partner->IsValidLowLevelFast())
 		partnersParty = BioStruct.Partner->Politics.Ideology;
 
-	if (Building.Employment->IsValidLowLevelFast())
+	if (Building.Employment->IsValidLowLevelFast()) {
 		jobParties = Building.Employment->Swing;
 
-	for (int32 i = 0; i < Politics.MothersIdeology.Leaning; i++)
-		partyList.Add(Politics.MothersIdeology.Party);
+		for (ACitizen* citizen : Building.Employment->GetOccupied())
+			if (citizen != this)
+				jobParties.Add(citizen->Politics.Ideology);
+	}
 
 	for (int32 i = 0; i < Politics.FathersIdeology.Leaning; i++)
 		partyList.Add(Politics.FathersIdeology.Party);
+
+	for (int32 i = 0; i < Politics.MothersIdeology.Leaning; i++)
+		partyList.Add(Politics.MothersIdeology.Party);
 
 	for (int32 i = 0; i < partnersParty.Leaning; i++)
 		partyList.Add(partnersParty.Party);
@@ -530,5 +540,76 @@ void ACitizen::SetPolticalLeanings()
 			Politics.Ideology.Party = partyList[index];
 
 		Politics.Ideology.Leaning = ESway::Moderate;
+	}
+}
+
+//
+// Religion
+//
+void ACitizen::SetReligionLeanings()
+{
+	if (Spirituality.Faith.Leaning == ESway::Radical)
+		return;
+
+	TArray<EReligion> religionList;
+
+	FReligionStruct partnersReligion;
+	TArray<FReligionStruct> jobReligions;
+
+	if (BioStruct.Father->IsValidLowLevelFast())
+		Spirituality.FathersFaith = BioStruct.Father->Spirituality.Faith;
+
+	if (BioStruct.Mother->IsValidLowLevelFast())
+		Spirituality.MothersFaith = BioStruct.Mother->Spirituality.Faith;
+
+	if (BioStruct.Partner->IsValidLowLevelFast())
+		partnersReligion = BioStruct.Partner->Spirituality.Faith;
+
+	if (Building.Employment->IsValidLowLevelFast())
+		for (ACitizen* citizen : Building.Employment->GetOccupied())
+			if (citizen != this)
+				jobReligions.Add(citizen->Spirituality.Faith);
+
+	for (int32 i = 0; i < Spirituality.FathersFaith.Leaning; i++)
+		religionList.Add(Spirituality.FathersFaith.Religion);
+
+	for (int32 i = 0; i < Spirituality.MothersFaith.Leaning; i++)
+		religionList.Add(Spirituality.MothersFaith.Religion);
+
+	for (int32 i = 0; i < partnersReligion.Leaning; i++)
+		religionList.Add(partnersReligion.Religion);
+
+	for (FReligionStruct faith : jobReligions)
+		for (int32 i = 0; i < faith.Leaning; i++)
+			religionList.Add(faith.Religion);
+
+	for (int32 i = 0; i < Spirituality.Faith.Leaning; i++)
+		religionList.Add(Spirituality.Faith.Religion);
+
+	if (religionList.IsEmpty())
+		return;
+
+	int32 index = FMath::RandRange(0, religionList.Num() - 1);
+
+	if (Spirituality.Faith.Religion == religionList[index]) {
+		int32 pass = 80;
+
+		if (Spirituality.Faith.Leaning == ESway::Strong)
+			pass = 95;
+
+		int32 mark = FMath::RandRange(0, 100);
+
+		if (pass < mark) {
+			if (Spirituality.Faith.Leaning == ESway::Strong)
+				Spirituality.Faith.Leaning = ESway::Radical;
+			else
+				Spirituality.Faith.Leaning = ESway::Strong;
+		}
+	}
+	else {
+		if (Spirituality.Faith.Leaning != ESway::Strong)
+			Spirituality.Faith.Religion = religionList[index];
+
+		Spirituality.Faith.Leaning = ESway::Moderate;
 	}
 }

@@ -74,6 +74,9 @@ struct FBioStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		FString Name;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		TArray<class ACitizen*> Children;
+
 	FBioStruct()
 	{
 		Mother = nullptr;
@@ -133,6 +136,40 @@ struct FPoliticalStruct
 	FPartyStruct FathersIdeology;
 
 	FPartyStruct MothersIdeology;
+};
+
+UENUM()
+enum class EReligion : uint8
+{
+	Undecided,
+	Egg,
+	Chicken,
+	Fox
+};
+
+USTRUCT(BlueprintType)
+struct FReligionStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+		EReligion Religion;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+		TEnumAsByte<ESway> Leaning;
+};
+
+USTRUCT(BlueprintType)
+struct FSpiritualStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+		FReligionStruct Faith;
+
+	FReligionStruct FathersFaith;
+
+	FReligionStruct MothersFaith;
 };
 
 USTRUCT()
@@ -293,4 +330,10 @@ public:
 		FPoliticalStruct Politics;
 
 	void SetPolticalLeanings();
+
+	// Religion
+	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+		FSpiritualStruct Spirituality;
+
+	void SetReligionLeanings();
 };
