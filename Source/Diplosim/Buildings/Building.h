@@ -249,4 +249,8 @@ public:
 	// Politics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FPartyStruct> Swing;
+
+	// Religion
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		FReligionStruct Belief;
 };

@@ -51,8 +51,14 @@ void ADiplosimAIController::DefaultAction()
 
 	MoveRequest.SetGoalActor(nullptr);
 
-	if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast())
-		Idle();
+	if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast()) {
+		ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+		if (citizen->Building.Employment != nullptr)
+			AIMoveTo(citizen->Building.Employment);
+		else
+			Idle();
+	}
 	else
 		AIMoveTo(PrevGoal);
 }
@@ -165,7 +171,7 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	if (Actor->IsA<AAI>() && (MoveRequest.GetGoalActor() == nullptr || !MoveRequest.GetGoalActor()->IsA<AAI>()))
+	if (!MoveRequest.GetGoalActor()->IsA<AAI>())
 		PrevGoal = MoveRequest.GetGoalActor();
 
 	MoveRequest.SetGoalActor(Actor);

@@ -1,15 +1,75 @@
 #include "Work.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "Components/DecalComponent.h"
+#include "Components/SphereComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/ResourceManager.h"
+#include "House.h"
 
 AWork::AWork()
 {
+	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
+	DecalComponent->SetupAttachment(RootComponent);
+	DecalComponent->DecalSize = FVector(1500.0f, 1500.0f, 1500.0f);
+	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
+	DecalComponent->SetVisibility(false);
+
+	SphereComponent = CreateDefaultSubobject<USphereComponent>("SphereComponent");
+	SphereComponent->SetupAttachment(RootComponent);
+	SphereComponent->SetSphereRadius(1500.0f);
+	SphereComponent->SetVisibility(false);
+
+	bRange = false;
+
 	Wage = 0;
+}
+
+void AWork::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AWork::OnRadialOverlapBegin);
+	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AWork::OnRadialOverlapEnd);
+
+	if (bRange) {
+		DecalComponent->SetVisibility(true);
+		SphereComponent->SetVisibility(true);
+	}
+}
+
+void AWork::OnRadialOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (!bRange || !OtherActor->IsA<AHouse>() || GetOccupied().IsEmpty())
+		return;
+
+	AHouse* house = Cast<AHouse>(OtherActor);
+
+	house->Religions.Add(Belief);
+	
+	for (FPartyStruct party : Swing)
+		house->Parties.Add(party);
+
+	Houses.Add(house);
+}
+
+void AWork::OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (!Houses.Contains(OtherActor))
+		return;
+
+	AHouse* house = Cast<AHouse>(OtherActor);
+
+	if (Belief.Religion != EReligion::Undecided)
+		house->Religions.RemoveSingle(Belief);
+
+	for (FPartyStruct party : Swing)
+		house->Parties.RemoveSingle(party);
+
+	Houses.Remove(house);
 }
 
 void AWork::UpkeepCost()
@@ -32,7 +92,7 @@ void AWork::FindCitizens()
 	for (int i = 0; i < citizens.Num(); i++) {
 		ACitizen* c = Cast<ACitizen>(citizens[i]);
 
-		if (!c->CanWork() || c->Building.Employment != nullptr || !c->AIController->CanMoveTo(GetActorLocation()))
+		if (!c->CanWork(this) || c->Building.Employment != nullptr || !c->AIController->CanMoveTo(GetActorLocation()))
 			continue;
 			
 		AddCitizen(c);

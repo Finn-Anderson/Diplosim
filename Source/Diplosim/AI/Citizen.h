@@ -26,7 +26,7 @@ struct FBuildingStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class ABuilding* House;
+		class AHouse* House;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
 		class ABuilding* Employment;
@@ -123,6 +123,11 @@ struct FPartyStruct
 		Party = EParty::Undecided;
 		Leaning = ESway::NaN;
 	}
+
+	bool operator==(const FPartyStruct& other) const
+	{
+		return (other.Party == Party) && (other.Leaning == Leaning);
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -157,6 +162,17 @@ struct FReligionStruct
 
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")
 		TEnumAsByte<ESway> Leaning;
+
+	FReligionStruct()
+	{
+		Religion = EReligion::Undecided;
+		Leaning = ESway::NaN;
+	}
+
+	bool operator==(const FReligionStruct& other) const
+	{
+		return (other.Religion == Religion) && (other.Leaning == Leaning);
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -170,6 +186,8 @@ struct FSpiritualStruct
 	FReligionStruct FathersFaith;
 
 	FReligionStruct MothersFaith;
+
+	bool bBoost;
 };
 
 USTRUCT()
@@ -255,7 +273,7 @@ public:
 		TArray<FCosmeticStruct> CosmeticStruct;
 
 	// Work
-	bool CanWork();
+	bool CanWork(class ABuilding* ReligiousBuilding);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		int32 Balance;

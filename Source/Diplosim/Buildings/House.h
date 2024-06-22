@@ -15,6 +15,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		int32 Rent;
 
+	TArray<FReligionStruct> Religions;
+
+	TArray<FPartyStruct> Parties;
+
 	virtual void UpkeepCost() override;
 
 	virtual void Enter(class ACitizen* Citizen) override;

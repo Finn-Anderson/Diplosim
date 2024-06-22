@@ -37,8 +37,5 @@ public:
 
 	virtual void Production(class ACitizen* Citizen) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
-		class UDecalComponent* DecalComponent;
-
 	TArray<FValidResourceStruct> ValidResourceList;
 };

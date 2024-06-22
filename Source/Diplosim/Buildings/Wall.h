@@ -43,8 +43,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class AProjectile> BuildingProjectileClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
-		class UDecalComponent* DecalComponent;
-
 	TArray<FSocketStruct> SocketList;
 };

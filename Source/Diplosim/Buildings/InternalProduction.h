@@ -28,6 +28,4 @@ public:
 	virtual void Production(class ACitizen* Citizen) override;
 
 	void Produce(class ACitizen* Citizen);
-
-	int32 PercentageDone;
 };

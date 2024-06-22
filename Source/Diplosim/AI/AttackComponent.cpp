@@ -47,7 +47,7 @@ void UAttackComponent::BeginPlay()
 		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 		RangeComponent->SetAreaClassOverride(gamemode->NavAreaThreat);
 
-		if (!Cast<ACitizen>(Owner)->CanWork())
+		if (Cast<ACitizen>(Owner)->BioStruct.Age < 18)
 			CanAttack = ECanAttack::Invalid;
 	}
 
@@ -186,7 +186,7 @@ void UAttackComponent::PickTarget()
 
 void UAttackComponent::CanHit(AActor* Target)
 {
-	if (Owner->IsA<ACitizen>() && !Cast<ACitizen>(Owner)->CanWork())
+	if (CanAttack == ECanAttack::Invalid)
 		return;
 
 	MeleeableEnemies.Add(Target);

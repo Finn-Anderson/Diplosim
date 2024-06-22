@@ -16,9 +16,7 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	int32 numAtWork = GetCitizensAtBuilding().Num();
-
-	if (numAtWork == 1)
+	if (GetCitizensAtBuilding().Num() == 1)
 		Production(Citizen);
 }
 
@@ -26,34 +24,25 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
-	int32 numAtWork = GetCitizensAtBuilding().Num();
-
-	if (numAtWork == 0)
-		GetWorldTimerManager().ClearTimer(ProdTimer);
+	if (GetCitizensAtBuilding().IsEmpty() && GetWorldTimerManager().IsTimerActive(ProdTimer))
+		GetWorldTimerManager().PauseTimer(ProdTimer);
 }
 
 void AInternalProduction::Production(ACitizen* Citizen)
 {
 	Super::Production(Citizen);
 
-	int32 numAtWork = GetCitizensAtBuilding().Num();
-
-	if (!GetWorldTimerManager().IsTimerActive(ProdTimer))
-		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / 100.0f / numAtWork), false);
+	if (GetWorldTimerManager().IsTimerPaused(ProdTimer))
+		GetWorldTimerManager().UnPauseTimer(ProdTimer);
+	else if (!GetWorldTimerManager().IsTimerActive(ProdTimer))
+		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / GetCitizensAtBuilding().Num()), false);
 }
 
 void AInternalProduction::Produce(ACitizen* Citizen)
 {
-	PercentageDone += 1;
+	Citizen->Carry(Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
 
-	if (PercentageDone == 100) {
-		Citizen->Carry(Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
+	StoreResource(Citizen);
 
-		StoreResource(Citizen);
-
-		PercentageDone = 0;
-	}
-
-	if (Citizen->Building.BuildingAt == this)
-		Production(Citizen);
+	Production(Citizen);
 }
