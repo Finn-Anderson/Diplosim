@@ -51,6 +51,7 @@ ABuilding::ABuilding()
 	Emissiveness = 0.0f;
 
 	Capacity = 2;
+	MaxCapacity = 2;
 
 	Storage = 0;
 	StorageCap = 1000;

@@ -21,7 +21,6 @@ AWork::AWork()
 	SphereComponent = CreateDefaultSubobject<USphereComponent>("SphereComponent");
 	SphereComponent->SetupAttachment(RootComponent);
 	SphereComponent->SetSphereRadius(1500.0f);
-	SphereComponent->SetVisibility(false);
 
 	bRange = false;
 
@@ -34,11 +33,6 @@ void AWork::BeginPlay()
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AWork::OnRadialOverlapBegin);
 	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AWork::OnRadialOverlapEnd);
-
-	if (bRange) {
-		DecalComponent->SetVisibility(true);
-		SphereComponent->SetVisibility(true);
-	}
 }
 
 void AWork::OnRadialOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

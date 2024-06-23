@@ -157,10 +157,10 @@ struct FReligionStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
 		EReligion Religion;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
 		TEnumAsByte<ESway> Leaning;
 
 	FReligionStruct()

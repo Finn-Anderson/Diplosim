@@ -12,6 +12,7 @@
 
 AExternalProduction::AExternalProduction()
 {
+	DecalComponent->SetVisibility(true);
 }
 
 void AExternalProduction::Enter(ACitizen* Citizen)

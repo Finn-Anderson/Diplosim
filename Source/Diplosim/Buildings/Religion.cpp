@@ -1,5 +1,7 @@
 #include "Buildings/Religion.h"
 
+#include "Components/DecalComponent.h"
+
 #include "House.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -8,6 +10,10 @@ AReligion::AReligion()
 {
 	MassLength = 120.0f;
 	WaitLength = 900.0f;
+
+	DecalComponent->SetVisibility(true);
+
+	bRange = true;
 
 	bMass = true;
 }
