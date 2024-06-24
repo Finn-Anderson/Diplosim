@@ -8,6 +8,7 @@
 
 #include "Camera.h"
 #include "ConstructionManager.h"
+#include "Player/ResourceManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/Builder.h"
 #include "Buildings/Wall.h"
@@ -18,6 +19,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Buildings/Broch.h"
+#include "Buildings/Road.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -25,9 +27,11 @@ UBuildComponent::UBuildComponent()
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	bCanRotate = true;
-	Building = nullptr;
 
 	Rotation.Yaw = 90.0f;
+
+	StartLocation = FVector::Zero();
+	EndLocation = FVector::Zero();
 
 	BuildingToMove = nullptr;
 }
@@ -43,7 +47,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!Building)
+	if (Buildings.IsEmpty())
 		return;
 
 	FVector mouseLoc, mouseDirection;
@@ -69,32 +73,136 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		else
 			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 2.0f;
 
-		Building->SetActorLocation(location);
+		location.Z = FMath::RoundHalfFromZero(location.Z);
 
-		Camera->WidgetComponent->SetWorldLocation(location + FVector(0.0f, 0.0f, Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z));
+		Buildings[0]->SetActorLocation(location);
+
+		Camera->WidgetComponent->SetWorldLocation(location + FVector(0.0f, 0.0f, Buildings[0]->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z));
+
+		if (StartLocation != FVector::Zero() && EndLocation != Buildings[0]->GetActorLocation())
+			SetBuildingsOnPath();
 	}
 
-	UDecalComponent* decalComp = Building->FindComponentByClass<UDecalComponent>();
+	for (ABuilding* building : Buildings) {
+		UDecalComponent* decalComp = building->FindComponentByClass<UDecalComponent>();
 
-	if (!IsValidLocation() || !Building->CheckBuildCost()) {
-		Building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
+		if (!IsValidLocation(building) || !CheckBuildCosts()) {
+			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
-		if (decalComp != nullptr)
-			decalComp->SetHiddenInGame(true);
-	}
-	else {
-		Building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
+			if (decalComp != nullptr)
+				decalComp->SetHiddenInGame(true);
+		}
+		else {
+			building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
 
-		if (decalComp != nullptr)
-			decalComp->SetHiddenInGame(false);
+			if (decalComp != nullptr)
+				decalComp->SetHiddenInGame(false);
+		}
 	}
 }
 
-bool UBuildComponent::IsValidLocation()
+void UBuildComponent::SetBuildingsOnPath()
 {
-	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+	EndLocation = Buildings[0]->GetActorLocation();
 
-	FVector location = Building->BuildingMesh->GetRelativeLocation();
+	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
+		for (FTreeStruct treeStruct : Buildings[i]->TreeList)
+			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
+
+		Buildings[i]->DestroyBuilding();
+
+		Buildings.RemoveAt(i);
+	}
+
+	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
+	int32 x = StartLocation.X / 100.0f + bound / 2;
+	int32 y = StartLocation.Y / 100.0f + bound / 2;
+
+	TArray<FVector> locations = CalculatePath(Camera->Grid->Storage[x][y]);
+
+	for (FVector location : locations) {
+		if (location == EndLocation)
+			continue;
+
+		bool bRoadExists = false;
+
+		FHitResult hit(ForceInit);
+
+		if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 10.0f), location, ECollisionChannel::ECC_Visibility))
+			if (hit.GetActor()->IsA<ARoad>())
+				bRoadExists = true;
+
+		if (!bRoadExists)
+			SpawnBuilding(Buildings[0]->GetClass(), location);
+	}
+}
+
+TArray<FVector> UBuildComponent::CalculatePath(FTileStruct Tile)
+{
+	TArray<FVector> locations;
+
+	FTransform transform;
+	transform = Camera->Grid->GetTransform(&Tile);
+
+	FVector location = transform.GetLocation() - FVector(0.0f, 0.0f, 2.0f);
+
+	locations.Add(location);
+
+	FTileStruct closestTile = Tile;
+
+	for (auto& element : Tile.AdjacentTiles) {
+		FVector currentClosestLoc = Camera->Grid->GetTransform(&closestTile).GetLocation();
+
+		FVector newClosestLoc = Camera->Grid->GetTransform(element.Value).GetLocation();
+
+		float currentDist = FVector::Dist(currentClosestLoc, EndLocation);
+		float newDist = FVector::Dist(newClosestLoc, EndLocation);
+
+		if (currentDist > newDist)
+			closestTile = *element.Value;
+	}
+
+	if (closestTile.X != Tile.X || closestTile.Y != Tile.Y)
+		locations.Append(CalculatePath(closestTile));
+
+	return locations;
+}
+
+FQueueStruct UBuildComponent::GetBuildCosts()
+{
+	FQueueStruct queue = Buildings[0]->CostList;
+
+	for (int32 i = 0; i < queue.Items.Num(); i++)
+		queue.Items[i].Amount *= Buildings.Num();
+
+	return queue;
+}
+
+bool UBuildComponent::CheckBuildCosts()
+{
+	UResourceManager* rm = Camera->ResourceManagerComponent;
+
+	FQueueStruct queue = GetBuildCosts();
+
+	for (FItemStruct item : queue.Items) {
+		int32 maxAmount = rm->GetResourceAmount(item.Resource);
+
+		if (maxAmount < item.Amount)
+			return false;
+	}
+
+	return true;
+}
+
+bool UBuildComponent::IsValidLocation(ABuilding* building)
+{
+	FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+
+	FVector location = building->BuildingMesh->GetRelativeLocation();
+
+	if (StartLocation != FVector::Zero() && location.Z != StartLocation.Z)
+		return false;
 
 	int32 numCollisionsX = (FMath::Floor(size.X / 151.0f) * 3);
 	int32 numCollisionsY = (FMath::Floor(size.Y / 151.0f) * 3);
@@ -107,16 +215,19 @@ bool UBuildComponent::IsValidLocation()
 
 	int32 numCollisions = numCollisionsX * numCollisionsY;
 
-	if (Building->bOffset)
+	if (building->bOffset)
 		numCollisions -= 1;
 
-	if (numCollisions > Building->Collisions.Num())
+	if (numCollisions > building->Collisions.Num())
 		return false;
 
-	for (FCollisionStruct collision : Building->Collisions) {
-		if (Building->GetClass() == FoundationClass->GetDefaultObject()->GetClass() && collision.Actor->IsA<AGrid>())
+	for (FCollisionStruct collision : building->Collisions) {
+		if ((building->GetClass() == FoundationClass->GetDefaultObject()->GetClass() && collision.Actor->IsA<AGrid>()) || (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>() && building->GetActorLocation() != collision.Actor->GetActorLocation()))
 			continue;
 
+		if (collision.HISM == Camera->Grid->HISMWater || collision.HISM == Camera->Grid->HISMLava)
+			return false;
+		
 		FTransform transform;
 
 		if (collision.HISM->IsValidLowLevelFast())
@@ -124,30 +235,32 @@ bool UBuildComponent::IsValidLocation()
 		else
 			transform = collision.Actor->GetTransform();
 
-		if (Building->IsA<AWall>() && collision.Actor->IsA<AWall>()) {
-			if (Building->GetActorLocation() == collision.Actor->GetActorLocation())
+		if (building->IsA<AWall>() && collision.Actor->IsA<AWall>()) {
+			if (building->GetActorLocation() == collision.Actor->GetActorLocation())
 				return false;
 		}	
-		else if (transform.GetLocation().Z != FMath::Floor(Building->GetActorLocation().Z) - 100.0f)
+		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f)
 			return false;
 	}
 
 	return true;
 }
 
-void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass)
+void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, FVector location)
 {
 	if (!IsComponentTickEnabled())
 		SetComponentTickEnabled(true);
 
-	Building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0, 0, 50.0f), Rotation);
+	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation);
 
-	Camera->DisplayInteract(Building);
+	Buildings.Add(building);
+
+	Camera->DisplayInteract(Buildings[0]);
 }
 
 void UBuildComponent::DetachBuilding()
 {
-	if (Building == nullptr)
+	if (Buildings.IsEmpty())
 		return;
 
 	Camera->WidgetComponent->SetHiddenInGame(true);
@@ -155,25 +268,33 @@ void UBuildComponent::DetachBuilding()
 
 	SetComponentTickEnabled(false);
 
-	Building = nullptr;
+	StartLocation = FVector::Zero();
+	EndLocation = FVector::Zero();
+
+	Buildings.Empty();
 }
 
 void UBuildComponent::RemoveBuilding()
 {
-	if (Building == nullptr)
+	if (Buildings.IsEmpty())
 		return;
 
-	for (FTreeStruct treeStruct : Building->TreeList)
-		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
+	for (ABuilding* building : Buildings) {
+		for (FTreeStruct treeStruct : building->TreeList)
+			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 3, 1.0f);
 
-	Building->DestroyBuilding();
+		building->DestroyBuilding();
+	}
 
 	DetachBuilding();
 }
 
 void UBuildComponent::RotateBuilding(bool Rotate)
 {
-	if (Building != nullptr && Rotate && bCanRotate) {
+	if (Buildings.IsEmpty() || Buildings[0]->IsA<ARoad>())
+		return;
+
+	if (Rotate && bCanRotate) {
 		int32 yaw = Rotation.Yaw;
 
 		if (yaw % 90 == 0)
@@ -186,7 +307,7 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 
 		Rotation.Yaw = yaw;
 
-		Building->SetActorRotation(Rotation);
+		Buildings[0]->SetActorRotation(Rotation);
 	}
 	else if (!Rotate) {
 		bCanRotate = true;
@@ -195,15 +316,27 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 
 void UBuildComponent::Place()
 {
-	if (Building == nullptr || !IsValidLocation() || !Building->CheckBuildCost())
+	if (Buildings.IsEmpty() || !CheckBuildCosts())
 		return;
 
-	for (FTreeStruct treeStruct : Building->TreeList)
-		treeStruct.Resource->ResourceHISM->RemoveInstance(treeStruct.Instance);
+	for (ABuilding* building : Buildings)
+		if (!IsValidLocation(building))
+			return;
+
+	if (StartLocation == FVector::Zero() && Buildings[0]->IsA<ARoad>()) {
+		StartLocation = Buildings[0]->GetActorLocation();
+		EndLocation = Buildings[0]->GetActorLocation();
+
+		return;
+	}
+
+	for (ABuilding* building : Buildings)
+		for (FTreeStruct treeStruct : building->TreeList)
+			treeStruct.Resource->ResourceHISM->RemoveInstance(treeStruct.Instance);
 
 	if (BuildingToMove->IsValidLowLevelFast()) {
-		BuildingToMove->SetActorLocation(Building->GetActorLocation());
-		BuildingToMove->SetActorRotation(Building->GetActorRotation());
+		BuildingToMove->SetActorLocation(Buildings[0]->GetActorLocation());
+		BuildingToMove->SetActorRotation(Buildings[0]->GetActorRotation());
 
 		TArray<ACitizen*> citizens = BuildingToMove->GetCitizensAtBuilding();
 
@@ -229,27 +362,29 @@ void UBuildComponent::Place()
 		return;
 	}
 
-	if (Building->IsA<AWall>())
-		Cast<AWall>(Building)->StoreSocketLocations();
+	if (Buildings[0]->IsA<AWall>())
+		Cast<AWall>(Buildings[0])->StoreSocketLocations();
 	
-	UDecalComponent* decalComp = Building->FindComponentByClass<UDecalComponent>();
+	for (ABuilding* building : Buildings) {
+		UDecalComponent* decalComp = building->FindComponentByClass<UDecalComponent>();
 
-	if (decalComp != nullptr)
-		decalComp->SetHiddenInGame(true);
+		if (decalComp != nullptr)
+			decalComp->SetHiddenInGame(true);
 
-	Building->BuildingMesh->SetOverlayMaterial(nullptr);
+		building->BuildingMesh->SetOverlayMaterial(nullptr);
 
-	Building->Build();
+		building->Build();
+	}
 
 	if (Camera->Start) {
 		Camera->Start = false;
 		Camera->BuildUIInstance->AddToViewport();
 		Camera->Grid->MapUIInstance->RemoveFromParent();
 
-		Building->BuildingMesh->bReceivesDecals = true;
+		Buildings[0]->BuildingMesh->bReceivesDecals = true;
 
 		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-		gamemode->Broch = Building;
+		gamemode->Broch = Buildings[0];
 		gamemode->Grid = Camera->Grid;
 
 		gamemode->SetWaveTimer();
@@ -266,7 +401,7 @@ void UBuildComponent::QuickPlace()
 		return;
 	}
 
-	ABuilding* building = Building;
+	ABuilding* building = Buildings[0];
 
 	Place();
 

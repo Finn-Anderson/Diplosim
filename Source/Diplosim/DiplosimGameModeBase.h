@@ -106,9 +106,6 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 public:
 	ADiplosimGameModeBase();
 
-protected:
-	virtual void BeginPlay() override;
-
 public:
 	void EvaluateThreats();
 

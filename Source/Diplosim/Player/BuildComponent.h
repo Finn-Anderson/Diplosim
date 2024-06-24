@@ -36,12 +36,25 @@ public:
 	FRotator Rotation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
-		class ABuilding* Building;
+		TArray<class ABuilding*> Buildings;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		class ABuilding* BuildingToMove;
 
-	bool IsValidLocation();
+	FVector StartLocation;
+
+	FVector EndLocation;
+
+	void SetBuildingsOnPath();
+
+	TArray<FVector> CalculatePath(struct FTileStruct Tile);
+
+	bool IsValidLocation(ABuilding* building);
+
+	UFUNCTION(BlueprintCallable)
+		struct FQueueStruct GetBuildCosts();
+
+	bool CheckBuildCosts();
 
 	void RotateBuilding(bool Rotate);
 
@@ -50,7 +63,7 @@ public:
 	void QuickPlace();
 
 	UFUNCTION(BlueprintCallable)
-		void SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass);
+		void SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, FVector location = FVector(0.0f, 0.0f, 50.0f));
 
 	UFUNCTION(BlueprintCallable)
 		void DetachBuilding();

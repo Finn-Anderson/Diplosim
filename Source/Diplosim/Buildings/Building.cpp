@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/SphereComponent.h"
 #include "NiagaraComponent.h"
 #include "NavigationSystem.h"
 #include "Components/Widget.h"
@@ -122,23 +123,9 @@ void ABuilding::Build()
 	}
 }
 
-bool ABuilding::CheckBuildCost()
-{
-	UResourceManager* rm = Camera->ResourceManagerComponent;
-
-	for (FItemStruct items : CostList.Items) {
-		int32 maxAmount = rm->GetResourceAmount(items.Resource);
-
-		if (maxAmount < items.Amount)
-			return false;
-	}
-
-	return true;
-}
-
 void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (Camera->BuildComponent->Building != this)
+	if (OtherActor == this || OtherComp->IsA<USphereComponent>())
 		return;
 
 	if (OtherActor->IsA<AVegetation>()) {
@@ -167,9 +154,6 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 
 void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (Camera->BuildComponent->Building != this)
-		return;
-
 	FTreeStruct treeStruct;
 
 	if (OtherActor->IsA<AVegetation>()) {

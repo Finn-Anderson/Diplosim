@@ -23,16 +23,6 @@ ADiplosimGameModeBase::ADiplosimGameModeBase()
 	latestSpawnTime = 1800;
 }
 
-void ADiplosimGameModeBase::BeginPlay()
-{
-	Super::BeginPlay();
-
-	const FString file = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()) + TEXT("/MovementLog.txt");
-
-	IFileManager& fileMgr = IFileManager::Get();
-	fileMgr.Delete(*file);
-}
-
 void ADiplosimGameModeBase::EvaluateThreats()
 {
 	int32 num = -1;

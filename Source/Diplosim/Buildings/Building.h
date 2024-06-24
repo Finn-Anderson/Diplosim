@@ -180,8 +180,6 @@ public:
 
 	void Build();
 
-	bool CheckBuildCost();
-
 	void OnBuilt();
 
 	// Upkeep

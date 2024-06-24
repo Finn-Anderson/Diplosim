@@ -171,7 +171,7 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	if (!MoveRequest.GetGoalActor()->IsA<AAI>())
+	if (MoveRequest.GetGoalActor()->IsValidLowLevelFast() && !MoveRequest.GetGoalActor()->IsA<AAI>())
 		PrevGoal = MoveRequest.GetGoalActor();
 
 	MoveRequest.SetGoalActor(Actor);
