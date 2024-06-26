@@ -197,28 +197,12 @@ bool UBuildComponent::CheckBuildCosts()
 
 bool UBuildComponent::IsValidLocation(ABuilding* building)
 {
-	FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+	if (building->Collisions.IsEmpty())
+		return false;
 
 	FVector location = building->BuildingMesh->GetRelativeLocation();
 
 	if (StartLocation != FVector::Zero() && location.Z != StartLocation.Z)
-		return false;
-
-	int32 numCollisionsX = (FMath::Floor(size.X / 151.0f) * 3);
-	int32 numCollisionsY = (FMath::Floor(size.Y / 151.0f) * 3);
-
-	if (numCollisionsX == 0)
-		numCollisionsX = 1;
-
-	if (numCollisionsY == 0)
-		numCollisionsY = 1;
-
-	int32 numCollisions = numCollisionsX * numCollisionsY;
-
-	if (building->bOffset)
-		numCollisions -= 1;
-
-	if (numCollisions > building->Collisions.Num())
 		return false;
 
 	for (FCollisionStruct collision : building->Collisions) {

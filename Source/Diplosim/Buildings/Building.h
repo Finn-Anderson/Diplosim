@@ -134,9 +134,6 @@ public:
 		class ACamera* Camera;
 
 	TArray<FCollisionStruct> Collisions;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
-		bool bOffset;
 	
 	UFUNCTION(BlueprintCallable)
 		void DestroyBuilding();
