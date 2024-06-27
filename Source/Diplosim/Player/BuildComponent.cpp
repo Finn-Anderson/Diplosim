@@ -69,9 +69,9 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		FVector location = transform.GetLocation();
 
 		if (comp == Camera->Grid->HISMFlatGround)
-			location.Z += Camera->Grid->HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 2.0f;
+			location.Z += Camera->Grid->HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 		else
-			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z - 2.0f;
+			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
 		location.Z = FMath::RoundHalfFromZero(location.Z);
 
