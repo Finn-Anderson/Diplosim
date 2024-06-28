@@ -28,7 +28,7 @@ void ADiplosimAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (MoveRequest.GetGoalActor() == nullptr || !MoveRequest.GetGoalActor()->IsValidLowLevelFast())
+	if (!IsValid(MoveRequest.GetGoalActor()))
 		return;
 
 	TSubclassOf<UNavigationQueryFilter> filter = Cast<AAI>(GetOwner())->NavQueryFilter;
@@ -37,10 +37,18 @@ void ADiplosimAIController::Tick(float DeltaTime)
 	collidingStruct.Actor = MoveRequest.GetGoalActor();
 	collidingStruct.Instance = MoveRequest.GetGoalInstance();
 
+	if (Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor())) {
+		FRotator rotation = (MoveRequest.GetGoalActor()->GetActorLocation() - Owner->GetActorLocation()).Rotation();
+
+		GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), rotation, DeltaTime, 100.0f));
+
+		return;
+	}
+
 	if (GetOwner()->GetVelocity() == FVector::Zero() && (GetOwner()->IsA<AEnemy>() || !Cast<ACitizen>(GetOwner())->StillColliding.Contains(collidingStruct)))
 		RecalculateMovement(MoveRequest.GetGoalActor());
 
-	if (MoveRequest.GetGoalActor()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()))
+	if (MoveRequest.GetGoalActor()->IsA<AAI>())
 		MoveToActor(MoveRequest.GetGoalActor(), 1.0f, true, true, true, filter, true);
 }
 
@@ -51,7 +59,11 @@ void ADiplosimAIController::DefaultAction()
 
 	MoveRequest.SetGoalActor(nullptr);
 
-	if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast()) {
+	UAttackComponent* attackComp = GetOwner()->GetComponentByClass<UAttackComponent>();
+
+	if (!attackComp->OverlappingEnemies.IsEmpty())
+		attackComp->PickTarget();
+	else if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast()) {
 		ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
 		if (citizen->Building.Employment != nullptr)
@@ -145,7 +157,7 @@ void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource
 
 bool ADiplosimAIController::CanMoveTo(FVector Location)
 {
-	if (!GetOwner()->IsValidLowLevelFast())
+	if (GetOwner() == nullptr || !GetOwner()->IsValidLowLevelFast())
 		return false;
 
 	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
@@ -171,6 +183,9 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
+	if (!Actor->IsValidLowLevelFast())
+		DefaultAction();
+
 	if (MoveRequest.GetGoalActor()->IsValidLowLevelFast() && !MoveRequest.GetGoalActor()->IsA<AAI>())
 		PrevGoal = MoveRequest.GetGoalActor();
 
@@ -188,9 +203,13 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 			MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 	}
 
-	GetWorld()->GetTimerManager().ClearTimer(IdleTimer);
+	if (GetWorldTimerManager().IsTimerActive(IdleTimer))
+		GetWorldTimerManager().ClearTimer(IdleTimer);
 
-	TSubclassOf<UNavigationQueryFilter> filter = Cast<AAI>(GetOwner())->NavQueryFilter;
+	TSubclassOf<UNavigationQueryFilter> filter = nullptr;
+
+	if (GetOwner()->IsValidLowLevelFast() && Cast<AAI>(GetOwner())->NavQueryFilter != nullptr)
+		filter = Cast<AAI>(GetOwner())->NavQueryFilter;
 
 	MoveToLocation(MoveRequest.GetLocation(), 1.0f, true, true, false, true, filter, true);
 

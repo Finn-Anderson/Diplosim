@@ -24,10 +24,7 @@ ACitizen::ACitizen()
 	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -14.0f));
 	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
-	ItemMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ItemMesh"));
-	ItemMesh->SetupAttachment(GetMesh(), "ItemSocket");
-
-	HatMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("HatMesh"));
+	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));
 	HatMesh->SetupAttachment(GetMesh(), "HatSocket");
 
 	TorchMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TorchMesh"));
@@ -126,20 +123,6 @@ void ACitizen::SetTorch()
 {
 	TorchMesh->SetHiddenInGame(!TorchMesh->bHiddenInGame);
 	TorchNiagaraComponent->SetHiddenInGame(!TorchNiagaraComponent->bHiddenInGame);
-}
-
-void ACitizen::SetCosmetics(FString ID)
-{
-	FCosmeticStruct cosmeticStruct;
-	cosmeticStruct.ID = ID;
-
-	int32 index = CosmeticStruct.Find(cosmeticStruct);
-
-	if (index == -1)
-		return;
-
-	ItemMesh->SetMaterial(0, CosmeticStruct[index].ItemMaterial);
-	HatMesh->SetMaterial(0, CosmeticStruct[index].HatMaterial);
 }
 
 //

@@ -14,8 +14,7 @@ public class Diplosim : ModuleRules
 
         PublicIncludePaths.AddRange(
         new string[] {
-            "Diplosim",
-            "Diplosim/Source/Diplosim"
+            "Diplosim"
         });
 
         // Uncomment if you are using Slate UI

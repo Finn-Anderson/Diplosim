@@ -8,6 +8,7 @@
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "Buildings/Building.h"
+#include "Buildings/House.h"
 #include "Buildings/Broch.h"
 #include "DiplosimGameModeBase.h"
 #include "Player/Camera.h"

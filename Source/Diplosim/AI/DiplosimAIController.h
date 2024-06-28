@@ -74,7 +74,7 @@ public:
 
 	double GetClosestActor(FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, int32 CurrentValue = 1, int32 NewValue = 1);
 
-	void GetGatherSite(ACamera* Camera, TSubclassOf<class AResource> Resource);
+	void GetGatherSite(class ACamera* Camera, TSubclassOf<class AResource> Resource);
 
 	bool CanMoveTo(FVector Location);
 

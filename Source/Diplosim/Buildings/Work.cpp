@@ -19,6 +19,8 @@ AWork::AWork()
 	DecalComponent->SetVisibility(false);
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>("SphereComponent");
+	SphereComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
+	SphereComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
 	SphereComponent->SetupAttachment(RootComponent);
 	SphereComponent->SetSphereRadius(1500.0f);
 
@@ -108,8 +110,7 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 
 	Citizen->Building.Employment = this;
 
-	Citizen->ItemMesh = WorkItem;
-	Citizen->HatMesh = WorkHat;
+	Citizen->HatMesh->SetStaticMesh(WorkHat);
 
 	Citizen->AIController->AIMoveTo(this);
 
@@ -125,8 +126,7 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 
 	Citizen->Building.Employment = nullptr;
 
-	Citizen->ItemMesh = nullptr;
-	Citizen->HatMesh = nullptr;
+	Citizen->HatMesh->SetStaticMesh(nullptr);
 
 	if (!GetWorldTimerManager().IsTimerActive(FindTimer))
 		GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);

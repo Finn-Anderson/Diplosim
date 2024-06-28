@@ -12,10 +12,6 @@ class DIPLOSIM_API AFarm : public AWork
 public:
 	AFarm();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* CropMesh;
 

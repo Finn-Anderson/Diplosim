@@ -31,13 +31,13 @@ AGrid::AGrid()
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMGround->NumCustomDataFloats = 4;
+	HISMGround->NumCustomDataFloats = 3;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
 	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMFlatGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMFlatGround->SetCastShadow(false);
-	HISMFlatGround->NumCustomDataFloats = 4;
+	HISMFlatGround->NumCustomDataFloats = 3;
 
 	WindComponent = CreateDefaultSubobject<UWindComponent>(TEXT("WindComponent"));
 
@@ -411,30 +411,24 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 		bool bFlat = true;
 
-		for (auto& element : Tile->AdjacentTiles) {
-			FTileStruct* t = element.Value;
-
-			if (Tile->AdjacentTiles.Num() == 4 && t->Level == Tile->Level)
-				continue;
-
+		if (Tile->AdjacentTiles.Num() < 4)
 			bFlat = false;
-
-			break;
-		}
+		else
+			for (auto& element : Tile->AdjacentTiles)
+				if (element.Value->Level < Tile->Level || element.Value->Level == 7)
+					bFlat = false;
 
 		if (bFlat) {
 			inst = HISMFlatGround->AddInstance(transform);
 			HISMFlatGround->SetCustomDataValue(inst, 0, r);
 			HISMFlatGround->SetCustomDataValue(inst, 1, g);
 			HISMFlatGround->SetCustomDataValue(inst, 2, b);
-			HISMFlatGround->SetCustomDataValue(inst, 3, Tile->Fertility);
 		}
 		else {
 			inst = HISMGround->AddInstance(transform);
 			HISMGround->SetCustomDataValue(inst, 0, r);
 			HISMGround->SetCustomDataValue(inst, 1, g);
 			HISMGround->SetCustomDataValue(inst, 2, b);
-			HISMGround->SetCustomDataValue(inst, 3, Tile->Fertility);
 		}
 	}
 
@@ -521,16 +515,12 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 {
 	bool bFlat = true;
 
-	for (auto& element : Tile->AdjacentTiles) {
-		FTileStruct* t = element.Value;
-
-		if (t->Level == Tile->Level)
-			continue;
-
+	if (Tile->AdjacentTiles.Num() < 4)
 		bFlat = false;
-
-		break;
-	}
+	else
+		for (auto& element : Tile->AdjacentTiles)
+			if (element.Value->Level < Tile->Level || element.Value->Level == 7)
+				bFlat = false;
 
 	FTransform transform;
 	int32 z = HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
@@ -547,11 +537,9 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 
 void AGrid::Clear()
 {
-	for (const TPair<FString, TArray<AResource*>>& pair : Resources) {
-		for (AResource* r : pair.Value) {
+	for (const TPair<FString, TArray<AResource*>>& pair : Resources)
+		for (AResource* r : pair.Value)
 			r->ResourceHISM->ClearInstances();
-		}
-	}
 
 	Storage.Empty();
 

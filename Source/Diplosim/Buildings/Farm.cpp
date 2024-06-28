@@ -19,28 +19,6 @@ AFarm::AFarm()
 	TimeLength = 30.0f;
 }
 
-void AFarm::BeginPlay()
-{
-	Super::BeginPlay();
-
-	FHitResult hit;
-
-	FVector start = GetActorLocation();
-	FVector end = GetActorLocation() - FVector(0.0f, 0.0f, 100.0f);
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-
-	if (GetWorld()->LineTraceSingleByChannel(hit, start, end, ECollisionChannel::ECC_GameTraceChannel1, QueryParams)) {
-		AGrid* grid = Cast<AGrid>(hit.GetActor());
-
-		int32 fertility = grid->HISMGround->PerInstanceSMCustomData[hit.Item * 4 + 3];
-
-		Yield *= fertility;
-	}
-}
-
-
 void AFarm::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
@@ -61,7 +39,7 @@ void AFarm::Production(ACitizen* Citizen)
 	if (CropMesh->GetRelativeScale3D().Z >= 1.0f) {
 		TArray<ACitizen*> workers = GetCitizensAtBuilding();
 
-		if (workers.Num() == 0)
+		if (workers.IsEmpty())
 			return;
 
 		ProductionDone(workers[0]);
@@ -72,7 +50,14 @@ void AFarm::Production(ACitizen* Citizen)
 
 void AFarm::ProductionDone(ACitizen* Citizen)
 {
-	Citizen->Carry(Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject<AResource>(), Yield, this);
+	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
+	int32 x = GetActorLocation().X / 100.0f + bound / 2;
+	int32 y = GetActorLocation().Y / 100.0f + bound / 2;
+
+	int32 fertility = Camera->Grid->Storage[x][y].Fertility;
+
+	Citizen->Carry(Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject<AResource>(), Yield * fertility, this);
 
 	StoreResource(Citizen);
 

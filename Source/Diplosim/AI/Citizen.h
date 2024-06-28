@@ -211,30 +211,6 @@ struct FCollidingStruct
 	}
 };
 
-USTRUCT(BlueprintType)
-struct FCosmeticStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	FString ID;
-
-	class UMaterial* ItemMaterial;
-
-	class UMaterial* HatMaterial;
-
-	FCosmeticStruct()
-	{
-		ID = "";
-		ItemMaterial = nullptr;
-		HatMaterial = nullptr;
-	}
-
-	bool operator==(const FCosmeticStruct& other) const
-	{
-		return (other.ID == ID);
-	}
-};
-
 UCLASS()
 class DIPLOSIM_API ACitizen : public AAI
 {
@@ -255,22 +231,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetTorch();
 
-		void SetCosmetics(FString ID);
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		class USkeletalMeshComponent* ItemMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		class USkeletalMeshComponent* HatMesh;
+		class UStaticMeshComponent* HatMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class USkeletalMeshComponent* TorchMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UNiagaraComponent* TorchNiagaraComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		TArray<FCosmeticStruct> CosmeticStruct;
 
 	// Work
 	bool CanWork(class ABuilding* ReligiousBuilding);

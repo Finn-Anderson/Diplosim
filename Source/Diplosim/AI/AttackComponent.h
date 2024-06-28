@@ -4,25 +4,6 @@
 #include "Components/ActorComponent.h"
 #include "AttackComponent.generated.h"
 
-USTRUCT()
-struct FAttackStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	AActor* Actor;
-
-	int32 Dmg;
-
-	int32 Hp;
-
-	FAttackStruct()
-	{
-		Actor = nullptr;
-		Dmg = 1;
-		Hp = 1000000;
-	}
-};
-
 UENUM()
 enum class ECanAttack : uint8
 {
@@ -59,13 +40,13 @@ public:
 
 	void Throw(AActor* Target);
 
-	void ClearTimer();
+	void Melee(AActor* Target);
 
 	void ClearAttacks();
 
-	TArray<TWeakObjectPtr<AActor>> OverlappingEnemies;
+	TArray<AActor*> OverlappingEnemies;
 
-	TArray<TWeakObjectPtr<AActor>> MeleeableEnemies;
+	TArray<AActor*> MeleeableEnemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		class USphereComponent* RangeComponent;
@@ -74,17 +55,19 @@ public:
 		int32 Damage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-		float TimeToAttack;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class AProjectile> ProjectileClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-		TArray<TSubclassOf<class AActor>> EnemyClasses;
 
 	FTimerHandle AttackTimer;
 
 	ECanAttack CanAttack;
 
 	AAI* Owner;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+		UAnimSequence* MeleeAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+		UAnimSequence* RangeAnim;
+
+	AActor* CurrentTarget;
 };

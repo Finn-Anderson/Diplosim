@@ -44,10 +44,7 @@ public:
 	FTimerHandle FindTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		class USkeletalMeshComponent* WorkItem;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		class USkeletalMeshComponent* WorkHat;
+		class UStaticMesh* WorkHat;
 
 	virtual void FindCitizens() override;
 

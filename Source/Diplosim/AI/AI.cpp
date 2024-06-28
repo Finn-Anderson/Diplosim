@@ -31,9 +31,13 @@ AAI::AAI()
 	GetMesh()->SetGenerateOverlapEvents(true);
 	GetMesh()->SetupAttachment(RootComponent);
 
-	CapsuleCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("InteractCapsuleCollision"));
-	CapsuleCollision->SetCapsuleSize(27.0f, 27.0f);
-	CapsuleCollision->SetupAttachment(RootComponent);
+	Reach = CreateDefaultSubobject<USphereComponent>(TEXT("ReachCollision"));
+	Reach->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
+	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
+	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	Reach->SetSphereRadius(27.0f, true);
+	Reach->SetupAttachment(RootComponent);
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
@@ -63,8 +67,8 @@ void AAI::BeginPlay()
 	AIController = GetController<ADiplosimAIController>();
 	AIController->Owner = this;
 
-	CapsuleCollision->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnOverlapBegin);
-	CapsuleCollision->OnComponentEndOverlap.AddDynamic(this, &AAI::OnOverlapEnd);
+	Reach->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnOverlapBegin);
+	Reach->OnComponentEndOverlap.AddDynamic(this, &AAI::OnOverlapEnd);
 }
 
 void AAI::MoveToBroch()
