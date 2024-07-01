@@ -317,7 +317,7 @@ void ACitizen::Birthday()
 		FindPartner();
 
 	if (BioStruct.Age == 18)
-		AttackComponent->CanAttack = ECanAttack::Valid;
+		AttackComponent->bCanAttack = true;
 
 	if (BioStruct.Age >= 12) {
 		SetPolticalLeanings();

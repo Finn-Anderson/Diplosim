@@ -28,6 +28,9 @@ void ADiplosimAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (!Owner->IsActorTickEnabled())
+		return;
+
 	if (!IsValid(MoveRequest.GetGoalActor()))
 		return;
 
@@ -59,17 +62,17 @@ void ADiplosimAIController::DefaultAction()
 
 	MoveRequest.SetGoalActor(nullptr);
 
-	UAttackComponent* attackComp = GetOwner()->GetComponentByClass<UAttackComponent>();
+	if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast()) {
+		if (GetOwner()->IsA<ACitizen>()) {
+			ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (!attackComp->OverlappingEnemies.IsEmpty())
-		attackComp->PickTarget();
-	else if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast()) {
-		ACitizen* citizen = Cast<ACitizen>(GetOwner());
-
-		if (citizen->Building.Employment != nullptr)
-			AIMoveTo(citizen->Building.Employment);
+			if (citizen->Building.Employment != nullptr)
+				AIMoveTo(citizen->Building.Employment);
+			else
+				Idle();
+		}
 		else
-			Idle();
+			Cast<AAI>(GetOwner())->MoveToBroch();
 	}
 	else
 		AIMoveTo(PrevGoal);
@@ -157,7 +160,7 @@ void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource
 
 bool ADiplosimAIController::CanMoveTo(FVector Location)
 {
-	if (GetOwner() == nullptr || !GetOwner()->IsValidLowLevelFast())
+	if (!Owner->IsValidLowLevelFast())
 		return false;
 
 	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
@@ -183,8 +186,14 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	if (!Actor->IsValidLowLevelFast())
+	if (!Actor->IsValidLowLevelFast()) {
 		DefaultAction();
+
+		return;
+	}
+
+	if (Actor == MoveRequest.GetGoalActor())
+		return;
 
 	if (MoveRequest.GetGoalActor()->IsValidLowLevelFast() && !MoveRequest.GetGoalActor()->IsA<AAI>())
 		PrevGoal = MoveRequest.GetGoalActor();

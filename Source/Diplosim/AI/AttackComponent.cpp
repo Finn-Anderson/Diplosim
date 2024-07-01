@@ -19,7 +19,8 @@
 
 UAttackComponent::UAttackComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	SetComponentTickInterval(0.1f);
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetCollisionProfileName("Spectator", true);
@@ -34,9 +35,9 @@ UAttackComponent::UAttackComponent()
 
 	Damage = 10;
 
-	CanAttack = ECanAttack::Valid;
-
 	CurrentTarget = nullptr;
+
+	bCanAttack = true;
 }
 
 void UAttackComponent::BeginPlay()
@@ -50,10 +51,20 @@ void UAttackComponent::BeginPlay()
 		RangeComponent->SetAreaClassOverride(gamemode->NavAreaThreat);
 
 		if (Cast<ACitizen>(Owner)->BioStruct.Age < 18)
-			CanAttack = ECanAttack::Invalid;
+			bCanAttack = false;
 	}
 
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
+}
+
+void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (!Owner->IsActorTickEnabled())
+		return;
+
+	Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
 }
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -65,12 +76,6 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 			OverlappingEnemies.Add(OtherActor);
 	else if (Owner->IsA<ACitizen>() && OtherActor->IsA<AEnemy>())
 		OverlappingEnemies.Add(OtherActor);
-
-	if (!OverlappingEnemies.Contains(OtherActor))
-		return;
-
-	if (CurrentTarget == nullptr || !CurrentTarget->IsValidLowLevelFast())
-		Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
 }
 
 void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -89,16 +94,17 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 
 void UAttackComponent::PickTarget()
 {
-	if (CanAttack == ECanAttack::Invalid)
+	if (!bCanAttack)
 		return;
-
-	CurrentTarget = nullptr;
 
 	AActor* favoured = nullptr;
 
 	for (AActor* target : OverlappingEnemies) {
-		UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
-		UAttackComponent* attackComp = target->GetComponentByClass<UAttackComponent>();
+		if (!target->IsValidLowLevelFast()) {
+			OverlappingEnemies.Remove(target);
+
+			continue;
+		}
 
 		FThreatsStruct threatStruct;
 
@@ -122,21 +128,22 @@ void UAttackComponent::PickTarget()
 			continue;
 		}
 
-		double outLengthNew;
-		double outLengthFavoured;
+		FFavourabilityStruct targetFavourability = GetActorFavourability(target);
+		FFavourabilityStruct favouredFavourability = GetActorFavourability(favoured);
 
-		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-		const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
+		double favourability = (favouredFavourability.Hp * favouredFavourability.Dist / favouredFavourability.Dmg) - (targetFavourability.Hp * targetFavourability.Dist / targetFavourability.Dmg);
 
-		NavData->CalcPathLength(Owner->GetActorLocation(), target->GetActorLocation(), outLengthNew);
-		NavData->CalcPathLength(Owner->GetActorLocation(), favoured->GetActorLocation(), outLengthFavoured);
-
-		if (outLengthFavoured > outLengthNew)
+		if (favourability > 0.0f)
 			favoured = target;
 	}
 
+	if (CurrentTarget == favoured)
+		return;
+
 	AsyncTask(ENamedThreads::GameThread, [this, favoured]() {
-		if (favoured == nullptr) {
+		CurrentTarget = favoured;
+
+		if (CurrentTarget == nullptr) {
 			Owner->AIController->DefaultAction();
 
 			GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
@@ -144,43 +151,61 @@ void UAttackComponent::PickTarget()
 			return;
 		}
 
-		if (*ProjectileClass || MeleeableEnemies.Contains(favoured))
-			Attack(favoured);
+		if ((*ProjectileClass || MeleeableEnemies.Contains(CurrentTarget)) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
+			Attack();
 		else
-			Owner->AIController->AIMoveTo(favoured);
+			Owner->AIController->AIMoveTo(CurrentTarget);
 	});
+}
+
+FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
+{
+	FFavourabilityStruct Favourability;
+
+	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
+	UAttackComponent* attackComp = Actor->GetComponentByClass<UAttackComponent>();
+
+	Favourability.Hp = healthComp->Health;
+
+	if (attackComp && attackComp->bCanAttack) {
+		if (*attackComp->ProjectileClass)
+			Favourability.Dmg = attackComp->ProjectileClass->GetDefaultObject<AProjectile>()->Damage;
+		else
+			Favourability.Dmg = attackComp->Damage;
+	}
+	else if (Actor->IsA<AWall>())
+		Favourability.Dmg = Cast<AWall>(Actor)->BuildingProjectileClass->GetDefaultObject<AProjectile>()->Damage;
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
+
+	NavData->CalcPathLength(Owner->GetActorLocation(), Actor->GetActorLocation(), Favourability.Dist);
+
+	return Favourability;
 }
 
 void UAttackComponent::CanHit(AActor* Target)
 {
-	if (CanAttack == ECanAttack::Invalid)
+	if (!bCanAttack)
 		return;
 
 	MeleeableEnemies.Add(Target);
 
-	if (CurrentTarget == nullptr)
-		Attack(Target);
+	if (CurrentTarget == Target)
+		Attack();
 }
 
-void UAttackComponent::Attack(AActor* Target)
+void UAttackComponent::Attack()
 {
-	CurrentTarget = Target;
-
-	if (CurrentTarget == nullptr || !CurrentTarget->IsValidLowLevelFast()) {
-		Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
-
+	if (!CurrentTarget->IsValidLowLevelFast())
 		return;
-	}
 
-	UHealthComponent* hp = CurrentTarget->GetComponentByClass<UHealthComponent>();
+	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
 
-	if (hp->Health == 0) {
-		Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
-
+	if (healthComp->Health == 0)
 		return;
-	}
 
-	Cast<AAI>(Owner)->AIController->StopMovement();
+	Owner->AIController->StopMovement();
 
 	float time = 1.0f;
 
@@ -193,34 +218,32 @@ void UAttackComponent::Attack(AActor* Target)
 		if (RangeAnim->IsValidLowLevelFast()) {
 			RangeAnim->RateScale = 0.5f / time;
 
-			Cast<ACitizen>(Owner)->GetMesh()->PlayAnimation(RangeAnim, false);
+			Owner->GetMesh()->PlayAnimation(RangeAnim, false);
 		}
 
-		GetWorld()->GetTimerManager().SetTimer(AnimTimer, FTimerDelegate::CreateUObject(this, &UAttackComponent::Throw, CurrentTarget), time, false);
+		GetWorld()->GetTimerManager().SetTimer(AnimTimer, this, &UAttackComponent::Throw, time, false);
 	}
 	else {
 		if (MeleeAnim->IsValidLowLevelFast()) {
 			MeleeAnim->RateScale = 0.5f / time;
 
-			Cast<ACitizen>(Owner)->GetMesh()->PlayAnimation(MeleeAnim, false);
+			Owner->GetMesh()->PlayAnimation(MeleeAnim, false);
 		}
 
-		GetWorld()->GetTimerManager().SetTimer(AnimTimer, FTimerDelegate::CreateUObject(this, &UAttackComponent::Melee, CurrentTarget), time / 2, false);
+		GetWorld()->GetTimerManager().SetTimer(AnimTimer, this, &UAttackComponent::Melee, time / 2, false);
 	}
 
-	CanAttack = ECanAttack::Timer;
-
-	GetWorld()->GetTimerManager().SetTimer(AttackTimer, FTimerDelegate::CreateUObject(this, &UAttackComponent::Attack, CurrentTarget), time, false);
+	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::Attack, time, false);
 }
 
-void UAttackComponent::Throw(AActor* Target)
+void UAttackComponent::Throw()
 {
-	if (CanAttack == ECanAttack::Invalid)
+	if (!bCanAttack)
 		return;
 
-	Async(EAsyncExecution::Thread, [this, Target]() {
+	Async(EAsyncExecution::Thread, [this]() {
 		USkeletalMeshComponent* ownerComp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
-		USkeletalMeshComponent* targetComp = Cast<USkeletalMeshComponent>(Target->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+		USkeletalMeshComponent* targetComp = Cast<USkeletalMeshComponent>(CurrentTarget->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 
 		UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
@@ -229,8 +252,8 @@ void UAttackComponent::Throw(AActor* Target)
 
 		FVector startLoc = Owner->GetActorLocation() + FVector(0.0f, 0.0f, ownerComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z) + GetOwner()->GetActorForwardVector();
 
-		FVector targetLoc = Target->GetActorLocation();
-		targetLoc += Target->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
+		FVector targetLoc = CurrentTarget->GetActorLocation();
+		targetLoc += CurrentTarget->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
 
 		FRotator lookAt = (targetLoc - startLoc).Rotation();
 
@@ -242,7 +265,7 @@ void UAttackComponent::Throw(AActor* Target)
 		FCollisionQueryParams queryParams;
 		queryParams.AddIgnoredActor(Owner);
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, Target->GetActorLocation(), ECollisionChannel::ECC_PhysicsBody, queryParams)) {
+		if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, CurrentTarget->GetActorLocation(), ECollisionChannel::ECC_PhysicsBody, queryParams)) {
 			if (hit.GetActor()->IsA<AEnemy>()) {
 				d = FVector::Dist(startLoc, targetLoc);
 
@@ -269,12 +292,12 @@ void UAttackComponent::Throw(AActor* Target)
 	});
 }
 
-void UAttackComponent::Melee(AActor* Target)
+void UAttackComponent::Melee()
 {
-	if (CanAttack == ECanAttack::Invalid)
+	if (!bCanAttack)
 		return;
 
-	UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
+	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
 
 	healthComp->TakeHealth(Damage, Owner);
 }
@@ -289,14 +312,12 @@ void UAttackComponent::ClearAttacks()
 
 		ai->AttackComponent->OverlappingEnemies.Remove(Owner);
 		ai->AttackComponent->MeleeableEnemies.Remove(Owner);
-
-		Async(EAsyncExecution::Thread, [this, ai]() { ai->AttackComponent->PickTarget(); });
 	}
 
 	OverlappingEnemies.Empty();
 	MeleeableEnemies.Empty();
 
-	CanAttack = ECanAttack::Invalid;
+	bCanAttack = false;
 
 	AsyncTask(ENamedThreads::GameThread, [this]() { GetWorld()->GetTimerManager().ClearTimer(AttackTimer); });
 }

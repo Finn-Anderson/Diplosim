@@ -4,12 +4,23 @@
 #include "Components/ActorComponent.h"
 #include "AttackComponent.generated.h"
 
-UENUM()
-enum class ECanAttack : uint8
+USTRUCT()
+struct FFavourabilityStruct
 {
-	Invalid,
-	Timer,
-	Valid
+	GENERATED_USTRUCT_BODY()
+
+	int32 Hp;
+
+	int32 Dmg;
+
+	double Dist;
+
+	FFavourabilityStruct()
+	{
+		Hp = 10000000;
+		Dmg = 1;
+		Dist = 10000000.0f;
+	}
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -23,7 +34,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-public:	
+public:
+	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	UFUNCTION()
 		void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
@@ -34,13 +47,15 @@ public:
 
 	void PickTarget();
 
+	FFavourabilityStruct GetActorFavourability(AActor* Actor);
+
 	void CanHit(AActor* Target);
 
-	void Attack(AActor* Target);
+	void Attack();
 
-	void Throw(AActor* Target);
+	void Throw();
 
-	void Melee(AActor* Target);
+	void Melee();
 
 	void ClearAttacks();
 
@@ -59,7 +74,7 @@ public:
 
 	FTimerHandle AttackTimer;
 
-	ECanAttack CanAttack;
+	bool bCanAttack;
 
 	AAI* Owner;
 

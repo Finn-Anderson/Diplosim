@@ -1,6 +1,7 @@
 #include "HealthComponent.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "Components/SphereComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
@@ -75,6 +76,9 @@ void UHealthComponent::Death(AActor* Attacker)
 		USkeletalMeshComponent* mesh = actor->GetComponentByClass<USkeletalMeshComponent>();
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
+		attackComp->RangeComponent->SetGenerateOverlapEvents(false);
+		Cast<AAI>(actor)->Reach->SetGenerateOverlapEvents(false);
+
 		attackComp->ClearAttacks();
 
 		mesh->SetSimulatePhysics(true);
@@ -99,6 +103,8 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		ABuilding* building = Cast<ABuilding>(actor);
 
+		building->BuildingMesh->SetGenerateOverlapEvents(false);
+
 		UConstructionManager* cm = building->Camera->ConstructionManagerComponent;
 		cm->RemoveBuilding(building);
 	}
@@ -107,6 +113,7 @@ void UHealthComponent::Death(AActor* Attacker)
 	GetWorld()->GetTimerManager().SetTimer(clearTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), 10.0f, false);
 
 	actor->SetActorTickEnabled(false);
+	GetWorld()->GetTimerManager().ClearAllTimersForObject(actor);
 }
 
 void UHealthComponent::Clear(AActor* Attacker)
