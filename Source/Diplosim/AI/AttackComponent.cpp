@@ -122,12 +122,6 @@ void UAttackComponent::PickTarget()
 			break;
 		}
 
-		if (favoured == nullptr) {
-			favoured = target;
-
-			continue;
-		}
-
 		FFavourabilityStruct targetFavourability = GetActorFavourability(target);
 		FFavourabilityStruct favouredFavourability = GetActorFavourability(favoured);
 
@@ -162,8 +156,14 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 {
 	FFavourabilityStruct Favourability;
 
+	if (Actor == nullptr || !Actor->IsValidLowLevelFast())
+		return Favourability;
+
 	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
 	UAttackComponent* attackComp = Actor->GetComponentByClass<UAttackComponent>();
+
+	if (healthComp->Health == 0)
+		return Favourability;
 
 	Favourability.Hp = healthComp->Health;
 
@@ -238,7 +238,7 @@ void UAttackComponent::Attack()
 
 void UAttackComponent::Throw()
 {
-	if (!bCanAttack)
+	if (!bCanAttack || CurrentTarget == nullptr)
 		return;
 
 	Async(EAsyncExecution::Thread, [this]() {
@@ -294,7 +294,7 @@ void UAttackComponent::Throw()
 
 void UAttackComponent::Melee()
 {
-	if (!bCanAttack)
+	if (!bCanAttack || CurrentTarget == nullptr)
 		return;
 
 	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();

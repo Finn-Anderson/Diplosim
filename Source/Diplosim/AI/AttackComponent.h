@@ -59,9 +59,11 @@ public:
 
 	void ClearAttacks();
 
-	TArray<AActor*> OverlappingEnemies;
+	UPROPERTY()
+		TArray<AActor*> OverlappingEnemies;
 
-	TArray<AActor*> MeleeableEnemies;
+	UPROPERTY()
+		TArray<AActor*> MeleeableEnemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		class USphereComponent* RangeComponent;
@@ -76,7 +78,8 @@ public:
 
 	bool bCanAttack;
 
-	AAI* Owner;
+	UPROPERTY()
+		AAI* Owner;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		UAnimSequence* MeleeAnim;
@@ -84,5 +87,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		UAnimSequence* RangeAnim;
 
-	AActor* CurrentTarget;
+	UPROPERTY()
+		AActor* CurrentTarget;
 };
