@@ -67,11 +67,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		comp->GetInstanceTransform(instance, transform);
 
 		FVector location = transform.GetLocation();
-
-		if (comp == Camera->Grid->HISMFlatGround)
-			location.Z += Camera->Grid->HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-		else
-			location.Z += comp->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+		location.Z += 100.0f;
 
 		location.Z = FMath::RoundHalfFromZero(location.Z);
 
@@ -197,6 +193,28 @@ bool UBuildComponent::CheckBuildCosts()
 
 bool UBuildComponent::IsValidLocation(ABuilding* building)
 {
+	if (!building->bIgnoreCollisions) {
+		int32 x = 1;
+		int32 y = 1;
+
+		if (building->BuildingMesh->DoesSocketExist("x1")) {
+			x = FMath::Floor(FVector::Dist(building->BuildingMesh->GetSocketLocation("x1"), building->BuildingMesh->GetSocketLocation("x2")) / 150.0f) * 2 + 1;
+			y = FMath::Floor(FVector::Dist(building->BuildingMesh->GetSocketLocation("y1"), building->BuildingMesh->GetSocketLocation("y2")) / 150.0f) * 2 + 1;
+		}
+		else {
+			x = FMath::Floor(building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X / 150.0f) * 2 + 1;
+			y = FMath::Floor(building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Y / 150.0f) * 2 + 1;
+		}
+
+		int32 numCollisions = x * y;
+
+		if (building->bOffset)
+			numCollisions -= FMath::RoundHalfFromZero(numCollisions / 4.0f);
+
+		if (numCollisions != building->Collisions.Num())
+			return false;
+	}
+
 	if (building->Collisions.IsEmpty())
 		return false;
 
@@ -209,7 +227,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		if ((building->GetClass() == FoundationClass->GetDefaultObject()->GetClass() && collision.Actor->IsA<AGrid>()) || (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>() && building->GetActorLocation() != collision.Actor->GetActorLocation()))
 			continue;
 
-		if (collision.HISM == Camera->Grid->HISMWater || collision.HISM == Camera->Grid->HISMLava)
+		if (collision.HISM == Camera->Grid->HISMLava)
 			return false;
 		
 		FTransform transform;

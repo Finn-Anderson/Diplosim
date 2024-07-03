@@ -64,6 +64,9 @@ ABuilding::ABuilding()
 	ActualMesh = nullptr;
 
 	bConstant = true;
+
+	bOffset = false;
+	bIgnoreCollisions = false;
 }
 
 void ABuilding::BeginPlay()

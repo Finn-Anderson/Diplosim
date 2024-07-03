@@ -19,13 +19,10 @@ AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	HISMWater = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWater"));
-	HISMWater->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMWater->SetCastShadow(false);
-
 	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
 	HISMLava->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMLava->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMLava->SetCanEverAffectNavigation(false);
 	HISMLava->SetCastShadow(false);
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
@@ -90,9 +87,7 @@ void AGrid::Load()
 
 void AGrid::Render()
 {
-	// Set tile limits for ground and water
-	int32 tileTally = 0;
-
+	// Set map limtis
 	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
 
 	for (int32 x = 0; x < bound; x++) {
@@ -108,44 +103,56 @@ void AGrid::Render()
 		}
 	}
 
+	// Set adjacent tile information
+	for (int32 x = 0; x < bound; x++) {
+		for (int32 y = 0; y < bound; y++) {
+			FTileStruct* tile = &Storage[x][y];
+
+			TMap<FString, FTileStruct*> map;
+
+			if (x > 0)
+				map.Add("Left", &Storage[x - 1][y]);
+
+			if (x < (bound - 1))
+				map.Add("Right", &Storage[x + 1][y]);
+
+			if (y > 0)
+				map.Add("Below", &Storage[x][y - 1]);
+
+			if (y < (bound - 1))
+				map.Add("Above", &Storage[x][y + 1]);
+
+			for (auto& element : map)
+				tile->AdjacentTiles.Add(element.Key, element.Value);
+		}
+	}
+
+	TArray<FTileStruct*> peaksList;
+
 	TArray<FTileStruct*> chooseableTiles = {};
 
-	int32 PercentageWater = 100 - PercentageGround;
-
-	float levelTotal = Size * (PercentageGround / 100.0f);
-
-	float levelCount = 0.0f;
+	int32 levelTotal = Size * (PercentageGround / 100.0f);
 
 	int32 level = 8;
 
+	int32 levelCount = 0;
+
 	// Set tile information based on adjacent tile types until all tile struct choices are set
-	while (tileTally < Size) {
+	while (levelTotal > 0) {
 		// Set current level
-		if (levelCount <= 0.0f) {
+		if (levelCount == 0) {
 			level--;
 
-			if (level == -1)
-				levelTotal = Size * (PercentageWater / 100.0f);
-
-			if (level == -5 || level == 0) {
+			if (level == 0)
 				levelCount = levelTotal;
-			}
-			else if (level < 0) {
-				levelCount = 0.2 * levelTotal;
-
-				levelTotal -= levelCount;
-			}
-			else {
+			else
 				levelCount = FMath::Pow(0.5, FMath::Abs(level)) * levelTotal;
-
-				levelTotal -= levelCount;
-			}
 		}
 
 		// Get Tile and adjacent tiles
-		FTileStruct* chosenTile;
+		FTileStruct* chosenTile = nullptr;
 
-		if (tileTally < Peaks) {
+		if (peaksList.Num() < Peaks) {
 			int32 x = Storage.Num();
 			int32 y = Storage[0].Num();
 
@@ -153,63 +160,49 @@ void AGrid::Render()
 			int32 chosenY = FMath::RandRange(bound / 4, y - bound / 4 - 1);
 
 			chosenTile = &Storage[chosenX][chosenY];
+
+			peaksList.Add(chosenTile);
 		}
 		else {
 			int32 chosenNum = FMath::RandRange(0, chooseableTiles.Num() - 1);
 			chosenTile = chooseableTiles[chosenNum];
+
+			for (FTileStruct* tile : chooseableTiles) {
+				int32 distance = 1000000000;
+
+				for (FTileStruct* peak : peaksList) {
+					int32 d = FVector2D::Distance(FVector2D(peak->X, peak->Y), FVector2D(tile->X, tile->Y));
+
+					if (distance > d)
+						distance = d;
+				}
+
+				int32 chosenDistance = 1000000000;
+
+				for (FTileStruct* peak : peaksList) {
+					int32 d = FVector2D::Distance(FVector2D(peak->X, peak->Y), FVector2D(chosenTile->X, chosenTile->Y));
+
+					if (chosenDistance > d)
+						chosenDistance = d;
+				}
+
+				if (chosenDistance > distance + 20)
+					chosenTile = tile;
+			}
 		}
 
 		// Set level
 		chosenTile->Level = level;
 
-		// Set adjacent tile information
-		TMap<FString, FTileStruct*> map;
-
-		if (chosenTile->X - 1 + bound / 2 > 0)
-			map.Add("Left", &Storage[chosenTile->X - 1 + bound / 2][chosenTile->Y + bound / 2]);
-
-		if (chosenTile->X + 1 + bound / 2 < bound)
-			map.Add("Right", &Storage[chosenTile->X + 1 + bound / 2][chosenTile->Y + bound / 2]);
-
-		if (chosenTile->Y - 1 + bound / 2 > 0)
-			map.Add("Below", &Storage[chosenTile->X + bound / 2][chosenTile->Y - 1 + bound / 2]);
-
-		if (chosenTile->Y + 1 + bound / 2 < bound)
-			map.Add("Above", &Storage[chosenTile->X + bound / 2][chosenTile->Y + 1 + bound / 2]);
-		
-
-		for (auto& element : map) {
-			FTileStruct* t = element.Value;
-
-			FString oppositeKey;
-			if (element.Key == "Left") {
-				oppositeKey = "Right";
-			}
-			else if (element.Key == "Right") {
-				oppositeKey = "Left";
-			}
-			else if (element.Key == "Below") {
-				oppositeKey = "Above";
-			}
-			else {
-				oppositeKey = "Below";
-			}
-
-			t->AdjacentTiles.Add(oppositeKey, chosenTile);
-			chosenTile->AdjacentTiles.Add(element.Key, t);
-
-			if (!chooseableTiles.Contains(t) && t->Level == -100)
-				chooseableTiles.Add(t);
-		}
+		// Set adjacent tiles to choose from
+		for (auto& element : chosenTile->AdjacentTiles)
+			if (!chooseableTiles.Contains(element.Value) && element.Value->Level < 0)
+				chooseableTiles.Add(element.Value);
 
 		chooseableTiles.Remove(chosenTile);
 
+		levelTotal--;
 		levelCount--;
-
-		tileTally++;
-
-		if (chooseableTiles.IsEmpty())
-			break;
 	}
 
 	for (TArray<FTileStruct> &row : Storage) {
@@ -227,17 +220,11 @@ void AGrid::Render()
 		}
 	}
 
-	// Set Camera Bounds
-	FVector c1 = FVector(bound * 100, bound * 100, 0);
-	FVector c2 = FVector(-bound * 100, -bound * 100, 0);
-
-	Camera->MovementComponent->SetBounds(c1, c2);
-
 	// Spawn resources
 	ResourceTiles.Empty();
 
-	for (TArray<FTileStruct>& row : Storage) {
-		for (FTileStruct& tile : row) {
+	for (TArray<FTileStruct> &row : Storage) {
+		for (FTileStruct &tile : row) {
 			if (tile.Level < 0 || tile.Level > 4)
 				continue;
 
@@ -266,6 +253,12 @@ void AGrid::Render()
 	// Spawn clouds
 	Clouds->ActivateCloud();
 
+	// Set Camera Bounds
+	FVector c1 = FVector(bound * 100, bound * 100, 0);
+	FVector c2 = FVector(-bound * 100, -bound * 100, 0);
+
+	Camera->MovementComponent->SetBounds(c1, c2);
+
 	// Spawn egg basket
 	GetWorld()->GetTimerManager().SetTimer(EggBasketTimer, this, &AGrid::SpawnEggBasket, 300.0f, true, 0.0f);
 
@@ -275,26 +268,28 @@ void AGrid::Render()
 
 void AGrid::FillHoles(FTileStruct* Tile)
 {
-	// Set level
-	int32 prevLevel = Tile->Level;
+	TArray<int32> levels;
+	levels.Add(Tile->Level);
 
-	float tally = Tile->Level;
-	int32 count = 1;
+	for (auto& element : Tile->AdjacentTiles)
+		levels.Add(element.Value->Level);
 
-	for (auto& element : Tile->AdjacentTiles) {
-		FTileStruct* t = element.Value;
+	for (int32 i = 0; i < levels.Num() - 1; i++)
+		for (int32 j = 0; j < levels.Num() - i - 1; j++)
+			if (levels[j] > levels[j + 1])
+				levels.Swap(j, j + 1);
 
-		tally += t->Level;
+	float result;
 
-		count++;
-	}
+	if (levels.Num() % 2 == 0)
+		result = FMath::RoundHalfFromZero((levels[levels.Num() / 2] + levels[levels.Num() / 2 - 1]) / 2.0f);
+	else
+		result = levels[levels.Num() / 2];
 
-	tally /= count;
-	
-	Tile->Level = FMath::RoundHalfFromZero(tally);
-
-	if (prevLevel == Tile->Level)
+	if (result == Tile->Level)
 		return;
+
+	Tile->Level = result;
 
 	for (auto& element : Tile->AdjacentTiles)
 		FillHoles(element.Value);
@@ -310,7 +305,7 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 	int32 count = 0;
 
 	// Set fertility
-	if (Tile->Level < 0 || Tile->Level == 7)
+	if (Tile->Level == 7 || Tile->Level < 0)
 		return;
 
 	int32 value = FMath::RandRange(-1, 1);
@@ -337,6 +332,9 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 
 void AGrid::GenerateTile(FTileStruct* Tile)
 {
+	if (Tile->Level < 0)
+		return;
+
 	FTransform transform;
 	FVector loc = FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0);
 	transform.SetLocation(loc);
@@ -351,26 +349,6 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		UNiagaraComponent* comp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LavaSystem, transform.GetLocation());
 
 		LavaComponents.Add(comp);
-	}
-	else if (Tile->Level < 0.0f) {
-		bool bShore = false;
-
-		for (auto& element : Tile->AdjacentTiles) {
-			FTileStruct* t = element.Value;
-
-			if (t->Level < 0.0f)
-				continue;
-
-			bShore = true;
-
-			break;
-		}
-
-		if (!bShore)
-			return;
-		transform.SetLocation(loc + FVector(0.0f, 0.0f, -200.0f));
-
-		inst = HISMWater->AddInstance(transform);
 	}
 	else {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
@@ -523,7 +501,7 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 				bFlat = false;
 
 	FTransform transform;
-	int32 z = HISMGround->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	int32 z = 100.0f;
 
 	if (bFlat)
 		HISMFlatGround->GetInstanceTransform(Tile->Instance, transform);
@@ -559,7 +537,6 @@ void AGrid::Clear()
 		actor->Destroy();
 
 	HISMLava->ClearInstances();
-	HISMWater->ClearInstances();
 	HISMGround->ClearInstances();
 	HISMFlatGround->ClearInstances();
 }

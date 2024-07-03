@@ -4,11 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "Grid.generated.h"
 
-USTRUCT()
 struct FTileStruct
 {
-	GENERATED_USTRUCT_BODY()
-
 	int32 Level;
 
 	int32 Instance;
@@ -18,13 +15,13 @@ struct FTileStruct
 	int32 X;
 
 	int32 Y;
-
+		
 	FQuat Rotation;
 
 	TMap<FString, FTileStruct*> AdjacentTiles;
 
 	FTileStruct() {
-		Level = -100;
+		Level = -1;
 
 		Instance = 0;
 
@@ -85,9 +82,6 @@ public:
 		class UHierarchicalInstancedStaticMeshComponent* HISMLava;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMWater;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMGround;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
@@ -126,7 +120,8 @@ public:
 
 	TArray<TArray<FTileStruct>> Storage;
 
-	AClouds* Clouds;
+	UPROPERTY()
+		AClouds* Clouds;
 
 	// Resources
 	void GenerateMinerals(FTileStruct* Tile);
@@ -145,5 +140,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Egg Basket")
 		TSubclassOf<class AEggBasket> EggBasketClass;
 
-	FTimerHandle EggBasketTimer;
+	UPROPERTY()
+		FTimerHandle EggBasketTimer;
 };
