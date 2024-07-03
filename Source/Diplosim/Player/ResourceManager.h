@@ -32,6 +32,9 @@ class DIPLOSIM_API UResourceManager : public UActorComponent
 public:	
 	UResourceManager();
 
+	UPROPERTY()
+		class ADiplosimGameModeBase* GameMode;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FResourceStruct> ResourceList;
 

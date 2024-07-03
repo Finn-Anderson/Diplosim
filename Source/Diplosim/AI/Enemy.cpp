@@ -19,6 +19,9 @@ AEnemy::AEnemy()
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	SpawnComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpawnComponent"));
+
+	EffectComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("EffectComponent"));
+	EffectComponent->SetupAttachment(GetMesh());
 }
 
 void AEnemy::BeginPlay()

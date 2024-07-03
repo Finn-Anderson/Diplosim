@@ -5,6 +5,7 @@
 #include "Resource.h"
 #include "Camera.h"
 #include "Buildings/Building.h"
+#include "DiplosimGameModeBase.h"
 
 UResourceManager::UResourceManager()
 {
@@ -35,6 +36,8 @@ void UResourceManager::TakeCommittedResource(TSubclassOf<class AResource> Resour
 
 bool UResourceManager::AddLocalResource(ABuilding* Building, int32 Amount)
 {
+	GameMode->TallyEnemyData(GetResource(Building), Amount);
+
 	int32 target = Building->Storage + Amount;
 
 	bool space = true;
@@ -53,6 +56,8 @@ bool UResourceManager::AddLocalResource(ABuilding* Building, int32 Amount)
 
 bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int32 Amount)
 {
+	GameMode->TallyEnemyData(Resource, Amount);
+
 	int32 stored = 0;
 	int32 capacity = 0;
 

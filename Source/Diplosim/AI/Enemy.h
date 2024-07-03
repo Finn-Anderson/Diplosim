@@ -18,4 +18,7 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
 		class UNiagaraComponent* SpawnComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+		class UNiagaraComponent* EffectComponent;
 };

@@ -422,9 +422,6 @@ void ACitizen::HaveChild()
 	TArray<AActor*> citizens;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
-	if (UDiplosimUserSettings::GetDiplosimUserSettings()->GetMaxCitizens() == citizens.Num())
-		return;
-
 	float chance = FMath::FRandRange(0.0f, 100.0f);
 	float passMark = FMath::LogX(60.0f, BioStruct.Age) * 100.0f;
 

@@ -4,7 +4,28 @@
 #include "GameFramework/GameModeBase.h"
 #include "DiplosimGameModeBase.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
+struct FEnemiesStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+		TArray<TSubclassOf<class AResource>> Resources;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+		int32 Tally;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+		FLinearColor Colour;
+
+	FEnemiesStruct()
+	{
+		Tally = 0;
+		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
+	}
+};
+
+USTRUCT(BlueprintType)
 struct FDiedToStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -25,7 +46,7 @@ struct FDiedToStruct
 	}
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FThreatsStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -43,7 +64,7 @@ struct FThreatsStruct
 	}
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FWaveStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -54,23 +75,17 @@ struct FWaveStruct
 
 	TArray<FThreatsStruct> Threats;
 
-	int32 NumSpawned;
-
 	int32 NumKilled;
 
 	int32 TotalEnemies;
-
-	int32 DeferredEnemies;
 
 	FWaveStruct()
 	{
 		SpawnLocation = FVector(0.0f, 0.0f, 0.0f);
 		DiedTo = {};
 		Threats = {};
-		NumSpawned = 0;
 		NumKilled = 0;
 		TotalEnemies = 0;
-		DeferredEnemies = 0;
 	}
 
 	void SetDiedTo(AActor* Attacker)
@@ -106,6 +121,9 @@ class DIPLOSIM_API ADiplosimGameModeBase : public AGameModeBase
 public:
 	ADiplosimGameModeBase();
 
+protected:
+	void BeginPlay() override;
+
 public:
 	void EvaluateThreats();
 
@@ -119,7 +137,7 @@ public:
 
 	void SpawnEnemies();
 
-	void SpawnAtValidLocation();
+	void SpawnAtValidLocation(FLinearColor Colour);
 
 	void SpawnEnemiesAsync();
 
@@ -127,31 +145,34 @@ public:
 
 	void SetWaveTimer();
 
+	void TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		TSubclassOf<class AEnemy> EnemyClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
-		int32 earliestSpawnTime;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
-		int32 latestSpawnTime;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class UNavAreaBase> NavAreaThreat;
 
 	TArray<FVector> SpawnLocations;
 
-	FTimerHandle WaveTimer;
+	UPROPERTY()
+		FTimerHandle WaveTimer;
 
-	TArray<FWaveStruct> WavesData;
+	UPROPERTY()
+		TArray<FWaveStruct> WavesData;
 
-	class ABuilding* Broch;
+	UPROPERTY()
+		class ABuilding* Broch;
 
 	TArray<AActor*> Buildings;
 
 	TArray<AActor*> Citizens;
 
-	class AGrid* Grid;
+	UPROPERTY()
+		class AGrid* Grid;
 
 	TArray<FVector> LastLocation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+		TArray<FEnemiesStruct> EnemiesData;
 };

@@ -14,13 +14,19 @@
 #include "Map/Grid.h"
 #include "Buildings/Broch.h"
 #include "Buildings/Wall.h"
+#include "Player/Camera.h"
 
 ADiplosimGameModeBase::ADiplosimGameModeBase()
 {
 	Broch = nullptr;
+	Grid = nullptr;
+}
 
-	earliestSpawnTime = 900;
-	latestSpawnTime = 1800;
+void ADiplosimGameModeBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UDiplosimUserSettings::GetDiplosimUserSettings()->GameMode = this;
 }
 
 void ADiplosimGameModeBase::EvaluateThreats()
@@ -192,32 +198,21 @@ void ADiplosimGameModeBase::SpawnEnemies()
 
 	EvaluateThreats();
 
-	for (AActor* actor : Citizens) {
-		ACitizen* citizen = Cast<ACitizen>(actor);
-
-		if (citizen->BioStruct.Age < 18)
-			continue;
-
-		WavesData.Last().TotalEnemies++;
-	}
-
-	WavesData.Last().TotalEnemies /= 3;
-
-	int32 num = WavesData.Last().TotalEnemies;
-	int32 max = UDiplosimUserSettings::GetDiplosimUserSettings()->GetMaxEnemies();
-		
-	if (num > max) {
-		WavesData.Last().DeferredEnemies = num - max;
-		num = max;
-	}
-
 	LastLocation.Empty();
 
-	AsyncTask(ENamedThreads::GameThread, [this, num]() {
-		for (int32 i = 0; i < num; i++) {
-			FTimerHandle locationTimer;
-			GetWorld()->GetTimerManager().SetTimer(locationTimer, this, &ADiplosimGameModeBase::SpawnAtValidLocation, 0.1f, false);
+	AsyncTask(ENamedThreads::GameThread, [this]() {
+		for (FEnemiesStruct &enemyData : EnemiesData) {
+			int32 num = FMath::Floor(enemyData.Tally / 200.0f);
+
+			for (int32 i = 0; i < num; i++) {
+				FTimerHandle locationTimer;
+				GetWorld()->GetTimerManager().SetTimer(locationTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, enemyData.Colour), 0.1f, false);
+			}
+
+			enemyData.Tally = enemyData.Tally % 200;
 		}
+
+		CheckEnemiesStatus();
 	});
 }
 
@@ -226,6 +221,8 @@ void ADiplosimGameModeBase::SpawnEnemiesAsync()
 	if (!CheckEnemiesStatus())
 		return;
 
+	GetWorld()->GetTimerManager().ClearTimer(WaveTimer);
+
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), Buildings);
 	
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), Citizens);
@@ -233,12 +230,12 @@ void ADiplosimGameModeBase::SpawnEnemiesAsync()
 	Async(EAsyncExecution::Thread, [this]() { SpawnEnemies(); });
 }
 
-void ADiplosimGameModeBase::SpawnAtValidLocation()
+void ADiplosimGameModeBase::SpawnAtValidLocation(FLinearColor Colour)
 {
 	int32 index = FMath::RandRange(0, SpawnLocations.Num() - 1);
 
 	if (LastLocation.Contains(SpawnLocations[index])) {
-		SpawnAtValidLocation();
+		SpawnAtValidLocation(Colour);
 		
 		return;
 	}
@@ -250,22 +247,21 @@ void ADiplosimGameModeBase::SpawnAtValidLocation()
 
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, SpawnLocations[index], FRotator(0, 0, 0));
 
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(enemy->GetMesh()->GetMaterial(0), this);
+	material->SetVectorParameterValue("Colour", Colour);
+	material->SetScalarParameterValue("Emissiveness", 3.0f);
+	enemy->GetMesh()->SetMaterial(0, material);
+
+	enemy->EffectComponent->SetVariableLinearColor("Colour", Colour);
+
 	enemy->MoveToBroch();
 
-	WavesData.Last().NumSpawned++;
+	WavesData.Last().TotalEnemies++;
 }
 
 bool ADiplosimGameModeBase::CheckEnemiesStatus()
 {
 	if (!WavesData.IsEmpty()) {
-		if (WavesData.Last().DeferredEnemies > 0) {
-			SpawnAtValidLocation();
-
-			WavesData.Last().DeferredEnemies--;
-
-			return false;
-		}
-
 		int32 tally = 0;
 
 		for (FDiedToStruct death : WavesData.Last().DiedTo)
@@ -275,10 +271,11 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 			return false;
 	}
 
-	if (!GetWorld()->GetTimerManager().IsTimerActive(WaveTimer))
-		SetWaveTimer();
-	else
-		GetWorld()->GetTimerManager().ClearTimer(WaveTimer);
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
+
+	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies() || camera->Start)
+		return false;
 
 	return true;
 }
@@ -294,7 +291,12 @@ void ADiplosimGameModeBase::SetWaveTimer()
 		}
 	}
 
-	int32 time = FMath::RandRange(earliestSpawnTime, latestSpawnTime);
+	GetWorld()->GetTimerManager().SetTimer(WaveTimer, this, &ADiplosimGameModeBase::SpawnEnemiesAsync, 1800.0f, false);
+}
 
-	GetWorld()->GetTimerManager().SetTimer(WaveTimer, this, &ADiplosimGameModeBase::SpawnEnemiesAsync, time, false);
+void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)
+{
+	for (FEnemiesStruct& enemyData : EnemiesData)
+		if (enemyData.Resources.Contains(Resource))
+			enemyData.Tally += Amount;
 }

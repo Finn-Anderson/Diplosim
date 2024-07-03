@@ -145,7 +145,8 @@ void UHealthComponent::Clear(AActor* Attacker)
 		else
 			gamemode->WavesData.Last().SetDiedTo(Attacker);
 
-		gamemode->CheckEnemiesStatus();
+		if (gamemode->CheckEnemiesStatus())
+			gamemode->SetWaveTimer();
 	}
 
 	actor->Destroy();

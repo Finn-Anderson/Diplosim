@@ -64,6 +64,8 @@ void ACamera::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ResourceManagerComponent->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+
 	if (Start)
 		BuildComponent->SpawnBuilding(StartBuilding);
 

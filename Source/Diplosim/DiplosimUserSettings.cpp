@@ -3,35 +3,33 @@
 #include "NiagaraComponent.h"
 
 #include "Map/Clouds.h"
+#include "DiplosimGameModeBase.h"
 
 UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	MaxEnemies = 333;
-	MaxCitizens = 1000;
+	bEnemies = true;
 
 	bRenderClouds = true;
 
 	Clouds = nullptr;
+
+	GameMode = nullptr;
 }
 
-void UDiplosimUserSettings::SetMaxEnemies(int32 Value)
+void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
 {
-	MaxEnemies = Value;
+	bEnemies = Value;
+
+	if (GameMode == nullptr)
+		return;
+
+	if (!GameMode->GetWorldTimerManager().IsTimerActive(GameMode->WaveTimer) && GameMode->CheckEnemiesStatus())
+		GameMode->SetWaveTimer();
 }
 
-int32 UDiplosimUserSettings::GetMaxEnemies() const
+bool UDiplosimUserSettings::GetSpawnEnemies() const
 {
-	return MaxEnemies;
-}
-
-void UDiplosimUserSettings::SetMaxCitizens(int32 Value)
-{
-	MaxCitizens = Value;
-}
-
-int32 UDiplosimUserSettings::GetMaxCitizens() const
-{
-	return MaxCitizens;
+	return bEnemies;
 }
 
 void UDiplosimUserSettings::SetRenderClouds(bool Value)

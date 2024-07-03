@@ -11,10 +11,7 @@ class DIPLOSIM_API UDiplosimUserSettings : public UGameUserSettings
 
 protected:
 	UPROPERTY(Config)
-		int32 MaxEnemies;
-
-	UPROPERTY(Config)
-		int32 MaxCitizens;
+		bool bEnemies;
 
 	UPROPERTY(Config)
 		bool bRenderClouds;
@@ -24,16 +21,10 @@ public:
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
 
 	UFUNCTION(BlueprintCallable, Category = "Enemies")
-		void SetMaxEnemies(int32 Value);
+		void SetSpawnEnemies(bool Value);
 
 	UFUNCTION(BlueprintPure, Category = "Enemies")
-		int32 GetMaxEnemies() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Citizens")
-		void SetMaxCitizens(int32 Value);
-
-	UFUNCTION(BlueprintPure, Category = "Citizens")
-		int32 GetMaxCitizens() const;
+		bool GetSpawnEnemies() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Clouds")
 		void SetRenderClouds(bool Value);
@@ -41,5 +32,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Clouds")
 		bool GetRenderClouds() const;
 
-	class AClouds* Clouds;
+	UPROPERTY()
+		class AClouds* Clouds;
+
+	UPROPERTY()
+		class ADiplosimGameModeBase* GameMode;
 };
