@@ -8,13 +8,13 @@
 #include "AI.h"
 #include "Citizen.h"
 #include "Enemy.h"
-#include "HealthComponent.h"
+#include "Universal/HealthComponent.h"
 #include "Buildings/Building.h"
-#include "Buildings/Broch.h"
-#include "Resource.h"
+#include "Buildings/Misc/Broch.h"
+#include "Universal/Resource.h"
 #include "AttackComponent.h"
 #include "Player/Camera.h"
-#include "Player/ResourceManager.h"
+#include "Player/Managers/ResourceManager.h"
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
@@ -28,10 +28,7 @@ void ADiplosimAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!Owner->IsActorTickEnabled())
-		return;
-
-	if (!IsValid(MoveRequest.GetGoalActor()))
+	if (!Owner->IsActorTickEnabled() || !IsValid(MoveRequest.GetGoalActor()))
 		return;
 
 	TSubclassOf<UNavigationQueryFilter> filter = Cast<AAI>(GetOwner())->NavQueryFilter;
@@ -61,6 +58,8 @@ void ADiplosimAIController::DefaultAction()
 		return;
 
 	MoveRequest.SetGoalActor(nullptr);
+
+	SetActorTickEnabled(false);
 
 	if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast()) {
 		if (GetOwner()->IsA<ACitizen>()) {
@@ -201,6 +200,8 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);
 	MoveRequest.SetLocation(Actor->GetActorLocation());
+
+	SetActorTickEnabled(true);
 
 	if (Location != FVector::Zero())
 		MoveRequest.SetLocation(Location);

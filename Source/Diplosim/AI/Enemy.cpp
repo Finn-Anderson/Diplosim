@@ -4,7 +4,7 @@
 #include "Components/SphereComponent.h"
 #include "NiagaraComponent.h"
 
-#include "HealthComponent.h"
+#include "Universal/HealthComponent.h"
 #include "AttackComponent.h"
 
 AEnemy::AEnemy()

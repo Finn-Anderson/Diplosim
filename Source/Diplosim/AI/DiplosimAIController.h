@@ -82,9 +82,12 @@ public:
 
 	void RecalculateMovement(AActor* Actor);
 
-	FMoveStruct MoveRequest;
+	UPROPERTY()
+		FMoveStruct MoveRequest;
+	
+	UPROPERTY()
+		FTimerHandle IdleTimer;
 
-	FTimerHandle IdleTimer;
-
-	AActor* PrevGoal;
+	UPROPERTY()
+		AActor* PrevGoal;
 };

@@ -5,7 +5,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
-#include "Player/ResourceManager.h"
+#include "Player/Managers/ResourceManager.h"
 
 AHouse::AHouse()
 {

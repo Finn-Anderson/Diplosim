@@ -8,18 +8,19 @@
 #include "AIController.h"
 
 #include "AI.h"
-#include "HealthComponent.h"
+#include "Universal/HealthComponent.h"
 #include "DiplosimAIController.h"
 #include "Enemy.h"
 #include "Citizen.h"
 #include "Projectile.h"
-#include "Buildings/Wall.h"
-#include "DiplosimGameModeBase.h"
-#include "Map/Grid.h"
+#include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Building.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 UAttackComponent::UAttackComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetComponentTickInterval(0.1f);
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
@@ -76,6 +77,9 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 			OverlappingEnemies.Add(OtherActor);
 	else if (Owner->IsA<ACitizen>() && OtherActor->IsA<AEnemy>())
 		OverlappingEnemies.Add(OtherActor);
+
+	if (OverlappingEnemies.Num() == 1)
+		SetComponentTickEnabled(true);
 }
 
 void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -133,6 +137,9 @@ void UAttackComponent::PickTarget()
 
 	if (CurrentTarget == favoured)
 		return;
+
+	if (favoured == nullptr)
+		SetComponentTickEnabled(false);
 
 	AsyncTask(ENamedThreads::GameThread, [this, favoured]() {
 		CurrentTarget = favoured;

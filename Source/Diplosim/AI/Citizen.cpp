@@ -7,15 +7,14 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "NiagaraComponent.h"
 
-#include "Resource.h"
-#include "HealthComponent.h"
+#include "Universal/Resource.h"
+#include "Universal/HealthComponent.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
 #include "Player/Camera.h"
-#include "Player/ResourceManager.h"
-#include "Buildings/ExternalProduction.h"
+#include "Player/Managers/ResourceManager.h"
+#include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/House.h"
-#include "DiplosimUserSettings.h"
 
 ACitizen::ACitizen()
 {

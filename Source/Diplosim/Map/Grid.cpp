@@ -7,13 +7,13 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
-#include "Clouds.h"
-#include "Mineral.h"
-#include "Vegetation.h"
-#include "WindComponent.h"
+#include "Atmosphere/Clouds.h"
+#include "Resources/Mineral.h"
+#include "Resources/Vegetation.h"
+#include "Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
-#include "Player/CameraMovementComponent.h"
-#include "EggBasket.h"
+#include "Player/Components/CameraMovementComponent.h"
+#include "Universal/EggBasket.h"
 
 AGrid::AGrid()
 {
@@ -36,7 +36,7 @@ AGrid::AGrid()
 	HISMFlatGround->SetCastShadow(false);
 	HISMFlatGround->NumCustomDataFloats = 3;
 
-	WindComponent = CreateDefaultSubobject<UWindComponent>(TEXT("WindComponent"));
+	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 
 	Size = 22500;
 	Peaks = 2;

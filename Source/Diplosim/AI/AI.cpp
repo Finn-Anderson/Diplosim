@@ -5,11 +5,11 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
-#include "HealthComponent.h"
+#include "Universal/HealthComponent.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
 #include "Enemy.h"
-#include "Buildings/Broch.h"
+#include "Buildings/Misc/Broch.h"
 
 AAI::AAI()
 {

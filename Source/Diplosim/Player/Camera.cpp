@@ -9,14 +9,14 @@
 #include "Components/WidgetComponent.h"
 
 #include "Map/Grid.h"
-#include "BuildComponent.h"
-#include "CameraMovementComponent.h"
-#include "ResourceManager.h"
-#include "ConstructionManager.h"
+#include "Components/BuildComponent.h"
+#include "Components/CameraMovementComponent.h"
+#include "Managers/ResourceManager.h"
+#include "Managers/ConstructionManager.h"
 #include "Buildings/Building.h"
 #include "AI/AI.h"
-#include "DiplosimGameModeBase.h"
-#include "EggBasket.h"
+#include "Universal/DiplosimGameModeBase.h"
+#include "Universal/EggBasket.h"
 
 ACamera::ACamera()
 {
@@ -151,6 +151,8 @@ void ACamera::DisplayInteract(AActor* Actor)
 
 		AttachToActor(Actor, FAttachmentTransformRules::KeepRelativeTransform);
 		SetActorLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
+
+		SpringArmComponent->ProbeSize = 6.0f;
 	}
 	else {
 		UStaticMeshComponent* mesh = Actor->GetComponentByClass<UStaticMeshComponent>();
@@ -330,6 +332,9 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 {
 	if (bInMenu)
 		return;
+
+	if (GetAttachParentActor() != nullptr)
+		SpringArmComponent->ProbeSize = 12.0f;
 
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 

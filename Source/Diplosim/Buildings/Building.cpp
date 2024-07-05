@@ -9,17 +9,17 @@
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
-#include "HealthComponent.h"
+#include "Universal/HealthComponent.h"
 #include "Player/Camera.h"
-#include "Player/ResourceManager.h"
-#include "Player/ConstructionManager.h"
-#include "Player/BuildComponent.h"
-#include "Map/Vegetation.h"
+#include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/ConstructionManager.h"
+#include "Player/Components/BuildComponent.h"
+#include "Map/Resources/Vegetation.h"
 #include "Map/Grid.h"
-#include "Buildings/Builder.h"
-#include "Buildings/Trader.h"
+#include "Buildings/Work/Service/Builder.h"
+#include "Buildings/Work/Service/Trader.h"
 #include "Buildings/House.h"
-#include "EggBasket.h"
+#include "Universal/EggBasket.h"
 
 ABuilding::ABuilding()
 {

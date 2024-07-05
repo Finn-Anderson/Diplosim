@@ -3,7 +3,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraFunctionLibrary.h"
 
-#include "HealthComponent.h"
+#include "Universal/HealthComponent.h"
 
 AProjectile::AProjectile()
 {
