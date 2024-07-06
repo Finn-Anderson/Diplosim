@@ -44,7 +44,7 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 		money += ResourceValues[index].Value * item.Amount;
 	}
 
-	Camera->ResourceManagerComponent->AddUniversalResource(Money, money);
+	Camera->ResourceManager->AddUniversalResource(Money, money);
 
 	Orders[0].OrderWidget->RemoveFromParent();
 

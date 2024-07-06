@@ -13,6 +13,7 @@
 #include "Components/CameraMovementComponent.h"
 #include "Managers/ResourceManager.h"
 #include "Managers/ConstructionManager.h"
+#include "Managers/CitizenManager.h"
 #include "Buildings/Building.h"
 #include "AI/AI.h"
 #include "Universal/DiplosimGameModeBase.h"
@@ -41,11 +42,13 @@ ACamera::ACamera()
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	CameraComponent->SetTickableWhenPaused(true);
 
-	ResourceManagerComponent = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManagerComponent"));
-	ResourceManagerComponent->SetTickableWhenPaused(true);
+	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
+	ResourceManager->SetTickableWhenPaused(true);
 
-	ConstructionManagerComponent = CreateDefaultSubobject<UConstructionManager>(TEXT("ConstructionManagerComponent"));
-	ConstructionManagerComponent->SetTickableWhenPaused(true);
+	ConstructionManager = CreateDefaultSubobject<UConstructionManager>(TEXT("ConstructionManager"));
+	ConstructionManager->SetTickableWhenPaused(true);
+
+	CitizenManager = CreateDefaultSubobject<UCitizenManager>(TEXT("CitizenManager"));
 
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
 	WidgetComponent->SetTickableWhenPaused(true);
@@ -64,7 +67,7 @@ void ACamera::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ResourceManagerComponent->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+	ResourceManager->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 	if (Start)
 		BuildComponent->SpawnBuilding(StartBuilding);
@@ -87,9 +90,6 @@ void ACamera::BeginPlay()
 	LostUIInstance = CreateWidget<UUserWidget>(pcontroller, LostUI);
 
 	SettingsUIInstance = CreateWidget<UUserWidget>(pcontroller, SettingsUI);
-
-	FTimerHandle interestTimer;
-	GetWorld()->GetTimerManager().SetTimer(interestTimer, ResourceManagerComponent, &UResourceManager::Interest, 300.0f, true);
 }
 
 void ACamera::Tick(float DeltaTime)
@@ -128,13 +128,31 @@ void ACamera::Tick(float DeltaTime)
 	}
 }
 
+void ACamera::StartGame(ABuilding* Broch)
+{
+	Start = false;
+	BuildUIInstance->AddToViewport();
+	Grid->MapUIInstance->RemoveFromParent();
+
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	gamemode->Broch = Broch;
+	gamemode->Grid = Grid;
+
+	gamemode->SetWaveTimer();
+
+	GetWorld()->GetTimerManager().SetTimer(ResourceManager->InterestTimer, ResourceManager, &UResourceManager::Interest, 300.0f, true);
+
+	CitizenManager->StartTimers();
+}
+
 void ACamera::TickWhenPaused(bool bTickWhenPaused)
 {
 	MovementComponent->SetTickableWhenPaused(bTickWhenPaused);
 	BuildComponent->SetTickableWhenPaused(bTickWhenPaused);
 	SpringArmComponent->SetTickableWhenPaused(bTickWhenPaused);
 	CameraComponent->SetTickableWhenPaused(bTickWhenPaused);
-	ResourceManagerComponent->SetTickableWhenPaused(bTickWhenPaused);
+	ResourceManager->SetTickableWhenPaused(bTickWhenPaused);
+	ConstructionManager->SetTickableWhenPaused(bTickWhenPaused);
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	pcontroller->SetPause(!bTickWhenPaused);

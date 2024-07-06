@@ -115,7 +115,7 @@ double ADiplosimAIController::GetClosestActor(FVector TargetLocation, FVector Cu
 
 void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource> Resource)
 {
-	TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(Resource);
+	TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManager->GetBuildings(Resource);
 
 	ABuilding* target = nullptr;
 

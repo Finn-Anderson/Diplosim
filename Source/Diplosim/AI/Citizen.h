@@ -251,7 +251,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
 		FBuildingStruct Building;
 
-	TArray<FCollidingStruct> StillColliding;
+	UPROPERTY()
+		TArray<FCollidingStruct> StillColliding;
 
 
 	// Resources
@@ -261,7 +262,8 @@ public:
 
 	void Carry(class AResource* Resource, int32 Amount, AActor* Location);
 
-	FCarryStruct Carrying;
+	UPROPERTY()
+		FCarryStruct Carrying;
 
 
 	// Food
@@ -270,24 +272,30 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Food")
 		TArray<TSubclassOf<class AResource>> Food;
 
-	FTimerHandle HungerTimer;
-
 	UPROPERTY(BlueprintReadOnly, Category = "Food")
 		int32 Hunger;
 
+	UPROPERTY()
+		int32 HungerTimer;
+
 
 	// Energy
-	void SetEnergyTimer(bool bGain);
+	void CheckGainOrLoseEnergy();
 
 	void LoseEnergy();
 
 	void GainEnergy();
 
-	FTimerHandle EnergyTimer;
-
 	UPROPERTY(BlueprintReadOnly, Category = "Energy")
 		int32 Energy;
 
+	UPROPERTY()
+		int32 EnergyTimer;
+
+	UPROPERTY()
+		bool bGain;
+
+	UPROPERTY()
 	float InitialSpeed;
 
 
@@ -307,9 +315,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		FBioStruct BioStruct;
 
-	FTimerHandle AgeTimer;
-
-	FTimerHandle ChildTimer;
+	UPROPERTY()
+		int32 AgeTimer;
 
 	// Politics
 	UPROPERTY(BlueprintReadOnly, Category = "Politics")

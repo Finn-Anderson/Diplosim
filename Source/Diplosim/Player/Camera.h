@@ -27,10 +27,13 @@ public:
 		class USpringArmComponent* SpringArmComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource Manager")
-		class UResourceManager* ResourceManagerComponent;
+		class UResourceManager* ResourceManager;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction Manager")
-		class UConstructionManager* ConstructionManagerComponent;
+		class UConstructionManager* ConstructionManager;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen Manager")
+		class UCitizenManager* CitizenManager;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		class UBuildComponent* BuildComponent;
@@ -45,6 +48,8 @@ public:
 		bool Start;
 
 	void Tick(float DeltaTime) override;
+
+	void StartGame(class ABuilding* Broch);
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -80,9 +85,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;
 
-	bool bInMenu;
+	UPROPERTY()
+		bool bInMenu;
 
-	bool bLost;
+	UPROPERTY()
+		bool bLost;
 
 	void TickWhenPaused(bool bTickWhenPaused);
 
@@ -130,14 +137,16 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	AActor* HoveredActor;
+	UPROPERTY()
+		AActor* HoveredActor;
 
 	// Commands
 	void Action();
 
 	void Cancel();
 
-	bool bQuick;
+	UPROPERTY()
+		bool bQuick;
 
 	// Map
 	void NewMap();

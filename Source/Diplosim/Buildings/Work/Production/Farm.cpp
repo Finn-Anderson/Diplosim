@@ -57,7 +57,7 @@ void AFarm::ProductionDone(ACitizen* Citizen)
 
 	int32 fertility = Camera->Grid->Storage[x][y].Fertility;
 
-	Citizen->Carry(Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject<AResource>(), Yield * fertility, this);
+	Citizen->Carry(Camera->ResourceManager->GetResource(this)->GetDefaultObject<AResource>(), Yield * fertility, this);
 
 	StoreResource(Citizen);
 

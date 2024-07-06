@@ -32,7 +32,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 	if (GetOwner()->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(GetOwner());
 
-		UConstructionManager* cm = building->Camera->ConstructionManagerComponent;
+		UConstructionManager* cm = building->Camera->ConstructionManager;
 		cm->AddBuilding(building, EBuildStatus::Damaged);
 
 		float opacity = (MaxHealth - Health) / float(MaxHealth);
@@ -105,7 +105,7 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		building->BuildingMesh->SetGenerateOverlapEvents(false);
 
-		UConstructionManager* cm = building->Camera->ConstructionManagerComponent;
+		UConstructionManager* cm = building->Camera->ConstructionManager;
 		cm->RemoveBuilding(building);
 	}
 

@@ -27,7 +27,7 @@ FRewardStruct AEggBasket::PickReward(ACamera* Camera)
 	TArray<FRewardStruct> chosenRewards;
 
 	for (FRewardStruct reward : Rewards) {
-		TArray<TSubclassOf<ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(reward.Resource);
+		TArray<TSubclassOf<ABuilding>> buildings = Camera->ResourceManager->GetBuildings(reward.Resource);
 
 		for (TSubclassOf<ABuilding> building : buildings) {
 			TArray<AActor*> actors;
@@ -56,7 +56,7 @@ void AEggBasket::RedeemReward()
 
 	int32 amount = FMath::RandRange(reward.Min, reward.Max);
 
-	camera->ResourceManagerComponent->AddUniversalResource(reward.Resource, amount);
+	camera->ResourceManager->AddUniversalResource(reward.Resource, amount);
 	
 	Grid->ResourceTiles.Add(Tile);
 

@@ -24,21 +24,21 @@ void AHouse::UpkeepCost()
 	}
 
 	int32 rent = Rent * Occupied.Num();
-	Camera->ResourceManagerComponent->AddUniversalResource(Money, rent);
+	Camera->ResourceManager->AddUniversalResource(Money, rent);
 }
 
 void AHouse::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	Citizen->SetEnergyTimer(true);
+	Citizen->bGain = true;
 }
 
 void AHouse::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
-	Citizen->SetEnergyTimer(false);
+	Citizen->bGain = false;
 }
 
 void AHouse::FindCitizens()

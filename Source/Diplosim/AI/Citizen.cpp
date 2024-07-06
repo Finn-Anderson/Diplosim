@@ -12,6 +12,7 @@
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
 #include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/House.h"
@@ -39,6 +40,12 @@ ACitizen::ACitizen()
 	Hunger = 100;
 	Energy = 100;
 
+	HungerTimer = 0;
+	EnergyTimer = 0;
+	AgeTimer = 0;
+
+	bGain = false;
+
 	HealthComponent->MaxHealth = 10;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
@@ -49,11 +56,10 @@ void ACitizen::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, &ACitizen::LoseEnergy, 6.0f, true);
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
 
-	GetWorld()->GetTimerManager().SetTimer(HungerTimer, this, &ACitizen::Eat, 3.0f, true);
-
-	GetWorld()->GetTimerManager().SetTimer(AgeTimer, this, &ACitizen::Birthday, 45.0f, true);
+	camera->CitizenManager->Citizens.Add(this);
 
 	SetSex();
 	SetName();
@@ -143,6 +149,8 @@ bool ACitizen::CanWork(ABuilding* ReligiousBuilding)
 //
 void ACitizen::Eat()
 {
+	HungerTimer = 0;
+
 	Hunger = FMath::Clamp(Hunger - 1, 0, 100);
 
 	if (Hunger > 25)
@@ -157,7 +165,7 @@ void ACitizen::Eat()
 	int32 totalAmount = 0;
 
 	for (int32 i = 0; i < Food.Num(); i++) {
-		int32 curAmount = camera->ResourceManagerComponent->GetResourceAmount(Food[i]);
+		int32 curAmount = camera->ResourceManager->GetResourceAmount(Food[i]);
 
 		foodAmounts.Add(curAmount);
 		totalAmount += curAmount;
@@ -177,7 +185,7 @@ void ACitizen::Eat()
 				selected -= foodAmounts[j];
 			}
 			else {
-				camera->ResourceManagerComponent->TakeUniversalResource(Food[j], 1, 0);
+				camera->ResourceManager->TakeUniversalResource(Food[j], 1, 0);
 
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
@@ -193,14 +201,14 @@ void ACitizen::Eat()
 //
 // Energy
 //
-void ACitizen::SetEnergyTimer(bool bGain)
+void ACitizen::CheckGainOrLoseEnergy()
 {
-	auto func = &ACitizen::LoseEnergy;
-
 	if (bGain)
-		func = &ACitizen::GainEnergy;
+		GainEnergy();
+	else
+		LoseEnergy();
 
-	GetWorld()->GetTimerManager().SetTimer(EnergyTimer, this, func, 6.0f, true);
+	EnergyTimer = 0;
 }
 
 void ACitizen::LoseEnergy()
@@ -290,6 +298,8 @@ void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 //
 void ACitizen::Birthday()
 {
+	AgeTimer = 0;
+
 	BioStruct.Age++;
 
 	if (BioStruct.Age >= 60) {
@@ -411,9 +421,6 @@ void ACitizen::FindPartner()
 void ACitizen::SetPartner(ACitizen* Citizen)
 {
 	BioStruct.Partner = Citizen;
-
-	if (BioStruct.Sex == ESex::Female)
-		GetWorld()->GetTimerManager().SetTimer(ChildTimer, this, &ACitizen::HaveChild, 45.0f, true);
 }
 
 void ACitizen::HaveChild()

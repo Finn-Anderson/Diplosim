@@ -77,7 +77,7 @@ void AWork::UpkeepCost()
 	}
 
 	int32 upkeep = Wage * Occupied.Num();
-	Camera->ResourceManagerComponent->TakeUniversalResource(Money, upkeep, -100000);
+	Camera->ResourceManager->TakeUniversalResource(Money, upkeep, -100000);
 }
 
 void AWork::FindCitizens()

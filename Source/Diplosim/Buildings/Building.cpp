@@ -97,8 +97,10 @@ void ABuilding::Build()
 
 	BuildingMesh->SetCanEverAffectNavigation(true);
 
-	UResourceManager* rm = Camera->ResourceManagerComponent;
-	UConstructionManager* cm = Camera->ConstructionManagerComponent;
+	BuildingMesh->bReceivesDecals = true;
+
+	UResourceManager* rm = Camera->ResourceManager;
+	UConstructionManager* cm = Camera->ConstructionManager;
 
 	if (CheckInstant()) {
 		OnBuilt();
@@ -184,8 +186,8 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 
 void ABuilding::DestroyBuilding()
 {
-	UResourceManager* rm = Camera->ResourceManagerComponent;
-	UConstructionManager* cm = Camera->ConstructionManagerComponent;
+	UResourceManager* rm = Camera->ResourceManager;
+	UConstructionManager* cm = Camera->ConstructionManager;
 
 	if (cm->IsBeingConstructed(this, nullptr)) {
 		for (FItemStruct items : CostList.Items) {
@@ -215,7 +217,7 @@ void ABuilding::OnBuilt()
 		BuildingMesh->SetStaticMesh(ActualMesh);
 	}
 
-	UConstructionManager* cm = Camera->ConstructionManagerComponent;
+	UConstructionManager* cm = Camera->ConstructionManager;
 	cm->RemoveBuilding(this);
 
 	GetWorldTimerManager().SetTimer(CostTimer, this, &ABuilding::UpkeepCost, 300.0f, true);
@@ -282,7 +284,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 	Citizen->AIController->StopMovement();
 	
-	UConstructionManager* cm = Camera->ConstructionManagerComponent;
+	UConstructionManager* cm = Camera->ConstructionManager;
 
 	if (bHideCitizen) {
 		Citizen->SetActorHiddenInGame(true);
@@ -416,7 +418,7 @@ void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<F
 	int32 amount = 0;
 	int32 capacity = 10;
 
-	TSubclassOf<AResource> resource = Camera->ResourceManagerComponent->GetResource(this);
+	TSubclassOf<AResource> resource = Camera->ResourceManager->GetResource(this);
 
 	if (capacity > Storage)
 		capacity = Storage;
@@ -429,9 +431,9 @@ void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<F
 		}
 	}
 
-	Camera->ResourceManagerComponent->TakeLocalResource(this, amount);
+	Camera->ResourceManager->TakeLocalResource(this, amount);
 
-	Camera->ResourceManagerComponent->TakeCommittedResource(resource, amount);
+	Camera->ResourceManager->TakeCommittedResource(resource, amount);
 
 	Citizen->Carry(Cast<AResource>(resource->GetDefaultObject()), amount, DeliverTo);
 }
@@ -441,10 +443,10 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 	if (Citizen->Carrying.Type == nullptr)
 		return;
 
-	TSubclassOf<AResource> resource = Camera->ResourceManagerComponent->GetResource(this);
+	TSubclassOf<AResource> resource = Camera->ResourceManager->GetResource(this);
 
 	if (resource != nullptr && resource->GetDefaultObject() == Citizen->Carrying.Type) {
-		bool canStore = Camera->ResourceManagerComponent->AddLocalResource(this, Citizen->Carrying.Amount);
+		bool canStore = Camera->ResourceManager->AddLocalResource(this, Citizen->Carrying.Amount);
 
 		if (canStore) {
 			Citizen->Carry(nullptr, 0, nullptr);
@@ -459,7 +461,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 		}
 	}
 	else {
-		UConstructionManager* cm = Camera->ConstructionManagerComponent;
+		UConstructionManager* cm = Camera->ConstructionManager;
 
 		TArray<FItemStruct> items;
 
@@ -490,7 +492,7 @@ void ABuilding::ReturnResource(class ACitizen* Citizen)
 		if (Orders[0].Items[i].Stored == 0)
 			continue;
 
-		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManagerComponent->GetBuildings(Orders[0].Items[i].Resource);
+		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManager->GetBuildings(Orders[0].Items[i].Resource);
 
 		ABuilding* target = nullptr;
 
@@ -548,7 +550,7 @@ void ABuilding::SetNewOrder(FQueueStruct Order)
 {
 	Orders.Add(Order);
 
-	UResourceManager* rm = Camera->ResourceManagerComponent;
+	UResourceManager* rm = Camera->ResourceManager;
 
 	for (FItemStruct items : Order.Items)
 		rm->AddCommittedResource(items.Resource, items.Amount);
@@ -571,7 +573,7 @@ void ABuilding::SetOrderCancelled(int32 index, bool bCancel)
 {
 	Orders[index].bCancelled = bCancel;
 
-	UResourceManager* rm = Camera->ResourceManagerComponent;
+	UResourceManager* rm = Camera->ResourceManager;
 
 	for (FItemStruct items : Orders[index].Items)
 		rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);

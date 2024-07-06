@@ -27,7 +27,7 @@ void AExternalProduction::FindCitizens()
 {
 	Super::FindCitizens();
 
-	TSubclassOf<AResource> resource = Camera->ResourceManagerComponent->GetResource(this);
+	TSubclassOf<AResource> resource = Camera->ResourceManager->GetResource(this);
 
 	for (TSubclassOf<AResource> parentClass : Cast<AResource>(resource->GetDefaultObject())->GetParentResources()) {
 		FValidResourceStruct validResourceStruct;

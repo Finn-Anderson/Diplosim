@@ -14,11 +14,8 @@
 #include "Buildings/Work/Defence/Wall.h"
 #include "Map/Grid.h"
 #include "Map/Resources/Vegetation.h"
-#include "Map/Resources/Mineral.h"
-#include "Universal/DiplosimGameModeBase.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
-#include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Road.h"
 
 UBuildComponent::UBuildComponent()
@@ -177,7 +174,7 @@ FQueueStruct UBuildComponent::GetBuildCosts()
 
 bool UBuildComponent::CheckBuildCosts()
 {
-	UResourceManager* rm = Camera->ResourceManagerComponent;
+	UResourceManager* rm = Camera->ResourceManager;
 
 	FQueueStruct queue = GetBuildCosts();
 
@@ -361,7 +358,7 @@ void UBuildComponent::Place()
 		for (ACitizen* citizen : citizens)
 			citizen->SetActorLocation(BuildingToMove->GetActorLocation());
 
-		UConstructionManager* cm = Camera->ConstructionManagerComponent;
+		UConstructionManager* cm = Camera->ConstructionManager;
 
 		if (cm->IsBeingConstructed(BuildingToMove, nullptr)) {
 			ABuilder* builder = cm->GetBuilder(BuildingToMove);
@@ -389,24 +386,11 @@ void UBuildComponent::Place()
 		if (decalComp != nullptr)
 			decalComp->SetHiddenInGame(true);
 
-		building->BuildingMesh->SetOverlayMaterial(nullptr);
-
 		building->Build();
 	}
 
-	if (Camera->Start) {
-		Camera->Start = false;
-		Camera->BuildUIInstance->AddToViewport();
-		Camera->Grid->MapUIInstance->RemoveFromParent();
-
-		Buildings[0]->BuildingMesh->bReceivesDecals = true;
-
-		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-		gamemode->Broch = Buildings[0];
-		gamemode->Grid = Camera->Grid;
-
-		gamemode->SetWaveTimer();
-	}
+	if (Camera->Start)
+		Camera->StartGame(Buildings[0]);
 
 	DetachBuilding();
 }

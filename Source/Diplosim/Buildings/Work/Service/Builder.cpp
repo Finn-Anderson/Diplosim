@@ -33,7 +33,7 @@ void ABuilder::Enter(ACitizen* Citizen)
 	if (!Occupied.Contains(Citizen))
 		return;
 
-	UConstructionManager* cm = Camera->ConstructionManagerComponent;
+	UConstructionManager* cm = Camera->ConstructionManager;
 
 	if (cm->IsBeingConstructed(nullptr, this))
 		Citizen->AIController->AIMoveTo(cm->GetBuilding(this));
@@ -84,6 +84,6 @@ void ABuilder::Repair(ACitizen* Citizen, ABuilding* Building)
 
 void ABuilder::Done(ACitizen* Citizen, ABuilding* Building)
 {
-	UConstructionManager* cm = Camera->ConstructionManagerComponent;
+	UConstructionManager* cm = Camera->ConstructionManager;
 	cm->RemoveBuilding(Building);
 }

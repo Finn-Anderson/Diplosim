@@ -40,7 +40,7 @@ void AInternalProduction::Production(ACitizen* Citizen)
 
 void AInternalProduction::Produce(ACitizen* Citizen)
 {
-	Citizen->Carry(Camera->ResourceManagerComponent->GetResource(this)->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
+	Citizen->Carry(Camera->ResourceManager->GetResource(this)->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
 
 	StoreResource(Citizen);
 
