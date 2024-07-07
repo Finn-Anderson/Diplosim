@@ -44,6 +44,9 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 		for (AActor* Actor : citizens)
 			Cast<ACitizen>(Actor)->SetTorch();
+
+		if (!bNight)
+			Day++;
 	}
 }
 

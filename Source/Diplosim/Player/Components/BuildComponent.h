@@ -17,11 +17,13 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	class ACamera* Camera;
+	UPROPERTY()
+		class ACamera* Camera;
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	bool bCanRotate;
+	UPROPERTY()
+		bool bCanRotate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<ABuilding> FoundationClass;
@@ -33,7 +35,8 @@ public:
 	UPROPERTY(EditAnywhere)
 		class UMaterial* BlockedMaterial;
 
-	FRotator Rotation;
+	UPROPERTY()
+		FRotator Rotation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TArray<class ABuilding*> Buildings;
@@ -41,9 +44,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		class ABuilding* BuildingToMove;
 
-	FVector StartLocation;
+	UPROPERTY()
+		FVector StartLocation;
 
-	FVector EndLocation;
+	UPROPERTY()
+		FVector EndLocation;
 
 	void SetBuildingsOnPath();
 

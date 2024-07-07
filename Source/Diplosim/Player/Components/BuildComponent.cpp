@@ -372,7 +372,7 @@ void UBuildComponent::Place()
 
 		BuildingToMove = nullptr;
 
-		DetachBuilding();
+		RemoveBuilding();
 
 		return;
 	}
