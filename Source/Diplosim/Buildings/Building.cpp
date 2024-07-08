@@ -19,6 +19,7 @@
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
 #include "Buildings/House.h"
+#include "Buildings/Work/Production/Farm.h"
 #include "Universal/EggBasket.h"
 
 ABuilding::ABuilding()
@@ -282,7 +283,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 	Citizen->Building.BuildingAt = this;
 	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
 
-	Citizen->AIController->StopMovement();
+	if (!IsA<AFarm>())
+		Citizen->AIController->StopMovement();
 	
 	UConstructionManager* cm = Camera->ConstructionManager;
 

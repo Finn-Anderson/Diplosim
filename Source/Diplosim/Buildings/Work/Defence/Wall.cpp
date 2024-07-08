@@ -1,13 +1,13 @@
 #include "Buildings/Work/Defence/Wall.h"
 
 #include "Components/DecalComponent.h"
+#include "Components/CapsuleComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/AttackComponent.h"
 
 AWall::AWall()
 {
-	BuildingMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
 
 	DecalComponent->SetVisibility(true);
@@ -43,6 +43,8 @@ void AWall::Enter(ACitizen* Citizen)
 	if (!Occupied.Contains(Citizen))
 		return;
 
+	Citizen->GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
+
 	Citizen->AttackComponent->SetProjectileClass(BuildingProjectileClass);
 
 	for (int32 i = 0; i < SocketList.Num(); i++) {
@@ -65,6 +67,8 @@ void AWall::Leave(ACitizen* Citizen)
 
 	if (!Occupied.Contains(Citizen))
 		return;
+
+	Citizen->GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
 
 	Citizen->AttackComponent->SetProjectileClass(nullptr);
 
