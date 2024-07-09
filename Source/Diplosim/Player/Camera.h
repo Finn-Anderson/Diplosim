@@ -4,6 +4,32 @@
 #include "GameFramework/Pawn.h"
 #include "Camera.generated.h"
 
+USTRUCT(BlueprintType)
+struct FHoverStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
+		AActor* Actor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
+		int32 Quantity;
+
+	FVector Location;
+
+	FHoverStruct()
+	{
+		Reset();
+	}
+
+	void Reset()
+	{
+		Actor = nullptr;
+		Quantity = -1;
+		Location = FVector::Zero();
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ACamera : public APawn
 {
@@ -17,7 +43,7 @@ protected:
 
 public:
 	UFUNCTION(BlueprintImplementableEvent)
-		void SetInteractableText(AActor* Actor);
+		void SetInteractableText(AActor* Actor, int32 Quantity);
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
@@ -94,7 +120,7 @@ public:
 	void TickWhenPaused(bool bTickWhenPaused);
 
 	UFUNCTION(BlueprintCallable)
-		void DisplayInteract(AActor* Actor);
+		void DisplayInteract(AActor* Actor, FVector Location = FVector(0.0f, 0.0f, 0.0f), int32 Quantity = -1);
 
 	void Lose();
 
@@ -138,7 +164,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY()
-		AActor* HoveredActor;
+		FHoverStruct HoveredActor;
 
 	// Commands
 	void Action();

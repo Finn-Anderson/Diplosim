@@ -128,7 +128,7 @@ public:
 		AClouds* Clouds;
 
 	// Resources
-	void GenerateMinerals(FTileStruct* Tile);
+	void GenerateMinerals(FTileStruct* Tile, AResource* Resource);
 
 	void GenerateTrees(FTileStruct* Tile, int32 Amount);
 

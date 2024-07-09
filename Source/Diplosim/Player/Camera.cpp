@@ -7,8 +7,10 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Map/Grid.h"
+#include "Map/Resources/Mineral.h"
 #include "Components/BuildComponent.h"
 #include "Components/CameraMovementComponent.h"
 #include "Managers/ResourceManager.h"
@@ -101,7 +103,7 @@ void ACamera::Tick(float DeltaTime)
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
-	HoveredActor = nullptr;
+	HoveredActor.Reset();
 
 	pcontroller->CurrentMouseCursor = EMouseCursor::Default;
 
@@ -116,13 +118,19 @@ void ACamera::Tick(float DeltaTime)
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 		AActor* actor = hit.GetActor();
 
-		if (!actor->IsA<AAI>() && !actor->IsA<ABuilding>() && !actor->IsA<AEggBasket>())
+		if (!actor->IsA<AAI>() && !actor->IsA<ABuilding>() && !actor->IsA<AEggBasket>() && !actor->IsA<AMineral>())
 			return;
 
-		if (WidgetComponent->IsAttachedTo(actor->GetRootComponent()))
-			return;
+		HoveredActor.Actor = actor;
 
-		HoveredActor = actor;
+		if (actor->IsA<AMineral>()) {
+			HoveredActor.Quantity = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent())->PerInstanceSMCustomData[hit.Item * 2];
+
+			FTransform transform;
+			Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
+
+			HoveredActor.Location = transform.GetLocation();
+		}
 
 		pcontroller->CurrentMouseCursor = EMouseCursor::Hand;
 	}
@@ -158,9 +166,9 @@ void ACamera::TickWhenPaused(bool bTickWhenPaused)
 	pcontroller->SetPause(!bTickWhenPaused);
 }
 
-void ACamera::DisplayInteract(AActor* Actor)
+void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Quantity)
 {
-	SetInteractableText(Actor);
+	SetInteractableText(Actor, Quantity);
 
 	float height;
 
@@ -179,7 +187,11 @@ void ACamera::DisplayInteract(AActor* Actor)
 	}
 
 	WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-	WidgetComponent->SetWorldLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, height));
+
+	if (Location == FVector::Zero())
+		Location = Actor->GetActorLocation();
+
+	WidgetComponent->SetWorldLocation(Location + FVector(0.0f, 0.0f, height));
 
 	WidgetComponent->SetHiddenInGame(false);
 }
@@ -242,13 +254,13 @@ void ACamera::Action()
 		}
 	}
 	else {
-		if (!HoveredActor->IsValidLowLevelFast())
+		if (!HoveredActor.Actor->IsValidLowLevelFast())
 			return;
 
-		if (HoveredActor->IsA<AAI>() || HoveredActor->IsA<ABuilding>())
-			DisplayInteract(HoveredActor);
-		else if (HoveredActor->IsA<AEggBasket>())
-			Cast<AEggBasket>(HoveredActor)->RedeemReward();
+		if (HoveredActor.Actor->IsA<AEggBasket>())
+			Cast<AEggBasket>(HoveredActor.Actor)->RedeemReward();
+		else
+			DisplayInteract(HoveredActor.Actor, HoveredActor.Location, HoveredActor.Quantity);
 	}
 }
 

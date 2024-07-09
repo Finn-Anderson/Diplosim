@@ -234,12 +234,17 @@ void AGrid::Render()
 
 	int32 num = ResourceTiles.Num() / 1000;
 
-	for (int32 i = 0; i < num; i++) {
-		int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
-		FTileStruct* chosenTile = ResourceTiles[chosenNum];
+	TArray<AResource*>* minerals = Resources.Find("Mineral");
 
-		GenerateMinerals(chosenTile);
+	for (AResource* mineral : *minerals) {
+		for (int32 i = 0; i < num; i++) {
+			int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
+			FTileStruct* chosenTile = ResourceTiles[chosenNum];
+
+			GenerateMinerals(chosenTile, mineral);
+		}
 	}
+	
 
 	for (int32 i = 0; i < num; i++) {
 		int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
@@ -413,17 +418,13 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 	Tile->Instance = inst;
 }
 
-void AGrid::GenerateMinerals(FTileStruct* Tile)
+void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 {
-	TArray<AResource*>* arr = Resources.Find("Mineral");
+	AMineral* mineral = Cast<AMineral>(Resource);
 
-	int32 index = FMath::RandRange(0, arr->Num() - 1);
+	int32 inst = mineral->ResourceHISM->AddInstance(GetTransform(Tile));
 
-	AMineral* resource = Cast<AMineral>((*arr)[index]);
-
-	int32 inst = resource->ResourceHISM->AddInstance(GetTransform(Tile));
-
-	resource->SetRandomQuantity(inst);
+	mineral->SetRandomQuantity(inst);
 
 	ResourceTiles.Remove(Tile);
 }

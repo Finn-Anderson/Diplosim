@@ -16,6 +16,7 @@ AMineral::AMineral()
 void AMineral::SetRandomQuantity(int32 Instance)
 {
 	int32 q = FMath::RandRange(1000, 10000);
+
 	SetQuantity(Instance, q);
 }
 
