@@ -40,6 +40,13 @@ struct FTileStruct
 	}
 };
 
+UENUM()
+enum class EType : uint8
+{
+	Round,
+	Mountain
+};
+
 UCLASS()
 class DIPLOSIM_API AGrid : public AActor
 {
@@ -90,7 +97,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMFlatGround;
-
+	
 	TMap<FString, TArray<class AResource*>> Resources;
 
 	// Dimensions
@@ -100,6 +107,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Peaks;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
+		EType Type;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -107,12 +117,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles")
 		class UNiagaraSystem* LavaSystem;
 
-	TArray<class UNiagaraComponent*> LavaComponents;
+	UPROPERTY()
+		TArray<class UNiagaraComponent*> LavaComponents;
 
 	// Map
 	void Load();
 
 	void Render();
+
+	TArray<FTileStruct*> CalculatePath(FTileStruct* Tile, FTileStruct* Target);
 
 	void FillHoles(FTileStruct* Tile);
 

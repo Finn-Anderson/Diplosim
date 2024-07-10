@@ -40,6 +40,7 @@ AGrid::AGrid()
 
 	Size = 22500;
 	Peaks = 2;
+	Type = EType::Round;
 
 	PercentageGround = 30;
 }
@@ -137,16 +138,18 @@ void AGrid::Render()
 
 	int32 levelCount = 0;
 
+	float pow = 0.5f;
+
 	// Set tile information based on adjacent tile types until all tile struct choices are set
 	while (levelTotal > 0) {
 		// Set current level
-		if (levelCount == 0) {
+		if (levelCount <= 0) {
 			level--;
 
 			if (level == 0)
 				levelCount = levelTotal;
 			else
-				levelCount = FMath::Pow(0.5, FMath::Abs(level)) * levelTotal;
+				levelCount = FMath::Pow(pow, FMath::Abs(level)) * levelTotal;
 		}
 
 		// Get Tile and adjacent tiles
@@ -162,6 +165,37 @@ void AGrid::Render()
 			chosenTile = &Storage[chosenX][chosenY];
 
 			peaksList.Add(chosenTile);
+
+			if (peaksList.Num() == 2 && Type == EType::Mountain) {
+				TArray<FTileStruct*> tiles = CalculatePath(peaksList[0], peaksList[1]);
+
+				float distance = FMath::Sqrt((FMath::Square(peaksList[0]->X - peaksList[1]->X) + FMath::Square(peaksList[0]->Y - peaksList[1]->Y)) * 1.0f);
+
+				pow = FMath::Max(0.5f, FMath::Min(distance / levelCount, 0.7f));
+
+				for (FTileStruct* tile : tiles) {
+					if (tile == peaksList[0] || tile == peaksList[1])
+						continue;
+
+					float d0 = FMath::Sqrt((FMath::Square(peaksList[0]->X - tile->X) + FMath::Square(peaksList[0]->Y - tile->Y)) * 1.0f);
+					float d1 = FMath::Sqrt((FMath::Square(peaksList[1]->X - tile->X) + FMath::Square(peaksList[1]->Y - tile->Y)) * 1.0f);
+
+					if (FMath::Abs(d0 - d1) < 1.0f && peaksList.Num() < 3)
+						peaksList.Add(tile);
+
+					tile->Level = level;
+
+					// Set adjacent tiles to choose from
+					for (auto& element : tile->AdjacentTiles)
+						if (!chooseableTiles.Contains(element.Value) && element.Value->Level < 0)
+							chooseableTiles.Add(element.Value);
+
+					chooseableTiles.Remove(tile);
+
+					levelTotal--;
+					levelCount--;
+				}
+			}
 		}
 		else {
 			int32 chosenNum = FMath::RandRange(0, chooseableTiles.Num() - 1);
@@ -269,6 +303,31 @@ void AGrid::Render()
 
 	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();
+}
+
+TArray<FTileStruct*> AGrid::CalculatePath(FTileStruct* Tile, FTileStruct* Target)
+{
+	TArray<FTileStruct*> tiles;
+
+	tiles.Add(Tile);
+
+	FTileStruct* closestTile = Tile;
+
+	for (auto& element : Tile->AdjacentTiles) {
+		float currentDistance = FMath::Sqrt((FMath::Square(closestTile->X - Target->X) + FMath::Square(closestTile->Y - Target->Y)) * 1.0f);
+		float newDistance = FMath::Sqrt((FMath::Square(element.Value->X - Target->X) + FMath::Square(element.Value->Y - Target->Y)) * 1.0f);
+
+		if (!tiles.Contains(element.Value))
+			tiles.Add(element.Value);
+
+		if (currentDistance > newDistance)
+			closestTile = element.Value;
+	}
+
+	if (closestTile != Tile)
+		tiles.Append(CalculatePath(closestTile, Target));
+
+	return tiles;
 }
 
 void AGrid::FillHoles(FTileStruct* Tile)
