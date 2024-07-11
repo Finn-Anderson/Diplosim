@@ -13,6 +13,8 @@
 AExternalProduction::AExternalProduction()
 {
 	DecalComponent->SetVisibility(true);
+
+	Resource = nullptr;
 }
 
 void AExternalProduction::Enter(ACitizen* Citizen)
@@ -23,24 +25,27 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 		Production(Citizen);
 }
 
-void AExternalProduction::FindCitizens()
+void AExternalProduction::OnRadialOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	Super::FindCitizens();
+	TSubclassOf<AResource> r = Camera->ResourceManager->GetResource(this);
 
+	if (OtherActor->IsA(r) && !Instances.Contains(OtherBodyIndex))
+		Instances.Add(OtherBodyIndex);
+
+	if (OtherActor->IsA(r) && Resource == nullptr)
+		Resource = Cast<AResource>(OtherActor);
+
+	Super::OnRadialOverlapBegin(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
+}
+
+void AExternalProduction::OnRadialOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
 	TSubclassOf<AResource> resource = Camera->ResourceManager->GetResource(this);
 
-	for (TSubclassOf<AResource> parentClass : Cast<AResource>(resource->GetDefaultObject())->GetParentResources()) {
-		FValidResourceStruct validResourceStruct;
+	if (OtherActor->IsA(resource) && Instances.Contains(OtherBodyIndex))
+		Instances.Remove(OtherBodyIndex);
 
-		TArray<AActor*> actors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), parentClass, actors);
-
-		validResourceStruct.Resource = Cast<AResource>(actors[0]);
-
-		validResourceStruct.Instances = validResourceStruct.Resource->ResourceHISM->GetInstancesOverlappingSphere(GetActorLocation(), 1500.0f);
-
-		ValidResourceList.Add(validResourceStruct);
-	}
+	Super::OnRadialOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
 }
 
 bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
@@ -50,15 +55,13 @@ bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	for (FValidResourceStruct validResourceStruct : ValidResourceList) {
-		for (FWorkerStruct workerStruct : validResourceStruct.Resource->WorkerStruct) {
-			if (!workerStruct.Citizens.Contains(Citizen))
-				continue;
+	for (FWorkerStruct workerStruct : Resource->WorkerStruct) {
+		if (!workerStruct.Citizens.Contains(Citizen))
+			continue;
 
-			workerStruct.Citizens.Remove(Citizen);
+		workerStruct.Citizens.Remove(Citizen);
 
-			return true;
-		}
+		return true;
 	}
 
 	return true;
@@ -72,51 +75,46 @@ void AExternalProduction::Production(ACitizen* Citizen)
 		return;
 
 	int32 instance = -1;
-	AResource* resource = nullptr;
 
-	for (FValidResourceStruct validResourceStruct : ValidResourceList) {
-		for (int32 inst : validResourceStruct.Instances) {
-			FTransform transform;
-			validResourceStruct.Resource->ResourceHISM->GetInstanceTransform(inst, transform);
+	for (int32 inst : Instances) {
+		FTransform transform;
+		Resource->ResourceHISM->GetInstanceTransform(inst, transform);
 
-			FWorkerStruct workerStruct;
-			workerStruct.Instance = inst;
+		FWorkerStruct workerStruct;
+		workerStruct.Instance = inst;
 
-			int32 index = validResourceStruct.Resource->WorkerStruct.Find(workerStruct);
+		int32 index = Resource->WorkerStruct.Find(workerStruct);
 
-			if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < 1.0f || (index > -1 && validResourceStruct.Resource->WorkerStruct[index].Citizens.Num() == validResourceStruct.Resource->MaxWorkers))
-				continue;
+		if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < 1.0f || (index > -1 && Resource->WorkerStruct[index].Citizens.Num() == Resource->MaxWorkers))
+			continue;
 
-			if (instance == -1) {
-				resource = validResourceStruct.Resource;
-				instance = inst;
-
-				continue;
-			}
-
-			FTransform currentTransform;
-			FTransform newTransform;
-
-			resource->ResourceHISM->GetInstanceTransform(instance, currentTransform);
-			validResourceStruct.Resource->ResourceHISM->GetInstanceTransform(inst, newTransform);
-
-			double magnitude = Citizen->AIController->GetClosestActor(GetActorLocation(), currentTransform.GetLocation(), newTransform.GetLocation());
-
-			if (magnitude <= 0.0f)
-				continue;
-
-			resource = validResourceStruct.Resource;
+		if (instance == -1) {
 			instance = inst;
+
+			continue;
 		}
+
+		FTransform currentTransform;
+		FTransform newTransform;
+
+		Resource->ResourceHISM->GetInstanceTransform(instance, currentTransform);
+		Resource->ResourceHISM->GetInstanceTransform(inst, newTransform);
+
+		double magnitude = Citizen->AIController->GetClosestActor(GetActorLocation(), currentTransform.GetLocation(), newTransform.GetLocation());
+
+		if (magnitude <= 0.0f)
+			continue;
+
+		instance = inst;
 	}
 
-	if (resource != nullptr) {
-		resource->AddWorker(Citizen, instance);
+	if (instance != -1) {
+		Resource->AddWorker(Citizen, instance);
 
 		FTransform transform;
-		resource->ResourceHISM->GetInstanceTransform(instance, transform);
+		Resource->ResourceHISM->GetInstanceTransform(instance, transform);
 
-		Citizen->AIController->AIMoveTo(resource, transform.GetLocation(), instance);
+		Citizen->AIController->AIMoveTo(Resource, transform.GetLocation(), instance);
 	}
 	else
 		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);

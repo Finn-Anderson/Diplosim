@@ -13,7 +13,7 @@ public:
 	AVegetation();
 
 public:
-	virtual void YieldStatus(int32 Instance, int32 Yield);
+	virtual void YieldStatus(int32 Instance, int32 Yield) override;
 
 	void Grow();
 

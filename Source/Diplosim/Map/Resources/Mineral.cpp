@@ -24,7 +24,7 @@ void AMineral::YieldStatus(int32 Instance, int32 Yield)
 {
 	int32 quantity = ResourceHISM->PerInstanceSMCustomData[Instance * 2] - Yield;
 
-	ResourceHISM->SetCustomDataValue(Instance, 0, FMath::Clamp(quantity, 0, MaxWorkers));
+	ResourceHISM->SetCustomDataValue(Instance, 0, FMath::Max(quantity, 0));
 
 	if (quantity == 0) {
 		for (FWorkerStruct workerStruct : WorkerStruct) {

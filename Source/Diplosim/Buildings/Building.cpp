@@ -260,6 +260,9 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	Occupied.Remove(Citizen);
 
 	Citizen->AIController->DefaultAction();
+	
+	if (GetOccupied().Num() != Capacity)
+		FindCitizens();
 
 	return true;
 }
@@ -447,7 +450,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 
 	TSubclassOf<AResource> resource = Camera->ResourceManager->GetResource(this);
 
-	if (resource != nullptr && resource->GetDefaultObject() == Citizen->Carrying.Type) {
+	if (resource != nullptr && Citizen->Carrying.Type->IsA(resource)) {
 		bool canStore = Camera->ResourceManager->AddLocalResource(this, Citizen->Carrying.Amount);
 
 		if (canStore) {
@@ -473,7 +476,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			items = Orders[0].Items;
 
 		for (int32 i = 0; i < items.Num(); i++) {
-			if (items[i].Resource->GetDefaultObject<AResource>() != Citizen->Carrying.Type)
+			if (!Citizen->Carrying.Type->IsA(items[i].Resource))
 				continue;
 
 			if (cm->IsBeingConstructed(this, nullptr))

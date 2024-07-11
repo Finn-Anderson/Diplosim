@@ -128,7 +128,7 @@ bool UConstructionManager::IsBeingConstructed(class ABuilding* Building, class A
 	constructionStruct.Building = Building;
 	constructionStruct.Builder = Builder;
 
-	if (!Construction.Contains(constructionStruct))
+	if (Construction.IsEmpty() || !Construction.Contains(constructionStruct))
 		return false;
 
 	return true;

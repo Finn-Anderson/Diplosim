@@ -15,5 +15,5 @@ public:
 public:
 	void SetRandomQuantity(int32 Instance);
 
-	virtual void YieldStatus(int32 Instance, int32 Yield);
+	virtual void YieldStatus(int32 Instance, int32 Yield) override;
 };

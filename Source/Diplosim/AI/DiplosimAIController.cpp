@@ -164,16 +164,19 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
 
-	if (healthComp->GetHealth() == 0)
+	if (healthComp && healthComp->GetHealth() == 0)
 		return false;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-	FNavLocation loc;
-	nav->ProjectPointToNavigation(Location, loc, FVector(200.0f, 200.0f, 10.0f));
+	FNavLocation targetLoc;
+	nav->ProjectPointToNavigation(Location, targetLoc, FVector(200.0f, 200.0f, 10.0f));
 
-	FPathFindingQuery query(GetOwner(), *navData, GetNavAgentLocation(), loc.Location);
+	FNavLocation ownerLoc;
+	nav->ProjectPointToNavigation(GetOwner()->GetActorLocation(), ownerLoc, FVector(200.0f, 200.0f, 10.0f));
+
+	FPathFindingQuery query(GetOwner(), *navData, ownerLoc.Location, targetLoc.Location);
 
 	bool path = nav->TestPathSync(query, EPathFindingMode::Hierarchical);
 
