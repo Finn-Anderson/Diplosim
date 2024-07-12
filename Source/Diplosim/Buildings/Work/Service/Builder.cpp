@@ -43,7 +43,7 @@ void ABuilder::Enter(ACitizen* Citizen)
 
 void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 {
-	if (CheckStored(Citizen, Building->CostList.Items))
+	if (CheckStored(Citizen, Building->CostList))
 		GetWorldTimerManager().SetTimer(ConstructTimer, FTimerDelegate::CreateUObject(this, &ABuilder::AddBuildPercentage, Citizen, Building), 0.1f, true);
 }
 

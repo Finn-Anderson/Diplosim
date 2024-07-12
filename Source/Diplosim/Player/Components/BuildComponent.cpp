@@ -162,23 +162,23 @@ TArray<FVector> UBuildComponent::CalculatePath(FTileStruct Tile)
 	return locations;
 }
 
-FQueueStruct UBuildComponent::GetBuildCosts()
+TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 {
-	FQueueStruct queue = Buildings[0]->CostList;
+	TArray<FItemStruct> items = Buildings[0]->CostList;
 
-	for (int32 i = 0; i < queue.Items.Num(); i++)
-		queue.Items[i].Amount *= Buildings.Num();
+	for (int32 i = 0; i < items.Num(); i++)
+		items[i].Amount *= Buildings.Num();
 
-	return queue;
+	return items;
 }
 
 bool UBuildComponent::CheckBuildCosts()
 {
 	UResourceManager* rm = Camera->ResourceManager;
 
-	FQueueStruct queue = GetBuildCosts();
+	TArray<FItemStruct> items = GetBuildCosts();
 
-	for (FItemStruct item : queue.Items) {
+	for (FItemStruct item : items) {
 		int32 maxAmount = rm->GetResourceAmount(item.Resource);
 
 		if (maxAmount < item.Amount)

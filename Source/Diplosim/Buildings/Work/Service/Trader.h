@@ -5,25 +5,31 @@
 #include "Trader.generated.h"
 
 USTRUCT(BlueprintType)
-struct FValueStruct
+struct FQueueStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> Resource;
+		class UWidget* OrderWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Value;
+		bool bCancelled;
 
-	FValueStruct()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Wait;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		bool bRepeat;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+	TArray<FItemStruct> Items;
+
+	FQueueStruct()
 	{
-		Resource = nullptr;
-		Value = 0;
-	}
-	
-	bool operator==(const FValueStruct& other) const
-	{
-		return (other.Resource == Resource);
+		OrderWidget = nullptr;
+		bCancelled = false;
+		Wait = 0;
+		bRepeat = false;
 	}
 };
 
@@ -39,8 +45,20 @@ public:
 
 	void SubmitOrder(class ACitizen* Citizen);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TArray<FValueStruct> ResourceValues;
+	void ReturnResource(class ACitizen* Citizen);
 
-	FTimerHandle WaitTimer;
+	UFUNCTION(BlueprintCallable)
+		void SetNewOrder(FQueueStruct Order);
+
+	UFUNCTION(BlueprintCallable)
+		void SetOrderWidget(int32 index, class UWidget* Widget);
+
+	UFUNCTION(BlueprintCallable)
+		void SetOrderCancelled(int32 index, bool bCancel);
+
+	UPROPERTY()
+		FTimerHandle WaitTimer;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Resource")
+		TArray<FQueueStruct> Orders;
 };

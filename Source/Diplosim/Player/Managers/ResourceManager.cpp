@@ -227,6 +227,9 @@ TArray<TSubclassOf<class ABuilding>> UResourceManager::GetBuildings(TSubclassOf<
 	return null;
 }
 
+//
+// Interest
+//
 void UResourceManager::Interest()
 {
 	int32 amount = GetResourceAmount(Money);
@@ -234,4 +237,17 @@ void UResourceManager::Interest()
 	amount = FMath::CeilToInt32(amount * 0.02f);
 
 	AddUniversalResource(Money, amount);
+}
+
+//
+// Trade
+//
+void UResourceManager::SetTradeValues()
+{
+	for (FValueStruct value : ResourceValues) {
+		int32 gain = FMath::RandRange(-value.Stored * 0.1f, value.Stored * 0.1f + 10);
+
+		value.Stored += gain;
+		value.Value = 1 / FMath::Min(value.Stored / 5000, 1);
+	}
 }

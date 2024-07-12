@@ -6,10 +6,25 @@
 
 AInternalProduction::AInternalProduction()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	SetActorTickInterval(1.0f);
+
 	MinYield = 1;
 	MaxYield = 5;
 
-	TimeLength = 10.0f;
+	TimeLength = 10;
+	Timer = 0;
+}
+
+void AInternalProduction::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	Timer++;
+
+	if (Timer == (TimeLength / GetCitizensAtBuilding().Num()))
+		Production(GetCitizensAtBuilding()[0]);
 }
 
 void AInternalProduction::Enter(ACitizen* Citizen)
@@ -17,32 +32,22 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 	Super::Enter(Citizen);
 
 	if (GetCitizensAtBuilding().Num() == 1)
-		Production(Citizen);
+		SetActorTickEnabled(true);
 }
 
 void AInternalProduction::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
-	if (GetCitizensAtBuilding().IsEmpty() && GetWorldTimerManager().IsTimerActive(ProdTimer))
-		GetWorldTimerManager().PauseTimer(ProdTimer);
+	if (GetCitizensAtBuilding().IsEmpty())
+		SetActorTickEnabled(false);
 }
 
 void AInternalProduction::Production(ACitizen* Citizen)
 {
-	Super::Production(Citizen);
-
-	if (GetWorldTimerManager().IsTimerPaused(ProdTimer))
-		GetWorldTimerManager().UnPauseTimer(ProdTimer);
-	else if (!GetWorldTimerManager().IsTimerActive(ProdTimer))
-		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AInternalProduction::Produce, Citizen), (TimeLength / GetCitizensAtBuilding().Num()), false);
-}
-
-void AInternalProduction::Produce(ACitizen* Citizen)
-{
 	Citizen->Carry(Camera->ResourceManager->GetResource(this)->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
 
-	StoreResource(Citizen);
+	Timer = 0;
 
-	Production(Citizen);
+	Super::Production(Citizen);
 }

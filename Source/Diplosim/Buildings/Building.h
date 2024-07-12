@@ -26,35 +26,6 @@ struct FItemStruct
 	}
 };
 
-USTRUCT(BlueprintType)
-struct FQueueStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		class UWidget* OrderWidget;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		bool bCancelled;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Wait;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		bool bRepeat;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TArray<FItemStruct> Items;
-
-	FQueueStruct()
-	{
-		OrderWidget = nullptr;
-		bCancelled = false;
-		Wait = 0;
-		bRepeat = false;
-	}
-};
-
 USTRUCT()
 struct FCollisionStruct
 {
@@ -154,7 +125,7 @@ public:
 
 	// Construct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
-		FQueueStruct CostList;
+		TArray<FItemStruct> CostList;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		class UStaticMesh* ConstructionMesh;
@@ -227,25 +198,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 StorageCap;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Resource")
-		TArray<FQueueStruct> Orders;
-
 	bool CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items);
 
 	void CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<FItemStruct> Items);
 
 	void StoreResource(class ACitizen* Citizen);
-
-	void ReturnResource(class ACitizen* Citizen);
-
-	UFUNCTION(BlueprintCallable)
-		void SetNewOrder(FQueueStruct Order);
-
-	UFUNCTION(BlueprintCallable)
-		void SetOrderWidget(int32 index, class UWidget* Widget);
-
-	UFUNCTION(BlueprintCallable)
-	void SetOrderCancelled(int32 index, bool bCancel);
 
 	// Politics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")

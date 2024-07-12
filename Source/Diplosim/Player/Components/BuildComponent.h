@@ -57,7 +57,7 @@ public:
 	bool IsValidLocation(ABuilding* building);
 
 	UFUNCTION(BlueprintCallable)
-		struct FQueueStruct GetBuildCosts();
+		TArray<struct FItemStruct> GetBuildCosts();
 
 	bool CheckBuildCosts();
 

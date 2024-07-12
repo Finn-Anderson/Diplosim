@@ -71,6 +71,8 @@ void ACamera::BeginPlay()
 
 	ResourceManager->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
+	GetWorldTimerManager().SetTimer(ResourceManager->ValueTimer, ResourceManager, &UResourceManager::SetTradeValues, 300.0f, true);
+
 	if (Start)
 		BuildComponent->SpawnBuilding(StartBuilding);
 
@@ -291,9 +293,13 @@ void ACamera::Pause()
 
 	if (PauseUIInstance->IsInViewport()) {
 		PauseUIInstance->RemoveFromParent();
+
+		GetWorldTimerManager().UnPauseTimer(ResourceManager->ValueTimer);
 	}
 	else {
 		PauseUIInstance->AddToViewport();
+
+		GetWorldTimerManager().PauseTimer(ResourceManager->ValueTimer);
 	}
 }
 

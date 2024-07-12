@@ -1,5 +1,6 @@
 #include "Buildings/Work/Service/Trader.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
 #include "Components/Widget.h"
 #include "Components/WidgetComponent.h"
@@ -7,6 +8,7 @@
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "AI/DiplosimAIController.h"
 
 ATrader::ATrader()
 {
@@ -35,13 +37,17 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 
 	int32 money = 0;
 
+	UResourceManager* rm = Camera->ResourceManager;
+
 	for (FItemStruct item : Orders[0].Items) {
 		FValueStruct value;
 		value.Resource = item.Resource;
 
-		int32 index = ResourceValues.Find(value);
+		int32 index = rm->ResourceValues.Find(value);
 
-		money += ResourceValues[index].Value * item.Amount;
+		rm->ResourceValues[index].Stored += item.Amount;
+
+		money += rm->ResourceValues[index].Value * item.Amount;
 	}
 
 	Camera->ResourceManager->AddUniversalResource(Money, money);
@@ -71,4 +77,100 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 		else
 			CheckStored(Citizen, Orders[0].Items);
 	}
+}
+
+void ATrader::ReturnResource(class ACitizen* Citizen)
+{
+	for (int32 i = 0; i < Orders[0].Items.Num(); i++) {
+		if (Orders[0].Items[i].Stored == 0)
+			continue;
+
+		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManager->GetBuildings(Orders[0].Items[i].Resource);
+
+		ABuilding* target = nullptr;
+
+		int32 amount = FMath::Clamp(Orders[0].Items[i].Stored, 0, 10);
+
+		for (int32 j = 0; j < buildings.Num(); j++) {
+			TArray<AActor*> foundBuildings;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
+
+			for (int32 k = 0; k < foundBuildings.Num(); k++) {
+				ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
+
+				if (building->Storage + amount > building->StorageCap)
+					continue;
+
+				if (target == nullptr) {
+					target = building;
+
+					continue;
+				}
+
+				double magnitude = Citizen->AIController->GetClosestActor(Citizen->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation());
+
+				if (magnitude <= 0.0f)
+					continue;
+
+				target = building;
+			}
+		}
+
+		Orders[0].Items[i].Stored -= amount;
+
+		if (target != nullptr) {
+			Citizen->Carry(Orders[0].Items[i].Resource->GetDefaultObject<AResource>(), amount, target);
+
+			return;
+		}
+		else
+			Orders[0].Items[i].Stored = 0;
+	}
+
+	Orders[0].OrderWidget->RemoveFromParent();
+
+	Orders.RemoveAt(0);
+
+	if (Orders.Num() > 0) {
+		if (Orders[0].bCancelled)
+			ReturnResource(Citizen);
+		else
+			CheckStored(Citizen, Orders[0].Items);
+	}
+}
+
+void ATrader::SetNewOrder(FQueueStruct Order)
+{
+	Orders.Add(Order);
+
+	UResourceManager* rm = Camera->ResourceManager;
+
+	for (FItemStruct items : Order.Items)
+		rm->AddCommittedResource(items.Resource, items.Amount);
+
+	if (Orders.Num() != 1)
+		return;
+
+	TArray<ACitizen*> citizens = GetCitizensAtBuilding();
+
+	for (ACitizen* citizen : citizens)
+		CheckStored(citizen, Orders[0].Items);
+}
+
+void ATrader::SetOrderWidget(int32 index, UWidget* Widget)
+{
+	Orders[index].OrderWidget = Widget;
+}
+
+void ATrader::SetOrderCancelled(int32 index, bool bCancel)
+{
+	Orders[index].bCancelled = bCancel;
+
+	UResourceManager* rm = Camera->ResourceManager;
+
+	for (FItemStruct items : Orders[index].Items)
+		rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);
+
+	for (ACitizen* Citizen : GetOccupied())
+		Citizen->AIController->AIMoveTo(this);
 }

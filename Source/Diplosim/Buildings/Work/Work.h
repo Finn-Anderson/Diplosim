@@ -32,7 +32,8 @@ public:
 	UFUNCTION()
 		virtual void OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	TArray<class AHouse*> Houses;
+	UPROPERTY()
+		TArray<class AHouse*> Houses;
 
 	// Cost
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
@@ -41,7 +42,8 @@ public:
 	virtual void UpkeepCost() override;
 
 	// Citizens
-	FTimerHandle FindTimer;
+	UPROPERTY()
+		FTimerHandle FindTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UStaticMesh* WorkHat;
@@ -53,7 +55,8 @@ public:
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
 
 	// Resources
-	FTimerHandle ProdTimer;
-
 	virtual void Production(class ACitizen* Citizen);
+
+	UPROPERTY()
+		FTimerHandle ProdTimer;
 };

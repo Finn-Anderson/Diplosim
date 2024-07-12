@@ -24,6 +24,32 @@ struct FResourceStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FValueStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> Resource;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Value;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Stored;
+
+	FValueStruct()
+	{
+		Resource = nullptr;
+		Value = 0;
+	}
+
+	bool operator==(const FValueStruct& other) const
+	{
+		return (other.Resource == Resource);
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UResourceManager : public UActorComponent
 {
@@ -65,4 +91,13 @@ public:
 
 	UPROPERTY()
 		FTimerHandle InterestTimer;
+
+	// Trade
+	void SetTradeValues();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<FValueStruct> ResourceValues;
+
+	UPROPERTY()
+		FTimerHandle ValueTimer;
 };

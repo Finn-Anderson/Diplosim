@@ -20,6 +20,7 @@
 #include "Buildings/Work/Service/Trader.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Production/Farm.h"
+#include "Buildings/Work/Production/InternalProduction.h"
 #include "Universal/EggBasket.h"
 
 ABuilding::ABuilding()
@@ -106,10 +107,10 @@ void ABuilding::Build()
 	if (CheckInstant()) {
 		OnBuilt();
 
-		for (FItemStruct items : CostList.Items)
+		for (FItemStruct items : CostList)
 			rm->TakeUniversalResource(items.Resource, items.Amount, 0);
 	} else {
-		for (FItemStruct items : CostList.Items)
+		for (FItemStruct items : CostList)
 			rm->AddCommittedResource(items.Resource, items.Amount);
 
 		ActualMesh = BuildingMesh->GetStaticMesh();
@@ -191,7 +192,7 @@ void ABuilding::DestroyBuilding()
 	UConstructionManager* cm = Camera->ConstructionManager;
 
 	if (cm->IsBeingConstructed(this, nullptr)) {
-		for (FItemStruct items : CostList.Items) {
+		for (FItemStruct items : CostList) {
 			rm->AddUniversalResource(items.Resource, items.Stored);
 
 			rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);
@@ -321,7 +322,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 			ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
 
 			deliverTo = cm->GetBuilding(builder);
-			items = deliverTo->CostList.Items;
+			items = deliverTo->CostList;
 		}
 		else if (Citizen->Building.Employment->IsA<ATrader>()) {
 			ATrader* trader = Cast<ATrader>(Citizen->Building.Employment);
@@ -471,118 +472,26 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 		TArray<FItemStruct> items;
 
 		if (cm->IsBeingConstructed(this, nullptr))
-			items = CostList.Items;
+			items = CostList;
+		else if (IsA<ATrader>())
+			items = Cast<ATrader>(this)->Orders[0].Items;
 		else
-			items = Orders[0].Items;
+			items = Cast<AInternalProduction>(this)->Intake;
 
 		for (int32 i = 0; i < items.Num(); i++) {
 			if (!Citizen->Carrying.Type->IsA(items[i].Resource))
 				continue;
 
 			if (cm->IsBeingConstructed(this, nullptr))
-				CostList.Items[i].Stored += Citizen->Carrying.Amount;
+				CostList[i].Stored += Citizen->Carrying.Amount;
+			else if (IsA<ATrader>())
+				Cast<ATrader>(this)->Orders[0].Items[i].Stored += Citizen->Carrying.Amount;
 			else
-				Orders[0].Items[i].Stored += Citizen->Carrying.Amount;
+				Cast<AInternalProduction>(this)->Intake[i].Stored += Citizen->Carrying.Amount;
 
 			Citizen->Carry(nullptr, 0, nullptr);
 
 			break;
 		}
 	}
-}
-
-void ABuilding::ReturnResource(class ACitizen* Citizen)
-{
-	for (int32 i = 0; i < Orders[0].Items.Num(); i++) {
-		if (Orders[0].Items[i].Stored == 0)
-			continue;
-
-		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManager->GetBuildings(Orders[0].Items[i].Resource);
-
-		ABuilding* target = nullptr;
-
-		int32 amount = FMath::Clamp(Orders[0].Items[i].Stored, 0, 10);
-
-		for (int32 j = 0; j < buildings.Num(); j++) {
-			TArray<AActor*> foundBuildings;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
-
-			for (int32 k = 0; k < foundBuildings.Num(); k++) {
-				ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
-
-				if (building->Storage + amount > building->StorageCap)
-					continue;
-
-				if (target == nullptr) {
-					target = building;
-
-					continue;
-				}
-
-				double magnitude = Citizen->AIController->GetClosestActor(Citizen->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation());
-
-				if (magnitude <= 0.0f)
-					continue;
-
-				target = building;
-			}
-		}
-
-		Orders[0].Items[i].Stored -= amount;
-
-		if (target != nullptr) {
-			Citizen->Carry(Orders[0].Items[i].Resource->GetDefaultObject<AResource>(), amount, target);
-
-			return;
-		}
-		else
-			Orders[0].Items[i].Stored = 0;
-	}
-
-	Orders[0].OrderWidget->RemoveFromParent();
-
-	Orders.RemoveAt(0);
-
-	if (Orders.Num() > 0) {
-		if (Orders[0].bCancelled)
-			ReturnResource(Citizen);
-		else
-			CheckStored(Citizen, Orders[0].Items);
-	}
-}
-
-void ABuilding::SetNewOrder(FQueueStruct Order)
-{
-	Orders.Add(Order);
-
-	UResourceManager* rm = Camera->ResourceManager;
-
-	for (FItemStruct items : Order.Items)
-		rm->AddCommittedResource(items.Resource, items.Amount);
-
-	if (Orders.Num() != 1)
-		return;
-
-	TArray<ACitizen*> citizens = GetCitizensAtBuilding();
-
-	for (ACitizen* citizen : citizens)
-		CheckStored(citizen, Orders[0].Items);
-}
-
-void ABuilding::SetOrderWidget(int32 index, UWidget* Widget)
-{
-	Orders[index].OrderWidget = Widget;
-}
-
-void ABuilding::SetOrderCancelled(int32 index, bool bCancel)
-{
-	Orders[index].bCancelled = bCancel;
-
-	UResourceManager* rm = Camera->ResourceManager;
-
-	for (FItemStruct items : Orders[index].Items)
-		rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);
-
-	for (ACitizen* Citizen : GetOccupied())
-		Citizen->AIController->AIMoveTo(this);
 }
