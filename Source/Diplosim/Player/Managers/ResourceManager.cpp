@@ -242,12 +242,40 @@ void UResourceManager::Interest()
 //
 // Trade
 //
+void UResourceManager::RandomiseMarket()
+{
+	for (FResourceStruct& resource : ResourceList) {
+		int32 value = FMath::RandRange(50, 5000);
+
+		resource.Stored = value;
+		resource.Value = 1 / FMath::Min(resource.Stored / 5000.0f, 1.0f);
+	}
+}
+
 void UResourceManager::SetTradeValues()
 {
-	for (FValueStruct value : ResourceValues) {
-		int32 gain = FMath::RandRange(-value.Stored * 0.1f, value.Stored * 0.1f + 10);
+	for (FResourceStruct& resource : ResourceList) {
+		int32 gain = FMath::RandRange(-resource.Stored * 0.1f, resource.Stored * 0.1f + 10);
 
-		value.Stored += gain;
-		value.Value = 1 / FMath::Min(value.Stored / 5000, 1);
+		resource.Stored += gain;
+		resource.Value = 1 / FMath::Min(resource.Stored / 5000.0f, 1.0f);
 	}
+}
+
+int32 UResourceManager::GetStoredOnMarket(TSubclassOf<class AResource> Resource)
+{
+	for (FResourceStruct resource : ResourceList)
+		if (resource.Type == Resource)
+			return resource.Stored;
+
+	return 0;
+}
+
+int32 UResourceManager::GetMarketValue(TSubclassOf<class AResource> Resource)
+{
+	for (FResourceStruct resource : ResourceList)
+		if (resource.Type == Resource)
+			return resource.Value;
+
+	return 0;
 }

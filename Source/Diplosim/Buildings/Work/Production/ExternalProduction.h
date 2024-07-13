@@ -18,6 +18,11 @@ struct FValidResourceStruct
 		Resource = nullptr;
 		Instances = {};
 	}
+
+	bool operator==(const FValidResourceStruct& other) const
+	{
+		return (other.Resource == Resource);
+	}
 };
 
 UCLASS()
@@ -40,8 +45,5 @@ public:
 	virtual void Production(class ACitizen* Citizen) override;
 
 	UPROPERTY()
-		class AResource* Resource;
-
-	UPROPERTY()
-		TArray<int32> Instances;
+		TArray<FValidResourceStruct> Resources;
 };

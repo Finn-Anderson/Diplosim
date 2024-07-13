@@ -18,35 +18,20 @@ struct FResourceStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Committed;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Value;
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Stored;
+
 	FResourceStruct()
 	{
 		Type = nullptr;
 	}
-};
 
-USTRUCT(BlueprintType)
-struct FValueStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> Resource;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Value;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Stored;
-
-	FValueStruct()
+	bool operator==(const FResourceStruct& other) const
 	{
-		Resource = nullptr;
-		Value = 0;
-	}
-
-	bool operator==(const FValueStruct& other) const
-	{
-		return (other.Resource == Resource);
+		return (other.Type == Type);
 	}
 };
 
@@ -93,10 +78,15 @@ public:
 		FTimerHandle InterestTimer;
 
 	// Trade
+	void RandomiseMarket();
+
 	void SetTradeValues();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TArray<FValueStruct> ResourceValues;
+	UFUNCTION(BlueprintCallable, Category = "Resource")
+		int32 GetStoredOnMarket(TSubclassOf<class AResource> Resource);
+
+	UFUNCTION(BlueprintCallable, Category = "Resource")
+		int32 GetMarketValue(TSubclassOf<class AResource> Resource);
 
 	UPROPERTY()
 		FTimerHandle ValueTimer;

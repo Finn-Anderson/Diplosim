@@ -229,13 +229,15 @@ void ACitizen::LoseEnergy()
 		if (!Building.Employment->IsA<AExternalProduction>())
 			return;
 
-		for (FWorkerStruct workerStruct : Cast<AExternalProduction>(Building.Employment)->Resource->WorkerStruct) {
-			if (!workerStruct.Citizens.Contains(this))
-				continue;
+		for (FValidResourceStruct validResource : Cast<AExternalProduction>(Building.Employment)->Resources) {
+			for (FWorkerStruct workerStruct : validResource.Resource->WorkerStruct) {
+				if (!workerStruct.Citizens.Contains(this))
+					continue;
 
-			workerStruct.Citizens.Remove(this);
+				workerStruct.Citizens.Remove(this);
 
-			break;
+				break;
+			}
 		}
 	}
 	else if (BioStruct.Age < 18) {

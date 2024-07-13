@@ -330,7 +330,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 			deliverTo = trader;
 
 			if (!trader->Orders[0].bCancelled)
-				items = trader->Orders[0].Items;
+				items = trader->Orders[0].SellingItems;
 		}
 
 		if (items.IsEmpty())
@@ -474,7 +474,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 		if (cm->IsBeingConstructed(this, nullptr))
 			items = CostList;
 		else if (IsA<ATrader>())
-			items = Cast<ATrader>(this)->Orders[0].Items;
+			items = Cast<ATrader>(this)->Orders[0].SellingItems;
 		else
 			items = Cast<AInternalProduction>(this)->Intake;
 
@@ -485,7 +485,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			if (cm->IsBeingConstructed(this, nullptr))
 				CostList[i].Stored += Citizen->Carrying.Amount;
 			else if (IsA<ATrader>())
-				Cast<ATrader>(this)->Orders[0].Items[i].Stored += Citizen->Carrying.Amount;
+				Cast<ATrader>(this)->Orders[0].SellingItems[i].Stored += Citizen->Carrying.Amount;
 			else
 				Cast<AInternalProduction>(this)->Intake[i].Stored += Citizen->Carrying.Amount;
 

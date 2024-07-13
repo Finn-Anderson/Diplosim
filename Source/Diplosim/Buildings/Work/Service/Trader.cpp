@@ -24,7 +24,7 @@ void ATrader::Enter(ACitizen* Citizen)
 
 	if (Orders[0].bCancelled)
 		ReturnResource(Citizen);
-	else if (CheckStored(Citizen, Orders[0].Items))
+	else if (CheckStored(Citizen, Orders[0].SellingItems))
 		GetWorldTimerManager().SetTimer(WaitTimer, FTimerDelegate::CreateUObject(this, &ATrader::SubmitOrder, Citizen), Orders[0].Wait + 0.01f, false);
 }
 
@@ -39,26 +39,42 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 
 	UResourceManager* rm = Camera->ResourceManager;
 
-	for (FItemStruct item : Orders[0].Items) {
-		FValueStruct value;
-		value.Resource = item.Resource;
+	for (FItemStruct item : Orders[0].SellingItems) {
+		FResourceStruct resource;
+		resource.Type = item.Resource;
 
-		int32 index = rm->ResourceValues.Find(value);
+		int32 index = rm->ResourceList.Find(resource);
 
-		rm->ResourceValues[index].Stored += item.Amount;
+		rm->ResourceList[index].Stored += item.Amount;
 
-		money += rm->ResourceValues[index].Value * item.Amount;
+		money += rm->ResourceList[index].Value * item.Amount;
 	}
 
-	Camera->ResourceManager->AddUniversalResource(Money, money);
+	for (FItemStruct item : Orders[0].BuyingItems) {
+		FResourceStruct resource;
+		resource.Type = item.Resource;
+
+		int32 index = rm->ResourceList.Find(resource);
+
+		rm->AddUniversalResource(item.Resource, item.Amount);
+
+		rm->ResourceList[index].Stored -= item.Amount;
+
+		money -= rm->ResourceList[index].Value * item.Amount;
+	}
+
+	if (money < 0)
+		rm->TakeUniversalResource(Money, -money, -1000000);
+	else
+		rm->AddUniversalResource(Money, money);
 
 	Orders[0].OrderWidget->RemoveFromParent();
 
 	bool bRefresh = false;
 
 	if (Orders[0].bRepeat && !Orders[0].bCancelled) {
-		for (int32 i = 0; i < Orders[0].Items.Num(); i++)
-			Orders[0].Items[i].Stored = 0;
+		for (int32 i = 0; i < Orders[0].SellingItems.Num(); i++)
+			Orders[0].SellingItems[i].Stored = 0;
 
 		SetNewOrder(Orders[0]);
 
@@ -75,21 +91,21 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 		if (Orders[0].bCancelled)
 			ReturnResource(Citizen);
 		else
-			CheckStored(Citizen, Orders[0].Items);
+			CheckStored(Citizen, Orders[0].SellingItems);
 	}
 }
 
 void ATrader::ReturnResource(class ACitizen* Citizen)
 {
-	for (int32 i = 0; i < Orders[0].Items.Num(); i++) {
-		if (Orders[0].Items[i].Stored == 0)
+	for (int32 i = 0; i < Orders[0].SellingItems.Num(); i++) {
+		if (Orders[0].SellingItems[i].Stored == 0)
 			continue;
 
-		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManager->GetBuildings(Orders[0].Items[i].Resource);
+		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManager->GetBuildings(Orders[0].SellingItems[i].Resource);
 
 		ABuilding* target = nullptr;
 
-		int32 amount = FMath::Clamp(Orders[0].Items[i].Stored, 0, 10);
+		int32 amount = FMath::Clamp(Orders[0].SellingItems[i].Stored, 0, 10);
 
 		for (int32 j = 0; j < buildings.Num(); j++) {
 			TArray<AActor*> foundBuildings;
@@ -116,15 +132,15 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 			}
 		}
 
-		Orders[0].Items[i].Stored -= amount;
+		Orders[0].SellingItems[i].Stored -= amount;
 
 		if (target != nullptr) {
-			Citizen->Carry(Orders[0].Items[i].Resource->GetDefaultObject<AResource>(), amount, target);
+			Citizen->Carry(Orders[0].SellingItems[i].Resource->GetDefaultObject<AResource>(), amount, target);
 
 			return;
 		}
 		else
-			Orders[0].Items[i].Stored = 0;
+			Orders[0].SellingItems[i].Stored = 0;
 	}
 
 	Orders[0].OrderWidget->RemoveFromParent();
@@ -135,7 +151,7 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 		if (Orders[0].bCancelled)
 			ReturnResource(Citizen);
 		else
-			CheckStored(Citizen, Orders[0].Items);
+			CheckStored(Citizen, Orders[0].SellingItems);
 	}
 }
 
@@ -145,16 +161,20 @@ void ATrader::SetNewOrder(FQueueStruct Order)
 
 	UResourceManager* rm = Camera->ResourceManager;
 
-	for (FItemStruct items : Order.Items)
+	for (FItemStruct items : Order.SellingItems)
 		rm->AddCommittedResource(items.Resource, items.Amount);
 
 	if (Orders.Num() != 1)
 		return;
 
 	TArray<ACitizen*> citizens = GetCitizensAtBuilding();
+	bool bInstantOrder = false;
 
 	for (ACitizen* citizen : citizens)
-		CheckStored(citizen, Orders[0].Items);
+		bInstantOrder = CheckStored(citizen, Orders[0].SellingItems);
+
+	if (bInstantOrder)
+		SubmitOrder(GetOccupied()[0]);
 }
 
 void ATrader::SetOrderWidget(int32 index, UWidget* Widget)
@@ -168,7 +188,7 @@ void ATrader::SetOrderCancelled(int32 index, bool bCancel)
 
 	UResourceManager* rm = Camera->ResourceManager;
 
-	for (FItemStruct items : Orders[index].Items)
+	for (FItemStruct items : Orders[index].SellingItems)
 		rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);
 
 	for (ACitizen* Citizen : GetOccupied())

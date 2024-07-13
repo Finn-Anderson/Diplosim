@@ -22,7 +22,10 @@ struct FQueueStruct
 		bool bRepeat;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-	TArray<FItemStruct> Items;
+		TArray<FItemStruct> SellingItems;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<FItemStruct> BuyingItems;
 
 	FQueueStruct()
 	{

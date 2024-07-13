@@ -73,8 +73,11 @@ void ACamera::BeginPlay()
 
 	GetWorldTimerManager().SetTimer(ResourceManager->ValueTimer, ResourceManager, &UResourceManager::SetTradeValues, 300.0f, true);
 
-	if (Start)
+	if (Start) {
+		ResourceManager->RandomiseMarket();
+
 		BuildComponent->SpawnBuilding(StartBuilding);
+	}
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
