@@ -18,11 +18,15 @@ struct FItemStruct
 
 	int32 Stored;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Use;
+
 	FItemStruct()
 	{
 		Resource = nullptr;
 		Amount = 0;
 		Stored = 0;
+		Use = 0;
 	}
 };
 

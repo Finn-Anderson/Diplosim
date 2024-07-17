@@ -31,6 +31,14 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
+	for (FItemStruct item : Intake) {
+		if (item.Use > item.Stored) {
+			CheckStored(Citizen, Intake);
+
+			return;
+		}
+	}
+
 	if (GetCitizensAtBuilding().Num() == 1)
 		SetActorTickEnabled(true);
 }
@@ -50,4 +58,13 @@ void AInternalProduction::Production(ACitizen* Citizen)
 	Timer = 0;
 
 	Super::Production(Citizen);
+
+	for (FItemStruct item : Intake) {
+		if (item.Use > item.Stored) {
+			for (ACitizen* citizen : GetCitizensAtBuilding())
+				CheckStored(citizen, Intake);
+
+			SetActorTickEnabled(false);
+		}
+	}
 }
