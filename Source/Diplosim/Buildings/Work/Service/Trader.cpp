@@ -12,14 +12,34 @@
 
 ATrader::ATrader()
 {
+	bAuto = false;
+}
 
+void ATrader::BeginPlay()
+{
+	Super::BeginPlay();
+
+	for (FResourceStruct resource : Camera->ResourceManager->ResourceList) {
+		if (resource.Type == Money)
+			continue;
+
+		FMinStruct minStruct;
+		minStruct.Resource = resource.Type;
+
+		AutoMinCap.Add(minStruct);
+	}
 }
 
 void ATrader::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!GetOccupied().Contains(Citizen) || Orders.IsEmpty())
+	if (!GetOccupied().Contains(Citizen))
+		return;
+
+	AutoGenerateOrder();
+
+	if (Orders.IsEmpty())
 		return;
 
 	if (Orders[0].bCancelled)
@@ -93,6 +113,8 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 		else
 			CheckStored(Citizen, Orders[0].SellingItems);
 	}
+	else
+		AutoGenerateOrder();
 }
 
 void ATrader::ReturnResource(class ACitizen* Citizen)
@@ -193,4 +215,42 @@ void ATrader::SetOrderCancelled(int32 index, bool bCancel)
 
 	for (ACitizen* Citizen : GetOccupied())
 		Citizen->AIController->AIMoveTo(this);
+}
+
+void ATrader::SetAutoMode()
+{
+	bAuto = !bAuto;
+}
+
+bool ATrader::GetAutoMode()
+{
+	return bAuto;
+}
+
+void ATrader::SetMinCapPerResource(TArray<FMinStruct> MinCap)
+{
+	AutoMinCap = MinCap;
+}
+
+void ATrader::AutoGenerateOrder()
+{
+	if (!Orders.IsEmpty() || !bAuto)
+		return;
+
+	FQueueStruct order;
+
+	for (FMinStruct minStruct : AutoMinCap) {
+		int32 Amount = Camera->ResourceManager->GetResourceAmount(minStruct.Resource);
+
+		if (!minStruct.bSell || Amount <= minStruct.Min)
+			continue;
+
+		FItemStruct item;
+		item.Resource = minStruct.Resource;
+		item.Amount = Amount - minStruct.Min;
+
+		order.SellingItems.Add(item);
+	}
+
+	SetNewOrder(order);
 }

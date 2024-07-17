@@ -36,6 +36,33 @@ struct FQueueStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FMinStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> Resource;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Min;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		bool bSell;
+
+	FMinStruct()
+	{
+		Resource = nullptr;
+		Min = 0;
+		bSell = false;
+	}
+
+	bool operator==(const FMinStruct& other) const
+	{
+		return (other.Resource == Resource);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ATrader : public AWork
 {
@@ -44,6 +71,10 @@ class DIPLOSIM_API ATrader : public AWork
 public:
 	ATrader();
 
+protected:
+	virtual void BeginPlay() override;
+
+public:
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	void SubmitOrder(class ACitizen* Citizen);
@@ -59,9 +90,26 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetOrderCancelled(int32 index, bool bCancel);
 
+	UFUNCTION(BlueprintCallable)
+		void SetAutoMode();
+
+	UFUNCTION(BlueprintCallable)
+		bool GetAutoMode();
+
+	UFUNCTION(BlueprintCallable)
+		void SetMinCapPerResource(TArray<FMinStruct> MinCap);
+
+	void AutoGenerateOrder();
+
 	UPROPERTY()
 		FTimerHandle WaitTimer;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Resource")
 		TArray<FQueueStruct> Orders;
+
+	UPROPERTY()
+		bool bAuto;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<FMinStruct> AutoMinCap;
 };
