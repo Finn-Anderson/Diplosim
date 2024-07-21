@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -34,15 +32,13 @@ struct FDiseaseStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease")
 		int32 DeathLevel;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease")
-		bool bContained;
-
 	FDiseaseStruct()
 	{
 		Name = "";
 		Grade = EGrade::Mild;
 		Spreadability = 0;
-		bContained = false;
+		Level = 0;
+		DeathLevel = 120;
 	}
 
 	bool operator==(const FDiseaseStruct& other) const
@@ -50,7 +46,6 @@ struct FDiseaseStruct
 		return (other.Name == Name);
 	}
 };
-
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UCitizenManager : public UActorComponent
@@ -74,10 +69,15 @@ public:
 	// Disease
 	void SpawnDisease();
 
+	void PickCitizenToHeal(ACitizen* Healer);
+
 	int32 DiseaseTimer;
 
 	int32 DiseaseTimerTarget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease")
 		TArray<FDiseaseStruct> Diseases;
+
+	UPROPERTY()
+		TArray<ACitizen*> Healing;
 };

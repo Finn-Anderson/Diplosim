@@ -331,5 +331,6 @@ public:
 	void SetReligionLeanings();
 
 	// Disease
-	TArray<FDiseaseStruct> CaughtDiseases;
+	UPROPERTY()
+		TArray<struct FDiseaseStruct> CaughtDiseases;
 };

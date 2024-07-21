@@ -1,7 +1,11 @@
 #include "Player/Managers/CitizenManager.h"
 
+#include "Kismet/GameplayStatics.h"
+
 #include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
 #include "Universal/HealthComponent.h"
+#include "Buildings/Work/Service/Clinic.h"
 
 UCitizenManager::UCitizenManager()
 {
@@ -68,4 +72,25 @@ void UCitizenManager::SpawnDisease()
 	citizen->CaughtDiseases.Add(Diseases[index]);
 
 	DiseaseTimerTarget = FMath::RandRange(180, 600);
+
+	TArray<AActor*> clinics;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
+
+	for (AActor* actor : clinics)
+		for (ACitizen* healer : Cast<AClinic>(actor)->GetCitizensAtBuilding())
+			PickCitizenToHeal(healer);
+}
+
+void UCitizenManager::PickCitizenToHeal(ACitizen* Healer)
+{
+	for (ACitizen* citizen : Citizens) {
+		if (Healing.Contains(citizen))
+			continue;
+
+		for (FDiseaseStruct disease : citizen->CaughtDiseases) {
+			Healer->AIController->AIMoveTo(citizen);
+
+			Healing.Add(citizen);
+		}
+	}
 }

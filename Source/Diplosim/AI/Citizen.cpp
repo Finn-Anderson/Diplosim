@@ -16,6 +16,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/House.h"
+#include "Buildings/Work/Service/Clinic.h"
 
 ACitizen::ACitizen()
 {
@@ -89,14 +90,25 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(OtherActor);
 
-		for (FDiseaseStruct disease : CaughtDiseases) {
-			if (citizen->CaughtDiseases.Contains(disease))
-				continue;
+		if (!citizen->Building.Employment->IsA<AClinic>()) {
+			for (FDiseaseStruct disease : CaughtDiseases) {
+				if (citizen->CaughtDiseases.Contains(disease))
+					continue;
 
-			int32 chance = FMath::RandRange(1, 100);
+				int32 chance = FMath::RandRange(1, 100);
 
-			if (chance <= disease.Spreadability)
-				citizen->CaughtDiseases.Add(disease);
+				if (chance <= disease.Spreadability)
+					citizen->CaughtDiseases.Add(disease);
+			}
+		}
+
+		if (Building.Employment->IsA<AClinic>()) {
+			citizen->CaughtDiseases.Empty();
+
+			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+			ACamera* camera = PController->GetPawn<ACamera>();
+
+			camera->CitizenManager->PickCitizenToHeal(this);
 		}
 	}
 
