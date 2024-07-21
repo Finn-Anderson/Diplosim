@@ -85,6 +85,22 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 {
 	Super::OnOverlapBegin(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 
+	// Disease
+	if (OtherActor->IsA<ACitizen>()) {
+		ACitizen* citizen = Cast<ACitizen>(OtherActor);
+
+		for (FDiseaseStruct disease : CaughtDiseases) {
+			if (citizen->CaughtDiseases.Contains(disease))
+				continue;
+
+			int32 chance = FMath::RandRange(1, 100);
+
+			if (chance <= disease.Spreadability)
+				citizen->CaughtDiseases.Add(disease);
+		}
+	}
+
+	// Movement
 	if (OtherActor->IsA<AResource>() || OtherActor->IsA<ABuilding>()) {
 		FCollidingStruct collidingStruct;
 		collidingStruct.Actor = OtherActor;

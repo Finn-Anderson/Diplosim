@@ -329,4 +329,7 @@ public:
 		FSpiritualStruct Spirituality;
 
 	void SetReligionLeanings();
+
+	// Disease
+	TArray<FDiseaseStruct> CaughtDiseases;
 };
