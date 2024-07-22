@@ -90,7 +90,7 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(OtherActor);
 
-		if (!citizen->Building.Employment->IsA<AClinic>()) {
+		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AClinic>()) {
 			for (FDiseaseStruct disease : CaughtDiseases) {
 				if (citizen->CaughtDiseases.Contains(disease))
 					continue;
@@ -102,7 +102,7 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 			}
 		}
 
-		if (Building.Employment->IsA<AClinic>()) {
+		if (Building.Employment != nullptr && Building.Employment->IsA<AClinic>()) {
 			citizen->CaughtDiseases.Empty();
 
 			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
