@@ -1,6 +1,7 @@
 #include "Player/Managers/CitizenManager.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -70,6 +71,10 @@ void UCitizenManager::SpawnDisease()
 
 	index = FMath::RandRange(0, Diseases.Num() - 1);
 	citizen->CaughtDiseases.Add(Diseases[index]);
+
+	citizen->DiseaseNiagaraComponent->Activate();
+
+	DiseaseTimer = 0;
 
 	DiseaseTimerTarget = FMath::RandRange(180, 600);
 

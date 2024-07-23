@@ -39,6 +39,10 @@ ACitizen::ACitizen()
 	TorchNiagaraComponent->SetupAttachment(TorchMesh, "ParticleSocket");
 	TorchNiagaraComponent->SetHiddenInGame(true);
 
+	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
+	DiseaseNiagaraComponent->SetupAttachment(GetMesh());
+	DiseaseNiagaraComponent->bAutoActivate = false;
+
 	Balance = 20;
 
 	Hunger = 100;
@@ -100,15 +104,23 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 				if (chance <= disease.Spreadability)
 					citizen->CaughtDiseases.Add(disease);
 			}
+
+			if (!citizen->CaughtDiseases.IsEmpty() && !citizen->DiseaseNiagaraComponent->IsActive())
+				citizen->DiseaseNiagaraComponent->Activate();
 		}
 
 		if (Building.Employment != nullptr && Building.Employment->IsA<AClinic>()) {
 			citizen->CaughtDiseases.Empty();
 
+			citizen->DiseaseNiagaraComponent->Deactivate();
+
 			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 			ACamera* camera = PController->GetPawn<ACamera>();
 
-			camera->CitizenManager->PickCitizenToHeal(this);
+			camera->CitizenManager->Healing.Remove(citizen);
+
+			if (AIController->MoveRequest.GetGoalActor() == citizen)
+				camera->CitizenManager->PickCitizenToHeal(this);
 		}
 	}
 

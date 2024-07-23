@@ -240,6 +240,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UNiagaraComponent* TorchNiagaraComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease")
+		class UNiagaraComponent* DiseaseNiagaraComponent;
+
 	// Work
 	bool CanWork(class ABuilding* ReligiousBuilding);
 
