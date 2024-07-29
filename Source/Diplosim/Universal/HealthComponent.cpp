@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Components/SphereComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
@@ -14,6 +15,7 @@
 #include "DiplosimGameModeBase.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
+#include "Player/Managers/CitizenManager.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -66,10 +68,10 @@ void UHealthComponent::Death(AActor* Attacker)
 {
 	AActor* actor = GetOwner();
 
-	if (actor->IsA<ABroch>()) {
-		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		ACamera* camera = PController->GetPawn<ACamera>();
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
 
+	if (actor->IsA<ABroch>()) {
 		camera->Lose();
 	}
 	else if (actor->IsA<AAI>()) {
@@ -87,6 +89,14 @@ void UHealthComponent::Death(AActor* Attacker)
 		mesh->SetPhysicsLinearVelocity(direction, false);
 
 		Cast<AAI>(actor)->DetachFromControllerPendingDestroy();
+
+		if (actor->IsA<ACitizen>()) {
+			ACitizen* citizen = Cast<ACitizen>(actor);
+
+			citizen->PopupComponent->SetHiddenInGame(true);
+
+			camera->CitizenManager->Citizens.Remove(citizen);
+		}
 	} 
 	else if (actor->IsA<ABuilding>()) {
 		TArray<AActor*> foundCitizens;

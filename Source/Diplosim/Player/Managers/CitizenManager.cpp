@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -21,7 +22,7 @@ void UCitizenManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	DiseaseTimerTarget = FMath::RandRange(180, 600);
+	DiseaseTimerTarget = FMath::RandRange(180, 1200);
 }
 
 void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -73,10 +74,11 @@ void UCitizenManager::SpawnDisease()
 	citizen->CaughtDiseases.Add(Diseases[index]);
 
 	citizen->DiseaseNiagaraComponent->Activate();
+	citizen->PopupComponent->SetHiddenInGame(false);
 
 	DiseaseTimer = 0;
 
-	DiseaseTimerTarget = FMath::RandRange(180, 600);
+	DiseaseTimerTarget = FMath::RandRange(180, 1200);
 
 	TArray<AActor*> clinics;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);

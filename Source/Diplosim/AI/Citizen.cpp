@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "NiagaraComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
@@ -42,6 +43,10 @@ ACitizen::ACitizen()
 	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
 	DiseaseNiagaraComponent->SetupAttachment(GetMesh());
 	DiseaseNiagaraComponent->bAutoActivate = false;
+
+	PopupComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PopupComponent"));
+	PopupComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
+	PopupComponent->SetHiddenInGame(true);
 
 	Balance = 20;
 
@@ -105,14 +110,23 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 					citizen->CaughtDiseases.Add(disease);
 			}
 
-			if (!citizen->CaughtDiseases.IsEmpty() && !citizen->DiseaseNiagaraComponent->IsActive())
+			if (!citizen->CaughtDiseases.IsEmpty() && !citizen->DiseaseNiagaraComponent->IsActive()) {
 				citizen->DiseaseNiagaraComponent->Activate();
+				citizen->PopupComponent->SetHiddenInGame(false);
+
+				SetPopupImageState("Add", "Disease");
+			}
 		}
 
 		if (Building.Employment != nullptr && Building.Employment->IsA<AClinic>()) {
 			citizen->CaughtDiseases.Empty();
 
 			citizen->DiseaseNiagaraComponent->Deactivate();
+
+			if (Hunger > 25)
+				citizen->PopupComponent->SetHiddenInGame(true);
+
+			SetPopupImageState("Remove", "Disease");
 
 			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 			ACamera* camera = PController->GetPawn<ACamera>();
@@ -214,8 +228,13 @@ void ACitizen::Eat()
 		totalAmount += curAmount;
 	}
 
-	if (totalAmount <= 0)
+	if (totalAmount <= 0) {
+		PopupComponent->SetHiddenInGame(false);
+
+		SetPopupImageState("Add", "Hunger");
+
 		return;
+	}
 
 	int32 maxF = FMath::CeilToInt((100 - Hunger) / 25.0f);
 	int32 quantity = FMath::Clamp(totalAmount, 1, maxF);
@@ -238,6 +257,13 @@ void ACitizen::Eat()
 		}
 
 		Hunger = FMath::Clamp(Hunger + 25, 0, 100);
+	}
+
+	if (!PopupComponent->bHiddenInGame) {
+		if (CaughtDiseases.IsEmpty())
+			PopupComponent->SetHiddenInGame(true);
+
+		SetPopupImageState("Remove", "Hunger");
 	}
 }
 

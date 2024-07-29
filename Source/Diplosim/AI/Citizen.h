@@ -227,6 +227,9 @@ public:
 		
 	virtual void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void SetPopupImageState(FName Command, FName Type);
+
 	// Cosmetics
 	UFUNCTION(BlueprintCallable)
 		void SetTorch();
@@ -240,8 +243,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UNiagaraComponent* TorchNiagaraComponent;
 
+	// Disease
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease")
 		class UNiagaraComponent* DiseaseNiagaraComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease")
+		class UWidgetComponent* PopupComponent;
 
 	// Work
 	bool CanWork(class ABuilding* ReligiousBuilding);
