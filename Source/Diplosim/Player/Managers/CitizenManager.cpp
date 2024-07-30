@@ -76,6 +76,10 @@ void UCitizenManager::SpawnDisease()
 	citizen->DiseaseNiagaraComponent->Activate();
 	citizen->PopupComponent->SetHiddenInGame(false);
 
+	citizen->SetActorTickEnabled(true);
+
+	citizen->SetPopupImageState("Add", "Disease");
+
 	DiseaseTimer = 0;
 
 	DiseaseTimerTarget = FMath::RandRange(180, 1200);

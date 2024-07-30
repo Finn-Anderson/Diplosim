@@ -21,6 +21,8 @@
 
 ACitizen::ACitizen()
 {
+	SetTickableWhenPaused(true);
+
 	GetCapsuleComponent()->SetCapsuleSize(9.0f, 11.5f);
 
 	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -14.0f));
@@ -42,9 +44,11 @@ ACitizen::ACitizen()
 
 	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
 	DiseaseNiagaraComponent->SetupAttachment(GetMesh());
+	DiseaseNiagaraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 6.0f));
 	DiseaseNiagaraComponent->bAutoActivate = false;
 
 	PopupComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PopupComponent"));
+	PopupComponent->SetupAttachment(GetCapsuleComponent());
 	PopupComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
 	PopupComponent->SetHiddenInGame(true);
 
@@ -114,7 +118,9 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 				citizen->DiseaseNiagaraComponent->Activate();
 				citizen->PopupComponent->SetHiddenInGame(false);
 
-				SetPopupImageState("Add", "Disease");
+				citizen->SetActorTickEnabled(true);
+
+				citizen->SetPopupImageState("Add", "Disease");
 			}
 		}
 
@@ -123,10 +129,13 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 
 			citizen->DiseaseNiagaraComponent->Deactivate();
 
-			if (Hunger > 25)
+			if (Hunger > 25) {
 				citizen->PopupComponent->SetHiddenInGame(true);
 
-			SetPopupImageState("Remove", "Disease");
+				citizen->SetActorTickEnabled(false);
+			}
+
+			citizen->SetPopupImageState("Remove", "Disease");
 
 			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 			ACamera* camera = PController->GetPawn<ACamera>();
@@ -231,6 +240,8 @@ void ACitizen::Eat()
 	if (totalAmount <= 0) {
 		PopupComponent->SetHiddenInGame(false);
 
+		SetActorTickEnabled(true);
+
 		SetPopupImageState("Add", "Hunger");
 
 		return;
@@ -260,8 +271,11 @@ void ACitizen::Eat()
 	}
 
 	if (!PopupComponent->bHiddenInGame) {
-		if (CaughtDiseases.IsEmpty())
+		if (CaughtDiseases.IsEmpty()) {
 			PopupComponent->SetHiddenInGame(true);
+
+			SetActorTickEnabled(false);
+		}
 
 		SetPopupImageState("Remove", "Hunger");
 	}

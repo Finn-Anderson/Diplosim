@@ -34,13 +34,21 @@ bool UDiplosimUserSettings::GetSpawnEnemies() const
 
 void UDiplosimUserSettings::SetRenderClouds(bool Value)
 {
-	bRenderClouds = Value;
-
-	if (Clouds == nullptr)
+	if (bRenderClouds == Value)
 		return;
 
-	for (FCloudStruct cloudStruct : Clouds->Clouds)
-		cloudStruct.Cloud->SetHiddenInGame(!Value);	
+	bRenderClouds = Value;
+	
+	if (bRenderClouds) {
+		Clouds->SetActorTickEnabled(true);
+
+		Clouds->ActivateCloud();
+	}
+	else {
+		Clouds->Clear();
+
+		Clouds->SetActorTickEnabled(false);
+	}
 }
 
 bool UDiplosimUserSettings::GetRenderClouds() const

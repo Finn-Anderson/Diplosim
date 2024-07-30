@@ -39,20 +39,26 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
+	void Clear();
+
+	UFUNCTION()
+		void ActivateCloud();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
 		class UNiagaraSystem* CloudSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		float Height;
 
-	class UDiplosimUserSettings* Settings;
+	UPROPERTY()
+		class UDiplosimUserSettings* Settings;
 
-	TArray<FCloudStruct> Clouds;
+	UPROPERTY()
+		TArray<FCloudStruct> Clouds;
 
-	class AGrid* Grid;
+	UPROPERTY()
+		class AGrid* Grid;
 
-	void Clear();
-
-	UFUNCTION()
-		void ActivateCloud();
+	UPROPERTY()
+		FTimerHandle CloudTimer;
 };

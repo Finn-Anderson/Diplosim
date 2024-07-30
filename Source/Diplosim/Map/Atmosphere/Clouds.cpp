@@ -1,6 +1,5 @@
 #include "Clouds.h"
 
-#include "Kismet/KismetSystemLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
@@ -54,57 +53,55 @@ void AClouds::Clear()
 		cloudStruct.Cloud->DestroyComponent();
 
 	Clouds.Empty();
+
+	GetWorld()->GetTimerManager().ClearTimer(CloudTimer);
 }
 
 void AClouds::ActivateCloud()
 {
-	if (Settings->GetRenderClouds()) {
-		FTransform transform;
+	if (!Settings->GetRenderClouds())
+		return;
 
-		float x = FMath::FRandRange(1.0f, 10.0f);
-		float y = FMath::FRandRange(1.0f, 10.0f);
-		float z = FMath::FRandRange(1.0f, 4.0f);
-		transform.SetScale3D(FVector(x, y, z));
+	FTransform transform;
 
-		float spawnRate = 0.0f;
+	float x = FMath::FRandRange(1.0f, 10.0f);
+	float y = FMath::FRandRange(1.0f, 10.0f);
+	float z = FMath::FRandRange(1.0f, 4.0f);
+	transform.SetScale3D(FVector(x, y, z));
 
-		transform.SetRotation((Grid->AtmosphereComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
+	float spawnRate = 0.0f;
 
-		FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f;
-		spawnLoc.Z = Height + FMath::FRandRange(-200.0f, 200.0f);
+	transform.SetRotation((Grid->AtmosphereComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
 
-		FVector limit = (transform.GetRotation().Rotator() + FRotator(0.0f, 90.0f, 0.0f)).Vector();
-		float vary = FMath::FRandRange(-20000.0f, 20000.0f);
-		limit *= vary;
+	FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f;
+	spawnLoc.Z = Height + FMath::FRandRange(-200.0f, 200.0f);
 
-		spawnLoc += limit;
+	FVector limit = (transform.GetRotation().Rotator() + FRotator(0.0f, 90.0f, 0.0f)).Vector();
+	float vary = FMath::FRandRange(-20000.0f, 20000.0f);
+	limit *= vary;
 
-		transform.SetLocation(spawnLoc);
+	spawnLoc += limit;
 
-		UNiagaraComponent* cloud = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), CloudSystem, transform.GetLocation(), transform.GetRotation().Rotator(), transform.GetScale3D());
+	transform.SetLocation(spawnLoc);
 
-		int32 chance = FMath::RandRange(1, 100);
+	UNiagaraComponent* cloud = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), CloudSystem, transform.GetLocation(), transform.GetRotation().Rotator(), transform.GetScale3D());
 
-		if (chance > 75) {
-			cloud->SetVariableLinearColor(TEXT("Color"), FLinearColor(0.1f, 0.1f, 0.1f));
-			spawnRate = 400.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
-		}
+	int32 chance = FMath::RandRange(1, 100);
 
-		cloud->SetVariableFloat(TEXT("SpawnRate"), spawnRate);
-
-		cloud->SetBoundsScale(3.0f);
-
-		FCloudStruct cloudStruct;
-		cloudStruct.Cloud = cloud;
-		cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
-
-		Clouds.Add(cloudStruct);
+	if (chance > 75) {
+		cloud->SetVariableLinearColor(TEXT("Color"), FLinearColor(0.1f, 0.1f, 0.1f));
+		spawnRate = 400.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
 	}
 
-	FLatentActionInfo info;
-	info.Linkage = 0;
-	info.CallbackTarget = this;
-	info.ExecutionFunction = "ActivateCloud";
-	info.UUID = GetUniqueID();
-	UKismetSystemLibrary::Delay(GetWorld(), 90.0f, info);
+	cloud->SetVariableFloat(TEXT("SpawnRate"), spawnRate);
+
+	cloud->SetBoundsScale(3.0f);
+
+	FCloudStruct cloudStruct;
+	cloudStruct.Cloud = cloud;
+	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
+
+	Clouds.Add(cloudStruct);
+
+	GetWorld()->GetTimerManager().SetTimer(CloudTimer, this, &AClouds::ActivateCloud, 90.0f);
 }

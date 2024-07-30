@@ -15,5 +15,7 @@ void AClinic::Enter(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen))
 		return;
 
+	Citizen->CaughtDiseases.Empty();
+
 	Camera->CitizenManager->PickCitizenToHeal(Citizen);
 }
