@@ -23,8 +23,6 @@ void UCitizenManager::BeginPlay()
 	Super::BeginPlay();
 
 	DiseaseTimerTarget = FMath::RandRange(180, 1200);
-
-	DiseaseTimer = DiseaseTimerTarget - 10;
 }
 
 void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
