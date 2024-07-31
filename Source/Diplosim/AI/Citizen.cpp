@@ -77,6 +77,7 @@ void ACitizen::BeginPlay()
 	ACamera* camera = PController->GetPawn<ACamera>();
 
 	camera->CitizenManager->Citizens.Add(this);
+	camera->CitizenManager->Infectible.Add(this);
 
 	SetSex();
 	SetName();
@@ -103,6 +104,9 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(OtherActor);
 
+		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		ACamera* camera = PController->GetPawn<ACamera>();
+
 		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AClinic>()) {
 			for (FDiseaseStruct disease : CaughtDiseases) {
 				if (citizen->CaughtDiseases.Contains(disease))
@@ -114,33 +118,12 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 					citizen->CaughtDiseases.Add(disease);
 			}
 
-			if (!citizen->CaughtDiseases.IsEmpty() && !citizen->DiseaseNiagaraComponent->IsActive()) {
-				citizen->DiseaseNiagaraComponent->Activate();
-				citizen->PopupComponent->SetHiddenInGame(false);
-
-				citizen->SetActorTickEnabled(true);
-
-				citizen->SetPopupImageState("Add", "Disease");
-			}
+			if (!citizen->CaughtDiseases.IsEmpty() && !citizen->DiseaseNiagaraComponent->IsActive())
+				camera->CitizenManager->Infect(citizen);
 		}
 
 		if (Building.Employment != nullptr && Building.Employment->IsA<AClinic>()) {
-			citizen->CaughtDiseases.Empty();
-
-			citizen->DiseaseNiagaraComponent->Deactivate();
-
-			if (Hunger > 25) {
-				citizen->PopupComponent->SetHiddenInGame(true);
-
-				citizen->SetActorTickEnabled(false);
-			}
-
-			citizen->SetPopupImageState("Remove", "Disease");
-
-			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-			ACamera* camera = PController->GetPawn<ACamera>();
-
-			camera->CitizenManager->Healing.Remove(citizen);
+			camera->CitizenManager->Cure(citizen);
 
 			if (AIController->MoveRequest.GetGoalActor() == citizen)
 				camera->CitizenManager->PickCitizenToHeal(this);

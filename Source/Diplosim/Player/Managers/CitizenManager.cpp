@@ -23,6 +23,8 @@ void UCitizenManager::BeginPlay()
 	Super::BeginPlay();
 
 	DiseaseTimerTarget = FMath::RandRange(180, 1200);
+
+	DiseaseTimer = DiseaseTimerTarget - 10;
 }
 
 void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -67,22 +69,29 @@ void UCitizenManager::StartTimers()
 //
 void UCitizenManager::SpawnDisease()
 {
-	int32 index = FMath::RandRange(0, Citizens.Num() - 1);
-	ACitizen* citizen = Citizens[index];
+	int32 index = FMath::RandRange(0, Infectible.Num() - 1);
+	ACitizen* citizen = Infectible[index];
 
 	index = FMath::RandRange(0, Diseases.Num() - 1);
 	citizen->CaughtDiseases.Add(Diseases[index]);
 
-	citizen->DiseaseNiagaraComponent->Activate();
-	citizen->PopupComponent->SetHiddenInGame(false);
-
-	citizen->SetActorTickEnabled(true);
-
-	citizen->SetPopupImageState("Add", "Disease");
+	Infect(citizen);
 
 	DiseaseTimer = 0;
 
 	DiseaseTimerTarget = FMath::RandRange(180, 1200);
+}
+
+void UCitizenManager::Infect(ACitizen* Citizen)
+{
+	Citizen->DiseaseNiagaraComponent->Activate();
+	Citizen->PopupComponent->SetHiddenInGame(false);
+
+	Citizen->SetActorTickEnabled(true);
+
+	Citizen->SetPopupImageState("Add", "Disease");
+
+	Infected.Add(Citizen);
 
 	TArray<AActor*> clinics;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
@@ -92,16 +101,44 @@ void UCitizenManager::SpawnDisease()
 			PickCitizenToHeal(healer);
 }
 
+void UCitizenManager::Cure(ACitizen* Citizen)
+{
+	Citizen->CaughtDiseases.Empty();
+
+	Citizen->DiseaseNiagaraComponent->Deactivate();
+
+	if (Citizen->Hunger > 25) {
+		Citizen->PopupComponent->SetHiddenInGame(true);
+
+		Citizen->SetActorTickEnabled(false);
+	}
+
+	Citizen->SetPopupImageState("Remove", "Disease");
+
+	Infected.Remove(Citizen);
+	Healing.Remove(Citizen);
+
+	Infectible.Remove(Citizen);
+}
+
 void UCitizenManager::PickCitizenToHeal(ACitizen* Healer)
 {
-	for (ACitizen* citizen : Citizens) {
+	ACitizen* goal = nullptr;
+
+	for (ACitizen* citizen : Infected) {
 		if (Healing.Contains(citizen))
 			continue;
 
-		for (FDiseaseStruct disease : citizen->CaughtDiseases) {
-			Healer->AIController->AIMoveTo(citizen);
+		goal = citizen;
 
-			Healing.Add(citizen);
-		}
+		break;
 	}
+
+	if (goal != nullptr) {
+		Healer->AIController->AIMoveTo(goal);
+
+		Healing.Add(goal);
+	}
+	else if (Healer->Building.BuildingAt != Healer->Building.Employment)
+		Healer->AIController->DefaultAction();
 }

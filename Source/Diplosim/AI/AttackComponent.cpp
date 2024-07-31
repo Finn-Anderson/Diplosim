@@ -63,7 +63,7 @@ void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!Owner->IsActorTickEnabled())
+	if (Cast<ACitizen>(Owner)->HealthComponent->Health == 0)
 		return;
 
 	Async(EAsyncExecution::Thread, [this]() { PickTarget(); });

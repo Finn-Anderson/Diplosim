@@ -69,11 +69,23 @@ public:
 	// Disease
 	void SpawnDisease();
 
+	void Infect(ACitizen* Citizen);
+
+	void Cure(ACitizen* Citizen);
+
 	void PickCitizenToHeal(ACitizen* Healer);
 
-	int32 DiseaseTimer;
+	UPROPERTY()
+		TArray<class ACitizen*> Infectible;
 
-	int32 DiseaseTimerTarget;
+	UPROPERTY()
+		TArray<class ACitizen*> Infected;
+
+	UPROPERTY()
+		int32 DiseaseTimer;
+
+	UPROPERTY()
+		int32 DiseaseTimerTarget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease")
 		TArray<FDiseaseStruct> Diseases;
