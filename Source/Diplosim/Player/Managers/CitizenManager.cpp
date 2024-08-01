@@ -5,9 +5,11 @@
 #include "Components/WidgetComponent.h"
 
 #include "AI/Citizen.h"
+#include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "Universal/HealthComponent.h"
 #include "Buildings/Work/Service/Clinic.h"
+#include "Player/Camera.h"
 
 UCitizenManager::UCitizenManager()
 {
@@ -43,10 +45,10 @@ void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (citizen->AgeTimer == 45)
 			citizen->Birthday();
 
-		for (FDiseaseStruct disease : citizen->CaughtDiseases) {
-			disease.Level++;
+		for (FConditionStruct condition : citizen->HealthIssues) {
+			condition.Level++;
 
-			if (disease.Level == disease.DeathLevel)
+			if (condition.Level == condition.DeathLevel)
 				citizen->HealthComponent->TakeHealth(100, citizen);
 		}
 	}
@@ -71,7 +73,7 @@ void UCitizenManager::SpawnDisease()
 	ACitizen* citizen = Infectible[index];
 
 	index = FMath::RandRange(0, Diseases.Num() - 1);
-	citizen->CaughtDiseases.Add(Diseases[index]);
+	citizen->HealthIssues.Add(Diseases[index]);
 
 	Infect(citizen);
 
@@ -91,6 +93,49 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 
 	Infected.Add(Citizen);
 
+	UpdateHealthText(Citizen);
+
+	TArray<AActor*> clinics;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
+
+	for (AActor* actor : clinics)
+		for (ACitizen* healer : Cast<AClinic>(actor)->GetCitizensAtBuilding())
+			PickCitizenToHeal(healer);
+}
+
+void UCitizenManager::Injure(ACitizen* Citizen)
+{
+	int32 index = FMath::RandRange(1, 100);
+
+	if (index < 90)
+		return;
+	
+	TArray<FConditionStruct> conditions;
+
+	for (FConditionStruct condition : Injuries)
+		if (condition.Buildings.Contains(Citizen->Building.Employment->GetClass()))
+			conditions.Add(condition);
+
+	index = FMath::RandRange(0, conditions.Num() - 1);
+	Citizen->HealthIssues.Add(conditions[index]);
+
+	for (FAffectStruct affect : conditions[index].Affects) {
+		if (affect.Affect == EAffect::Movement)
+			Citizen->InitialSpeed *= affect.Amount;
+		else if (affect.Affect == EAffect::Damage)
+			Citizen->AttackComponent->Damage *= affect.Amount;
+		else {
+			Citizen->HealthComponent->MaxHealth *= affect.Amount;
+
+			if (Citizen->HealthComponent->Health > Citizen->HealthComponent->MaxHealth)
+				Citizen->HealthComponent->Health = Citizen->HealthComponent->MaxHealth;
+		}
+	}
+
+	Injured.Add(Citizen);
+
+	UpdateHealthText(Citizen);
+
 	TArray<AActor*> clinics;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
 
@@ -101,7 +146,18 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 
 void UCitizenManager::Cure(ACitizen* Citizen)
 {
-	Citizen->CaughtDiseases.Empty();
+	for (FConditionStruct condition : Citizen->HealthIssues) {
+		for (FAffectStruct affect : condition.Affects) {
+			if (affect.Affect == EAffect::Movement)
+				Citizen->InitialSpeed /= affect.Amount;
+			else if (affect.Affect == EAffect::Damage)
+				Citizen->AttackComponent->Damage /= affect.Amount;
+			else
+				Citizen->HealthComponent->MaxHealth /= affect.Amount;
+		}
+	}
+
+	Citizen->HealthIssues.Empty();
 
 	Citizen->DiseaseNiagaraComponent->Deactivate();
 
@@ -114,9 +170,18 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 	Citizen->SetPopupImageState("Remove", "Disease");
 
 	Infected.Remove(Citizen);
+	Injured.Remove(Citizen);
 	Healing.Remove(Citizen);
 
-	Infectible.Remove(Citizen);
+	UpdateHealthText(Citizen);
+}
+
+void UCitizenManager::UpdateHealthText(ACitizen* Citizen)
+{
+	ACamera* camera = Cast<ACamera>(GetOwner());
+
+	if (camera->WidgetComponent->IsAttachedTo(Citizen->GetRootComponent()))
+		camera->UpdateHealthIssues();
 }
 
 void UCitizenManager::PickCitizenToHeal(ACitizen* Healer)

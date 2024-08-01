@@ -108,17 +108,17 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 		ACamera* camera = PController->GetPawn<ACamera>();
 
 		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AClinic>()) {
-			for (FDiseaseStruct disease : CaughtDiseases) {
-				if (citizen->CaughtDiseases.Contains(disease))
+			for (FConditionStruct condition : HealthIssues) {
+				if (citizen->HealthIssues.Contains(condition))
 					continue;
 
 				int32 chance = FMath::RandRange(1, 100);
 
-				if (chance <= disease.Spreadability)
-					citizen->CaughtDiseases.Add(disease);
+				if (chance <= condition.Spreadability)
+					citizen->HealthIssues.Add(condition);
 			}
 
-			if (!citizen->CaughtDiseases.IsEmpty() && !citizen->DiseaseNiagaraComponent->IsActive())
+			if (!citizen->HealthIssues.IsEmpty() && !citizen->DiseaseNiagaraComponent->IsActive())
 				camera->CitizenManager->Infect(citizen);
 		}
 
@@ -254,7 +254,7 @@ void ACitizen::Eat()
 	}
 
 	if (!PopupComponent->bHiddenInGame) {
-		if (CaughtDiseases.IsEmpty()) {
+		if (HealthIssues.IsEmpty()) {
 			PopupComponent->SetHiddenInGame(true);
 
 			SetActorTickEnabled(false);
@@ -281,7 +281,7 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	GetCharacterMovement()->MaxWalkSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, 60.0f, InitialSpeed);
+	GetCharacterMovement()->MaxWalkSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, InitialSpeed * 0.3f, InitialSpeed);
 
 	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty())
 		return;
@@ -334,7 +334,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 {
 	FTimerHandle harvestTimer;
 	float time = FMath::RandRange(6.0f, 10.0f);
-	time /= FMath::LogX(100.0f, FMath::Clamp(Energy, 2, 100));
+	time /= FMath::LogX(InitialSpeed, GetCharacterMovement()->MaxWalkSpeed);
 
 	GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), time, false);
 
@@ -344,6 +344,11 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 {
 	AResource* resource = Resource->GetHarvestedResource();
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
+
+	camera->CitizenManager->Injure(this);
 
 	Carry(resource, Resource->GetYield(this, Instance), Building.Employment);
 }

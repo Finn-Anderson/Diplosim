@@ -45,6 +45,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void SetInteractableText(AActor* Actor, int32 Quantity);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateHealthIssues();
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;

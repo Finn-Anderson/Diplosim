@@ -20,6 +20,8 @@ bool AClinic::AddCitizen(ACitizen* Citizen)
 
 	Camera->CitizenManager->Cure(Citizen);
 
+	Camera->CitizenManager->Infectible.Remove(Citizen);
+
 	return true;
 }
 

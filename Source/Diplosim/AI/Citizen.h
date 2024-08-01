@@ -243,13 +243,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UNiagaraComponent* TorchNiagaraComponent;
 
-	// Disease
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease")
-		class UNiagaraComponent* DiseaseNiagaraComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease")
-		class UWidgetComponent* PopupComponent;
-
 	// Work
 	bool CanWork(class ABuilding* ReligiousBuilding);
 
@@ -306,7 +299,7 @@ public:
 		bool bGain;
 
 	UPROPERTY()
-	float InitialSpeed;
+		float InitialSpeed;
 
 
 	// Bio
@@ -341,6 +334,12 @@ public:
 	void SetReligionLeanings();
 
 	// Disease
-	UPROPERTY()
-		TArray<struct FDiseaseStruct> CaughtDiseases;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		class UNiagaraComponent* DiseaseNiagaraComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		class UWidgetComponent* PopupComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		TArray<struct FConditionStruct> HealthIssues;
 };

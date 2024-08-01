@@ -27,7 +27,7 @@ public:
 
 	bool IsMaxHealth();
 
-	void RemoveDamageOverlay(ABuilding* Building);
+	void RemoveDamageOverlay(class ABuilding* Building);
 
 	int32 GetHealth();
 

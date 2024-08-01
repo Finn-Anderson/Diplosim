@@ -1,8 +1,11 @@
 #include "InternalProduction.h"
 
+#include "GameFramework/CharacterMovementComponent.h"
+
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/CitizenManager.h"
 
 AInternalProduction::AInternalProduction()
 {
@@ -23,7 +26,14 @@ void AInternalProduction::Tick(float DeltaTime)
 
 	Timer++;
 
-	if (Timer == (TimeLength / GetCitizensAtBuilding().Num()))
+	float tally = 0;
+
+	for (ACitizen* citizen : GetCitizensAtBuilding())
+		tally += FMath::LogX(citizen->InitialSpeed, citizen->GetCharacterMovement()->MaxWalkSpeed);
+
+	float value = tally / GetCitizensAtBuilding().Num();
+
+	if (Timer >= (TimeLength / GetCitizensAtBuilding().Num() / value))
 		Production(GetCitizensAtBuilding()[0]);
 }
 
@@ -54,6 +64,9 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 void AInternalProduction::Production(ACitizen* Citizen)
 {
 	Citizen->Carry(Camera->ResourceManager->GetResource(this)->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
+
+	for (ACitizen* citizen : GetCitizensAtBuilding())
+		Camera->CitizenManager->Injure(citizen);
 
 	Timer = 0;
 
