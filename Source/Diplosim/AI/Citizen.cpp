@@ -74,10 +74,10 @@ void ACitizen::BeginPlay()
 	Super::BeginPlay();
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
+	Camera = PController->GetPawn<ACamera>();
 
-	camera->CitizenManager->Citizens.Add(this);
-	camera->CitizenManager->Infectible.Add(this);
+	Camera->CitizenManager->Citizens.Add(this);
+	Camera->CitizenManager->Infectible.Add(this);
 
 	SetSex();
 	SetName();
@@ -104,9 +104,6 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 	if (OtherActor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(OtherActor);
 
-		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		ACamera* camera = PController->GetPawn<ACamera>();
-
 		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AClinic>()) {
 			for (FConditionStruct condition : HealthIssues) {
 				if (citizen->HealthIssues.Contains(condition))
@@ -119,14 +116,14 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 			}
 
 			if (!citizen->HealthIssues.IsEmpty() && !citizen->DiseaseNiagaraComponent->IsActive())
-				camera->CitizenManager->Infect(citizen);
+				Camera->CitizenManager->Infect(citizen);
 		}
 
 		if (Building.Employment != nullptr && Building.Employment->IsA<AClinic>()) {
-			camera->CitizenManager->Cure(citizen);
+			Camera->CitizenManager->Cure(citizen);
 
 			if (AIController->MoveRequest.GetGoalActor() == citizen)
-				camera->CitizenManager->PickCitizenToHeal(this);
+				Camera->CitizenManager->PickCitizenToHeal(this);
 		}
 	}
 
@@ -207,14 +204,11 @@ void ACitizen::Eat()
 	else if (Hunger == 0)
 		HealthComponent->TakeHealth(10, this);
 
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
-
 	TArray<int32> foodAmounts;
 	int32 totalAmount = 0;
 
 	for (int32 i = 0; i < Food.Num(); i++) {
-		int32 curAmount = camera->ResourceManager->GetResourceAmount(Food[i]);
+		int32 curAmount = Camera->ResourceManager->GetResourceAmount(Food[i]);
 
 		foodAmounts.Add(curAmount);
 		totalAmount += curAmount;
@@ -241,7 +235,7 @@ void ACitizen::Eat()
 				selected -= foodAmounts[j];
 			}
 			else {
-				camera->ResourceManager->TakeUniversalResource(Food[j], 1, 0);
+				Camera->ResourceManager->TakeUniversalResource(Food[j], 1, 0);
 
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
@@ -345,10 +339,7 @@ void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 {
 	AResource* resource = Resource->GetHarvestedResource();
 
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
-
-	camera->CitizenManager->Injure(this);
+	Camera->CitizenManager->Injure(this);
 
 	Carry(resource, Resource->GetYield(this, Instance), Building.Employment);
 }
@@ -388,10 +379,10 @@ void ACitizen::Birthday()
 		HealthComponent->AddHealth(5);
 
 		float scale = (BioStruct.Age * 0.04f) + 0.28f;
-		GetMesh()->SetWorldScale3D(FVector(scale, scale, scale));
+		AsyncTask(ENamedThreads::GameThread, [this, scale]() { GetMesh()->SetWorldScale3D(FVector(scale, scale, scale)); });
 	}
 	else if (BioStruct.Partner != nullptr)
-		HaveChild();
+		AsyncTask(ENamedThreads::GameThread, [this]() { HaveChild(); });
 
 	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
 		FindPartner();
@@ -409,13 +400,10 @@ void ACitizen::SetSex()
 {
 	int32 choice = FMath::RandRange(1, 100);
 
-	TArray<AActor*> citizens;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
-
 	float male = 0.0f;
 	float total = 0.0f;
 
-	for (AActor* actor : citizens) {
+	for (AActor* actor : Camera->CitizenManager->Citizens) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
 		if (citizen == this)
@@ -459,10 +447,7 @@ void ACitizen::FindPartner()
 {
 	ACitizen* citizen = nullptr;
 
-	TArray<AActor*> citizens;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
-
-	for (AActor* actor : citizens) {
+	for (AActor* actor : Camera->CitizenManager->Citizens) {
 		ACitizen* c = Cast<ACitizen>(actor);
 
 		if (c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
@@ -496,27 +481,19 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 
 void ACitizen::HaveChild()
 {
-	TArray<AActor*> citizens;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
-
 	float chance = FMath::FRandRange(0.0f, 100.0f);
 	float passMark = FMath::LogX(60.0f, BioStruct.Age) * 100.0f;
 
 	if (chance < passMark)
 		return;
 
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
-	FNavLocation loc;
-	nav->ProjectPointToNavigation(GetActorLocation() + GetActorForwardVector() * 10.0f, loc, FVector(200.0f, 200.0f, 10.0f));
-
-	FVector location = loc.Location;
+	FVector location = GetActorLocation() + GetActorForwardVector() * 10.0f;
 
 	if (Building.BuildingAt != nullptr)
 		location = Building.EnterLocation;
 
 	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), location, GetActorRotation());
-	
+
 	if (!citizen->IsValidLowLevelFast())
 		return;
 

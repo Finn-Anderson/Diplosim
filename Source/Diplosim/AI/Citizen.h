@@ -230,6 +230,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void SetPopupImageState(FName Command, FName Type);
 
+	UPROPERTY()
+	class ACamera* Camera;
+
 	// Cosmetics
 	UFUNCTION(BlueprintCallable)
 		void SetTorch();

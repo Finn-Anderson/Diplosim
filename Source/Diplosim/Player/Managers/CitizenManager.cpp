@@ -31,32 +31,34 @@ void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	for (ACitizen* citizen : Citizens) {
-		citizen->HungerTimer++;
-		citizen->EnergyTimer++;
-		citizen->AgeTimer++;
+	Async(EAsyncExecution::Thread, [this]() {
+		for (ACitizen* citizen : Citizens) {
+			citizen->HungerTimer++;
+			citizen->EnergyTimer++;
+			citizen->AgeTimer++;
 
-		if (citizen->HungerTimer == 3)
-			citizen->Eat();
+			if (citizen->HungerTimer == 3)
+				citizen->Eat();
 
-		if (citizen->EnergyTimer == 6)
-			citizen->CheckGainOrLoseEnergy();
+			if (citizen->EnergyTimer == 6)
+				citizen->CheckGainOrLoseEnergy();
 
-		if (citizen->AgeTimer == 45)
-			citizen->Birthday();
+			if (citizen->AgeTimer == 45)
+				citizen->Birthday();
 
-		for (FConditionStruct condition : citizen->HealthIssues) {
-			condition.Level++;
+			for (FConditionStruct condition : citizen->HealthIssues) {
+				condition.Level++;
 
-			if (condition.Level == condition.DeathLevel)
-				citizen->HealthComponent->TakeHealth(100, citizen);
+				if (condition.Level == condition.DeathLevel)
+					citizen->HealthComponent->TakeHealth(100, citizen);
+			}
 		}
-	}
 
-	DiseaseTimer++;
+		DiseaseTimer++;
 
-	if (DiseaseTimer == DiseaseTimerTarget)
-		SpawnDisease();
+		if (DiseaseTimer == DiseaseTimerTarget)
+			SpawnDisease();
+	});
 }
 
 void UCitizenManager::StartTimers()
