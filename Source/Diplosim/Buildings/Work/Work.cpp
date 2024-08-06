@@ -59,7 +59,7 @@ void AWork::OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class 
 
 	AHouse* house = Cast<AHouse>(OtherActor);
 
-	if (Belief.Religion != EReligion::Undecided)
+	if (Belief.Religion != EReligion::Atheist)
 		house->Religions.RemoveSingle(Belief);
 
 	for (FPartyStruct party : Swing)

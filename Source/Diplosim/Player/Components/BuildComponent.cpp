@@ -82,14 +82,14 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (!IsValidLocation(building) || !CheckBuildCosts()) {
 			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
-			if (decalComp != nullptr)
-				decalComp->SetHiddenInGame(true);
+			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
+				decalComp->SetVisibility(false);
 		}
 		else {
 			building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
 
-			if (decalComp != nullptr)
-				decalComp->SetHiddenInGame(false);
+			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
+				decalComp->SetVisibility(true);
 		}
 	}
 }
@@ -384,7 +384,7 @@ void UBuildComponent::Place()
 		UDecalComponent* decalComp = building->FindComponentByClass<UDecalComponent>();
 
 		if (decalComp != nullptr)
-			decalComp->SetHiddenInGame(true);
+			decalComp->SetVisibility(false);
 
 		building->Build();
 	}

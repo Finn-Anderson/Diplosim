@@ -184,7 +184,7 @@ bool ACitizen::CanWork(ABuilding* ReligiousBuilding)
 	if (BioStruct.Age < 18)
 		return false;
 
-	if (ReligiousBuilding->Belief.Religion != EReligion::Undecided && ReligiousBuilding->Belief.Religion != Spirituality.Faith.Religion && Spirituality.Faith.Leaning > ESway::Moderate)
+	if (ReligiousBuilding->Belief.Religion != EReligion::Atheist && ReligiousBuilding->Belief.Religion != Spirituality.Faith.Religion && Spirituality.Faith.Leaning > ESway::Moderate)
 		return false;
 
 	return true;
@@ -208,7 +208,9 @@ void ACitizen::Eat()
 	int32 totalAmount = 0;
 
 	for (int32 i = 0; i < Food.Num(); i++) {
-		int32 curAmount = Camera->ResourceManager->GetResourceAmount(Food[i]);
+		auto value = Async(EAsyncExecution::TaskGraph, [this, i]() { return Camera->ResourceManager->GetResourceAmount(Food[i]); });
+
+		int32 curAmount = value.Get();
 
 		foodAmounts.Add(curAmount);
 		totalAmount += curAmount;
@@ -235,7 +237,7 @@ void ACitizen::Eat()
 				selected -= foodAmounts[j];
 			}
 			else {
-				Camera->ResourceManager->TakeUniversalResource(Food[j], 1, 0);
+				AsyncTask(ENamedThreads::GameThread, [this, j]() { Camera->ResourceManager->TakeUniversalResource(Food[j], 1, 0); });
 
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
@@ -611,7 +613,7 @@ void ACitizen::SetReligionLeanings()
 		partnersReligion = BioStruct.Partner->Spirituality.Faith;
 
 	if (Building.Employment->IsValidLowLevelFast()) {
-		if (Building.Employment->Belief.Religion != EReligion::Undecided)
+		if (Building.Employment->Belief.Religion != EReligion::Atheist)
 			buildingReligions.Add(Building.Employment->Belief);
 
 		for (ACitizen* citizen : Building.Employment->GetOccupied())

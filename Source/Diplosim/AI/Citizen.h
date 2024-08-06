@@ -146,7 +146,7 @@ struct FPoliticalStruct
 UENUM()
 enum class EReligion : uint8
 {
-	Undecided,
+	Atheist,
 	Egg,
 	Chicken,
 	Fox
@@ -165,7 +165,7 @@ struct FReligionStruct
 
 	FReligionStruct()
 	{
-		Religion = EReligion::Undecided;
+		Religion = EReligion::Atheist;
 		Leaning = ESway::NaN;
 	}
 

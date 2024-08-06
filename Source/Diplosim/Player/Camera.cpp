@@ -8,6 +8,7 @@
 #include "EnhancedInputComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/DecalComponent.h"
 
 #include "Map/Grid.h"
 #include "Map/Resources/Mineral.h"
@@ -190,6 +191,11 @@ void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Quantity)
 
 		height = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 	}
+
+	UDecalComponent* decal = Actor->FindComponentByClass<UDecalComponent>();
+
+	if (IsValid(decal) && decal->GetDecalMaterial() != nullptr)
+		decal->SetVisibility(true);
 
 	WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 
