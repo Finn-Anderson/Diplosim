@@ -208,7 +208,7 @@ void ACitizen::Eat()
 	int32 totalAmount = 0;
 
 	for (int32 i = 0; i < Food.Num(); i++) {
-		auto value = Async(EAsyncExecution::TaskGraph, [this, i]() { return Camera->ResourceManager->GetResourceAmount(Food[i]); });
+		auto value = Async(EAsyncExecution::TaskGraphMainThread, [this, i]() { return Camera->ResourceManager->GetResourceAmount(Food[i]); });
 
 		int32 curAmount = value.Get();
 

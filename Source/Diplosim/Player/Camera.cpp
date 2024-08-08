@@ -194,7 +194,7 @@ void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Quantity)
 
 	UDecalComponent* decal = Actor->FindComponentByClass<UDecalComponent>();
 
-	if (IsValid(decal) && decal->GetDecalMaterial() != nullptr)
+	if (IsValid(decal) && decal->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr))
 		decal->SetVisibility(true);
 
 	WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
