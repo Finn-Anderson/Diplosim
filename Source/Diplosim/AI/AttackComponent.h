@@ -78,9 +78,6 @@ public:
 
 	bool bCanAttack;
 
-	UPROPERTY()
-		AAI* Owner;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		UAnimSequence* MeleeAnim;
 

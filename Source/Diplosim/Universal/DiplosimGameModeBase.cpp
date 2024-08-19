@@ -61,13 +61,8 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		if (threat.Kills < 10)
 			continue;
 
-		ACitizen* citizen = Cast<ACitizen>(threat.Actor);
-
-		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AWall>())
-			continue;
-
 		FThreatsStruct threatStruct;
-		threatStruct.Citizen = citizen;
+		threatStruct.Actor = threat.Actor;
 
 		WavesData.Last().Threats.Add(threatStruct);
 
@@ -77,7 +72,9 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		if (chance > 15)
 			continue;
 
-		citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(true);
+		UAttackComponent* attackComp = threat.Actor->GetComponentByClass<UAttackComponent>();
+
+		attackComp->RangeComponent->SetCanEverAffectNavigation(true);
 	}
 }
 
@@ -284,10 +281,12 @@ void ADiplosimGameModeBase::SetWaveTimer()
 {
 	if (!WavesData.IsEmpty()) {
 		for (FThreatsStruct threatStruct : WavesData.Last().Threats) {
-			if (!threatStruct.Citizen->AttackComponent->RangeComponent->CanEverAffectNavigation())
+			UAttackComponent* attackComp = threatStruct.Actor->GetComponentByClass<UAttackComponent>();
+
+			if (!attackComp->RangeComponent->CanEverAffectNavigation())
 				continue;
 
-			threatStruct.Citizen->AttackComponent->RangeComponent->SetCanEverAffectNavigation(false);
+			attackComp->RangeComponent->SetCanEverAffectNavigation(false);
 		}
 	}
 

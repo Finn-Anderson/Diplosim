@@ -51,16 +51,16 @@ struct FThreatsStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	TWeakObjectPtr<class ACitizen> Citizen;
+	TWeakObjectPtr<AActor> Actor;
 
 	FThreatsStruct()
 	{
-		Citizen = nullptr;
+		Actor = nullptr;
 	}
 
 	bool operator==(const FThreatsStruct& other) const
 	{
-		return (other.Citizen == Citizen);
+		return (other.Actor == Actor);
 	}
 };
 

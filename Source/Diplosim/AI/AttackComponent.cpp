@@ -46,24 +46,25 @@ void UAttackComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Owner = Cast<AAI>(GetOwner());
-
-	if (Owner->IsA<ACitizen>()) {
+	if (GetOwner()->IsA<ACitizen>()) {
 		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 		RangeComponent->SetAreaClassOverride(gamemode->NavAreaThreat);
 
-		if (Cast<ACitizen>(Owner)->BioStruct.Age < 18)
+		if (Cast<ACitizen>(GetOwner())->BioStruct.Age < 18)
 			bCanAttack = false;
 	}
 
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
+	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &UAttackComponent::OnOverlapEnd);
 }
 
 void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (Cast<ACitizen>(Owner)->HealthComponent->Health == 0)
+	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
+
+	if (healthComp->Health == 0)
 		return;
 
 	Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
@@ -71,12 +72,12 @@ void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if ((!*ProjectileClass && !Owner->AIController->CanMoveTo(OtherActor->GetActorLocation())))
+	if ((!*ProjectileClass && (GetOwner()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AIController->CanMoveTo(OtherActor->GetActorLocation()))))
 		return;
 
-	if (Owner->IsA<AEnemy>() && (OtherActor->IsA<ACitizen>() || OtherActor->IsA<ABuilding>()))
+	if (GetOwner()->IsA<AEnemy>() && (OtherActor->IsA<ACitizen>() || OtherActor->IsA<ABuilding>()))
 			OverlappingEnemies.Add(OtherActor);
-	else if (Owner->IsA<ACitizen>() && OtherActor->IsA<AEnemy>())
+	else if ((GetOwner()->IsA<ACitizen>() || GetOwner()->IsA<ABuilding>()) && OtherActor->IsA<AEnemy>())
 		OverlappingEnemies.Add(OtherActor);
 
 	if (OverlappingEnemies.Num() == 1)
@@ -112,17 +113,20 @@ void UAttackComponent::PickTarget()
 		}
 
 		FThreatsStruct threatStruct;
-
-		if (target->IsA<ACitizen>())
-			threatStruct.Citizen = Cast<ACitizen>(target);
+		threatStruct.Actor = target;
 
 		TArray<FThreatsStruct> threats = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats;
 
 		if (!threats.IsEmpty() && threats.Contains(threatStruct)) {
-			if (threatStruct.Citizen->AttackComponent->RangeComponent->CanEverAffectNavigation() == true)
+			UAttackComponent* attackComp = threatStruct.Actor->GetComponentByClass<UAttackComponent>();
+
+			if (attackComp->RangeComponent->CanEverAffectNavigation() == true)
 				continue;
 
-			favoured = threatStruct.Citizen->Building.Employment;
+			favoured = Cast<AActor>(threatStruct.Actor);
+
+			if (threatStruct.Actor->IsA<ACitizen>() && Cast<ACitizen>(threatStruct.Actor)->Building.Employment != nullptr)
+				favoured = Cast<ACitizen>(threatStruct.Actor)->Building.Employment;
 
 			break;
 		}
@@ -146,7 +150,8 @@ void UAttackComponent::PickTarget()
 		CurrentTarget = favoured;
 
 		if (CurrentTarget == nullptr) {
-			Owner->AIController->DefaultAction();
+			if (GetOwner()->IsA<AAI>())
+				Cast<AAI>(GetOwner())->AIController->DefaultAction();
 
 			GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
 
@@ -156,7 +161,7 @@ void UAttackComponent::PickTarget()
 		if ((*ProjectileClass || MeleeableEnemies.Contains(CurrentTarget)) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
 			Attack();
 		else
-			Owner->AIController->AIMoveTo(CurrentTarget);
+			Cast<AAI>(GetOwner())->AIController->AIMoveTo(CurrentTarget);
 	});
 }
 
@@ -187,7 +192,7 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-	NavData->CalcPathLength(Owner->GetActorLocation(), Actor->GetActorLocation(), Favourability.Dist);
+	NavData->CalcPathLength(GetOwner()->GetActorLocation(), Actor->GetActorLocation(), Favourability.Dist);
 
 	return Favourability;
 }
@@ -213,12 +218,13 @@ void UAttackComponent::Attack()
 	if (healthComp->Health == 0)
 		return;
 
-	Owner->AIController->StopMovement();
+	if (GetOwner()->IsA<AAI>())
+		Cast<AAI>(GetOwner())->AIController->StopMovement();
 
 	float time = 1.0f;
 
-	if (Owner->IsA<ACitizen>())
-		time /= FMath::LogX(100.0f, FMath::Clamp(Cast<ACitizen>(Owner)->Energy, 2, 100));
+	if (GetOwner()->IsA<ACitizen>())
+		time /= FMath::LogX(100.0f, FMath::Clamp(Cast<ACitizen>(GetOwner())->Energy, 2, 100));
 
 	FTimerHandle AnimTimer;
 
@@ -226,7 +232,8 @@ void UAttackComponent::Attack()
 		if (RangeAnim->IsValidLowLevelFast()) {
 			RangeAnim->RateScale = 0.5f / time;
 
-			Owner->GetMesh()->PlayAnimation(RangeAnim, false);
+			if (GetOwner()->IsA<AAI>())
+				Cast<AAI>(GetOwner())->GetMesh()->PlayAnimation(RangeAnim, false);
 		}
 
 		GetWorld()->GetTimerManager().SetTimer(AnimTimer, this, &UAttackComponent::Throw, time, false);
@@ -235,7 +242,7 @@ void UAttackComponent::Attack()
 		if (MeleeAnim->IsValidLowLevelFast()) {
 			MeleeAnim->RateScale = 0.5f / time;
 
-			Owner->GetMesh()->PlayAnimation(MeleeAnim, false);
+			Cast<AAI>(GetOwner())->GetMesh()->PlayAnimation(MeleeAnim, false);
 		}
 
 		GetWorld()->GetTimerManager().SetTimer(AnimTimer, this, &UAttackComponent::Melee, time / 2, false);
@@ -250,7 +257,7 @@ void UAttackComponent::Throw()
 		return;
 
 	Async(EAsyncExecution::Thread, [this]() {
-		USkeletalMeshComponent* ownerComp = Cast<USkeletalMeshComponent>(Owner->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+		USkeletalMeshComponent* ownerComp = Cast<USkeletalMeshComponent>(GetOwner()->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 		USkeletalMeshComponent* targetComp = Cast<USkeletalMeshComponent>(CurrentTarget->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 
 		UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
@@ -258,7 +265,10 @@ void UAttackComponent::Throw()
 		double g = FMath::Abs(GetWorld()->GetGravityZ());
 		double v = projectileMovement->InitialSpeed;
 
-		FVector startLoc = Owner->GetActorLocation() + FVector(0.0f, 0.0f, ownerComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z) + GetOwner()->GetActorForwardVector();
+		FVector startLoc = GetOwner()->GetActorLocation() + FVector(0.0f, 0.0f, ownerComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z);
+
+		if (GetOwner()->IsA<AAI>())
+			startLoc += GetOwner()->GetActorForwardVector();
 
 		FVector targetLoc = CurrentTarget->GetActorLocation();
 		targetLoc += CurrentTarget->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
@@ -271,7 +281,7 @@ void UAttackComponent::Throw()
 		FHitResult hit;
 
 		FCollisionQueryParams queryParams;
-		queryParams.AddIgnoredActor(Owner);
+		queryParams.AddIgnoredActor(GetOwner());
 
 		if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, CurrentTarget->GetActorLocation(), ECollisionChannel::ECC_PhysicsBody, queryParams)) {
 			if (hit.GetActor()->IsA<AEnemy>()) {
@@ -293,10 +303,11 @@ void UAttackComponent::Throw()
 
 		FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
 
-		Owner->SetActorRotation(ang);
+		if (GetOwner()->IsA<AAI>())
+			GetOwner()->SetActorRotation(ang);
 
 		AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
-		projectile->Owner = Owner;
+		projectile->Owner = GetOwner();
 	});
 }
 
@@ -307,7 +318,7 @@ void UAttackComponent::Melee()
 
 	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
 
-	healthComp->TakeHealth(Damage, Owner);
+	healthComp->TakeHealth(Damage, GetOwner());
 }
 
 void UAttackComponent::ClearAttacks()
@@ -318,8 +329,8 @@ void UAttackComponent::ClearAttacks()
 
 		AAI* ai = Cast<AAI>(target);
 
-		ai->AttackComponent->OverlappingEnemies.Remove(Owner);
-		ai->AttackComponent->MeleeableEnemies.Remove(Owner);
+		ai->AttackComponent->OverlappingEnemies.Remove(GetOwner());
+		ai->AttackComponent->MeleeableEnemies.Remove(GetOwner());
 	}
 
 	OverlappingEnemies.Empty();
