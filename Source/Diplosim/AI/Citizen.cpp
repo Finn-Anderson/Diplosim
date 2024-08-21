@@ -221,7 +221,7 @@ void ACitizen::Eat()
 
 		SetActorTickEnabled(true);
 
-		SetPopupImageState("Add", "Hunger");
+		AsyncTask(ENamedThreads::GameThread, [this]() { SetPopupImageState("Add", "Hunger"); });
 
 		return;
 	}
@@ -256,7 +256,7 @@ void ACitizen::Eat()
 			SetActorTickEnabled(false);
 		}
 
-		SetPopupImageState("Remove", "Hunger");
+		AsyncTask(ENamedThreads::GameThread, [this]() { SetPopupImageState("Remove", "Hunger"); });
 	}
 }
 

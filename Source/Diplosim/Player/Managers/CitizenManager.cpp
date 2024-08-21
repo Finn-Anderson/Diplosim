@@ -91,7 +91,7 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 
 	Citizen->SetActorTickEnabled(true);
 
-	Citizen->SetPopupImageState("Add", "Disease");
+	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() { Citizen->SetPopupImageState("Add", "Disease"); });
 
 	Infected.Add(Citizen);
 
@@ -169,7 +169,7 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 		Citizen->SetActorTickEnabled(false);
 	}
 
-	Citizen->SetPopupImageState("Remove", "Disease");
+	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() { Citizen->SetPopupImageState("Remove", "Disease"); });
 
 	Infected.Remove(Citizen);
 	Injured.Remove(Citizen);
@@ -180,10 +180,12 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 
 void UCitizenManager::UpdateHealthText(ACitizen* Citizen)
 {
-	ACamera* camera = Cast<ACamera>(GetOwner());
+	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
+		ACamera* camera = Cast<ACamera>(GetOwner());
 
-	if (camera->WidgetComponent->IsAttachedTo(Citizen->GetRootComponent()))
-		camera->UpdateHealthIssues();
+		if (camera->WidgetComponent->IsAttachedTo(Citizen->GetRootComponent()))
+			camera->UpdateHealthIssues();
+	});
 }
 
 void UCitizenManager::PickCitizenToHeal(ACitizen* Healer)
