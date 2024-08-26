@@ -28,7 +28,7 @@ void ADiplosimAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (Cast<ACitizen>(Owner)->HealthComponent->Health == 0 || !IsValid(MoveRequest.GetGoalActor()))
+	if (Cast<AAI>(Owner)->HealthComponent->Health == 0 || !IsValid(MoveRequest.GetGoalActor()))
 		return;
 
 	TSubclassOf<UNavigationQueryFilter> filter = Cast<AAI>(GetOwner())->NavQueryFilter;

@@ -26,6 +26,9 @@ public:
 		class UNiagaraSystem* TrailSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+		class UNiagaraSystem* ExplosionSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		class USphereComponent* ExplosionComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
@@ -45,4 +48,6 @@ public:
 
 	UFUNCTION()
 		void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	void SpawnNiagaraSystems(AActor* Launcher);
 };

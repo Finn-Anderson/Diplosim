@@ -268,10 +268,7 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 			return false;
 	}
 
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
-
-	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies() || camera->Start)
+	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies())
 		return false;
 
 	return true;

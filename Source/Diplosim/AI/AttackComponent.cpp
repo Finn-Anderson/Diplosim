@@ -37,6 +37,8 @@ UAttackComponent::UAttackComponent()
 
 	Damage = 10;
 
+	AttackTime = 1.0f;
+
 	CurrentTarget = nullptr;
 
 	bCanAttack = true;
@@ -160,7 +162,7 @@ void UAttackComponent::PickTarget()
 
 		if ((*ProjectileClass || MeleeableEnemies.Contains(CurrentTarget)) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
 			Attack();
-		else
+		else if (GetOwner()->IsA<AAI>())
 			Cast<AAI>(GetOwner())->AIController->AIMoveTo(CurrentTarget);
 	});
 }
@@ -221,7 +223,7 @@ void UAttackComponent::Attack()
 	if (GetOwner()->IsA<AAI>())
 		Cast<AAI>(GetOwner())->AIController->StopMovement();
 
-	float time = 1.0f;
+	float time = AttackTime;
 
 	if (GetOwner()->IsA<ACitizen>())
 		time /= FMath::LogX(100.0f, FMath::Clamp(Cast<ACitizen>(GetOwner())->Energy, 2, 100));
@@ -256,59 +258,61 @@ void UAttackComponent::Throw()
 	if (!bCanAttack || CurrentTarget == nullptr)
 		return;
 
-	Async(EAsyncExecution::Thread, [this]() {
-		USkeletalMeshComponent* ownerComp = Cast<USkeletalMeshComponent>(GetOwner()->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
-		USkeletalMeshComponent* targetComp = Cast<USkeletalMeshComponent>(CurrentTarget->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
-		UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
+	float z = 0.0f;
 
-		double g = FMath::Abs(GetWorld()->GetGravityZ());
-		double v = projectileMovement->InitialSpeed;
+	if (GetOwner()->IsA<ABuilding>())
+		z = Cast<UStaticMeshComponent>(GetOwner()->GetComponentByClass(UStaticMeshComponent::StaticClass()))->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	else
+		z = Cast<USkeletalMeshComponent>(GetOwner()->GetComponentByClass(USkeletalMeshComponent::StaticClass()))->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
 
-		FVector startLoc = GetOwner()->GetActorLocation() + FVector(0.0f, 0.0f, ownerComp->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z);
+	double g = FMath::Abs(GetWorld()->GetGravityZ());
+	double v = projectileMovement->InitialSpeed;
 
-		if (GetOwner()->IsA<AAI>())
-			startLoc += GetOwner()->GetActorForwardVector();
+	FVector startLoc = GetOwner()->GetActorLocation() + FVector(0.0f, 0.0f, z);
 
-		FVector targetLoc = CurrentTarget->GetActorLocation();
-		targetLoc += CurrentTarget->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
+	if (GetOwner()->IsA<AAI>())
+		startLoc += GetOwner()->GetActorForwardVector();
 
-		FRotator lookAt = (targetLoc - startLoc).Rotation();
+	FVector targetLoc = CurrentTarget->GetActorLocation();
+	targetLoc += CurrentTarget->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
 
-		double angle = 0.0f;
-		double d = 0.0f;
+	FRotator lookAt = (targetLoc - startLoc).Rotation();
 
-		FHitResult hit;
+	double angle = 0.0f;
+	double d = 0.0f;
 
-		FCollisionQueryParams queryParams;
-		queryParams.AddIgnoredActor(GetOwner());
+	FHitResult hit;
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, CurrentTarget->GetActorLocation(), ECollisionChannel::ECC_PhysicsBody, queryParams)) {
-			if (hit.GetActor()->IsA<AEnemy>()) {
-				d = FVector::Dist(startLoc, targetLoc);
+	FCollisionQueryParams queryParams;
+	queryParams.AddIgnoredActor(GetOwner());
 
-				angle = 0.5f * FMath::Asin((g * FMath::Cos((45.0f + lookAt.Pitch) * (PI / 180.0f)) * d) / FMath::Square(v)) * (180.0f / PI) + lookAt.Pitch;
-			}
-			else {
-				FVector groundedLocation = FVector(startLoc.X, startLoc.Y, targetLoc.Z);
-				d = FVector::Dist(groundedLocation, targetLoc);
+	if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, CurrentTarget->GetActorLocation(), ECollisionChannel::ECC_PhysicsBody, queryParams)) {
+		if (hit.GetActor()->IsA<AEnemy>()) {
+			d = FVector::Dist(startLoc, targetLoc);
 
-				double h = startLoc.Z - targetLoc.Z;
-
-				double phi = FMath::Atan(d / h);
-
-				angle = (FMath::Acos(((g * FMath::Square(d)) / FMath::Square(v) - h) / FMath::Sqrt(FMath::Square(h) + FMath::Square(d))) + phi) / 2 * (180.0f / PI);
-			}
+			angle = 0.5f * FMath::Asin((g * FMath::Cos((45.0f + lookAt.Pitch) * (PI / 180.0f)) * d) / FMath::Square(v)) * (180.0f / PI) + lookAt.Pitch;
 		}
+		else {
+			FVector groundedLocation = FVector(startLoc.X, startLoc.Y, targetLoc.Z);
+			d = FVector::Dist(groundedLocation, targetLoc);
 
-		FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
+			double h = startLoc.Z - targetLoc.Z;
 
-		if (GetOwner()->IsA<AAI>())
-			GetOwner()->SetActorRotation(ang);
+			double phi = FMath::Atan(d / h);
 
-		AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
-		projectile->Owner = GetOwner();
-	});
+			angle = (FMath::Acos(((g * FMath::Square(d)) / FMath::Square(v) - h) / FMath::Sqrt(FMath::Square(h) + FMath::Square(d))) + phi) / 2 * (180.0f / PI);
+		}
+	}
+
+	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
+
+	if (GetOwner()->IsA<AAI>())
+		GetOwner()->SetActorRotation(ang);
+
+	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
+	projectile->SpawnNiagaraSystems(GetOwner());
 }
 
 void UAttackComponent::Melee()
