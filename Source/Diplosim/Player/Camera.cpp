@@ -202,8 +202,6 @@ void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Quantity)
 	if (Location == FVector::Zero())
 		Location = Actor->GetActorLocation();
 
-	WidgetComponent->SetWorldLocation(Location + FVector(0.0f, 0.0f, height));
-
 	WidgetComponent->SetHiddenInGame(false);
 }
 
