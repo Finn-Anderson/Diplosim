@@ -4,6 +4,7 @@
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavFilters/NavigationQueryFilter.h"
 
 #include "AI.h"
 #include "Citizen.h"

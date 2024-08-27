@@ -8,8 +8,10 @@ public class DiplosimEditorTarget : TargetRules
 	public DiplosimEditorTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
-		DefaultBuildSettings = BuildSettingsVersion.V4;
-		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
+		DefaultBuildSettings = BuildSettingsVersion.V5;
+        CppStandard = CppStandardVersion.Default;
+        bValidateFormatStrings = true;
+        IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
 		ExtraModuleNames.Add("Diplosim");
 	}
 }
