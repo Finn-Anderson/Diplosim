@@ -17,7 +17,7 @@ ABroch::ABroch()
 	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
 }
 
-void ABroch::FindCitizens()
+void ABroch::SpawnCitizens()
 {
 	TArray<FName> names = BuildingMesh->GetAllSocketNames();
 

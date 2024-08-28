@@ -8,6 +8,7 @@
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/CitizenManager.h"
 #include "Buildings/House.h"
 
 AWork::AWork()
@@ -59,8 +60,7 @@ void AWork::OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class 
 
 	AHouse* house = Cast<AHouse>(OtherActor);
 
-	if (Belief.Religion != EReligion::Atheist)
-		house->Religions.RemoveSingle(Belief);
+	house->Religions.RemoveSingle(Belief);
 
 	for (FPartyStruct party : Swing)
 		house->Parties.RemoveSingle(party);
@@ -78,27 +78,6 @@ void AWork::UpkeepCost()
 
 	int32 upkeep = Wage * Occupied.Num();
 	Camera->ResourceManager->TakeUniversalResource(Money, upkeep, -100000);
-}
-
-void AWork::FindCitizens()
-{
-	TArray<AActor*> citizens;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
-
-	for (int i = 0; i < citizens.Num(); i++) {
-		ACitizen* c = Cast<ACitizen>(citizens[i]);
-
-		if (!c->CanWork(this) || c->Building.Employment != nullptr || !c->AIController->CanMoveTo(GetActorLocation()))
-			continue;
-			
-		AddCitizen(c);
-
-		if (GetCapacity() == GetOccupied().Num())
-			return;
-	}
-
-	if (GetCapacity() > GetOccupied().Num())
-		GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
 }
 
 bool AWork::AddCitizen(ACitizen* Citizen)
@@ -127,9 +106,6 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 	Citizen->Building.Employment = nullptr;
 
 	Citizen->HatMesh->SetStaticMesh(nullptr);
-
-	if (!GetWorldTimerManager().IsTimerActive(FindTimer))
-		GetWorldTimerManager().SetTimer(FindTimer, this, &AWork::FindCitizens, 30.0f, false);
 
 	return true;
 }

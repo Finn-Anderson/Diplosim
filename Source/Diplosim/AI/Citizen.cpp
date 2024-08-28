@@ -190,6 +190,49 @@ bool ACitizen::CanWork(ABuilding* ReligiousBuilding)
 	return true;
 }
 
+void ACitizen::FindJobAndHouse()
+{
+	for (ABuilding* building : Camera->CitizenManager->Buildings) {
+		if (building->GetCapacity() == building->GetOccupied().Num() || !CanWork(building) || !AIController->CanMoveTo(building->GetActorLocation()))
+			continue;
+
+		if (building->IsA<AHouse>()) {
+			int32 currentRent = 0;
+			int32 newRent = 0;
+
+			for (FRentStruct rentStruct : Camera->CitizenManager->RentList) {
+				if (Building.House->IsA(rentStruct.HouseType)) {
+					currentRent = rentStruct.Rent;
+
+					break;
+				}
+			}
+
+			for (FRentStruct rentStruct : Camera->CitizenManager->RentList) {
+				if (building->IsA(rentStruct.HouseType)) {
+					newRent = rentStruct.Rent;
+
+					break;
+				}
+			}
+
+			if (Balance < newRent)
+				continue;
+
+			if (Building.Employment != nullptr && Building.House == nullptr) {
+				double magnitude = AIController->GetClosestActor(Building.Employment->GetActorLocation(), Building.House->GetActorLocation(), building->GetActorLocation(), currentRent, newRent);
+
+				if (magnitude <= 0.0f)
+					continue;
+			}
+		}
+		else if (Building.Employment != nullptr && Building.Employment->Wage >= Cast<AWork>(building)->Wage)
+			continue;
+
+		AsyncTask(ENamedThreads::GameThread, [this, building]() { building->AddCitizen(this); });
+	}
+}
+
 //
 // Food
 //

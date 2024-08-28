@@ -6,25 +6,35 @@
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/CitizenManager.h"
 
 AHouse::AHouse()
 {
-	Rent = 0;
 }
 
 void AHouse::UpkeepCost()
 {
-	for (ACitizen* citizen : GetOccupied()) {
-		if (citizen->Balance < Rent) {
-			RemoveCitizen(citizen);
-		}
-		else {
-			citizen->Balance -= Rent;
+	int32 rent = 0;
+
+	for (FRentStruct rentStruct : Camera->CitizenManager->RentList) {
+		if (IsA(rentStruct.HouseType)) {
+			rent = rentStruct.Rent;
+
+			break;
 		}
 	}
 
-	int32 rent = Rent * Occupied.Num();
-	Camera->ResourceManager->AddUniversalResource(Money, rent);
+	for (ACitizen* citizen : GetOccupied()) {
+		if (citizen->Balance < rent) {
+			RemoveCitizen(citizen);
+		}
+		else {
+			citizen->Balance -= rent;
+		}
+	}
+
+	int32 total = rent * Occupied.Num();
+	Camera->ResourceManager->AddUniversalResource(Money, total);
 }
 
 void AHouse::Enter(ACitizen* Citizen)
@@ -39,37 +49,6 @@ void AHouse::Leave(ACitizen* Citizen)
 	Super::Leave(Citizen);
 
 	Citizen->bGain = false;
-}
-
-void AHouse::FindCitizens()
-{
-	TArray<AActor*> citizens;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
-
-	for (AActor* actor : citizens) {
-		ACitizen* citizen = Cast<ACitizen>(actor);
-
-		if (citizen->Balance < Rent || !citizen->AIController->CanMoveTo(GetActorLocation()))
-			continue;
-
-		if (citizen->Building.House == nullptr) {
-			AddCitizen(citizen);
-		}
-		else if (citizen->Building.Employment != nullptr) {
-			double magnitude = citizen->AIController->GetClosestActor(citizen->Building.Employment->GetActorLocation(), citizen->Building.House->GetActorLocation(), GetActorLocation());
-
-			if (magnitude <= 0.0f)
-				continue;
-
-			AddCitizen(citizen);
-		}
-
-		if (GetCapacity() == GetOccupied().Num())
-			return;
-	}
-
-	if (GetCapacity() > Occupied.Num())
-		GetWorldTimerManager().SetTimer(FindTimer, this, &AHouse::FindCitizens, 30.0f, false);
 }
 
 bool AHouse::AddCitizen(ACitizen* Citizen)
@@ -92,9 +71,6 @@ bool AHouse::RemoveCitizen(ACitizen* Citizen)
 		return false;
 
 	Citizen->Building.House = nullptr;
-
-	if (!GetWorldTimerManager().IsTimerActive(FindTimer))
-		GetWorldTimerManager().SetTimer(FindTimer, this, &AHouse::FindCitizens, 30.0f, false);
 
 	return true;
 }

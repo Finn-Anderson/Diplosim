@@ -108,7 +108,8 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
-	TArray<FCollisionStruct> Collisions;
+	UPROPERTY()
+		TArray<FCollisionStruct> Collisions;
 	
 	UFUNCTION(BlueprintCallable)
 		void DestroyBuilding();
@@ -116,8 +117,6 @@ public:
 	virtual void Enter(class ACitizen* Citizen);
 
 	virtual void Leave(class ACitizen* Citizen);
-
-	virtual void FindCitizens();
 
 	virtual bool AddCitizen(class ACitizen* Citizen);
 
@@ -146,9 +145,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen")
 		bool bHideCitizen;
 
-	TArray<FTreeStruct> TreeList;
+	UPROPERTY()
+		TArray<FTreeStruct> TreeList;
 
-	UStaticMesh* ActualMesh;
+	UPROPERTY()
+		UStaticMesh* ActualMesh;
 
 	void Build();
 
@@ -157,6 +158,9 @@ public:
 	// Upkeep
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		TSubclassOf<class AResource> Money;
+
+	UPROPERTY()
+		int32 UpkeepTimer;
 
 	virtual void UpkeepCost();
 

@@ -12,12 +12,11 @@ class DIPLOSIM_API AHouse : public ABuilding
 public:
 	AHouse();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
-		int32 Rent;
+	UPROPERTY()
+		TArray<FReligionStruct> Religions;
 
-	TArray<FReligionStruct> Religions;
-
-	TArray<FPartyStruct> Parties;
+	UPROPERTY()
+		TArray<FPartyStruct> Parties;
 
 	virtual void UpkeepCost() override;
 
@@ -27,10 +26,6 @@ public:
 
 
 	// Citizens
-	FTimerHandle FindTimer;
-
-	virtual void FindCitizens() override;
-
 	virtual bool AddCitizen(class ACitizen* Citizen) override;
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;

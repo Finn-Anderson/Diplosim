@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Kismet/KismetArrayLibrary.h"
 
 #include "AI/Citizen.h"
 #include "AI/AttackComponent.h"
@@ -32,6 +33,15 @@ void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	Async(EAsyncExecution::Thread, [this]() {
+		for (ABuilding* building : Buildings) {
+			building->UpkeepTimer++;
+
+			if (building->UpkeepTimer == 300)
+				building->UpkeepCost();
+		}
+
+		Shuffle();
+
 		for (ACitizen* citizen : Citizens) {
 			citizen->HungerTimer++;
 			citizen->EnergyTimer++;
@@ -52,6 +62,8 @@ void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				if (condition.Level == condition.DeathLevel)
 					citizen->HealthComponent->TakeHealth(100, citizen);
 			}
+
+			citizen->FindJobAndHouse();
 		}
 
 		DiseaseTimer++;
@@ -64,6 +76,18 @@ void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 void UCitizenManager::StartTimers()
 {
 	SetComponentTickEnabled(true);
+}
+
+void UCitizenManager::Shuffle()
+{
+	for (int32 i = 0; i < Citizens.Num(); i++) {
+		int32 index = FMath::RandRange(i, Citizens.Num() - 1);
+
+		if (index == i)
+			continue;
+
+		Citizens.Swap(i, index);
+	}
 }
 
 //

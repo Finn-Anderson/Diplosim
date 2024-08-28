@@ -42,13 +42,8 @@ public:
 	virtual void UpkeepCost() override;
 
 	// Citizens
-	UPROPERTY()
-		FTimerHandle FindTimer;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UStaticMesh* WorkHat;
-
-	virtual void FindCitizens() override;
 
 	virtual bool AddCitizen(class ACitizen* Citizen) override;
 

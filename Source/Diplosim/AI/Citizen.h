@@ -29,7 +29,7 @@ struct FBuildingStruct
 		class AHouse* House;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class ABuilding* Employment;
+		class AWork* Employment;
 
 	class ABuilding* BuildingAt;
 
@@ -249,9 +249,10 @@ public:
 	// Work
 	bool CanWork(class ABuilding* ReligiousBuilding);
 
+	void FindJobAndHouse();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		int32 Balance;
-
 
 	// Buildings
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
@@ -259,7 +260,6 @@ public:
 
 	UPROPERTY()
 		TArray<FCollidingStruct> StillColliding;
-
 
 	// Resources
 	void StartHarvestTimer(class AResource* Resource, int32 Instance);
@@ -270,7 +270,6 @@ public:
 
 	UPROPERTY()
 		FCarryStruct Carrying;
-
 
 	// Food
 	void Eat();
@@ -283,7 +282,6 @@ public:
 
 	UPROPERTY()
 		int32 HungerTimer;
-
 
 	// Energy
 	void CheckGainOrLoseEnergy();
@@ -303,7 +301,6 @@ public:
 
 	UPROPERTY()
 		float InitialSpeed;
-
 
 	// Bio
 	void Birthday();

@@ -79,6 +79,24 @@ struct FConditionStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FRentStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rent")
+		TSubclassOf<class AHouse> HouseType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rent")
+		int32 Rent;
+
+	FRentStruct()
+	{
+		HouseType = nullptr;
+		Rent = 0;
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UCitizenManager : public UActorComponent
 {
@@ -95,8 +113,16 @@ public:
 
 	void StartTimers();
 
+	void Shuffle();
+
 	UPROPERTY()
-		TArray<class ACitizen*> Citizens; 
+		TArray<class ACitizen*> Citizens;
+
+	UPROPERTY()
+		TArray<class ABuilding*> Buildings;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rent")
+		TArray<FRentStruct> RentList;
 		
 	// Disease
 	void SpawnDisease();

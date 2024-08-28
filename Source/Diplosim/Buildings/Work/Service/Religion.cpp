@@ -35,18 +35,6 @@ void AReligion::Leave(ACitizen* Citizen)
 	Worshipping.Remove(Citizen);
 }
 
-void AReligion::FindCitizens()
-{
-	Super::FindCitizens();
-
-	for (AHouse* house : Houses) {
-		house->Religions.Add(Belief);
-
-		for (FPartyStruct party : Swing)
-			house->Parties.Add(party);
-	}
-}
-
 void AReligion::Mass()
 {
 	bMass = !bMass;

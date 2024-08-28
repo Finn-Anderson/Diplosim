@@ -18,6 +18,7 @@
 #include "Managers/ConstructionManager.h"
 #include "Managers/CitizenManager.h"
 #include "Buildings/Building.h"
+#include "Buildings/Misc/Broch.h"
 #include "AI/AI.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/EggBasket.h"
@@ -157,6 +158,8 @@ void ACamera::StartGame(ABuilding* Broch)
 	GetWorld()->GetTimerManager().SetTimer(ResourceManager->InterestTimer, ResourceManager, &UResourceManager::Interest, 300.0f, true);
 
 	CitizenManager->StartTimers();
+
+	Cast<ABroch>(Broch)->SpawnCitizens();
 }
 
 void ACamera::TickWhenPaused(bool bTickWhenPaused)

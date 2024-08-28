@@ -22,5 +22,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		class UDecalComponent* DecalComponent;
 
-	virtual void FindCitizens() override;
+	void SpawnCitizens();
 };

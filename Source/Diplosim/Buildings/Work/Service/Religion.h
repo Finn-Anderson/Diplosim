@@ -16,8 +16,6 @@ public:
 
 	virtual void Leave(class ACitizen* Citizen) override;
 
-	virtual void FindCitizens() override;
-
 	void Mass();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")

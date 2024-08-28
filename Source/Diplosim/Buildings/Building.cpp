@@ -13,6 +13,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConstructionManager.h"
+#include "Player/Managers/CitizenManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Map/Resources/Vegetation.h"
 #include "Map/Grid.h"
@@ -58,6 +59,8 @@ ABuilding::ABuilding()
 
 	Storage = 0;
 	StorageCap = 1000;
+
+	UpkeepTimer = 0;
 
 	bHideCitizen = true;
 
@@ -222,9 +225,7 @@ void ABuilding::OnBuilt()
 	UConstructionManager* cm = Camera->ConstructionManager;
 	cm->RemoveBuilding(this);
 
-	GetWorldTimerManager().SetTimer(CostTimer, this, &ABuilding::UpkeepCost, 300.0f, true);
-
-	FindCitizens();
+	Camera->CitizenManager->Buildings.Add(this);
 
 	if (bConstant)
 		ParticleComponent->Activate();
@@ -232,12 +233,7 @@ void ABuilding::OnBuilt()
 
 void ABuilding::UpkeepCost()
 {
-
-}
-
-void ABuilding::FindCitizens()
-{
-
+	
 }
 
 bool ABuilding::AddCitizen(ACitizen* Citizen)
@@ -261,9 +257,6 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	Occupied.Remove(Citizen);
 
 	Citizen->AIController->DefaultAction();
-	
-	if (GetOccupied().Num() != Capacity)
-		FindCitizens();
 
 	return true;
 }
@@ -378,8 +371,6 @@ void ABuilding::AddCapacity()
 		return;
 
 	Capacity++;
-
-	FindCitizens();
 }
 
 void ABuilding::RemoveCapacity()
