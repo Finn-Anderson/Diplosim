@@ -43,6 +43,9 @@ void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		Shuffle();
 
 		for (ACitizen* citizen : Citizens) {
+			if (citizen->Rebel)
+				continue;
+
 			citizen->HungerTimer++;
 			citizen->EnergyTimer++;
 			citizen->AgeTimer++;
@@ -64,6 +67,8 @@ void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			}
 
 			citizen->FindJobAndHouse();
+			
+			citizen->SetHappiness();
 		}
 
 		DiseaseTimer++;

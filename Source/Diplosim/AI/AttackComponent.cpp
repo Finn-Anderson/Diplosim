@@ -77,9 +77,9 @@ void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 	if ((!*ProjectileClass && (GetOwner()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AIController->CanMoveTo(OtherActor->GetActorLocation()))))
 		return;
 
-	if (GetOwner()->IsA<AEnemy>() && (OtherActor->IsA<ACitizen>() || OtherActor->IsA<ABuilding>()))
+	if ((GetOwner()->IsA<AEnemy>() || (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Rebel)) && (OtherActor->IsA<ACitizen>() || OtherActor->IsA<ABuilding>()))
 			OverlappingEnemies.Add(OtherActor);
-	else if ((GetOwner()->IsA<ACitizen>() || GetOwner()->IsA<ABuilding>()) && OtherActor->IsA<AEnemy>())
+	else if ((GetOwner()->IsA<ACitizen>() || GetOwner()->IsA<ABuilding>()) && (OtherActor->IsA<AEnemy>() || (OtherActor->IsA<ACitizen>() && Cast<ACitizen>(OtherActor)->Rebel)))
 		OverlappingEnemies.Add(OtherActor);
 
 	if (OverlappingEnemies.Num() == 1)

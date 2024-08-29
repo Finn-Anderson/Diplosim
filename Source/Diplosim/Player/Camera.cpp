@@ -179,20 +179,11 @@ void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Quantity)
 {
 	SetInteractableText(Actor, Quantity);
 
-	float height;
-
 	if (Actor->IsA<AAI>()) {
-		height = Cast<AAI>(Actor)->GetMesh()->GetLocalBounds().GetBox().GetSize().Z;
-
 		AttachToActor(Actor, FAttachmentTransformRules::KeepRelativeTransform);
 		SetActorLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
 
 		SpringArmComponent->ProbeSize = 6.0f;
-	}
-	else {
-		UStaticMeshComponent* mesh = Actor->GetComponentByClass<UStaticMeshComponent>();
-
-		height = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 	}
 
 	UDecalComponent* decal = Actor->FindComponentByClass<UDecalComponent>();
@@ -200,10 +191,7 @@ void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Quantity)
 	if (IsValid(decal) && decal->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr))
 		decal->SetVisibility(true);
 
-	WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-
-	if (Location == FVector::Zero())
-		Location = Actor->GetActorLocation();
+	WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "InfoSocket");
 
 	WidgetComponent->SetHiddenInGame(false);
 }

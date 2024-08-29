@@ -342,4 +342,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		TArray<struct FConditionStruct> HealthIssues;
+
+	// Happiness
+	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
+		int32 Happiness;
+
+	UPROPERTY()
+		int32 RebelTimer;
+
+	UPROPERTY()
+		float Rebel;
+
+	void SetHappiness();
+
+	void Overthrow();
 };

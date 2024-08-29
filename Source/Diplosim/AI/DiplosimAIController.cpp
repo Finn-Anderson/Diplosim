@@ -63,7 +63,7 @@ void ADiplosimAIController::DefaultAction()
 	SetActorTickEnabled(false);
 
 	if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast()) {
-		if (GetOwner()->IsA<ACitizen>()) {
+		if (GetOwner()->IsA<ACitizen>() && !Cast<ACitizen>(GetOwner())->Rebel) {
 			ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
 			if (citizen->Building.Employment != nullptr)

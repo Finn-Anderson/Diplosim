@@ -56,10 +56,12 @@ ACitizen::ACitizen()
 
 	Hunger = 100;
 	Energy = 100;
+	Happiness = 50;
 
 	HungerTimer = 0;
 	EnergyTimer = 0;
 	AgeTimer = 0;
+	RebelTimer = 0;
 
 	bGain = false;
 
@@ -715,4 +717,68 @@ void ACitizen::SetReligionLeanings()
 
 		Spirituality.Faith.Leaning = ESway::Moderate;
 	}
+}
+
+// Happiness
+void ACitizen::SetHappiness()
+{
+	Happiness = 50;
+
+	if (Building.House == nullptr)
+		Happiness -= 10;
+	else
+		Happiness += 5;
+
+	if (Building.Employment == nullptr)
+		Happiness -= 10;
+	else
+		Happiness += 5;
+
+	if (Hunger < 20)
+		Happiness -= 30;
+	else if (Hunger > 70)
+		Happiness += 10;
+
+	if (Energy < 20)
+		Happiness -= 15;
+	else if (Energy > 70)
+		Happiness += 10;
+
+	if (Happiness < 30)
+		RebelTimer++;
+	else
+		RebelTimer = 0;
+
+	if (RebelTimer == 300)
+		Overthrow();
+}
+
+void ACitizen::Overthrow()
+{
+	Rebel = true;
+
+	int32 choice;
+
+	if (Spirituality.Faith.Religion != EReligion::Atheist && Politics.Ideology.Party != EParty::Undecided) {
+		choice = FMath::RandRange(0, 1);
+	}
+	else if (Spirituality.Faith.Religion != EReligion::Atheist) {
+		choice = 0;
+	}
+	else {
+		choice = 1;
+	}
+
+	for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
+		if (citizen == this)
+			continue;
+
+		if (citizen->Happiness <= 50 && ((choice == 0 && citizen->Spirituality.Faith.Religion == Spirituality.Faith.Religion) || (choice == 1 && citizen->Politics.Ideology.Party == Politics.Ideology.Party))) {
+			citizen->Rebel = true;
+
+			citizen->MoveToBroch();
+		}
+	}
+
+	MoveToBroch();
 }
