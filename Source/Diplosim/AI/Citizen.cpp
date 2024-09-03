@@ -757,6 +757,8 @@ void ACitizen::Overthrow()
 {
 	Rebel = true;
 
+	HatMesh->SetStaticMesh(RebelHat);
+
 	int32 choice;
 
 	if (Spirituality.Faith.Religion != EReligion::Atheist && Politics.Ideology.Party != EParty::Undecided) {

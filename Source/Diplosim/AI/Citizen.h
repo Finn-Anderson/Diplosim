@@ -350,6 +350,9 @@ public:
 	UPROPERTY()
 		int32 RebelTimer;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Happiness")
+		class UStaticMesh* RebelHat;
+
 	UPROPERTY()
 		float Rebel;
 
