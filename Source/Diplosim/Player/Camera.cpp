@@ -131,7 +131,7 @@ void ACamera::Tick(float DeltaTime)
 		HoveredActor.Actor = actor;
 
 		if (actor->IsA<AMineral>()) {
-			HoveredActor.Quantity = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent())->PerInstanceSMCustomData[hit.Item * 2];
+			HoveredActor.Instance = hit.Item;
 
 			FTransform transform;
 			Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
@@ -175,9 +175,9 @@ void ACamera::TickWhenPaused(bool bTickWhenPaused)
 	pcontroller->SetPause(!bTickWhenPaused);
 }
 
-void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Quantity)
+void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Instance)
 {
-	SetInteractableText(Actor, Quantity);
+	SetInteractableText(Actor, Instance);
 
 	if (Actor->IsA<AAI>()) {
 		AttachToActor(Actor, FAttachmentTransformRules::KeepRelativeTransform);
@@ -191,7 +191,14 @@ void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Quantity)
 	if (IsValid(decal) && decal->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr))
 		decal->SetVisibility(true);
 
-	WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "InfoSocket");
+	if (Location != FVector::Zero()) {
+		WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform, "InfoSocket");
+
+		WidgetComponent->SetRelativeLocation(Location);
+	}
+	else {
+		WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "InfoSocket");
+	}
 
 	WidgetComponent->SetHiddenInGame(false);
 }
@@ -260,7 +267,7 @@ void ACamera::Action()
 		if (HoveredActor.Actor->IsA<AEggBasket>())
 			Cast<AEggBasket>(HoveredActor.Actor)->RedeemReward();
 		else
-			DisplayInteract(HoveredActor.Actor, HoveredActor.Location, HoveredActor.Quantity);
+			DisplayInteract(HoveredActor.Actor, HoveredActor.Location, HoveredActor.Instance);
 	}
 }
 

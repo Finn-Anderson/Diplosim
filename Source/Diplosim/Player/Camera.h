@@ -13,9 +13,10 @@ struct FHoverStruct
 		AActor* Actor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
-		int32 Quantity;
+		int32 Instance;
 
-	FVector Location;
+	UPROPERTY()
+		FVector Location;
 
 	FHoverStruct()
 	{
@@ -25,7 +26,7 @@ struct FHoverStruct
 	void Reset()
 	{
 		Actor = nullptr;
-		Quantity = -1;
+		Instance = 0;
 		Location = FVector::Zero();
 	}
 };
@@ -43,7 +44,7 @@ protected:
 
 public:
 	UFUNCTION(BlueprintImplementableEvent)
-		void SetInteractableText(AActor* Actor, int32 Quantity);
+		void SetInteractableText(AActor* Actor, int32 Instance);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateHealthIssues();
@@ -123,7 +124,7 @@ public:
 	void TickWhenPaused(bool bTickWhenPaused);
 
 	UFUNCTION(BlueprintCallable)
-		void DisplayInteract(AActor* Actor, FVector Location = FVector(0.0f, 0.0f, 0.0f), int32 Quantity = -1);
+		void DisplayInteract(AActor* Actor, FVector Location = FVector(0.0f, 0.0f, 0.0f), int32 Instance = 0);
 
 	void Lose();
 

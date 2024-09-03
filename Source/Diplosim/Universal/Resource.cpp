@@ -40,12 +40,6 @@ int32 AResource::GenerateYield()
 	return yield;
 }
 
-void AResource::SetQuantity(int32 Instance, int32 Value)
-{
-	ResourceHISM->SetCustomDataValue(Instance, 0, Value);
-	ResourceHISM->SetCustomDataValue(Instance, 1, Value);
-}
-
 void AResource::AddWorker(ACitizen* Citizen, int32 Instance)
 {
 	FWorkerStruct workerStruct;

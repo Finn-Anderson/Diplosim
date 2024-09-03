@@ -11,9 +11,4 @@ class DIPLOSIM_API AMineral : public AResource
 
 public:
 	AMineral();
-
-public:
-	void SetRandomQuantity(int32 Instance);
-
-	virtual void YieldStatus(int32 Instance, int32 Yield) override;
 };

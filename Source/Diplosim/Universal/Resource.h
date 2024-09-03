@@ -4,14 +4,16 @@
 #include "GameFramework/Actor.h"
 #include "Resource.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FWorkerStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	TArray<class ACitizen*> Citizens;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Workers")
+		TArray<class ACitizen*> Citizens;
 
-	int32 Instance;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Workers")
+		int32 Instance;
 
 	FWorkerStruct() {
 		Citizens = {};
@@ -51,13 +53,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 MaxWorkers;
 
-	TArray<FWorkerStruct> WorkerStruct;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Workers")
+		TArray<FWorkerStruct> WorkerStruct;
 
 	int32 GenerateYield();
 
 	int32 GetYield(class ACitizen* Citizen, int32 Instance);
-
-	void SetQuantity(int32 Instance, int32 Value);
 
 	void AddWorker(class ACitizen* citizen, int32 Instance);
 

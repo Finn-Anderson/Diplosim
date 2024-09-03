@@ -483,8 +483,6 @@ void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 
 	int32 inst = mineral->ResourceHISM->AddInstance(GetTransform(Tile));
 
-	mineral->SetRandomQuantity(inst);
-
 	ResourceTiles.Remove(Tile);
 }
 
@@ -522,9 +520,7 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 
 		int32 inst = resource->ResourceHISM->AddInstance(transform);
 
-		resource->SetQuantity(inst, resource->MaxYield);
-
-		resource->ResourceHISM->SetCustomDataValue(inst, 3, 1.0f);
+		resource->ResourceHISM->SetCustomDataValue(inst, 1, 1.0f);
 	}
 
 	ResourceTiles.Remove(Tile);
