@@ -28,13 +28,18 @@ AGrid::AGrid()
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMGround->NumCustomDataFloats = 3;
+	HISMGround->NumCustomDataFloats = 4;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
 	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMFlatGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMFlatGround->SetCastShadow(false);
-	HISMFlatGround->NumCustomDataFloats = 3;
+	HISMFlatGround->NumCustomDataFloats = 4;
+
+	HISMRampGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRampGround"));
+	HISMRampGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	HISMRampGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMRampGround->NumCustomDataFloats = 4;
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 
@@ -366,8 +371,6 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 
 	Tile->Rotation = (FRotator(0.0f, 90.0f, 0.0f) * rand).Quaternion();
 
-	int32 count = 0;
-
 	// Set fertility
 	if (Tile->Level == 7 || Tile->Level < 0)
 		return;
@@ -375,14 +378,20 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 	int32 value = FMath::RandRange(-1, 1);
 
 	int32 fTile = 0;
-	count = 0;
+	int32 count = 0;
 
 	for (auto& element : Tile->AdjacentTiles) {
 		FTileStruct* t = element.Value;
 
+		if (t->Level == 7) {
+			Tile->Fertility = 0;
+
+			return;
+		}
+
 		int32 f = t->Fertility;
 
-		if (f > 0) {
+		if (f > -1) {
 			fTile += f;
 			count++;
 		}
@@ -421,7 +430,12 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		float g = 0.0f;
 		float b = 0.0f;
 
-		if (Tile->Fertility == 1) {
+		if (Tile->Fertility == 0) {
+			r = 30.0f;
+			g = 20.0f;
+			b = 13.0f;
+		}
+		else if (Tile->Fertility == 1) {
 			r = 255.0f;
 			g = 225.0f;
 			b = 45.0f;
@@ -451,26 +465,53 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		g /= 255.0f;
 		b /= 255.0f;
 
-		bool bFlat = true;
+		bool bRamp = false;
 
-		if (Tile->AdjacentTiles.Num() < 4)
-			bFlat = false;
-		else
-			for (auto& element : Tile->AdjacentTiles)
-				if (element.Value->Level < Tile->Level || element.Value->Level == 7)
-					bFlat = false;
+		int32 chance = FMath::RandRange(1, 100);
 
-		if (bFlat) {
-			inst = HISMFlatGround->AddInstance(transform);
-			HISMFlatGround->SetCustomDataValue(inst, 0, r);
-			HISMFlatGround->SetCustomDataValue(inst, 1, g);
-			HISMFlatGround->SetCustomDataValue(inst, 2, b);
+		for (auto& element : Tile->AdjacentTiles) {
+			if (element.Value->Level > Tile->Level && element.Value->Level != 7 && chance > 99) {
+				bRamp = true;
+
+				transform.SetRotation((FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0) - FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, 0)).ToOrientationQuat());
+				transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
+
+				break;
+			}
+		}
+			
+
+		if (bRamp) {
+			inst = HISMRampGround->AddInstance(transform);
+			HISMRampGround->SetCustomDataValue(inst, 0, 1.0f);
+			HISMRampGround->SetCustomDataValue(inst, 1, r);
+			HISMRampGround->SetCustomDataValue(inst, 2, g);
+			HISMRampGround->SetCustomDataValue(inst, 3, b);
 		}
 		else {
-			inst = HISMGround->AddInstance(transform);
-			HISMGround->SetCustomDataValue(inst, 0, r);
-			HISMGround->SetCustomDataValue(inst, 1, g);
-			HISMGround->SetCustomDataValue(inst, 2, b);
+			bool bFlat = true;
+
+			if (Tile->AdjacentTiles.Num() < 4)
+				bFlat = false;
+			else
+				for (auto& element : Tile->AdjacentTiles)
+					if (element.Value->Level < Tile->Level || (element.Value->Level == 7 && Tile->Level != 5))
+						bFlat = false;
+
+			if (bFlat) {
+				inst = HISMFlatGround->AddInstance(transform);
+				HISMFlatGround->SetCustomDataValue(inst, 0, 1.0f);
+				HISMFlatGround->SetCustomDataValue(inst, 1, r);
+				HISMFlatGround->SetCustomDataValue(inst, 2, g);
+				HISMFlatGround->SetCustomDataValue(inst, 3, b);
+			}
+			else {
+				inst = HISMGround->AddInstance(transform);
+				HISMGround->SetCustomDataValue(inst, 0, 1.0f);
+				HISMGround->SetCustomDataValue(inst, 1, r);
+				HISMGround->SetCustomDataValue(inst, 2, g);
+				HISMGround->SetCustomDataValue(inst, 3, b);
+			}
 		}
 	}
 
@@ -520,7 +561,7 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 
 		int32 inst = resource->ResourceHISM->AddInstance(transform);
 
-		resource->ResourceHISM->SetCustomDataValue(inst, 1, 1.0f);
+		resource->ResourceHISM->SetCustomDataValue(inst, 0, 1.0f);
 	}
 
 	ResourceTiles.Remove(Tile);
@@ -595,4 +636,5 @@ void AGrid::Clear()
 	HISMLava->ClearInstances();
 	HISMGround->ClearInstances();
 	HISMFlatGround->ClearInstances();
+	HISMRampGround->ClearInstances();
 }

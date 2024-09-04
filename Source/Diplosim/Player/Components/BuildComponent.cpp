@@ -100,7 +100,7 @@ void UBuildComponent::SetBuildingsOnPath()
 
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
 		for (FTreeStruct treeStruct : Buildings[i]->TreeList)
-			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
+			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 0, 1.0f);
 
 		Buildings[i]->DestroyBuilding();
 
@@ -296,7 +296,7 @@ void UBuildComponent::RemoveBuilding()
 
 	for (ABuilding* building : Buildings) {
 		for (FTreeStruct treeStruct : building->TreeList)
-			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
+			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 0, 1.0f);
 
 		building->DestroyBuilding();
 	}

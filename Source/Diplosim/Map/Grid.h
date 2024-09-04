@@ -25,7 +25,7 @@ struct FTileStruct
 
 		Instance = 0;
 
-		Fertility = 0;
+		Fertility = -1;
 
 		X = 0;
 
@@ -97,6 +97,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMFlatGround;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* HISMRampGround;
 	
 	TMap<FString, TArray<class AResource*>> Resources;
 

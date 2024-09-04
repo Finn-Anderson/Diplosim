@@ -141,7 +141,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 		treeStruct.Resource = Cast<AVegetation>(OtherActor);
 		treeStruct.Instance = OtherBodyIndex;
 
-		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 0.0f);
+		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 0, 0.0f);
 
 		treeStruct.Resource->ResourceHISM->MarkRenderStateDirty();
 
@@ -170,7 +170,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 	}
 
 	if (TreeList.Contains(treeStruct)) {
-		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
+		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 0, 1.0f);
 
 		treeStruct.Resource->ResourceHISM->MarkRenderStateDirty();
 
