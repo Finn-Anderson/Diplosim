@@ -57,7 +57,6 @@ ABuilding::ABuilding()
 	Capacity = 2;
 	MaxCapacity = 2;
 
-	Storage = 0;
 	StorageCap = 1000;
 
 	UpkeepTimer = 0;
@@ -94,6 +93,18 @@ void ABuilding::BeginPlay()
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
 	material->SetScalarParameterValue("Emissiveness", Emissiveness);
 	BuildingMesh->SetMaterial(0, material);
+
+	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
+
+	for (TSubclassOf<AResource> resource : resources) {
+		FItemStruct itemStruct;
+		itemStruct.Resource = resource;
+
+		if (Storage.Contains(itemStruct))
+			continue;
+
+		Storage.Add(itemStruct);
+	}
 }
 
 void ABuilding::Build()
@@ -202,7 +213,10 @@ void ABuilding::DestroyBuilding()
 		}
 	}
 
-	rm->TakeLocalResource(this, Capacity);
+	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
+
+	for (TSubclassOf<AResource> resource : resources)
+		rm->TakeLocalResource(resource, this, Capacity);
 
 	cm->RemoveBuilding(this);
 
@@ -415,10 +429,21 @@ void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<F
 	int32 amount = 0;
 	int32 capacity = 10;
 
-	TSubclassOf<AResource> resource = Camera->ResourceManager->GetResource(this);
+	TSubclassOf<AResource> resource = nullptr;
+	int32 stored = 0;
 
-	if (capacity > Storage)
-		capacity = Storage;
+	for (FItemStruct item : Storage) {
+		if (Items.Contains(item)) {
+			resource = item.Resource;
+
+			stored = item.Amount;
+
+			break;
+		}
+	}
+
+	if (capacity > stored)
+		capacity = stored;
 
 	for (FItemStruct item : Items) {
 		if (resource == item.Resource) {
@@ -428,7 +453,7 @@ void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<F
 		}
 	}
 
-	Camera->ResourceManager->TakeLocalResource(this, amount);
+	Camera->ResourceManager->TakeLocalResource(resource, this, amount);
 
 	Camera->ResourceManager->TakeCommittedResource(resource, amount);
 
@@ -440,10 +465,16 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 	if (Citizen->Carrying.Type == nullptr)
 		return;
 
-	TSubclassOf<AResource> resource = Camera->ResourceManager->GetResource(this);
+	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 
-	if (resource != nullptr && Citizen->Carrying.Type->IsA(resource)) {
-		bool canStore = Camera->ResourceManager->AddLocalResource(this, Citizen->Carrying.Amount);
+	if (!resources.IsEmpty() && resources.Contains(Citizen->Carrying.Type->GetClass())) {
+		TSubclassOf<AResource> resource = nullptr;
+
+		for (TSubclassOf<AResource> r : resources)
+			if (Citizen->Carrying.Type->IsA(r))
+				resource = r;
+
+		bool canStore = Camera->ResourceManager->AddLocalResource(resource, this, Citizen->Carrying.Amount);
 
 		if (canStore) {
 			Citizen->Carry(nullptr, 0, nullptr);

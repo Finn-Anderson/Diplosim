@@ -127,7 +127,12 @@ void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource
 		for (int32 k = 0; k < foundBuildings.Num(); k++) {
 			ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
 
-			if (building->Storage < 1)
+			FItemStruct itemStruct;
+			itemStruct.Resource = Resource;
+
+			int32 index = building->Storage.Find(itemStruct);
+
+			if (building->Storage[index].Amount < 1)
 				continue;
 
 			if (target == nullptr) {
@@ -136,12 +141,9 @@ void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource
 				continue;
 			}
 
-			int32 storage = 0;
+			int32 targetIndex = target->Storage.Find(itemStruct);
 
-			if (target != nullptr)
-				storage = target->Storage;
-
-			double magnitude = GetClosestActor(GetOwner()->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation(), storage, building->Storage);
+			double magnitude = GetClosestActor(GetOwner()->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation(), target->Storage[targetIndex].Amount, building->Storage[index].Amount);
 
 			if (magnitude <= 0.0f)
 				continue;

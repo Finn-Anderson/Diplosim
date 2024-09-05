@@ -63,7 +63,7 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 
 void AInternalProduction::Production(ACitizen* Citizen)
 {
-	Citizen->Carry(Camera->ResourceManager->GetResource(this)->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
+	Citizen->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
 		Camera->CitizenManager->Injure(citizen);

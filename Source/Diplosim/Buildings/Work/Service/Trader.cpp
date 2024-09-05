@@ -136,7 +136,12 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 			for (int32 k = 0; k < foundBuildings.Num(); k++) {
 				ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
 
-				if (building->Storage + amount > building->StorageCap)
+				FItemStruct itemStruct;
+				itemStruct.Resource = Orders[0].SellingItems[i].Resource;
+
+				int32 index = building->Storage.Find(itemStruct);
+
+				if (building->Storage[index].Amount + amount > building->StorageCap)
 					continue;
 
 				if (target == nullptr) {

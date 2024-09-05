@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "AI/Citizen.h"
+#include "Universal/Resource.h"
 #include "GameFramework/Actor.h"
 #include "Building.generated.h"
 
@@ -11,7 +12,7 @@ struct FItemStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<class AResource> Resource;
+		TSubclassOf<AResource> Resource;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Amount;
@@ -27,6 +28,11 @@ struct FItemStruct
 		Amount = 0;
 		Stored = 0;
 		Use = 0;
+	}
+
+	bool operator==(const FItemStruct& other) const
+	{
+		return (other.Resource == Resource);
 	}
 };
 
@@ -201,7 +207,7 @@ public:
 
 	// Resources
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Storage;
+		TArray<FItemStruct> Storage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 StorageCap;

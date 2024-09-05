@@ -34,21 +34,26 @@ void UResourceManager::TakeCommittedResource(TSubclassOf<class AResource> Resour
 	}
 }
 
-bool UResourceManager::AddLocalResource(ABuilding* Building, int32 Amount)
+bool UResourceManager::AddLocalResource(TSubclassOf<class AResource> Resource, ABuilding* Building, int32 Amount)
 {
-	GameMode->TallyEnemyData(GetResource(Building), Amount);
+	GameMode->TallyEnemyData(Resource, Amount);
 
-	int32 target = Building->Storage + Amount;
+	FItemStruct itemStruct;
+	itemStruct.Resource = Resource;
+
+	int32 index = Building->Storage.Find(itemStruct);
+
+	int32 target = Building->Storage[index].Amount + Amount;
 
 	bool space = true;
 
 	if (target > Building->StorageCap) {
-		Building->Storage = Building->StorageCap;
+		Building->Storage[index].Amount = Building->StorageCap;
 
 		space = false;
 	}
 	else {
-		Building->Storage = target;
+		Building->Storage[index].Amount = target;
 	}
 
 	return space;
@@ -70,7 +75,12 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 				for (int32 k = 0; k < foundBuildings.Num(); k++) {
 					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
 
-					stored += b->Storage;
+					FItemStruct itemStruct;
+					itemStruct.Resource = Resource;
+
+					int32 index = b->Storage.Find(itemStruct);
+
+					stored += b->Storage[index].Amount;
 					capacity += b->StorageCap;
 				}
 			}
@@ -94,9 +104,14 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 				for (int32 k = 0; k < foundBuildings.Num(); k++) {
 					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
 
-					AmountLeft -= (b->StorageCap - b->Storage);
+					FItemStruct itemStruct;
+					itemStruct.Resource = Resource;
 
-					b->Storage = FMath::Clamp(b->Storage + Amount, 0, 1000);
+					int32 index = b->Storage.Find(itemStruct);
+
+					AmountLeft -= (b->StorageCap - b->Storage[index].Amount);
+
+					b->Storage[index].Amount = FMath::Clamp(b->Storage[index].Amount + Amount, 0, 1000);
 
 					if (AmountLeft <= 0)
 						return true;
@@ -108,14 +123,19 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 	return false;
 }
 
-bool UResourceManager::TakeLocalResource(ABuilding* Building, int32 Amount)
+bool UResourceManager::TakeLocalResource(TSubclassOf<class AResource> Resource, ABuilding* Building, int32 Amount)
 {
-	int32 target = Building->Storage - Amount;
+	FItemStruct itemStruct;
+	itemStruct.Resource = Resource;
+
+	int32 index = Building->Storage.Find(itemStruct);
+
+	int32 target = Building->Storage[index].Amount - Amount;
 
 	if (target < 0)
 		return false;
 
-	Building->Storage = target;
+	Building->Storage[index].Amount = target;
 
 	return true;
 }
@@ -133,7 +153,12 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 				for (int32 k = 0; k < foundBuildings.Num(); k++) {
 					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
 
-					stored += b->Storage;
+					FItemStruct itemStruct;
+					itemStruct.Resource = Resource;
+
+					int32 index = b->Storage.Find(itemStruct);
+
+					stored += b->Storage[index].Amount;
 				}
 			}
 
@@ -156,9 +181,14 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 				for (int32 k = 0; k < foundBuildings.Num(); k++) {
 					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
 
-					AmountLeft -= b->Storage - Min;
+					FItemStruct itemStruct;
+					itemStruct.Resource = Resource;
 
-					b->Storage = FMath::Clamp(b->Storage - Amount, Min, 1000);
+					int32 index = b->Storage.Find(itemStruct);
+
+					AmountLeft -= b->Storage[index].Amount - Min;
+
+					b->Storage[index].Amount = FMath::Clamp(b->Storage[index].Amount - Amount, Min, 1000);
 
 					if (AmountLeft <= 0)
 						return true;
@@ -188,7 +218,12 @@ int32 UResourceManager::GetResourceAmount(TSubclassOf<AResource> Resource)
 				for (int32 k = 0; k < foundBuildings.Num(); k++) {
 					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
 
-					amount += b->Storage;
+					FItemStruct itemStruct;
+					itemStruct.Resource = Resource;
+
+					int32 index = b->Storage.Find(itemStruct);
+
+					amount += b->Storage[index].Amount;
 				}
 			}
 
@@ -199,21 +234,16 @@ int32 UResourceManager::GetResourceAmount(TSubclassOf<AResource> Resource)
 	return amount;
 }
 
-TSubclassOf<AResource> UResourceManager::GetResource(ABuilding* Building)
+TArray<TSubclassOf<AResource>> UResourceManager::GetResources(ABuilding* Building)
 {
-	TSubclassOf<AResource> resource = nullptr;
+	TArray<TSubclassOf<AResource>> resources;
 
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-			if (ResourceList[i].Buildings[j] == Building->GetClass()) {
-				resource = ResourceList[i].Type;
+	for (int32 i = 0; i < ResourceList.Num(); i++)
+		for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++)
+			if (ResourceList[i].Buildings[j] == Building->GetClass())
+				resources.Add(ResourceList[i].Type);
 
-				break;
-			}
-		}
-	}
-
-	return resource;
+	return resources;
 }
 
 TArray<TSubclassOf<class ABuilding>> UResourceManager::GetBuildings(TSubclassOf<class AResource> Resource) 

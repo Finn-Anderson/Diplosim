@@ -53,18 +53,18 @@ public:
 
 	void TakeCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount);
 
-	bool AddLocalResource(class ABuilding* Building, int32 Amount);
+	bool AddLocalResource(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
 
 	bool AddUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount);
 
-	bool TakeLocalResource(class ABuilding* Building, int32 Amount);
+	bool TakeLocalResource(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
 
 	bool TakeUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount, int32 Min);
 
 	UFUNCTION(BlueprintCallable, Category = "Resource")
 		int32 GetResourceAmount(TSubclassOf<class AResource> Resource);
 
-	TSubclassOf<AResource> GetResource(class ABuilding* Building);
+	TArray<TSubclassOf<class AResource>> GetResources(class ABuilding* Building);
 
 	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
 
