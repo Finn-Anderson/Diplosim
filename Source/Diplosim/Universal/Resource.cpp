@@ -69,6 +69,11 @@ void AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
 
 AResource* AResource::GetHarvestedResource()
 {
+	int32 chance = FMath::RandRange(1, 100);
+
+	if (SpecialResource != nullptr && chance > 99)
+		return Cast<AResource>(SpecialResource->GetDefaultObject());
+
 	if (DroppedResource == nullptr)
 		return this;
 

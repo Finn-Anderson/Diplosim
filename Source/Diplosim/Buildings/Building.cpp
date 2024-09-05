@@ -339,8 +339,11 @@ void ABuilding::Enter(ACitizen* Citizen)
 			if (!trader->Orders[0].bCancelled)
 				items = trader->Orders[0].SellingItems;
 		}
-
-		if (items.IsEmpty())
+		
+		if (deliverTo == nullptr) {
+			Citizen->AIController->DefaultAction();
+		}
+		else if (items.IsEmpty())
 			Citizen->AIController->AIMoveTo(deliverTo);
 		else
 			CarryResources(Citizen, deliverTo, items);

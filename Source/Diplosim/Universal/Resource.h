@@ -45,6 +45,9 @@ public:
 		 TArray<TSubclassOf<class AResource>> ParentResource;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		 TSubclassOf<class AResource> SpecialResource;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 MinYield;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")

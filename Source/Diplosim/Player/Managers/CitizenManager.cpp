@@ -138,7 +138,7 @@ void UCitizenManager::Injure(ACitizen* Citizen)
 {
 	int32 index = FMath::RandRange(1, 100);
 
-	if (index < 90)
+	if (index < 95)
 		return;
 	
 	TArray<FConditionStruct> conditions;

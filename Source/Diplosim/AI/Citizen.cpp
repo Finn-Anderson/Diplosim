@@ -18,6 +18,7 @@
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Service/Clinic.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 ACitizen::ACitizen()
 {
@@ -388,7 +389,16 @@ void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 
 	Camera->CitizenManager->Injure(this);
 
-	Carry(resource, Resource->GetYield(this, Instance), Building.Employment);
+	if (!Camera->ResourceManager->GetResources(Building.Employment).Contains(resource->GetClass())) {
+		ABuilding* broch = Camera->ResourceManager->GameMode->Broch;
+
+		if (!AIController->CanMoveTo(broch->GetActorLocation()))
+			AIController->DefaultAction();
+		else
+			Carry(resource, Resource->GetYield(this, Instance), broch);
+	}
+	else
+		Carry(resource, Resource->GetYield(this, Instance), Building.Employment);
 }
 
 void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
