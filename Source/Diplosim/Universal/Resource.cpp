@@ -14,6 +14,8 @@ AResource::AResource()
 	ResourceHISM->bCastDynamicShadow = true;
 	ResourceHISM->CastShadow = true;
 
+	SetRootComponent(ResourceHISM);
+
 	DroppedResource = nullptr;
 
 	MinYield = 1;

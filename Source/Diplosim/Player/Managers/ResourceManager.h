@@ -27,6 +27,9 @@ struct FResourceStruct
 	FResourceStruct()
 	{
 		Type = nullptr;
+		Committed = 0;
+		Value = 0;
+		Stored = 0;
 	}
 
 	bool operator==(const FResourceStruct& other) const

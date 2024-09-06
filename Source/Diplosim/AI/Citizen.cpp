@@ -30,9 +30,9 @@ ACitizen::ACitizen()
 	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));
+	HatMesh->SetWorldScale3D(FVector(0.1f, 0.1f, 0.1f));
 	HatMesh->SetCollisionProfileName("NoCollision", false);
 	HatMesh->SetupAttachment(GetMesh(), "HatSocket");
-	HatMesh->SetWorldScale3D(FVector(0.1f, 0.1f, 0.1f));
 
 	TorchMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TorchMesh"));
 	TorchMesh->SetCollisionProfileName("NoCollision", false);

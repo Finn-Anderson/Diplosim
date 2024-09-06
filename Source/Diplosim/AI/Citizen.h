@@ -143,7 +143,7 @@ struct FPoliticalStruct
 	FPartyStruct MothersIdeology;
 };
 
-UENUM()
+UENUM(BlueprintType, meta = (ScriptName = "EReligion"))
 enum class EReligion : uint8
 {
 	Atheist,
