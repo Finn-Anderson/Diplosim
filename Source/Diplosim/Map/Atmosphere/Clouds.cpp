@@ -89,7 +89,7 @@ void AClouds::ActivateCloud()
 	int32 chance = FMath::RandRange(1, 100);
 
 	if (chance > 75) {
-		cloud->SetVariableLinearColor(TEXT("Color"), FLinearColor(0.1f, 0.1f, 0.1f));
+		cloud->SetVariableLinearColor(TEXT("Color"), FLinearColor(0.1f, 0.1f, 0.1f, 0.9f));
 		spawnRate = 400.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
 	}
 

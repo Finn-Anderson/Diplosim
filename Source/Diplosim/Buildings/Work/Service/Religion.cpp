@@ -5,11 +5,13 @@
 #include "Buildings/House.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
 
 AReligion::AReligion()
 {
-	MassLength = 120.0f;
-	WaitLength = 900.0f;
+	MassLength = 120;
+	WaitLength = 900;
 
 	DecalComponent->SetVisibility(true);
 
@@ -22,7 +24,10 @@ void AReligion::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (GetOccupied().Contains(Citizen) && !GetWorld()->GetTimerManager().IsTimerActive(MassTimer))
+	FTimerStruct timer;
+	timer.CreateTimer(this, MassLength, FTimerDelegate::CreateUObject(this, &AReligion::Mass), false);
+
+	if (GetOccupied().Contains(Citizen) && !Camera->CitizenManager->Timers.Contains(timer))
 		Mass();
 
 	Worshipping.Add(Citizen);
@@ -47,7 +52,10 @@ void AReligion::Mass()
 			}
 		}
 
-		GetWorld()->GetTimerManager().SetTimer(MassTimer, this, &AReligion::Mass, MassLength, false);
+		FTimerStruct timer;
+		timer.CreateTimer(this, MassLength, FTimerDelegate::CreateUObject(this, &AReligion::Mass), false);
+
+		Camera->CitizenManager->Timers.Add(timer);
 	}
 	else {
 		for (AHouse* house : Houses) {
@@ -60,6 +68,9 @@ void AReligion::Mass()
 		for (ACitizen* citizen : Worshipping)
 			citizen->Spirituality.bBoost = true;
 
-		GetWorld()->GetTimerManager().SetTimer(MassTimer, this, &AReligion::Mass, WaitLength, false);
+		FTimerStruct timer;
+		timer.CreateTimer(this, WaitLength, FTimerDelegate::CreateUObject(this, &AReligion::Mass), false);
+
+		Camera->CitizenManager->Timers.Add(timer);
 	}
 }

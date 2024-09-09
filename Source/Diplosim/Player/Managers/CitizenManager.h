@@ -4,6 +4,51 @@
 #include "Components/ActorComponent.h"
 #include "CitizenManager.generated.h"
 
+USTRUCT()
+struct FTimerStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		AActor* Actor;
+
+	UPROPERTY()
+		int32 Timer;
+
+	UPROPERTY()
+		int32 Target;
+
+	FTimerDelegate Delegate;
+
+	UPROPERTY()
+		bool bRepeat;
+
+	UPROPERTY()
+		bool bPaused;
+
+	FTimerStruct()
+	{
+		Actor = nullptr;
+		Timer = 0;
+		Target = 0;
+		bRepeat = false;
+		bPaused = false;
+	}
+
+	void CreateTimer(AActor* Caller, int32 Time, FTimerDelegate TimerDelegate, bool Repeat)
+	{
+		Actor = Caller;
+		Target = Time;
+		Delegate = TimerDelegate;
+		bRepeat = Repeat;
+	}
+
+	bool operator==(const FTimerStruct& other) const
+	{
+		return (other.Actor == Actor && other.Delegate.GetUObject() == Delegate.GetUObject());
+	}
+};
+
 UENUM()
 enum class EGrade : uint8
 {
@@ -109,11 +154,11 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	void Loop();
 
 	void StartTimers();
 
-	void Shuffle();
+	void RemoveTimer(AActor* Actor, FTimerDelegate TimerDelegate);
 
 	UPROPERTY()
 		TArray<class ACitizen*> Citizens;
@@ -123,8 +168,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rent")
 		TArray<FRentStruct> RentList;
+
+	UPROPERTY()
+		TArray<FTimerStruct> Timers;
 		
 	// Disease
+	void StartDiseaseTimer();
+
 	void SpawnDisease();
 
 	void Infect(ACitizen* Citizen);
@@ -145,12 +195,6 @@ public:
 
 	UPROPERTY()
 		TArray<class ACitizen*> Injured;
-
-	UPROPERTY()
-		int32 DiseaseTimer;
-
-	UPROPERTY()
-		int32 DiseaseTimerTarget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		TArray<FConditionStruct> Diseases;

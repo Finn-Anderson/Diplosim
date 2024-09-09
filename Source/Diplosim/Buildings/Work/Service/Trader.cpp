@@ -8,6 +8,7 @@
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/CitizenManager.h"
 #include "AI/DiplosimAIController.h"
 
 ATrader::ATrader()
@@ -44,8 +45,16 @@ void ATrader::Enter(ACitizen* Citizen)
 
 	if (Orders[0].bCancelled)
 		ReturnResource(Citizen);
-	else if (CheckStored(Citizen, Orders[0].SellingItems))
-		GetWorldTimerManager().SetTimer(WaitTimer, FTimerDelegate::CreateUObject(this, &ATrader::SubmitOrder, Citizen), Orders[0].Wait + 0.01f, false);
+	else if (CheckStored(Citizen, Orders[0].SellingItems)) {
+		if (Orders[0].Wait == 0)
+			SubmitOrder(Citizen);
+		else {
+			FTimerStruct timer;
+			timer.CreateTimer(this, Orders[0].Wait, FTimerDelegate::CreateUObject(this, &ATrader::SubmitOrder, Citizen), false);
+
+			Camera->CitizenManager->Timers.Add(timer);
+		}
+	}
 }
 
 void ATrader::SubmitOrder(class ACitizen* Citizen)

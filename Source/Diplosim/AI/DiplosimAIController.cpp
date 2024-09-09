@@ -16,6 +16,7 @@
 #include "AttackComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/CitizenManager.h"
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
@@ -80,24 +81,24 @@ void ADiplosimAIController::DefaultAction()
 
 void ADiplosimAIController::Idle()
 {
-	if (!GetOwner()->IsValidLowLevelFast())
-		return;
+	AsyncTask(ENamedThreads::GameThread, [this]() {
+		if (!GetOwner()->IsValidLowLevelFast())
+			return;
 
-	PrevGoal = nullptr;
+		PrevGoal = nullptr;
 
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	FNavLocation location;
+		FNavLocation location;
+		nav->GetRandomPointInNavigableRadius(Cast<ACitizen>(GetOwner())->Camera->CitizenManager->Buildings[0]->GetActorLocation(), 1000, location);
 
-	TArray<AActor*> brochs;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
+		MoveToLocation(location);
 
-	nav->GetRandomPointInNavigableRadius(brochs[0]->GetActorLocation(), 1000, location);
+		FTimerStruct timer;
+		timer.CreateTimer(GetOwner(), FMath::RandRange(3, 10), FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle), false);
 
-	MoveToLocation(location);
-
-	int32 time = FMath::RandRange(2, 10);
-	GetWorld()->GetTimerManager().SetTimer(IdleTimer, this, &ADiplosimAIController::Idle, time, false);
+		Cast<ACitizen>(GetOwner())->Camera->CitizenManager->Timers.Add(timer);
+	});
 }
 
 double ADiplosimAIController::GetClosestActor(FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, int32 CurrentValue, int32 NewValue)
@@ -105,9 +106,14 @@ double ADiplosimAIController::GetClosestActor(FVector TargetLocation, FVector Cu
 	if (!CanMoveTo(NewLocation))
 		return -1000000.0f;
 
-	double curLength = FVector::Dist(TargetLocation, CurrentLocation);
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-	double newLength = FVector::Dist(TargetLocation, NewLocation);
+	double curLength = 100000000000.0f;
+	navData->CalcPathLength(TargetLocation, CurrentLocation, curLength);
+
+	double newLength = 100000000000.0f;
+	navData->CalcPathLength(TargetLocation, NewLocation, newLength);
 
 	double magnitude = curLength / CurrentValue - newLength / NewValue;
 
@@ -155,8 +161,10 @@ void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource
 	if (target != nullptr)
 		AIMoveTo(target);
 	else {
-		FTimerHandle checkSitesTimer;
-		GetWorldTimerManager().SetTimer(checkSitesTimer, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Camera, Resource), 30.0f, false);
+		FTimerStruct timer;
+		timer.CreateTimer(GetOwner(), 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Camera, Resource), false);
+
+		Camera->CitizenManager->Timers.Add(timer);
 	}
 }
 
@@ -219,8 +227,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 			MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 	}
 
-	if (GetWorldTimerManager().IsTimerActive(IdleTimer))
-		GetWorldTimerManager().ClearTimer(IdleTimer);
+	Cast<ACitizen>(GetOwner())->Camera->CitizenManager->RemoveTimer(GetOwner(), FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle));
 
 	TSubclassOf<UNavigationQueryFilter> filter = nullptr;
 

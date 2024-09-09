@@ -117,6 +117,8 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		UConstructionManager* cm = building->Camera->ConstructionManager;
 		cm->RemoveBuilding(building);
+
+		camera->CitizenManager->Buildings.Remove(building);
 	}
 
 	FTimerHandle clearTimer;

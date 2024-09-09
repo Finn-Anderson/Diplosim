@@ -30,6 +30,8 @@ public:
 
 	void UpdateNavigation();
 
+	void SetTimer();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate")
 		class USphereComponent* EnemyDetectionComponent;
 

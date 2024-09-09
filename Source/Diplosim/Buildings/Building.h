@@ -165,9 +165,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		TSubclassOf<class AResource> Money;
 
-	UPROPERTY()
-		int32 UpkeepTimer;
-
 	virtual void UpkeepCost();
 
 	// Building prevent overlaps

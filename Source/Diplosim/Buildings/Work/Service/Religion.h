@@ -19,14 +19,12 @@ public:
 	void Mass();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
-		float MassLength;
+		int32 MassLength;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
-		float WaitLength;
+		int32 WaitLength;
 
 	bool bMass;
-
-	FTimerHandle MassTimer;
 
 	TArray<class ACitizen*> Worshipping;
 };

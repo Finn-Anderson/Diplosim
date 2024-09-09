@@ -26,4 +26,6 @@ public:
 	virtual void Production(class ACitizen* Citizen) override;
 
 	void ProductionDone(class ACitizen* Citizen);
+
+	void StartTimer(class ACitizen* Citizen);
 };

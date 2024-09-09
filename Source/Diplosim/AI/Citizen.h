@@ -280,9 +280,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Food")
 		int32 Hunger;
 
-	UPROPERTY()
-		int32 HungerTimer;
-
 	// Energy
 	void CheckGainOrLoseEnergy();
 
@@ -292,9 +289,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Energy")
 		int32 Energy;
-
-	UPROPERTY()
-		int32 EnergyTimer;
 
 	UPROPERTY()
 		bool bGain;
@@ -317,9 +311,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		FBioStruct BioStruct;
-
-	UPROPERTY()
-		int32 AgeTimer;
 
 	// Politics
 	UPROPERTY(BlueprintReadOnly, Category = "Politics")

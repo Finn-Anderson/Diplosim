@@ -14,90 +14,94 @@
 
 UCitizenManager::UCitizenManager()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
-	SetComponentTickInterval(1.0f);
-
-	DiseaseTimer = 0;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UCitizenManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	DiseaseTimerTarget = FMath::RandRange(180, 1200);
+	StartDiseaseTimer();
 }
 
-void UCitizenManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UCitizenManager::Loop()
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	for (int32 i = Timers.Num() - 1; i > -1; i--) {
+		if ((!Citizens.Contains(Timers[i].Actor) && !Buildings.Contains(Timers[i].Actor)) || (Timers[i].Actor->IsA<ACitizen>() && Cast<ACitizen>(Timers[i].Actor)->Rebel)) {
+			Timers.RemoveAt(i);
 
-	Async(EAsyncExecution::Thread, [this]() {
-		for (ABuilding* building : Buildings) {
-			building->UpkeepTimer++;
-
-			if (building->UpkeepTimer == 300)
-				building->UpkeepCost();
+			continue;
 		}
 
-		Shuffle();
+		if (Timers[i].bPaused)
+			continue;
 
-		for (ACitizen* citizen : Citizens) {
-			if (citizen->Rebel)
-				continue;
+		Timers[i].Timer++;
 
-			citizen->HungerTimer++;
-			citizen->EnergyTimer++;
-			citizen->AgeTimer++;
+		if (Timers[i].Timer >= Timers[i].Target) {
+			Timers[i].Delegate.ExecuteIfBound();
 
-			if (citizen->HungerTimer == 3)
-				citizen->Eat();
+			if (Timers[i].bRepeat)
+				Timers[i].Timer = 0;
+			else
+				Timers.RemoveAt(i);
+		}
+	}
 
-			if (citizen->EnergyTimer == 6)
-				citizen->CheckGainOrLoseEnergy();
+	for (ACitizen* citizen : Citizens) {
+		if (citizen->Rebel)
+			continue;
 
-			if (citizen->AgeTimer == 45)
-				citizen->Birthday();
+		for (FConditionStruct condition : citizen->HealthIssues) {
+			condition.Level++;
 
-			for (FConditionStruct condition : citizen->HealthIssues) {
-				condition.Level++;
+			if (condition.Level == condition.DeathLevel)
+				citizen->HealthComponent->TakeHealth(100, citizen);
+		}
 
-				if (condition.Level == condition.DeathLevel)
-					citizen->HealthComponent->TakeHealth(100, citizen);
-			}
-
-			citizen->FindJobAndHouse();
+		citizen->FindJobAndHouse();
 			
-			citizen->SetHappiness();
-		}
+		citizen->SetHappiness();
+	}
 
-		DiseaseTimer++;
-
-		if (DiseaseTimer == DiseaseTimerTarget)
-			SpawnDisease();
+	AsyncTask(ENamedThreads::GameThread, [this]() {
+		FTimerHandle FLoopTimer;
+		GetWorld()->GetTimerManager().SetTimer(FLoopTimer, this, &UCitizenManager::StartTimers, 1.0f);
 	});
 }
 
 void UCitizenManager::StartTimers()
 {
-	SetComponentTickEnabled(true);
+	Async(EAsyncExecution::Thread, [this]() { Loop(); });
 }
 
-void UCitizenManager::Shuffle()
+void UCitizenManager::RemoveTimer(AActor* Actor, FTimerDelegate TimerDelegate)
 {
-	for (int32 i = 0; i < Citizens.Num(); i++) {
-		int32 index = FMath::RandRange(i, Citizens.Num() - 1);
+	int32 index;
 
-		if (index == i)
-			continue;
+	FTimerStruct timer;
+	timer.Actor = Actor;
+	timer.Delegate = TimerDelegate;
 
-		Citizens.Swap(i, index);
-	}
+	index = Timers.Find(timer);
+
+	if (index == INDEX_NONE)
+		return;
+
+	Timers.RemoveAt(index);
 }
 
 //
 // Disease
 //
+void UCitizenManager::StartDiseaseTimer()
+{
+	FTimerStruct timer;
+	timer.CreateTimer(GetOwner(), FMath::RandRange(180, 1200), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
+
+	Timers.Add(timer);
+}
+
 void UCitizenManager::SpawnDisease()
 {
 	int32 index = FMath::RandRange(0, Infectible.Num() - 1);
@@ -108,9 +112,7 @@ void UCitizenManager::SpawnDisease()
 
 	Infect(citizen);
 
-	DiseaseTimer = 0;
-
-	DiseaseTimerTarget = FMath::RandRange(180, 1200);
+	StartDiseaseTimer();
 }
 
 void UCitizenManager::Infect(ACitizen* Citizen)

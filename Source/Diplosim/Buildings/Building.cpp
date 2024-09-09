@@ -59,8 +59,6 @@ ABuilding::ABuilding()
 
 	StorageCap = 1000;
 
-	UpkeepTimer = 0;
-
 	bHideCitizen = true;
 
 	bInstantConstruction = false;
@@ -240,6 +238,10 @@ void ABuilding::OnBuilt()
 	cm->RemoveBuilding(this);
 
 	Camera->CitizenManager->Buildings.Add(this);
+
+	FTimerStruct timer;
+	timer.CreateTimer(this, 300, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost), false);
+	Camera->CitizenManager->Timers.Add(timer);
 
 	if (bConstant)
 		ParticleComponent->Activate();
@@ -487,8 +489,10 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			work->Production(Citizen);
 		}
 		else {
-			FTimerHandle StoreCheckTimer;
-			GetWorldTimerManager().SetTimer(StoreCheckTimer, FTimerDelegate::CreateUObject(this, &ABuilding::StoreResource, Citizen), 30.0f, false);
+			FTimerStruct timer;
+			timer.CreateTimer(this, 30.0f, FTimerDelegate::CreateUObject(this, &ABuilding::StoreResource, Citizen), false);
+
+			Camera->CitizenManager->Timers.Add(timer);
 		}
 	}
 	else {

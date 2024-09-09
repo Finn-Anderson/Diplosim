@@ -59,9 +59,6 @@ ACitizen::ACitizen()
 	Energy = 100;
 	Happiness = 50;
 
-	HungerTimer = 0;
-	EnergyTimer = 0;
-	AgeTimer = 0;
 	RebelTimer = 0;
 
 	bGain = false;
@@ -81,6 +78,17 @@ void ACitizen::BeginPlay()
 
 	Camera->CitizenManager->Citizens.Add(this);
 	Camera->CitizenManager->Infectible.Add(this);
+
+	FTimerStruct timer;
+
+	timer.CreateTimer(this, 3, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true);
+	Camera->CitizenManager->Timers.Add(timer);
+
+	timer.CreateTimer(this, 6, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
+	Camera->CitizenManager->Timers.Add(timer);
+
+	timer.CreateTimer(this, 45, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
+	Camera->CitizenManager->Timers.Add(timer);
 
 	SetSex();
 	SetName();
@@ -241,8 +249,6 @@ void ACitizen::FindJobAndHouse()
 //
 void ACitizen::Eat()
 {
-	HungerTimer = 0;
-
 	Hunger = FMath::Clamp(Hunger - 1, 0, 100);
 
 	if (Hunger > 25)
@@ -315,8 +321,6 @@ void ACitizen::CheckGainOrLoseEnergy()
 		GainEnergy();
 	else
 		LoseEnergy();
-
-	EnergyTimer = 0;
 }
 
 void ACitizen::LoseEnergy()
@@ -374,11 +378,13 @@ void ACitizen::GainEnergy()
 //
 void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 {
-	FTimerHandle harvestTimer;
 	float time = FMath::RandRange(6.0f, 10.0f);
 	time /= FMath::LogX(InitialSpeed, GetCharacterMovement()->MaxWalkSpeed);
 
-	GetWorldTimerManager().SetTimer(harvestTimer, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), time, false);
+	FTimerStruct timer;
+	timer.CreateTimer(this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), false);
+
+	Camera->CitizenManager->Timers.Add(timer);
 
 	AIController->StopMovement();
 }
@@ -417,8 +423,6 @@ void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 //
 void ACitizen::Birthday()
 {
-	AgeTimer = 0;
-
 	BioStruct.Age++;
 
 	if (BioStruct.Age >= 60) {

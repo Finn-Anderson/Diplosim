@@ -12,13 +12,17 @@ class DIPLOSIM_API AInternalProduction : public AWork
 public:
 	AInternalProduction();
 
-	void Tick(float DeltaTime) override;
-
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	virtual void Leave(class ACitizen* Citizen) override;
 
 	virtual void Production(class ACitizen* Citizen) override;
+
+	void SetTimer(class ACitizen* Citizen);
+
+	void AlterTimer();
+
+	void PauseTimer(bool bPause);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		int32 MinYield;
@@ -31,7 +35,4 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		TArray<FItemStruct> Intake;
-
-	UPROPERTY()
-		int32 Timer;
 };

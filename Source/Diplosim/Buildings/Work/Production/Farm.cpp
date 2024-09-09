@@ -6,6 +6,7 @@
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/CitizenManager.h"
 
 AFarm::AFarm()
 {
@@ -23,13 +24,16 @@ void AFarm::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!Occupied.Contains(Citizen) || GetWorldTimerManager().IsTimerActive(ProdTimer))
+	FTimerStruct timer;
+	timer.CreateTimer(this, TimeLength / 10.0f, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false);
+
+	if (!Occupied.Contains(Citizen) || Camera->CitizenManager->Timers.Contains(timer))
 		return;
 
 	if (CropMesh->GetRelativeScale3D().Z == 1.0f)
 		ProductionDone(Citizen);
 	else
-		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), TimeLength / 10.0f, false);
+		StartTimer(Citizen);
 }
 
 void AFarm::Production(ACitizen* Citizen)
@@ -45,7 +49,7 @@ void AFarm::Production(ACitizen* Citizen)
 		ProductionDone(workers[0]);
 	}
 	else
-		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), TimeLength / 10.0f, false);
+		StartTimer(Citizen);
 }
 
 void AFarm::ProductionDone(ACitizen* Citizen)
@@ -63,5 +67,13 @@ void AFarm::ProductionDone(ACitizen* Citizen)
 
 	CropMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 
-	GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), TimeLength / 10.0f, false);
+	StartTimer(Citizen);
+}
+
+void AFarm::StartTimer(ACitizen* Citizen)
+{
+	FTimerStruct timer;
+	timer.CreateTimer(this, TimeLength / 10.0f, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false);
+
+	Camera->CitizenManager->Timers.Add(timer);
 }

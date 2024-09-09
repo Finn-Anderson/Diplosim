@@ -84,9 +84,6 @@ public:
 
 	UPROPERTY()
 		FMoveStruct MoveRequest;
-	
-	UPROPERTY()
-		FTimerHandle IdleTimer;
 
 	UPROPERTY()
 		AActor* PrevGoal;

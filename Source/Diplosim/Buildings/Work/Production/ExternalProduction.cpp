@@ -9,6 +9,7 @@
 #include "Universal/Resource.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/CitizenManager.h"
 
 AExternalProduction::AExternalProduction()
 {
@@ -147,6 +148,10 @@ void AExternalProduction::Production(ACitizen* Citizen)
 
 		Citizen->AIController->AIMoveTo(resource, transform.GetLocation(), instance);
 	}
-	else
-		GetWorldTimerManager().SetTimer(ProdTimer, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), 30.0f, false);
+	else {
+		FTimerStruct timer;
+		timer.CreateTimer(this, 30.0f, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), false);
+
+		Camera->CitizenManager->Timers.Add(timer);
+	}
 }

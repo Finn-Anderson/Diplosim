@@ -3,6 +3,8 @@
 #include "Components/SphereComponent.h"
 
 #include "AI/Enemy.h"
+#include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
 
 AGate::AGate()
 {
@@ -88,8 +90,7 @@ void AGate::OpenGate()
 
 	bOpen = true;
 
-	FTimerHandle updateTimer;
-	GetWorld()->GetTimerManager().SetTimer(updateTimer, this, &AGate::UpdateNavigation, 3.0f, false);
+	SetTimer();
 }
 
 void AGate::CloseGate()
@@ -105,12 +106,19 @@ void AGate::CloseGate()
 
 	bOpen = false;
 
-	FTimerHandle updateTimer;
-	GetWorld()->GetTimerManager().SetTimer(updateTimer, this, &AGate::UpdateNavigation, 3.0f, false);
+	SetTimer();
 }
 
 void AGate::UpdateNavigation()
 {
 	RightGate->SetCanEverAffectNavigation(!RightGate->CanEverAffectNavigation());
 	LeftGate->SetCanEverAffectNavigation(!LeftGate->CanEverAffectNavigation());
+}
+
+void AGate::SetTimer()
+{
+	FTimerStruct timer;
+	timer.CreateTimer(this, 3.0f, FTimerDelegate::CreateUObject(this, &AGate::UpdateNavigation), false);
+
+	Camera->CitizenManager->Timers.Add(timer);
 }
