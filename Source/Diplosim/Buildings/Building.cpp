@@ -479,21 +479,12 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			if (Citizen->Carrying.Type->IsA(r))
 				resource = r;
 
-		bool canStore = Camera->ResourceManager->AddLocalResource(resource, this, Citizen->Carrying.Amount);
+		int32 extra = Camera->ResourceManager->AddLocalResource(resource, this, Citizen->Carrying.Amount);
 
-		if (canStore) {
-			Citizen->Carry(nullptr, 0, nullptr);
+		if (extra > 0)
+			AddToBasket(resource, extra);
 
-			AWork* work = Cast<AWork>(this);
-
-			work->Production(Citizen);
-		}
-		else {
-			FTimerStruct timer;
-			timer.CreateTimer(this, 30.0f, FTimerDelegate::CreateUObject(this, &ABuilding::StoreResource, Citizen), false);
-
-			Camera->CitizenManager->Timers.Add(timer);
-		}
+		Citizen->Carry(nullptr, 0, nullptr);
 	}
 	else {
 		UConstructionManager* cm = Camera->ConstructionManager;
@@ -523,4 +514,37 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			break;
 		}
 	}
+}
+
+void ABuilding::AddToBasket(TSubclassOf<AResource> Resource, int32 Amount)
+{
+	FGuid id = FGuid().NewGuid();
+
+	FTimerDelegate delegate = FTimerDelegate::CreateUObject(this, &ABuilding::RemoveFromBasket, id);
+
+	FTimerStruct timer;
+	timer.CreateTimer(this, 300.0f, delegate, false);
+
+	Camera->CitizenManager->Timers.Add(timer);
+
+	FBasketStruct basketStruct;
+	basketStruct.ID = id;
+	basketStruct.Item.Resource = Resource;
+	basketStruct.Item.Amount = Amount;
+	basketStruct.TimerDelegate = delegate;
+
+	Basket.Add(basketStruct);
+}
+
+void ABuilding::RemoveFromBasket(FGuid ID)
+{
+	FBasketStruct basketStruct;
+	basketStruct.ID = ID;
+
+	int32 index = Basket.Find(basketStruct);
+
+	if (index == INDEX_NONE)
+		return;
+
+	Basket.RemoveAt(index);
 }

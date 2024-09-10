@@ -37,6 +37,28 @@ struct FItemStruct
 };
 
 USTRUCT()
+struct FBasketStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGuid ID;
+
+	FItemStruct Item;
+
+	FTimerDelegate TimerDelegate;
+
+	FBasketStruct()
+	{
+		
+	}
+
+	bool operator==(const FBasketStruct& other) const
+	{
+		return (other.ID == ID);
+	}
+};
+
+USTRUCT()
 struct FCollisionStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -209,11 +231,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 StorageCap;
 
+	UPROPERTY()
+		TArray<FBasketStruct> Basket;
+
 	bool CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items);
 
 	void CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<FItemStruct> Items);
 
 	void StoreResource(class ACitizen* Citizen);
+
+	void AddToBasket(TSubclassOf<AResource> Resource, int32 Amount);
+
+	void RemoveFromBasket(FGuid ID);
 
 	// Politics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")

@@ -29,6 +29,14 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 		}
 	}
 
+	int32 amount = 0;
+	
+	for (FItemStruct item : Storage)
+		amount += item.Amount;
+
+	if (amount == StorageCap)
+		return;
+
 	FTimerStruct timer;
 	timer.CreateTimer(this, TimeLength, FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, Citizen), false);
 
@@ -55,21 +63,17 @@ void AInternalProduction::Production(ACitizen* Citizen)
 {
 	GetCitizensAtBuilding()[0]->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
 
+	StoreResource(Citizen);
+
 	for (ACitizen* citizen : GetCitizensAtBuilding())
 		Camera->CitizenManager->Injure(citizen);
 
 	SetTimer(GetCitizensAtBuilding()[0]);
 
-	Super::Production(GetCitizensAtBuilding()[0]);
-
-	for (FItemStruct item : Intake) {
-		if (item.Use > item.Stored) {
+	for (FItemStruct item : Intake)
+		if (item.Use > item.Stored)
 			for (ACitizen* citizen : GetCitizensAtBuilding())
 				CheckStored(citizen, Intake);
-
-			SetActorTickEnabled(false);
-		}
-	}
 }
 
 void AInternalProduction::SetTimer(ACitizen* Citizen)

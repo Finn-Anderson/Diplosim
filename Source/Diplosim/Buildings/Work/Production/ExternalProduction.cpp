@@ -20,6 +20,14 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
+	int32 amount = 0;
+
+	for (FItemStruct item : Storage)
+		amount += item.Amount;
+
+	if (amount == StorageCap)
+		return;
+
 	if (GetOccupied().Contains(Citizen))
 		Production(Citizen);
 }
@@ -99,8 +107,6 @@ bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 
 void AExternalProduction::Production(ACitizen* Citizen)
 {
-	Super::Production(Citizen);
-
 	if (Citizen->Building.BuildingAt != this)
 		return;
 

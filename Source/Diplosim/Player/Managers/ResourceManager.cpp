@@ -4,12 +4,31 @@
 
 #include "Universal/Resource.h"
 #include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
 #include "Buildings/Building.h"
 #include "Universal/DiplosimGameModeBase.h"
 
 UResourceManager::UResourceManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UResourceManager::StoreBasket(TSubclassOf<class AResource> Resource, class ABuilding* Building)
+{
+	for (FBasketStruct product : Building->Basket) {
+		if (product.Item.Resource != Resource)
+			continue;
+
+		Building->Camera->CitizenManager->RemoveTimer(Building, product.TimerDelegate);
+
+		int32 extra = AddLocalResource(Resource, Building, product.Item.Amount);
+
+		if (extra > 0) {
+			Building->AddToBasket(Resource, extra);
+
+			return;
+		}
+	}
 }
 
 void UResourceManager::AddCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount)
@@ -34,7 +53,7 @@ void UResourceManager::TakeCommittedResource(TSubclassOf<class AResource> Resour
 	}
 }
 
-bool UResourceManager::AddLocalResource(TSubclassOf<class AResource> Resource, ABuilding* Building, int32 Amount)
+int32 UResourceManager::AddLocalResource(TSubclassOf<class AResource> Resource, ABuilding* Building, int32 Amount)
 {
 	GameMode->TallyEnemyData(Resource, Amount);
 
@@ -43,20 +62,25 @@ bool UResourceManager::AddLocalResource(TSubclassOf<class AResource> Resource, A
 
 	int32 index = Building->Storage.Find(itemStruct);
 
-	int32 target = Building->Storage[index].Amount + Amount;
+	int32 currentAmount = 0;
 
-	bool space = true;
+	for (FItemStruct item : Building->Storage)
+		currentAmount += item.Amount;
+
+	int32 target = currentAmount + Amount;
 
 	if (target > Building->StorageCap) {
 		Building->Storage[index].Amount = Building->StorageCap;
 
-		space = false;
+		Amount = target - Building->StorageCap;
 	}
 	else {
 		Building->Storage[index].Amount = target;
+
+		Amount = 0;
 	}
 
-	return space;
+	return Amount;
 }
 
 bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int32 Amount)
@@ -75,12 +99,12 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 				for (int32 k = 0; k < foundBuildings.Num(); k++) {
 					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
 
-					FItemStruct itemStruct;
-					itemStruct.Resource = Resource;
+					int32 currentAmount = 0;
 
-					int32 index = b->Storage.Find(itemStruct);
+					for (FItemStruct item : b->Storage)
+						currentAmount += item.Amount;
 
-					stored += b->Storage[index].Amount;
+					stored += currentAmount;
 					capacity += b->StorageCap;
 				}
 			}
@@ -137,6 +161,9 @@ bool UResourceManager::TakeLocalResource(TSubclassOf<class AResource> Resource, 
 
 	Building->Storage[index].Amount = target;
 
+	if (!Building->Basket.IsEmpty())
+		StoreBasket(Resource, Building);
+
 	return true;
 }
 
@@ -189,6 +216,9 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 					AmountLeft -= b->Storage[index].Amount - Min;
 
 					b->Storage[index].Amount = FMath::Clamp(b->Storage[index].Amount - Amount, Min, 1000);
+
+					if (!b->Basket.IsEmpty())
+						StoreBasket(Resource, b);
 
 					if (AmountLeft <= 0)
 						return true;

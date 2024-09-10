@@ -18,6 +18,8 @@ public:
 
 	void Mass();
 
+	void PauseTimer(bool bPause);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
 		int32 MassLength;
 

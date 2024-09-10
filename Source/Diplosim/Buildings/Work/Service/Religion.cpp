@@ -31,6 +31,9 @@ void AReligion::Enter(ACitizen* Citizen)
 		Mass();
 
 	Worshipping.Add(Citizen);
+
+	if (GetCitizensAtBuilding().Num() == 1)
+		PauseTimer(false);
 }
 
 void AReligion::Leave(ACitizen* Citizen)
@@ -38,6 +41,9 @@ void AReligion::Leave(ACitizen* Citizen)
 	Super::Leave(Citizen);
 
 	Worshipping.Remove(Citizen);
+
+	if (GetCitizensAtBuilding().IsEmpty())
+		PauseTimer(true);
 }
 
 void AReligion::Mass()
@@ -73,4 +79,14 @@ void AReligion::Mass()
 
 		Camera->CitizenManager->Timers.Add(timer);
 	}
+}
+
+void AReligion::PauseTimer(bool bPause)
+{
+	FTimerStruct timer;
+	timer.CreateTimer(this, MassLength, FTimerDelegate::CreateUObject(this, &AReligion::Mass), false);
+
+	int32 index = Camera->CitizenManager->Timers.Find(timer);
+
+	Camera->CitizenManager->Timers[index].bPaused = bPause;
 }

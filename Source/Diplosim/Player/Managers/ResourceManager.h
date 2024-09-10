@@ -52,11 +52,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FResourceStruct> ResourceList;
 
+	void StoreBasket(TSubclassOf<class AResource> Resource, class ABuilding* Building);
+
 	void AddCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount);
 
 	void TakeCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount);
 
-	bool AddLocalResource(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
+	int32 AddLocalResource(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
 
 	bool AddUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount);
 

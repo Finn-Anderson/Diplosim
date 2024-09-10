@@ -112,5 +112,5 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 
 void AWork::Production(ACitizen* Citizen)
 {
-	StoreResource(Citizen);
+	
 }
