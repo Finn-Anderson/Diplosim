@@ -1,8 +1,11 @@
 #include "DiplosimUserSettings.h"
 
 #include "NiagaraComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/ExponentialHeightFog.h"
 
 #include "Map/Atmosphere/Clouds.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "DiplosimGameModeBase.h"
 
 UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -10,7 +13,15 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bEnemies = true;
 
 	bRenderClouds = true;
+	bRenderFog = true;
 
+	bUseAA = true;
+
+	bMotionBlur = false;
+
+	SunPosition = "Cycle";
+
+	Atmosphere = nullptr;
 	Clouds = nullptr;
 
 	GameMode = nullptr;
@@ -38,6 +49,9 @@ void UDiplosimUserSettings::SetRenderClouds(bool Value)
 		return;
 
 	bRenderClouds = Value;
+
+	if (Clouds == nullptr)
+		return;
 	
 	if (bRenderClouds) {
 		Clouds->SetActorTickEnabled(true);
@@ -54,6 +68,81 @@ void UDiplosimUserSettings::SetRenderClouds(bool Value)
 bool UDiplosimUserSettings::GetRenderClouds() const
 {
 	return bRenderClouds;
+}
+
+void UDiplosimUserSettings::SetRenderFog(bool Value)
+{
+	if (bRenderFog == Value)
+		return;
+
+	bRenderFog = Value;
+
+	if (Fog == nullptr)
+		return;
+
+	if (bRenderFog)
+		Fog->SetHidden(false);
+	else
+		Fog->SetHidden(true);
+}
+
+bool UDiplosimUserSettings::GetRenderFog() const
+{
+	return bRenderFog;
+}
+
+void UDiplosimUserSettings::SetAA(bool Value)
+{
+	if (bUseAA == Value)
+		return;
+
+	bUseAA = Value;
+
+	if (bUseAA)
+		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 1"));
+	else
+		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 0"));
+}
+
+bool UDiplosimUserSettings::GetAA() const
+{
+	return bUseAA;
+}
+
+void UDiplosimUserSettings::SetMotionBlur(bool Value)
+{
+	if (bMotionBlur == Value)
+		return;
+
+	bMotionBlur = Value;
+
+	if (bMotionBlur)
+		GEngine->Exec(GetWorld(), TEXT("r.MotionBlur.Amount 0.39"));
+	else
+		GEngine->Exec(GetWorld(), TEXT("r.MotionBlur.Amount 0"));
+}
+
+bool UDiplosimUserSettings::GetMotionBlur() const
+{
+	return bMotionBlur;
+}
+
+void UDiplosimUserSettings::SetSunPosition(FString Value)
+{
+	if (SunPosition == Value)
+		return;
+
+	SunPosition = Value;
+
+	if (Atmosphere == nullptr)
+		return;
+
+	Atmosphere->SetSunStatus(SunPosition);
+}
+
+FString UDiplosimUserSettings::GetSunPosition() const
+{
+	return SunPosition;
 }
 
 UDiplosimUserSettings* UDiplosimUserSettings::GetDiplosimUserSettings()

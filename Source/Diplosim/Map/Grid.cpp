@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "Engine/ExponentialHeightFog.h"
 
 #include "Atmosphere/Clouds.h"
 #include "Resources/Mineral.h"
@@ -14,6 +15,7 @@
 #include "Player/Camera.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Universal/EggBasket.h"
+#include "Universal/DiplosimUserSettings.h"
 
 AGrid::AGrid()
 {
@@ -80,6 +82,15 @@ void AGrid::BeginPlay()
 
 	Clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f));
 	Clouds->Grid = this;
+
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	settings->Fog = Fog;
+	settings->Atmosphere = AtmosphereComponent;
+
+	if (!settings->GetRenderFog())
+		Fog->SetHidden(true);
+
+	AtmosphereComponent->SetSunStatus(settings->GetSunPosition());
 }
 
 void AGrid::Load()

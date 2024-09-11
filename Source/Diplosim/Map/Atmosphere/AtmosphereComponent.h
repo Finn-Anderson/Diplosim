@@ -36,6 +36,9 @@ public:
 	UPROPERTY()
 		FRotator WindRotation;
 
-
 	void ChangeWindDirection();
+
+	void SetSunStatus(FString Value);
+
+	void AddDay();
 };

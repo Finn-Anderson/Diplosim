@@ -6,6 +6,8 @@
 
 #include "Map/Grid.h"
 #include "AI/Citizen.h"
+#include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
 
 UAtmosphereComponent::UAtmosphereComponent()
 {
@@ -23,7 +25,15 @@ void UAtmosphereComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ChangeWindDirection();
+	ChangeWindDirection(); 
+	
+	FTimerStruct timer;
+	timer.CreateTimer(GetOwner(), 1500.0f, FTimerDelegate::CreateUObject(this, &UAtmosphereComponent::AddDay), true);
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
+
+	camera->CitizenManager->Timers.Add(timer);
 }
 
 void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -44,9 +54,6 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 		for (AActor* Actor : citizens)
 			Cast<ACitizen>(Actor)->SetTorch();
-
-		if (!bNight)
-			Day++;
 	}
 }
 
@@ -64,4 +71,48 @@ void UAtmosphereComponent::ChangeWindDirection()
 	info.ExecutionFunction = "ChangeWindDirection";
 	info.UUID = GetUniqueID();
 	UKismetSystemLibrary::Delay(GetWorld(), time, info);
+}
+
+void UAtmosphereComponent::SetSunStatus(FString Value)
+{
+	if (Value == "Cycle") {
+		SetComponentTickEnabled(true);
+	}
+	else {
+		SetComponentTickEnabled(false);
+
+		FRotator rotation = FRotator(130.0f, 0.0f, 264.0f);
+
+		if (Value == "Morning") {
+			rotation.Pitch = -15.0f;
+		}
+		else if (Value == "Noon") {
+			rotation.Pitch = -89.0f;
+		}
+		else if (Value == "Evening") {
+			rotation.Pitch = -165.0f;
+		}
+		else {
+			rotation.Pitch = -269.0f;
+
+			if (!bNight) {
+				TArray<AActor*> citizens;
+				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
+
+				bNight = !bNight;
+
+				for (AActor* Actor : citizens)
+					Cast<ACitizen>(Actor)->SetTorch();
+			}
+		}
+
+		Sun->SetActorRotation(rotation);
+
+		Cast<AGrid>(GetOwner())->UpdateSkybox();
+	}
+}
+
+void UAtmosphereComponent::AddDay()
+{
+	Day++;
 }
