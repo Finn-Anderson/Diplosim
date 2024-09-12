@@ -21,8 +21,11 @@ struct FResourceStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Value;
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Stored;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		FString Category;
 
 	FResourceStruct()
 	{
@@ -30,6 +33,7 @@ struct FResourceStruct
 		Committed = 0;
 		Value = 0;
 		Stored = 0;
+		Category = "";
 	}
 
 	bool operator==(const FResourceStruct& other) const
@@ -72,6 +76,8 @@ public:
 	TArray<TSubclassOf<class AResource>> GetResources(class ABuilding* Building);
 
 	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
+
+	void UpdateResourceUI(TSubclassOf<class AResource> Resource);
 
 	// Interest
 	void Interest();

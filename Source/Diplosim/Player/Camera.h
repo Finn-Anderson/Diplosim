@@ -49,6 +49,12 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateHealthIssues();
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateDayText();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateResourceText(const FString& Category);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;

@@ -80,6 +80,8 @@ int32 UResourceManager::AddLocalResource(TSubclassOf<class AResource> Resource, 
 		Amount = 0;
 	}
 
+	UpdateResourceUI(Resource);
+
 	return Amount;
 }
 
@@ -137,12 +139,17 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 
 					b->Storage[index].Amount = FMath::Clamp(b->Storage[index].Amount + Amount, 0, 1000);
 
-					if (AmountLeft <= 0)
+					if (AmountLeft <= 0) {
+						UpdateResourceUI(Resource);
+
 						return true;
+					}
 				}
 			}
 		}
 	}
+
+	UpdateResourceUI(Resource);
 
 	return false;
 }
@@ -163,6 +170,8 @@ bool UResourceManager::TakeLocalResource(TSubclassOf<class AResource> Resource, 
 
 	if (!Building->Basket.IsEmpty())
 		StoreBasket(Resource, Building);
+
+	UpdateResourceUI(Resource);
 
 	return true;
 }
@@ -220,14 +229,19 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 					if (!b->Basket.IsEmpty())
 						StoreBasket(Resource, b);
 
-					if (AmountLeft <= 0)
+					if (AmountLeft <= 0) {
+						UpdateResourceUI(Resource);
+
 						return true;
+					}
 				}
 			}
 
 			break;
 		}
 	}
+
+	UpdateResourceUI(Resource);
 
 	return false;
 }
@@ -285,6 +299,16 @@ TArray<TSubclassOf<class ABuilding>> UResourceManager::GetBuildings(TSubclassOf<
 	TArray<TSubclassOf<class ABuilding>> null;
 
 	return null;
+}
+
+void UResourceManager::UpdateResourceUI(TSubclassOf<class AResource> Resource)
+{
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
+
+	int32 index = ResourceList.Find(resourceStruct);
+
+	Cast<ACamera>(GetOwner())->UpdateResourceText(ResourceList[index].Category);
 }
 
 //

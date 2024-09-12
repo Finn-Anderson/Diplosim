@@ -115,4 +115,6 @@ void UAtmosphereComponent::SetSunStatus(FString Value)
 void UAtmosphereComponent::AddDay()
 {
 	Day++;
+
+	Cast<AGrid>(GetOwner())->Camera->UpdateDayText();
 }
