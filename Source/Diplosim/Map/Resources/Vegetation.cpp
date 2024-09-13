@@ -17,16 +17,18 @@ AVegetation::AVegetation()
 
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
-	FTransform transform;
-	ResourceHISM->GetInstanceTransform(Instance, transform);
-	transform.SetScale3D(IntialScale);
+	AsyncTask(ENamedThreads::GameThread, [this, Instance]() {
+		FTransform transform;
+		ResourceHISM->GetInstanceTransform(Instance, transform);
+		transform.SetScale3D(IntialScale);
 
-	ResourceHISM->UpdateInstanceTransform(Instance, transform, false);
+		ResourceHISM->UpdateInstanceTransform(Instance, transform, false);
 
-	GrowingInstances.Add(Instance);
+		GrowingInstances.Add(Instance);
 
-	if (!GetWorldTimerManager().IsTimerActive(GrowTimer))
-		GetWorldTimerManager().SetTimer(GrowTimer, this, &AVegetation::Grow, TimeLength / 100.0f, true);
+		if (!GetWorldTimerManager().IsTimerActive(GrowTimer))
+			GetWorldTimerManager().SetTimer(GrowTimer, this, &AVegetation::Grow, TimeLength / 100.0f, true);
+	});
 }
 
 void AVegetation::Grow()

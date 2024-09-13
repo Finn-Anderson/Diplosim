@@ -109,11 +109,20 @@ double ADiplosimAIController::GetClosestActor(FVector TargetLocation, FVector Cu
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
+	FNavLocation projectedTarget;
+	nav->ProjectPointToNavigation(TargetLocation, projectedTarget, FVector(200.0f, 200.0f, 10.0f));
+
+	FNavLocation projectedCurrent;
+	nav->ProjectPointToNavigation(CurrentLocation, projectedCurrent, FVector(200.0f, 200.0f, 10.0f));
+
+	FNavLocation projectedNew;
+	nav->ProjectPointToNavigation(NewLocation, projectedNew, FVector(200.0f, 200.0f, 10.0f));
+
 	double curLength = 100000000000.0f;
-	navData->CalcPathLength(TargetLocation, CurrentLocation, curLength);
+	navData->CalcPathLength(projectedTarget, projectedCurrent, curLength);
 
 	double newLength = 100000000000.0f;
-	navData->CalcPathLength(TargetLocation, NewLocation, newLength);
+	navData->CalcPathLength(projectedTarget, projectedNew, newLength);
 
 	double magnitude = curLength / CurrentValue - newLength / NewValue;
 
