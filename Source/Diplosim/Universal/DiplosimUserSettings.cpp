@@ -21,6 +21,9 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	SunPosition = "Cycle";
 
+	MasterVolume = 1.0f;
+	SFXVolume = 1.0f;
+
 	Atmosphere = nullptr;
 	Clouds = nullptr;
 
@@ -143,6 +146,32 @@ void UDiplosimUserSettings::SetSunPosition(FString Value)
 FString UDiplosimUserSettings::GetSunPosition() const
 {
 	return SunPosition;
+}
+
+void UDiplosimUserSettings::SetMasterVolume(float Value)
+{
+	if (MasterVolume == Value)
+		return;
+
+	MasterVolume = Value;
+}
+
+float UDiplosimUserSettings::GetMasterVolume() const
+{
+	return MasterVolume;
+}
+
+void UDiplosimUserSettings::SetSFXVolume(float Value)
+{
+	if (SFXVolume == Value)
+		return;
+
+	SFXVolume = Value;
+}
+
+float UDiplosimUserSettings::GetSFXVolume() const
+{
+	return SFXVolume;
 }
 
 UDiplosimUserSettings* UDiplosimUserSettings::GetDiplosimUserSettings()

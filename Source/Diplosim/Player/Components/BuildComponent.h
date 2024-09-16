@@ -50,6 +50,9 @@ public:
 	UPROPERTY()
 		FVector EndLocation;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+		class USoundBase* PlaceSound;
+
 	void SetBuildingsOnPath();
 
 	TArray<FVector> CalculatePath(struct FTileStruct Tile);

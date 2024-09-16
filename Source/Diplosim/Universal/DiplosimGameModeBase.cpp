@@ -6,7 +6,6 @@
 #include "NavigationSystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
-#include "DiplosimUserSettings.h"
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
@@ -15,6 +14,7 @@
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Player/Camera.h"
+#include "DiplosimUserSettings.h"
 
 ADiplosimGameModeBase::ADiplosimGameModeBase()
 {

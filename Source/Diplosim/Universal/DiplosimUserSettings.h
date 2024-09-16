@@ -28,6 +28,12 @@ protected:
 	UPROPERTY(Config)
 		FString SunPosition;
 
+	UPROPERTY(Config)
+		float MasterVolume;
+
+	UPROPERTY(Config)
+		float SFXVolume;
+
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
@@ -67,6 +73,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Sun Position")
 		FString GetSunPosition() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+		void SetMasterVolume(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "Audio")
+		float GetMasterVolume() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+		void SetSFXVolume(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "Audio")
+		float GetSFXVolume() const;
 
 	UPROPERTY()
 		class AClouds* Clouds;

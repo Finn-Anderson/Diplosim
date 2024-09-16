@@ -17,6 +17,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Buildings/Misc/Road.h"
+#include "Universal/DiplosimUserSettings.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -345,9 +346,13 @@ void UBuildComponent::Place()
 		return;
 	}
 
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+
 	for (ABuilding* building : Buildings)
 		for (FTreeStruct treeStruct : building->TreeList)
 			treeStruct.Resource->ResourceHISM->RemoveInstance(treeStruct.Instance);
+
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), PlaceSound, Buildings[0]->GetActorLocation(), settings->GetMasterVolume() * settings->GetSFXVolume());
 
 	if (BuildingToMove->IsValidLowLevelFast()) {
 		BuildingToMove->SetActorLocation(Buildings[0]->GetActorLocation());
