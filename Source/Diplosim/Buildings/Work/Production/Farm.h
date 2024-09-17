@@ -28,4 +28,10 @@ public:
 	void ProductionDone(class ACitizen* Citizen);
 
 	void StartTimer(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetFertility();
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetYield();
 };

@@ -54,14 +54,7 @@ void AFarm::Production(ACitizen* Citizen)
 
 void AFarm::ProductionDone(ACitizen* Citizen)
 {
-	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
-
-	int32 x = GetActorLocation().X / 100.0f + bound / 2;
-	int32 y = GetActorLocation().Y / 100.0f + bound / 2;
-
-	int32 fertility = Camera->Grid->Storage[x][y].Fertility;
-
-	Citizen->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), Yield * fertility, this);
+	Citizen->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), GetYield(), this);
 
 	StoreResource(Citizen);
 
@@ -76,4 +69,19 @@ void AFarm::StartTimer(ACitizen* Citizen)
 	timer.CreateTimer(this, TimeLength / 10.0f, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false);
 
 	Camera->CitizenManager->Timers.Add(timer);
+}
+
+int32 AFarm::GetFertility()
+{
+	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
+	int32 x = GetActorLocation().X / 100.0f + bound / 2;
+	int32 y = GetActorLocation().Y / 100.0f + bound / 2;
+
+	return Camera->Grid->Storage[x][y].Fertility;
+}
+
+int32 AFarm::GetYield()
+{
+	return Yield * GetFertility();
 }
