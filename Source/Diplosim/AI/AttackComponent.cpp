@@ -108,7 +108,7 @@ void UAttackComponent::PickTarget()
 	AActor* favoured = nullptr;
 
 	for (AActor* target : OverlappingEnemies) {
-		if (!target->IsValidLowLevelFast()) {
+		if (!IsValid(target)) {
 			OverlappingEnemies.Remove(target);
 
 			continue;
@@ -246,6 +246,8 @@ void UAttackComponent::Attack()
 
 			Cast<AAI>(GetOwner())->GetMesh()->PlayAnimation(MeleeAnim, false);
 		}
+		else if (GetOwner()->IsA<AEnemy>())
+			Cast<AEnemy>(GetOwner())->Zap(CurrentTarget->GetActorLocation());
 
 		GetWorld()->GetTimerManager().SetTimer(AnimTimer, this, &UAttackComponent::Melee, time / 2, false);
 	}

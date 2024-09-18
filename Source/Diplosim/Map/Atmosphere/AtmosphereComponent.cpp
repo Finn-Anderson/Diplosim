@@ -83,6 +83,8 @@ void UAtmosphereComponent::SetSunStatus(FString Value)
 
 		FRotator rotation = FRotator(130.0f, 0.0f, 264.0f);
 
+		bNight = false;
+
 		if (Value == "Morning") {
 			rotation.Pitch = -15.0f;
 		}
@@ -95,16 +97,14 @@ void UAtmosphereComponent::SetSunStatus(FString Value)
 		else {
 			rotation.Pitch = -269.0f;
 
-			if (!bNight) {
-				TArray<AActor*> citizens;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
-
-				bNight = !bNight;
-
-				for (AActor* Actor : citizens)
-					Cast<ACitizen>(Actor)->SetTorch();
-			}
+			bNight = true;
 		}
+
+		TArray<AActor*> citizens;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
+
+		for (AActor* Actor : citizens)
+			Cast<ACitizen>(Actor)->SetTorch();
 
 		Sun->SetActorRotation(rotation);
 

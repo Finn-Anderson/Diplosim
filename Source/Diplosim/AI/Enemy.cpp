@@ -21,7 +21,11 @@ AEnemy::AEnemy()
 	SpawnComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpawnComponent"));
 
 	EffectComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("EffectComponent"));
-	EffectComponent->SetupAttachment(GetMesh());
+	EffectComponent->SetupAttachment(GetMesh(), "ParticleSocket");
+
+	ZapComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ZapComponent"));
+	ZapComponent->SetupAttachment(GetMesh(), "ParticleSocket");
+	ZapComponent->SetAutoActivate(false);
 }
 
 void AEnemy::BeginPlay()
@@ -29,4 +33,14 @@ void AEnemy::BeginPlay()
 	Super::BeginPlay();
 
 	SpawnComponent->SetWorldLocation(GetActorLocation());
+
+	GetMesh()->PlayAnimation(MoveAnim, true);
+}
+
+void AEnemy::Zap(FVector Location)
+{
+	ZapComponent->SetVariableLinearColor("Colour", Colour);
+	ZapComponent->SetVariablePosition("EndLocation", Location);
+
+	ZapComponent->Activate();
 }

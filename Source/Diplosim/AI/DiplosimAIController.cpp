@@ -236,7 +236,12 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 			MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 	}
 
-	Cast<ACitizen>(GetOwner())->Camera->CitizenManager->RemoveTimer(GetOwner(), FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle));
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	FNavLocation navLoc;
+	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(200.0f, 200.0f, 10.0f));
+
+	MoveRequest.SetLocation(navLoc.Location);
 
 	TSubclassOf<UNavigationQueryFilter> filter = nullptr;
 
@@ -251,6 +256,8 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 		return;
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+	citizen->Camera->CitizenManager->RemoveTimer(GetOwner(), FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle));
 
 	if (citizen->Building.BuildingAt != nullptr)
 		citizen->Building.BuildingAt->Leave(citizen);

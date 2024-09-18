@@ -249,6 +249,8 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(FLinearColor Colour)
 	material->SetScalarParameterValue("Emissiveness", 3.0f);
 	enemy->GetMesh()->SetMaterial(0, material);
 
+	enemy->Colour = Colour;
+
 	enemy->EffectComponent->SetVariableLinearColor("Colour", Colour);
 
 	enemy->MoveToBroch();

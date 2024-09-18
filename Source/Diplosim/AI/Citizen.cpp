@@ -19,6 +19,8 @@
 #include "Buildings/House.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Universal/DiplosimGameModeBase.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 
 ACitizen::ACitizen()
 {
@@ -105,6 +107,8 @@ void ACitizen::BeginPlay()
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
 
 	AIController->Idle();
+
+	SetTorch();
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -183,8 +187,10 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 //
 void ACitizen::SetTorch()
 {
-	TorchMesh->SetHiddenInGame(!TorchMesh->bHiddenInGame);
-	TorchNiagaraComponent->SetHiddenInGame(!TorchNiagaraComponent->bHiddenInGame);
+	bool value = Camera->Grid->AtmosphereComponent->bNight;
+
+	TorchMesh->SetHiddenInGame(!value);
+	TorchNiagaraComponent->SetHiddenInGame(!value);
 }
 
 //
@@ -557,9 +563,6 @@ void ACitizen::HaveChild()
 
 	if (!citizen->IsValidLowLevelFast())
 		return;
-
-	if (!TorchMesh->bHiddenInGame)
-		citizen->SetTorch();
 
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Partner;
