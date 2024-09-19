@@ -24,6 +24,7 @@
 
 ACitizen::ACitizen()
 {
+	PrimaryActorTick.bCanEverTick = false;
 	SetTickableWhenPaused(true);
 
 	GetCapsuleComponent()->SetCapsuleSize(9.0f, 11.5f);
@@ -34,12 +35,14 @@ ACitizen::ACitizen()
 	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));
 	HatMesh->SetWorldScale3D(FVector(0.1f, 0.1f, 0.1f));
 	HatMesh->SetCollisionProfileName("NoCollision", false);
+	HatMesh->SetComponentTickEnabled(false);
 	HatMesh->SetupAttachment(GetMesh(), "HatSocket");
 
 	TorchMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TorchMesh"));
 	TorchMesh->SetCollisionProfileName("NoCollision", false);
 	TorchMesh->SetupAttachment(GetMesh(), "TorchSocket");
 	TorchMesh->SetHiddenInGame(true);
+	TorchMesh->PrimaryComponentTick.bCanEverTick = false;
 
 	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
 	TorchNiagaraComponent->SetupAttachment(TorchMesh, "ParticleSocket");
@@ -54,6 +57,8 @@ ACitizen::ACitizen()
 	PopupComponent->SetupAttachment(GetCapsuleComponent());
 	PopupComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
 	PopupComponent->SetHiddenInGame(true);
+	PopupComponent->SetComponentTickEnabled(false);
+	PopupComponent->SetTickableWhenPaused(true);
 
 	Balance = 20;
 
@@ -277,7 +282,7 @@ void ACitizen::Eat()
 	if (totalAmount <= 0) {
 		PopupComponent->SetHiddenInGame(false);
 
-		SetActorTickEnabled(true);
+		PopupComponent->SetComponentTickEnabled(true);
 
 		AsyncTask(ENamedThreads::GameThread, [this]() { SetPopupImageState("Add", "Hunger"); });
 
@@ -311,7 +316,7 @@ void ACitizen::Eat()
 		if (HealthIssues.IsEmpty()) {
 			PopupComponent->SetHiddenInGame(true);
 
-			SetActorTickEnabled(false);
+			PopupComponent->SetComponentTickEnabled(false);
 		}
 
 		AsyncTask(ENamedThreads::GameThread, [this]() { SetPopupImageState("Remove", "Hunger"); });

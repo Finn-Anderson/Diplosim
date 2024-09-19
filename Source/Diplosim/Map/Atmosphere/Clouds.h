@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Components/ActorComponent.h"
 #include "Clouds.generated.h"
 
 USTRUCT()
@@ -25,19 +25,19 @@ struct FCloudStruct
 	}
 };
 
-UCLASS()
-class DIPLOSIM_API AClouds : public AActor
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+class DIPLOSIM_API UCloudComponent : public UActorComponent
 {
 	GENERATED_BODY()
 	
 public:	
-	AClouds();
+	UCloudComponent();
 
 protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void Tick(float DeltaTime) override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void Clear();
 
@@ -55,9 +55,6 @@ public:
 
 	UPROPERTY()
 		TArray<FCloudStruct> Clouds;
-
-	UPROPERTY()
-		class AGrid* Grid;
 
 	UPROPERTY()
 		FTimerHandle CloudTimer;

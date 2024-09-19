@@ -59,17 +59,11 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateSkybox();
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-		TSubclassOf<class AClouds> CloudsClass;
+		class UCloudComponent* CloudComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		class UAtmosphereComponent* AtmosphereComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fog")
-		class AExponentialHeightFog* Fog;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ground", meta = (ClampMin = "0.0", ClampMax = "100.0", UIMin = "0.0", UIMax = "100.0"))
 		int32 PercentageGround;
@@ -142,9 +136,6 @@ public:
 	void Clear();
 
 	TArray<TArray<FTileStruct>> Storage;
-
-	UPROPERTY()
-		AClouds* Clouds;
 
 	// Resources
 	void GenerateMinerals(FTileStruct* Tile, AResource* Resource);

@@ -2,7 +2,7 @@
 
 #include "NiagaraComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Engine/ExponentialHeightFog.h"
+#include "Components/ExponentialHeightFogComponent.h"
 
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -57,14 +57,14 @@ void UDiplosimUserSettings::SetRenderClouds(bool Value)
 		return;
 	
 	if (bRenderClouds) {
-		Clouds->SetActorTickEnabled(true);
+		Clouds->SetComponentTickEnabled(true);
 
 		Clouds->ActivateCloud();
 	}
 	else {
 		Clouds->Clear();
 
-		Clouds->SetActorTickEnabled(false);
+		Clouds->SetComponentTickEnabled(false);
 	}
 }
 
@@ -80,13 +80,13 @@ void UDiplosimUserSettings::SetRenderFog(bool Value)
 
 	bRenderFog = Value;
 
-	if (Fog == nullptr)
+	if (Atmosphere == nullptr)
 		return;
 
 	if (bRenderFog)
-		Fog->SetHidden(false);
+		Atmosphere->Fog->SetHiddenInGame(false);
 	else
-		Fog->SetHidden(true);
+		Atmosphere->Fog->SetHiddenInGame(true);
 }
 
 bool UDiplosimUserSettings::GetRenderFog() const

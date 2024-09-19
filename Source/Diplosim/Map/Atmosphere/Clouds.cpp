@@ -7,37 +7,33 @@
 #include "Map/Grid.h"
 #include "Universal/DiplosimUserSettings.h"
 
-AClouds::AClouds()
+UCloudComponent::UCloudComponent()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = true;
 
 	Height = 4000.0f;
-
-	Grid = nullptr;
 }
 
-void AClouds::BeginPlay()
+void UCloudComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
 	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	Settings->Clouds = this;
-
-	SetActorLocation(FVector(0.0f, 0.0f, Height));
 }
 
-void AClouds::Tick(float DeltaTime)
+void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	Super::Tick(DeltaTime);
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	for (int32 i = Clouds.Num() - 1; i > -1; i--) {
 		FCloudStruct cloudStruct = Clouds[i];
 
-		FVector location = cloudStruct.Cloud->GetRelativeLocation() + Grid->AtmosphereComponent->WindRotation.Vector();
+		FVector location = cloudStruct.Cloud->GetRelativeLocation() + Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation.Vector();
 
 		cloudStruct.Cloud->SetRelativeLocation(location);
 
-		double distance = FVector::Dist(location, Grid->GetActorLocation());
+		double distance = FVector::Dist(location, Cast<AGrid>(GetOwner())->GetActorLocation());
 
 		if (distance > cloudStruct.Distance) {
 			cloudStruct.Cloud->Deactivate();
@@ -47,7 +43,7 @@ void AClouds::Tick(float DeltaTime)
 	}
 }
 
-void AClouds::Clear()
+void UCloudComponent::Clear()
 {
 	for (FCloudStruct cloudStruct : Clouds)
 		cloudStruct.Cloud->DestroyComponent();
@@ -57,7 +53,7 @@ void AClouds::Clear()
 	GetWorld()->GetTimerManager().ClearTimer(CloudTimer);
 }
 
-void AClouds::ActivateCloud()
+void UCloudComponent::ActivateCloud()
 {
 	if (!Settings->GetRenderClouds())
 		return;
@@ -71,7 +67,7 @@ void AClouds::ActivateCloud()
 
 	float spawnRate = 0.0f;
 
-	transform.SetRotation((Grid->AtmosphereComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
+	transform.SetRotation((Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
 
 	FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f;
 	spawnLoc.Z = Height + FMath::FRandRange(-200.0f, 200.0f);
@@ -99,9 +95,9 @@ void AClouds::ActivateCloud()
 
 	FCloudStruct cloudStruct;
 	cloudStruct.Cloud = cloud;
-	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
+	cloudStruct.Distance = FVector::Dist(spawnLoc, Cast<AGrid>(GetOwner())->GetActorLocation());
 
 	Clouds.Add(cloudStruct);
 
-	GetWorld()->GetTimerManager().SetTimer(CloudTimer, this, &AClouds::ActivateCloud, 90.0f);
+	GetWorld()->GetTimerManager().SetTimer(CloudTimer, this, &UCloudComponent::ActivateCloud, 90.0f);
 }

@@ -30,6 +30,7 @@ AAI::AAI()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
 	GetMesh()->SetGenerateOverlapEvents(true);
 	GetMesh()->SetupAttachment(RootComponent);
+	GetMesh()->PrimaryComponentTick.bCanEverTick = false;
 
 	Reach = CreateDefaultSubobject<USphereComponent>(TEXT("ReachCollision"));
 	Reach->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);

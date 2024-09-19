@@ -19,10 +19,19 @@ public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
-		class ADirectionalLight* Sun;
+		class USkyLightComponent* SkyLight;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
-		class AActor* Sky;
+		class UDirectionalLightComponent* Sun;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
+		class UDirectionalLightComponent* Moon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
+		class USkyAtmosphereComponent* SkyAtmosphere;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
+		class UExponentialHeightFogComponent* Fog;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		float Speed;

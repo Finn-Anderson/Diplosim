@@ -87,10 +87,7 @@ public:
 		float GetSFXVolume() const;
 
 	UPROPERTY()
-		class AClouds* Clouds;
-
-	UPROPERTY()
-		class AExponentialHeightFog* Fog;
+		class UCloudComponent* Clouds;
 
 	UPROPERTY()
 		class UAtmosphereComponent* Atmosphere;

@@ -15,35 +15,40 @@
 #include "Player/Camera.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Universal/EggBasket.h"
-#include "Universal/DiplosimUserSettings.h"
 
 AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
 	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
+	HISMLava->SetupAttachment(GetRootComponent());
 	HISMLava->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMLava->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMLava->SetCanEverAffectNavigation(false);
 	HISMLava->SetCastShadow(false);
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
+	HISMGround->SetupAttachment(GetRootComponent());
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMGround->NumCustomDataFloats = 4;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
+	HISMFlatGround->SetupAttachment(GetRootComponent());
 	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMFlatGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMFlatGround->SetCastShadow(false);
 	HISMFlatGround->NumCustomDataFloats = 4;
 
 	HISMRampGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRampGround"));
+	HISMRampGround->SetupAttachment(GetRootComponent());
 	HISMRampGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRampGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMRampGround->NumCustomDataFloats = 4;
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
+
+	CloudComponent = CreateDefaultSubobject<UCloudComponent>(TEXT("CloudComponent"));
 
 	Size = 22500;
 	Peaks = 2;
@@ -79,18 +84,6 @@ void AGrid::BeginPlay()
 	}
 
 	Load();
-
-	Clouds = GetWorld()->SpawnActor<AClouds>(CloudsClass, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f));
-	Clouds->Grid = this;
-
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-	settings->Fog = Fog;
-	settings->Atmosphere = AtmosphereComponent;
-
-	if (!settings->GetRenderFog())
-		Fog->SetHidden(true);
-
-	AtmosphereComponent->SetSunStatus(settings->GetSunPosition());
 }
 
 void AGrid::Load()
@@ -306,7 +299,7 @@ void AGrid::Render()
 	}
 
 	// Spawn clouds
-	Clouds->ActivateCloud();
+	CloudComponent->ActivateCloud();
 
 	// Set Camera Bounds
 	FVector c1 = FVector(bound * 100, bound * 100, 0);
@@ -634,7 +627,7 @@ void AGrid::Clear()
 
 	LavaComponents.Empty();
 
-	Clouds->Clear();
+	CloudComponent->Clear();
 
 	GetWorld()->GetTimerManager().ClearTimer(EggBasketTimer);
 

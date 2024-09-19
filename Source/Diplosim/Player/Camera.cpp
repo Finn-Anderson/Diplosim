@@ -44,7 +44,7 @@ ACamera::ACamera()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
-	CameraComponent->SetTickableWhenPaused(true);
+	CameraComponent->PrimaryComponentTick.bCanEverTick = false;
 
 	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
 	ResourceManager->SetTickableWhenPaused(true);
