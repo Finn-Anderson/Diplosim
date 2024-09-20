@@ -46,7 +46,7 @@ ACitizen::ACitizen()
 
 	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
 	TorchNiagaraComponent->SetupAttachment(TorchMesh, "ParticleSocket");
-	TorchNiagaraComponent->SetHiddenInGame(true);
+	TorchNiagaraComponent->bAutoActivate = false;
 
 	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
 	DiseaseNiagaraComponent->SetupAttachment(GetMesh());
@@ -195,7 +195,11 @@ void ACitizen::SetTorch()
 	bool value = Camera->Grid->AtmosphereComponent->bNight;
 
 	TorchMesh->SetHiddenInGame(!value);
-	TorchNiagaraComponent->SetHiddenInGame(!value);
+
+	if (value)
+		TorchNiagaraComponent->Activate();
+	else
+		TorchNiagaraComponent->Deactivate();
 }
 
 //

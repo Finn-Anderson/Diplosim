@@ -107,7 +107,7 @@ void ABuilding::BeginPlay()
 
 void ABuilding::Build()
 {
-	BuildingMesh->SetOverlayMaterial(DamagedMaterialOverlay);
+	BuildingMesh->SetOverlayMaterial(nullptr);
 
 	BuildingMesh->SetCanEverAffectNavigation(true);
 

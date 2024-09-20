@@ -21,13 +21,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		int32 Health;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		class UMaterial* OnHitEffect;
+
 	void AddHealth(int32 Amount);
 
 	void TakeHealth(int32 Amount, AActor* Attacker);
 
 	bool IsMaxHealth();
 
-	void RemoveDamageOverlay(class ABuilding* Building);
+	void RemoveDamageOverlay();
 
 	int32 GetHealth();
 

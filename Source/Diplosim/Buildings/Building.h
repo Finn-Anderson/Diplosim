@@ -121,9 +121,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		class UHealthComponent* HealthComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		class UMaterial* DamagedMaterialOverlay;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* ParticleComponent;
 
