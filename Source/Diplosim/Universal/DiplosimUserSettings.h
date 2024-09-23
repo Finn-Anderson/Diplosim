@@ -26,9 +26,6 @@ protected:
 		bool bMotionBlur;
 
 	UPROPERTY(Config)
-		FString SunPosition;
-
-	UPROPERTY(Config)
 		float MasterVolume;
 
 	UPROPERTY(Config)
@@ -67,12 +64,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Motion Blur")
 		bool GetMotionBlur() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Sun Position")
-		void SetSunPosition(FString Value);
-
-	UFUNCTION(BlueprintPure, Category = "Sun Position")
-		FString GetSunPosition() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Audio")
 		void SetMasterVolume(float Value);

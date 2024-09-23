@@ -4,6 +4,45 @@
 #include "Components/ActorComponent.h"
 #include "AtmosphereComponent.generated.h"
 
+USTRUCT(BlueprintType)
+struct FCalendarStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Calendar")
+		FString Period;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Calendar")
+		TArray<int32> Days;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Calendar")
+		int32 Index;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Calendar")
+		int32 Hour;
+
+	FCalendarStruct()
+	{
+		Period = "Warmth";
+		Days = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6 };
+		Index = 0;
+	}
+
+	void NextDay()
+	{
+		if (Index == (Days.Num() - 1)) {
+			Index = 0;
+			Period = "Warmth";
+		}
+		else {
+			Index++;
+
+			if (Days[Index] == 1)
+				Period = "Cold";
+		}
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UAtmosphereComponent : public UActorComponent
 {
@@ -37,17 +76,12 @@ public:
 		float Speed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
-		int32 Day;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
-		bool bNight;
+		FCalendarStruct Calendar;
 
 	UPROPERTY()
 		FRotator WindRotation;
 
 	void ChangeWindDirection();
-
-	void SetSunStatus(FString Value);
 
 	void AddDay();
 };

@@ -19,8 +19,6 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	bMotionBlur = false;
 
-	SunPosition = "Cycle";
-
 	MasterVolume = 1.0f;
 	SFXVolume = 1.0f;
 
@@ -128,24 +126,6 @@ void UDiplosimUserSettings::SetMotionBlur(bool Value)
 bool UDiplosimUserSettings::GetMotionBlur() const
 {
 	return bMotionBlur;
-}
-
-void UDiplosimUserSettings::SetSunPosition(FString Value)
-{
-	if (SunPosition == Value)
-		return;
-
-	SunPosition = Value;
-
-	if (Atmosphere == nullptr)
-		return;
-
-	Atmosphere->SetSunStatus(SunPosition);
-}
-
-FString UDiplosimUserSettings::GetSunPosition() const
-{
-	return SunPosition;
 }
 
 void UDiplosimUserSettings::SetMasterVolume(float Value)

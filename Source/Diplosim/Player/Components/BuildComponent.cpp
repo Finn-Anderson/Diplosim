@@ -26,7 +26,7 @@ UBuildComponent::UBuildComponent()
 
 	bCanRotate = true;
 
-	Rotation.Yaw = 90.0f;
+	Rotation.Yaw = 0.0f;
 
 	StartLocation = FVector::Zero();
 	EndLocation = FVector::Zero();

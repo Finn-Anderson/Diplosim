@@ -303,12 +303,14 @@ TArray<TSubclassOf<class ABuilding>> UResourceManager::GetBuildings(TSubclassOf<
 
 void UResourceManager::UpdateResourceUI(TSubclassOf<class AResource> Resource)
 {
-	FResourceStruct resourceStruct;
-	resourceStruct.Type = Resource;
+	AsyncTask(ENamedThreads::GameThread, [this, Resource]() {
+		FResourceStruct resourceStruct;
+		resourceStruct.Type = Resource;
 
-	int32 index = ResourceList.Find(resourceStruct);
+		int32 index = ResourceList.Find(resourceStruct);
 
-	Cast<ACamera>(GetOwner())->UpdateResourceText(ResourceList[index].Category);
+		Cast<ACamera>(GetOwner())->UpdateResourceText(ResourceList[index].Category);
+	});
 }
 
 //

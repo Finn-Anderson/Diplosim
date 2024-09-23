@@ -24,7 +24,7 @@ void UCameraMovementComponent::BeginPlay()
 	Camera = Cast<ACamera>(GetOwner());
 
 	PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	PController->SetControlRotation(FRotator(-45.0f, 0.0f, 0.0f));
+	PController->SetControlRotation(FRotator(-45.0f, -90.0f, 0.0f));
 	PController->SetInputMode(FInputModeGameAndUI());
 	PController->bShowMouseCursor = true;
 }

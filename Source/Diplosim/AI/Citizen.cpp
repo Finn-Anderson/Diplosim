@@ -86,15 +86,17 @@ void ACitizen::BeginPlay()
 	Camera->CitizenManager->Citizens.Add(this);
 	Camera->CitizenManager->Infectible.Add(this);
 
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+
 	FTimerStruct timer;
 
-	timer.CreateTimer(this, 3, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true);
+	timer.CreateTimer(this, timeToCompleteDay / 200, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
-	timer.CreateTimer(this, 6, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
+	timer.CreateTimer(this, timeToCompleteDay / 100, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
-	timer.CreateTimer(this, 45, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
+	timer.CreateTimer(this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
 	SetSex();
@@ -192,14 +194,14 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 //
 void ACitizen::SetTorch()
 {
-	bool value = Camera->Grid->AtmosphereComponent->bNight;
-
-	TorchMesh->SetHiddenInGame(!value);
-
-	if (value)
+	if (Camera->Grid->AtmosphereComponent->Calendar.Hour == 12) {
+		TorchMesh->SetHiddenInGame(false);
 		TorchNiagaraComponent->Activate();
-	else
+	}
+	else {
+		TorchMesh->SetHiddenInGame(true);
 		TorchNiagaraComponent->Deactivate();
+	}
 }
 
 //
@@ -410,6 +412,8 @@ void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 
 	Camera->CitizenManager->Injure(this);
 
+	LoseEnergy();
+
 	if (!Camera->ResourceManager->GetResources(Building.Employment).Contains(resource->GetClass())) {
 		ABuilding* broch = Camera->ResourceManager->GameMode->Broch;
 
@@ -426,6 +430,8 @@ void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 {
 	Carrying.Type = Resource;
 	Carrying.Amount = Amount;
+
+	LoseEnergy();
 
 	if (Location == nullptr)
 		AIController->StopMovement();

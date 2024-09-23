@@ -19,11 +19,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	SetComponentTickInterval(1.0f/24.0f);
 
-	bNight = false;
-
-	Speed = 0.01f;
-
-	Day = 1;
+	Speed = 0.025f;
 
 	SkyLight = CreateDefaultSubobject<USkyLightComponent>(TEXT("SkyLight"));
 	SkyLight->SetRealTimeCaptureEnabled(true);
@@ -51,44 +47,32 @@ void UAtmosphereComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ChangeWindDirection(); 
-	
-	FTimerStruct timer;
-	timer.CreateTimer(GetOwner(), 1500.0f, FTimerDelegate::CreateUObject(this, &UAtmosphereComponent::AddDay), true);
-
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
-
-	camera->CitizenManager->Timers.Add(timer);
+	ChangeWindDirection();
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	settings->Atmosphere = this;
 
 	if (!settings->GetRenderFog())
 		Fog->SetHiddenInGame(true);
-
-	SetSunStatus(settings->GetSunPosition());
 }
 
 void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	Sun->AddLocalRotation(FRotator(0.0f, -Speed, 0.0f));
-	Moon->SetRelativeRotation(Sun->GetRelativeRotation() + FRotator(180.0f, 0.0f, 0.0f));
+	Sun->AddLocalRotation(FRotator(-Speed, Speed, 0.0f));
+	Moon->AddLocalRotation(FRotator(Speed, Speed, 0.0f));
 
-	float pitch = FMath::RoundHalfFromZero((Sun->GetRelativeRotation().Pitch * 100.0f)) / 100.0f;
+	int32 hour = FMath::Abs(FMath::FloorToInt(24.0f / 360.0f * (Moon->GetRelativeRotation().Yaw + 180.0f)));
 
-	if (pitch == 0.0f) {
+	if (Calendar.Hour != hour && hour == 0 || hour == 12) {
 		TArray<AActor*> citizens;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
-
-		bNight = !bNight;
 
 		for (AActor* Actor : citizens)
 			Cast<ACitizen>(Actor)->SetTorch();
 
-		if (bNight) {
+		if (hour == 12) {
 			Sun->SetCastShadows(false);
 			Moon->SetCastShadows(true);
 		}
@@ -97,6 +81,11 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 			Moon->SetCastShadows(false);
 		}
 	}
+
+	if (hour == 0 && Calendar.Hour == 23)
+		AddDay();
+
+	Calendar.Hour = hour;
 }
 
 void UAtmosphereComponent::ChangeWindDirection()
@@ -115,53 +104,9 @@ void UAtmosphereComponent::ChangeWindDirection()
 	UKismetSystemLibrary::Delay(GetWorld(), time, info);
 }
 
-void UAtmosphereComponent::SetSunStatus(FString Value)
-{
-	if (Value == "Cycle") {
-		SetComponentTickEnabled(true);
-	}
-	else {
-		SetComponentTickEnabled(false);
-
-		FRotator rotation = FRotator(130.0f, 0.0f, 264.0f);
-
-		bNight = false;
-
-		Sun->SetCastShadows(true);
-		Moon->SetCastShadows(false);
-
-		if (Value == "Morning") {
-			rotation.Pitch = -15.0f;
-		}
-		else if (Value == "Noon") {
-			rotation.Pitch = -89.0f;
-		}
-		else if (Value == "Evening") {
-			rotation.Pitch = -165.0f;
-		}
-		else {
-			rotation.Pitch = -269.0f;
-
-			bNight = true;
-
-			Sun->SetCastShadows(false);
-			Moon->SetCastShadows(true);
-		}
-
-		TArray<AActor*> citizens;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
-
-		for (AActor* Actor : citizens)
-			Cast<ACitizen>(Actor)->SetTorch();
-
-		Sun->SetRelativeRotation(rotation);
-		Moon->SetRelativeRotation(rotation + FRotator(180.0f, 0.0f, 0.0f));
-	}
-}
-
 void UAtmosphereComponent::AddDay()
 {
-	Day++;
+	Calendar.NextDay();
 
 	Cast<AGrid>(GetOwner())->Camera->UpdateDayText();
 }
