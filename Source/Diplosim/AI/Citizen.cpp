@@ -346,7 +346,7 @@ void ACitizen::LoseEnergy()
 
 	GetCharacterMovement()->MaxWalkSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, InitialSpeed * 0.3f, InitialSpeed);
 
-	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty())
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || (!Building.Employment->bCanRest && Building.Employment->bOpen))
 		return;
 
 	if (Building.House->IsValidLowLevelFast()) {

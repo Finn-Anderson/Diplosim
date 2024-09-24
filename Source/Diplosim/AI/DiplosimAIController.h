@@ -84,7 +84,4 @@ public:
 
 	UPROPERTY()
 		FMoveStruct MoveRequest;
-
-	UPROPERTY()
-		AActor* PrevGoal;
 };

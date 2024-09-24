@@ -10,6 +10,8 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Buildings/House.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 
 AWork::AWork()
 {
@@ -28,11 +30,23 @@ AWork::AWork()
 	bRange = false;
 
 	Wage = 0;
+
+	WorkStart = 6;
+	WorkEnd = 18;
+
+	bCanRest = true;
+
+	bOpen = false;
 }
 
 void AWork::BeginPlay()
 {
 	Super::BeginPlay();
+
+	int32 hour = Camera->Grid->AtmosphereComponent->Calendar.Hour;
+
+	if (hour >= WorkStart && hour <= WorkEnd)
+		bOpen = true;
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AWork::OnRadialOverlapBegin);
 	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AWork::OnRadialOverlapEnd);
@@ -91,7 +105,8 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 
 	Citizen->HatMesh->SetStaticMesh(WorkHat);
 
-	Citizen->AIController->AIMoveTo(this);
+	if (bOpen)
+		Citizen->AIController->AIMoveTo(this);
 
 	return true;
 }
@@ -108,6 +123,33 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 	Citizen->HatMesh->SetStaticMesh(nullptr);
 
 	return true;
+}
+
+void AWork::Enter(ACitizen* Citizen)
+{
+	Super::Enter(Citizen);
+
+	if (!bOpen && GetOccupied().Contains(Citizen))
+		Citizen->AIController->DefaultAction();
+}
+
+void AWork::Open()
+{
+	bOpen = true;
+
+	for (ACitizen* citizen : GetOccupied())
+		citizen->AIController->DefaultAction();
+}
+
+void AWork::Close()
+{
+	bOpen = false;
+
+	for (ACitizen* citizen : GetOccupied()) {
+		Leave(citizen);
+
+		citizen->AIController->DefaultAction();
+	}
 }
 
 void AWork::Production(ACitizen* Citizen)

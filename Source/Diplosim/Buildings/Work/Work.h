@@ -45,9 +45,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UStaticMesh* WorkHat;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hours")
+		int32 WorkStart;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hours")
+		int32 WorkEnd;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rest")
+		bool bCanRest;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+		bool bOpen;
+
 	virtual bool AddCitizen(class ACitizen* Citizen) override;
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
+
+	virtual void Enter(class ACitizen* Citizen) override;
+
+	void Open();
+
+	void Close();
 
 	// Resources
 	virtual void Production(class ACitizen* Citizen);

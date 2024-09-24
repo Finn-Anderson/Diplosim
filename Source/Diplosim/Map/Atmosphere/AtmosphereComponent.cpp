@@ -85,8 +85,11 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		}
 	}
 
-	if (hour != Calendar.Hour)
+	if (hour != Calendar.Hour) {
+		Cast<AGrid>(GetOwner())->Camera->CitizenManager->CheckWorkStatus(hour);
+
 		SetDisplayText(hour);
+	}
 }
 
 void UAtmosphereComponent::ChangeWindDirection()

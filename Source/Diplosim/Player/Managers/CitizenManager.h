@@ -171,6 +171,9 @@ public:
 
 	UPROPERTY()
 		TArray<FTimerStruct> Timers;
+
+	// Work
+	void CheckWorkStatus(int32 Hour);
 		
 	// Disease
 	void StartDiseaseTimer();

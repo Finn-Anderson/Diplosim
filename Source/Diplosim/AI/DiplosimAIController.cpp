@@ -11,6 +11,8 @@
 #include "Enemy.h"
 #include "Universal/HealthComponent.h"
 #include "Buildings/Building.h"
+#include "Buildings/House.h"
+#include "Buildings/Work/Work.h"
 #include "Buildings/Misc/Broch.h"
 #include "Universal/Resource.h"
 #include "AttackComponent.h"
@@ -22,8 +24,6 @@ ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectIni
 {
 	PrimaryActorTick.bCanEverTick = true;
 	SetActorTickInterval(0.4f);
-
-	PrevGoal = nullptr;
 }
 
 void ADiplosimAIController::Tick(float DeltaTime)
@@ -56,27 +56,22 @@ void ADiplosimAIController::Tick(float DeltaTime)
 
 void ADiplosimAIController::DefaultAction()
 {
-	if (MoveRequest.GetGoalActor() == PrevGoal)
-		return;
-
 	MoveRequest.SetGoalActor(nullptr);
 
 	SetActorTickEnabled(false);
 
-	if (PrevGoal == nullptr || !PrevGoal->IsValidLowLevelFast()) {
-		if (GetOwner()->IsA<ACitizen>() && !Cast<ACitizen>(GetOwner())->Rebel) {
-			ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	if (GetOwner()->IsA<ACitizen>() && !Cast<ACitizen>(GetOwner())->Rebel) {
+		ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-			if (citizen->Building.Employment != nullptr)
-				AIMoveTo(citizen->Building.Employment);
-			else
-				Idle();
-		}
+		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bOpen)
+			AIMoveTo(citizen->Building.Employment);
+		else if (citizen->Building.House != nullptr)
+			AIMoveTo(citizen->Building.House);
 		else
-			Cast<AAI>(GetOwner())->MoveToBroch();
+			Idle();
 	}
 	else
-		AIMoveTo(PrevGoal);
+		Cast<AAI>(GetOwner())->MoveToBroch();
 }
 
 void ADiplosimAIController::Idle()
@@ -84,8 +79,6 @@ void ADiplosimAIController::Idle()
 	AsyncTask(ENamedThreads::GameThread, [this]() {
 		if (!GetOwner()->IsValidLowLevelFast())
 			return;
-
-		PrevGoal = nullptr;
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
@@ -216,9 +209,6 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	if (Actor == MoveRequest.GetGoalActor())
 		return;
-
-	if (MoveRequest.GetGoalActor()->IsValidLowLevelFast() && !MoveRequest.GetGoalActor()->IsA<AAI>())
-		PrevGoal = MoveRequest.GetGoalActor();
 
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);

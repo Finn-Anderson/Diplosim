@@ -92,6 +92,24 @@ void UCitizenManager::RemoveTimer(AActor* Actor, FTimerDelegate TimerDelegate)
 }
 
 //
+// Work
+//
+void UCitizenManager::CheckWorkStatus(int32 Hour)
+{
+	for (ACitizen* citizen : Citizens) {
+		if (citizen->Building.Employment == nullptr)
+			continue;
+
+		AWork* work = citizen->Building.Employment;
+
+		if (work->WorkStart == Hour)
+			work->Open();
+		else if (work->WorkEnd == Hour)
+			work->Close();
+	}
+}
+
+//
 // Disease
 //
 void UCitizenManager::StartDiseaseTimer()
