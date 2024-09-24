@@ -53,6 +53,9 @@ public:
 		void UpdateDayText();
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void DisplayEvent(const FString& Event);
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateResourceText(const FString& Category);
 
 public:
@@ -80,12 +83,17 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 		class AGrid* Grid;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
+		FString ColonyName;
+
 	UPROPERTY()
 		bool Start;
 
 	void Tick(float DeltaTime) override;
 
 	void StartGame(class ABuilding* Broch);
+
+	void DisplayBuildUI();
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -117,6 +125,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* SettingsUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> EventUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* EventUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;

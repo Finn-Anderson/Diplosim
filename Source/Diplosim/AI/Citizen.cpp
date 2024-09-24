@@ -271,7 +271,7 @@ void ACitizen::Eat()
 	if (Hunger > 25)
 		return;
 	else if (Hunger == 0)
-		HealthComponent->TakeHealth(10, this);
+		AsyncTask(ENamedThreads::GameThread, [this]() { HealthComponent->TakeHealth(10, this); });
 
 	TArray<int32> foodAmounts;
 	int32 totalAmount = 0;

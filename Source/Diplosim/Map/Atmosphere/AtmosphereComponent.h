@@ -26,6 +26,7 @@ struct FCalendarStruct
 		Period = "Warmth";
 		Days = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6 };
 		Index = 0;
+		Hour = 6;
 	}
 
 	void NextDay()
@@ -83,5 +84,5 @@ public:
 
 	void ChangeWindDirection();
 
-	void AddDay();
+	void SetDisplayText(int32 Hour);
 };

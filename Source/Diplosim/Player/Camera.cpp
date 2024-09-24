@@ -65,6 +65,8 @@ ACamera::ACamera()
 	bInMenu = false;
 
 	bLost = false;
+
+	ColonyName = "Eggerton";
 }
 
 void ACamera::BeginPlay()
@@ -99,6 +101,9 @@ void ACamera::BeginPlay()
 	LostUIInstance = CreateWidget<UUserWidget>(pcontroller, LostUI);
 
 	SettingsUIInstance = CreateWidget<UUserWidget>(pcontroller, SettingsUI);
+
+	EventUIInstance = CreateWidget<UUserWidget>(pcontroller, EventUI);
+	EventUIInstance->AddToViewport();
 }
 
 void ACamera::Tick(float DeltaTime)
@@ -146,7 +151,6 @@ void ACamera::Tick(float DeltaTime)
 void ACamera::StartGame(ABuilding* Broch)
 {
 	Start = false;
-	BuildUIInstance->AddToViewport();
 	Grid->MapUIInstance->RemoveFromParent();
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
@@ -160,6 +164,16 @@ void ACamera::StartGame(ABuilding* Broch)
 	CitizenManager->StartTimers();
 
 	Cast<ABroch>(Broch)->SpawnCitizens();
+
+	DisplayEvent(ColonyName);
+
+	FTimerHandle displayBuildUITimer;
+	GetWorld()->GetTimerManager().SetTimer(displayBuildUITimer, this, &ACamera::DisplayBuildUI, 2.7f, false);
+}
+
+void ACamera::DisplayBuildUI()
+{
+	BuildUIInstance->AddToViewport();
 }
 
 void ACamera::TickWhenPaused(bool bTickWhenPaused)

@@ -218,6 +218,11 @@ void ADiplosimGameModeBase::SpawnEnemiesAsync()
 	if (!CheckEnemiesStatus())
 		return;
 
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
+
+	camera->DisplayEvent("Raid");
+
 	GetWorld()->GetTimerManager().ClearTimer(WaveTimer);
 
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), Buildings);

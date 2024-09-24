@@ -63,16 +63,19 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	Sun->AddLocalRotation(FRotator(-Speed, Speed, 0.0f));
 	Moon->AddLocalRotation(FRotator(Speed, Speed, 0.0f));
 
-	int32 hour = FMath::Abs(FMath::FloorToInt(24.0f / 360.0f * (Moon->GetRelativeRotation().Yaw + 180.0f)));
+	int32 hour = FMath::Abs(FMath::FloorToInt(24.0f / 360.0f * (Moon->GetRelativeRotation().Yaw + 180.0f))) - 18;
 
-	if (Calendar.Hour != hour && hour == 0 || hour == 12) {
+	if (hour < 0)
+		hour += 24;
+
+	if (Calendar.Hour != hour && (hour == 6 || hour == 18)) {
 		TArray<AActor*> citizens;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
 		for (AActor* Actor : citizens)
 			Cast<ACitizen>(Actor)->SetTorch();
 
-		if (hour == 12) {
+		if (hour == 18) {
 			Sun->SetCastShadows(false);
 			Moon->SetCastShadows(true);
 		}
@@ -82,10 +85,8 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		}
 	}
 
-	if (hour == 0 && Calendar.Hour == 23)
-		AddDay();
-
-	Calendar.Hour = hour;
+	if (hour != Calendar.Hour)
+		SetDisplayText(hour);
 }
 
 void UAtmosphereComponent::ChangeWindDirection()
@@ -104,9 +105,17 @@ void UAtmosphereComponent::ChangeWindDirection()
 	UKismetSystemLibrary::Delay(GetWorld(), time, info);
 }
 
-void UAtmosphereComponent::AddDay()
+void UAtmosphereComponent::SetDisplayText(int32 Hour)
 {
-	Calendar.NextDay();
+	Calendar.Hour = Hour;
+
+	FString period = Calendar.Period;
+
+	if (Hour == 0)
+		Calendar.NextDay();
+
+	if (period != Calendar.Period)
+		Cast<AGrid>(GetOwner())->Camera->DisplayEvent(Calendar.Period);
 
 	Cast<AGrid>(GetOwner())->Camera->UpdateDayText();
 }
