@@ -44,6 +44,9 @@ public:
 	UFUNCTION()
 		void ActivateCloud();
 
+	UFUNCTION()
+		void UpdateSpawnedClouds();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
 		class UNiagaraSystem* CloudSystem;
 
@@ -58,4 +61,7 @@ public:
 
 	UPROPERTY()
 		FTimerHandle CloudTimer;
+
+	UPROPERTY()
+		bool bSnow;
 };

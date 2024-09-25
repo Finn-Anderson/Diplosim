@@ -247,5 +247,5 @@ public:
 
 	// Religion
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		FReligionStruct Belief;
+		EReligion Belief;
 };

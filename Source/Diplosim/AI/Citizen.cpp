@@ -212,7 +212,7 @@ bool ACitizen::CanWork(ABuilding* ReligiousBuilding)
 	if (BioStruct.Age < 18)
 		return false;
 
-	if (ReligiousBuilding->Belief.Religion != EReligion::Atheist && ReligiousBuilding->Belief.Religion != Spirituality.Faith.Religion && Spirituality.Faith.Leaning > ESway::Moderate)
+	if (ReligiousBuilding->Belief != EReligion::Atheist && ReligiousBuilding->Belief != Spirituality.Faith)
 		return false;
 
 	return true;
@@ -469,13 +469,14 @@ void ACitizen::Birthday()
 	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
 		FindPartner();
 
-	if (BioStruct.Age == 18)
+	if (BioStruct.Age == 18) {
 		AttackComponent->bCanAttack = true;
 
-	if (BioStruct.Age >= 12) {
-		SetPolticalLeanings();
-		SetReligionLeanings();
+		SetReligion();
 	}
+
+	if (BioStruct.Age >= 12)
+		SetPolticalLeanings();
 }
 
 void ACitizen::SetSex()
@@ -635,8 +636,9 @@ void ACitizen::SetPolticalLeanings()
 	for (int32 i = 0; i < Politics.Ideology.Leaning; i++)
 		partyList.Add(Politics.Ideology.Party);
 
-	for (int32 i = 0; i < Spirituality.Faith.Leaning; i++)
-		partyList.Add(EParty::Religious);
+	if (Spirituality.Faith != EReligion::Atheist)
+		for (int32 i = 0; i < 2; i++)
+			partyList.Add(EParty::Religious);
 
 	if (partyList.IsEmpty())
 		return;
@@ -670,85 +672,45 @@ void ACitizen::SetPolticalLeanings()
 //
 // Religion
 //
-void ACitizen::SetReligionLeanings()
+void ACitizen::SetReligion()
 {
-	if (Spirituality.Faith.Leaning == ESway::Radical)
-		return;
-
 	TArray<EReligion> religionList;
 
-	FReligionStruct partnersReligion;
-	TArray<FReligionStruct> buildingReligions;
-
-	if (BioStruct.Father->IsValidLowLevelFast())
+	if (BioStruct.Father->IsValidLowLevelFast()) {
 		Spirituality.FathersFaith = BioStruct.Father->Spirituality.Faith;
 
-	if (BioStruct.Mother->IsValidLowLevelFast())
+		religionList.Add(Spirituality.FathersFaith); 
+	}
+
+	if (BioStruct.Mother->IsValidLowLevelFast()) {
 		Spirituality.MothersFaith = BioStruct.Mother->Spirituality.Faith;
 
+		religionList.Add(Spirituality.MothersFaith);
+	}
+
 	if (BioStruct.Partner->IsValidLowLevelFast())
-		partnersReligion = BioStruct.Partner->Spirituality.Faith;
+		religionList.Add(BioStruct.Partner->Spirituality.Faith);
 
 	if (Building.Employment->IsValidLowLevelFast()) {
-		if (Building.Employment->Belief.Religion != EReligion::Atheist)
-			buildingReligions.Add(Building.Employment->Belief);
+		if (Building.Employment->Belief != EReligion::Atheist)
+			religionList.Add(Building.Employment->Belief);
 
 		for (ACitizen* citizen : Building.Employment->GetOccupied())
 			if (citizen != this)
-				buildingReligions.Add(citizen->Spirituality.Faith);
+				religionList.Add(citizen->Spirituality.Faith);
 	}
 
 	if (Building.House->IsValidLowLevelFast())
-		buildingReligions.Append(Building.House->Religions);
+		religionList.Append(Building.House->Religions);
 
-	for (int32 i = 0; i < Spirituality.FathersFaith.Leaning; i++)
-		religionList.Add(Spirituality.FathersFaith.Religion);
-
-	for (int32 i = 0; i < Spirituality.MothersFaith.Leaning; i++)
-		religionList.Add(Spirituality.MothersFaith.Religion);
-
-	for (int32 i = 0; i < partnersReligion.Leaning; i++)
-		religionList.Add(partnersReligion.Religion);
-
-	for (FReligionStruct faith : buildingReligions)
-		for (int32 i = 0; i < faith.Leaning; i++)
-			religionList.Add(faith.Religion);
-
-	int32 lean = Spirituality.Faith.Leaning;
-
-	if (Spirituality.bBoost)
-		lean *= 2;
-
-	for (int32 i = 0; i < lean; i++)
-		religionList.Add(Spirituality.Faith.Religion);
-
-	if (religionList.IsEmpty())
-		return;
+	religionList.Add(EReligion::Atheist);
+	religionList.Add(EReligion::Fox);
+	religionList.Add(EReligion::Chicken);
+	religionList.Add(EReligion::Egg);
 
 	int32 index = FMath::RandRange(0, religionList.Num() - 1);
 
-	int32 mark = FMath::RandRange(0, 100);
-	int32 pass = 50;
-
-	if (Spirituality.Faith.Religion == religionList[index]) {
-		pass = 80;
-
-		if (Spirituality.Faith.Leaning == ESway::Strong)
-			pass = 95;
-
-		if (mark > pass) {
-			if (Spirituality.Faith.Leaning == ESway::Strong)
-				Spirituality.Faith.Leaning = ESway::Radical;
-			else
-				Spirituality.Faith.Leaning = ESway::Strong;
-		}
-	}
-	else if(mark > pass) {
-		if (Spirituality.Faith.Leaning != ESway::Strong)
-			Spirituality.Faith.Religion = religionList[index];
-
-		Spirituality.Faith.Leaning = ESway::Moderate;
-	}
+	Spirituality.Faith = religionList[index];
 }
 
 // Happiness
@@ -793,10 +755,10 @@ void ACitizen::Overthrow()
 
 	int32 choice;
 
-	if (Spirituality.Faith.Religion != EReligion::Atheist && Politics.Ideology.Party != EParty::Undecided) {
+	if (Spirituality.Faith != EReligion::Atheist && Politics.Ideology.Party != EParty::Undecided) {
 		choice = FMath::RandRange(0, 1);
 	}
-	else if (Spirituality.Faith.Religion != EReligion::Atheist) {
+	else if (Spirituality.Faith != EReligion::Atheist) {
 		choice = 0;
 	}
 	else {
@@ -807,7 +769,7 @@ void ACitizen::Overthrow()
 		if (citizen == this)
 			continue;
 
-		if (citizen->Happiness <= 50 && ((choice == 0 && citizen->Spirituality.Faith.Religion == Spirituality.Faith.Religion) || (choice == 1 && citizen->Politics.Ideology.Party == Politics.Ideology.Party))) {
+		if (citizen->Happiness <= 50 && ((choice == 0 && citizen->Spirituality.Faith == Spirituality.Faith) || (choice == 1 && citizen->Politics.Ideology.Party == Politics.Ideology.Party))) {
 			citizen->Rebel = true;
 
 			citizen->MoveToBroch();

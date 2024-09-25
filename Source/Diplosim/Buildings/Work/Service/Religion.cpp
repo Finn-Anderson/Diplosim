@@ -51,12 +51,10 @@ void AReligion::Mass()
 	bMass = !bMass;
 
 	if (bMass) {
-		for (AHouse* house : Houses) {
-			for (ACitizen* citizen : house->GetOccupied()) {
-				if (citizen->Spirituality.Faith.Religion == Belief.Religion)
+		for (AHouse* house : Houses)
+			for (ACitizen* citizen : house->GetOccupied())
+				if (citizen->Spirituality.Faith == Belief)
 					citizen->AIController->AIMoveTo(this);
-			}
-		}
 
 		FTimerStruct timer;
 		timer.CreateTimer(this, MassLength, FTimerDelegate::CreateUObject(this, &AReligion::Mass), false);
@@ -64,15 +62,9 @@ void AReligion::Mass()
 		Camera->CitizenManager->Timers.Add(timer);
 	}
 	else {
-		for (AHouse* house : Houses) {
-			for (ACitizen* citizen : house->GetOccupied()) {
-				citizen->Spirituality.bBoost = false;
+		for (AHouse* house : Houses)
+			for (ACitizen* citizen : house->GetOccupied())
 				citizen->AIController->DefaultAction();
-			}
-		}
-				
-		for (ACitizen* citizen : Worshipping)
-			citizen->Spirituality.bBoost = true;
 
 		FTimerStruct timer;
 		timer.CreateTimer(this, WaitLength, FTimerDelegate::CreateUObject(this, &AReligion::Mass), false);

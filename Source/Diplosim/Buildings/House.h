@@ -13,7 +13,7 @@ public:
 	AHouse();
 
 	UPROPERTY()
-		TArray<FReligionStruct> Religions;
+		TArray<EReligion> Religions;
 
 	UPROPERTY()
 		TArray<FPartyStruct> Parties;

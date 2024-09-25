@@ -31,20 +31,20 @@ AGrid::AGrid()
 	HISMGround->SetupAttachment(GetRootComponent());
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMGround->NumCustomDataFloats = 4;
+	HISMGround->NumCustomDataFloats = 5;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
 	HISMFlatGround->SetupAttachment(GetRootComponent());
 	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMFlatGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMFlatGround->SetCastShadow(false);
-	HISMFlatGround->NumCustomDataFloats = 4;
+	HISMFlatGround->NumCustomDataFloats = 5;
 
 	HISMRampGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRampGround"));
 	HISMRampGround->SetupAttachment(GetRootComponent());
 	HISMRampGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRampGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMRampGround->NumCustomDataFloats = 4;
+	HISMRampGround->NumCustomDataFloats = 5;
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 
@@ -641,4 +641,28 @@ void AGrid::Clear()
 	HISMGround->ClearInstances();
 	HISMFlatGround->ClearInstances();
 	HISMRampGround->ClearInstances();
+}
+
+void AGrid::SetSeasonAffect(FString Period)
+{
+	float value = 0.0f;
+
+	if (Period == "Cold") {
+		CloudComponent->bSnow = true;
+
+		value = 1.0f;
+	}
+	else
+		CloudComponent->bSnow = false;
+
+	for (int32 inst = 0; inst < HISMGround->GetInstanceCount(); inst++)
+		HISMGround->SetCustomDataValue(inst, 4, value);
+
+	for (int32 inst = 0; inst < HISMFlatGround->GetInstanceCount(); inst++)
+		HISMFlatGround->SetCustomDataValue(inst, 4, value);
+
+	for (int32 inst = 0; inst < HISMRampGround->GetInstanceCount(); inst++)
+		HISMRampGround->SetCustomDataValue(inst, 4, value);
+
+	CloudComponent->UpdateSpawnedClouds();
 }

@@ -153,41 +153,28 @@ enum class EReligion : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FReligionStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
-		EReligion Religion;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
-		TEnumAsByte<ESway> Leaning;
-
-	FReligionStruct()
-	{
-		Religion = EReligion::Atheist;
-		Leaning = ESway::NaN;
-	}
-
-	bool operator==(const FReligionStruct& other) const
-	{
-		return (other.Religion == Religion) && (other.Leaning == Leaning);
-	}
-};
-
-USTRUCT(BlueprintType)
 struct FSpiritualStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")
-		FReligionStruct Faith;
+		EReligion Faith;
 
-	FReligionStruct FathersFaith;
+	EReligion FathersFaith;
 
-	FReligionStruct MothersFaith;
+	EReligion MothersFaith;
 
-	bool bBoost;
+	FSpiritualStruct()
+	{
+		Faith = EReligion::Atheist;
+		FathersFaith = EReligion::Atheist;
+		MothersFaith = EReligion::Atheist;
+	}
+
+	bool operator==(const FSpiritualStruct& other) const
+	{
+		return (other.Faith == Faith);
+	}
 };
 
 USTRUCT()
@@ -322,7 +309,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")
 		FSpiritualStruct Spirituality;
 
-	void SetReligionLeanings();
+	void SetReligion();
 
 	// Disease
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")

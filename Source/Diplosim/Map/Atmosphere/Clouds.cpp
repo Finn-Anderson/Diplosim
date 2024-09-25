@@ -89,7 +89,10 @@ void UCloudComponent::ActivateCloud()
 		spawnRate = 400.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
 	}
 
-	cloud->SetVariableFloat(TEXT("SpawnRate"), spawnRate);
+	if (bSnow)
+		cloud->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
+	else
+		cloud->SetVariableFloat(TEXT("RainSpawnRate"), spawnRate);
 
 	cloud->SetBoundsScale(3.0f);
 
@@ -100,4 +103,20 @@ void UCloudComponent::ActivateCloud()
 	Clouds.Add(cloudStruct);
 
 	GetWorld()->GetTimerManager().SetTimer(CloudTimer, this, &UCloudComponent::ActivateCloud, 90.0f);
+}
+
+void UCloudComponent::UpdateSpawnedClouds()
+{
+	for (FCloudStruct cloudStruct : Clouds) {
+		int32 spawnRate = 400.0f * cloudStruct.Cloud->GetRelativeScale3D().X * cloudStruct.Cloud->GetRelativeScale3D().Y;
+
+		if (bSnow) {
+			cloudStruct.Cloud->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
+			cloudStruct.Cloud->SetVariableFloat(TEXT("RainSpawnRate"), 0.0f);
+		}
+		else {
+			cloudStruct.Cloud->SetVariableFloat(TEXT("SnowSpawnRate"), 0.0f);
+			cloudStruct.Cloud->SetVariableFloat(TEXT("RainSpawnRate"), spawnRate);
+		}
+	}
 }

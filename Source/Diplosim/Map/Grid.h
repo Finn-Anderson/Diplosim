@@ -156,4 +156,7 @@ public:
 
 	UPROPERTY()
 		FTimerHandle EggBasketTimer;
+
+	// Seasons
+	void SetSeasonAffect(FString Period);
 };

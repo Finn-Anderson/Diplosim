@@ -69,6 +69,8 @@ ABuilding::ABuilding()
 
 	bOffset = false;
 	bIgnoreCollisions = false;
+
+	Belief = EReligion::Atheist;
 }
 
 void ABuilding::BeginPlay()
