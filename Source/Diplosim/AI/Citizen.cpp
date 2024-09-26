@@ -346,7 +346,7 @@ void ACitizen::LoseEnergy()
 
 	GetCharacterMovement()->MaxWalkSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, InitialSpeed * 0.3f, InitialSpeed);
 
-	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || (!Building.Employment->bCanRest && Building.Employment->bOpen))
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || (!Building.Employment->bCanRest && Building.Employment->bOpen) || bWorshipping)
 		return;
 
 	if (Building.House->IsValidLowLevelFast()) {
@@ -713,6 +713,11 @@ void ACitizen::SetReligion()
 	Spirituality.Faith = religionList[index];
 }
 
+void ACitizen::SetMassStatus(EMassStatus Status)
+{
+	MassStatus = Status;
+}
+
 // Happiness
 void ACitizen::SetHappiness()
 {
@@ -737,6 +742,11 @@ void ACitizen::SetHappiness()
 		Happiness -= 15;
 	else if (Energy > 70)
 		Happiness += 10;
+
+	if (MassStatus == EMassStatus::Missed)
+		Happiness -= 25;
+	else if (MassStatus == EMassStatus::Attended)
+		Happiness += 15;
 
 	if (Happiness < 30)
 		RebelTimer++;

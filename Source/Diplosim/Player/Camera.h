@@ -53,7 +53,7 @@ public:
 		void UpdateDayText();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void DisplayEvent(const FString& Event);
+		void DisplayEvent(const FString& Descriptor, const FString& Event);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateResourceText(const FString& Category);

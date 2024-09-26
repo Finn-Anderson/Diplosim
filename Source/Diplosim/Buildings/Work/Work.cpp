@@ -36,6 +36,8 @@ AWork::AWork()
 
 	bCanRest = true;
 
+	bCanAttendEvents = true;
+
 	bOpen = false;
 }
 

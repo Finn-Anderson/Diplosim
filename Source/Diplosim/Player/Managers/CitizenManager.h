@@ -124,6 +124,61 @@ struct FConditionStruct
 	}
 };
 
+UENUM()
+enum class EEventType : uint8
+{
+	Mass,
+	Holiday
+};
+
+USTRUCT(BlueprintType)
+struct FEventTimeStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		FString Period;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		int32 Day;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		int32 StartHour;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		int32 EndHour;
+
+	FEventTimeStruct()
+	{
+		Period = "";
+		Day = 0;
+		StartHour = 0;
+		EndHour = 0;
+	}
+};
+
+
+USTRUCT(BlueprintType)
+struct FEventStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		EEventType Type;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		TArray<TSubclassOf<class ABuilding>> Buildings;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		TArray<FEventTimeStruct> Times;
+
+	FEventStruct()
+	{
+		Buildings = {};
+		Times = {};
+	}
+};
+
 USTRUCT(BlueprintType)
 struct FRentStruct
 {
@@ -207,4 +262,14 @@ public:
 
 	UPROPERTY()
 		TArray<ACitizen*> Healing;
+
+	// Events
+	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
+
+	void CallMass(TArray<TSubclassOf<class ABuilding>> BuildingList);
+
+	void EndMass(EReligion Belief);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		TArray<FEventStruct> Events;
 };

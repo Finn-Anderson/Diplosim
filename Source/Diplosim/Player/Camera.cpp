@@ -165,7 +165,7 @@ void ACamera::StartGame(ABuilding* Broch)
 
 	Cast<ABroch>(Broch)->SpawnCitizens();
 
-	DisplayEvent(ColonyName);
+	DisplayEvent("Welcome to", ColonyName);
 
 	FTimerHandle displayBuildUITimer;
 	GetWorld()->GetTimerManager().SetTimer(displayBuildUITimer, this, &ACamera::DisplayBuildUI, 2.7f, false);

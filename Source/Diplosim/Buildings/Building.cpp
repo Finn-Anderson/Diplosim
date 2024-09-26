@@ -19,6 +19,7 @@
 #include "Map/Grid.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
+#include "Buildings/Work/Service/Religion.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Production/InternalProduction.h"
@@ -325,7 +326,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 			builder->CheckCosts(Citizen, this);
 		}
 	}
-	else if (!IsA<AHouse>() && Citizen->Building.Employment != this) {
+	else if (!IsA<AHouse>() && !IsA<AReligion>() && Citizen->Building.Employment != this) {
 		TArray<FItemStruct> items;
 		ABuilding* deliverTo = nullptr;
 

@@ -10,7 +10,10 @@
 #include "AI/DiplosimAIController.h"
 #include "Universal/HealthComponent.h"
 #include "Buildings/Work/Service/Clinic.h"
+#include "Buildings/Work/Service/Religion.h"
 #include "Player/Camera.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 
 UCitizenManager::UCitizenManager()
 {
@@ -257,4 +260,113 @@ void UCitizenManager::PickCitizenToHeal(ACitizen* Healer)
 	}
 	else if (Healer->Building.BuildingAt != Healer->Building.Employment)
 		Healer->AIController->DefaultAction();
+}
+
+//
+// Event
+//
+void UCitizenManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
+{
+	for (FEventStruct eventStruct : Events) {
+		FString command = "";
+
+		for (FEventTimeStruct times : eventStruct.Times) {
+			if (times.Period != Period && times.Day != Day)
+				continue;
+
+			if (times.StartHour == Hour)
+				command = "start";
+			else if (times.EndHour == Hour)
+				command = "end";
+
+			if (command != "")
+				break;
+		}
+
+		if (command == "")
+			continue;
+
+		Cast<ACamera>(GetOwner())->DisplayEvent("Event", UEnum::GetValueAsString(eventStruct.Type));
+
+		if (eventStruct.Type == EEventType::Mass) {
+			if (command == "start")
+				CallMass(eventStruct.Buildings);
+			else
+				EndMass(Cast<AReligion>(eventStruct.Buildings[0])->Belief);
+
+			continue;
+		}
+
+		for (TSubclassOf<ABuilding> Building : eventStruct.Buildings) {
+			TArray<AActor*> actors;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), Building, actors);
+
+			for (AActor* actor : actors) {
+				if (command == "start")
+					Cast<AWork>(actor)->Close();
+				else
+					Cast<AWork>(actor)->Open();
+			}
+		}
+	}
+}
+
+void UCitizenManager::CallMass(TArray<TSubclassOf<ABuilding>> BuildingList)
+{
+	for (TSubclassOf<ABuilding> building : BuildingList) {
+		TArray<AActor*> actors;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), building, actors);
+
+		for (ACitizen* citizen : Citizens) {
+			if (Cast<AReligion>(actors[0])->Belief != citizen->Spirituality.Faith || citizen->Building.Employment->IsA<AReligion>() || !citizen->Building.Employment->bCanAttendEvents)
+				continue;
+
+			AReligion* chosenBuilding = nullptr;
+
+			for (AActor* actor : actors) {
+				AReligion* religiousBuilding = Cast<AReligion>(actor);
+
+				if (!citizen->AIController->CanMoveTo(religiousBuilding->GetActorLocation()) || religiousBuilding->GetOccupied().IsEmpty())
+					continue;
+
+				if (chosenBuilding == nullptr) {
+					chosenBuilding = religiousBuilding;
+
+					continue;
+				}
+
+				double magnitude = citizen->AIController->GetClosestActor(citizen->GetActorLocation(), chosenBuilding->GetActorLocation(), religiousBuilding->GetActorLocation());
+
+				if (magnitude <= 0.0f)
+					continue;
+
+				chosenBuilding = religiousBuilding;
+			}
+
+			if (chosenBuilding != nullptr)
+				citizen->AIController->AIMoveTo(chosenBuilding);
+		}
+	}
+}
+
+void UCitizenManager::EndMass(EReligion Belief)
+{
+	for (ACitizen* citizen : Citizens) {
+		if (Belief != citizen->Spirituality.Faith)
+			continue;
+
+		if (citizen->bWorshipping)
+			citizen->SetMassStatus(EMassStatus::Attended);
+		else
+			citizen->SetMassStatus(EMassStatus::Missed);
+
+		int32 timeToCompleteDay = 360 / (24 * citizen->Camera->Grid->AtmosphereComponent->Speed);
+
+		FTimerStruct timer;
+		timer.CreateTimer(citizen, timeToCompleteDay * 2, FTimerDelegate::CreateUObject(citizen, &ACitizen::SetMassStatus, EMassStatus::Neutral), false);
+
+		Timers.Add(timer);
+
+		citizen->AIController->DefaultAction();
+	}
 }

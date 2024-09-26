@@ -152,6 +152,14 @@ enum class EReligion : uint8
 	Fox
 };
 
+UENUM(BlueprintType)
+enum class EMassStatus : uint8
+{
+	Neutral,
+	Attended,
+	Missed
+};
+
 USTRUCT(BlueprintType)
 struct FSpiritualStruct
 {
@@ -309,7 +317,15 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")
 		FSpiritualStruct Spirituality;
 
+	UPROPERTY()
+		bool bWorshipping;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+		EMassStatus MassStatus;
+
 	void SetReligion();
+
+	void SetMassStatus(EMassStatus Status);
 
 	// Disease
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")

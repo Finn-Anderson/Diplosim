@@ -54,6 +54,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rest")
 		bool bCanRest;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		bool bCanAttendEvents;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 		bool bOpen;
 

@@ -15,18 +15,4 @@ public:
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	virtual void Leave(class ACitizen* Citizen) override;
-
-	void Mass();
-
-	void PauseTimer(bool bPause);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
-		int32 MassLength;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
-		int32 WaitLength;
-
-	bool bMass;
-
-	TArray<class ACitizen*> Worshipping;
 };

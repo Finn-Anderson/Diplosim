@@ -221,7 +221,7 @@ void ADiplosimGameModeBase::SpawnEnemiesAsync()
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	ACamera* camera = PController->GetPawn<ACamera>();
 
-	camera->DisplayEvent("Raid");
+	camera->DisplayEvent("Event", "Raid");
 
 	GetWorld()->GetTimerManager().ClearTimer(WaveTimer);
 
