@@ -57,7 +57,7 @@ void UCameraMovementComponent::Look(const struct FInputActionInstance& Instance)
 
 void UCameraMovementComponent::Move(const struct FInputActionInstance& Instance)
 {
-	FVector2D value = Instance.GetValue().Get<FVector2D>();
+	FVector2D value = Instance.GetValue().Get<FVector2D>() * (GetWorld()->DeltaTimeSeconds * 200);
 
 	const FRotator rotation = Camera->Controller->GetControlRotation();
 	const FRotator yawRotation(0, rotation.Yaw, 0);
