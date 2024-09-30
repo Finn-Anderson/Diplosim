@@ -40,6 +40,28 @@ struct FTileStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FResourceHISMStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> ResourceClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Multiplier;
+
+	UPROPERTY()
+		class AResource* Resource;
+
+	FResourceHISMStruct()
+	{
+		ResourceClass = nullptr;
+		Multiplier = 1;
+		Resource = nullptr;
+	}
+};
+
 UENUM()
 enum class EType : uint8
 {
@@ -81,10 +103,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* MapUIInstance;
 
-	// Resource Classes
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
-		TArray<TSubclassOf<class AResource>> ResourceClasses;
-
 	// Instance Meshes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMLava;
@@ -97,8 +115,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMRampGround;
-	
-	TMap<FString, TArray<class AResource*>> Resources;
 
 	// Dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
@@ -145,6 +161,12 @@ public:
 	FTransform GetTransform(FTileStruct* Tile);
 
 	TArray<FTileStruct*> ResourceTiles;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<FResourceHISMStruct> VegetationStruct;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<FResourceHISMStruct> MineralStruct;
 
 	bool Forest;
 

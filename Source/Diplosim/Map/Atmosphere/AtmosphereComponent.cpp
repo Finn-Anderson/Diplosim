@@ -21,6 +21,11 @@ UAtmosphereComponent::UAtmosphereComponent()
 
 	Speed = 0.025f;
 
+	Skybox = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Skybox"));
+	Skybox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Skybox->SetRelativeScale3D(FVector(1000.0f, 1000.0f, 1000.0f));
+	Skybox->SetCastShadow(false);
+
 	SkyLight = CreateDefaultSubobject<USkyLightComponent>(TEXT("SkyLight"));
 	SkyLight->SetRealTimeCaptureEnabled(true);
 	SkyLight->SetCastShadows(false);
@@ -31,8 +36,10 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Sun->ForwardShadingPriority = 0;
 
 	Moon = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Moon"));
+	Moon->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 	Moon->SetAtmosphereSunLightIndex(1);
 	Moon->SetCastShadows(false);
+	Moon->SetIntensity(0.5f);
 	Moon->ForwardShadingPriority = 1;
 
 	SkyAtmosphere = CreateDefaultSubobject<USkyAtmosphereComponent>(TEXT("SkyAtmosphere"));
@@ -73,7 +80,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
 
 		for (AActor* Actor : citizens)
-			Cast<ACitizen>(Actor)->SetTorch();
+			Cast<ACitizen>(Actor)->SetTorch(hour);
 
 		if (hour == 18) {
 			Sun->SetCastShadows(false);

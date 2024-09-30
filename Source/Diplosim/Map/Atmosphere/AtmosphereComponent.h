@@ -59,6 +59,9 @@ public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
+		class UStaticMeshComponent* Skybox;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		class USkyLightComponent* SkyLight;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")

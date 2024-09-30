@@ -71,17 +71,11 @@ void AGrid::BeginPlay()
 
 	Camera->Grid = this;
 
-	Resources.Add("Mineral");
-	Resources.Add("Vegetation");
+	for (FResourceHISMStruct &ResourceStruct : VegetationStruct)
+		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 
-	for (TSubclassOf<AResource> resourceClass : ResourceClasses) {
-		AResource* resource = GetWorld()->SpawnActor<AResource>(resourceClass, FVector::Zero(), FRotator(0.0f));
-
-		if (resource->IsA<AMineral>())
-			Resources.Find("Mineral")->Add(resource);
-		else
-			Resources.Find("Vegetation")->Add(resource);
-	}
+	for (FResourceHISMStruct &ResourceStruct : MineralStruct)
+		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 
 	Load();
 }
@@ -275,16 +269,14 @@ void AGrid::Render()
 		}
 	}
 
-	int32 num = ResourceTiles.Num() / 1000;
+	int32 num = ResourceTiles.Num() / 2000;
 
-	TArray<AResource*>* minerals = Resources.Find("Mineral");
-
-	for (AResource* mineral : *minerals) {
-		for (int32 i = 0; i < num; i++) {
+	for (FResourceHISMStruct &ResourceStruct : MineralStruct) {
+		for (int32 i = 0; i < (num * ResourceStruct.Multiplier); i++) {
 			int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
 			FTileStruct* chosenTile = ResourceTiles[chosenNum];
 
-			GenerateMinerals(chosenTile, mineral);
+			GenerateMinerals(chosenTile, ResourceStruct.Resource);
 		}
 	}
 	
@@ -557,11 +549,9 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 		FTransform transform;
 		transform.SetLocation(GetTransform(Tile).GetLocation() + FVector(x, y, 0.0f));
 
-		TArray<AResource*>* arr = Resources.Find("Vegetation");
+		int32 index = FMath::RandRange(0, VegetationStruct.Num() - 1);
 
-		int32 index = FMath::RandRange(0, arr->Num() - 1);
-
-		AVegetation* resource = Cast<AVegetation>((*arr)[index]);
+		AVegetation* resource = Cast<AVegetation>(VegetationStruct[index].Resource);
 
 		int32 inst = resource->ResourceHISM->AddInstance(transform);
 
@@ -616,9 +606,11 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 
 void AGrid::Clear()
 {
-	for (const TPair<FString, TArray<AResource*>>& pair : Resources)
-		for (AResource* r : pair.Value)
-			r->ResourceHISM->ClearInstances();
+	for (FResourceHISMStruct &ResourceStruct : VegetationStruct)
+		ResourceStruct.Resource->ResourceHISM->ClearInstances();
+
+	for (FResourceHISMStruct &ResourceStruct : MineralStruct)
+		ResourceStruct.Resource->ResourceHISM->ClearInstances();
 
 	Storage.Empty();
 

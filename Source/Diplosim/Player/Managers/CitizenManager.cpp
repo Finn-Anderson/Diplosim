@@ -292,7 +292,7 @@ void UCitizenManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 			if (command == "start")
 				CallMass(eventStruct.Buildings);
 			else
-				EndMass(Cast<AReligion>(eventStruct.Buildings[0])->Belief);
+				EndMass(Cast<AReligion>(eventStruct.Buildings[0]->GetDefaultObject())->Belief);
 
 			continue;
 		}

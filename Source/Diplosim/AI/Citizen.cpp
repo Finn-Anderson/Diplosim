@@ -115,7 +115,7 @@ void ACitizen::BeginPlay()
 
 	AIController->Idle();
 
-	SetTorch();
+	SetTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -192,9 +192,9 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 //
 // Cosmetics
 //
-void ACitizen::SetTorch()
+void ACitizen::SetTorch(int32 Hour)
 {
-	if (Camera->Grid->AtmosphereComponent->Calendar.Hour == 12) {
+	if (Hour >= 18 || Hour < 6) {
 		TorchMesh->SetHiddenInGame(false);
 		TorchNiagaraComponent->Activate();
 	}

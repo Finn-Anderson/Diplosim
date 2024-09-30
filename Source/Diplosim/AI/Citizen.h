@@ -230,7 +230,7 @@ public:
 
 	// Cosmetics
 	UFUNCTION(BlueprintCallable)
-		void SetTorch();
+		void SetTorch(int32 Hour);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UStaticMeshComponent* HatMesh;
