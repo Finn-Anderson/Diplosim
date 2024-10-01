@@ -24,7 +24,7 @@
 
 ACitizen::ACitizen()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	SetTickableWhenPaused(true);
 
 	GetCapsuleComponent()->SetCapsuleSize(9.0f, 11.5f);
@@ -58,13 +58,11 @@ ACitizen::ACitizen()
 	PopupComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
 	PopupComponent->SetHiddenInGame(true);
 	PopupComponent->SetComponentTickEnabled(false);
-	PopupComponent->SetTickableWhenPaused(true);
 
 	Balance = 20;
 
 	Hunger = 100;
 	Energy = 100;
-	Happiness = 50;
 
 	RebelTimer = 0;
 
@@ -288,7 +286,7 @@ void ACitizen::Eat()
 	if (totalAmount <= 0) {
 		PopupComponent->SetHiddenInGame(false);
 
-		PopupComponent->SetComponentTickEnabled(true);
+		SetActorTickEnabled(true);
 
 		AsyncTask(ENamedThreads::GameThread, [this]() { SetPopupImageState("Add", "Hunger"); });
 
@@ -322,7 +320,7 @@ void ACitizen::Eat()
 		if (HealthIssues.IsEmpty()) {
 			PopupComponent->SetHiddenInGame(true);
 
-			PopupComponent->SetComponentTickEnabled(false);
+			SetActorTickEnabled(false);
 		}
 
 		AsyncTask(ENamedThreads::GameThread, [this]() { SetPopupImageState("Remove", "Hunger"); });
@@ -719,36 +717,46 @@ void ACitizen::SetMassStatus(EMassStatus Status)
 }
 
 // Happiness
+int32 ACitizen::GetHappiness()
+{
+	int32 value = 50;
+
+	for (const TPair<FString, int32>& pair : Happiness.Modifiers)
+		value += pair.Value;
+
+	return value;
+}
+
 void ACitizen::SetHappiness()
 {
-	Happiness = 50;
+	Happiness.ClearValues();
 
 	if (Building.House == nullptr)
-		Happiness -= 10;
+		Happiness.SetValue("Homeless", -10);
 	else
-		Happiness += 5;
+		Happiness.SetValue("Housed", 5);
 
 	if (Building.Employment == nullptr)
-		Happiness -= 10;
+		Happiness.SetValue("Unemployed", -10);
 	else
-		Happiness += 5;
+		Happiness.SetValue("Employed", 5);
 
 	if (Hunger < 20)
-		Happiness -= 30;
+		Happiness.SetValue("Hungry", -30);
 	else if (Hunger > 70)
-		Happiness += 10;
+		Happiness.SetValue("Well Fed", 10);
 
 	if (Energy < 20)
-		Happiness -= 15;
+		Happiness.SetValue("Tired", -15);
 	else if (Energy > 70)
-		Happiness += 10;
+		Happiness.SetValue("Rested", 10);
 
 	if (MassStatus == EMassStatus::Missed)
-		Happiness -= 25;
+		Happiness.SetValue("Missed Mass", -25);
 	else if (MassStatus == EMassStatus::Attended)
-		Happiness += 15;
+		Happiness.SetValue("Attended Mass", 15);
 
-	if (Happiness < 30)
+	if (GetHappiness() < 30)
 		RebelTimer++;
 	else
 		RebelTimer = 0;
@@ -779,7 +787,7 @@ void ACitizen::Overthrow()
 		if (citizen == this)
 			continue;
 
-		if (citizen->Happiness <= 50 && ((choice == 0 && citizen->Spirituality.Faith == Spirituality.Faith) || (choice == 1 && citizen->Politics.Ideology.Party == Politics.Ideology.Party))) {
+		if (citizen->GetHappiness() < 40 && ((choice == 0 && citizen->Spirituality.Faith == Spirituality.Faith) || (choice == 1 && citizen->Politics.Ideology.Party == Politics.Ideology.Party))) {
 			citizen->Rebel = true;
 
 			citizen->MoveToBroch();

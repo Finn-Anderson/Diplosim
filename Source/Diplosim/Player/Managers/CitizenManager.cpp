@@ -141,7 +141,7 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 	Citizen->DiseaseNiagaraComponent->Activate();
 	Citizen->PopupComponent->SetHiddenInGame(false);
 
-	Citizen->PopupComponent->SetComponentTickEnabled(true);
+	Citizen->SetActorTickEnabled(true);
 
 	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() { Citizen->SetPopupImageState("Add", "Disease"); });
 
@@ -218,7 +218,7 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 	if (Citizen->Hunger > 25) {
 		Citizen->PopupComponent->SetHiddenInGame(true);
 
-		Citizen->PopupComponent->SetComponentTickEnabled(false);
+		Citizen->SetActorTickEnabled(false);
 	}
 
 	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() { Citizen->SetPopupImageState("Remove", "Disease"); });

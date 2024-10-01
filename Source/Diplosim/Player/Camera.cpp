@@ -198,6 +198,8 @@ void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Instance)
 		SetActorLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
 
 		SpringArmComponent->ProbeSize = 6.0f;
+
+		SpringArmComponent->bEnableCameraLag = false;
 	}
 
 	UDecalComponent* decal = Actor->FindComponentByClass<UDecalComponent>();
@@ -267,16 +269,18 @@ void ACamera::Action()
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {
-		if (bQuick) {
+		if (bQuick)
 			BuildComponent->QuickPlace();
-		}
-		else {
+		else
 			BuildComponent->Place();
-		}
 	}
 	else {
-		if (!HoveredActor.Actor->IsValidLowLevelFast())
+		if (!HoveredActor.Actor->IsValidLowLevelFast()) {
+			if (!WidgetComponent->bHiddenInGame)
+				WidgetComponent->SetHiddenInGame(true);
+
 			return;
+		}
 
 		if (HoveredActor.Actor->IsA<AEggBasket>())
 			Cast<AEggBasket>(HoveredActor.Actor)->RedeemReward();
@@ -388,8 +392,11 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 	if (bInMenu)
 		return;
 
-	if (GetAttachParentActor() != nullptr)
+	if (GetAttachParentActor() != nullptr) {
 		SpringArmComponent->ProbeSize = 12.0f;
+
+		SpringArmComponent->bEnableCameraLag = true;
+	}
 
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 

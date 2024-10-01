@@ -206,6 +206,35 @@ struct FCollidingStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FHappinessStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
+		TMap<FString, int32> Modifiers;
+
+	FHappinessStruct()
+	{
+		ClearValues();
+	}
+
+	void ClearValues()
+	{
+		Modifiers.Empty();
+	}
+
+	void SetValue(FString Key, int32 Value)
+	{
+		Modifiers.Add(Key, Value);
+	}
+
+	void RemoveValue(FString Key)
+	{
+		Modifiers.Remove(Key);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ACitizen : public AAI
 {
@@ -226,7 +255,7 @@ public:
 		void SetPopupImageState(FName Command, FName Type);
 
 	UPROPERTY()
-	class ACamera* Camera;
+		class ACamera* Camera;
 
 	// Cosmetics
 	UFUNCTION(BlueprintCallable)
@@ -339,7 +368,7 @@ public:
 
 	// Happiness
 	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
-		int32 Happiness;
+		FHappinessStruct Happiness;
 
 	UPROPERTY()
 		int32 RebelTimer;
@@ -349,6 +378,9 @@ public:
 
 	UPROPERTY()
 		float Rebel;
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetHappiness();
 
 	void SetHappiness();
 
