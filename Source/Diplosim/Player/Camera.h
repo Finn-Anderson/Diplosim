@@ -15,9 +15,6 @@ struct FHoverStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
 		int32 Instance;
 
-	UPROPERTY()
-		FVector Location;
-
 	FHoverStruct()
 	{
 		Reset();
@@ -26,8 +23,7 @@ struct FHoverStruct
 	void Reset()
 	{
 		Actor = nullptr;
-		Instance = 0;
-		Location = FVector::Zero();
+		Instance = -1;
 	}
 };
 
@@ -133,6 +129,9 @@ public:
 		class UUserWidget* EventUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		class USpringArmComponent* WidgetSpringArmComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;
 
 	UPROPERTY()
@@ -144,7 +143,7 @@ public:
 	void TickWhenPaused(bool bTickWhenPaused);
 
 	UFUNCTION(BlueprintCallable)
-		void DisplayInteract(AActor* Actor, FVector Location = FVector(0.0f, 0.0f, 0.0f), int32 Instance = 0);
+		void DisplayInteract(AActor* Actor, int32 Instance = -1);
 
 	void Lose();
 

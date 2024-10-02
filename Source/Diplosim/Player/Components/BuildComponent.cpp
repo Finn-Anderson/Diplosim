@@ -71,8 +71,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 		Buildings[0]->SetActorLocation(location);
 
-		Camera->WidgetComponent->SetWorldLocation(location + FVector(0.0f, 0.0f, Buildings[0]->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z));
-
 		if (StartLocation != FVector::Zero() && EndLocation != Buildings[0]->GetActorLocation())
 			SetBuildingsOnPath();
 	}
@@ -272,7 +270,6 @@ void UBuildComponent::DetachBuilding()
 		return;
 
 	Camera->WidgetComponent->SetHiddenInGame(true);
-	Camera->WidgetComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 
 	SetComponentTickEnabled(false);
 

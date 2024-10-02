@@ -3,6 +3,7 @@
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Engine/StaticMeshSocket.h"
 #include "Blueprint/UserWidget.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -519,6 +520,15 @@ void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 	AMineral* mineral = Cast<AMineral>(Resource);
 
 	int32 inst = mineral->ResourceHISM->AddInstance(GetTransform(Tile));
+
+	FString socketName = "InfoSocket";
+	socketName.AppendInt(inst);
+
+	UStaticMeshSocket* socket = NewObject<UStaticMeshSocket>(mineral);
+	socket->SocketName = FName(*socketName);
+	socket->RelativeLocation = GetTransform(Tile).GetLocation() + FVector(0.0f, 0.0f, mineral->ResourceHISM->GetStaticMesh()->GetBounds().GetBox().GetSize().Z);
+
+	mineral->ResourceHISM->GetStaticMesh()->AddSocket(socket);
 
 	ResourceTiles.Remove(Tile);
 }

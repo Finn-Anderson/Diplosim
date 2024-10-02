@@ -54,7 +54,16 @@ ACamera::ACamera()
 
 	CitizenManager = CreateDefaultSubobject<UCitizenManager>(TEXT("CitizenManager"));
 
+	WidgetSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("WidgetSpringArmComponent"));
+	WidgetSpringArmComponent->SetupAttachment(RootComponent);
+	WidgetSpringArmComponent->SetTickableWhenPaused(true);
+	WidgetSpringArmComponent->TargetArmLength = 0.0f;
+	WidgetSpringArmComponent->bUsePawnControlRotation = true;
+	WidgetSpringArmComponent->bEnableCameraLag = true;
+	WidgetSpringArmComponent->bDoCollisionTest = false;
+
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
+	WidgetComponent->SetupAttachment(WidgetSpringArmComponent);
 	WidgetComponent->SetTickableWhenPaused(true);
 	WidgetComponent->SetHiddenInGame(true);
 
@@ -135,14 +144,8 @@ void ACamera::Tick(float DeltaTime)
 
 		HoveredActor.Actor = actor;
 
-		if (actor->IsA<AMineral>()) {
+		if (actor->IsA<AMineral>())
 			HoveredActor.Instance = hit.Item;
-
-			FTransform transform;
-			Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
-
-			HoveredActor.Location = transform.GetLocation();
-		}
 
 		pcontroller->CurrentMouseCursor = EMouseCursor::Hand;
 	}
@@ -189,7 +192,7 @@ void ACamera::TickWhenPaused(bool bTickWhenPaused)
 	pcontroller->SetPause(!bTickWhenPaused);
 }
 
-void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Instance)
+void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
 {
 	SetInteractableText(Actor, Instance);
 
@@ -198,8 +201,6 @@ void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Instance)
 		SetActorLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
 
 		SpringArmComponent->ProbeSize = 6.0f;
-
-		SpringArmComponent->bEnableCameraLag = false;
 	}
 
 	UDecalComponent* decal = Actor->FindComponentByClass<UDecalComponent>();
@@ -207,14 +208,12 @@ void ACamera::DisplayInteract(AActor* Actor, FVector Location, int32 Instance)
 	if (IsValid(decal) && decal->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr))
 		decal->SetVisibility(true);
 
-	if (Location != FVector::Zero()) {
-		WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform, "InfoSocket");
+	FString socketName = "InfoSocket";
 
-		WidgetComponent->SetRelativeLocation(Location);
-	}
-	else {
-		WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "InfoSocket");
-	}
+	if (Instance > -1)
+		socketName.AppendInt(Instance);
+
+	WidgetSpringArmComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName(*socketName));
 
 	WidgetComponent->SetHiddenInGame(false);
 }
@@ -285,7 +284,7 @@ void ACamera::Action()
 		if (HoveredActor.Actor->IsA<AEggBasket>())
 			Cast<AEggBasket>(HoveredActor.Actor)->RedeemReward();
 		else
-			DisplayInteract(HoveredActor.Actor, HoveredActor.Location, HoveredActor.Instance);
+			DisplayInteract(HoveredActor.Actor, HoveredActor.Instance);
 	}
 }
 
@@ -392,11 +391,8 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 	if (bInMenu)
 		return;
 
-	if (GetAttachParentActor() != nullptr) {
+	if (GetAttachParentActor() != nullptr)
 		SpringArmComponent->ProbeSize = 12.0f;
-
-		SpringArmComponent->bEnableCameraLag = true;
-	}
 
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
