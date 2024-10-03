@@ -10,6 +10,7 @@
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "Buildings/Building.h"
+#include "Buildings/Work/Work.h"
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
 #include "DiplosimGameModeBase.h"

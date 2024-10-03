@@ -129,15 +129,15 @@ public:
 
 	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
 
-	TArray<FVector> GetSpawnPoints();
+	TArray<FVector> GetSpawnPoints(class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
 
-	void PickSpawnPoints();
+	TArray<FVector> PickSpawnPoints();
 
-	void FindSpawnsInArea(struct FTileStruct* Tile, FVector TileLocation, TArray<FVector> ValidTiles, int32 Iteration);
+	TArray<FVector> GetValidLocations(class UHierarchicalInstancedStaticMeshComponent* HISMComponent, TArray<int32> Instances, class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
 
 	void SpawnEnemies();
 
-	void SpawnAtValidLocation(FLinearColor Colour);
+	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour);
 
 	void SpawnEnemiesAsync();
 
@@ -153,8 +153,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class UNavAreaBase> NavAreaThreat;
 
-	TArray<FVector> SpawnLocations;
-
 	UPROPERTY()
 		FTimerHandle WaveTimer;
 
@@ -164,14 +162,11 @@ public:
 	UPROPERTY()
 		class ABuilding* Broch;
 
-	TArray<AActor*> Buildings;
-
-	TArray<AActor*> Citizens;
-
 	UPROPERTY()
 		class AGrid* Grid;
 
-	TArray<FVector> LastLocation;
+	UPROPERTY()
+		class ACamera* Camera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		TArray<FEnemiesStruct> EnemiesData;

@@ -81,16 +81,23 @@ void ADiplosimAIController::Idle()
 			return;
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 		FNavLocation location;
 		nav->GetRandomPointInNavigableRadius(Cast<ACitizen>(GetOwner())->Camera->CitizenManager->Buildings[0]->GetActorLocation(), 1000, location);
 
-		MoveToLocation(location);
+		double length;
+		nav->GetPathLength(GetOwner()->GetActorLocation(), location, length);
 
 		FTimerStruct timer;
 		timer.CreateTimer(GetOwner(), FMath::RandRange(3, 10), FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle), false);
 
 		Cast<ACitizen>(GetOwner())->Camera->CitizenManager->Timers.Add(timer);
+
+		if (length > 5000.0f)
+			return;
+
+		MoveToLocation(location);
 	});
 }
 

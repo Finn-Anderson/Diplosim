@@ -149,6 +149,8 @@ void ACamera::Tick(float DeltaTime)
 
 		pcontroller->CurrentMouseCursor = EMouseCursor::Hand;
 	}
+
+
 }
 
 void ACamera::StartGame(ABuilding* Broch)
@@ -157,6 +159,7 @@ void ACamera::StartGame(ABuilding* Broch)
 	Grid->MapUIInstance->RemoveFromParent();
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	gamemode->Camera = this;
 	gamemode->Broch = Broch;
 	gamemode->Grid = Grid;
 
@@ -274,9 +277,16 @@ void ACamera::Action()
 			BuildComponent->Place();
 	}
 	else {
-		if (!HoveredActor.Actor->IsValidLowLevelFast()) {
+		if (WidgetSpringArmComponent->GetAttachParent() != RootComponent && !IsValid(HoveredActor.Actor)) {
 			if (!WidgetComponent->bHiddenInGame)
 				WidgetComponent->SetHiddenInGame(true);
+
+			UDecalComponent* decalComponent = WidgetSpringArmComponent->GetAttachmentRootActor()->GetComponentByClass<UDecalComponent>();
+
+			if (IsValid(decalComponent))
+				decalComponent->SetVisibility(false);
+
+			WidgetSpringArmComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 			return;
 		}
