@@ -54,6 +54,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateResourceText(const FString& Category);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateUI();
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -88,8 +91,6 @@ public:
 	void Tick(float DeltaTime) override;
 
 	void StartGame(class ABuilding* Broch);
-
-	void DisplayBuildUI();
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -129,6 +130,12 @@ public:
 		class UUserWidget* EventUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> TLDRUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* TLDRUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class USpringArmComponent* WidgetSpringArmComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -139,6 +146,8 @@ public:
 
 	UPROPERTY()
 		bool bLost;
+
+	void DisplayBuildUI();
 
 	void TickWhenPaused(bool bTickWhenPaused);
 

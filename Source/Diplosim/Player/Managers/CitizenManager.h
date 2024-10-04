@@ -215,10 +215,10 @@ public:
 
 	void RemoveTimer(AActor* Actor, FTimerDelegate TimerDelegate);
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Buildings")
 		TArray<class ACitizen*> Citizens;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Citizens")
 		TArray<class ABuilding*> Buildings;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rent")
@@ -272,4 +272,14 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		TArray<FEventStruct> Events;
+
+	// Rebel
+	void Overthrow();
+
+	void SetupRebel(class ACitizen* Citizen);
+
+	bool IsRebellion();
+
+	UPROPERTY()
+		int32 CooldownTimer;
 };

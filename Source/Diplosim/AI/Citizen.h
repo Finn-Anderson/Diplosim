@@ -95,7 +95,8 @@ enum class EParty : uint8
 	Religious,
 	Militarist,
 	Industrialist,
-	Environmentalist
+	Environmentalist,
+	Freedom
 };
 
 UENUM()
@@ -371,7 +372,7 @@ public:
 		FHappinessStruct Happiness;
 
 	UPROPERTY()
-		int32 RebelTimer;
+		int32 SadTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Happiness")
 		class UStaticMesh* RebelHat;
@@ -383,6 +384,4 @@ public:
 		int32 GetHappiness();
 
 	void SetHappiness();
-
-	void Overthrow();
 };

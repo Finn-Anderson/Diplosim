@@ -64,8 +64,6 @@ ACitizen::ACitizen()
 	Hunger = 100;
 	Energy = 100;
 
-	RebelTimer = 0;
-
 	bGain = false;
 
 	HealthComponent->MaxHealth = 10;
@@ -638,6 +636,12 @@ void ACitizen::SetPolticalLeanings()
 		for (int32 i = 0; i < 2; i++)
 			partyList.Add(EParty::Religious);
 
+	int32 itterate = FMath::Floor(GetHappiness() / 10) - 5;
+
+	if (itterate < 0)
+		for (int32 i = 0; i < FMath::Abs(itterate); i++)
+			partyList.Add(EParty::Freedom);
+
 	if (partyList.IsEmpty())
 		return;
 
@@ -660,8 +664,12 @@ void ACitizen::SetPolticalLeanings()
 		}
 	}
 	else if (mark > pass) {
-		if (Politics.Ideology.Leaning != ESway::Strong)
+		if (Politics.Ideology.Leaning != ESway::Strong) {
 			Politics.Ideology.Party = partyList[index];
+
+			if (Politics.Ideology.Party == EParty::Freedom && Camera->CitizenManager->IsRebellion())
+				Camera->CitizenManager->SetupRebel(this);
+		}
 
 		Politics.Ideology.Leaning = ESway::Moderate;
 	}
@@ -756,43 +764,11 @@ void ACitizen::SetHappiness()
 	else if (MassStatus == EMassStatus::Attended)
 		Happiness.SetValue("Attended Mass", 15);
 
-	if (GetHappiness() < 30)
-		RebelTimer++;
+	if (GetHappiness() < 20)
+		SadTimer++;
 	else
-		RebelTimer = 0;
+		SadTimer = 0;
 
-	if (RebelTimer == 300)
-		Overthrow();
-}
-
-void ACitizen::Overthrow()
-{
-	Rebel = true;
-
-	HatMesh->SetStaticMesh(RebelHat);
-
-	int32 choice;
-
-	if (Spirituality.Faith != EReligion::Atheist && Politics.Ideology.Party != EParty::Undecided) {
-		choice = FMath::RandRange(0, 1);
-	}
-	else if (Spirituality.Faith != EReligion::Atheist) {
-		choice = 0;
-	}
-	else {
-		choice = 1;
-	}
-
-	for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
-		if (citizen == this)
-			continue;
-
-		if (citizen->GetHappiness() < 40 && ((choice == 0 && citizen->Spirituality.Faith == Spirituality.Faith) || (choice == 1 && citizen->Politics.Ideology.Party == Politics.Ideology.Party))) {
-			citizen->Rebel = true;
-
-			citizen->MoveToBroch();
-		}
-	}
-
-	MoveToBroch();
+	if (SadTimer == 300)
+		HealthComponent->TakeHealth(HealthComponent->GetHealth(), this);
 }

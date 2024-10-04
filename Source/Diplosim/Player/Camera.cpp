@@ -113,6 +113,8 @@ void ACamera::BeginPlay()
 
 	EventUIInstance = CreateWidget<UUserWidget>(pcontroller, EventUI);
 	EventUIInstance->AddToViewport();
+
+	TLDRUIInstance = CreateWidget<UUserWidget>(pcontroller, TLDRUI);
 }
 
 void ACamera::Tick(float DeltaTime)
@@ -149,8 +151,6 @@ void ACamera::Tick(float DeltaTime)
 
 		pcontroller->CurrentMouseCursor = EMouseCursor::Hand;
 	}
-
-
 }
 
 void ACamera::StartGame(ABuilding* Broch)
@@ -180,6 +180,10 @@ void ACamera::StartGame(ABuilding* Broch)
 void ACamera::DisplayBuildUI()
 {
 	BuildUIInstance->AddToViewport();
+
+	Pause();
+
+	TLDRUIInstance->AddToViewport();
 }
 
 void ACamera::TickWhenPaused(bool bTickWhenPaused)
@@ -317,7 +321,7 @@ void ACamera::NewMap()
 
 void ACamera::Pause()
 {
-	if (GetWorld()->GetMapName() != "Map" || bInMenu)
+	if (GetWorld()->GetMapName() != "Map" || bInMenu || TLDRUIInstance->IsInViewport())
 		return;
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);

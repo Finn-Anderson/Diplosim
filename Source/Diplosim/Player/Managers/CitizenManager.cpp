@@ -18,6 +18,8 @@
 UCitizenManager::UCitizenManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+
+	CooldownTimer = 0;
 }
 
 void UCitizenManager::BeginPlay()
@@ -51,6 +53,8 @@ void UCitizenManager::Loop()
 		}
 	}
 
+	int32 rebelCount = 0;
+
 	for (ACitizen* citizen : Citizens) {
 		if (citizen->Rebel)
 			continue;
@@ -65,9 +69,21 @@ void UCitizenManager::Loop()
 		citizen->FindJobAndHouse();
 			
 		citizen->SetHappiness();
+
+		if (citizen->Politics.Ideology.Party == EParty::Freedom)
+			rebelCount++;
+	}
+
+	if (Citizens.Num() > 0 && (rebelCount / Citizens.Num()) * 100 > 33 && !IsRebellion()) {
+		CooldownTimer--;
+
+		if (CooldownTimer < 1)
+			Overthrow();
 	}
 
 	AsyncTask(ENamedThreads::GameThread, [this]() {
+		Cast<ACamera>(GetOwner())->UpdateUI();
+
 		FTimerHandle FLoopTimer;
 		GetWorld()->GetTimerManager().SetTimer(FLoopTimer, this, &UCitizenManager::StartTimers, 1.0f);
 	});
@@ -369,4 +385,37 @@ void UCitizenManager::EndMass(EReligion Belief)
 
 		citizen->AIController->DefaultAction();
 	}
+}
+
+//
+// Rebel
+//
+void UCitizenManager::Overthrow()
+{
+	CooldownTimer = 1500;
+
+	for (ACitizen* citizen : Citizens) {
+		if (citizen->Politics.Ideology.Party != EParty::Freedom)
+			return;
+
+		SetupRebel(citizen);
+	}
+}
+
+void UCitizenManager::SetupRebel(class ACitizen* Citizen)
+{
+	Citizen->Rebel = true;
+
+	Citizen->HatMesh->SetStaticMesh(Citizen->RebelHat);
+
+	Citizen->MoveToBroch();
+}
+
+bool UCitizenManager::IsRebellion()
+{
+	for (ACitizen* citizen : Citizens)
+		if (citizen->Rebel)
+			return true;
+
+	return false;
 }
