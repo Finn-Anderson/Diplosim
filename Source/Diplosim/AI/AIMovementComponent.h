@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/FloatingPawnMovement.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "AIMovementComponent.generated.h"
 
 UCLASS()
-class DIPLOSIM_API UAIMovementComponent : public UFloatingPawnMovement
+class DIPLOSIM_API UAIMovementComponent : public UPawnMovementComponent
 {
 	GENERATED_BODY()
 	
@@ -14,21 +14,25 @@ public:
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	FVector GetGravitationalForce(const FVector& MoveVelocity);
+	FVector CalculateVelocity(FVector Vector);
 
-	virtual void RequestPathMove(const FVector& MoveVelocity) override;
-
-	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) override;
+	void SetPoints(TArray<FVector> VectorPoints);
 
 	void SetMaxSpeed(int32 Energy);
 
 	void SetMultiplier(float Multiplier);
 
 	UPROPERTY()
+		float MaxSpeed;
+
+	UPROPERTY()
 		float InitialSpeed;
 
 	UPROPERTY()
 		float SpeedMultiplier;
+
+	UPROPERTY()
+		TArray<FVector> Points;
 
 	UPROPERTY()
 		UAnimSequence* CurrentAnim;

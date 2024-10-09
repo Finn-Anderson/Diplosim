@@ -98,7 +98,9 @@ void ADiplosimAIController::Idle()
 		if (length > 5000.0f)
 			return;
 
-		MoveToLocation(location);
+		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), GetOwner()->GetActorLocation(), location, GetOwner(), Cast<AAI>(GetOwner())->NavQueryFilter);
+
+		Cast<AAI>(GetOwner())->MovementComponent->SetPoints(path->PathPoints);
 	});
 }
 
@@ -234,19 +236,26 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 			MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 	}
 
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
-	FNavLocation navLoc;
-	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(200.0f, 200.0f, 10.0f));
-
-	MoveRequest.SetLocation(navLoc.Location);
-
 	TSubclassOf<UNavigationQueryFilter> filter = nullptr;
 
 	if (GetOwner()->IsValidLowLevelFast() && Cast<AAI>(GetOwner())->NavQueryFilter != nullptr)
 		filter = Cast<AAI>(GetOwner())->NavQueryFilter;
 
-	MoveToLocation(MoveRequest.GetLocation(), 1.0f, true, true, false, true, filter, true);
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	FNavLocation navLoc;
+	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(200.0f, 200.0f, 20.0f));
+
+	MoveRequest.SetLocation(navLoc.Location);
+
+	FVector startLocation = GetOwner()->GetActorLocation();
+
+	if (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt != nullptr)\
+		startLocation = Cast<ACitizen>(GetOwner())->Building.EnterLocation;
+
+	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), startLocation, MoveRequest.GetLocation(), GetOwner(), filter);
+
+	Cast<AAI>(GetOwner())->MovementComponent->SetPoints(path->PathPoints);
 
 	SetFocus(Actor);
 

@@ -147,11 +147,8 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 	if (validTiles.IsEmpty())
 		validTiles = GetSpawnPoints(nav, navData);
 
-	if (validTiles.IsEmpty()) {
-		SetWaveTimer();
-
-		return;
-	}
+	if (validTiles.IsEmpty())
+		return validTiles;
 
 	TArray<FVector> spawnLocations;
 
@@ -194,6 +191,12 @@ void ADiplosimGameModeBase::SpawnEnemies()
 	WavesData.Add(waveStruct);
 
 	TArray<FVector> spawnLocations = PickSpawnPoints();
+
+	if (spawnLocations.IsEmpty()) {
+		SetWaveTimer();
+
+		return;
+	}
 
 	EvaluateThreats();
 

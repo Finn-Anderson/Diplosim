@@ -18,6 +18,28 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	if (!Points.IsEmpty() && FVector::DistXY(GetOwner()->GetActorLocation(), Points[0]) < 12.0f)
+		Points.RemoveAt(0);
+
+	if (Points.IsEmpty())
+		Velocity = FVector::Zero();
+	else
+		Velocity = CalculateVelocity(Points[0]);
+
+	UpdateComponentVelocity();
+		
+	FVector delta = Velocity * DeltaTime;
+
+	if (!delta.IsNearlyZero(1e-6f))
+	{
+		FNavLocation deltaTarget;
+		nav->ProjectPointToNavigation(GetOwner()->GetActorLocation() + delta, deltaTarget, FVector(200.0f, 200.0f, 20.0f));
+
+		GetOwner()->SetActorLocation(deltaTarget.Location + FVector(0.0f, 0.0f, 6.0f));
+	}
+
 	if (Velocity == FVector::Zero() && CurrentAnim != nullptr) {
 		Cast<AAI>(GetOwner())->Mesh->Play(false);
 
@@ -30,23 +52,14 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	}
 }
 
-FVector UAIMovementComponent::GetGravitationalForce(const FVector& MoveVelocity)
+FVector UAIMovementComponent::CalculateVelocity(FVector Vector)
 {
-	return MoveVelocity + FVector(0.0f, 0.0f, -100.0f);
+	return (Vector - GetOwner()->GetActorLocation()).Rotation().Vector() * MaxSpeed;
 }
 
-void UAIMovementComponent::RequestPathMove(const FVector& MoveVelocity)
+void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 {
-	FVector velocity = GetGravitationalForce(MoveVelocity);
-
-	Super::RequestPathMove(velocity);
-}
-
-void UAIMovementComponent::RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed)
-{
-	FVector velocity = GetGravitationalForce(MoveVelocity);
-
-	Super::RequestDirectMove(velocity, bForceMaxSpeed);
+	Points = VectorPoints;
 }
 
 void UAIMovementComponent::SetMaxSpeed(int32 Energy)
