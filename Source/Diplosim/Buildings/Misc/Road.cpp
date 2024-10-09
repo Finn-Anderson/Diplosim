@@ -2,6 +2,7 @@
 
 #include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "AI/AIMovementComponent.h"
 
 ARoad::ARoad()
 {
@@ -42,15 +43,15 @@ void ARoad::OnCitizenOverlapBegin(class UPrimitiveComponent* OverlappedComp, cla
 	if (!OtherActor->IsA<AAI>())
 		return;
 
-	Cast<AAI>(OtherActor)->GetCharacterMovement()->MaxWalkSpeed *= 1.15;
+	Cast<AAI>(OtherActor)->MovementComponent->SetMultiplier(1.15f);
 }
 
 void ARoad::OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (!OtherActor->IsA<AAI>())
 		return;
-		
-	Cast<AAI>(OtherActor)->GetCharacterMovement()->MaxWalkSpeed /= 1.15;
+
+	Cast<AAI>(OtherActor)->MovementComponent->SetMultiplier(0.85f);
 }
 
 void ARoad::RegenerateMesh()

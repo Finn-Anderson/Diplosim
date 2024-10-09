@@ -45,9 +45,8 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 
 		building->BuildingMesh->SetOverlayMaterial(material);
 	}
-	else {
-		Cast<AAI>(GetOwner())->GetMesh()->SetOverlayMaterial(material);
-	}
+	else
+		Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(material);
 
 	FTimerHandle matTimer;
 	GetWorld()->GetTimerManager().SetTimer(matTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), 0.15f, false);
@@ -69,7 +68,7 @@ void UHealthComponent::RemoveDamageOverlay()
 	if (GetOwner()->IsA<ABuilding>())
 		Cast<ABuilding>(GetOwner())->BuildingMesh->SetOverlayMaterial(nullptr);
 	else
-		Cast<AAI>(GetOwner())->GetMesh()->SetOverlayMaterial(nullptr);
+		Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(nullptr);
 }
 
 void UHealthComponent::Death(AActor* Attacker)
@@ -91,6 +90,7 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		attackComp->ClearAttacks();
 
+		mesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 		mesh->SetSimulatePhysics(true);
 
 		const FVector direction = (actor->GetActorLocation() - Attacker->GetActorLocation()).Rotation().Vector() * 50;

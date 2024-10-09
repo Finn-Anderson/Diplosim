@@ -295,6 +295,9 @@ void ACamera::Action()
 			return;
 		}
 
+		if (!IsValid(HoveredActor.Actor))
+			return;
+
 		if (HoveredActor.Actor->IsA<AEggBasket>())
 			Cast<AEggBasket>(HoveredActor.Actor)->RedeemReward();
 		else

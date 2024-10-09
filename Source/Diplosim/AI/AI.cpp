@@ -2,10 +2,11 @@
 
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Navigation/PathFollowingComponent.h"
 
 #include "Universal/HealthComponent.h"
+#include "AIMovementComponent.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
 #include "Enemy.h"
@@ -16,20 +17,26 @@ AAI::AAI()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
-	GetCapsuleComponent()->bDynamicObstacle = false;
+	Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
+	Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	Capsule->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
+	Capsule->SetGenerateOverlapEvents(true);
+	Capsule->bDynamicObstacle = false;
 
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
-	GetMesh()->SetGenerateOverlapEvents(true);
-	GetMesh()->SetupAttachment(RootComponent);
+	RootComponent = Capsule;
+
+	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
+	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Mesh->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
+	Mesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	Mesh->SetGenerateOverlapEvents(false);
+	Mesh->SetupAttachment(RootComponent);
 
 	Reach = CreateDefaultSubobject<USphereComponent>(TEXT("ReachCollision"));
 	Reach->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
@@ -44,16 +51,12 @@ AAI::AAI()
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 	AttackComponent->RangeComponent->SetupAttachment(RootComponent);
 
-	AIControllerClass = ADiplosimAIController::StaticClass();
-
-	GetCharacterMovement()->MaxWalkSpeed = 200.0f;
+	MovementComponent = CreateDefaultSubobject<UAIMovementComponent>(TEXT("MovementComponent"));
+	MovementComponent->SetUpdatedComponent(RootComponent);
 
 	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 300.0f, 0.0f);
 
-	GetCharacterMovement()->bUseFlatBaseForFloorChecks = true;
-	GetCharacterMovement()->bCanWalkOffLedges = false;
+	AIControllerClass = ADiplosimAIController::StaticClass();
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }

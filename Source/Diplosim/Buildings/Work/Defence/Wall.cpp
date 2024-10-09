@@ -43,7 +43,7 @@ void AWall::Enter(ACitizen* Citizen)
 	if (!Occupied.Contains(Citizen))
 		return;
 
-	Citizen->GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
+	Citizen->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
 
 	Citizen->AttackComponent->SetProjectileClass(BuildingProjectileClass);
 
@@ -68,7 +68,7 @@ void AWall::Leave(ACitizen* Citizen)
 	if (!Occupied.Contains(Citizen))
 		return;
 
-	Citizen->GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
+	Citizen->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 
 	Citizen->AttackComponent->SetProjectileClass(nullptr);
 

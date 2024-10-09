@@ -6,6 +6,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "AI/AIMovementComponent.h"
 
 AInternalProduction::AInternalProduction()
 {
@@ -81,7 +82,7 @@ void AInternalProduction::SetTimer(ACitizen* Citizen)
 	float tally = 1;
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		tally *= FMath::LogX(citizen->InitialSpeed, citizen->GetCharacterMovement()->MaxWalkSpeed);
+		tally *= FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed);
 
 	float time = TimeLength / GetCitizensAtBuilding().Num() / tally;
 
@@ -104,7 +105,7 @@ void AInternalProduction::AlterTimer()
 	float tally = 1;
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		tally *= FMath::LogX(citizen->InitialSpeed, citizen->GetCharacterMovement()->MaxWalkSpeed);
+		tally *= FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed);
 
 	float time = TimeLength / GetCitizensAtBuilding().Num() / tally;
 

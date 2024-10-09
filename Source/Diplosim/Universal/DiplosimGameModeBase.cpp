@@ -147,6 +147,12 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 	if (validTiles.IsEmpty())
 		validTiles = GetSpawnPoints(nav, navData);
 
+	if (validTiles.IsEmpty()) {
+		SetWaveTimer();
+
+		return;
+	}
+
 	TArray<FVector> spawnLocations;
 
 	auto index = Async(EAsyncExecution::TaskGraph, [validTiles]() { return FMath::RandRange(0, validTiles.Num() - 1); });
@@ -235,10 +241,10 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations,
 	if (!IsValid(enemy))
 		return;
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(enemy->GetMesh()->GetMaterial(0), enemy);
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(enemy->Mesh->GetMaterial(0), enemy);
 	material->SetVectorParameterValue("Colour", Colour);
 	material->SetScalarParameterValue("Emissiveness", 3.0f);
-	enemy->GetMesh()->SetMaterial(0, material);
+	enemy->Mesh->SetMaterial(0, material);
 
 	enemy->Colour = Colour;
 

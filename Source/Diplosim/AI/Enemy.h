@@ -22,9 +22,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 		class UNiagaraComponent* EffectComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		UAnimSequence* MoveAnim;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 		class UNiagaraComponent* ZapComponent;
 

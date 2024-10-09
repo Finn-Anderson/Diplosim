@@ -8,6 +8,7 @@
 #include "AI/Citizen.h"
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/AIMovementComponent.h"
 #include "Universal/HealthComponent.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/Religion.h"
@@ -191,7 +192,7 @@ void UCitizenManager::Injure(ACitizen* Citizen)
 
 	for (FAffectStruct affect : conditions[index].Affects) {
 		if (affect.Affect == EAffect::Movement)
-			Citizen->InitialSpeed *= affect.Amount;
+			Citizen->MovementComponent->InitialSpeed *= affect.Amount;
 		else if (affect.Affect == EAffect::Damage)
 			Citizen->AttackComponent->Damage *= affect.Amount;
 		else {
@@ -219,7 +220,7 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 	for (FConditionStruct condition : Citizen->HealthIssues) {
 		for (FAffectStruct affect : condition.Affects) {
 			if (affect.Affect == EAffect::Movement)
-				Citizen->InitialSpeed /= affect.Amount;
+				Citizen->MovementComponent->InitialSpeed /= affect.Amount;
 			else if (affect.Affect == EAffect::Damage)
 				Citizen->AttackComponent->Damage /= affect.Amount;
 			else

@@ -16,6 +16,7 @@
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Building.h"
 #include "Universal/DiplosimGameModeBase.h"
+#include "AIMovementComponent.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -212,6 +213,8 @@ void UAttackComponent::CanHit(AActor* Target)
 
 void UAttackComponent::Attack()
 {
+	Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = nullptr;
+
 	if (!CurrentTarget->IsValidLowLevelFast())
 		return;
 
@@ -233,9 +236,12 @@ void UAttackComponent::Attack()
 	if (*ProjectileClass) {
 		if (RangeAnim->IsValidLowLevelFast()) {
 			RangeAnim->RateScale = 0.5f / time;
+			
+			if (GetOwner()->IsA<AAI>()) {
+				Cast<AAI>(GetOwner())->Mesh->PlayAnimation(RangeAnim, false);
 
-			if (GetOwner()->IsA<AAI>())
-				Cast<AAI>(GetOwner())->GetMesh()->PlayAnimation(RangeAnim, false);
+				Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = RangeAnim;
+			}
 		}
 
 		GetWorld()->GetTimerManager().SetTimer(AnimTimer, this, &UAttackComponent::Throw, time, false);
@@ -244,7 +250,9 @@ void UAttackComponent::Attack()
 		if (MeleeAnim->IsValidLowLevelFast()) {
 			MeleeAnim->RateScale = 0.5f / time;
 
-			Cast<AAI>(GetOwner())->GetMesh()->PlayAnimation(MeleeAnim, false);
+			Cast<AAI>(GetOwner())->Mesh->PlayAnimation(MeleeAnim, false);
+
+			Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = MeleeAnim;
 		}
 		else if (GetOwner()->IsA<AEnemy>())
 			Cast<AEnemy>(GetOwner())->Zap(CurrentTarget->GetActorLocation());

@@ -4,7 +4,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "Components/WidgetComponent.h"
 
@@ -21,26 +20,27 @@
 #include "Universal/DiplosimGameModeBase.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "AIMovementComponent.h"
 
 ACitizen::ACitizen()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	SetTickableWhenPaused(true);
 
-	GetCapsuleComponent()->SetCapsuleSize(9.0f, 11.5f);
+	Capsule->SetCapsuleSize(9.0f, 11.5f);
 
-	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -14.0f));
-	GetMesh()->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
+	Mesh->SetRelativeLocation(FVector(0.0f, 0.0f, -14.0f));
+	Mesh->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));
 	HatMesh->SetWorldScale3D(FVector(0.1f, 0.1f, 0.1f));
 	HatMesh->SetCollisionProfileName("NoCollision", false);
 	HatMesh->SetComponentTickEnabled(false);
-	HatMesh->SetupAttachment(GetMesh(), "HatSocket");
+	HatMesh->SetupAttachment(Mesh, "HatSocket");
 
 	TorchMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TorchMesh"));
 	TorchMesh->SetCollisionProfileName("NoCollision", false);
-	TorchMesh->SetupAttachment(GetMesh(), "TorchSocket");
+	TorchMesh->SetupAttachment(Mesh, "TorchSocket");
 	TorchMesh->SetHiddenInGame(true);
 	TorchMesh->PrimaryComponentTick.bCanEverTick = false;
 
@@ -49,15 +49,17 @@ ACitizen::ACitizen()
 	TorchNiagaraComponent->bAutoActivate = false;
 
 	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
-	DiseaseNiagaraComponent->SetupAttachment(GetMesh());
+	DiseaseNiagaraComponent->SetupAttachment(Mesh);
 	DiseaseNiagaraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 6.0f));
 	DiseaseNiagaraComponent->bAutoActivate = false;
 
 	PopupComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PopupComponent"));
-	PopupComponent->SetupAttachment(GetCapsuleComponent());
+	PopupComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	PopupComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
 	PopupComponent->SetHiddenInGame(true);
 	PopupComponent->SetComponentTickEnabled(false);
+	PopupComponent->SetGenerateOverlapEvents(false);
+	PopupComponent->SetupAttachment(RootComponent);
 
 	Balance = 20;
 
@@ -68,8 +70,6 @@ ACitizen::ACitizen()
 
 	HealthComponent->MaxHealth = 10;
 	HealthComponent->Health = HealthComponent->MaxHealth;
-
-	InitialSpeed = GetCharacterMovement()->MaxWalkSpeed;
 }
 
 void ACitizen::BeginPlay()
@@ -102,9 +102,9 @@ void ACitizen::BeginPlay()
 	float g = FMath::FRandRange(0.0f, 1.0f);
 	float b = FMath::FRandRange(0.0f, 1.0f);
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(0), this);
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(Mesh->GetMaterial(0), this);
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
-	GetMesh()->SetMaterial(0, material);
+	Mesh->SetMaterial(0, material);
 
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
@@ -340,7 +340,7 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	GetCharacterMovement()->MaxWalkSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, InitialSpeed * 0.3f, InitialSpeed);
+	MovementComponent->SetMaxSpeed(Energy);
 
 	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || (!Building.Employment->bCanRest && Building.Employment->bOpen) || bWorshipping)
 		return;
@@ -392,7 +392,7 @@ void ACitizen::GainEnergy()
 void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 {
 	float time = FMath::RandRange(6.0f, 10.0f);
-	time /= FMath::LogX(InitialSpeed, GetCharacterMovement()->MaxWalkSpeed);
+	time /= FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed);
 
 	FTimerStruct timer;
 	timer.CreateTimer(this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), false);
@@ -457,7 +457,7 @@ void ACitizen::Birthday()
 		HealthComponent->AddHealth(5);
 
 		float scale = (BioStruct.Age * 0.04f) + 0.28f;
-		AsyncTask(ENamedThreads::GameThread, [this, scale]() { GetMesh()->SetWorldScale3D(FVector(scale, scale, scale)); });
+		AsyncTask(ENamedThreads::GameThread, [this, scale]() { Mesh->SetWorldScale3D(FVector(scale, scale, scale)); });
 	}
 	else if (BioStruct.Partner != nullptr)
 		AsyncTask(ENamedThreads::GameThread, [this]() { HaveChild(); });

@@ -9,9 +9,9 @@
 
 AEnemy::AEnemy()
 {
-	GetCapsuleComponent()->SetCapsuleSize(9.0f, 9.0f);
+	Capsule->SetCapsuleSize(9.0f, 9.0f);
 
-	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -9.0f));
+	Mesh->SetRelativeLocation(FVector(0.0f, 0.0f, -9.0f));
 
 	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 
@@ -21,10 +21,10 @@ AEnemy::AEnemy()
 	SpawnComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpawnComponent"));
 
 	EffectComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("EffectComponent"));
-	EffectComponent->SetupAttachment(GetMesh(), "ParticleSocket");
+	EffectComponent->SetupAttachment(RootComponent, "ParticleSocket");
 
 	ZapComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ZapComponent"));
-	ZapComponent->SetupAttachment(GetMesh(), "ParticleSocket");
+	ZapComponent->SetupAttachment(RootComponent, "ParticleSocket");
 	ZapComponent->SetAutoActivate(false);
 }
 
@@ -33,8 +33,6 @@ void AEnemy::BeginPlay()
 	Super::BeginPlay();
 
 	SpawnComponent->SetWorldLocation(GetActorLocation());
-
-	GetMesh()->PlayAnimation(MoveAnim, true);
 }
 
 void AEnemy::Zap(FVector Location)

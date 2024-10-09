@@ -318,9 +318,6 @@ public:
 	UPROPERTY()
 		bool bGain;
 
-	UPROPERTY()
-		float InitialSpeed;
-
 	// Bio
 	void Birthday();
 

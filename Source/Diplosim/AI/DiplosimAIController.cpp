@@ -19,6 +19,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "AIMovementComponent.h"
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
