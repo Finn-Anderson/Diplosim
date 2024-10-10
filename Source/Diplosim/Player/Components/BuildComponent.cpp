@@ -349,7 +349,8 @@ void UBuildComponent::Place()
 		for (FTreeStruct treeStruct : building->TreeList)
 			treeStruct.Resource->ResourceHISM->RemoveInstance(treeStruct.Instance);
 
-	UGameplayStatics::PlaySoundAtLocation(GetWorld(), PlaceSound, Buildings[0]->GetActorLocation(), settings->GetMasterVolume() * settings->GetSFXVolume());
+	Camera->SetAudioSound(PlaceSound, settings->GetMasterVolume() * settings->GetSFXVolume());
+	Camera->PlaySound();
 
 	if (BuildingToMove->IsValidLowLevelFast()) {
 		BuildingToMove->SetActorLocation(Buildings[0]->GetActorLocation());

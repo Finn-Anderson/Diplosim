@@ -79,6 +79,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")
 		class UCameraMovementComponent* MovementComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* AudioComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 		class AGrid* Grid;
 
@@ -91,6 +94,11 @@ public:
 	void Tick(float DeltaTime) override;
 
 	void StartGame(class ABuilding* Broch);
+
+	// Audio
+	void SetAudioSound(USoundBase* Sound, float Volume);
+
+	void PlaySound();
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")

@@ -14,6 +14,7 @@
 #include "Map/Resources/Mineral.h"
 #include "Components/BuildComponent.h"
 #include "Components/CameraMovementComponent.h"
+#include "Components/AudioComponent.h"
 #include "Managers/ResourceManager.h"
 #include "Managers/ConstructionManager.h"
 #include "Managers/CitizenManager.h"
@@ -45,6 +46,12 @@ ACamera::ACamera()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	CameraComponent->PrimaryComponentTick.bCanEverTick = false;
+
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
+	AudioComponent->SetupAttachment(CameraComponent);
+	AudioComponent->SetUISound(true);
+	AudioComponent->SetAutoActivate(false);
+	AudioComponent->SetTickableWhenPaused(true);
 
 	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
 	ResourceManager->SetTickableWhenPaused(true);
@@ -175,6 +182,17 @@ void ACamera::StartGame(ABuilding* Broch)
 
 	FTimerHandle displayBuildUITimer;
 	GetWorld()->GetTimerManager().SetTimer(displayBuildUITimer, this, &ACamera::DisplayBuildUI, 2.7f, false);
+}
+
+void ACamera::SetAudioSound(USoundBase* Sound, float Volume)
+{
+	AudioComponent->SetSound(Sound);
+	AudioComponent->SetVolumeMultiplier(Volume);
+}
+
+void ACamera::PlaySound()
+{
+	AudioComponent->Play();
 }
 
 void ACamera::DisplayBuildUI()
