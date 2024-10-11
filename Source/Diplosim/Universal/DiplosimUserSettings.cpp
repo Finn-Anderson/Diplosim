@@ -21,6 +21,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	MasterVolume = 1.0f;
 	SFXVolume = 1.0f;
+	AmbientVolume = 1.0f;
 
 	Atmosphere = nullptr;
 	Clouds = nullptr;
@@ -152,6 +153,19 @@ void UDiplosimUserSettings::SetSFXVolume(float Value)
 float UDiplosimUserSettings::GetSFXVolume() const
 {
 	return SFXVolume;
+}
+
+void UDiplosimUserSettings::SetAmbientVolume(float Value)
+{
+	if (AmbientVolume == Value)
+		return;
+
+	AmbientVolume = Value;
+}
+
+float UDiplosimUserSettings::GetAmbientVolume() const
+{
+	return AmbientVolume;
 }
 
 UDiplosimUserSettings* UDiplosimUserSettings::GetDiplosimUserSettings()

@@ -34,6 +34,9 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, GetWorld()->DeltaTimeSeconds, 10.0f);
+
+	if (GetWorld()->GetMapName() == "Map")
+		Camera->SetAmbienceSound();
 }
 
 void UCameraMovementComponent::SetBounds(FVector start, FVector end) {

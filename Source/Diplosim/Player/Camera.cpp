@@ -23,6 +23,7 @@
 #include "AI/AI.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/EggBasket.h"
+#include "Universal/DiplosimUserSettings.h"
 
 ACamera::ACamera()
 {
@@ -47,11 +48,25 @@ ACamera::ACamera()
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	CameraComponent->PrimaryComponentTick.bCanEverTick = false;
 
-	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
-	AudioComponent->SetupAttachment(CameraComponent);
-	AudioComponent->SetUISound(true);
-	AudioComponent->SetAutoActivate(false);
-	AudioComponent->SetTickableWhenPaused(true);
+	InteractAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("InteractAudioComponent"));
+	InteractAudioComponent->SetupAttachment(CameraComponent);
+	InteractAudioComponent->SetUISound(true);
+	InteractAudioComponent->SetAutoActivate(false);
+	InteractAudioComponent->SetTickableWhenPaused(true);
+
+	SkyAmbienceAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("SkyAmbienceAudioComponent"));
+	SkyAmbienceAudioComponent->SetupAttachment(CameraComponent);
+	SkyAmbienceAudioComponent->SetVolumeMultiplier(0.0f);
+	SkyAmbienceAudioComponent->SetUISound(true);
+	SkyAmbienceAudioComponent->SetAutoActivate(true);
+	SkyAmbienceAudioComponent->SetTickableWhenPaused(true);
+
+	GroundAmbienceAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("GroundAmbienceAudioComponent"));
+	GroundAmbienceAudioComponent->SetupAttachment(CameraComponent);
+	GroundAmbienceAudioComponent->SetVolumeMultiplier(0.0f);
+	GroundAmbienceAudioComponent->SetUISound(true);
+	GroundAmbienceAudioComponent->SetAutoActivate(true);
+	GroundAmbienceAudioComponent->SetTickableWhenPaused(true);
 
 	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
 	ResourceManager->SetTickableWhenPaused(true);
@@ -184,15 +199,35 @@ void ACamera::StartGame(ABuilding* Broch)
 	GetWorld()->GetTimerManager().SetTimer(displayBuildUITimer, this, &ACamera::DisplayBuildUI, 2.7f, false);
 }
 
-void ACamera::SetAudioSound(USoundBase* Sound, float Volume)
+void ACamera::SetAmbienceSound()
 {
-	AudioComponent->SetSound(Sound);
-	AudioComponent->SetVolumeMultiplier(Volume);
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+
+	float height = CameraComponent->GetComponentLocation().Z;
+
+	float skyVol = 0.0f;
+	float groundVol = 0.0f;
+
+	if (height > 3000) {
+		skyVol = FMath::Clamp(FMath::LogX(3000.0f, height - 3000), 0.0f, 1.0f);
+	}
+	else {
+		groundVol = FMath::Clamp((1.0f - FMath::LogX(3000.0f, height)) * 2, 0.0f, 1.0f);
+	}
+
+	SkyAmbienceAudioComponent->SetVolumeMultiplier(skyVol * settings->GetMasterVolume() * settings->GetAmbientVolume());
+	GroundAmbienceAudioComponent->SetVolumeMultiplier(groundVol * settings->GetMasterVolume() * settings->GetAmbientVolume());
 }
 
-void ACamera::PlaySound()
+void ACamera::SetInteractAudioSound(USoundBase* Sound, float Volume)
 {
-	AudioComponent->Play();
+	InteractAudioComponent->SetSound(Sound);
+	InteractAudioComponent->SetVolumeMultiplier(Volume);
+}
+
+void ACamera::PlayInteractSound()
+{
+	InteractAudioComponent->Play();
 }
 
 void ACamera::DisplayBuildUI()

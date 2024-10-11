@@ -79,9 +79,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")
 		class UCameraMovementComponent* MovementComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		class UAudioComponent* AudioComponent;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 		class AGrid* Grid;
 
@@ -96,9 +93,20 @@ public:
 	void StartGame(class ABuilding* Broch);
 
 	// Audio
-	void SetAudioSound(USoundBase* Sound, float Volume);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* InteractAudioComponent;
 
-	void PlaySound();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* SkyAmbienceAudioComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* GroundAmbienceAudioComponent;
+
+	void SetAmbienceSound();
+
+	void SetInteractAudioSound(USoundBase* Sound, float Volume);
+
+	void PlayInteractSound();
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")

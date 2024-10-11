@@ -20,9 +20,6 @@ AEnemy::AEnemy()
 
 	SpawnComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpawnComponent"));
 
-	EffectComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("EffectComponent"));
-	EffectComponent->SetupAttachment(RootComponent, "ParticleSocket");
-
 	ZapComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ZapComponent"));
 	ZapComponent->SetupAttachment(RootComponent, "ParticleSocket");
 	ZapComponent->SetAutoActivate(false);

@@ -246,12 +246,9 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations,
 
 	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(enemy->Mesh->GetMaterial(0), enemy);
 	material->SetVectorParameterValue("Colour", Colour);
-	material->SetScalarParameterValue("Emissiveness", 3.0f);
 	enemy->Mesh->SetMaterial(0, material);
 
 	enemy->Colour = Colour;
-
-	enemy->EffectComponent->SetVariableLinearColor("Colour", Colour);
 
 	enemy->MoveToBroch();
 

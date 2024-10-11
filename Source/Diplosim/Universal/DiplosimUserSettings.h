@@ -31,6 +31,9 @@ protected:
 	UPROPERTY(Config)
 		float SFXVolume;
 
+	UPROPERTY(Config)
+		float AmbientVolume;
+
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
@@ -76,6 +79,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Audio")
 		float GetSFXVolume() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+		void SetAmbientVolume(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "Audio")
+		float GetAmbientVolume() const;
 
 	UPROPERTY()
 		class UCloudComponent* Clouds;
