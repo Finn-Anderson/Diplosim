@@ -15,6 +15,8 @@ UCameraMovementComponent::UCameraMovementComponent()
 	CameraSpeed = 10.0f;
 
 	Sensitivity = 2.0f;
+
+	Timer = 0.0f;
 }
 
 void UCameraMovementComponent::BeginPlay()
@@ -35,8 +37,13 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, GetWorld()->DeltaTimeSeconds, 10.0f);
 
-	if (GetWorld()->GetMapName() == "Map")
-		Camera->SetAmbienceSound();
+	Timer += DeltaTime;
+
+	if (Timer > 0.2f) {
+		Timer = 0.0f;
+
+		Async(EAsyncExecution::Thread, [this]() { Camera->SetAmbienceSound(); });
+	}
 }
 
 void UCameraMovementComponent::SetBounds(FVector start, FVector end) {

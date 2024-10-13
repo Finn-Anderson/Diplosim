@@ -99,8 +99,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* SkyAmbienceAudioComponent;
 
+	UPROPERTY()
+		float SkyTargetVolume;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* GroundAmbienceAudioComponent;
+
+	UPROPERTY()
+		float GroundTargetVolume;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* SeaAmbienceAudioComponent;
+
+	UPROPERTY()
+		float SeaTargetVolume;
 
 	void SetAmbienceSound();
 
