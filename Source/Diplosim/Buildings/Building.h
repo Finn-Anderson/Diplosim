@@ -124,6 +124,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* ParticleComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* AmbientAudioComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		bool bConstant;
 

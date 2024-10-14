@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "NiagaraComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/AudioComponent.h"
 
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
@@ -21,6 +22,7 @@
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "AIMovementComponent.h"
+#include "Map/Resources/Mineral.h"
 
 ACitizen::ACitizen()
 {
@@ -60,6 +62,10 @@ ACitizen::ACitizen()
 	PopupComponent->SetComponentTickEnabled(false);
 	PopupComponent->SetGenerateOverlapEvents(false);
 	PopupComponent->SetupAttachment(RootComponent);
+
+	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
+	AmbientAudioComponent->SetupAttachment(RootComponent);
+	AmbientAudioComponent->SetVolumeMultiplier(0.0f);
 
 	Balance = 20;
 
@@ -399,12 +405,25 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 
 	Camera->CitizenManager->Timers.Add(timer);
 
+	USoundBase* sound = nullptr;
+
+	if (Resource->IsA<AMineral>())
+		sound = Mines[FMath::RandRange(0, Mines.Num() - 1)];
+	else
+		sound = Chops[FMath::RandRange(0, Chops.Num() - 1)];
+
+	timer.CreateTimer(this, 1, FTimerDelegate::CreateUObject(Camera, &ACamera::PlayAmbientSound, AmbientAudioComponent, sound), true);
+
+	Camera->CitizenManager->Timers.Add(timer);
+
 	AIController->StopMovement();
 }
 
 void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 {
 	AResource* resource = Resource->GetHarvestedResource();
+
+	Camera->CitizenManager->RemoveTimer(this, FTimerDelegate::CreateUObject(Camera, &ACamera::PlayAmbientSound, AmbientAudioComponent, AmbientAudioComponent->GetSound()));
 
 	Camera->CitizenManager->Injure(this);
 

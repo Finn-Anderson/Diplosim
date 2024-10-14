@@ -54,26 +54,12 @@ ACamera::ACamera()
 	InteractAudioComponent->SetAutoActivate(false);
 	InteractAudioComponent->SetTickableWhenPaused(true);
 
-	SkyAmbienceAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("SkyAmbienceAudioComponent"));
-	SkyAmbienceAudioComponent->SetupAttachment(CameraComponent);
-	SkyAmbienceAudioComponent->SetVolumeMultiplier(0.0f);
-	SkyAmbienceAudioComponent->SetUISound(true);
-	SkyAmbienceAudioComponent->SetAutoActivate(true);
-	SkyAmbienceAudioComponent->SetTickableWhenPaused(true);
-
-	GroundAmbienceAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("GroundAmbienceAudioComponent"));
-	GroundAmbienceAudioComponent->SetupAttachment(CameraComponent);
-	GroundAmbienceAudioComponent->SetVolumeMultiplier(0.0f);
-	GroundAmbienceAudioComponent->SetUISound(true);
-	GroundAmbienceAudioComponent->SetAutoActivate(true);
-	GroundAmbienceAudioComponent->SetTickableWhenPaused(true);
-
-	SeaAmbienceAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("SeaAmbienceAudioComponent"));
-	SeaAmbienceAudioComponent->SetupAttachment(CameraComponent);
-	SeaAmbienceAudioComponent->SetVolumeMultiplier(0.0f);
-	SeaAmbienceAudioComponent->SetUISound(true);
-	SeaAmbienceAudioComponent->SetAutoActivate(true);
-	SeaAmbienceAudioComponent->SetTickableWhenPaused(true);
+	MusicAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("MusicAudioComponent"));
+	MusicAudioComponent->SetupAttachment(CameraComponent);
+	MusicAudioComponent->SetVolumeMultiplier(0.0f);
+	MusicAudioComponent->SetUISound(true);
+	MusicAudioComponent->SetAutoActivate(true);
+	MusicAudioComponent->SetTickableWhenPaused(true);
 
 	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
 	ResourceManager->SetTickableWhenPaused(true);
@@ -95,10 +81,6 @@ ACamera::ACamera()
 	WidgetComponent->SetupAttachment(WidgetSpringArmComponent);
 	WidgetComponent->SetTickableWhenPaused(true);
 	WidgetComponent->SetHiddenInGame(true);
-
-	SkyTargetVolume = 0.0f;
-	GroundTargetVolume = 0.0f;
-	SeaTargetVolume = 0.0f;
 
 	Start = true;
 
@@ -153,18 +135,6 @@ void ACamera::BeginPlay()
 void ACamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	TArray<float> targets = { SkyTargetVolume, GroundTargetVolume, SeaTargetVolume };
-	TArray<UAudioComponent*> components = { SkyAmbienceAudioComponent, GroundAmbienceAudioComponent, SeaAmbienceAudioComponent };
-
-	for (int32 i = 0; i < 3; i++) {
-		if (targets[i] == components[i]->VolumeMultiplier)
-			continue;
-
-		float deltaVol = (targets[i] - components[i]->VolumeMultiplier) * DeltaTime;
-
-		components[i]->SetVolumeMultiplier(components[i]->VolumeMultiplier + deltaVol);
-	}
 
 	if (BuildComponent->IsComponentTickEnabled())
 		return;
@@ -222,52 +192,16 @@ void ACamera::StartGame(ABuilding* Broch)
 	GetWorld()->GetTimerManager().SetTimer(displayBuildUITimer, this, &ACamera::DisplayBuildUI, 2.7f, false);
 }
 
-void ACamera::SetAmbienceSound()
+void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound)
 {
 	if (GetWorld()->GetMapName() != "Map" || Grid->Storage.IsEmpty())
 		return;
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
-	float height = CameraComponent->GetComponentLocation().Z;
-
-	float skyVol = 0.0f;
-	float terrainVol = 0.0f;
-
-	if (height > 3000)
-		skyVol = FMath::Clamp(FMath::LogX(3000.0f, height - 3000), 0.0f, 1.0f);
-	else
-		terrainVol = 1.0f;
-
-	float groundDist = 1000000000000.0f;
-	float seaDist = 1000000000000.0f;
-
-	for (TArray<FTileStruct> row : Grid->Storage) {
-		for (FTileStruct tileStruct : row) {
-			if (tileStruct.Level == -1) {
-				float newDist = FVector::Dist(FVector(tileStruct.X * 100.0f, tileStruct.Y * 100.0f, 50.0f), CameraComponent->GetComponentLocation());
-
-				if (newDist < seaDist)
-					seaDist = newDist;
-			}
-			else {
-				float newDist = FVector::Dist(Grid->GetTransform(&tileStruct).GetLocation(), CameraComponent->GetComponentLocation());
-
-				if (newDist < groundDist)
-					groundDist = newDist;
-			}
-		}
-	}
-
-	if (seaDist < groundDist || groundDist > 3000.0f)
-		seaDist = height - 50.0f;
-
-	float groundVol = FMath::Clamp(1.0f - groundDist / 3000.0f, 0.0f, 1.0f);
-	float seaVol = FMath::Clamp(1.0f - seaDist / 3000.0f, 0.0f, 1.0f);
-
-	SkyTargetVolume = skyVol * settings->GetMasterVolume() * settings->GetAmbientVolume();
-	GroundTargetVolume = terrainVol * groundVol * settings->GetMasterVolume() * settings->GetAmbientVolume();
-	SeaTargetVolume = terrainVol * seaVol * settings->GetMasterVolume() * settings->GetAmbientVolume();
+	AudioComponent->SetSound(Sound);
+	AudioComponent->SetVolumeMultiplier(settings->GetAmbientVolume() * settings->GetMasterVolume());
+	AudioComponent->Play();
 }
 
 void ACamera::SetInteractAudioSound(USoundBase* Sound, float Volume)

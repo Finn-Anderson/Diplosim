@@ -258,6 +258,16 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
+	// Audio
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* AmbientAudioComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		TArray<USoundBase*> Chops;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		TArray<USoundBase*> Mines;
+
 	// Cosmetics
 	UFUNCTION(BlueprintCallable)
 		void SetTorch(int32 Hour);

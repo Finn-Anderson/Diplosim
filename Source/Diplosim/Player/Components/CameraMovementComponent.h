@@ -27,8 +27,6 @@ public:
 
 	float Sensitivity;
 
-	float Timer;
-
 	// Map Bounds
 	void SetBounds(FVector start, FVector end);
 

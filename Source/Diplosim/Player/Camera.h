@@ -97,24 +97,9 @@ public:
 		class UAudioComponent* InteractAudioComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		class UAudioComponent* SkyAmbienceAudioComponent;
+		class UAudioComponent* MusicAudioComponent;
 
-	UPROPERTY()
-		float SkyTargetVolume;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		class UAudioComponent* GroundAmbienceAudioComponent;
-
-	UPROPERTY()
-		float GroundTargetVolume;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		class UAudioComponent* SeaAmbienceAudioComponent;
-
-	UPROPERTY()
-		float SeaTargetVolume;
-
-	void SetAmbienceSound();
+	void PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound);
 
 	void SetInteractAudioSound(USoundBase* Sound, float Volume);
 

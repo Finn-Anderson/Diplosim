@@ -3,10 +3,15 @@
 #include "NiagaraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/ExponentialHeightFogComponent.h"
+#include "Components/AudioComponent.h"
 
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "DiplosimGameModeBase.h"
+#include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
+#include "AI/Citizen.h"
+#include "Buildings/Building.h"
 
 UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -161,6 +166,15 @@ void UDiplosimUserSettings::SetAmbientVolume(float Value)
 		return;
 
 	AmbientVolume = Value;
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
+
+	for (ACitizen* citizen : camera->CitizenManager->Citizens)
+		citizen->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
+
+	for (ABuilding* building : camera->CitizenManager->Buildings)
+		building->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
 }
 
 float UDiplosimUserSettings::GetAmbientVolume() const

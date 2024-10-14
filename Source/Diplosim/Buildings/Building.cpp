@@ -6,6 +6,7 @@
 #include "NiagaraComponent.h"
 #include "NavigationSystem.h"
 #include "Components/Widget.h"
+#include "Components/AudioComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -52,6 +53,10 @@ ABuilding::ABuilding()
 	ParticleComponent->SetCastShadow(true);
 	ParticleComponent->AutoAttachSocketName = "ParticleSocket";
 	ParticleComponent->bAutoActivate = false;
+
+	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
+	AmbientAudioComponent->SetupAttachment(RootComponent);
+	AmbientAudioComponent->SetVolumeMultiplier(0.0f);
 
 	Emissiveness = 0.0f;
 
