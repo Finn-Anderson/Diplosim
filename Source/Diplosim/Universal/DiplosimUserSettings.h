@@ -86,6 +86,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Audio")
 		float GetAmbientVolume() const;
 
+	void UpdateAmbientVolume();
+
 	UPROPERTY()
 		class UCloudComponent* Clouds;
 

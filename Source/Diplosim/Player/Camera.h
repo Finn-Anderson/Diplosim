@@ -57,6 +57,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateUI();
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void SaveSettings();
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;

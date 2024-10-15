@@ -21,6 +21,8 @@ UCitizenManager::UCitizenManager()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	CooldownTimer = 0;
+
+	BrochLocation = FVector::Zero();
 }
 
 void UCitizenManager::BeginPlay()

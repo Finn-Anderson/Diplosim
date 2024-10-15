@@ -124,6 +124,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* ParticleComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
+		class UNiagaraComponent* DestructionComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* AmbientAudioComponent;
 
@@ -203,6 +206,9 @@ public:
 		bool bIgnoreCollisions;
 
 	// Citizens
+	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
+		TArray<class ACitizen*> Inside;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
 		TArray<class ACitizen*> Occupied;
 

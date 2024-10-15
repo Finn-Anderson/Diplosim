@@ -140,6 +140,8 @@ void UDiplosimUserSettings::SetMasterVolume(float Value)
 		return;
 
 	MasterVolume = Value;
+
+	UpdateAmbientVolume();
 }
 
 float UDiplosimUserSettings::GetMasterVolume() const
@@ -167,7 +169,21 @@ void UDiplosimUserSettings::SetAmbientVolume(float Value)
 
 	AmbientVolume = Value;
 
+	UpdateAmbientVolume();
+}
+
+float UDiplosimUserSettings::GetAmbientVolume() const
+{
+	return AmbientVolume;
+}
+
+void UDiplosimUserSettings::UpdateAmbientVolume()
+{
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+
+	if (!PController)
+		return;
+
 	ACamera* camera = PController->GetPawn<ACamera>();
 
 	for (ACitizen* citizen : camera->CitizenManager->Citizens)
@@ -175,11 +191,6 @@ void UDiplosimUserSettings::SetAmbientVolume(float Value)
 
 	for (ABuilding* building : camera->CitizenManager->Buildings)
 		building->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
-}
-
-float UDiplosimUserSettings::GetAmbientVolume() const
-{
-	return AmbientVolume;
 }
 
 UDiplosimUserSettings* UDiplosimUserSettings::GetDiplosimUserSettings()

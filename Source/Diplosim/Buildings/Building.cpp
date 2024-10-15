@@ -54,6 +54,12 @@ ABuilding::ABuilding()
 	ParticleComponent->AutoAttachSocketName = "ParticleSocket";
 	ParticleComponent->bAutoActivate = false;
 
+	DestructionComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DestructionComponent"));
+	DestructionComponent->SetupAttachment(RootComponent);
+	DestructionComponent->SetUseAutoManageAttachment(true);
+	DestructionComponent->SetCastShadow(true);
+	DestructionComponent->bAutoActivate = false;
+
 	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
 	AmbientAudioComponent->SetupAttachment(RootComponent);
 	AmbientAudioComponent->SetVolumeMultiplier(0.0f);
@@ -304,6 +310,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 	Citizen->Building.BuildingAt = this;
 	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
 
+	Inside.Add(Citizen);
+
 	if (!IsA<AFarm>())
 		Citizen->AIController->StopMovement();
 	
@@ -363,6 +371,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 void ABuilding::Leave(ACitizen* Citizen)
 {
 	Citizen->Building.BuildingAt = nullptr;
+
+	Inside.Remove(Citizen);
 
 	if (!Citizen->IsHidden())
 		return;

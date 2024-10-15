@@ -40,9 +40,14 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		GetOwner()->SetActorLocation(deltaTarget.Location + FVector(0.0f, 0.0f, 6.0f));
 	}
 
-	if (!Points.IsEmpty() && GetOwner()->GetActorRotation() != (GetOwner()->GetActorLocation() - Points[0]).Rotation())
-		GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), (GetOwner()->GetActorLocation() - Points[0]).Rotation(), DeltaTime, 10.0f));
-
+	if (!Points.IsEmpty()) {
+		FRotator targetRotation = (GetOwner()->GetActorLocation() - Points[0]).Rotation();
+		targetRotation.Pitch = 0.0f; 
+		
+		if (GetOwner()->GetActorRotation() != targetRotation)
+			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), targetRotation, DeltaTime, 10.0f));
+	}
+	
 	if (Velocity == FVector::Zero() && CurrentAnim != nullptr) {
 		Cast<AAI>(GetOwner())->Mesh->Play(false);
 

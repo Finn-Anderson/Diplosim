@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
+#include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
@@ -20,7 +21,32 @@
 
 UHealthComponent::UHealthComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+
+	CrumbleLocation = FVector::Zero();
+}
+
+void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	ABuilding* building = Cast<ABuilding>(GetOwner());
+
+	float height = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+
+	SetComponentTickEnabled(true);
+
+	FVector location = FMath::VInterpTo(building->GetActorLocation(), building->GetActorLocation() - FVector(0.0f, 0.0f, height + 1.0f), DeltaTime, 0.15f);
+
+	FVector difference = building->GetActorLocation() - location;
+
+	building->SetActorLocation(location);
+
+	building->DestructionComponent->SetRelativeLocation(building->DestructionComponent->GetRelativeLocation() + difference);
+
+	if (CrumbleLocation.Z > building->GetActorLocation().Z)
+		building->DestructionComponent->Deactivate();
 }
 
 void UHealthComponent::AddHealth(int32 Amount)
@@ -78,10 +104,10 @@ void UHealthComponent::Death(AActor* Attacker)
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	ACamera* camera = PController->GetPawn<ACamera>();
 
-	if (actor->IsA<ABroch>()) {
+	if (actor->IsA<ABroch>())
 		camera->Lose();
-	}
-	else if (actor->IsA<AAI>()) {
+
+	if (actor->IsA<AAI>()) {
 		USkeletalMeshComponent* mesh = actor->GetComponentByClass<USkeletalMeshComponent>();
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
@@ -107,19 +133,13 @@ void UHealthComponent::Death(AActor* Attacker)
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {
-		TArray<AActor*> foundCitizens;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), foundCitizens);
-
-		for (AActor* c : foundCitizens) {
-			ACitizen* citizen = Cast<ACitizen>(c);
-
-			if (citizen->Building.BuildingAt != actor)
-				continue;
-
-			citizen->HealthComponent->TakeHealth(100, Attacker);
-		}
-
 		ABuilding* building = Cast<ABuilding>(actor);
+
+		for (ACitizen* citizen : building->GetOccupied())
+			building->RemoveCitizen(citizen);
+
+		for (AActor* citizen : building->Inside)
+			Cast<ACitizen>(citizen)->HealthComponent->TakeHealth(100, Attacker);
 
 		building->BuildingMesh->SetGenerateOverlapEvents(false);
 
@@ -127,6 +147,17 @@ void UHealthComponent::Death(AActor* Attacker)
 		cm->RemoveBuilding(building);
 
 		camera->CitizenManager->Buildings.Remove(building);
+
+		FVector dimensions = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+
+		CrumbleLocation = building->GetActorLocation() - FVector(0.0f, 0.0f, dimensions.Z);
+
+		building->DestructionComponent->SetVariableVec2(TEXT("XY"), FVector2D(dimensions.X, dimensions.Y));
+		building->DestructionComponent->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
+
+		building->DestructionComponent->Activate();
+
+		SetComponentTickEnabled(true);
 	}
 
 	FTimerHandle clearTimer;

@@ -227,6 +227,9 @@ public:
 	UPROPERTY()
 		TArray<FTimerStruct> Timers;
 
+	UPROPERTY()
+		FVector BrochLocation;
+
 	// Work
 	void CheckWorkStatus(int32 Hour);
 		

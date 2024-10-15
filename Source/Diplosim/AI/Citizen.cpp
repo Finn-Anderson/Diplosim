@@ -31,7 +31,8 @@ ACitizen::ACitizen()
 
 	Capsule->SetCapsuleSize(9.0f, 11.5f);
 
-	Mesh->SetRelativeLocation(FVector(0.0f, 0.0f, -14.0f));
+	Mesh->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
+	Mesh->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 	Mesh->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));

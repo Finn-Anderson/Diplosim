@@ -85,7 +85,7 @@ void ADiplosimAIController::Idle()
 		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 		FNavLocation location;
-		nav->GetRandomPointInNavigableRadius(Cast<ACitizen>(GetOwner())->Camera->CitizenManager->Buildings[0]->GetActorLocation(), 1000, location);
+		nav->GetRandomPointInNavigableRadius(Cast<ACitizen>(GetOwner())->Camera->CitizenManager->BrochLocation, 1000, location);
 
 		double length;
 		nav->GetPathLength(GetOwner()->GetActorLocation(), location, length);

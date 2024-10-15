@@ -14,6 +14,8 @@ public:
 	UHealthComponent();
 
 public:
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	// Health
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		int32 MaxHealth;
@@ -39,4 +41,6 @@ public:
 	void Death(AActor* Attacker);
 
 	void Clear(AActor* Attacker);
+
+	FVector CrumbleLocation;
 };

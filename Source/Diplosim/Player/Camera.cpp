@@ -24,6 +24,7 @@
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "Universal/HealthComponent.h"
 
 ACamera::ACamera()
 {
@@ -184,6 +185,8 @@ void ACamera::StartGame(ABuilding* Broch)
 
 	CitizenManager->StartTimers();
 
+	CitizenManager->BrochLocation = Broch->GetActorLocation();
+
 	Cast<ABroch>(Broch)->SpawnCitizens();
 
 	DisplayEvent("Welcome to", ColonyName);
@@ -197,11 +200,13 @@ void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Soun
 	if (GetWorld()->GetMapName() != "Map" || Grid->Storage.IsEmpty())
 		return;
 
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	AsyncTask(ENamedThreads::GameThread, [this, AudioComponent, Sound]() {
+		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
-	AudioComponent->SetSound(Sound);
-	AudioComponent->SetVolumeMultiplier(settings->GetAmbientVolume() * settings->GetMasterVolume());
-	AudioComponent->Play();
+		AudioComponent->SetSound(Sound);
+		AudioComponent->SetVolumeMultiplier(settings->GetAmbientVolume() * settings->GetMasterVolume());
+		AudioComponent->Play();
+	});
 }
 
 void ACamera::SetInteractAudioSound(USoundBase* Sound, float Volume)
@@ -266,10 +271,11 @@ void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
 void ACamera::Lose()
 {
 	bLost = true;
-	bInMenu = true;
 
-	TickWhenPaused(false);
+	Cancel();
 
+	BuildUIInstance->RemoveFromParent();
+	EventUIInstance->RemoveFromParent();
 	LostUIInstance->AddToViewport();
 }
 
@@ -421,8 +427,10 @@ void ACamera::Debug()
 		return;
 
 	// Spawn Enemies
-	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-	gamemode->SpawnEnemiesAsync();
+	//ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	//gamemode->SpawnEnemiesAsync();
+
+	CitizenManager->Buildings.Last()->HealthComponent->TakeHealth(1000, CitizenManager->Buildings.Last());
 }
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)
