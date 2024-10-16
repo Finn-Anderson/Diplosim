@@ -48,4 +48,9 @@ public:
 	void Scroll(const struct FInputActionInstance& Instance);
 
 	float TargetLength;
+
+	// Build Camera Shake
+	float Runtime;
+
+	bool bShake;
 };

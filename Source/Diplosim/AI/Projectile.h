@@ -31,6 +31,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		class USphereComponent* ExplosionComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
+		TSubclassOf<class UCameraShakeBase> Shake;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		int32 Damage;
 

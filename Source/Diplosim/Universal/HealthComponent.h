@@ -43,4 +43,7 @@ public:
 	void Clear(AActor* Attacker);
 
 	FVector CrumbleLocation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
+		TSubclassOf<class UCameraShakeBase> Shake;
 };

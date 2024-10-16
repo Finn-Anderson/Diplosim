@@ -64,6 +64,8 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 
 	ParticleComponent->Activate();
 
+	UGameplayStatics::PlayWorldCameraShake(GetWorld(), CannonShake, GetActorLocation(), 0.0f, 1000.0f, 1.0f);
+
 	int32 money = 0;
 
 	UResourceManager* rm = Camera->ResourceManager;

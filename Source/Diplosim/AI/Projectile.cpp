@@ -4,6 +4,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "Components/SphereComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Universal/HealthComponent.h"
 #include "Enemy.h"
@@ -103,6 +104,8 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 
 		UNiagaraComponent* explosion = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionSystem, GetActorLocation());
 		explosion->SetVariableLinearColor(TEXT("Colour"), Cast<ATower>(GetOwner())->Colour);
+
+		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, 1000.0f, 1.0f);
 	}
 	else {
 		UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();

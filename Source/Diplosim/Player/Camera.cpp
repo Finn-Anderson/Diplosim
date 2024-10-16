@@ -9,12 +9,12 @@
 #include "Components/WidgetComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/AudioComponent.h"
 
 #include "Map/Grid.h"
 #include "Map/Resources/Mineral.h"
 #include "Components/BuildComponent.h"
 #include "Components/CameraMovementComponent.h"
-#include "Components/AudioComponent.h"
 #include "Managers/ResourceManager.h"
 #include "Managers/ConstructionManager.h"
 #include "Managers/CitizenManager.h"

@@ -49,6 +49,7 @@ ACitizen::ACitizen()
 
 	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
 	TorchNiagaraComponent->SetupAttachment(TorchMesh, "ParticleSocket");
+	TorchNiagaraComponent->SetRelativeScale3D(FVector(0.12f, 0.12f, 0.12f));
 	TorchNiagaraComponent->bAutoActivate = false;
 
 	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));

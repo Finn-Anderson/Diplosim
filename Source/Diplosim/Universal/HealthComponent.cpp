@@ -45,7 +45,9 @@ void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 	building->DestructionComponent->SetRelativeLocation(building->DestructionComponent->GetRelativeLocation() + difference);
 
-	if (CrumbleLocation.Z > building->GetActorLocation().Z)
+	if (CrumbleLocation.Z <= building->GetActorLocation().Z)
+		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
+	else
 		building->DestructionComponent->Deactivate();
 }
 

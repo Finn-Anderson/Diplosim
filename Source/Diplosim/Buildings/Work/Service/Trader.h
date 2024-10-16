@@ -112,4 +112,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FMinStruct> AutoMinCap;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
+		TSubclassOf<class UCameraShakeBase> CannonShake;
 };

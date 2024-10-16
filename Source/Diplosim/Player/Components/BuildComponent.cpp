@@ -5,10 +5,12 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Camera/CameraComponent.h"
 
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Components/CameraMovementComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Defence/Wall.h"
@@ -342,6 +344,8 @@ void UBuildComponent::Place()
 
 		return;
 	}
+
+	Camera->MovementComponent->bShake = true;
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 

@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
+#include "Camera/CameraComponent.h"
 
 #include "Player/Camera.h"
 
@@ -15,6 +16,10 @@ UCameraMovementComponent::UCameraMovementComponent()
 	CameraSpeed = 10.0f;
 
 	Sensitivity = 2.0f;
+
+	Runtime = 0.0f;
+
+	bShake = false;
 }
 
 void UCameraMovementComponent::BeginPlay()
@@ -34,6 +39,21 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, GetWorld()->DeltaTimeSeconds, 10.0f);
+
+	if (!bShake)
+		return;
+
+	Runtime += DeltaTime * 10.0f;
+
+	double sin = FMath::Clamp(FMath::Sin(Runtime), 0.0f, 1.0f);
+
+	Camera->CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -4.0f * sin));
+
+	if (Camera->CameraComponent->GetRelativeLocation() == FVector::Zero()) {
+		Runtime = 0.0f;
+
+		bShake = false;
+	}
 }
 
 void UCameraMovementComponent::SetBounds(FVector start, FVector end) {

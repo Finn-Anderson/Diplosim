@@ -269,6 +269,8 @@ public:
 	// Events
 	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
 
+	bool IsWorkEvent(AWork* Work);
+
 	void CallMass(TArray<TSubclassOf<class ABuilding>> BuildingList);
 
 	void EndMass(EReligion Belief);

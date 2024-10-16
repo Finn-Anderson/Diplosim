@@ -10,6 +10,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Buildings/House.h"
+#include "Buildings/Work/Service/Religion.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 
@@ -47,8 +48,8 @@ void AWork::BeginPlay()
 
 	int32 hour = Camera->Grid->AtmosphereComponent->Calendar.Hour;
 
-	if (hour >= WorkStart && hour <= WorkEnd)
-		bOpen = true;
+	if (hour >= WorkStart && hour <= WorkEnd && !Camera->CitizenManager->IsWorkEvent(this))
+		Open();
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AWork::OnRadialOverlapBegin);
 	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AWork::OnRadialOverlapEnd);
@@ -107,7 +108,7 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 
 	Citizen->HatMesh->SetStaticMesh(WorkHat);
 
-	if (bOpen)
+	if (bOpen || (bCanAttendEvents && Citizen->AIController->MoveRequest.Actor->IsA<AReligion>()))
 		Citizen->AIController->AIMoveTo(this);
 
 	return true;

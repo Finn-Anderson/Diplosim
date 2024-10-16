@@ -321,13 +321,38 @@ void UCitizenManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 			UGameplayStatics::GetAllActorsOfClass(GetWorld(), Building, actors);
 
 			for (AActor* actor : actors) {
+				AWork* work = Cast<AWork>(actor);
+
+				if (!work->bCanAttendEvents)
+					continue;
+
 				if (command == "start")
-					Cast<AWork>(actor)->Close();
-				else
-					Cast<AWork>(actor)->Open();
+					work->Close();
+				else if (work->WorkStart <= Hour && work->WorkEnd > Hour)
+					work->Open();
 			}
 		}
 	}
+}
+
+bool UCitizenManager::IsWorkEvent(AWork* Work)
+{
+	for (FEventStruct eventStruct : Events) {
+		if (!eventStruct.Buildings.Contains(Work->GetClass()))
+			continue;
+
+		UAtmosphereComponent* atmosphere = Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent;
+
+		for (FEventTimeStruct times : eventStruct.Times) {
+			if (times.Period != atmosphere->Calendar.Period && times.Day != atmosphere->Calendar.Days[atmosphere->Calendar.Index])
+				continue;
+
+			if (atmosphere->Calendar.Hour >= times.StartHour && atmosphere->Calendar.Hour < times.EndHour)
+				return true;
+		}
+	}
+
+	return false;
 }
 
 void UCitizenManager::CallMass(TArray<TSubclassOf<ABuilding>> BuildingList)
