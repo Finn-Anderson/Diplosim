@@ -106,8 +106,6 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 
 	Citizen->Building.Employment = this;
 
-	Citizen->HatMesh->SetStaticMesh(WorkHat);
-
 	if (bOpen || (bCanAttendEvents && Citizen->AIController->MoveRequest.Actor->IsA<AReligion>()))
 		Citizen->AIController->AIMoveTo(this);
 
@@ -134,6 +132,9 @@ void AWork::Enter(ACitizen* Citizen)
 
 	if (!bOpen && GetOccupied().Contains(Citizen))
 		Citizen->AIController->DefaultAction();
+
+	if (GetOccupied().Contains(Citizen) && Citizen->HatMesh->GetStaticMesh() != WorkHat)
+		Citizen->HatMesh->SetStaticMesh(WorkHat);
 }
 
 void AWork::Open()
