@@ -31,6 +31,7 @@ void AWall::StoreSocketLocations()
 
 		socketStruct.Name = socket;
 		socketStruct.SocketLocation = BuildingMesh->GetSocketLocation(socket);
+		socketStruct.SocketRotation = BuildingMesh->GetSocketRotation(socket);
 
 		SocketList.Add(socketStruct);
 	}
@@ -56,6 +57,7 @@ void AWall::Enter(ACitizen* Citizen)
 		SocketList[i].EntranceLocation = Citizen->GetActorLocation();
 
 		Citizen->SetActorLocation(SocketList[i].SocketLocation);
+		Citizen->SetActorRotation(SocketList[i].SocketRotation);
 
 		break;
 	}

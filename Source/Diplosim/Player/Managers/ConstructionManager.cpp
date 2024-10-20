@@ -155,6 +155,9 @@ ABuilder* UConstructionManager::GetBuilder(class ABuilding* Building)
 
 	int32 index = Construction.Find(constructionStruct);
 
+	if (index == INDEX_NONE)
+		return nullptr;
+
 	return Construction[index].Builder;
 }
 

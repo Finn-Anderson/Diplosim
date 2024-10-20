@@ -194,10 +194,10 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 	FNavLocation targetLoc;
-	nav->ProjectPointToNavigation(Location, targetLoc, FVector(200.0f, 200.0f, 10.0f));
+	nav->ProjectPointToNavigation(Location, targetLoc, FVector(300.0f, 300.0f, 20.0f));
 
 	FNavLocation ownerLoc;
-	nav->ProjectPointToNavigation(GetOwner()->GetActorLocation(), ownerLoc, FVector(200.0f, 200.0f, 10.0f));
+	nav->ProjectPointToNavigation(GetOwner()->GetActorLocation(), ownerLoc, FVector(300.0f, 300.0f, 20.0f));
 
 	FPathFindingQuery query(GetOwner(), *navData, ownerLoc.Location, targetLoc.Location);
 
@@ -244,7 +244,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
 	FNavLocation navLoc;
-	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(200.0f, 200.0f, 20.0f));
+	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(300.0f, 300.0f, 20.0f));
 
 	MoveRequest.SetLocation(navLoc.Location);
 
@@ -294,4 +294,9 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 		return;
 
 	AIMoveTo(Actor);
+}
+
+void ADiplosimAIController::StopMovement()
+{
+	Cast<AAI>(GetOwner())->MovementComponent->SetPoints({});
 }

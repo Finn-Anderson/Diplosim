@@ -82,6 +82,8 @@ public:
 
 	void RecalculateMovement(AActor* Actor);
 
+	virtual void StopMovement() override;
+
 	UPROPERTY()
 		FMoveStruct MoveRequest;
 };

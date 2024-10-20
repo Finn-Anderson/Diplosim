@@ -11,11 +11,4 @@ class DIPLOSIM_API AFort : public AWall
 
 public:
 	AFort();
-
-	virtual void Enter(class ACitizen* Citizen) override;
-
-	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
-
-	UPROPERTY()
-		TArray<class ACitizen*> CitizensWithBoostedDamage;
 };

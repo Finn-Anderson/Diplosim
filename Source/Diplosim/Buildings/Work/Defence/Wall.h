@@ -13,6 +13,8 @@ struct FSocketStruct
 
 	FVector SocketLocation;
 
+	FRotator SocketRotation;
+
 	FVector EntranceLocation;
 
 	class ACitizen* Citizen;
