@@ -11,4 +11,8 @@ class DIPLOSIM_API AFort : public AWall
 
 public:
 	AFort();
+
+	virtual void Enter(class ACitizen* Citizen) override;
+
+	virtual void Leave(class ACitizen* Citizen) override;
 };

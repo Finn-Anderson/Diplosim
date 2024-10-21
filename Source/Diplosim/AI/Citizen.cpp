@@ -74,6 +74,9 @@ ACitizen::ACitizen()
 	Hunger = 100;
 	Energy = 100;
 
+	TimeOfEmployment = -300.0f;
+	TimeOfResidence = -300.0f;
+
 	bGain = false;
 
 	HealthComponent->MaxHealth = 10;
@@ -224,11 +227,17 @@ bool ACitizen::CanWork(ABuilding* ReligiousBuilding)
 
 void ACitizen::FindJobAndHouse()
 {
+	if (GetWorld()->GetTimeSeconds() < TimeOfResidence + 300.0f && GetWorld()->GetTimeSeconds() < TimeOfEmployment + 300.0f)
+		return;
+
 	for (ABuilding* building : Camera->CitizenManager->Buildings) {
 		if (building->GetCapacity() == building->GetOccupied().Num() || !CanWork(building) || !AIController->CanMoveTo(building->GetActorLocation()))
 			continue;
 
 		if (building->IsA<AHouse>()) {
+			if (GetWorld()->GetTimeSeconds() < TimeOfResidence + 300.0f)
+				continue;
+
 			int32 currentRent = 0;
 			int32 newRent = 0;
 
@@ -251,17 +260,22 @@ void ACitizen::FindJobAndHouse()
 			if (Balance < newRent)
 				continue;
 
-			if (Building.Employment != nullptr && Building.House == nullptr) {
+			if (Building.Employment != nullptr && Building.House != nullptr) {
 				double magnitude = AIController->GetClosestActor(Building.Employment->GetActorLocation(), Building.House->GetActorLocation(), building->GetActorLocation(), currentRent, newRent);
 
 				if (magnitude <= 0.0f)
 					continue;
 			}
 		}
-		else if (Building.Employment != nullptr && Building.Employment->Wage >= Cast<AWork>(building)->Wage)
+		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + 300.0f || (Building.Employment != nullptr && Building.Employment->Wage >= Cast<AWork>(building)->Wage))
 			continue;
 
-		AsyncTask(ENamedThreads::GameThread, [this, building]() { building->AddCitizen(this); });
+		AsyncTask(ENamedThreads::GameThread, [this, building]() { 
+			if (Building.Employment != nullptr && building->IsA<AWork>())
+				Building.Employment->RemoveCitizen(this);
+
+			building->AddCitizen(this); 
+		});
 	}
 }
 

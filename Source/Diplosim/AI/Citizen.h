@@ -289,6 +289,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		int32 Balance;
 
+	UPROPERTY()
+		double TimeOfEmployment;
+
+	UPROPERTY()
+		double TimeOfResidence;
+
 	// Buildings
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
 		FBuildingStruct Building;

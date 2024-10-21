@@ -271,6 +271,11 @@ bool ABuilding::AddCitizen(ACitizen* Citizen)
 	if (GetCapacity() <= Occupied.Num())
 		return false;
 
+	if (IsA<AHouse>())
+		Citizen->TimeOfResidence = GetWorld()->GetTimeSeconds();
+	else
+		Citizen->TimeOfEmployment = GetWorld()->GetTimeSeconds();
+
 	Occupied.Add(Citizen);
 
 	return true;

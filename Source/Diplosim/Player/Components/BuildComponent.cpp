@@ -236,7 +236,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 			transform = collision.Actor->GetTransform();
 
 		if (building->IsA<AWall>() && collision.Actor->IsA<AWall>()) {
-			if (building->GetActorLocation() == collision.Actor->GetActorLocation())
+			if (FVector::Dist(building->GetActorLocation(), collision.Actor->GetActorLocation()) < Cast<ABuilding>(collision.Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X)
 				return false;
 		}	
 		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f)
