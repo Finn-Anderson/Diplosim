@@ -4,6 +4,8 @@
 #include "NiagaraComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/AttackComponent.h"
@@ -435,6 +437,18 @@ void UCitizenManager::SetupRebel(class ACitizen* Citizen)
 	Citizen->Rebel = true;
 
 	Citizen->HatMesh->SetStaticMesh(Citizen->RebelHat);
+
+	Citizen->Capsule->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel3);
+
+	Citizen->AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+
+	Citizen->AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Overlap);
+	Citizen->AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Ignore);
+	Citizen->AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
+
+	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Overlap);
+	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Ignore);
+	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
 
 	Citizen->MoveToBroch();
 }

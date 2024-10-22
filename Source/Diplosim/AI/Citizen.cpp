@@ -3,10 +3,11 @@
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
-#include "Components/CapsuleComponent.h"
 #include "NiagaraComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/AudioComponent.h"
+#include "Components/SphereComponent.h"
 
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
@@ -30,6 +31,7 @@ ACitizen::ACitizen()
 	SetTickableWhenPaused(true);
 
 	Capsule->SetCapsuleSize(9.0f, 11.5f);
+	Capsule->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel2);
 
 	Mesh->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
 	Mesh->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
@@ -68,6 +70,14 @@ ACitizen::ACitizen()
 	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
 	AmbientAudioComponent->SetupAttachment(RootComponent);
 	AmbientAudioComponent->SetVolumeMultiplier(0.0f);
+
+	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
+	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
+	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
+
+	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
+	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
+	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
 
 	Balance = 20;
 

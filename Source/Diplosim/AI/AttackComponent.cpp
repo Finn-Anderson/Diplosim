@@ -30,7 +30,6 @@ UAttackComponent::UAttackComponent()
 	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	RangeComponent->SetSphereRadius(400.0f);
 
 	RangeComponent->bDynamicObstacle = true;
@@ -75,13 +74,10 @@ void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if ((!*ProjectileClass && (GetOwner()->IsA<AAI>() && !Cast<AAI>(GetOwner())->AIController->CanMoveTo(OtherActor->GetActorLocation()))))
+	if (!*ProjectileClass && !Cast<AAI>(GetOwner())->AIController->CanMoveTo(OtherActor->GetActorLocation()))
 		return;
 
-	if ((GetOwner()->IsA<AEnemy>() || (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Rebel)) && (OtherActor->IsA<ACitizen>() || OtherActor->IsA<ABuilding>()))
-			OverlappingEnemies.Add(OtherActor);
-	else if ((GetOwner()->IsA<ACitizen>() || GetOwner()->IsA<ABuilding>()) && (OtherActor->IsA<AEnemy>() || (OtherActor->IsA<ACitizen>() && Cast<ACitizen>(OtherActor)->Rebel)))
-		OverlappingEnemies.Add(OtherActor);
+	OverlappingEnemies.Add(OtherActor);
 
 	if (OverlappingEnemies.Num() == 1)
 		SetComponentTickEnabled(true);
