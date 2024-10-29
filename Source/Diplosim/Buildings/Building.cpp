@@ -81,9 +81,6 @@ ABuilding::ABuilding()
 
 	bConstant = true;
 
-	bOffset = false;
-	bIgnoreCollisions = false;
-
 	Belief = EReligion::Atheist;
 }
 

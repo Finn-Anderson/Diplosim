@@ -15,8 +15,6 @@ AWall::AWall()
 	bHideCitizen = false;
 
 	DecalComponent->DecalSize = FVector(400.0f, 400.0f, 400.0f);
-
-	bIgnoreCollisions = true;
 }
 
 void AWall::StoreSocketLocations()

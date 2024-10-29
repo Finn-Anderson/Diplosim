@@ -82,6 +82,8 @@ ACamera::ACamera()
 	WidgetComponent->SetupAttachment(WidgetSpringArmComponent);
 	WidgetComponent->SetTickableWhenPaused(true);
 	WidgetComponent->SetHiddenInGame(true);
+	WidgetComponent->SetDrawSize(FVector2D(0.0f, 0.0f));
+	WidgetComponent->SetPivot(FVector2D(0.5f, 1.3f));
 
 	Start = true;
 

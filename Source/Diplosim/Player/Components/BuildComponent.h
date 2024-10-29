@@ -28,6 +28,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<ABuilding> FoundationClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+		TSubclassOf<ABuilding> WharfClass;
+
 	// Building
 	UPROPERTY(EditAnywhere)
 		class UMaterial* BlueprintMaterial;

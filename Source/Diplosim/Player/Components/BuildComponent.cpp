@@ -67,14 +67,17 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		comp->GetInstanceTransform(instance, transform);
 
 		FVector location = transform.GetLocation();
-		location.Z += 100.0f;
 
-		location.Z = FMath::RoundHalfFromZero(location.Z);
+		if (location.Z >= 0.0f) {
+			location.Z += 100.0f;
 
-		Buildings[0]->SetActorLocation(location);
+			location.Z = FMath::RoundHalfFromZero(location.Z);
 
-		if (StartLocation != FVector::Zero() && EndLocation != Buildings[0]->GetActorLocation())
-			SetBuildingsOnPath();
+			Buildings[0]->SetActorLocation(location);
+
+			if (StartLocation != FVector::Zero() && EndLocation != Buildings[0]->GetActorLocation())
+				SetBuildingsOnPath();
+		}
 	}
 
 	for (ABuilding* building : Buildings) {
@@ -191,28 +194,6 @@ bool UBuildComponent::CheckBuildCosts()
 
 bool UBuildComponent::IsValidLocation(ABuilding* building)
 {
-	if (!building->bIgnoreCollisions) {
-		int32 x = 1;
-		int32 y = 1;
-
-		if (building->BuildingMesh->DoesSocketExist("x1")) {
-			x = FMath::Floor(FVector::Dist(building->BuildingMesh->GetSocketLocation("x1"), building->BuildingMesh->GetSocketLocation("x2")) / 150.0f) * 2 + 1;
-			y = FMath::Floor(FVector::Dist(building->BuildingMesh->GetSocketLocation("y1"), building->BuildingMesh->GetSocketLocation("y2")) / 150.0f) * 2 + 1;
-		}
-		else {
-			x = FMath::Floor(building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X / 150.0f) * 2 + 1;
-			y = FMath::Floor(building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Y / 150.0f) * 2 + 1;
-		}
-
-		int32 numCollisions = x * y;
-
-		if (building->bOffset)
-			numCollisions -= FMath::RoundHalfFromZero(numCollisions / 4.0f);
-
-		if (numCollisions != building->Collisions.Num())
-			return false;
-	}
-
 	if (building->Collisions.IsEmpty())
 		return false;
 
@@ -221,8 +202,10 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 	if (StartLocation != FVector::Zero() && location.Z != StartLocation.Z)
 		return false;
 
+	bool bCoast = false;
+
 	for (FCollisionStruct collision : building->Collisions) {
-		if ((building->GetClass() == FoundationClass->GetDefaultObject()->GetClass() && collision.Actor->IsA<AGrid>()) || (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>() && building->GetActorLocation() != collision.Actor->GetActorLocation()))
+		if ((building->IsA(FoundationClass) && collision.Actor->IsA<AGrid>()) || (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>() && building->GetActorLocation() != collision.Actor->GetActorLocation()))
 			continue;
 
 		if (collision.HISM == Camera->Grid->HISMLava)
@@ -238,10 +221,19 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		if (building->IsA<AWall>() && collision.Actor->IsA<AWall>()) {
 			if (FVector::Dist(building->GetActorLocation(), collision.Actor->GetActorLocation()) < Cast<ABuilding>(collision.Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X)
 				return false;
-		}	
-		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f)
-			return false;
+		}
+		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f) {
+			FRotator rotation = (building->GetActorLocation() - transform.GetLocation()).Rotation();
+
+			if (building->IsA(WharfClass) && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
+				bCoast = true;
+			else
+				return false;
+		}
 	}
+
+	if (!bCoast && building->IsA(WharfClass))
+		return false;
 
 	return true;
 }
@@ -312,8 +304,8 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 	if (Rotate && bCanRotate) {
 		int32 yaw = Rotation.Yaw;
 
-		if (yaw % 90 == 0)
-			yaw += 90;
+		if (yaw % 45 == 0)
+			yaw += 45;
 
 		if (yaw == 360)
 			yaw = 0;

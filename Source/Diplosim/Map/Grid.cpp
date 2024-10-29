@@ -402,16 +402,32 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 
 void AGrid::GenerateTile(FTileStruct* Tile)
 {
-	if (Tile->Level < 0)
-		return;
-
 	FTransform transform;
-	FVector loc = FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0);
+	FVector loc = FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0.0f);
 	transform.SetLocation(loc);
 	transform.SetRotation(Tile->Rotation);
 
 	int32 inst;
-	if (Tile->Level == 7) {
+
+	if (Tile->Level < 0) {
+		bool bCoast = false;
+
+		for (auto& element : Tile->AdjacentTiles) {
+			if (element.Value->Level > -1) {
+				bCoast = true;
+
+				break;
+			}
+		}
+
+		if (!bCoast)
+			return;
+
+		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
+
+		inst = HISMFlatGround->AddInstance(transform);
+	}
+	else if (Tile->Level == 7) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * 5));
 
 		inst = HISMLava->AddInstance(transform);
@@ -537,7 +553,7 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 {
 	int32 value = FMath::RandRange(Amount - 1, Amount);
 
-	if (value == 0 || !ResourceTiles.Contains(Tile))
+	if (value == 0 || !ResourceTiles.Contains(Tile) || Tile->Level < 0)
 		return;
 
 	TArray<int32> usedX;

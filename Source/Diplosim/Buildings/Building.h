@@ -199,12 +199,6 @@ public:
 	UFUNCTION()
 		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
-		bool bOffset;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
-		bool bIgnoreCollisions;
-
 	// Citizens
 	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
 		TArray<class ACitizen*> Inside;
