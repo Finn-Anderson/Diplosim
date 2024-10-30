@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "Components/ActorComponent.h"
 #include "CitizenManager.generated.h"
 
@@ -46,81 +47,6 @@ struct FTimerStruct
 	bool operator==(const FTimerStruct& other) const
 	{
 		return (other.Actor == Actor && other.Delegate.GetUObject() == Delegate.GetUObject());
-	}
-};
-
-UENUM()
-enum class EGrade : uint8
-{
-	Mild,
-	Moderate,
-	Severe
-};
-
-UENUM()
-enum class EAffect : uint8
-{
-	Movement,
-	Health,
-	Damage
-};
-
-USTRUCT(BlueprintType)
-struct FAffectStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		EAffect Affect;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		float Amount;
-
-	FAffectStruct()
-	{
-		Affect = EAffect::Movement;
-		Amount = 1.0f;
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FConditionStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		FString Name;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		EGrade Grade;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		int32 Spreadability;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		int32 Level;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		int32 DeathLevel;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		TArray<TSubclassOf<class ABuilding>> Buildings;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		TArray<FAffectStruct> Affects;
-
-	FConditionStruct()
-	{
-		Name = "";
-		Grade = EGrade::Mild;
-		Spreadability = 0;
-		Level = 0;
-		DeathLevel = -1;
-	}
-
-	bool operator==(const FConditionStruct& other) const
-	{
-		return (other.Name == Name);
 	}
 };
 
@@ -194,6 +120,24 @@ struct FRentStruct
 	{
 		HouseType = nullptr;
 		Rent = 0;
+	}
+};
+
+
+USTRUCT(BlueprintType)
+struct FLeaderStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		EParty Party;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		class ACitizen* Leader;
+
+	bool operator==(const FLeaderStruct& other) const
+	{
+		return (other.Party == Party);
 	}
 };
 
@@ -277,6 +221,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		TArray<FEventStruct> Events;
+
+	// Politics
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<FLeaderStruct> Leaders;
+
+	void SelectNewLeader(EParty Party);
 
 	// Rebel
 	void Overthrow();

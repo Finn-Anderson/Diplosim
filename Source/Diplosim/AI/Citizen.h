@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "AI/AI.h"
 #include "Citizen.generated.h"
 
@@ -88,49 +89,6 @@ struct FBioStruct
 	}
 };
 
-UENUM()
-enum class EParty : uint8
-{
-	Undecided,
-	Religious,
-	Militarist,
-	Industrialist,
-	Environmentalist,
-	Freedom
-};
-
-UENUM()
-enum ESway : uint8
-{
-	NaN,
-	Moderate,
-	Strong,
-	Radical
-};
-
-USTRUCT(BlueprintType)
-struct FPartyStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		EParty Party;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TEnumAsByte<ESway> Leaning;
-
-	FPartyStruct()
-	{
-		Party = EParty::Undecided;
-		Leaning = ESway::NaN;
-	}
-
-	bool operator==(const FPartyStruct& other) const
-	{
-		return (other.Party == Party) && (other.Leaning == Leaning);
-	}
-};
-
 USTRUCT(BlueprintType)
 struct FPoliticalStruct
 {
@@ -142,15 +100,6 @@ struct FPoliticalStruct
 	FPartyStruct FathersIdeology;
 
 	FPartyStruct MothersIdeology;
-};
-
-UENUM(BlueprintType, meta = (ScriptName = "EReligion"))
-enum class EReligion : uint8
-{
-	Atheist,
-	Egg,
-	Chicken,
-	Fox
 };
 
 UENUM(BlueprintType)
@@ -356,6 +305,8 @@ public:
 
 	void SetPolticalLeanings();
 
+	bool bHasBeenLeader;
+
 	// Religion
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")
 		FSpiritualStruct Spirituality;
@@ -378,7 +329,7 @@ public:
 		class UWidgetComponent* PopupComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		TArray<struct FConditionStruct> HealthIssues;
+		TArray<FConditionStruct> HealthIssues;
 
 	// Happiness
 	UPROPERTY(BlueprintReadOnly, Category = "Happiness")

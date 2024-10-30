@@ -89,6 +89,8 @@ ACitizen::ACitizen()
 
 	bGain = false;
 
+	bHasBeenLeader = false;
+
 	HealthComponent->MaxHealth = 10;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 }

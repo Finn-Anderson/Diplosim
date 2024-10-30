@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AI/Citizen.h"
 #include "Universal/Resource.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "GameFramework/Actor.h"
 #include "Building.generated.h"
 
@@ -12,7 +12,7 @@ struct FItemStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TSubclassOf<AResource> Resource;
+		TSubclassOf<class AResource> Resource;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Amount;
@@ -234,13 +234,13 @@ public:
 	UPROPERTY()
 		TArray<FBasketStruct> Basket;
 
-	bool CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items);
+	bool CheckStored(class ACitizen* Citizen, TArray<FItemStruct> Items);
 
-	void CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<FItemStruct> Items);
+	void CarryResources(class ACitizen* Citizen, class ABuilding* DeliverTo, TArray<FItemStruct> Items);
 
 	void StoreResource(class ACitizen* Citizen);
 
-	void AddToBasket(TSubclassOf<AResource> Resource, int32 Amount);
+	void AddToBasket(TSubclassOf<class AResource> Resource, int32 Amount);
 
 	void RemoveFromBasket(FGuid ID);
 

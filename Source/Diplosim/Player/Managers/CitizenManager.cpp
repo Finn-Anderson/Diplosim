@@ -58,13 +58,20 @@ void UCitizenManager::Loop()
 		}
 	}
 
+	for (FLeaderStruct& leader : Leaders) {
+		if (leader.Leader != nullptr)
+			continue;
+
+		SelectNewLeader(leader.Party);
+	}
+
 	int32 rebelCount = 0;
 
 	for (ACitizen* citizen : Citizens) {
 		if (citizen->Rebel)
 			continue;
 
-		for (FConditionStruct condition : citizen->HealthIssues) {
+		for (FConditionStruct &condition : citizen->HealthIssues) {
 			condition.Level++;
 
 			if (condition.Level == condition.DeathLevel)
@@ -415,6 +422,49 @@ void UCitizenManager::EndMass(EReligion Belief)
 
 		citizen->AIController->DefaultAction();
 	}
+}
+
+//
+// Politics
+//
+void UCitizenManager::SelectNewLeader(EParty Party)
+{
+	TArray<ACitizen*> candidates;
+
+	for (ACitizen* citizen : Citizens) {
+		if (citizen->Politics.Ideology.Party != Party || citizen->bHasBeenLeader)
+			continue;
+
+		if (candidates.Num() < 3)
+			candidates.Add(citizen);
+		else {
+			ACitizen* lowest = nullptr;
+
+			for (ACitizen* candidate : candidates)
+				if (lowest == nullptr || lowest->Politics.Ideology.Leaning > candidate->Politics.Ideology.Leaning)
+					lowest = candidate;
+
+			if (citizen->Politics.Ideology.Leaning > lowest->Politics.Ideology.Leaning) {
+				candidates.Remove(lowest);
+
+				candidates.Add(citizen);
+			}
+		}
+	}
+
+	auto value = Async(EAsyncExecution::TaskGraph, [candidates]() { return FMath::RandRange(0, candidates.Num() - 1); });
+
+	ACitizen* chosen = candidates[value.Get()];
+
+	FLeaderStruct leaderStruct;
+	leaderStruct.Party = Party;
+
+	int32 index = Leaders.Find(leaderStruct);
+
+	Leaders[index].Leader = chosen;
+
+	chosen->bHasBeenLeader = true;
+	chosen->Politics.Ideology.Leaning = ESway::Radical;
 }
 
 //
