@@ -123,7 +123,6 @@ struct FRentStruct
 	}
 };
 
-
 USTRUCT(BlueprintType)
 struct FLeaderStruct
 {
@@ -132,12 +131,99 @@ struct FLeaderStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		EParty Party;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
 		class ACitizen* Leader;
+
+	FLeaderStruct()
+	{
+		Party = EParty::Undecided;
+		Leader = nullptr;
+	}
 
 	bool operator==(const FLeaderStruct& other) const
 	{
 		return (other.Party == Party);
+	}
+};
+
+UENUM()
+enum class EBillType : uint8
+{
+	WorkAge,
+	VoteAge,
+	RepresentativesNum
+};
+
+USTRUCT(BlueprintType)
+struct FBillStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		FString Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		EBillType BillType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		float Value;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<EParty> Agreeing;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<EParty> Opposing;
+
+	FBillStruct()
+	{
+		Description = "";
+		BillType = EBillType::WorkAge;
+		Value = 0.0f;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FLawsStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		int32 WorkAge;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		int32 VoteAge;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		int32 RepresentativesNum;
+
+	FLawsStruct()
+	{
+		WorkAge = 18;
+		VoteAge = 18;
+		RepresentativesNum = 10;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FVoteStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<ACitizen*> For;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<ACitizen*> Against;
+
+	FVoteStruct()
+	{
+
+	}
+
+	void Clear()
+	{
+		For.Empty();
+		Against.Empty();
 	}
 };
 
@@ -226,7 +312,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FLeaderStruct> Leaders;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<class ACitizen*> Representatives;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<FBillStruct> Bills;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		FLawsStruct Laws;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		FVoteStruct Votes;
+
 	void SelectNewLeader(EParty Party);
+
+	void Election();
+
+	void ProposeBill(FBillStruct Bill);
+
+	void GetVerdict(ACitizen* Representative, FBillStruct Bill);
+
+	void TallyVotes(FBillStruct Bill);
 
 	// Rebel
 	void Overthrow();

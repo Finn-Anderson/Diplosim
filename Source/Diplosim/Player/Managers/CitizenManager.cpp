@@ -467,6 +467,103 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 	chosen->Politics.Ideology.Leaning = ESway::Radical;
 }
 
+void UCitizenManager::Election()
+{
+	Representatives.Empty();
+
+	TMap<EParty, TArray<ACitizen*>> tally;
+	tally.Add(EParty::Environmentalist);
+	tally.Add(EParty::Freedom);
+	tally.Add(EParty::Industrialist);
+	tally.Add(EParty::Militarist);
+	tally.Add(EParty::Religious);
+
+	for (TPair<EParty, TArray<ACitizen*>>& pair : tally)
+		for (ACitizen* citizen : Citizens)
+			if (citizen->Politics.Ideology.Party == pair.Key)
+				pair.Value.Add(citizen);
+
+	for (TPair<EParty, TArray<ACitizen*>>& pair : tally) {
+		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)Citizens.Num() * 100.0f / Laws.RepresentativesNum);
+
+		if (number == 0)
+			continue;
+
+		number -= 1;
+
+		FLeaderStruct leaderStruct;
+		leaderStruct.Party = pair.Key;
+
+		int32 index = Leaders.Find(leaderStruct);
+
+		Representatives.Add(Leaders[index].Leader);
+
+		pair.Value.Remove(Leaders[index].Leader);
+
+		for (int32 i = 0; i < number; i++) {
+			if (pair.Value.IsEmpty())
+				continue;
+
+			auto value = Async(EAsyncExecution::TaskGraph, [pair]() { return FMath::RandRange(0, pair.Value.Num() - 1); });
+
+			ACitizen* citizen = pair.Value[value.Get()];
+
+			Representatives.Add(citizen);
+
+			pair.Value.Remove(citizen);
+		}
+	}
+}
+
+void UCitizenManager::ProposeBill(FBillStruct Bill)
+{
+	Votes.Clear();
+
+	for (ACitizen* citizen : Representatives) {
+		FTimerHandle VerdictTimer;
+		GetWorld()->GetTimerManager().SetTimer(VerdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, citizen, Bill), 0.1f, false);
+	}
+}
+
+void UCitizenManager::GetVerdict(ACitizen* Representative, FBillStruct Bill)
+{
+	TArray<FString> verdict;
+
+	if (Bill.Agreeing.Contains(Representative->Politics.Ideology.Party))
+		verdict = { "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Abstaining", "Abstaining", "Opposing" };
+	else if (Bill.Opposing.Contains(Representative->Politics.Ideology.Party))
+		verdict = { "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Abstaining", "Abstaining", "Agreeing" };
+	else
+		verdict = { "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Agreeing", "Agreeing", "Opposing", "Opposing" };
+
+	auto value = Async(EAsyncExecution::TaskGraph, [verdict]() { return FMath::RandRange(0, verdict.Num() - 1); });
+
+	FString result = verdict[value.Get()];
+
+	if (result == "Agreeing")
+		Votes.For.Add(Representative);
+	else if (result == "Opposing")
+		Votes.Against.Add(Representative);
+
+	if (Representatives.Last() == Representative)
+		TallyVotes(Bill);
+}
+
+void UCitizenManager::TallyVotes(FBillStruct Bill)
+{
+	if (Votes.For.Num() <= Votes.Against.Num()) {
+		// Fail Message
+	}
+	else {
+		if (Bill.BillType == EBillType::WorkAge)
+			Laws.WorkAge = Bill.Value;
+		else if (Bill.BillType == EBillType::VoteAge)
+			Laws.VoteAge = Bill.Value;
+		else if (Bill.BillType == EBillType::RepresentativesNum)
+			Laws.RepresentativesNum = Bill.Value;
+	}
+}
+
 //
 // Rebel
 //

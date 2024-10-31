@@ -228,7 +228,7 @@ void ACitizen::SetTorch(int32 Hour)
 //
 bool ACitizen::CanWork(ABuilding* ReligiousBuilding)
 {
-	if (BioStruct.Age < 18)
+	if (BioStruct.Age < Camera->CitizenManager->Laws.WorkAge)
 		return false;
 
 	if (ReligiousBuilding->Belief != EReligion::Atheist && ReligiousBuilding->Belief != Spirituality.Faith)
@@ -518,7 +518,7 @@ void ACitizen::Birthday()
 		SetReligion();
 	}
 
-	if (BioStruct.Age >= 12)
+	if (BioStruct.Age >= Camera->CitizenManager->Laws.VoteAge)
 		SetPolticalLeanings();
 }
 
@@ -682,6 +682,10 @@ void ACitizen::SetPolticalLeanings()
 	if (Spirituality.Faith != EReligion::Atheist)
 		for (int32 i = 0; i < 2; i++)
 			partyList.Add(EParty::Religious);
+
+	if (Camera->CitizenManager->Representatives.Contains(this))
+		for (int32 i = 0; i < Politics.Ideology.Leaning; i++)
+			partyList.Add(Politics.Ideology.Party);
 
 	int32 itterate = FMath::Floor(GetHappiness() / 10) - 5;
 
