@@ -228,7 +228,7 @@ void ACitizen::SetTorch(int32 Hour)
 //
 bool ACitizen::CanWork(ABuilding* ReligiousBuilding)
 {
-	if (BioStruct.Age < Camera->CitizenManager->Laws.WorkAge)
+	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
 		return false;
 
 	if (ReligiousBuilding->Belief != EReligion::Atheist && ReligiousBuilding->Belief != Spirituality.Faith)
@@ -518,7 +518,7 @@ void ACitizen::Birthday()
 		SetReligion();
 	}
 
-	if (BioStruct.Age >= Camera->CitizenManager->Laws.VoteAge)
+	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::VoteAge))
 		SetPolticalLeanings();
 }
 
@@ -814,6 +814,25 @@ void ACitizen::SetHappiness()
 		Happiness.SetValue("Missed Mass", -25);
 	else if (MassStatus == EMassStatus::Attended)
 		Happiness.SetValue("Attended Mass", 15);
+
+	int32 lawTally = 0;
+
+	for (FLawStruct law : Camera->CitizenManager->Laws) {
+		FBillStruct billStruct;
+		billStruct.bIsLaw = true;
+
+		int32 index = law.Bills.Find(billStruct);
+
+		if (law.Bills[index].Agreeing.Contains(Politics.Ideology.Party))
+			lawTally++;
+		else if (law.Bills[index].Opposing.Contains(Politics.Ideology.Party))
+			lawTally--;
+	}
+
+	if (lawTally < -2)
+		Happiness.SetValue("Not Represented", -20);
+	else if (lawTally > 2)
+		Happiness.SetValue("Represented", 15);
 
 	if (GetHappiness() < 20)
 		SadTimer++;

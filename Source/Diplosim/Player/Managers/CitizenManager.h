@@ -163,10 +163,10 @@ struct FBillStruct
 		FString Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		EBillType BillType;
+		float Value;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		float Value;
+		bool bIsLaw;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<EParty> Agreeing;
@@ -177,30 +177,35 @@ struct FBillStruct
 	FBillStruct()
 	{
 		Description = "";
-		BillType = EBillType::WorkAge;
 		Value = 0.0f;
+		bIsLaw = false;
+	}
+
+	bool operator==(const FBillStruct& other) const
+	{
+		return (other.bIsLaw == bIsLaw);
 	}
 };
 
 USTRUCT(BlueprintType)
-struct FLawsStruct
+struct FLawStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		int32 WorkAge;
+		EBillType BillType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		int32 VoteAge;
+		TArray<FBillStruct> Bills;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		int32 RepresentativesNum;
-
-	FLawsStruct()
+	FLawStruct()
 	{
-		WorkAge = 18;
-		VoteAge = 18;
-		RepresentativesNum = 10;
+		BillType = EBillType::WorkAge;
+	}
+
+	bool operator==(const FLawStruct& other) const
+	{
+		return (other.BillType == BillType);
 	}
 };
 
@@ -210,10 +215,10 @@ struct FVoteStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<ACitizen*> For;
+		TArray<class ACitizen*> For;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<ACitizen*> Against;
+		TArray<class ACitizen*> Against;
 
 	FVoteStruct()
 	{
@@ -268,15 +273,15 @@ public:
 
 	void SpawnDisease();
 
-	void Infect(ACitizen* Citizen);
+	void Infect(class ACitizen* Citizen);
 
-	void Cure(ACitizen* Citizen);
+	void Cure(class ACitizen* Citizen);
 
-	void Injure(ACitizen* Citizen);
+	void Injure(class ACitizen* Citizen);
 
-	void UpdateHealthText(ACitizen* Citizen);
+	void UpdateHealthText(class ACitizen* Citizen);
 
-	void PickCitizenToHeal(ACitizen* Healer);
+	void PickCitizenToHeal(class ACitizen* Healer);
 
 	UPROPERTY()
 		TArray<class ACitizen*> Infectible;
@@ -299,7 +304,7 @@ public:
 	// Events
 	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
 
-	bool IsWorkEvent(AWork* Work);
+	bool IsWorkEvent(class AWork* Work);
 
 	void CallMass(TArray<TSubclassOf<class ABuilding>> BuildingList);
 
@@ -316,10 +321,7 @@ public:
 		TArray<class ACitizen*> Representatives;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FBillStruct> Bills;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		FLawsStruct Laws;
+		TArray<FLawStruct> Laws;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		FVoteStruct Votes;
@@ -330,9 +332,11 @@ public:
 
 	void ProposeBill(FBillStruct Bill);
 
-	void GetVerdict(ACitizen* Representative, FBillStruct Bill);
+	void GetVerdict(class ACitizen* Representative, FBillStruct Bill);
 
 	void TallyVotes(FBillStruct Bill);
+
+	float GetLawValue(EBillType BillType);
 
 	// Rebel
 	void Overthrow();

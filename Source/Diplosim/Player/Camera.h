@@ -60,6 +60,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void SaveSettings();
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void LawPassed(bool bPassed);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;

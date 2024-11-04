@@ -484,7 +484,7 @@ void UCitizenManager::Election()
 				pair.Value.Add(citizen);
 
 	for (TPair<EParty, TArray<ACitizen*>>& pair : tally) {
-		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)Citizens.Num() * 100.0f / Laws.RepresentativesNum);
+		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)Citizens.Num() * 100.0f / GetLawValue(EBillType::RepresentativesNum));
 
 		if (number == 0)
 			continue;
@@ -552,16 +552,40 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FBillStruct Bill)
 void UCitizenManager::TallyVotes(FBillStruct Bill)
 {
 	if (Votes.For.Num() <= Votes.Against.Num()) {
-		// Fail Message
+		Cast<ACamera>(GetOwner())->LawPassed(false);
 	}
 	else {
-		if (Bill.BillType == EBillType::WorkAge)
-			Laws.WorkAge = Bill.Value;
-		else if (Bill.BillType == EBillType::VoteAge)
-			Laws.VoteAge = Bill.Value;
-		else if (Bill.BillType == EBillType::RepresentativesNum)
-			Laws.RepresentativesNum = Bill.Value;
+		for (FLawStruct &law : Laws) {
+			if (!law.Bills.Contains(Bill))
+				continue;
+
+			FBillStruct currentLaw;
+			currentLaw.bIsLaw = true;
+
+			int32 index = law.Bills.Find(currentLaw);
+			law.Bills[index].bIsLaw = false;
+
+			index = law.Bills.Find(Bill);
+			law.Bills[index].bIsLaw = true;
+		}
+
+		Cast<ACamera>(GetOwner())->LawPassed(true);
 	}
+}
+
+float UCitizenManager::GetLawValue(EBillType BillType)
+{
+	FLawStruct lawStruct;
+	lawStruct.BillType = BillType;
+
+	int32 index = Laws.Find(lawStruct);
+
+	FBillStruct billStruct;
+	billStruct.bIsLaw = true;
+
+	int32 index2 = Laws[index].Bills.Find(billStruct);
+	
+	return Laws[index].Bills[index2].Value;
 }
 
 //
