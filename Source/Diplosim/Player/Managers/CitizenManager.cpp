@@ -122,6 +122,22 @@ void UCitizenManager::RemoveTimer(AActor* Actor, FTimerDelegate TimerDelegate)
 	Timers.RemoveAt(index);
 }
 
+void UCitizenManager::ResetTimer(AActor* Actor, FTimerDelegate TimerDelegate)
+{
+	int32 index;
+
+	FTimerStruct timer;
+	timer.Actor = Actor;
+	timer.Delegate = TimerDelegate;
+
+	index = Timers.Find(timer);
+
+	if (index == INDEX_NONE)
+		return;
+
+	Timers[index].Timer = 0;
+}
+
 //
 // Work
 //
@@ -467,6 +483,16 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 	chosen->Politics.Ideology.Leaning = ESway::Radical;
 }
 
+void UCitizenManager::StartElectionTimer()
+{
+	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+
+	FTimerStruct timer;
+	timer.CreateTimer(GetOwner(), timeToCompleteDay / 0.1f, FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), true);
+
+	Timers.Add(timer);
+}
+
 void UCitizenManager::Election()
 {
 	Representatives.Empty();
@@ -513,6 +539,8 @@ void UCitizenManager::Election()
 			pair.Value.Remove(citizen);
 		}
 	}
+
+	ResetTimer(GetOwner(), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election));
 }
 
 void UCitizenManager::ProposeBill(FBillStruct Bill)

@@ -250,6 +250,8 @@ public:
 
 	void RemoveTimer(AActor* Actor, FTimerDelegate TimerDelegate);
 
+	void ResetTimer(AActor* Actor, FTimerDelegate TimerDelegate);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Buildings")
 		TArray<class ACitizen*> Citizens;
 
@@ -327,6 +329,8 @@ public:
 		FVoteStruct Votes;
 
 	void SelectNewLeader(EParty Party);
+
+	void StartElectionTimer();
 
 	void Election();
 

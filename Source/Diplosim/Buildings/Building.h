@@ -184,7 +184,7 @@ public:
 
 	void Build();
 
-	void OnBuilt();
+	virtual void OnBuilt();
 
 	// Upkeep
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
