@@ -63,6 +63,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void LawPassed(bool bPassed);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void DisplayWarning(const FString& Warning);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -155,6 +158,12 @@ public:
 		class UUserWidget* TLDRUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> WarningUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* WarningUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class USpringArmComponent* WidgetSpringArmComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -167,6 +176,9 @@ public:
 		bool bLost;
 
 	void DisplayBuildUI();
+
+	UFUNCTION(BlueprintCallable)
+		void ShowWarning(FString Warning);
 
 	void TickWhenPaused(bool bTickWhenPaused);
 

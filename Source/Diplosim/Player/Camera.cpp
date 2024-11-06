@@ -133,6 +133,9 @@ void ACamera::BeginPlay()
 	EventUIInstance->AddToViewport();
 
 	TLDRUIInstance = CreateWidget<UUserWidget>(pcontroller, TLDRUI);
+
+	WarningUIInstance = CreateWidget<UUserWidget>(pcontroller, WarningUI);
+	WarningUIInstance->AddToViewport();
 }
 
 void ACamera::Tick(float DeltaTime)
@@ -229,6 +232,11 @@ void ACamera::DisplayBuildUI()
 	Pause();
 
 	TLDRUIInstance->AddToViewport();
+}
+
+void ACamera::ShowWarning(FString Warning)
+{
+	DisplayWarning(Warning);
 }
 
 void ACamera::TickWhenPaused(bool bTickWhenPaused)

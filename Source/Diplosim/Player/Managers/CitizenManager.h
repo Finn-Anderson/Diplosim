@@ -151,7 +151,8 @@ enum class EBillType : uint8
 {
 	WorkAge,
 	VoteAge,
-	RepresentativesNum
+	RepresentativesNum,
+	Abolish
 };
 
 USTRUCT(BlueprintType)
@@ -161,6 +162,9 @@ struct FBillStruct
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		FString Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		FString Warning;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		float Value;
@@ -197,6 +201,9 @@ struct FLawStruct
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FBillStruct> Bills;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		int32 Cooldown;
 
 	FLawStruct()
 	{
@@ -316,17 +323,23 @@ public:
 		TArray<FEventStruct> Events;
 
 	// Politics
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
 		TArray<FLeaderStruct> Leaders;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
 		TArray<class ACitizen*> Representatives;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
+		TArray<int32> BribeValue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FLawStruct> Laws;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
 		FVoteStruct Votes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<FBillStruct> ProposedBills;
 
 	void SelectNewLeader(EParty Party);
 
@@ -334,7 +347,13 @@ public:
 
 	void Election();
 
+	void Bribe(class ACitizen* Representative, bool bAgree);
+
 	void ProposeBill(FBillStruct Bill);
+
+	void MotionBill(FBillStruct Bill);
+
+	void GetInitialVotes(class ACitizen* Representative, FBillStruct Bill);
 
 	void GetVerdict(class ACitizen* Representative, FBillStruct Bill);
 

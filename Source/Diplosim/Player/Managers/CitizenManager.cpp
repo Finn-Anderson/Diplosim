@@ -15,6 +15,7 @@
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/Religion.h"
 #include "Player/Camera.h"
+#include "Player/Managers/ResourceManager.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 
@@ -65,6 +66,13 @@ void UCitizenManager::Loop()
 		SelectNewLeader(leader.Party);
 	}
 
+	for (FLawStruct& law : Laws) {
+		if (law.Cooldown == 0)
+			continue;
+
+		law.Cooldown--;
+	}
+
 	int32 rebelCount = 0;
 
 	for (ACitizen* citizen : Citizens) {
@@ -89,8 +97,21 @@ void UCitizenManager::Loop()
 	if (Citizens.Num() > 0 && (rebelCount / Citizens.Num()) * 100 > 33 && !IsRebellion()) {
 		CooldownTimer--;
 
-		if (CooldownTimer < 1)
-			Overthrow();
+		if (CooldownTimer < 1) {
+			auto value = Async(EAsyncExecution::TaskGraphMainThread, [this]() { return FMath::RandRange(1, 3); });
+
+			if (value.Get() == 3) {
+				Overthrow();
+			}
+			else {
+				FLawStruct lawStruct;
+				lawStruct.BillType = EBillType::Abolish;
+
+				int32 index = Laws.Find(lawStruct);
+
+				ProposeBill(Laws[index].Bills[0]);
+			}
+		}
 	}
 
 	AsyncTask(ENamedThreads::GameThread, [this]() {
@@ -543,17 +564,95 @@ void UCitizenManager::Election()
 	ResetTimer(GetOwner(), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election));
 }
 
-void UCitizenManager::ProposeBill(FBillStruct Bill)
+void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
 {
-	Votes.Clear();
+	int32 index = Representatives.Find(Representative);
 
-	for (ACitizen* citizen : Representatives) {
-		FTimerHandle VerdictTimer;
-		GetWorld()->GetTimerManager().SetTimer(VerdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, citizen, Bill), 0.1f, false);
+	int32 bribe = BribeValue[index];
+
+	bool bPass = Cast<ACamera>(GetOwner())->ResourceManager->TakeUniversalResource(Buildings[0]->Money, bribe, 0);
+
+	if (!bPass) {
+		Cast<ACamera>(GetOwner())->ShowWarning("Cannot afford");
+
+		return;
 	}
+
+	if (Votes.For.Contains(Representative))
+		Votes.For.Remove(Representative);
+	else if (Votes.Against.Contains(Representative))
+		Votes.For.Remove(Representative);
+
+	Representative->Balance += bribe;
+
+	if (bAgree)
+		Votes.For.Add(Representative);
+	else
+		Votes.Against.Add(Representative);
 }
 
-void UCitizenManager::GetVerdict(ACitizen* Representative, FBillStruct Bill)
+void UCitizenManager::ProposeBill(FBillStruct Bill)
+{
+	for (FLawStruct& law : Laws) {
+		if (!law.Bills.Contains(Bill))
+			continue;
+
+		if (law.Cooldown == 0)
+			break;
+
+		FString string = "You must wait " + law.Cooldown;
+
+		Cast<ACamera>(GetOwner())->ShowWarning(string + " seconds");
+
+		return;
+	}
+
+	ProposedBills.Add(Bill);
+
+	if (ProposedBills.Num() > 1)
+		return;
+
+	Votes.Clear();
+
+	for (ACitizen* citizen : Representatives)
+		GetInitialVotes(citizen, Bill);
+
+	BribeValue.Empty();
+
+	for (ACitizen* citizen : Representatives) {
+		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return FMath::RandRange(2, 20); }).Get();
+
+		if (Votes.For.Contains(citizen) || Votes.Against.Contains(citizen))
+			bribe *= 4;
+
+		BribeValue.Add(bribe);
+	}
+	
+	FTimerStruct timer;
+
+	timer.CreateTimer(GetOwner(), 60, FTimerDelegate::CreateUObject(this, &UCitizenManager::MotionBill, Bill), false);
+	Timers.Add(timer);
+}
+
+void UCitizenManager::MotionBill(FBillStruct Bill)
+{
+	int32 count = 1;
+
+	for (ACitizen* citizen : Representatives) {
+		if (Votes.For.Contains(citizen) || Votes.Against.Contains(citizen))
+			continue;
+
+		FTimerHandle VerdictTimer;
+		GetWorld()->GetTimerManager().SetTimer(VerdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, citizen, Bill), 0.1f * count, false);
+
+		count++;
+	}
+
+	FTimerHandle VerdictTimer;
+	GetWorld()->GetTimerManager().SetTimer(VerdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::TallyVotes, Bill), 0.1f * count + 0.1f, false);
+}
+
+void UCitizenManager::GetInitialVotes(ACitizen* Representative, FBillStruct Bill)
 {
 	TArray<FString> verdict;
 
@@ -572,9 +671,27 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FBillStruct Bill)
 		Votes.For.Add(Representative);
 	else if (result == "Opposing")
 		Votes.Against.Add(Representative);
+}
 
-	if (Representatives.Last() == Representative)
-		TallyVotes(Bill);
+void UCitizenManager::GetVerdict(ACitizen* Representative, FBillStruct Bill)
+{
+	TArray<FString> verdict;
+
+	if (Bill.Agreeing.Contains(Representative->Politics.Ideology.Party))
+		verdict = { "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Opposing" };
+	else if (Bill.Opposing.Contains(Representative->Politics.Ideology.Party))
+		verdict = { "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Agreeing" };
+	else
+		verdict = { "Agreeing", "Agreeing", "Opposing", "Opposing" };
+
+	auto value = Async(EAsyncExecution::TaskGraph, [verdict]() { return FMath::RandRange(0, verdict.Num() - 1); });
+
+	FString result = verdict[value.Get()];
+
+	if (result == "Agreeing")
+		Votes.For.Add(Representative);
+	else if (result == "Opposing")
+		Votes.Against.Add(Representative);
 }
 
 void UCitizenManager::TallyVotes(FBillStruct Bill)
@@ -595,10 +712,21 @@ void UCitizenManager::TallyVotes(FBillStruct Bill)
 
 			index = law.Bills.Find(Bill);
 			law.Bills[index].bIsLaw = true;
+
+			int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+
+			law.Cooldown = timeToCompleteDay * 3;
+
+			break;
 		}
 
 		Cast<ACamera>(GetOwner())->LawPassed(true);
 	}
+
+	ProposedBills.Remove(Bill);
+
+	if (!ProposedBills.IsEmpty())
+		ProposeBill(ProposedBills[0]);
 }
 
 float UCitizenManager::GetLawValue(EBillType BillType)
@@ -626,6 +754,9 @@ void UCitizenManager::Overthrow()
 	for (ACitizen* citizen : Citizens) {
 		if (citizen->Politics.Ideology.Party != EParty::Freedom)
 			return;
+
+		if (Representatives.Contains(citizen))
+			Representatives.Remove(citizen);
 
 		SetupRebel(citizen);
 	}
