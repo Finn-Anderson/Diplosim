@@ -66,6 +66,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void DisplayWarning(const FString& Warning);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void DisplayNewBill();
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;

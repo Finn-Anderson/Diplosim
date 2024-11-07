@@ -325,7 +325,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action()
 {
-	if (bInMenu)
+	if (bInMenu || GetWorld()->GetMapName() != "Map")
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {

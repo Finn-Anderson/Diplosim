@@ -351,6 +351,8 @@ public:
 
 	void ProposeBill(FBillStruct Bill);
 
+	void SetupBill(FBillStruct Bill);
+
 	void MotionBill(FBillStruct Bill);
 
 	void GetInitialVotes(class ACitizen* Representative, FBillStruct Bill);

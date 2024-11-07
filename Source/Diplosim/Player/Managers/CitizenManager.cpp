@@ -14,6 +14,7 @@
 #include "Universal/HealthComponent.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/Religion.h"
+#include "Buildings/Misc/Broch.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Map/Grid.h"
@@ -612,6 +613,11 @@ void UCitizenManager::ProposeBill(FBillStruct Bill)
 	if (ProposedBills.Num() > 1)
 		return;
 
+	SetupBill(Bill);
+}
+
+void UCitizenManager::SetupBill(FBillStruct Bill)
+{
 	Votes.Clear();
 
 	for (ACitizen* citizen : Representatives)
@@ -627,7 +633,9 @@ void UCitizenManager::ProposeBill(FBillStruct Bill)
 
 		BribeValue.Add(bribe);
 	}
-	
+
+	Cast<ACamera>(GetOwner())->DisplayNewBill();
+
 	FTimerStruct timer;
 
 	timer.CreateTimer(GetOwner(), 60, FTimerDelegate::CreateUObject(this, &UCitizenManager::MotionBill, Bill), false);
@@ -704,18 +712,23 @@ void UCitizenManager::TallyVotes(FBillStruct Bill)
 			if (!law.Bills.Contains(Bill))
 				continue;
 
-			FBillStruct currentLaw;
-			currentLaw.bIsLaw = true;
+			if (law.BillType == EBillType::Abolish) {
+				Cast<ABroch>(Cast<ACamera>(GetOwner())->StartBuilding)->HealthComponent->TakeHealth(1000, GetOwner());
+			}
+			else {
+				FBillStruct currentLaw;
+				currentLaw.bIsLaw = true;
 
-			int32 index = law.Bills.Find(currentLaw);
-			law.Bills[index].bIsLaw = false;
+				int32 index = law.Bills.Find(currentLaw);
+				law.Bills[index].bIsLaw = false;
 
-			index = law.Bills.Find(Bill);
-			law.Bills[index].bIsLaw = true;
+				index = law.Bills.Find(Bill);
+				law.Bills[index].bIsLaw = true;
 
-			int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+				int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-			law.Cooldown = timeToCompleteDay * 3;
+				law.Cooldown = timeToCompleteDay * 3;
+			}
 
 			break;
 		}
@@ -726,7 +739,7 @@ void UCitizenManager::TallyVotes(FBillStruct Bill)
 	ProposedBills.Remove(Bill);
 
 	if (!ProposedBills.IsEmpty())
-		ProposeBill(ProposedBills[0]);
+		SetupBill(ProposedBills[0]);
 }
 
 float UCitizenManager::GetLawValue(EBillType BillType)

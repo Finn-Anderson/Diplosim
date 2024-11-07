@@ -323,12 +323,20 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 
 void UBuildComponent::Place()
 {
-	if (Buildings.IsEmpty() || !CheckBuildCosts())
-		return;
+	if (Buildings.IsEmpty() || !CheckBuildCosts()) {
+		if (!CheckBuildCosts())
+			Camera->ShowWarning("Cannot afford building");
 
-	for (ABuilding* building : Buildings)
-		if (!IsValidLocation(building))
+		return;
+	}	
+
+	for (ABuilding* building : Buildings) {
+		if (!IsValidLocation(building)) {
+			Camera->ShowWarning("Invalid location");
+
 			return;
+		}
+	}		
 
 	if (StartLocation == FVector::Zero() && Buildings[0]->IsA<ARoad>()) {
 		StartLocation = Buildings[0]->GetActorLocation();
