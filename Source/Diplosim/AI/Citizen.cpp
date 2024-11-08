@@ -818,10 +818,16 @@ void ACitizen::SetHappiness()
 	int32 lawTally = 0;
 
 	for (FLawStruct law : Camera->CitizenManager->Laws) {
+		if (law.BillType == EBillType::Abolish)
+			continue;
+
 		FBillStruct billStruct;
 		billStruct.bIsLaw = true;
 
 		int32 index = law.Bills.Find(billStruct);
+
+		if (index == INDEX_NONE)
+			continue;
 
 		if (law.Bills[index].Agreeing.Contains(Politics.Ideology.Party))
 			lawTally++;

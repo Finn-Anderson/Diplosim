@@ -136,6 +136,8 @@ void ACamera::BeginPlay()
 
 	WarningUIInstance = CreateWidget<UUserWidget>(pcontroller, WarningUI);
 	WarningUIInstance->AddToViewport();
+
+	ParliamentUIInstance = CreateWidget<UUserWidget>(pcontroller, ParliamentUI);
 }
 
 void ACamera::Tick(float DeltaTime)
@@ -325,7 +327,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action()
 {
-	if (bInMenu || GetWorld()->GetMapName() != "Map")
+	if (bInMenu || GetWorld()->GetMapName() != "Map" || ParliamentUIInstance->IsInViewport())
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {

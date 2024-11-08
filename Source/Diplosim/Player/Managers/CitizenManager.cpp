@@ -490,6 +490,9 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 		}
 	}
 
+	if (candidates.IsEmpty())
+		return;
+
 	auto value = Async(EAsyncExecution::TaskGraph, [candidates]() { return FMath::RandRange(0, candidates.Num() - 1); });
 
 	ACitizen* chosen = candidates[value.Get()];
@@ -532,7 +535,7 @@ void UCitizenManager::Election()
 				pair.Value.Add(citizen);
 
 	for (TPair<EParty, TArray<ACitizen*>>& pair : tally) {
-		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)Citizens.Num() * 100.0f / GetLawValue(EBillType::RepresentativesNum));
+		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)Citizens.Num() * 100.0f / GetLawValue(EBillType::Representatives));
 
 		if (number == 0)
 			continue;

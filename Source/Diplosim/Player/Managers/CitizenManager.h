@@ -151,7 +151,7 @@ enum class EBillType : uint8
 {
 	WorkAge,
 	VoteAge,
-	RepresentativesNum,
+	Representatives,
 	Abolish
 };
 
@@ -323,7 +323,7 @@ public:
 		TArray<FEventStruct> Events;
 
 	// Politics
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FLeaderStruct> Leaders;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
@@ -349,7 +349,8 @@ public:
 
 	void Bribe(class ACitizen* Representative, bool bAgree);
 
-	void ProposeBill(FBillStruct Bill);
+	UFUNCTION(BlueprintCallable)
+		void ProposeBill(FBillStruct Bill);
 
 	void SetupBill(FBillStruct Bill);
 

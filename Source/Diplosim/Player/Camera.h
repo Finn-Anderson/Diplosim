@@ -167,6 +167,13 @@ public:
 		class UUserWidget* WarningUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> ParliamentUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* ParliamentUIInstance;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class USpringArmComponent* WidgetSpringArmComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
