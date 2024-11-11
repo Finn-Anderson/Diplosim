@@ -39,7 +39,7 @@ void UCitizenManager::BeginPlay()
 void UCitizenManager::Loop()
 {
 	for (int32 i = Timers.Num() - 1; i > -1; i--) {
-		if ((!Citizens.Contains(Timers[i].Actor) && !Buildings.Contains(Timers[i].Actor)) || (Timers[i].Actor->IsA<ACitizen>() && Cast<ACitizen>(Timers[i].Actor)->Rebel)) {
+		if ((!Citizens.Contains(Timers[i].Actor) && !Buildings.Contains(Timers[i].Actor) && Timers[i].Actor != GetOwner()) || (Timers[i].Actor->IsA<ACitizen>() && Cast<ACitizen>(Timers[i].Actor)->Rebel)) {
 			Timers.RemoveAt(i);
 
 			continue;
@@ -128,36 +128,48 @@ void UCitizenManager::StartTimers()
 	Async(EAsyncExecution::Thread, [this]() { Loop(); });
 }
 
-void UCitizenManager::RemoveTimer(AActor* Actor, FTimerDelegate TimerDelegate)
+FTimerStruct* UCitizenManager::FindTimer(FString ID, AActor* Actor)
 {
-	int32 index;
-
 	FTimerStruct timer;
+	timer.ID = ID;
 	timer.Actor = Actor;
-	timer.Delegate = TimerDelegate;
 
-	index = Timers.Find(timer);
+	int32 index = Timers.Find(timer);
 
 	if (index == INDEX_NONE)
-		return;
+		return nullptr;
 
-	Timers.RemoveAt(index);
+	return &Timers[index];
 }
 
-void UCitizenManager::ResetTimer(AActor* Actor, FTimerDelegate TimerDelegate)
+void UCitizenManager::RemoveTimer(FString ID, AActor* Actor)
 {
-	int32 index;
+	FTimerStruct* timer = FindTimer(ID, Actor);
 
-	FTimerStruct timer;
-	timer.Actor = Actor;
-	timer.Delegate = TimerDelegate;
-
-	index = Timers.Find(timer);
-
-	if (index == INDEX_NONE)
+	if (timer == nullptr)
 		return;
 
-	Timers[index].Timer = 0;
+	Timers.RemoveSingle(*timer);
+}
+
+void UCitizenManager::ResetTimer(FString ID, AActor* Actor)
+{
+	FTimerStruct* timer = FindTimer(ID, Actor);
+
+	if (timer == nullptr)
+		return;
+
+	timer->Timer = 0;
+}
+
+int32 UCitizenManager::GetElapsedTime(FString ID, AActor* Actor)
+{
+	FTimerStruct* timer = FindTimer(ID, Actor);
+
+	if (timer == nullptr)
+		return 0;
+
+	return timer->Target - timer->Timer;
 }
 
 //
@@ -184,7 +196,7 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 void UCitizenManager::StartDiseaseTimer()
 {
 	FTimerStruct timer;
-	timer.CreateTimer(GetOwner(), FMath::RandRange(180, 1200), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
+	timer.CreateTimer("Disease", GetOwner(), FMath::RandRange(180, 1200), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
 
 	Timers.Add(timer);
 }
@@ -454,7 +466,7 @@ void UCitizenManager::EndMass(EReligion Belief)
 		int32 timeToCompleteDay = 360 / (24 * citizen->Camera->Grid->AtmosphereComponent->Speed);
 
 		FTimerStruct timer;
-		timer.CreateTimer(citizen, timeToCompleteDay * 2, FTimerDelegate::CreateUObject(citizen, &ACitizen::SetMassStatus, EMassStatus::Neutral), false);
+		timer.CreateTimer("Mass", citizen, timeToCompleteDay * 2, FTimerDelegate::CreateUObject(citizen, &ACitizen::SetMassStatus, EMassStatus::Neutral), false);
 
 		Timers.Add(timer);
 
@@ -513,7 +525,7 @@ void UCitizenManager::StartElectionTimer()
 	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
 	FTimerStruct timer;
-	timer.CreateTimer(GetOwner(), timeToCompleteDay / 0.1f, FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), true);
+	timer.CreateTimer("Election", GetOwner(), timeToCompleteDay * 10, FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), true);
 
 	Timers.Add(timer);
 }
@@ -565,7 +577,7 @@ void UCitizenManager::Election()
 		}
 	}
 
-	ResetTimer(GetOwner(), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election));
+	ResetTimer("Election", GetOwner());
 }
 
 void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
@@ -613,20 +625,36 @@ void UCitizenManager::ProposeBill(FBillStruct Bill)
 
 	ProposedBills.Add(Bill);
 
+	for (FLawStruct& law : Laws) {
+		if (!law.Bills.Contains(Bill))
+			continue;
+
+		int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+
+		law.Cooldown = timeToCompleteDay * 3;
+
+		break;
+	}
+
 	if (ProposedBills.Num() > 1)
 		return;
 
-	SetupBill(Bill);
+	SetupBill();
 }
 
-void UCitizenManager::SetupBill(FBillStruct Bill)
+void UCitizenManager::SetupBill()
 {
 	Votes.Clear();
 
-	for (ACitizen* citizen : Representatives)
-		GetInitialVotes(citizen, Bill);
-
 	BribeValue.Empty();
+
+	Cast<ACamera>(GetOwner())->DisplayNewBill();
+
+	if (ProposedBills.IsEmpty())
+		return;
+
+	for (ACitizen* citizen : Representatives)
+		GetInitialVotes(citizen, ProposedBills[0]);
 
 	for (ACitizen* citizen : Representatives) {
 		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return FMath::RandRange(2, 20); }).Get();
@@ -637,11 +665,9 @@ void UCitizenManager::SetupBill(FBillStruct Bill)
 		BribeValue.Add(bribe);
 	}
 
-	Cast<ACamera>(GetOwner())->DisplayNewBill();
-
 	FTimerStruct timer;
 
-	timer.CreateTimer(GetOwner(), 60, FTimerDelegate::CreateUObject(this, &UCitizenManager::MotionBill, Bill), false);
+	timer.CreateTimer("Bill", GetOwner(), 60, FTimerDelegate::CreateUObject(this, &UCitizenManager::MotionBill, ProposedBills[0]), false);
 	Timers.Add(timer);
 }
 
@@ -727,10 +753,6 @@ void UCitizenManager::TallyVotes(FBillStruct Bill)
 
 				index = law.Bills.Find(Bill);
 				law.Bills[index].bIsLaw = true;
-
-				int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
-
-				law.Cooldown = timeToCompleteDay * 3;
 			}
 
 			break;
@@ -741,8 +763,7 @@ void UCitizenManager::TallyVotes(FBillStruct Bill)
 
 	ProposedBills.Remove(Bill);
 
-	if (!ProposedBills.IsEmpty())
-		SetupBill(ProposedBills[0]);
+	SetupBill();
 }
 
 float UCitizenManager::GetLawValue(EBillType BillType)
@@ -758,6 +779,25 @@ float UCitizenManager::GetLawValue(EBillType BillType)
 	int32 index2 = Laws[index].Bills.Find(billStruct);
 	
 	return Laws[index].Bills[index2].Value;
+}
+
+EBillType UCitizenManager::GetBillType(FBillStruct Bill)
+{
+	for (FLawStruct law : Laws)
+		if (law.Bills.Contains(Bill))
+			return law.BillType;
+
+	return EBillType::Abolish;
+}
+
+int32 UCitizenManager::GetCooldownTimer(FLawStruct Law)
+{
+	int32 index = Laws.Find(Law);
+
+	if (index == INDEX_NONE)
+		return 0;
+
+	return Laws[index].Cooldown;
 }
 
 //

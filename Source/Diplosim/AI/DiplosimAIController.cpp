@@ -91,7 +91,7 @@ void ADiplosimAIController::Idle()
 		nav->GetPathLength(GetOwner()->GetActorLocation(), location, length);
 
 		FTimerStruct timer;
-		timer.CreateTimer(GetOwner(), FMath::RandRange(3, 10), FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle), false);
+		timer.CreateTimer("Idle", GetOwner(), FMath::RandRange(3, 10), FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle), false);
 
 		Cast<ACitizen>(GetOwner())->Camera->CitizenManager->Timers.Add(timer);
 
@@ -174,7 +174,7 @@ void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource
 		AIMoveTo(target);
 	else {
 		FTimerStruct timer;
-		timer.CreateTimer(GetOwner(), 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Camera, Resource), false);
+		timer.CreateTimer("FindGatherSite", GetOwner(), 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Camera, Resource), false);
 
 		Camera->CitizenManager->Timers.Add(timer);
 	}
@@ -264,7 +264,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	citizen->Camera->CitizenManager->RemoveTimer(GetOwner(), FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle));
+	citizen->Camera->CitizenManager->RemoveTimer("Idle", GetOwner());
 
 	if (citizen->Building.BuildingAt != nullptr)
 		citizen->Building.BuildingAt->Leave(citizen);

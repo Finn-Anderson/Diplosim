@@ -109,13 +109,13 @@ void ACitizen::BeginPlay()
 
 	FTimerStruct timer;
 
-	timer.CreateTimer(this, timeToCompleteDay / 200, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true);
+	timer.CreateTimer("Eat", this, timeToCompleteDay / 200, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
-	timer.CreateTimer(this, timeToCompleteDay / 100, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
+	timer.CreateTimer("Energy", this, timeToCompleteDay / 100, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
-	timer.CreateTimer(this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
+	timer.CreateTimer("Birthday", this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
 	SetSex();
@@ -429,7 +429,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 	time /= FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed);
 
 	FTimerStruct timer;
-	timer.CreateTimer(this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), false);
+	timer.CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), false);
 
 	Camera->CitizenManager->Timers.Add(timer);
 
@@ -440,7 +440,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 	else
 		sound = Chops[FMath::RandRange(0, Chops.Num() - 1)];
 
-	timer.CreateTimer(this, 1, FTimerDelegate::CreateUObject(Camera, &ACamera::PlayAmbientSound, AmbientAudioComponent, sound), true);
+	timer.CreateTimer("AmbientHarvestSound", this, 1, FTimerDelegate::CreateUObject(Camera, &ACamera::PlayAmbientSound, AmbientAudioComponent, sound), true);
 
 	Camera->CitizenManager->Timers.Add(timer);
 
@@ -451,7 +451,7 @@ void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 {
 	AResource* resource = Resource->GetHarvestedResource();
 
-	Camera->CitizenManager->RemoveTimer(this, FTimerDelegate::CreateUObject(Camera, &ACamera::PlayAmbientSound, AmbientAudioComponent, AmbientAudioComponent->GetSound()));
+	Camera->CitizenManager->RemoveTimer("AmbientHarvestSound", this);
 
 	Camera->CitizenManager->Injure(this);
 

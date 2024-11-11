@@ -118,7 +118,7 @@ void AGate::UpdateNavigation()
 void AGate::SetTimer()
 {
 	FTimerStruct timer;
-	timer.CreateTimer(this, 3.0f, FTimerDelegate::CreateUObject(this, &AGate::UpdateNavigation), false);
+	timer.CreateTimer("Gate", this, 3.0f, FTimerDelegate::CreateUObject(this, &AGate::UpdateNavigation), false);
 
 	Camera->CitizenManager->Timers.Add(timer);
 }

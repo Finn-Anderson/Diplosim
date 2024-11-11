@@ -25,7 +25,7 @@ void AFarm::Enter(ACitizen* Citizen)
 	Super::Enter(Citizen);
 
 	FTimerStruct timer;
-	timer.CreateTimer(this, TimeLength / 10.0f, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false);
+	timer.CreateTimer("Farm", this, TimeLength / 10.0f, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false);
 
 	if (!Occupied.Contains(Citizen) || Camera->CitizenManager->Timers.Contains(timer))
 		return;
@@ -66,7 +66,7 @@ void AFarm::ProductionDone(ACitizen* Citizen)
 void AFarm::StartTimer(ACitizen* Citizen)
 {
 	FTimerStruct timer;
-	timer.CreateTimer(this, TimeLength / 10.0f, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false);
+	timer.CreateTimer("Farm", this, TimeLength / 10.0f, FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false);
 
 	Camera->CitizenManager->Timers.Add(timer);
 }

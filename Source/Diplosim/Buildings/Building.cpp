@@ -138,6 +138,8 @@ void ABuilding::Build()
 		for (FItemStruct items : CostList)
 			rm->AddCommittedResource(items.Resource, items.Amount);
 
+		cm->AddBuilding(this, EBuildStatus::Construction);
+
 		ActualMesh = BuildingMesh->GetStaticMesh();
 		FVector bSize = ActualMesh->GetBounds().GetBox().GetSize();
 		FVector cSize = ConstructionMesh->GetBounds().GetBox().GetSize();
@@ -148,8 +150,6 @@ void ABuilding::Build()
 
 		BuildingMesh->SetRelativeScale3D(size);
 		BuildingMesh->SetStaticMesh(ConstructionMesh);
-
-		cm->AddBuilding(this, EBuildStatus::Construction);
 	}
 }
 
@@ -158,7 +158,7 @@ void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 	if (OtherActor == this || OtherComp->IsA<USphereComponent>())
 		return;
 
-	if (OtherActor->IsA<AVegetation>()) {
+	if (OtherActor->IsA<AVegetation>() && !Camera->ConstructionManager->IsBeingConstructed(this, nullptr)) {
 		FTreeStruct treeStruct;
 		treeStruct.Resource = Cast<AVegetation>(OtherActor);
 		treeStruct.Instance = OtherBodyIndex;
@@ -253,7 +253,7 @@ void ABuilding::OnBuilt()
 	Camera->CitizenManager->Buildings.Add(this);
 
 	FTimerStruct timer;
-	timer.CreateTimer(this, 300, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost), false);
+	timer.CreateTimer("Upkeep", this, 300, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost), false);
 	Camera->CitizenManager->Timers.Add(timer);
 
 	if (bConstant)
@@ -542,10 +542,8 @@ void ABuilding::AddToBasket(TSubclassOf<AResource> Resource, int32 Amount)
 {
 	FGuid id = FGuid().NewGuid();
 
-	FTimerDelegate delegate = FTimerDelegate::CreateUObject(this, &ABuilding::RemoveFromBasket, id);
-
 	FTimerStruct timer;
-	timer.CreateTimer(this, 300.0f, delegate, false);
+	timer.CreateTimer("Basket", this, 300.0f, FTimerDelegate::CreateUObject(this, &ABuilding::RemoveFromBasket, id), false);
 
 	Camera->CitizenManager->Timers.Add(timer);
 
@@ -553,7 +551,6 @@ void ABuilding::AddToBasket(TSubclassOf<AResource> Resource, int32 Amount)
 	basketStruct.ID = id;
 	basketStruct.Item.Resource = Resource;
 	basketStruct.Item.Amount = Amount;
-	basketStruct.TimerDelegate = delegate;
 
 	Basket.Add(basketStruct);
 }

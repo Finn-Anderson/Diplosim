@@ -50,7 +50,7 @@ void ATrader::Enter(ACitizen* Citizen)
 			SubmitOrder(Citizen);
 		else {
 			FTimerStruct timer;
-			timer.CreateTimer(this, Orders[0].Wait, FTimerDelegate::CreateUObject(this, &ATrader::SubmitOrder, Citizen), false);
+			timer.CreateTimer("Order", this, Orders[0].Wait, FTimerDelegate::CreateUObject(this, &ATrader::SubmitOrder, Citizen), false);
 
 			Camera->CitizenManager->Timers.Add(timer);
 		}

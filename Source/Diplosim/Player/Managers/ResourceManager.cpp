@@ -19,7 +19,7 @@ void UResourceManager::StoreBasket(TSubclassOf<class AResource> Resource, class 
 		if (product.Item.Resource != Resource)
 			continue;
 
-		Building->Camera->CitizenManager->RemoveTimer(Building, product.TimerDelegate);
+		Building->Camera->CitizenManager->RemoveTimer("Basket", Building);
 
 		int32 extra = AddLocalResource(Resource, Building, product.Item.Amount);
 

@@ -45,8 +45,6 @@ struct FBasketStruct
 
 	FItemStruct Item;
 
-	FTimerDelegate TimerDelegate;
-
 	FBasketStruct()
 	{
 		

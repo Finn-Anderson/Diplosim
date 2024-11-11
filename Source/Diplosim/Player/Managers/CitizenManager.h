@@ -11,6 +11,9 @@ struct FTimerStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+		FString ID;
+
+	UPROPERTY()
 		AActor* Actor;
 
 	UPROPERTY()
@@ -29,6 +32,7 @@ struct FTimerStruct
 
 	FTimerStruct()
 	{
+		ID = "";
 		Actor = nullptr;
 		Timer = 0;
 		Target = 0;
@@ -36,8 +40,9 @@ struct FTimerStruct
 		bPaused = false;
 	}
 
-	void CreateTimer(AActor* Caller, int32 Time, FTimerDelegate TimerDelegate, bool Repeat)
+	void CreateTimer(FString Identifier, AActor* Caller, int32 Time, FTimerDelegate TimerDelegate, bool Repeat)
 	{
+		ID = Identifier;
 		Actor = Caller;
 		Target = Time;
 		Delegate = TimerDelegate;
@@ -46,7 +51,7 @@ struct FTimerStruct
 
 	bool operator==(const FTimerStruct& other) const
 	{
-		return (other.Actor == Actor && other.Delegate.GetUObject() == Delegate.GetUObject());
+		return (other.ID == ID && other.Actor == Actor);
 	}
 };
 
@@ -255,9 +260,14 @@ public:
 
 	void StartTimers();
 
-	void RemoveTimer(AActor* Actor, FTimerDelegate TimerDelegate);
+	FTimerStruct* FindTimer(FString ID, AActor* Actor);
 
-	void ResetTimer(AActor* Actor, FTimerDelegate TimerDelegate);
+	void RemoveTimer(FString ID, AActor* Actor);
+
+	void ResetTimer(FString ID, AActor* Actor);
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetElapsedTime(FString ID, AActor* Actor);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Buildings")
 		TArray<class ACitizen*> Citizens;
@@ -352,7 +362,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void ProposeBill(FBillStruct Bill);
 
-	void SetupBill(FBillStruct Bill);
+	void SetupBill();
 
 	void MotionBill(FBillStruct Bill);
 
@@ -363,6 +373,12 @@ public:
 	void TallyVotes(FBillStruct Bill);
 
 	float GetLawValue(EBillType BillType);
+
+	UFUNCTION(BlueprintCallable)
+		EBillType GetBillType(FBillStruct Bill);
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetCooldownTimer(FLawStruct Law);
 
 	// Rebel
 	void Overthrow();
