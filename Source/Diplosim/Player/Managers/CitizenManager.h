@@ -372,7 +372,8 @@ public:
 
 	void TallyVotes(FBillStruct Bill);
 
-	float GetLawValue(EBillType BillType);
+	UFUNCTION(BlueprintCallable)
+		float GetLawValue(EBillType BillType);
 
 	UFUNCTION(BlueprintCallable)
 		EBillType GetBillType(FBillStruct Bill);

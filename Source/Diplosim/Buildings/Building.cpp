@@ -7,6 +7,7 @@
 #include "NavigationSystem.h"
 #include "Components/Widget.h"
 #include "Components/AudioComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -21,6 +22,7 @@
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
 #include "Buildings/Work/Service/Religion.h"
+#include "Buildings/Misc/Broch.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Production/InternalProduction.h"
@@ -258,6 +260,9 @@ void ABuilding::OnBuilt()
 
 	if (bConstant)
 		ParticleComponent->Activate();
+
+	if (Camera->WidgetSpringArmComponent->IsAttachedTo(GetRootComponent()) && !IsA<ABroch>())
+		Camera->DisplayInteract(this);
 }
 
 void ABuilding::UpkeepCost()
@@ -325,6 +330,9 @@ void ABuilding::Enter(ACitizen* Citizen)
 		Citizen->SetActorHiddenInGame(true);
 
 		Citizen->SetActorLocation(GetActorLocation());
+
+		if (Camera->FocusedCitizen == Citizen)
+			Camera->Detach();
 	}
 
 	if (Citizen->Carrying.Amount > 0)
@@ -380,6 +388,9 @@ void ABuilding::Leave(ACitizen* Citizen)
 
 	if (!Citizen->IsHidden())
 		return;
+
+	if (Camera->FocusedCitizen == Citizen)
+		Camera->AttachToActor(Citizen, FAttachmentTransformRules::KeepRelativeTransform);
 
 	FHitResult hit;
 

@@ -21,6 +21,7 @@
 #include "Buildings/Building.h"
 #include "Buildings/Misc/Broch.h"
 #include "AI/AI.h"
+#include "AI/Citizen.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -94,6 +95,8 @@ ACamera::ACamera()
 	bLost = false;
 
 	ColonyName = "Eggerton";
+
+	FocusedCitizen = nullptr;
 }
 
 void ACamera::BeginPlay()
@@ -138,6 +141,8 @@ void ACamera::BeginPlay()
 	WarningUIInstance->AddToViewport();
 
 	ParliamentUIInstance = CreateWidget<UUserWidget>(pcontroller, ParliamentUI);
+
+	LawPassedUIInstance = CreateWidget<UUserWidget>(pcontroller, LawPassedUI);
 }
 
 void ACamera::Tick(float DeltaTime)
@@ -259,7 +264,15 @@ void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
 	SetInteractableText(Actor, Instance);
 
 	if (Actor->IsA<AAI>()) {
-		AttachToActor(Actor, FAttachmentTransformRules::KeepRelativeTransform);
+		if (Actor->IsA<ACitizen>()) {
+			ABuilding* building = Cast<ACitizen>(Actor)->Building.BuildingAt;
+
+			if (building == nullptr)
+				AttachToActor(Actor, FAttachmentTransformRules::KeepRelativeTransform);
+
+			FocusedCitizen = Cast<ACitizen>(Actor);
+		}
+
 		SetActorLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
 
 		SpringArmComponent->ProbeSize = 6.0f;
@@ -278,6 +291,20 @@ void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
 	WidgetSpringArmComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName(*socketName));
 
 	WidgetComponent->SetHiddenInGame(false);
+}
+
+void ACamera::Detach()
+{
+	if (GetAttachParentActor() != nullptr)
+		SpringArmComponent->ProbeSize = 12.0f;
+
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+	FVector location = GetActorLocation();
+	location.Z = 800.0f;
+	SetActorLocation(location);
+
+	FocusedCitizen = nullptr;
 }
 
 void ACamera::Lose()
@@ -337,6 +364,8 @@ void ACamera::Action()
 			BuildComponent->Place();
 	}
 	else {
+		FocusedCitizen = nullptr;
+
 		if (WidgetSpringArmComponent->GetAttachParent() != RootComponent && !IsValid(HoveredActor.Actor)) {
 			if (!WidgetComponent->bHiddenInGame)
 				WidgetComponent->SetHiddenInGame(true);
@@ -400,17 +429,20 @@ void ACamera::Pause()
 
 void ACamera::Menu()
 {
-	if (bLost)
+	if (bLost || GetWorld()->GetMapName() != "Map")
 		return;
 
-	if (!WidgetComponent->bHiddenInGame) {
+	if (!WidgetComponent->bHiddenInGame && !BuildComponent->IsComponentTickEnabled()) {
 		WidgetComponent->SetHiddenInGame(true);
 
 		return;
 	}
 
-	if (GetWorld()->GetMapName() != "Map")
+	if (ParliamentUIInstance->IsInViewport()) {
+		ParliamentUIInstance->RemoveFromParent();
+
 		return;
+	}
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
@@ -442,7 +474,8 @@ void ACamera::Debug()
 	//ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 	//gamemode->SpawnEnemiesAsync();
 
-	CitizenManager->Buildings.Last()->HealthComponent->TakeHealth(1000, CitizenManager->Buildings.Last());
+	// Test Building Damage
+	//CitizenManager->Buildings.Last()->HealthComponent->TakeHealth(1000, CitizenManager->Buildings.Last());
 }
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)
@@ -466,14 +499,7 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 	if (bInMenu)
 		return;
 
-	if (GetAttachParentActor() != nullptr)
-		SpringArmComponent->ProbeSize = 12.0f;
-
-	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-
-	FVector location = GetActorLocation();
-	location.Z = 800.0f;
-	SetActorLocation(location);
+	Detach();
 
 	MovementComponent->Move(Instance);
 }

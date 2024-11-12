@@ -61,13 +61,16 @@ public:
 		void SaveSettings();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void LawPassed(bool bPassed);
+		void LawPassed(bool bPassed, int32 For, int32 Against);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void DisplayWarning(const FString& Warning);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void DisplayNewBill();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void RefreshRepresentatives();
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
@@ -172,6 +175,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* ParliamentUIInstance;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> LawPassedUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* LawPassedUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class USpringArmComponent* WidgetSpringArmComponent;
@@ -185,6 +193,9 @@ public:
 	UPROPERTY()
 		bool bLost;
 
+	UPROPERTY()
+		class ACitizen* FocusedCitizen;
+
 	void DisplayBuildUI();
 
 	UFUNCTION(BlueprintCallable)
@@ -194,6 +205,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void DisplayInteract(AActor* Actor, int32 Instance = -1);
+
+	void Detach();
 
 	void Lose();
 
