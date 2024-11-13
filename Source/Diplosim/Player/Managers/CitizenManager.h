@@ -351,13 +351,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FBillStruct> ProposedBills;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TSubclassOf<AResource> Money;
+
 	void SelectNewLeader(EParty Party);
 
 	void StartElectionTimer();
 
 	void Election();
 
-	void Bribe(class ACitizen* Representative, bool bAgree);
+	UFUNCTION(BlueprintCallable)
+		void Bribe(class ACitizen* Representative, bool bAgree);
 
 	UFUNCTION(BlueprintCallable)
 		void ProposeBill(FBillStruct Bill);

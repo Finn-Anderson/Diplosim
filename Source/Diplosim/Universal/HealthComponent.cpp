@@ -58,29 +58,31 @@ void UHealthComponent::AddHealth(int32 Amount)
 
 void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 {
-	Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
+	AsyncTask(ENamedThreads::GameThread, [this, Amount, Attacker]() {
+		Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
 
-	float opacity = (MaxHealth - Health) / float(MaxHealth);
+		float opacity = (MaxHealth - Health) / float(MaxHealth);
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(OnHitEffect, GetOwner());
-	material->SetScalarParameterValue("Opacity", opacity);
+		UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(OnHitEffect, GetOwner());
+		material->SetScalarParameterValue("Opacity", opacity);
 
-	if (GetOwner()->IsA<ABuilding>()) {
-		ABuilding* building = Cast<ABuilding>(GetOwner());
+		if (GetOwner()->IsA<ABuilding>()) {
+			ABuilding* building = Cast<ABuilding>(GetOwner());
 
-		UConstructionManager* cm = building->Camera->ConstructionManager;
-		cm->AddBuilding(building, EBuildStatus::Damaged);
+			UConstructionManager* cm = building->Camera->ConstructionManager;
+			cm->AddBuilding(building, EBuildStatus::Damaged);
 
-		building->BuildingMesh->SetOverlayMaterial(material);
-	}
-	else
-		Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(material);
+			building->BuildingMesh->SetOverlayMaterial(material);
+		}
+		else
+			Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(material);
 
-	FTimerHandle matTimer;
-	GetWorld()->GetTimerManager().SetTimer(matTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), 0.15f, false);
+		FTimerHandle matTimer;
+		GetWorld()->GetTimerManager().SetTimer(matTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), 0.15f, false);
 
-	if (Health == 0)
-		Death(Attacker);
+		if (Health == 0)
+			Death(Attacker);
+	});
 }
 
 bool UHealthComponent::IsMaxHealth()

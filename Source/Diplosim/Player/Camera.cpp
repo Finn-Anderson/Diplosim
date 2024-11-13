@@ -143,13 +143,15 @@ void ACamera::BeginPlay()
 	ParliamentUIInstance = CreateWidget<UUserWidget>(pcontroller, ParliamentUI);
 
 	LawPassedUIInstance = CreateWidget<UUserWidget>(pcontroller, LawPassedUI);
+
+	BribeUIInstance = CreateWidget<UUserWidget>(pcontroller, BribeUI);
 }
 
 void ACamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (BuildComponent->IsComponentTickEnabled())
+	if (BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport())
 		return;
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -440,6 +442,8 @@ void ACamera::Menu()
 
 	if (ParliamentUIInstance->IsInViewport()) {
 		ParliamentUIInstance->RemoveFromParent();
+
+		BribeUIInstance->RemoveFromParent();
 
 		return;
 	}

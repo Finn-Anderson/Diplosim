@@ -7,6 +7,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
+#include "Buildings/Misc/Broch.h"
 
 UConstructionManager::UConstructionManager()
 {
@@ -29,11 +30,6 @@ void UConstructionManager::RemoveBuilding(class ABuilding* Building)
 	if (!IsBeingConstructed(Building, nullptr))
 		return;
 
-	ACamera* Camera = Cast<ACamera>(GetOwner());
-
-	if (Camera->WidgetComponent->IsAttachedTo(Building->GetRootComponent()))
-		Camera->WidgetComponent->SetHiddenInGame(true);
-
 	FConstructionStruct constructionStruct;
 	constructionStruct.Building = Building;
 
@@ -44,8 +40,12 @@ void UConstructionManager::RemoveBuilding(class ABuilding* Building)
 
 	Construction.Remove(constructionStruct);
 
-	if (Camera->WidgetComponent->GetAttachParentActor() == Building)
-		Camera->DisplayInteract(Building);
+	ACamera* camera = Cast<ACamera>(GetOwner());
+
+	if (camera->WidgetComponent->IsAttachedTo(Building->GetRootComponent()) && !Building->IsA<ABroch>() && !camera->WidgetComponent->bHiddenInGame)
+		camera->DisplayInteract(Building);
+	else
+		camera->WidgetComponent->SetHiddenInGame(true);
 }
 
 void UConstructionManager::FindBuilder(class ABuilding* Building)

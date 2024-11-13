@@ -19,6 +19,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 UCitizenManager::UCitizenManager()
 {
@@ -585,11 +586,14 @@ void UCitizenManager::Election()
 
 void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
 {
+	if (BribeValue.IsEmpty())
+		return;
+
 	int32 index = Representatives.Find(Representative);
 
 	int32 bribe = BribeValue[index];
 
-	bool bPass = Cast<ACamera>(GetOwner())->ResourceManager->TakeUniversalResource(Buildings[0]->Money, bribe, 0);
+	bool bPass = Cast<ACamera>(GetOwner())->ResourceManager->TakeUniversalResource(Money, bribe, 0);
 
 	if (!bPass) {
 		Cast<ACamera>(GetOwner())->ShowWarning("Cannot afford");
@@ -634,7 +638,7 @@ void UCitizenManager::ProposeBill(FBillStruct Bill)
 
 		int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-		law.Cooldown = timeToCompleteDay * 3;
+		law.Cooldown = timeToCompleteDay;
 
 		break;
 	}
@@ -665,7 +669,7 @@ void UCitizenManager::SetupBill()
 		if (Votes.For.Contains(citizen) || Votes.Against.Contains(citizen))
 			bribe *= 4;
 
-		bribe *= citizen->Politics.Ideology.Leaning;
+		bribe *= (uint8)citizen->Politics.Ideology.Leaning;
 
 		BribeValue.Add(bribe);
 	}
@@ -748,7 +752,12 @@ void UCitizenManager::TallyVotes(FBillStruct Bill)
 				continue;
 
 			if (law.BillType == EBillType::Abolish) {
-				Cast<ABroch>(Cast<ACamera>(GetOwner())->StartBuilding)->HealthComponent->TakeHealth(1000, GetOwner());
+				ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+
+				FTimerStruct timer;
+
+				timer.CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(gamemode->Broch->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
+				Timers.Add(timer);
 			}
 			else {
 				FBillStruct currentLaw;
