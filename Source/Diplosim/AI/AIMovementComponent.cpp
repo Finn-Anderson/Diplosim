@@ -22,7 +22,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	if (!Points.IsEmpty() && FVector::DistXY(GetOwner()->GetActorLocation(), Points[0]) < 12.0f)
 		Points.RemoveAt(0);
-
+		
 	if (Points.IsEmpty())
 		Velocity = FVector::Zero();
 	else
@@ -37,7 +37,10 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		FNavLocation deltaTarget;
 		nav->ProjectPointToNavigation(GetOwner()->GetActorLocation() + deltaV, deltaTarget, FVector(200.0f, 200.0f, 20.0f));
 
-		GetOwner()->SetActorLocation(deltaTarget.Location + FVector(0.0f, 0.0f, 6.0f));
+		FVector location = GetOwner()->GetActorLocation() + deltaV;
+		location.Z = deltaTarget.Location.Z + 6.0f;
+
+		GetOwner()->SetActorLocation(location);
 	}
 
 	if (!Points.IsEmpty()) {

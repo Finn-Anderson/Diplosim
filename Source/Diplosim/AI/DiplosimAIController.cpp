@@ -113,13 +113,13 @@ double ADiplosimAIController::GetClosestActor(FVector TargetLocation, FVector Cu
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 	FNavLocation projectedTarget;
-	nav->ProjectPointToNavigation(TargetLocation, projectedTarget, FVector(400.0f, 400.0f, 100.0f));
+	nav->ProjectPointToNavigation(TargetLocation, projectedTarget, FVector(400.0f, 400.0f, 20.0f));
 
 	FNavLocation projectedCurrent;
-	nav->ProjectPointToNavigation(CurrentLocation, projectedCurrent, FVector(400.0f, 400.0f, 100.0f));
+	nav->ProjectPointToNavigation(CurrentLocation, projectedCurrent, FVector(400.0f, 400.0f, 20.0f));
 
 	FNavLocation projectedNew;
-	nav->ProjectPointToNavigation(NewLocation, projectedNew, FVector(400.0f, 400.0f, 100.0f));
+	nav->ProjectPointToNavigation(NewLocation, projectedNew, FVector(400.0f, 400.0f, 20.0f));
 
 	double curLength = 100000000000.0f;
 	navData->CalcPathLength(projectedTarget, projectedCurrent, curLength);
@@ -194,10 +194,10 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 	FNavLocation targetLoc;
-	nav->ProjectPointToNavigation(Location, targetLoc, FVector(400.0f, 400.0f, 100.0f));
+	nav->ProjectPointToNavigation(Location, targetLoc, FVector(400.0f, 400.0f, 20.0f));
 
 	FNavLocation ownerLoc;
-	nav->ProjectPointToNavigation(GetOwner()->GetActorLocation(), ownerLoc, FVector(400.0f, 400.0f, 100.0f));
+	nav->ProjectPointToNavigation(GetOwner()->GetActorLocation(), ownerLoc, FVector(400.0f, 400.0f, 20.0f));
 
 	FPathFindingQuery query(GetOwner(), *navData, ownerLoc.Location, targetLoc.Location);
 
@@ -244,7 +244,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
 	FNavLocation navLoc;
-	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(400.0f, 400.0f, 100.0f));
+	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(400.0f, 400.0f, 20.0f));
 
 	MoveRequest.SetLocation(navLoc.Location);
 
