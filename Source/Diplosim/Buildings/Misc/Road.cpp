@@ -3,6 +3,7 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/AI.h"
 
 ARoad::ARoad()
 {

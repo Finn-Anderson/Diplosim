@@ -24,6 +24,9 @@ public:
 		int32 Health;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		float HealthMultiplier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		class UMaterial* OnHitEffect;
 
 	void AddHealth(int32 Amount);
@@ -35,6 +38,8 @@ public:
 	void RemoveDamageOverlay();
 
 	int32 GetHealth();
+
+	void SetHealthMultiplier(float Multiplier);
 
 
 	// Death

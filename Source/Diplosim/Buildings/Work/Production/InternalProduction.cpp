@@ -38,10 +38,9 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 	if (amount == StorageCap)
 		return;
 
-	FTimerStruct timer;
-	timer.CreateTimer("Internal", this, TimeLength, FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, Citizen), false);
+	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Internal", this);
 
-	if (!Camera->CitizenManager->Timers.Contains(timer))
+	if (timer == nullptr)
 		SetTimer(Citizen);
 	else {
 		AlterTimer();
@@ -82,7 +81,7 @@ void AInternalProduction::SetTimer(ACitizen* Citizen)
 	float tally = 1;
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		tally *= FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed);
+		tally *= (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * Citizen->ProductivityMultiplier);
 
 	float time = TimeLength / GetCitizensAtBuilding().Num() / tally;
 
@@ -94,33 +93,27 @@ void AInternalProduction::SetTimer(ACitizen* Citizen)
 
 void AInternalProduction::AlterTimer()
 {
-	FTimerStruct timer;
-	timer.CreateTimer("Internal", this, TimeLength, FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, GetCitizensAtBuilding()[0]), false);
+	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Internal", this);
 
-	int32 index = Camera->CitizenManager->Timers.Find(timer);
-
-	if (index == INDEX_NONE)
+	if (timer == nullptr)
 		return;
 
 	float tally = 1;
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		tally *= FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed);
+		tally *= (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * citizen->ProductivityMultiplier);
 
 	float time = TimeLength / GetCitizensAtBuilding().Num() / tally;
 
-	Camera->CitizenManager->Timers[index].Target = time;
+	timer->Target = time;
 }
 
 void AInternalProduction::PauseTimer(bool bPause)
 {
-	FTimerStruct timer;
-	timer.CreateTimer("Internal", this, TimeLength, FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, GetCitizensAtBuilding()[0]), false);
+	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Internal", this);
 
-	int32 index = Camera->CitizenManager->Timers.Find(timer);
-
-	if (index == INDEX_NONE)
+	if (timer == nullptr)
 		return;
 
-	Camera->CitizenManager->Timers[index].bPaused = bPause;
+	timer->bPaused = bPause;
 }

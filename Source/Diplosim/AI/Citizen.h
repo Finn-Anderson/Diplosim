@@ -185,6 +185,47 @@ struct FHappinessStruct
 	}
 };
 
+UENUM(BlueprintType)
+enum class EGeneticsType : uint8
+{
+	Speed,
+	Shell,
+	Reach,
+	Awareness,
+	Productivity
+};
+
+UENUM(BlueprintType)
+enum class EGeneticsGrade : uint8
+{
+	Neutral,
+	Bad,
+	Good
+};
+
+USTRUCT(BlueprintType)
+struct FGeneticsStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Genetics")
+		EGeneticsType Type;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Genetics")
+		EGeneticsGrade Grade;
+
+	FGeneticsStruct()
+	{
+		Type = EGeneticsType::Speed;
+		Grade = EGeneticsGrade::Neutral;
+	}
+
+	bool operator==(const FGeneticsStruct& other) const
+	{
+		return (other.Type == Type);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ACitizen : public AAI
 {
@@ -348,4 +389,15 @@ public:
 		int32 GetHappiness();
 
 	void SetHappiness();
+
+	// Genetics
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Genetics")
+		TArray<FGeneticsStruct> Genetics;
+
+	UPROPERTY()
+		float ProductivityMultiplier;
+
+	void GenerateGenetics();
+
+	void ApplyGeneticAffect(FGeneticsStruct Genetic);
 };

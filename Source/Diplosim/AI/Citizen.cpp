@@ -93,6 +93,8 @@ ACitizen::ACitizen()
 
 	HealthComponent->MaxHealth = 10;
 	HealthComponent->Health = HealthComponent->MaxHealth;
+
+	ProductivityMultiplier = 1.0f;
 }
 
 void ACitizen::BeginPlay()
@@ -135,6 +137,8 @@ void ACitizen::BeginPlay()
 	AIController->Idle();
 
 	SetTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour);
+
+	GenerateGenetics();
 }
 
 void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -426,7 +430,7 @@ void ACitizen::GainEnergy()
 void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 {
 	float time = FMath::RandRange(6.0f, 10.0f);
-	time /= FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed);
+	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * ProductivityMultiplier);
 
 	FTimerStruct timer;
 	timer.CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), false);
@@ -490,7 +494,7 @@ void ACitizen::Birthday()
 	BioStruct.Age++;
 
 	if (BioStruct.Age >= 60) {
-		HealthComponent->MaxHealth = 50;
+		HealthComponent->MaxHealth /= 2;
 		HealthComponent->AddHealth(0);
 
 		int32 chance = FMath::RandRange(1, 100);
@@ -500,8 +504,8 @@ void ACitizen::Birthday()
 	}
 
 	if (BioStruct.Age <= 18) {
-		HealthComponent->MaxHealth = 5 * BioStruct.Age + 10.0f;
-		HealthComponent->AddHealth(5);
+		HealthComponent->MaxHealth += 5 * HealthComponent->HealthMultiplier;
+		HealthComponent->AddHealth(5 * HealthComponent->HealthMultiplier);
 
 		float scale = (BioStruct.Age * 0.04f) + 0.28f;
 		AsyncTask(ENamedThreads::GameThread, [this, scale]() { Mesh->SetWorldScale3D(FVector(scale, scale, scale)); });
@@ -775,7 +779,9 @@ void ACitizen::SetMassStatus(EMassStatus Status)
 	MassStatus = Status;
 }
 
+//
 // Happiness
+//
 int32 ACitizen::GetHappiness()
 {
 	int32 value = 50;
@@ -847,4 +853,103 @@ void ACitizen::SetHappiness()
 
 	if (SadTimer == 300)
 		HealthComponent->TakeHealth(HealthComponent->GetHealth(), this);
+}
+
+//
+// Genetics
+//
+void ACitizen::GenerateGenetics()
+{
+	TArray<EGeneticsGrade> grades;
+
+	for (FGeneticsStruct &genetic : Genetics) {
+		if (BioStruct.Father != nullptr) {
+			int32 index = BioStruct.Father->Genetics.Find(genetic);
+
+			grades.Add(BioStruct.Father->Genetics[index].Grade);
+		}
+
+		if (BioStruct.Mother != nullptr) {
+			int32 index = BioStruct.Mother->Genetics.Find(genetic);
+
+			grades.Add(BioStruct.Mother->Genetics[index].Grade);
+		}
+
+		if (grades.IsEmpty()) {
+			grades.Add(EGeneticsGrade::Bad);
+			grades.Add(EGeneticsGrade::Neutral);
+			grades.Add(EGeneticsGrade::Good);
+		}
+
+		int32 choice = FMath::RandRange(0, grades.Num() - 1);
+
+		genetic.Grade = grades[choice];
+
+		int32 mutate = FMath::RandRange(1, 100);
+
+		if (mutate != 100)
+			continue;
+
+		grades.Empty();
+
+		grades.Add(EGeneticsGrade::Bad);
+		grades.Add(EGeneticsGrade::Neutral);
+		grades.Add(EGeneticsGrade::Good);
+
+		grades.Remove(genetic.Grade);
+
+		choice = FMath::RandRange(0, grades.Num() - 1);
+
+		genetic.Grade = grades[choice];
+	}
+
+	for (FGeneticsStruct& genetic : Genetics)
+		ApplyGeneticAffect(genetic);
+}
+
+void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
+{
+	if (Genetic.Type == EGeneticsType::Speed) {
+		if (Genetic.Grade == EGeneticsGrade::Good) {
+			MovementComponent->InitialSpeed = 250.0f;
+			MovementComponent->MaxSpeed = 250.0f;
+		}
+		else if (Genetic.Grade == EGeneticsGrade::Bad) {
+			MovementComponent->InitialSpeed = 150.0f;
+			MovementComponent->MaxSpeed = 150.0f;
+		}
+	}
+	else if (Genetic.Type == EGeneticsType::Shell) {
+		if (Genetic.Grade == EGeneticsGrade::Good)
+			HealthComponent->SetHealthMultiplier(1.25f);
+		else if (Genetic.Grade == EGeneticsGrade::Bad)
+			HealthComponent->SetHealthMultiplier(0.75f);
+
+		HealthComponent->MaxHealth = 10 * HealthComponent->HealthMultiplier;
+		HealthComponent->Health = HealthComponent->MaxHealth;
+	}
+	else if (Genetic.Type == EGeneticsType::Reach) {
+		if (Genetic.Grade == EGeneticsGrade::Good) {
+			SetActorScale3D(FVector(1.25f));
+
+			AttackComponent->RangeComponent->SetRelativeScale3D(FVector(0.8f));
+		}
+		else if (Genetic.Grade == EGeneticsGrade::Bad) {
+			SetActorScale3D(FVector(0.75f));
+
+			AttackComponent->RangeComponent->SetRelativeScale3D(FVector(1.333333333333f));
+		}
+	}
+	else if (Genetic.Type == EGeneticsType::Awareness) {
+		if (Genetic.Grade == EGeneticsGrade::Good)
+			AttackComponent->RangeComponent->SetWorldScale3D(AttackComponent->RangeComponent->GetRelativeScale3D() * FVector(1.25f));
+		else if (Genetic.Grade == EGeneticsGrade::Bad)
+			AttackComponent->RangeComponent->SetWorldScale3D(AttackComponent->RangeComponent->GetRelativeScale3D() * FVector(0.75f));
+	}
+	else {
+		if (Genetic.Grade == EGeneticsGrade::Good)
+			ProductivityMultiplier = 1.15f;
+		else if (Genetic.Grade == EGeneticsGrade::Bad)
+			ProductivityMultiplier = 0.85f;
+	}
 }

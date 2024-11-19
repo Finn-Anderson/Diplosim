@@ -25,6 +25,8 @@ UHealthComponent::UHealthComponent()
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	CrumbleLocation = FVector::Zero();
+
+	HealthMultiplier = 1.0f;
 }
 
 void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -219,4 +221,9 @@ void UHealthComponent::Clear(AActor* Attacker)
 int32 UHealthComponent::GetHealth()
 {
 	return Health;
+}
+
+void UHealthComponent::SetHealthMultiplier(float Multiplier)
+{
+	HealthMultiplier = Multiplier;
 }
