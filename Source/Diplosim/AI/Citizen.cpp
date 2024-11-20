@@ -887,14 +887,20 @@ void ACitizen::GenerateGenetics()
 
 		int32 mutate = FMath::RandRange(1, 100);
 
-		if (mutate != 100)
+		int32 chance = 100 - (Camera->CitizenManager->PrayStruct.Bad * 5) - (Camera->CitizenManager->PrayStruct.Good * 5);
+
+		if (mutate >= chance)
 			continue;
 
 		grades.Empty();
 
-		grades.Add(EGeneticsGrade::Bad);
 		grades.Add(EGeneticsGrade::Neutral);
-		grades.Add(EGeneticsGrade::Good);
+
+		for (int32 i = 0; i > Camera->CitizenManager->PrayStruct.Good; i++)
+			grades.Add(EGeneticsGrade::Good);
+
+		for (int32 i = 0; i > Camera->CitizenManager->PrayStruct.Bad; i++)
+			grades.Add(EGeneticsGrade::Bad);
 
 		grades.Remove(genetic.Grade);
 

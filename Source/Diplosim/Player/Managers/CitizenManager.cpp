@@ -869,3 +869,44 @@ bool UCitizenManager::IsRebellion()
 
 	return false;
 }
+
+//
+// Genetics
+//
+void UCitizenManager::Pray(int32 Increment, FString Type)
+{
+	bool bPass = Cast<ACamera>(GetOwner())->ResourceManager->TakeUniversalResource(Money, GetPrayCost(Type), 0);
+
+	if (!bPass) {
+		Cast<ACamera>(GetOwner())->ShowWarning("Cannot afford");
+
+		return;
+	}
+
+	if (Type == "Good")
+		PrayStruct.Good = FMath::Max(PrayStruct.Good + Increment, 0);
+	else
+		PrayStruct.Bad = FMath::Max(PrayStruct.Bad + Increment, 0);
+
+	FTimerStruct timer;
+	timer.CreateTimer("Pray", GetOwner(), 300, FTimerDelegate::CreateUObject(this, &UCitizenManager::Pray, -Increment, Type), false);
+
+	Timers.Add(timer);
+}
+
+int32 UCitizenManager::GetPrayCost(FString Type)
+{
+	int32 cost = 50;
+
+	int32 count = 0;
+
+	if (Type == "Good")
+		count = PrayStruct.Good;
+	else
+		count = PrayStruct.Bad;
+
+	for (int32 i = 1; i > count; i++)
+		cost *= 1.15;
+
+	return cost;
+}

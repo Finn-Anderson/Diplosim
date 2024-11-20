@@ -244,6 +244,22 @@ struct FVoteStruct
 	}
 };
 
+USTRUCT()
+struct FPrayStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	int32 Good;
+
+	int32 Bad;
+
+	FPrayStruct()
+	{
+		Good = 0;
+		Bad = 0;
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UCitizenManager : public UActorComponent
 {
@@ -394,4 +410,13 @@ public:
 
 	UPROPERTY()
 		int32 CooldownTimer;
+
+	// Genetics
+	FPrayStruct PrayStruct;
+
+	UFUNCTION(BlueprintCallable)
+		void Pray(int32 Increment, FString Type);
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetPrayCost(FString Type);
 };
