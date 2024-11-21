@@ -10,6 +10,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/AudioComponent.h"
+#include "NiagaraComponent.h"
 
 #include "Map/Grid.h"
 #include "Map/Resources/Mineral.h"
@@ -26,6 +27,7 @@
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/HealthComponent.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 
 ACamera::ACamera()
 {
@@ -85,6 +87,12 @@ ACamera::ACamera()
 	WidgetComponent->SetHiddenInGame(true);
 	WidgetComponent->SetDrawSize(FVector2D(0.0f, 0.0f));
 	WidgetComponent->SetPivot(FVector2D(0.5f, 1.3f));
+
+	SmiteComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SmiteComponent"));
+	SmiteComponent->SetupAttachment(RootComponent);
+	SmiteComponent->SetAutoActivate(false);
+
+	Smites = 0;
 
 	Start = true;
 
@@ -318,6 +326,50 @@ void ACamera::Lose()
 	BuildUIInstance->RemoveFromParent();
 	EventUIInstance->RemoveFromParent();
 	LostUIInstance->AddToViewport();
+}
+
+
+
+void ACamera::Smite(class AAI* AI)
+{
+	bool bPass = ResourceManager->TakeUniversalResource(Crystal, GetSmiteCost(), 0);
+
+	if (!bPass) {
+		ShowWarning("Cannot afford");
+
+		return;
+	}
+
+	SmiteComponent->SetVariablePosition("StartLocation", AI->GetActorLocation() + FVector(0.0f, 0.0f, 2000.0f));
+	SmiteComponent->SetVariablePosition("EndLocation", AI->GetActorLocation());
+
+	SmiteComponent->Activate();
+
+	AI->HealthComponent->TakeHealth(200, this);
+
+	IncrementSmites(1);
+
+	int32 timeToCompleteDay = 360 / (24 * Grid->AtmosphereComponent->Speed);
+
+	FTimerStruct timer;
+	timer.CreateTimer("Smite", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &ACamera::IncrementSmites, -1), false);
+
+	CitizenManager->Timers.Add(timer);
+}
+
+void ACamera::IncrementSmites(int32 Increment)
+{
+	Smites = FMath::Max(Smites + Increment, 0);
+}
+
+int32 ACamera::GetSmiteCost()
+{
+	int32 cost = 20;
+
+	for (int32 i = 0; i < Smites; i++)
+		cost *= 1.15;
+
+	return cost;
 }
 
 void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

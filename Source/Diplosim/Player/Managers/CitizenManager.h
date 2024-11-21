@@ -415,7 +415,9 @@ public:
 	FPrayStruct PrayStruct;
 
 	UFUNCTION(BlueprintCallable)
-		void Pray(int32 Increment, FString Type);
+		void Pray(FString Type);
+
+	void IncrementPray(FString Type, int32 Increment);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetPrayCost(FString Type);

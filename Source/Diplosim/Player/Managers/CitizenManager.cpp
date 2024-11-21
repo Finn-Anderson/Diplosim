@@ -873,7 +873,7 @@ bool UCitizenManager::IsRebellion()
 //
 // Genetics
 //
-void UCitizenManager::Pray(int32 Increment, FString Type)
+void UCitizenManager::Pray(FString Type)
 {
 	bool bPass = Cast<ACamera>(GetOwner())->ResourceManager->TakeUniversalResource(Money, GetPrayCost(Type), 0);
 
@@ -883,15 +883,22 @@ void UCitizenManager::Pray(int32 Increment, FString Type)
 		return;
 	}
 
+	IncrementPray(Type, 1);
+
+	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+
+	FTimerStruct timer;
+	timer.CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, Type, -1), false);
+
+	Timers.Add(timer);
+}
+
+void UCitizenManager::IncrementPray(FString Type, int32 Increment)
+{
 	if (Type == "Good")
 		PrayStruct.Good = FMath::Max(PrayStruct.Good + Increment, 0);
 	else
 		PrayStruct.Bad = FMath::Max(PrayStruct.Bad + Increment, 0);
-
-	FTimerStruct timer;
-	timer.CreateTimer("Pray", GetOwner(), 300, FTimerDelegate::CreateUObject(this, &UCitizenManager::Pray, -Increment, Type), false);
-
-	Timers.Add(timer);
 }
 
 int32 UCitizenManager::GetPrayCost(FString Type)
@@ -905,7 +912,7 @@ int32 UCitizenManager::GetPrayCost(FString Type)
 	else
 		count = PrayStruct.Bad;
 
-	for (int32 i = 1; i > count; i++)
+	for (int32 i = 0; i < count; i++)
 		cost *= 1.15;
 
 	return cost;

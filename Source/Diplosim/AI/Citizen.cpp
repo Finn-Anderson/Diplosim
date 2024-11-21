@@ -500,7 +500,7 @@ void ACitizen::Birthday()
 		int32 chance = FMath::RandRange(1, 100);
 
 		if (chance < 5)
-			HealthComponent->TakeHealth(50, this);
+			HealthComponent->TakeHealth(HealthComponent->MaxHealth, this);
 	}
 
 	if (BioStruct.Age <= 18) {
@@ -896,10 +896,10 @@ void ACitizen::GenerateGenetics()
 
 		grades.Add(EGeneticsGrade::Neutral);
 
-		for (int32 i = 0; i > Camera->CitizenManager->PrayStruct.Good; i++)
+		for (int32 i = 0; i <= Camera->CitizenManager->PrayStruct.Good; i++)
 			grades.Add(EGeneticsGrade::Good);
 
-		for (int32 i = 0; i > Camera->CitizenManager->PrayStruct.Bad; i++)
+		for (int32 i = 0; i <= Camera->CitizenManager->PrayStruct.Bad; i++)
 			grades.Add(EGeneticsGrade::Bad);
 
 		grades.Remove(genetic.Grade);
@@ -931,7 +931,7 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 		else if (Genetic.Grade == EGeneticsGrade::Bad)
 			HealthComponent->SetHealthMultiplier(0.75f);
 
-		HealthComponent->MaxHealth = 10 * HealthComponent->HealthMultiplier;
+		HealthComponent->MaxHealth = HealthComponent->MaxHealth * HealthComponent->HealthMultiplier;
 		HealthComponent->Health = HealthComponent->MaxHealth;
 	}
 	else if (Genetic.Type == EGeneticsType::Reach) {

@@ -216,6 +216,23 @@ public:
 
 	void Lose();
 
+	// Smite
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TSubclassOf<AResource> Crystal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
+		class UNiagaraComponent* SmiteComponent;
+
+	int32 Smites;
+
+	UFUNCTION(BlueprintCallable)
+		void Smite(class AAI* AI);
+
+	void IncrementSmites(int32 Increment);
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetSmiteCost();
+
 	// Inputs
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputMappingContext* InputMapping;
