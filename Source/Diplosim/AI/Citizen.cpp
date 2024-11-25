@@ -95,6 +95,7 @@ ACitizen::ACitizen()
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	ProductivityMultiplier = 1.0f;
+	Fertility = 1.0f;
 }
 
 void ACitizen::BeginPlay()
@@ -510,7 +511,7 @@ void ACitizen::Birthday()
 		float scale = (BioStruct.Age * 0.04f) + 0.28f;
 		AsyncTask(ENamedThreads::GameThread, [this, scale]() { Mesh->SetWorldScale3D(FVector(scale, scale, scale)); });
 	}
-	else if (BioStruct.Partner != nullptr)
+	else if (BioStruct.Partner != nullptr && BioStruct.Sex == ESex::Female)
 		AsyncTask(ENamedThreads::GameThread, [this]() { HaveChild(); });
 
 	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
@@ -611,7 +612,7 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 
 void ACitizen::HaveChild()
 {
-	float chance = FMath::FRandRange(0.0f, 100.0f);
+	float chance = FMath::FRandRange(0.0f, 100.0f) * BioStruct.Partner->Fertility * Fertility;
 	float passMark = FMath::LogX(60.0f, BioStruct.Age) * 100.0f;
 
 	if (chance < passMark)
@@ -952,10 +953,16 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 		else if (Genetic.Grade == EGeneticsGrade::Bad)
 			AttackComponent->RangeComponent->SetWorldScale3D(AttackComponent->RangeComponent->GetRelativeScale3D() * FVector(0.75f));
 	}
-	else {
+	else if (Genetic.Type == EGeneticsType::Productivity) {
 		if (Genetic.Grade == EGeneticsGrade::Good)
 			ProductivityMultiplier = 1.15f;
 		else if (Genetic.Grade == EGeneticsGrade::Bad)
 			ProductivityMultiplier = 0.85f;
+	}
+	else {
+		if (Genetic.Grade == EGeneticsGrade::Good)
+			Fertility = 1.15f;
+		else if (Genetic.Grade == EGeneticsGrade::Bad)
+			Fertility = 0.85f;
 	}
 }

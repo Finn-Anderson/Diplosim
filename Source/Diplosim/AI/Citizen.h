@@ -192,7 +192,8 @@ enum class EGeneticsType : uint8
 	Shell,
 	Reach,
 	Awareness,
-	Productivity
+	Productivity,
+	Fertility
 };
 
 UENUM(BlueprintType)
@@ -396,6 +397,9 @@ public:
 
 	UPROPERTY()
 		float ProductivityMultiplier;
+
+	UPROPERTY()
+		float Fertility;
 
 	void GenerateGenetics();
 
