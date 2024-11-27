@@ -34,6 +34,14 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	GameMode = nullptr;
 }
 
+void UDiplosimUserSettings::SetVisualSettings()
+{
+	SetRenderClouds(GetRenderClouds());
+	SetRenderFog(GetRenderFog());
+	SetAA(GetAA());
+	SetMotionBlur(GetMotionBlur());
+}
+
 void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
 {
 	bEnemies = Value;
@@ -52,9 +60,6 @@ bool UDiplosimUserSettings::GetSpawnEnemies() const
 
 void UDiplosimUserSettings::SetRenderClouds(bool Value)
 {
-	if (bRenderClouds == Value)
-		return;
-
 	bRenderClouds = Value;
 
 	if (Clouds == nullptr)
@@ -79,9 +84,6 @@ bool UDiplosimUserSettings::GetRenderClouds() const
 
 void UDiplosimUserSettings::SetRenderFog(bool Value)
 {
-	if (bRenderFog == Value)
-		return;
-
 	bRenderFog = Value;
 
 	if (Atmosphere == nullptr)
@@ -100,13 +102,10 @@ bool UDiplosimUserSettings::GetRenderFog() const
 
 void UDiplosimUserSettings::SetAA(bool Value)
 {
-	if (bUseAA == Value)
-		return;
-
 	bUseAA = Value;
 
 	if (bUseAA)
-		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 1"));
+		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 4"));
 	else
 		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 0"));
 }
@@ -118,9 +117,6 @@ bool UDiplosimUserSettings::GetAA() const
 
 void UDiplosimUserSettings::SetMotionBlur(bool Value)
 {
-	if (bMotionBlur == Value)
-		return;
-
 	bMotionBlur = Value;
 
 	if (bMotionBlur)

@@ -37,6 +37,8 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
+		
+	void SetVisualSettings();
 
 	UFUNCTION(BlueprintCallable, Category = "Enemies")
 		void SetSpawnEnemies(bool Value);

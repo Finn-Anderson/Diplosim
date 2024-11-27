@@ -66,7 +66,6 @@ void AGrid::BeginPlay()
 	Camera = PController->GetPawn<ACamera>();
 
 	MapUIInstance = CreateWidget<UUserWidget>(PController, MapUI);
-	MapUIInstance->AddToViewport();
 
 	LoadUIInstance = CreateWidget<UUserWidget>(PController, LoadUI);
 
@@ -77,8 +76,6 @@ void AGrid::BeginPlay()
 
 	for (FResourceHISMStruct &ResourceStruct : MineralStruct)
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
-
-	Load();
 }
 
 void AGrid::Load()

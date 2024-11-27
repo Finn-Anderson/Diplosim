@@ -122,6 +122,12 @@ public:
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> MainMenuUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* MainMenuUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> BuildUI;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
@@ -202,6 +208,9 @@ public:
 	UPROPERTY()
 		class ACitizen* FocusedCitizen;
 
+	UFUNCTION(BlueprintCallable)
+		void StartGame();
+
 	void DisplayBuildUI();
 
 	UFUNCTION(BlueprintCallable)
@@ -218,7 +227,7 @@ public:
 
 	// Smite
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TSubclassOf<AResource> Crystal;
+		TSubclassOf<class AResource> Crystal;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* SmiteComponent;

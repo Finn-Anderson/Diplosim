@@ -27,7 +27,10 @@ void ADiplosimGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UDiplosimUserSettings::GetDiplosimUserSettings()->GameMode = this;
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	settings->GameMode = this;
+
+	settings->SetVisualSettings();
 }
 
 void ADiplosimGameModeBase::EvaluateThreats()

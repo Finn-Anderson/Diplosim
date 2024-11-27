@@ -98,7 +98,7 @@ ACamera::ACamera()
 
 	bQuick = false;
 
-	bInMenu = false;
+	bInMenu = true;
 
 	bLost = false;
 
@@ -115,12 +115,6 @@ void ACamera::BeginPlay()
 
 	GetWorldTimerManager().SetTimer(ResourceManager->ValueTimer, ResourceManager, &UResourceManager::SetTradeValues, 300.0f, true);
 
-	if (Start) {
-		ResourceManager->RandomiseMarket();
-
-		BuildComponent->SpawnBuilding(StartBuilding);
-	}
-
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
 	GetWorld()->bIsCameraMoveableWhenPaused = true;
@@ -129,6 +123,9 @@ void ACamera::BeginPlay()
 
 	if (InputSystem && InputMapping)
 		InputSystem->AddMappingContext(InputMapping, 0);
+
+	MainMenuUIInstance = CreateWidget<UUserWidget>(pcontroller, MainMenuUI);
+	MainMenuUIInstance->AddToViewport();
 
 	BuildUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildUI);
 
@@ -153,13 +150,15 @@ void ACamera::BeginPlay()
 	LawPassedUIInstance = CreateWidget<UUserWidget>(pcontroller, LawPassedUI);
 
 	BribeUIInstance = CreateWidget<UUserWidget>(pcontroller, BribeUI);
+
+	Grid->Load();
 }
 
 void ACamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport())
+	if (MainMenuUIInstance->IsInViewport() || BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport())
 		return;
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -191,10 +190,21 @@ void ACamera::Tick(float DeltaTime)
 	}
 }
 
+void ACamera::StartGame()
+{
+	BuildComponent->SpawnBuilding(StartBuilding);
+
+	bInMenu = false;
+
+	Grid->MapUIInstance->AddToViewport();
+}
+
 void ACamera::StartGame(ABuilding* Broch)
 {
 	Start = false;
 	Grid->MapUIInstance->RemoveFromParent();
+
+	ResourceManager->RandomiseMarket();
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 	gamemode->Camera = this;
@@ -219,7 +229,7 @@ void ACamera::StartGame(ABuilding* Broch)
 
 void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound)
 {
-	if (GetWorld()->GetMapName() != "Map" || Grid->Storage.IsEmpty())
+	if (MainMenuUIInstance->IsInViewport() || Grid->Storage.IsEmpty())
 		return;
 
 	AsyncTask(ENamedThreads::GameThread, [this, AudioComponent, Sound]() {
@@ -408,7 +418,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action()
 {
-	if (bInMenu || GetWorld()->GetMapName() != "Map" || ParliamentUIInstance->IsInViewport())
+	if (bInMenu || ParliamentUIInstance->IsInViewport())
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {
@@ -459,11 +469,13 @@ void ACamera::NewMap()
 
 	Grid->Clear();
 	Grid->Load();
+
+	BuildComponent->Buildings[0]->SetActorLocation(FVector(0.0f, 0.0f, -1000.0f));
 }
 
 void ACamera::Pause()
 {
-	if (GetWorld()->GetMapName() != "Map" || bInMenu || TLDRUIInstance->IsInViewport())
+	if (bInMenu || TLDRUIInstance->IsInViewport())
 		return;
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -483,7 +495,7 @@ void ACamera::Pause()
 
 void ACamera::Menu()
 {
-	if (bLost || GetWorld()->GetMapName() != "Map")
+	if (bLost || MainMenuUIInstance->IsInViewport())
 		return;
 
 	if (!WidgetComponent->bHiddenInGame && !BuildComponent->IsComponentTickEnabled()) {

@@ -11,7 +11,7 @@ UCameraMovementComponent::UCameraMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	TargetLength = 1000.0f;
+	TargetLength = 3000.0f;
 
 	CameraSpeed = 10.0f;
 
@@ -29,7 +29,7 @@ void UCameraMovementComponent::BeginPlay()
 	Camera = Cast<ACamera>(GetOwner());
 
 	PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	PController->SetControlRotation(FRotator(-45.0f, -90.0f, 0.0f));
+	PController->SetControlRotation(FRotator(-25.0f, 180.0f, 0.0f));
 	PController->SetInputMode(FInputModeGameAndUI());
 	PController->bShowMouseCursor = true;
 }
@@ -112,14 +112,10 @@ void UCameraMovementComponent::Move(const struct FInputActionInstance& Instance)
 
 void UCameraMovementComponent::Speed(const struct FInputActionInstance& Instance)
 {
-	bool value = Instance.GetValue().Get<bool>();
-
-	if (value) {
+	if (CameraSpeed == 10.0f)
 		CameraSpeed *= 2;
-	}
-	else {
+	else
 		CameraSpeed /= 2;
-	}
 }
 
 void UCameraMovementComponent::Scroll(const struct FInputActionInstance& Instance)
