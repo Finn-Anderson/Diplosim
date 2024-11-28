@@ -1,7 +1,9 @@
 #include "Player/Managers/CitizenManager.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "NavigationSystem.h"
 #include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Components/WidgetComponent.h"
 #include "Kismet/KismetArrayLibrary.h"
 #include "Components/SphereComponent.h"
@@ -873,9 +875,9 @@ bool UCitizenManager::IsRebellion()
 //
 // Genetics
 //
-void UCitizenManager::Pray(FString Type)
+void UCitizenManager::Pray()
 {
-	bool bPass = Cast<ACamera>(GetOwner())->ResourceManager->TakeUniversalResource(Money, GetPrayCost(Type), 0);
+	bool bPass = Cast<ACamera>(GetOwner())->ResourceManager->TakeUniversalResource(Money, GetPrayCost(), 0);
 
 	if (!bPass) {
 		Cast<ACamera>(GetOwner())->ShowWarning("Cannot afford");
@@ -883,12 +885,12 @@ void UCitizenManager::Pray(FString Type)
 		return;
 	}
 
-	IncrementPray(Type, 1);
+	IncrementPray("Good", 1);
 
 	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
 	FTimerStruct timer;
-	timer.CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, Type, -1), false);
+	timer.CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Good"), -1), false);
 
 	Timers.Add(timer);
 }
@@ -901,19 +903,42 @@ void UCitizenManager::IncrementPray(FString Type, int32 Increment)
 		PrayStruct.Bad = FMath::Max(PrayStruct.Bad + Increment, 0);
 }
 
-int32 UCitizenManager::GetPrayCost(FString Type)
+int32 UCitizenManager::GetPrayCost()
 {
 	int32 cost = 50;
 
-	int32 count = 0;
-
-	if (Type == "Good")
-		count = PrayStruct.Good;
-	else
-		count = PrayStruct.Bad;
-
-	for (int32 i = 0; i < count; i++)
+	for (int32 i = 0; i < PrayStruct.Good; i++)
 		cost *= 1.15;
 
 	return cost;
+}
+
+void UCitizenManager::Sacrifice()
+{
+	if (Citizens.IsEmpty()) {
+		Cast<ACamera>(GetOwner())->ShowWarning("Cannot afford");
+
+		return;
+	}
+
+	int32 index = FMath::RandRange(0, Citizens.Num() - 1);
+	ACitizen* citizen = Citizens[index];
+
+	citizen->AIController->StopMovement();
+	citizen->MovementComponent->SetMaxSpeed(0.0f);
+
+	UNiagaraComponent* component = UNiagaraFunctionLibrary::SpawnSystemAttached(SacrificeSystem, citizen->GetRootComponent(), NAME_None, FVector::Zero(), FRotator(0.0f), EAttachLocation::SnapToTarget, true);
+
+	FTimerStruct timer;
+	timer.CreateTimer("Sacrifice", GetOwner(), 4.0f, FTimerDelegate::CreateUObject(citizen->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
+
+	Timers.Add(timer);
+
+	IncrementPray("Bad", 1);
+
+	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+
+	timer.CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Bad"), -1), false);
+
+	Timers.Add(timer);
 }

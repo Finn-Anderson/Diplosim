@@ -368,7 +368,7 @@ public:
 		TArray<FBillStruct> ProposedBills;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TSubclassOf<AResource> Money;
+		TSubclassOf<class AResource> Money;
 
 	void SelectNewLeader(EParty Party);
 
@@ -412,13 +412,20 @@ public:
 		int32 CooldownTimer;
 
 	// Genetics
-	FPrayStruct PrayStruct;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sacrifice")
+		class UNiagaraSystem* SacrificeSystem;
+
+	UPROPERTY()
+		FPrayStruct PrayStruct;
 
 	UFUNCTION(BlueprintCallable)
-		void Pray(FString Type);
+		void Pray();
 
 	void IncrementPray(FString Type, int32 Increment);
 
 	UFUNCTION(BlueprintCallable)
-		int32 GetPrayCost(FString Type);
+		int32 GetPrayCost();
+
+	UFUNCTION(BlueprintCallable)
+		void Sacrifice();
 };
