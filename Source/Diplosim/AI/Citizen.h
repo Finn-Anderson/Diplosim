@@ -89,19 +89,6 @@ struct FBioStruct
 	}
 };
 
-USTRUCT(BlueprintType)
-struct FPoliticalStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Politics")
-		FPartyStruct Ideology;
-
-	FPartyStruct FathersIdeology;
-
-	FPartyStruct MothersIdeology;
-};
-
 UENUM(BlueprintType)
 enum class EMassStatus : uint8
 {
@@ -227,6 +214,31 @@ struct FGeneticsStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FPersonality
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Personality")
+		EPersonality Trait;
+
+	UPROPERTY()
+		TArray<EPersonality> Likes;
+
+	UPROPERTY()
+		TArray<EPersonality> Dislikes;
+
+	FPersonality()
+	{
+		Trait = EPersonality::Brave;
+	}
+
+	bool operator==(const FPersonality& other) const
+	{
+		return (other.Trait == Trait);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ACitizen : public AAI
 {
@@ -342,9 +354,6 @@ public:
 		FBioStruct BioStruct;
 
 	// Politics
-	UPROPERTY(BlueprintReadOnly, Category = "Politics")
-		FPoliticalStruct Politics;
-
 	void SetPolticalLeanings();
 
 	bool bHasBeenLeader;
@@ -404,4 +413,7 @@ public:
 	void GenerateGenetics();
 
 	void ApplyGeneticAffect(FGeneticsStruct Genetic);
+
+	// Personality
+	TArray<FPersonality> Personalities;
 };

@@ -137,14 +137,10 @@ void UHealthComponent::Death(AActor* Attacker)
 
 			camera->CitizenManager->Citizens.Remove(citizen);
 
-			for (FLeaderStruct leader : camera->CitizenManager->Leaders) {
-				if (leader.Leader != citizen)
-					continue;
+			FPartyStruct* party = camera->CitizenManager->GetMembersParty(citizen);
 
-				camera->CitizenManager->SelectNewLeader(leader.Party);
-
-				break;
-			}
+			if (party != nullptr && citizen == party->Leader)
+				camera->CitizenManager->SelectNewLeader(party->Party);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {

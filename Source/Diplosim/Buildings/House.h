@@ -15,9 +15,6 @@ public:
 	UPROPERTY()
 		TArray<EReligion> Religions;
 
-	UPROPERTY()
-		TArray<FPartyStruct> Parties;
-
 	virtual void UpkeepCost() override;
 
 	virtual void Enter(class ACitizen* Citizen) override;

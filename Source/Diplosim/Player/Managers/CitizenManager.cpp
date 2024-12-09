@@ -63,11 +63,11 @@ void UCitizenManager::Loop()
 		}
 	}
 
-	for (FLeaderStruct& leader : Leaders) {
-		if (leader.Leader != nullptr)
+	for (FPartyStruct& party : Parties) {
+		if (party.Leader != nullptr)
 			continue;
 
-		SelectNewLeader(leader.Party);
+		SelectNewLeader(party.Party);
 	}
 
 	for (FLawStruct& law : Laws) {
@@ -94,7 +94,7 @@ void UCitizenManager::Loop()
 			
 		citizen->SetHappiness();
 
-		if (citizen->Politics.Ideology.Party == EParty::Freedom)
+		if (GetMembersParty(citizen)->Party == EParty::ShellBreakers)
 			rebelCount++;
 	}
 
@@ -480,12 +480,37 @@ void UCitizenManager::EndMass(EReligion Belief)
 //
 // Politics
 //
+FPartyStruct* UCitizenManager::GetMembersParty(ACitizen* Citizen)
+{
+	FPartyStruct* partyStruct = nullptr;
+
+	for (FPartyStruct &party : Parties) {
+		TEnumAsByte<ESway>* sway = party.Members.Find(Citizen);
+
+		if (sway == nullptr)
+			continue;
+
+		partyStruct = &party;
+
+		break;
+	}
+
+	return partyStruct;
+}
+
 void UCitizenManager::SelectNewLeader(EParty Party)
 {
 	TArray<ACitizen*> candidates;
 
+	FPartyStruct partyStruct;
+	partyStruct.Party = Party;
+
+	int32 index = Parties.Find(partyStruct);
+
+	FPartyStruct* party = &Parties[index];
+
 	for (ACitizen* citizen : Citizens) {
-		if (citizen->Politics.Ideology.Party != Party || citizen->bHasBeenLeader)
+		if (GetMembersParty(citizen)->Party != party->Party || citizen->bHasBeenLeader)
 			continue;
 
 		if (candidates.Num() < 3)
@@ -494,10 +519,10 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 			ACitizen* lowest = nullptr;
 
 			for (ACitizen* candidate : candidates)
-				if (lowest == nullptr || lowest->Politics.Ideology.Leaning > candidate->Politics.Ideology.Leaning)
+				if (lowest == nullptr || party->Members.Find(lowest) > party->Members.Find(candidate))
 					lowest = candidate;
 
-			if (citizen->Politics.Ideology.Leaning > lowest->Politics.Ideology.Leaning) {
+			if (party->Members.Find(citizen) > party->Members.Find(lowest)) {
 				candidates.Remove(lowest);
 
 				candidates.Add(citizen);
@@ -512,15 +537,10 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 
 	ACitizen* chosen = candidates[value.Get()];
 
-	FLeaderStruct leaderStruct;
-	leaderStruct.Party = Party;
-
-	int32 index = Leaders.Find(leaderStruct);
-
-	Leaders[index].Leader = chosen;
+	party->Leader = chosen;
 
 	chosen->bHasBeenLeader = true;
-	chosen->Politics.Ideology.Leaning = ESway::Radical;
+	party->Members.Emplace(chosen, ESway::Radical);
 }
 
 void UCitizenManager::StartElectionTimer()
@@ -538,16 +558,15 @@ void UCitizenManager::Election()
 	Representatives.Empty();
 
 	TMap<EParty, TArray<ACitizen*>> tally;
-	tally.Add(EParty::Environmentalist);
-	tally.Add(EParty::Freedom);
-	tally.Add(EParty::Industrialist);
-	tally.Add(EParty::Militarist);
-	tally.Add(EParty::Religious);
 
-	for (TPair<EParty, TArray<ACitizen*>>& pair : tally)
-		for (ACitizen* citizen : Citizens)
-			if (citizen->Politics.Ideology.Party == pair.Key)
-				pair.Value.Add(citizen);
+	for (FPartyStruct party : Parties) {
+		TArray<ACitizen*> citizens;
+
+		for (TPair<ACitizen*, TEnumAsByte<ESway>> pair : party.Members)
+			citizens.Add(pair.Key);
+
+		tally.Add(party.Party, citizens);
+	}
 
 	for (TPair<EParty, TArray<ACitizen*>>& pair : tally) {
 		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)Citizens.Num() * 100.0f / GetLawValue(EBillType::Representatives));
@@ -557,14 +576,16 @@ void UCitizenManager::Election()
 
 		number -= 1;
 
-		FLeaderStruct leaderStruct;
-		leaderStruct.Party = pair.Key;
+		FPartyStruct partyStruct;
+		partyStruct.Party = pair.Key;
 
-		int32 index = Leaders.Find(leaderStruct);
+		int32 index = Parties.Find(partyStruct);
 
-		Representatives.Add(Leaders[index].Leader);
+		FPartyStruct* party = &Parties[index];
 
-		pair.Value.Remove(Leaders[index].Leader);
+		Representatives.Add(party->Leader);
+
+		pair.Value.Remove(party->Leader);
 
 		for (int32 i = 0; i < number; i++) {
 			if (pair.Value.IsEmpty())
@@ -671,7 +692,7 @@ void UCitizenManager::SetupBill()
 		if (Votes.For.Contains(citizen) || Votes.Against.Contains(citizen))
 			bribe *= 4;
 
-		bribe *= (uint8)citizen->Politics.Ideology.Leaning;
+		bribe *= (uint8)*GetMembersParty(citizen)->Members.Find(citizen);
 
 		BribeValue.Add(bribe);
 	}
@@ -706,9 +727,9 @@ void UCitizenManager::GetInitialVotes(ACitizen* Representative, FBillStruct Bill
 {
 	TArray<FString> verdict;
 
-	if (Bill.Agreeing.Contains(Representative->Politics.Ideology.Party))
+	if (Bill.Agreeing.Contains(GetMembersParty(Representative)->Party))
 		verdict = { "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Abstaining", "Abstaining", "Opposing" };
-	else if (Bill.Opposing.Contains(Representative->Politics.Ideology.Party))
+	else if (Bill.Opposing.Contains(GetMembersParty(Representative)->Party))
 		verdict = { "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Abstaining", "Abstaining", "Agreeing" };
 	else
 		verdict = { "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Agreeing", "Agreeing", "Opposing", "Opposing" };
@@ -727,9 +748,9 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FBillStruct Bill)
 {
 	TArray<FString> verdict;
 
-	if (Bill.Agreeing.Contains(Representative->Politics.Ideology.Party))
+	if (Bill.Agreeing.Contains(GetMembersParty(Representative)->Party))
 		verdict = { "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Opposing" };
-	else if (Bill.Opposing.Contains(Representative->Politics.Ideology.Party))
+	else if (Bill.Opposing.Contains(GetMembersParty(Representative)->Party))
 		verdict = { "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Agreeing" };
 	else
 		verdict = { "Agreeing", "Agreeing", "Opposing", "Opposing" };
@@ -832,7 +853,7 @@ void UCitizenManager::Overthrow()
 	CooldownTimer = 1500;
 
 	for (ACitizen* citizen : Citizens) {
-		if (citizen->Politics.Ideology.Party != EParty::Freedom)
+		if (GetMembersParty(citizen)->Party != EParty::ShellBreakers)
 			return;
 
 		if (Representatives.Contains(citizen))

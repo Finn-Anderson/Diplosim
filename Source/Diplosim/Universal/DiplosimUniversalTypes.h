@@ -22,11 +22,11 @@ UENUM()
 enum class EParty : uint8
 {
 	Undecided,
-	Religious,
-	Militarist,
-	Industrialist,
-	Environmentalist,
-	Freedom
+	ChickenWinged,
+	FreeRange,
+	TheScrambledCoalition,
+	GoldenYolk,
+	ShellBreakers
 };
 
 UENUM()
@@ -36,29 +36,6 @@ enum ESway : uint8
 	Moderate,
 	Strong,
 	Radical
-};
-
-USTRUCT(BlueprintType)
-struct FPartyStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		EParty Party;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TEnumAsByte<ESway> Leaning;
-
-	FPartyStruct()
-	{
-		Party = EParty::Undecided;
-		Leaning = ESway::NaN;
-	}
-
-	bool operator==(const FPartyStruct& other) const
-	{
-		return (other.Party == Party) && (other.Leaning == Leaning);
-	}
 };
 
 //
@@ -137,6 +114,28 @@ struct FConditionStruct
 	{
 		return (other.Name == Name);
 	}
+};
+
+//
+// Personality
+//
+UENUM()
+enum class EPersonality : uint8
+{
+	Brave,
+	Craven,
+	Diligent,
+	Lazy,
+	Outgoing,
+	Reserved,
+	Kind,
+	Cruel,
+	Talented,
+	Inept,
+	Conscientious,
+	Careless,
+	Energetic,
+	Lethargic
 };
 
 class DIPLOSIM_API DiplosimUniversalTypes

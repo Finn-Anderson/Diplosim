@@ -129,23 +129,29 @@ struct FRentStruct
 };
 
 USTRUCT(BlueprintType)
-struct FLeaderStruct
+struct FPartyStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		EParty Party;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<EPersonality> Agreeable;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
+		TMap<class ACitizen*, TEnumAsByte<ESway>> Members;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
 		class ACitizen* Leader;
 
-	FLeaderStruct()
+	FPartyStruct()
 	{
 		Party = EParty::Undecided;
 		Leader = nullptr;
 	}
 
-	bool operator==(const FLeaderStruct& other) const
+	bool operator==(const FPartyStruct& other) const
 	{
 		return (other.Party == Party);
 	}
@@ -350,7 +356,7 @@ public:
 
 	// Politics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FLeaderStruct> Leaders;
+		TArray<FPartyStruct> Parties;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
 		TArray<class ACitizen*> Representatives;
@@ -369,6 +375,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TSubclassOf<class AResource> Money;
+
+	FPartyStruct* GetMembersParty(ACitizen* Citizen);
 
 	void SelectNewLeader(EParty Party);
 

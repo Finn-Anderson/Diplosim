@@ -640,63 +640,29 @@ void ACitizen::HaveChild()
 //
 void ACitizen::SetPolticalLeanings()
 {
-	if (Politics.Ideology.Leaning == ESway::Radical)
-		return;
-
 	TArray<EParty> partyList;
 
-	FPartyStruct partnersParty;
-	TArray<FPartyStruct> buildingParties;
+	FPartyStruct* party = Camera->CitizenManager->GetMembersParty(this);
 
-	if (BioStruct.Father->IsValidLowLevelFast())
-		Politics.FathersIdeology = BioStruct.Father->Politics.Ideology;
+	TEnumAsByte<ESway>* sway = party->Members.Find(this);
 
-	if (BioStruct.Mother->IsValidLowLevelFast())
-		Politics.MothersIdeology = BioStruct.Mother->Politics.Ideology;
-
-	if (BioStruct.Partner->IsValidLowLevelFast())
-		partnersParty = BioStruct.Partner->Politics.Ideology;
-
-	if (Building.Employment->IsValidLowLevelFast()) {
-		buildingParties.Append(Building.Employment->Swing);
-
-		for (ACitizen* citizen : Building.Employment->GetOccupied())
-			if (citizen != this)
-				buildingParties.Add(citizen->Politics.Ideology);
-	}
-
-	if (Building.House->IsValidLowLevelFast())
-		buildingParties.Append(Building.House->Parties);
-
-	for (int32 i = 0; i < Politics.FathersIdeology.Leaning; i++)
-		partyList.Add(Politics.FathersIdeology.Party);
-
-	for (int32 i = 0; i < Politics.MothersIdeology.Leaning; i++)
-		partyList.Add(Politics.MothersIdeology.Party);
-
-	for (int32 i = 0; i < partnersParty.Leaning; i++)
-		partyList.Add(partnersParty.Party);
-
-	for (FPartyStruct party : buildingParties)
-		for (int32 i = 0; i < party.Leaning; i++)
-			partyList.Add(party.Party);
-
-	for (int32 i = 0; i < Politics.Ideology.Leaning; i++)
-		partyList.Add(Politics.Ideology.Party);
-
-	if (Spirituality.Faith != EReligion::Atheist)
-		for (int32 i = 0; i < 2; i++)
-			partyList.Add(EParty::Religious);
+	if (sway->GetValue() == ESway::Radical)
+		return;
 
 	if (Camera->CitizenManager->Representatives.Contains(this))
-		for (int32 i = 0; i < Politics.Ideology.Leaning; i++)
-			partyList.Add(Politics.Ideology.Party);
+		for (int32 i = 0; i < sway->GetIntValue(); i++)
+			partyList.Add(party->Party);
 
 	int32 itterate = FMath::Floor(GetHappiness() / 10) - 5;
 
 	if (itterate < 0)
 		for (int32 i = 0; i < FMath::Abs(itterate); i++)
-			partyList.Add(EParty::Freedom);
+			partyList.Add(EParty::ShellBreakers);
+
+	for (FPartyStruct p : Camera->CitizenManager->Parties)
+		for (FPersonality personality : Personalities)
+			if (p.Agreeable.Contains(personality.Trait))
+				partyList.Add(p.Party);
 
 	if (partyList.IsEmpty())
 		return;
@@ -706,28 +672,36 @@ void ACitizen::SetPolticalLeanings()
 	int32 mark = FMath::RandRange(0, 100);
 	int32 pass = 50;
 
-	if (Politics.Ideology.Party == partyList[index]) {
+	if (party != nullptr && party->Party == partyList[index]) {
 		pass = 80;
 
-		if (Politics.Ideology.Leaning == ESway::Strong)
+		if (sway->GetValue() == ESway::Strong)
 			pass = 95;
 
 		if (mark > pass) {
-			if (Politics.Ideology.Leaning == ESway::Strong)
-				Politics.Ideology.Leaning = ESway::Radical;
+			if (sway->GetValue() == ESway::Strong)
+				party->Members.Emplace(this, ESway::Radical);
 			else
-				Politics.Ideology.Leaning = ESway::Strong;
+				party->Members.Emplace(this, ESway::Strong);
 		}
 	}
 	else if (mark > pass) {
-		if (Politics.Ideology.Leaning != ESway::Strong) {
-			Politics.Ideology.Party = partyList[index];
+		if (sway->GetValue() != ESway::Strong) {
+			party->Party = partyList[index];
 
-			if (Politics.Ideology.Party == EParty::Freedom && Camera->CitizenManager->IsRebellion())
+			if (party->Party == EParty::ShellBreakers && Camera->CitizenManager->IsRebellion())
 				Camera->CitizenManager->SetupRebel(this);
 		}
 
-		Politics.Ideology.Leaning = ESway::Moderate;
+		FPartyStruct partyStruct;
+		partyStruct.Party = partyList[index];
+
+		if (party != nullptr)
+			party->Members.Remove(this);
+
+		int32 i = Camera->CitizenManager->Parties.Find(partyStruct);
+
+		Camera->CitizenManager->Parties[i].Members.Add(this, ESway::Moderate);
 	}
 }
 
@@ -836,9 +810,11 @@ void ACitizen::SetHappiness()
 		if (index == INDEX_NONE)
 			continue;
 
-		if (law.Bills[index].Agreeing.Contains(Politics.Ideology.Party))
+		FPartyStruct* party = Camera->CitizenManager->GetMembersParty(this);
+
+		if (law.Bills[index].Agreeing.Contains(party->Party))
 			lawTally++;
-		else if (law.Bills[index].Opposing.Contains(Politics.Ideology.Party))
+		else if (law.Bills[index].Opposing.Contains(party->Party))
 			lawTally--;
 	}
 

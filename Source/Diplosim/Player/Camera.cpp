@@ -151,7 +151,8 @@ void ACamera::BeginPlay()
 
 	BribeUIInstance = CreateWidget<UUserWidget>(pcontroller, BribeUI);
 
-	Grid->Load();
+	if (GetWorld()->GetMapName() == "Map")
+		Grid->Load();
 }
 
 void ACamera::Tick(float DeltaTime)

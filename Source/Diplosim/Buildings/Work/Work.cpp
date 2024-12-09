@@ -63,9 +63,6 @@ void AWork::OnRadialOverlapBegin(class UPrimitiveComponent* OverlappedComp, clas
 	AHouse* house = Cast<AHouse>(OtherActor);
 
 	house->Religions.Add(Belief);
-	
-	for (FPartyStruct party : Swing)
-		house->Parties.Add(party);
 
 	Houses.Add(house);
 }
@@ -78,9 +75,6 @@ void AWork::OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class 
 	AHouse* house = Cast<AHouse>(OtherActor);
 
 	house->Religions.RemoveSingle(Belief);
-
-	for (FPartyStruct party : Swing)
-		house->Parties.RemoveSingle(party);
 
 	Houses.Remove(house);
 }
