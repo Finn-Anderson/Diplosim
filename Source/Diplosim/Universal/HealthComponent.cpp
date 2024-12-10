@@ -135,12 +135,7 @@ void UHealthComponent::Death(AActor* Attacker)
 
 			citizen->PopupComponent->SetHiddenInGame(true);
 
-			camera->CitizenManager->Citizens.Remove(citizen);
-
-			FPartyStruct* party = camera->CitizenManager->GetMembersParty(citizen);
-
-			if (party != nullptr && citizen == party->Leader)
-				camera->CitizenManager->SelectNewLeader(party->Party);
+			camera->CitizenManager->ClearCitizen(citizen);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {

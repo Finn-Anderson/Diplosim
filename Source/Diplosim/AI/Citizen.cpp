@@ -525,6 +525,11 @@ void ACitizen::Birthday()
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::VoteAge))
 		SetPolticalLeanings();
+
+	if (BioStruct.Age == 5)
+		GivePersonalityTrait(BioStruct.Mother.Get());
+	else if (BioStruct.Age == 10)
+		GivePersonalityTrait(BioStruct.Father.Get());
 }
 
 void ACitizen::SetSex()
@@ -577,6 +582,7 @@ void ACitizen::SetName()
 void ACitizen::FindPartner()
 {
 	ACitizen* citizen = nullptr;
+	int32 curCount = 1;
 
 	for (AActor* actor : Camera->CitizenManager->Citizens) {
 		ACitizen* c = Cast<ACitizen>(actor);
@@ -584,13 +590,30 @@ void ACitizen::FindPartner()
 		if (c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
 			continue;
 
+		int32 count = 0;
+
+		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
+			for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(c)) {
+				if (personality->Trait == p->Trait)
+					count += 2;
+				else if (personality->Likes.Contains(p->Trait))
+					count++;
+				else if (personality->Dislikes.Contains(p->Trait))
+					count--;
+			}
+		}
+
+		if (count < 1)
+			continue;
+
 		if (citizen == nullptr) {
 			citizen = c;
+			curCount = count;
 
 			continue;
 		}
 
-		double magnitude = AIController->GetClosestActor(GetActorLocation(), citizen->GetActorLocation(), c->GetActorLocation());
+		double magnitude = AIController->GetClosestActor(GetActorLocation(), citizen->GetActorLocation(), c->GetActorLocation(), curCount, count);
 
 		if (magnitude <= 0.0f)
 			continue;
@@ -659,10 +682,24 @@ void ACitizen::SetPolticalLeanings()
 		for (int32 i = 0; i < FMath::Abs(itterate); i++)
 			partyList.Add(EParty::ShellBreakers);
 
-	for (FPartyStruct p : Camera->CitizenManager->Parties)
-		for (FPersonality personality : Personalities)
-			if (p.Agreeable.Contains(personality.Trait))
+	for (FPartyStruct p : Camera->CitizenManager->Parties) {
+		int32 count = 0;
+
+		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
+			for (EPersonality trait : p.Agreeable) {
+				if (personality->Trait == trait)
+					count += 2;
+				else if (personality->Likes.Contains(trait))
+					count++;
+				else if (personality->Dislikes.Contains(trait))
+					count--;
+			}
+		}
+
+		if (count > 0)
+			for (int32 i = 0; i < count; i++)
 				partyList.Add(p.Party);
+	}
 
 	if (partyList.IsEmpty())
 		return;
@@ -686,22 +723,24 @@ void ACitizen::SetPolticalLeanings()
 		}
 	}
 	else if (mark > pass) {
-		if (sway->GetValue() != ESway::Strong) {
-			party->Party = partyList[index];
+		if (sway != nullptr && sway->GetValue() == ESway::Strong) {
+			party->Members.Emplace(this, ESway::Moderate);
 
-			if (party->Party == EParty::ShellBreakers && Camera->CitizenManager->IsRebellion())
-				Camera->CitizenManager->SetupRebel(this);
+			return;
 		}
-
-		FPartyStruct partyStruct;
-		partyStruct.Party = partyList[index];
 
 		if (party != nullptr)
 			party->Members.Remove(this);
 
+		FPartyStruct partyStruct;
+		partyStruct.Party = partyList[index];
+
 		int32 i = Camera->CitizenManager->Parties.Find(partyStruct);
 
 		Camera->CitizenManager->Parties[i].Members.Add(this, ESway::Moderate);
+
+		if (Camera->CitizenManager->Parties[i].Party == EParty::ShellBreakers && Camera->CitizenManager->IsRebellion())
+			Camera->CitizenManager->SetupRebel(this);
 	}
 }
 
@@ -941,4 +980,55 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 		else if (Genetic.Grade == EGeneticsGrade::Bad)
 			Fertility = 0.85f;
 	}
+}
+
+//
+// Personality
+//
+void ACitizen::GivePersonalityTrait(ACitizen* Parent)
+{
+	TArray<FPersonality*> parentsPersonalities = Camera->CitizenManager->GetCitizensPersonalities(Parent);
+
+	int32 chance = FMath::RandRange(0, 100);
+
+	if (chance > 45 * parentsPersonalities.Num()) {
+		int32 index = FMath::RandRange(0, Camera->CitizenManager->Personalities.Num());
+
+		Camera->CitizenManager->Personalities[index].Citizens.Add(this);
+
+		ApplyTraitAffect(Camera->CitizenManager->Personalities[index].Trait);
+	}
+	else {
+		int32 index = FMath::RandRange(0, parentsPersonalities.Num());
+
+		for (FPersonality& personality : Camera->CitizenManager->Personalities)
+			if (personality.Trait == parentsPersonalities[index]->Trait)
+				personality.Citizens.Add(this);
+
+		ApplyTraitAffect(parentsPersonalities[index]->Trait);
+	}
+}
+
+void ACitizen::ApplyTraitAffect(EPersonality Trait)
+{
+	if (Trait == EPersonality::Outgoing)
+		Fertility *= 1.15f;
+	else if (Trait == EPersonality::Reserved)
+		Fertility *= 0.85f;
+	else if (Trait == EPersonality::Talented || Trait == EPersonality::Diligent)
+		ProductivityMultiplier *= 1.15f;
+	else if (Trait == EPersonality::Inept || Trait == EPersonality::Lazy)
+		ProductivityMultiplier *= 0.85f;
+	else if (Trait == EPersonality::Energetic) {
+		MovementComponent->InitialSpeed *= 1.15f;
+		MovementComponent->MaxSpeed *= 1.15f;
+	}
+	else if (Trait == EPersonality::Lethargic) {
+		MovementComponent->InitialSpeed *= 0.85f;
+		MovementComponent->MaxSpeed *= 0.85f;
+	}
+	else if (Trait == EPersonality::Brave || Trait == EPersonality::Inept)
+		AttackComponent->DamageMultiplier *= 1.5f;
+	else if (Trait == EPersonality::Craven)
+		AttackComponent->DamageMultiplier *= 0.5f;
 }

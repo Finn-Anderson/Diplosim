@@ -189,6 +189,12 @@ struct FBillStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<EParty> Opposing;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		TArray<EPersonality> For;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		TArray<EPersonality> Against;
+
 	FBillStruct()
 	{
 		Description = "";
@@ -266,6 +272,34 @@ struct FPrayStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FPersonality
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		EPersonality Trait;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		TArray<EPersonality> Likes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		TArray<EPersonality> Dislikes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		TArray<class ACitizen*> Citizens;
+
+	FPersonality()
+	{
+		Trait = EPersonality::Brave;
+	}
+
+	bool operator==(const FPersonality& other) const
+	{
+		return (other.Trait == Trait);
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UCitizenManager : public UActorComponent
 {
@@ -280,6 +314,7 @@ protected:
 public:	
 	void Loop();
 
+	// Timers
 	void StartTimers();
 
 	FTimerStruct* FindTimer(FString ID, AActor* Actor);
@@ -305,6 +340,9 @@ public:
 
 	UPROPERTY()
 		FVector BrochLocation;
+
+	// Death
+	void ClearCitizen(ACitizen* Citizen);
 
 	// Work
 	void CheckWorkStatus(int32 Hour);
@@ -436,4 +474,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void Sacrifice();
+
+	// Personality
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		TArray<FPersonality> Personalities;
+
+		TArray<FPersonality*> GetCitizensPersonalities(class ACitizen* Citizen);
 };

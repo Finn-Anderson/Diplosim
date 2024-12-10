@@ -42,6 +42,8 @@ UAttackComponent::UAttackComponent()
 	CurrentTarget = nullptr;
 
 	bCanAttack = true;
+
+	DamageMultiplier = 1.0f;
 }
 
 void UAttackComponent::BeginPlay()
@@ -328,7 +330,7 @@ void UAttackComponent::Melee()
 
 	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
 
-	healthComp->TakeHealth(Damage, GetOwner());
+	healthComp->TakeHealth(Damage * DamageMultiplier, GetOwner());
 }
 
 void UAttackComponent::ClearAttacks()

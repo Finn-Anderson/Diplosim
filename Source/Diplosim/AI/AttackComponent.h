@@ -77,9 +77,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		float AttackTime;
 
-	FTimerHandle AttackTimer;
+	UPROPERTY()
+		FTimerHandle AttackTimer;
 
-	bool bCanAttack;
+	UPROPERTY()
+		bool bCanAttack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		UAnimSequence* MeleeAnim;
@@ -89,4 +91,7 @@ public:
 
 	UPROPERTY()
 		AActor* CurrentTarget;
+
+	UPROPERTY()
+		int32 DamageMultiplier;
 };

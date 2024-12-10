@@ -9,6 +9,7 @@
 #include "Universal/HealthComponent.h"
 #include "Enemy.h"
 #include "Buildings/Work/Defence/Tower.h"
+#include "AttackComponent.h"
 
 AProjectile::AProjectile()
 {
@@ -91,13 +92,15 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 	if (OtherActor == GetOwner())
 		return;
 
+	int32 multiplier = Cast<AAI>(GetOwner())->AttackComponent->DamageMultiplier;
+
 	if (bExplode) {
 		for (AActor* actor : OverlappingActors) {
 			UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
 			float distance = FVector::Dist(GetActorLocation(), actor->GetActorLocation());
 
-			int32 dmg = Damage / FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
+			int32 dmg = Damage * multiplier / FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
 
 			healthComp->TakeHealth(dmg, this);
 		}
@@ -111,7 +114,7 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 		UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
 
 		if (healthComp)
-			healthComp->TakeHealth(Damage, this);
+			healthComp->TakeHealth(Damage * multiplier, this);
 	}
 
 	Destroy();

@@ -214,31 +214,6 @@ struct FGeneticsStruct
 	}
 };
 
-USTRUCT(BlueprintType)
-struct FPersonality
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Personality")
-		EPersonality Trait;
-
-	UPROPERTY()
-		TArray<EPersonality> Likes;
-
-	UPROPERTY()
-		TArray<EPersonality> Dislikes;
-
-	FPersonality()
-	{
-		Trait = EPersonality::Brave;
-	}
-
-	bool operator==(const FPersonality& other) const
-	{
-		return (other.Trait == Trait);
-	}
-};
-
 UCLASS()
 class DIPLOSIM_API ACitizen : public AAI
 {
@@ -415,5 +390,7 @@ public:
 	void ApplyGeneticAffect(FGeneticsStruct Genetic);
 
 	// Personality
-	TArray<FPersonality> Personalities;
+	void GivePersonalityTrait(ACitizen* Parent = nullptr);
+
+	void ApplyTraitAffect(EPersonality Trait);
 };

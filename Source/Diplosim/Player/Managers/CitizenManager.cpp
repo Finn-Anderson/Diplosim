@@ -176,6 +176,30 @@ int32 UCitizenManager::GetElapsedTime(FString ID, AActor* Actor)
 }
 
 //
+// Death
+//
+void UCitizenManager::ClearCitizen(ACitizen* Citizen)
+{
+	for (FPartyStruct party : Parties) {
+		if (!party.Members.Contains(Citizen))
+			continue;
+
+		if (party.Leader == Citizen)
+			SelectNewLeader(party.Party);
+
+		party.Members.Remove(Citizen);
+
+		break;
+	}
+
+	for (FPersonality personality : Personalities)
+		if (personality.Citizens.Contains(Citizen))
+			personality.Citizens.Remove(Citizen);
+
+	Citizens.Remove(Citizen);
+}
+
+//
 // Work
 //
 void UCitizenManager::CheckWorkStatus(int32 Hour)
@@ -734,6 +758,13 @@ void UCitizenManager::GetInitialVotes(ACitizen* Representative, FBillStruct Bill
 	else
 		verdict = { "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Agreeing", "Agreeing", "Opposing", "Opposing" };
 
+	for (FPersonality* personality : GetCitizensPersonalities(Representative)) {
+		if (Bill.For.Contains(personality->Trait))
+			verdict.Append({ "Agreeing", "Agreeing", "Agreeing" });
+		else if (Bill.Against.Contains(personality->Trait))
+			verdict.Append({ "Opposing", "Opposing", "Opposing" });
+	}
+
 	auto value = Async(EAsyncExecution::TaskGraph, [verdict]() { return FMath::RandRange(0, verdict.Num() - 1); });
 
 	FString result = verdict[value.Get()];
@@ -962,4 +993,21 @@ void UCitizenManager::Sacrifice()
 	timer.CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Bad"), -1), false);
 
 	Timers.Add(timer);
+}
+
+//
+// Personality
+//
+TArray<FPersonality*> UCitizenManager::GetCitizensPersonalities(class ACitizen* Citizen)
+{
+	TArray<FPersonality*> personalities;
+
+	for (FPersonality& personality : Personalities) {
+		if (!personality.Citizens.Contains(Citizen))
+			continue;
+
+		personalities.Add(&personality);
+	}
+
+	return personalities;
 }

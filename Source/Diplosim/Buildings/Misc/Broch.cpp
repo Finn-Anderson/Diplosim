@@ -31,5 +31,8 @@ void ABroch::SpawnCitizens()
 		citizen->Birthday();
 
 		citizen->HealthComponent->AddHealth(100);
+
+		for (int32 i = 0; i < 2; i++)
+			citizen->GivePersonalityTrait();
 	}
 }
