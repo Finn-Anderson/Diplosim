@@ -256,6 +256,28 @@ struct FVoteStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FReligionStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+		EReligion Faith;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
+		TArray<EPersonality> Agreeable;
+
+	FReligionStruct()
+	{
+		Faith = EReligion::Atheist;
+	}
+
+	bool operator==(const FReligionStruct& other) const
+	{
+		return (other.Faith == Faith);
+	}
+};
+
 USTRUCT()
 struct FPrayStruct
 {
@@ -475,9 +497,16 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Sacrifice();
 
+	// Religion
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
+		TArray<FReligionStruct> Religions;
+
 	// Personality
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
 		TArray<FPersonality> Personalities;
 
 		TArray<FPersonality*> GetCitizensPersonalities(class ACitizen* Citizen);
+
+	// Food
+	int32 FoodCost;
 };

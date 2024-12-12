@@ -231,12 +231,12 @@ void ACitizen::SetTorch(int32 Hour)
 //
 // Work
 //
-bool ACitizen::CanWork(ABuilding* ReligiousBuilding)
+bool ACitizen::CanWork(ABuilding* Building)
 {
 	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
 		return false;
 
-	if (ReligiousBuilding->Belief != EReligion::Atheist && ReligiousBuilding->Belief != Spirituality.Faith)
+	if (Building->Belief != EReligion::Atheist && Building->Belief != Spirituality.Faith)
 		return false;
 
 	return true;
@@ -284,7 +284,24 @@ void ACitizen::FindJobAndHouse()
 					continue;
 			}
 		}
-		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + 300.0f || (Building.Employment != nullptr && Building.Employment->Wage >= Cast<AWork>(building)->Wage))
+		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + 300.0f)
+			continue;
+
+		int32* value = Happiness.Modifiers.Find("Work Happiness");
+
+		int32 wage = Cast<AWork>(building)->Wage;
+
+		if (IsValid(Building.Employment))
+			wage -= Building.Employment->Wage;
+
+		if (*value >= 0 && wage <= 0)
+			continue;
+
+		int32 diff = -*value + wage;
+
+		int32 chance = FMath::RandRange(0, 100);
+
+		if (chance < 60 - (diff * 15))
 			continue;
 
 		AsyncTask(ENamedThreads::GameThread, [this, building]() { 
@@ -320,7 +337,12 @@ void ACitizen::Eat()
 		totalAmount += curAmount;
 	}
 
-	if (totalAmount <= 0) {
+	int32 maxF = FMath::CeilToInt((100 - Hunger) / 25.0f);
+	int32 quantity = FMath::Clamp(totalAmount, 0, maxF);
+
+	quantity = FMath::Min(quantity, Balance / Camera->CitizenManager->FoodCost);
+
+	if (quantity == 0) {
 		PopupComponent->SetHiddenInGame(false);
 
 		SetActorTickEnabled(true);
@@ -329,9 +351,6 @@ void ACitizen::Eat()
 
 		return;
 	}
-
-	int32 maxF = FMath::CeilToInt((100 - Hunger) / 25.0f);
-	int32 quantity = FMath::Clamp(totalAmount, 1, maxF);
 
 	for (int32 i = 0; i < quantity; i++) {
 		int32 selected = FMath::RandRange(0, totalAmount - 1);
@@ -766,22 +785,29 @@ void ACitizen::SetReligion()
 	if (BioStruct.Partner->IsValidLowLevelFast())
 		religionList.Add(BioStruct.Partner->Spirituality.Faith);
 
-	if (Building.Employment->IsValidLowLevelFast()) {
-		if (Building.Employment->Belief != EReligion::Atheist)
-			religionList.Add(Building.Employment->Belief);
+	religionList.Add(Spirituality.Faith);
 
-		for (ACitizen* citizen : Building.Employment->GetOccupied())
-			if (citizen != this)
-				religionList.Add(citizen->Spirituality.Faith);
+	if (Building.Employment->IsValidLowLevelFast() && Building.Employment->Belief != EReligion::Atheist)
+		religionList.Add(Building.Employment->Belief);
+
+	for (FReligionStruct religion : Camera->CitizenManager->Religions) {
+		int32 count = 0;
+
+		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
+			for (EPersonality trait : religion.Agreeable) {
+				if (personality->Trait == trait)
+					count += 2;
+				else if (personality->Likes.Contains(trait))
+					count++;
+				else if (personality->Dislikes.Contains(trait))
+					count--;
+			}
+		}
+
+		if (count > 0)
+			for (int32 i = 0; i < count; i++)
+				religionList.Add(religion.Faith);
 	}
-
-	if (Building.House->IsValidLowLevelFast())
-		religionList.Append(Building.House->Religions);
-
-	religionList.Add(EReligion::Atheist);
-	religionList.Add(EReligion::Fox);
-	religionList.Add(EReligion::Chicken);
-	religionList.Add(EReligion::Egg);
 
 	int32 index = FMath::RandRange(0, religionList.Num() - 1);
 
@@ -811,9 +837,9 @@ void ACitizen::SetHappiness()
 	Happiness.ClearValues();
 
 	if (Building.House == nullptr)
-		Happiness.SetValue("Homeless", -10);
+		Happiness.SetValue("Homeless", -20);
 	else
-		Happiness.SetValue("Housed", 5);
+		Happiness.SetValue("Housed", 10);
 
 	if (Building.Employment == nullptr)
 		Happiness.SetValue("Unemployed", -10);
@@ -834,6 +860,42 @@ void ACitizen::SetHappiness()
 		Happiness.SetValue("Missed Mass", -25);
 	else if (MassStatus == EMassStatus::Attended)
 		Happiness.SetValue("Attended Mass", 15);
+
+	if (Spirituality.Faith != EReligion::Atheist && IsValid(Building.House)) {
+		if (!Building.House->Religions.Contains(Spirituality.Faith))
+			Happiness.SetValue("No Nearby Churches", -25);
+		else
+			Happiness.SetValue("Church Nearby", 15);
+	}
+
+	if (IsValid(Building.Employment) && GetWorld()->GetTimeSeconds() >= TimeOfEmployment + 300.0f) {
+		int32 count = 0;
+
+		for (ACitizen* citizen : Building.Employment->GetOccupied()) {
+			if (citizen == this)
+				return;
+
+			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
+				for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
+					if (personality->Trait == p->Trait)
+						count += 2;
+					else if (personality->Likes.Contains(p->Trait))
+						count++;
+					else if (personality->Dislikes.Contains(p->Trait))
+						count--;
+				}
+			}
+		}
+
+		Happiness.SetValue("Work Happiness", count * 5 + 5);
+	}
+
+	if (Balance < 5)
+		Happiness.SetValue("Poor", -25);
+	else if (Balance >= 5 && Balance < 15)
+		Happiness.SetValue("Well Off", 10);
+	else
+		Happiness.SetValue("Rich", 20);
 
 	int32 lawTally = 0;
 

@@ -30,6 +30,8 @@ UCitizenManager::UCitizenManager()
 	CooldownTimer = 0;
 
 	BrochLocation = FVector::Zero();
+
+	FoodCost = 0;
 }
 
 void UCitizenManager::BeginPlay()
