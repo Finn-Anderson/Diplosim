@@ -41,7 +41,6 @@ struct FBuildingStruct
 		House = nullptr;
 		Employment = nullptr;
 		BuildingAt = nullptr;
-		LengthOfEmployment = 0;
 	}
 };
 
@@ -261,7 +260,7 @@ public:
 		class UNiagaraComponent* TorchNiagaraComponent;
 
 	// Work
-	bool CanWork(class ABuilding* Building);
+	bool CanWork(class ABuilding* WorkBuilding);
 
 	void FindJobAndHouse();
 

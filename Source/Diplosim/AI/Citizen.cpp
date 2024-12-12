@@ -231,12 +231,12 @@ void ACitizen::SetTorch(int32 Hour)
 //
 // Work
 //
-bool ACitizen::CanWork(ABuilding* Building)
+bool ACitizen::CanWork(ABuilding* WorkBuilding)
 {
 	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
 		return false;
 
-	if (Building->Belief != EReligion::Atheist && Building->Belief != Spirituality.Faith)
+	if (WorkBuilding->Belief != EReligion::Atheist && WorkBuilding->Belief != Spirituality.Faith)
 		return false;
 
 	return true;
