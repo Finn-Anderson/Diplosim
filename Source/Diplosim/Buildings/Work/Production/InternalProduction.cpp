@@ -61,16 +61,18 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 
 void AInternalProduction::Production(ACitizen* Citizen)
 {
+	Super::Production(Citizen);
+
 	GetCitizensAtBuilding()[0]->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
 
 	StoreResource(Citizen);
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		Camera->CitizenManager->Injure(citizen);
+		Camera->CitizenManager->Injure(citizen, 99);
 
 	SetTimer(GetCitizensAtBuilding()[0]);
 
-	for (FItemStruct item : Intake)
+	for (const FItemStruct item : Intake)
 		if (item.Use > item.Stored)
 			for (ACitizen* citizen : GetCitizensAtBuilding())
 				CheckStored(citizen, Intake);

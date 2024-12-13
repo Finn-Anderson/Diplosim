@@ -107,6 +107,8 @@ bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 
 void AExternalProduction::Production(ACitizen* Citizen)
 {
+	Super::Production(Citizen);
+
 	if (Citizen->Building.BuildingAt != this)
 		return;
 

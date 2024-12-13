@@ -181,4 +181,10 @@ public:
 
 	// Seasons
 	void SetSeasonAffect(FString Period);
+
+	void IncreaseSeasonAffectGradually(int32 Value);
+
+	void DecreaseSeasonAffectGradually(int32 Value);
+
+	void SetSeasonAffectGradually(int32 Value);
 };

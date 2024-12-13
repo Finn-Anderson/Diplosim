@@ -477,7 +477,7 @@ void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 
 	Camera->CitizenManager->RemoveTimer("AmbientHarvestSound", this);
 
-	Camera->CitizenManager->Injure(this);
+	Camera->CitizenManager->Injure(this, 99);
 
 	LoseEnergy();
 
@@ -684,11 +684,14 @@ void ACitizen::SetPolticalLeanings()
 {
 	TArray<EParty> partyList;
 
+	TEnumAsByte<ESway>* sway = nullptr;
+
 	FPartyStruct* party = Camera->CitizenManager->GetMembersParty(this);
 
-	TEnumAsByte<ESway>* sway = party->Members.Find(this);
+	if (party != nullptr)
+		sway = party->Members.Find(this);
 
-	if (sway->GetValue() == ESway::Radical)
+	if (sway != nullptr && sway->GetValue() == ESway::Radical)
 		return;
 
 	if (Camera->CitizenManager->Representatives.Contains(this))
@@ -873,7 +876,7 @@ void ACitizen::SetHappiness()
 
 		for (ACitizen* citizen : Building.Employment->GetOccupied()) {
 			if (citizen == this)
-				return;
+				continue;
 
 			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
 				for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {

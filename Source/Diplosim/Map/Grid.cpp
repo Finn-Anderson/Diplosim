@@ -578,7 +578,49 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 
 		int32 inst = resource->ResourceHISM->AddInstance(transform);
 
+		float r = 0.0f;
+		float g = 0.0f;
+		float b = 0.0f;
+
+		int32 colour = FMath::RandRange(0, 3);
+
+		if (colour == 0) {
+			r = 53.0f;
+			g = 90.0f;
+			b = 32.0f;
+		}
+		else if (colour == 1) {
+			r = 54.0f;
+			g = 79.0f;
+			b = 38.0f;
+		}
+		else if (colour == 2) {
+			r = 32.0f;
+			g = 90.0f;
+			b = 40.0f;
+		}
+		else {
+			r = 38.0f;
+			g = 79.0f;
+			b = 43.0f;
+		}
+
+		int32 dyingChance = FMath::RandRange(0, 100);
+
+		if (dyingChance == 100) {
+			r = 82.0f;
+			g = 90.0f;
+			b = 32.0f;
+		}
+
+		r /= 255.0f;
+		g /= 255.0f;
+		b /= 255.0f;
+
 		resource->ResourceHISM->SetCustomDataValue(inst, 0, 1.0f);
+		resource->ResourceHISM->SetCustomDataValue(inst, 1, r);
+		resource->ResourceHISM->SetCustomDataValue(inst, 2, g);
+		resource->ResourceHISM->SetCustomDataValue(inst, 3, b);
 	}
 
 	ResourceTiles.Remove(Tile);
@@ -660,24 +702,58 @@ void AGrid::Clear()
 
 void AGrid::SetSeasonAffect(FString Period)
 {
-	float value = 0.0f;
-
 	if (Period == "Cold") {
 		CloudComponent->bSnow = true;
 
-		value = 1.0f;
+		IncreaseSeasonAffectGradually(0.0f);
 	}
-	else
+	else {
 		CloudComponent->bSnow = false;
 
-	for (int32 inst = 0; inst < HISMGround->GetInstanceCount(); inst++)
-		HISMGround->SetCustomDataValue(inst, 4, value);
-
-	for (int32 inst = 0; inst < HISMFlatGround->GetInstanceCount(); inst++)
-		HISMFlatGround->SetCustomDataValue(inst, 4, value);
-
-	for (int32 inst = 0; inst < HISMRampGround->GetInstanceCount(); inst++)
-		HISMRampGround->SetCustomDataValue(inst, 4, value);
+		DecreaseSeasonAffectGradually(1.0f);
+	}
 
 	CloudComponent->UpdateSpawnedClouds();
+}
+
+void AGrid::IncreaseSeasonAffectGradually(int32 Value)
+{
+	Value++;
+
+	SetSeasonAffectGradually(Value);
+
+	if (Value == 1.0f)
+		return;
+
+	FTimerHandle seasonChangeTimer;
+	GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::IncreaseSeasonAffectGradually, Value), 0.1f, false);
+}
+
+void AGrid::DecreaseSeasonAffectGradually(int32 Value)
+{
+	Value--;
+
+	SetSeasonAffectGradually(Value);
+
+	if (Value == 0.0f)
+		return;
+
+	FTimerHandle seasonChangeTimer;
+	GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::DecreaseSeasonAffectGradually, Value), 0.1f, false);
+}
+
+void AGrid::SetSeasonAffectGradually(int32 Value)
+{
+	for (FResourceHISMStruct& ResourceStruct : VegetationStruct)
+		for (int32 inst = 0; inst < ResourceStruct.Resource->ResourceHISM->GetInstanceCount(); inst++)
+			ResourceStruct.Resource->ResourceHISM->SetCustomDataValue(inst, 4, Value);
+
+	for (int32 inst = 0; inst < HISMGround->GetInstanceCount(); inst++)
+		HISMGround->SetCustomDataValue(inst, 4, Value);
+
+	for (int32 inst = 0; inst < HISMFlatGround->GetInstanceCount(); inst++)
+		HISMFlatGround->SetCustomDataValue(inst, 4, Value);
+
+	for (int32 inst = 0; inst < HISMRampGround->GetInstanceCount(); inst++)
+		HISMRampGround->SetCustomDataValue(inst, 4, Value);
 }

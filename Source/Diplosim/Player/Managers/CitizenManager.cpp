@@ -264,11 +264,11 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 			PickCitizenToHeal(healer);
 }
 
-void UCitizenManager::Injure(ACitizen* Citizen)
+void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 {
 	int32 index = FMath::RandRange(1, 100);
 
-	if (index < 95)
+	if (index < Odds)
 		return;
 	
 	TArray<FConditionStruct> conditions;

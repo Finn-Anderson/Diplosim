@@ -117,7 +117,7 @@ void ACamera::BeginPlay()
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
-	GetWorld()->bIsCameraMoveableWhenPaused = true;
+	GetWorld()->bIsCameraMoveableWhenPaused = false;
 
 	UEnhancedInputLocalPlayerSubsystem* InputSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(pcontroller->GetLocalPlayer());
 

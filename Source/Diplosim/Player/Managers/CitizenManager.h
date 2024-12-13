@@ -378,7 +378,7 @@ public:
 
 	void Cure(class ACitizen* Citizen);
 
-	void Injure(class ACitizen* Citizen);
+	void Injure(class ACitizen* Citizen, int32 Odds);
 
 	void UpdateHealthText(class ACitizen* Citizen);
 

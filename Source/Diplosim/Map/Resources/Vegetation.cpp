@@ -6,7 +6,7 @@ AVegetation::AVegetation()
 {
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	ResourceHISM->NumCustomDataFloats = 2;
+	ResourceHISM->NumCustomDataFloats = 6;
 
 	IntialScale = FVector(0.1f, 0.1f, 0.1f);
 
@@ -36,9 +36,9 @@ void AVegetation::Grow()
 	for (int32 i = GrowingInstances.Num() - 1; i > -1; i--) {
 		int32 inst = GrowingInstances[i];
 
-		ResourceHISM->SetCustomDataValue(inst, 1, FMath::Clamp(ResourceHISM->PerInstanceSMCustomData[inst * 2 + 1] + 1.0f, 0.0f, 10.0f));
+		ResourceHISM->SetCustomDataValue(inst, 1, FMath::Clamp(ResourceHISM->PerInstanceSMCustomData[inst * 2 + 5] + 1.0f, 0.0f, 10.0f));
 
-		if (ResourceHISM->PerInstanceSMCustomData[inst * 2 + 1] < 10)
+		if (ResourceHISM->PerInstanceSMCustomData[inst * 2 + 5] < 10)
 			continue;
 
 		FTransform transform;
@@ -59,7 +59,7 @@ void AVegetation::Grow()
 
 		ResourceHISM->UpdateInstanceTransform(inst, transform, false);
 
-		ResourceHISM->PerInstanceSMCustomData[inst * 2 + 1] = 0;
+		ResourceHISM->PerInstanceSMCustomData[inst * 2 + 5] = 0;
 
 		if (!IsHarvestable(inst, scale))
 			continue;

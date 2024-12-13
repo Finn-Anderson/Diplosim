@@ -156,5 +156,36 @@ void AWork::Close()
 
 void AWork::Production(ACitizen* Citizen)
 {
-	
+	TArray<ACitizen*> citizens = GetCitizensAtBuilding();
+
+	for (ACitizen* citizen : citizens) {
+		for (ACitizen* c : citizens) {
+			if (c == citizen)
+				continue;
+
+			int32 count = 0;
+
+			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
+				for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(c)) {
+					if (personality->Trait == p->Trait)
+						count += 2;
+					else if (personality->Likes.Contains(p->Trait))
+						count++;
+					else if (personality->Dislikes.Contains(p->Trait))
+						count--;
+				}
+			}
+
+			int32 chance = FMath::RandRange(0, 100) + count * 15;
+
+			if (chance >= 0)
+				continue;
+
+			Camera->CitizenManager->Injure(citizen, FMath::RandRange(0, 100));
+
+			Camera->CitizenManager->Injure(c, FMath::RandRange(0, 100));
+
+			break;
+		}
+	}
 }
