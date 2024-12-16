@@ -22,10 +22,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
 		int32 TimeLength;
 
-	FVector IntialScale;
-
-	FVector MaxScale;
-
 	TArray<int32> GrowingInstances;
 
 	FTimerHandle GrowTimer;

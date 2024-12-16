@@ -572,11 +572,16 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 		FTransform transform;
 		transform.SetLocation(GetTransform(Tile).GetLocation() + FVector(x, y, 0.0f));
 
+		float size = FMath::FRandRange(0.9f, 1.1f);
+		transform.SetScale3D(FVector(size));
+
 		int32 index = FMath::RandRange(0, VegetationStruct.Num() - 1);
 
 		AVegetation* resource = Cast<AVegetation>(VegetationStruct[index].Resource);
 
 		int32 inst = resource->ResourceHISM->AddInstance(transform);
+
+		resource->ResourceHISM->SetCustomDataValue(inst, 6, size);
 
 		float r = 0.0f;
 		float g = 0.0f;
@@ -607,11 +612,16 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 
 		int32 dyingChance = FMath::RandRange(0, 100);
 
-		if (dyingChance == 100) {
+		if (dyingChance >= 97) {
 			r = 82.0f;
 			g = 90.0f;
 			b = 32.0f;
 		}
+
+		if (dyingChance == 100)
+			resource->ResourceHISM->SetCustomDataValue(inst, 7, 1.0f);
+		else
+			resource->ResourceHISM->SetCustomDataValue(inst, 7, 0.0f);
 
 		r /= 255.0f;
 		g /= 255.0f;
