@@ -20,7 +20,7 @@ protected:
 		bool bRenderFog;
 
 	UPROPERTY(Config)
-		bool bUseAA;
+		FString AAName;
 
 	UPROPERTY(Config)
 		bool bMotionBlur;
@@ -59,10 +59,10 @@ public:
 		bool GetRenderFog() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AA")
-		void SetAA(bool Value);
+		void SetAA(FString Value);
 
 	UFUNCTION(BlueprintPure, Category = "AA")
-		bool GetAA() const;
+		FString GetAA() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Motion Blur")
 		void SetMotionBlur(bool Value);

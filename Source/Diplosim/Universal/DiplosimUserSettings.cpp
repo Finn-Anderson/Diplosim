@@ -20,7 +20,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bRenderClouds = true;
 	bRenderFog = true;
 
-	bUseAA = true;
+	AAName = "None";
 
 	bMotionBlur = false;
 
@@ -100,19 +100,21 @@ bool UDiplosimUserSettings::GetRenderFog() const
 	return bRenderFog;
 }
 
-void UDiplosimUserSettings::SetAA(bool Value)
+void UDiplosimUserSettings::SetAA(FString Value)
 {
-	bUseAA = Value;
+	AAName = Value;
 
-	if (bUseAA)
-		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 4"));
-	else
+	if (AAName == "None")
 		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 0"));
+	else if (AAName == "TAA")
+		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 2"));
+	else
+		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 4"));
 }
 
-bool UDiplosimUserSettings::GetAA() const
+FString UDiplosimUserSettings::GetAA() const
 {
-	return bUseAA;
+	return AAName;
 }
 
 void UDiplosimUserSettings::SetMotionBlur(bool Value)
