@@ -420,7 +420,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		if (!bCoast)
 			return;
 
-		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
+		transform.SetLocation(loc + FVector(0.0f, 0.0f, -200.0f));
 
 		inst = HISMFlatGround->AddInstance(transform);
 	}

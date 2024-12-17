@@ -23,7 +23,13 @@ protected:
 		FString AAName;
 
 	UPROPERTY(Config)
+		FString GIName;
+
+	UPROPERTY(Config)
 		bool bMotionBlur;
+
+	UPROPERTY(Config)
+		int32 ScreenPercentage;
 
 	UPROPERTY(Config)
 		float MasterVolume;
@@ -64,11 +70,23 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AA")
 		FString GetAA() const;
 
+	UFUNCTION(BlueprintCallable, Category = "GI")
+		void SetGI(FString Value);
+
+	UFUNCTION(BlueprintPure, Category = "GI")
+		FString GetGI() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Motion Blur")
 		void SetMotionBlur(bool Value);
 
 	UFUNCTION(BlueprintPure, Category = "Motion Blur")
 		bool GetMotionBlur() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Screen Percentage")
+		void SetScreenPercentage(int32 Value);
+
+	UFUNCTION(BlueprintPure, Category = "Screen Percentage")
+		int32 GetScreenPercentage() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Audio")
 		void SetMasterVolume(float Value);

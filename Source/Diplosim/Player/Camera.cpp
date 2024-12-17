@@ -94,6 +94,8 @@ ACamera::ACamera()
 
 	Smites = 0;
 
+	bStartMenu = true;
+
 	Start = true;
 
 	bQuick = false;
@@ -195,12 +197,13 @@ void ACamera::StartGame()
 {
 	BuildComponent->SpawnBuilding(StartBuilding);
 
+	bStartMenu = false;
 	bInMenu = false;
 
 	Grid->MapUIInstance->AddToViewport();
 }
 
-void ACamera::StartGame(ABuilding* Broch)
+void ACamera::OnBrochPlace(ABuilding* Broch)
 {
 	Start = false;
 	Grid->MapUIInstance->RemoveFromParent();
@@ -338,8 +341,6 @@ void ACamera::Lose()
 	EventUIInstance->RemoveFromParent();
 	LostUIInstance->AddToViewport();
 }
-
-
 
 void ACamera::Smite(class AAI* AI)
 {
@@ -516,21 +517,34 @@ void ACamera::Menu()
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
 	if (bInMenu) {
-		MenuUIInstance->RemoveFromParent();
 		SettingsUIInstance->RemoveFromParent();
+
+		if (bStartMenu) {
+			MainMenuUIInstance->AddToViewport();
+
+			return;
+		}
+		if (!MenuUIInstance->IsInViewport()) {
+			MenuUIInstance->AddToViewport();
+
+			return;
+		}
+
+		MenuUIInstance->RemoveFromViewport();
 
 		bInMenu = false;
 
-		if (!PauseUIInstance->IsInViewport())
-			TickWhenPaused(true);
+		TickWhenPaused(true);
+
+		if (PauseUIInstance->IsInViewport())
+			pcontroller->SetPause(true);
 	}
 	else {
 		MenuUIInstance->AddToViewport();
 
 		bInMenu = true;
 
-		if (!PauseUIInstance->IsInViewport())
-			TickWhenPaused(false);
+		TickWhenPaused(false);
 	}
 }
 

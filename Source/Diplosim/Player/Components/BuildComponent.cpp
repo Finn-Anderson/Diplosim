@@ -397,7 +397,7 @@ void UBuildComponent::Place()
 	}
 
 	if (Camera->Start)
-		Camera->StartGame(Buildings[0]);
+		Camera->OnBrochPlace(Buildings[0]);
 
 	DetachBuilding();
 }

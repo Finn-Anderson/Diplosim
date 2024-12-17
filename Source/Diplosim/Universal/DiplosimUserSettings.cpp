@@ -22,7 +22,11 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	AAName = "None";
 
+	GIName = "None";
+
 	bMotionBlur = false;
+
+	ScreenPercentage = 100;
 
 	MasterVolume = 1.0f;
 	SFXVolume = 1.0f;
@@ -39,7 +43,9 @@ void UDiplosimUserSettings::SetVisualSettings()
 	SetRenderClouds(GetRenderClouds());
 	SetRenderFog(GetRenderFog());
 	SetAA(GetAA());
+	SetGI(GetGI());
 	SetMotionBlur(GetMotionBlur());
+	SetScreenPercentage(GetScreenPercentage());
 }
 
 void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
@@ -117,6 +123,29 @@ FString UDiplosimUserSettings::GetAA() const
 	return AAName;
 }
 
+void UDiplosimUserSettings::SetGI(FString Value)
+{
+	GIName = Value;
+
+	if (GIName == "None") {
+		GEngine->Exec(GetWorld(), TEXT("r.DynamicGlobalIlluminationMethod 0"));
+		GEngine->Exec(GetWorld(), TEXT("r.ReflectionMethod 0"));
+	}
+	else if (GIName == "Lumen") {
+		GEngine->Exec(GetWorld(), TEXT("r.DynamicGlobalIlluminationMethod 1"));
+		GEngine->Exec(GetWorld(), TEXT("r.ReflectionMethod 1"));
+	}
+	else {
+		GEngine->Exec(GetWorld(), TEXT("r.DynamicGlobalIlluminationMethod 2"));
+		GEngine->Exec(GetWorld(), TEXT("r.ReflectionMethod 2"));
+	}
+}
+
+FString UDiplosimUserSettings::GetGI() const
+{
+	return GIName;
+}
+
 void UDiplosimUserSettings::SetMotionBlur(bool Value)
 {
 	bMotionBlur = Value;
@@ -130,6 +159,20 @@ void UDiplosimUserSettings::SetMotionBlur(bool Value)
 bool UDiplosimUserSettings::GetMotionBlur() const
 {
 	return bMotionBlur;
+}
+
+void UDiplosimUserSettings::SetScreenPercentage(int32 Value)
+{
+	ScreenPercentage = Value;
+
+	FString cmd = "r.ScreenPercentage " + FString::FromInt(ScreenPercentage);
+
+	GEngine->Exec(GetWorld(), *cmd);
+}
+
+int32 UDiplosimUserSettings::GetScreenPercentage() const
+{
+	return ScreenPercentage;
 }
 
 void UDiplosimUserSettings::SetMasterVolume(float Value)

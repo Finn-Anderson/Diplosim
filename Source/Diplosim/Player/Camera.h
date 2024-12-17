@@ -103,9 +103,12 @@ public:
 	UPROPERTY()
 		bool Start;
 
+	UPROPERTY()
+		bool bStartMenu;
+
 	void Tick(float DeltaTime) override;
 
-	void StartGame(class ABuilding* Broch);
+	void OnBrochPlace(class ABuilding* Broch);
 
 	// Audio
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
