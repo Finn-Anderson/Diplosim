@@ -66,6 +66,9 @@ void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (DeltaTime < 0.0001f)
+		return;
+
 	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
 
 	if (healthComp->Health == 0)

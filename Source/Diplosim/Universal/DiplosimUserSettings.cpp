@@ -66,6 +66,9 @@ bool UDiplosimUserSettings::GetSpawnEnemies() const
 
 void UDiplosimUserSettings::SetRenderClouds(bool Value)
 {
+	if (bRenderClouds == Value)
+		return;
+
 	bRenderClouds = Value;
 
 	if (Clouds == nullptr)

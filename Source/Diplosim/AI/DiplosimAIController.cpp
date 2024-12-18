@@ -31,6 +31,9 @@ void ADiplosimAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (DeltaTime < 0.0001f)
+		return;
+
 	if (Cast<AAI>(Owner)->HealthComponent->Health == 0 || !IsValid(MoveRequest.GetGoalActor()))
 		return;
 

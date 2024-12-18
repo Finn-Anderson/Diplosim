@@ -219,7 +219,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void ShowWarning(FString Warning);
 
-	void TickWhenPaused(bool bTickWhenPaused);
+	void Pause(bool bPause, bool bTickWhenPaused);
 
 	UFUNCTION(BlueprintCallable)
 		void DisplayInteract(AActor* Actor, int32 Instance = -1);

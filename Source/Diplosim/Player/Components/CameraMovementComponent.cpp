@@ -38,12 +38,12 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, GetWorld()->DeltaTimeSeconds, 10.0f);
+	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, 0.01f, CameraSpeed);
 
 	if (!bShake)
 		return;
 
-	Runtime += DeltaTime * 10.0f;
+	Runtime += DeltaTime * CameraSpeed;
 
 	double sin = FMath::Clamp(FMath::Sin(Runtime), 0.0f, 1.0f);
 
@@ -77,7 +77,7 @@ void UCameraMovementComponent::Look(const struct FInputActionInstance& Instance)
 
 void UCameraMovementComponent::Move(const struct FInputActionInstance& Instance)
 {
-	FVector2D value = Instance.GetValue().Get<FVector2D>() * (GetWorld()->DeltaTimeSeconds * 200);
+	FVector2D value = Instance.GetValue().Get<FVector2D>() * 2;
 
 	const FRotator rotation = Camera->Controller->GetControlRotation();
 	const FRotator yawRotation(0, rotation.Yaw, 0);

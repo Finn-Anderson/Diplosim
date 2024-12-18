@@ -270,17 +270,22 @@ void ACamera::ShowWarning(FString Warning)
 	DisplayWarning(Warning);
 }
 
-void ACamera::TickWhenPaused(bool bTickWhenPaused)
+void ACamera::Pause(bool bPause, bool bTickWhenPaused)
 {
-	MovementComponent->SetTickableWhenPaused(bTickWhenPaused);
-	BuildComponent->SetTickableWhenPaused(bTickWhenPaused);
-	SpringArmComponent->SetTickableWhenPaused(bTickWhenPaused);
-	CameraComponent->SetTickableWhenPaused(bTickWhenPaused);
-	ResourceManager->SetTickableWhenPaused(bTickWhenPaused);
-	ConstructionManager->SetTickableWhenPaused(bTickWhenPaused);
+	float timeDilation = 0.0000001f;
 
-	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	pcontroller->SetPause(!bTickWhenPaused);
+	if (!bPause) {
+		timeDilation = 1.0f;
+
+		bTickWhenPaused = bPause;
+	}
+
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), timeDilation);
+
+	if (bTickWhenPaused)
+		CustomTimeDilation = 1.0f / timeDilation;
+	else
+		CustomTimeDilation = 1.0f;
 }
 
 void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
@@ -480,16 +485,17 @@ void ACamera::Pause()
 	if (bInMenu || TLDRUIInstance->IsInViewport())
 		return;
 
-	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	pcontroller->SetPause(!pcontroller->IsPaused());
-
 	if (PauseUIInstance->IsInViewport()) {
 		PauseUIInstance->RemoveFromParent();
+
+		Pause(false, false);
 
 		GetWorldTimerManager().UnPauseTimer(ResourceManager->ValueTimer);
 	}
 	else {
 		PauseUIInstance->AddToViewport();
+
+		Pause(true, true);
 
 		GetWorldTimerManager().PauseTimer(ResourceManager->ValueTimer);
 	}
@@ -530,11 +536,11 @@ void ACamera::Menu()
 			return;
 		}
 
-		MenuUIInstance->RemoveFromViewport();
+		MenuUIInstance->RemoveFromParent();
 
 		bInMenu = false;
 
-		TickWhenPaused(true);
+		Pause(true, false);
 
 		if (PauseUIInstance->IsInViewport())
 			pcontroller->SetPause(true);
@@ -544,7 +550,7 @@ void ACamera::Menu()
 
 		bInMenu = true;
 
-		TickWhenPaused(false);
+		Pause(false, false);
 	}
 }
 

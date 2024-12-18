@@ -68,6 +68,9 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 		FVector location = transform.GetLocation();
 
+		if (Buildings.Last()->GetActorLocation().X == location.X && Buildings.Last()->GetActorLocation().Y == location.Y)
+			return;
+
 		if (location.Z >= 0.0f) {
 			location.Z += 100.0f;
 

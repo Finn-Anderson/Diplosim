@@ -26,10 +26,13 @@ void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (DeltaTime < 0.0001f)
+		return;
+
 	for (int32 i = Clouds.Num() - 1; i > -1; i--) {
 		FCloudStruct cloudStruct = Clouds[i];
 
-		FVector location = cloudStruct.Cloud->GetRelativeLocation() + Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation.Vector();
+		FVector location = cloudStruct.Cloud->GetRelativeLocation() + (Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation.Vector());
 
 		cloudStruct.Cloud->SetRelativeLocation(location);
 

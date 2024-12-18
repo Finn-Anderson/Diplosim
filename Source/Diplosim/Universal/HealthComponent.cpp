@@ -33,11 +33,12 @@ void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (DeltaTime < 0.0001f)
+		return;
+
 	ABuilding* building = Cast<ABuilding>(GetOwner());
 
 	float height = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-
-	SetComponentTickEnabled(true);
 
 	FVector location = FMath::VInterpTo(building->GetActorLocation(), building->GetActorLocation() - FVector(0.0f, 0.0f, height + 1.0f), DeltaTime, 0.15f);
 
