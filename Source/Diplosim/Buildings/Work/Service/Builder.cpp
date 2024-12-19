@@ -8,6 +8,7 @@
 #include "Player/Managers/ConstructionManager.h"
 #include "Components/WidgetComponent.h"
 #include "Universal/HealthComponent.h"
+#include "Player/Managers/CitizenManager.h"
 
 ABuilder::ABuilder()
 {
@@ -16,14 +17,14 @@ ABuilder::ABuilder()
 
 bool ABuilder::CheckInstant() 
 {
-	TArray<AActor*> foundBuilders;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), this->GetClass(), foundBuilders);
+	for (const ABuilding* building : Camera->CitizenManager->Buildings) {
+		if (!building->IsA<ABuilder>())
+			continue;
 
-	if (foundBuilders.Num() == 1) {
-		return true;
+		return false;
 	}
 
-	return false;
+	return true;
 }
 
 void ABuilder::Enter(ACitizen* Citizen)

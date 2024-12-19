@@ -9,6 +9,7 @@
 #include "Components/AudioComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/DecalComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -68,6 +69,13 @@ ABuilding::ABuilding()
 	AmbientAudioComponent->SetupAttachment(RootComponent);
 	AmbientAudioComponent->SetVolumeMultiplier(0.0f);
 
+	GroundDecalComponent = CreateDefaultSubobject<UDecalComponent>("GroundDecalComponent");
+	GroundDecalComponent->SetupAttachment(RootComponent);
+	GroundDecalComponent->DecalSize = FVector(1.0f, 100.0f, 100.0f);
+	GroundDecalComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -0.75f));
+	GroundDecalComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
+	GroundDecalComponent->SetHiddenInGame(true);
+
 	Emissiveness = 0.0f;
 
 	Capacity = 2;
@@ -120,7 +128,33 @@ void ABuilding::BeginPlay()
 	}
 }
 
-void ABuilding::Build()
+TArray<FItemStruct> ABuilding::GetRebuildCost()
+{
+	TArray<FItemStruct> items;
+
+	for (FItemStruct item : CostList) {
+		item.Amount = FMath::CeilToInt(item.Amount / 3.0f);
+
+		items.Add(item);
+	}
+
+	return items;
+}
+
+void ABuilding::Rebuild()
+{
+	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+
+	Build(true);
+
+	GroundDecalComponent->SetHiddenInGame(true);
+
+	SetActorLocation(GetActorLocation() + FVector(0.0f, 0.0f, size.Z));
+	DestructionComponent->SetRelativeLocation(DestructionComponent->GetRelativeLocation() - FVector(0.0f, 0.0f, size.Z));
+	GroundDecalComponent->SetRelativeLocation(GroundDecalComponent->GetRelativeLocation() - FVector(0.0f, 0.0f, size.Z));
+}
+
+void ABuilding::Build(bool bRebuild)
 {
 	BuildingMesh->SetOverlayMaterial(nullptr);
 
@@ -131,14 +165,19 @@ void ABuilding::Build()
 	UResourceManager* rm = Camera->ResourceManager;
 	UConstructionManager* cm = Camera->ConstructionManager;
 
+	TArray<FItemStruct> items = CostList;
+
+	if (bRebuild)
+		items = GetRebuildCost();
+
 	if (CheckInstant()) {
 		OnBuilt();
 
-		for (FItemStruct items : CostList)
-			rm->TakeUniversalResource(items.Resource, items.Amount, 0);
+		for (FItemStruct item : items)
+			rm->TakeUniversalResource(item.Resource, item.Amount, 0);
 	} else {
-		for (FItemStruct items : CostList)
-			rm->AddCommittedResource(items.Resource, items.Amount);
+		for (FItemStruct item : items)
+			rm->AddCommittedResource(item.Resource, item.Amount);
 
 		cm->AddBuilding(this, EBuildStatus::Construction);
 
@@ -147,6 +186,7 @@ void ABuilding::Build()
 		FVector cSize = ConstructionMesh->GetBounds().GetBox().GetSize();
 
 		FVector size = bSize / cSize;
+
 		if (size.Z < 1.0f)
 			size.Z = 1.0f;
 

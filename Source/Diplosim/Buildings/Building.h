@@ -128,6 +128,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* AmbientAudioComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
+		class UDecalComponent* GroundDecalComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		bool bConstant;
 
@@ -180,7 +183,13 @@ public:
 	UPROPERTY()
 		UStaticMesh* ActualMesh;
 
-	void Build();
+	UFUNCTION(BlueprintCallable)
+		TArray<FItemStruct> GetRebuildCost();
+
+	UFUNCTION(BlueprintCallable)
+		void Rebuild();
+
+	void Build(bool bRebuild = false);
 
 	virtual void OnBuilt();
 

@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/DecalComponent.h"
 #include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
@@ -47,6 +48,7 @@ void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	building->SetActorLocation(location);
 
 	building->DestructionComponent->SetRelativeLocation(building->DestructionComponent->GetRelativeLocation() + difference);
+	building->GroundDecalComponent->SetRelativeLocation(building->GroundDecalComponent->GetRelativeLocation() + difference);
 
 	if (CrumbleLocation.Z <= building->GetActorLocation().Z)
 		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
@@ -205,6 +207,13 @@ void UHealthComponent::Clear(AActor* Attacker)
 
 		if (gamemode->CheckEnemiesStatus())
 			gamemode->SetWaveTimer();
+	}
+	else if (actor->IsA<ABuilding>()) {
+		Cast<ABuilding>(actor)->GroundDecalComponent->SetHiddenInGame(false);
+
+		Cast<ABuilding>(actor)->DestructionComponent->Deactivate();
+
+		return;
 	}
 
 	actor->Destroy();
