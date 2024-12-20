@@ -149,9 +149,9 @@ void ABuilding::Rebuild()
 
 	GroundDecalComponent->SetHiddenInGame(true);
 
-	SetActorLocation(GetActorLocation() + FVector(0.0f, 0.0f, size.Z));
-	DestructionComponent->SetRelativeLocation(DestructionComponent->GetRelativeLocation() - FVector(0.0f, 0.0f, size.Z));
-	GroundDecalComponent->SetRelativeLocation(GroundDecalComponent->GetRelativeLocation() - FVector(0.0f, 0.0f, size.Z));
+	SetActorLocation(HealthComponent->RebuildLocation);
+	DestructionComponent->SetRelativeLocation(FVector::Zero());
+	GroundDecalComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -0.75f));
 }
 
 void ABuilding::Build(bool bRebuild)

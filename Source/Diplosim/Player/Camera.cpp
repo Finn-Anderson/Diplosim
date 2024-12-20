@@ -45,7 +45,7 @@ ACamera::ACamera()
 	SpringArmComponent->SetTickableWhenPaused(true);
 	SpringArmComponent->TargetArmLength = MovementComponent->TargetLength;
 	SpringArmComponent->bUsePawnControlRotation = true;
-	SpringArmComponent->bEnableCameraLag = true;
+	SpringArmComponent->bEnableCameraLag = false;
 	SpringArmComponent->bDoCollisionTest = true;
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
@@ -78,7 +78,7 @@ ACamera::ACamera()
 	WidgetSpringArmComponent->SetTickableWhenPaused(true);
 	WidgetSpringArmComponent->TargetArmLength = 0.0f;
 	WidgetSpringArmComponent->bUsePawnControlRotation = true;
-	WidgetSpringArmComponent->bEnableCameraLag = true;
+	WidgetSpringArmComponent->bEnableCameraLag = false;
 	WidgetSpringArmComponent->bDoCollisionTest = false;
 
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
@@ -272,7 +272,7 @@ void ACamera::ShowWarning(FString Warning)
 
 void ACamera::Pause(bool bPause, bool bTickWhenPaused)
 {
-	float timeDilation = 0.0000001f;
+	float timeDilation = 0.0001f;
 
 	if (!bPause) {
 		timeDilation = 1.0f;
@@ -520,8 +520,6 @@ void ACamera::Menu()
 		return;
 	}
 
-	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-
 	if (bInMenu) {
 		SettingsUIInstance->RemoveFromParent();
 
@@ -540,17 +538,17 @@ void ACamera::Menu()
 
 		bInMenu = false;
 
-		Pause(true, false);
+		Pause(false, false);
 
 		if (PauseUIInstance->IsInViewport())
-			pcontroller->SetPause(true);
+			Pause(true, true);
 	}
 	else {
 		MenuUIInstance->AddToViewport();
 
 		bInMenu = true;
 
-		Pause(false, false);
+		Pause(true, false);
 	}
 }
 

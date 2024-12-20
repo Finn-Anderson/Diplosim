@@ -24,6 +24,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	GIName = "None";
 
+	bRayTracing = false;
+
 	bMotionBlur = false;
 
 	ScreenPercentage = 100;
@@ -44,6 +46,7 @@ void UDiplosimUserSettings::SetVisualSettings()
 	SetRenderFog(GetRenderFog());
 	SetAA(GetAA());
 	SetGI(GetGI());
+	SetRayTracing(GetRayTracing());
 	SetMotionBlur(GetMotionBlur());
 	SetScreenPercentage(GetScreenPercentage());
 }
@@ -147,6 +150,21 @@ void UDiplosimUserSettings::SetGI(FString Value)
 FString UDiplosimUserSettings::GetGI() const
 {
 	return GIName;
+}
+
+void UDiplosimUserSettings::SetRayTracing(bool Value)
+{
+	bRayTracing = Value;
+
+	if (bRayTracing)
+		GEngine->Exec(GetWorld(), TEXT("r.RayTracing.Enable 1"));
+	else
+		GEngine->Exec(GetWorld(), TEXT("r.RayTracing.Enable 0"));
+}
+
+bool UDiplosimUserSettings::GetRayTracing() const
+{
+	return bRayTracing;
 }
 
 void UDiplosimUserSettings::SetMotionBlur(bool Value)

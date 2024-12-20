@@ -19,24 +19,32 @@ protected:
 public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
-	class ACamera* Camera;
+	UPROPERTY()
+		class ACamera* Camera;
 
-	class APlayerController* PController;
+	UPROPERTY()
+		class APlayerController* PController;
 
-	float CameraSpeed;
+	UPROPERTY()
+		float CameraSpeed;
 
-	float Sensitivity;
+	UPROPERTY()
+		float Sensitivity;
 
 	// Map Bounds
 	void SetBounds(FVector start, FVector end);
 
-	float MaxXBounds;
+	UPROPERTY()
+		float MaxXBounds;
 
-	float MinXBounds;
+	UPROPERTY()
+		float MinXBounds;
 
-	float MaxYBounds;
+	UPROPERTY()
+		float MaxYBounds;
 
-	float MinYBounds;
+	UPROPERTY()
+		float MinYBounds;
 
 	// Movement Functions
 	void Look(const struct FInputActionInstance& Instance);
@@ -47,10 +55,16 @@ public:
 
 	void Scroll(const struct FInputActionInstance& Instance);
 
-	float TargetLength;
+	UPROPERTY()
+		float TargetLength;
+
+	UPROPERTY()
+		FVector MovementLocation;
 
 	// Build Camera Shake
-	float Runtime;
+	UPROPERTY()
+		float Runtime;
 
-	bool bShake;
+	UPROPERTY()
+		bool bShake;
 };

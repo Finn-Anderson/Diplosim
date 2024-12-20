@@ -728,7 +728,7 @@ void AGrid::SetSeasonAffect(FString Period)
 
 void AGrid::IncreaseSeasonAffectGradually(int32 Value)
 {
-	Value++;
+	Value += 0.02f;
 
 	SetSeasonAffectGradually(Value);
 
@@ -736,12 +736,12 @@ void AGrid::IncreaseSeasonAffectGradually(int32 Value)
 		return;
 
 	FTimerHandle seasonChangeTimer;
-	GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::IncreaseSeasonAffectGradually, Value), 0.1f, false);
+	GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::IncreaseSeasonAffectGradually, Value), 0.02f, false);
 }
 
 void AGrid::DecreaseSeasonAffectGradually(int32 Value)
 {
-	Value--;
+	Value -= 0.02f;
 
 	SetSeasonAffectGradually(Value);
 
@@ -749,7 +749,7 @@ void AGrid::DecreaseSeasonAffectGradually(int32 Value)
 		return;
 
 	FTimerHandle seasonChangeTimer;
-	GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::DecreaseSeasonAffectGradually, Value), 0.1f, false);
+	GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::DecreaseSeasonAffectGradually, Value), 0.02f, false);
 }
 
 void AGrid::SetSeasonAffectGradually(int32 Value)

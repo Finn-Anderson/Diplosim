@@ -159,7 +159,9 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		FVector dimensions = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-		CrumbleLocation = building->GetActorLocation() - FVector(0.0f, 0.0f, dimensions.Z);
+		RebuildLocation = building->GetActorLocation();
+
+		CrumbleLocation = RebuildLocation - FVector(0.0f, 0.0f, dimensions.Z);
 
 		building->DestructionComponent->SetVariableVec2(TEXT("XY"), FVector2D(dimensions.X, dimensions.Y));
 		building->DestructionComponent->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
