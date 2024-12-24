@@ -119,7 +119,7 @@ struct FConditionStruct
 //
 // Personality
 //
-UENUM()
+UENUM(BlueprintType, meta = (ScriptName = "EPersonality"))
 enum class EPersonality : uint8
 {
 	Brave,

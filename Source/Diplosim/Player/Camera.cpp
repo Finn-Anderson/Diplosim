@@ -521,6 +521,9 @@ void ACamera::Menu()
 	}
 
 	if (bInMenu) {
+		if (SettingsUIInstance->IsInViewport())
+			UDiplosimUserSettings::GetDiplosimUserSettings()->SaveIniSettings();
+
 		SettingsUIInstance->RemoveFromParent();
 
 		if (bStartMenu) {

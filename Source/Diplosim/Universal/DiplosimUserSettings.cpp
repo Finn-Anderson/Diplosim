@@ -24,6 +24,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	GIName = "None";
 
+	Resolution = "0x0";
+
 	bRayTracing = false;
 
 	bMotionBlur = false;
@@ -38,17 +40,74 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	Clouds = nullptr;
 
 	GameMode = nullptr;
+
+	Section = "/Script/Diplosim.DiplosimUserSettings";
+	Filename = FPaths::ProjectDir() + "/Content/Settings/CustomUserSettings.ini";
+
+	_keyValueSink.BindUObject(this, &UDiplosimUserSettings::HandleSink);
 }
 
-void UDiplosimUserSettings::SetVisualSettings()
+void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 {
-	SetRenderClouds(GetRenderClouds());
-	SetRenderFog(GetRenderFog());
-	SetAA(GetAA());
-	SetGI(GetGI());
-	SetRayTracing(GetRayTracing());
-	SetMotionBlur(GetMotionBlur());
-	SetScreenPercentage(GetScreenPercentage());
+	FString value = FString(Value);
+
+	if (value == "0x0") {
+		TArray<FIntPoint> resolutions;
+		UKismetSystemLibrary::GetSupportedFullscreenResolutions(resolutions);
+
+		value = FString::FromInt(resolutions.Last().X) + "x" + FString::FromInt(resolutions.Last().Y);
+	}
+
+	if (FString("bRenderClouds").Equals(Key))
+		SetRenderClouds(value.ToBool());
+	else if (FString("bRenderFog").Equals(Key))
+		SetRenderFog(value.ToBool());
+	else if (FString("AAName").Equals(Key))
+		SetAA(value);
+	else if (FString("GIName").Equals(Key))
+		SetGI(value);
+	else if (FString("Resolution").Equals(Key))
+		SetResolution(value);
+	else if (FString("bRayTracing").Equals(Key))
+		SetRayTracing(value.ToBool());
+	else if (FString("bMotionBlur").Equals(Key))
+		SetMotionBlur(value.ToBool());
+	else if (FString("ScreenPercentage").Equals(Key))
+		SetScreenPercentage(FCString::Atoi(Value));
+	else if (FString("MasterVolume").Equals(Key))
+		SetMasterVolume(FCString::Atof(Value));
+	else if (FString("SFXVolume").Equals(Key))
+		SetSFXVolume(FCString::Atof(Value));
+	else if (FString("AmbientVolume").Equals(Key))
+		SetAmbientVolume(FCString::Atof(Value));
+}
+
+void UDiplosimUserSettings::LoadIniSettings()
+{
+	GConfig->Flush(true, Filename);
+
+	GConfig->LoadFile(Filename);
+
+	GConfig->ForEachEntry(_keyValueSink, *Section, Filename);
+
+	GEngine->Exec(GetWorld(), TEXT("r.FullScreenMode 2"));
+}
+
+void UDiplosimUserSettings::SaveIniSettings()
+{
+	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
+	GConfig->SetBool(*Section, TEXT("bRenderFog"), GetRenderFog(), Filename);
+	GConfig->SetString(*Section, TEXT("AAName"), *GetAA(), Filename);
+	GConfig->SetString(*Section, TEXT("GIName"), *GetGI(), Filename);
+	GConfig->SetString(*Section, TEXT("Resolution"), *GetResolution(), Filename);
+	GConfig->SetBool(*Section, TEXT("bRayTracing"), GetRayTracing(), Filename);
+	GConfig->SetBool(*Section, TEXT("bMotionBlur"), GetMotionBlur(), Filename);
+	GConfig->SetInt(*Section, TEXT("ScreenPercentage"), GetScreenPercentage(), Filename);
+	GConfig->SetFloat(*Section, TEXT("MasterVolume"), GetMasterVolume(), Filename);
+	GConfig->SetFloat(*Section, TEXT("SFXVolume"), GetSFXVolume(), Filename);
+	GConfig->SetFloat(*Section, TEXT("AmbientVolume"), GetAmbientVolume(), Filename);
+
+	GConfig->Flush(false, Filename);
 }
 
 void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
@@ -194,6 +253,22 @@ void UDiplosimUserSettings::SetScreenPercentage(int32 Value)
 int32 UDiplosimUserSettings::GetScreenPercentage() const
 {
 	return ScreenPercentage;
+}
+
+void UDiplosimUserSettings::SetResolution(FString Value)
+{
+	Resolution = Value;
+
+	FSlateApplicationBase::Get().GetPlatformCursor()->Lock(nullptr);
+
+	FString cmd = "r.SetRes " + Resolution;
+
+	GEngine->Exec(GetWorld(), *cmd);
+}
+
+FString UDiplosimUserSettings::GetResolution() const
+{
+	return Resolution;
 }
 
 void UDiplosimUserSettings::SetMasterVolume(float Value)

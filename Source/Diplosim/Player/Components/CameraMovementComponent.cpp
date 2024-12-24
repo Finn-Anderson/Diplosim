@@ -42,7 +42,7 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, 0.01f, CameraSpeed / 4.0f);
+	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, 0.01f, CameraSpeed / 3.0f);
 
 	Camera->SetActorLocation(FMath::VInterpTo(MovementLocation, Camera->GetActorLocation(), 0.01f, CameraSpeed / 24.0f));
 

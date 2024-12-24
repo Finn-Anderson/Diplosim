@@ -35,6 +35,9 @@ protected:
 		int32 ScreenPercentage;
 
 	UPROPERTY(Config)
+		FString Resolution;
+
+	UPROPERTY(Config)
 		float MasterVolume;
 
 	UPROPERTY(Config)
@@ -46,8 +49,11 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
+
+	UFUNCTION(BlueprintCallable)
+		void SaveIniSettings();
 		
-	void SetVisualSettings();
+	void LoadIniSettings();
 
 	UFUNCTION(BlueprintCallable, Category = "Enemies")
 		void SetSpawnEnemies(bool Value);
@@ -97,6 +103,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Screen Percentage")
 		int32 GetScreenPercentage() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Resolution")
+		void SetResolution(FString Value);
+
+	UFUNCTION(BlueprintPure, Category = "Resolution")
+		FString GetResolution() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Audio")
 		void SetMasterVolume(float Value);
 
@@ -125,4 +137,15 @@ public:
 
 	UPROPERTY()
 		class ADiplosimGameModeBase* GameMode;
+
+	UPROPERTY()
+		FString Section;
+
+	UPROPERTY()
+		FString Filename;
+
+private:
+	FKeyValueSink _keyValueSink;
+
+	void HandleSink(const TCHAR* Key, const TCHAR* Value);
 };

@@ -524,6 +524,13 @@ FPartyStruct* UCitizenManager::GetMembersParty(ACitizen* Citizen)
 	return partyStruct;
 }
 
+EParty UCitizenManager::GetCitizenParty(ACitizen* Citizen)
+{
+	FPartyStruct* partyStruct = GetMembersParty(Citizen);
+
+	return partyStruct->Party;
+}
+
 void UCitizenManager::SelectNewLeader(EParty Party)
 {
 	TArray<ACitizen*> candidates;

@@ -438,6 +438,9 @@ public:
 
 	FPartyStruct* GetMembersParty(ACitizen* Citizen);
 
+	UFUNCTION(BlueprintCallable)
+		EParty GetCitizenParty(ACitizen* Citizen);
+
 	void SelectNewLeader(EParty Party);
 
 	void StartElectionTimer();

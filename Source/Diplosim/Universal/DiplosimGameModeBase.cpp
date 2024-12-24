@@ -27,10 +27,13 @@ void ADiplosimGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (GetWorld()->GetMapName() != "Map")
+		return;
+
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	settings->GameMode = this;
 
-	settings->SetVisualSettings();
+	settings->LoadIniSettings();
 }
 
 void ADiplosimGameModeBase::EvaluateThreats()
