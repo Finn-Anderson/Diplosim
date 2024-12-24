@@ -10,6 +10,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/CapsuleComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -106,12 +107,23 @@ void ABuilding::BeginPlay()
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
 
-	float r = FMath::FRandRange(0.0f, 1.0f);
-	float g = FMath::FRandRange(0.0f, 1.0f);
-	float b = FMath::FRandRange(0.0f, 1.0f);
+	FLinearColor chosenColour;
+
+	if (!Colours.IsEmpty()) {
+		int32 index = FMath::RandRange(0, Colours.Num() - 1);
+
+		chosenColour = Colours[index];
+	}
+	else {
+		float r = FMath::FRandRange(0.0f, 1.0f);
+		float g = FMath::FRandRange(0.0f, 1.0f);
+		float b = FMath::FRandRange(0.0f, 1.0f);
+
+		chosenColour = FLinearColor(r, g, b);
+	}
 
 	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(BuildingMesh->GetMaterial(0), this);
-	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
+	material->SetVectorParameterValue("Colour", chosenColour);
 	material->SetScalarParameterValue("Emissiveness", Emissiveness);
 	BuildingMesh->SetMaterial(0, material);
 
@@ -351,8 +363,61 @@ TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()
 	return citizens;
 }
 
+void ABuilding::StoreSocketLocations()
+{
+	SocketList.Empty();
+	
+	TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
+
+	FSocketStruct socketStruct;
+
+	for (FName socket : sockets) {
+		if (!socket.ToString().Contains("Position"))
+			continue;
+
+		socketStruct.Name = socket;
+		socketStruct.SocketLocation = BuildingMesh->GetSocketLocation(socket);
+		socketStruct.SocketRotation = BuildingMesh->GetSocketRotation(socket);
+
+		SocketList.Add(socketStruct);
+	}
+}
+
+void ABuilding::SetSocketLocation(class ACitizen* Citizen)
+{
+	if (!Occupied.Contains(Citizen))
+		return;
+
+	FSocketStruct socketStruct;
+	socketStruct.Citizen = Citizen;
+
+	int32 index = SocketList.Find(socketStruct);
+
+	if (index != INDEX_NONE) {
+		Citizen->SetActorLocation(SocketList[index].SocketLocation);
+		Citizen->SetActorRotation(SocketList[index].SocketRotation);
+	}
+	else {
+		Citizen->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
+
+		for (int32 i = 0; i < SocketList.Num(); i++) {
+			if (SocketList[i].Citizen != nullptr)
+				continue;
+
+			SocketList[i].Citizen = Citizen;
+
+			Citizen->SetActorLocation(SocketList[i].SocketLocation);
+			Citizen->SetActorRotation(SocketList[i].SocketRotation);
+
+			break;
+		}
+	}
+}
+
 void ABuilding::Enter(ACitizen* Citizen)
 {
+	SetSocketLocation(Citizen);
+
 	Citizen->Building.BuildingAt = this;
 	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
 
@@ -422,6 +487,16 @@ void ABuilding::Leave(ACitizen* Citizen)
 	Citizen->Building.BuildingAt = nullptr;
 
 	Inside.Remove(Citizen);
+
+	Citizen->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+
+	FSocketStruct socketStruct;
+	socketStruct.Citizen = Citizen;
+
+	int32 index = SocketList.Find(socketStruct);
+
+	if (index != INDEX_NONE)
+		SocketList[index].Citizen = nullptr;
 
 	if (!Citizen->IsHidden())
 		return;

@@ -101,6 +101,32 @@ struct FTreeStruct
 	}
 };
 
+USTRUCT()
+struct FSocketStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	FName Name;
+
+	FVector SocketLocation;
+
+	FRotator SocketRotation;
+
+	class ACitizen* Citizen;
+
+	FSocketStruct()
+	{
+		Name = "";
+		SocketLocation = FVector(0.0f, 0.0f, 0.0f);
+		Citizen = nullptr;
+	}
+
+	bool operator==(const FSocketStruct& other) const
+	{
+		return (other.Citizen == Citizen);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ABuilding : public AActor
 {
@@ -137,11 +163,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		float Emissiveness;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		TArray<FLinearColor> Colours;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
 	UPROPERTY()
 		TArray<FCollisionStruct> Collisions;
+
+	UPROPERTY()
+		TArray<FSocketStruct> SocketList;
+
+	void StoreSocketLocations();
+
+	void SetSocketLocation(class ACitizen* Citizen);
 	
 	UFUNCTION(BlueprintCallable)
 		void DestroyBuilding();

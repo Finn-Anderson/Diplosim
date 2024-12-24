@@ -19,6 +19,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Buildings/Misc/Road.h"
+#include "Buildings/Work/Production/InternalProduction.h"
 #include "Universal/DiplosimUserSettings.h"
 
 UBuildComponent::UBuildComponent()
@@ -208,11 +209,11 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 	bool bCoast = false;
 
 	for (FCollisionStruct collision : building->Collisions) {
-		if ((building->IsA(FoundationClass) && collision.Actor->IsA<AGrid>()) || (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>() && building->GetActorLocation() != collision.Actor->GetActorLocation()))
-			continue;
-
 		if (collision.HISM == Camera->Grid->HISMLava)
 			return false;
+
+		if ((building->IsA(FoundationClass) && collision.Actor->IsA<AGrid>()) || (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>() && building->GetActorLocation() != collision.Actor->GetActorLocation()))
+			continue;
 		
 		FTransform transform;
 
@@ -223,6 +224,10 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 
 		if (building->IsA<AWall>() && collision.Actor->IsA<AWall>()) {
 			if (FVector::Dist(building->GetActorLocation(), collision.Actor->GetActorLocation()) < Cast<ABuilding>(collision.Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X)
+				return false;
+		}
+		else if (building->IsA<AInternalProduction>() && collision.Actor->IsA(Cast<AInternalProduction>(building)->ResourceToOverlap)) {
+			if (transform.GetLocation().X != building->GetActorLocation().X || transform.GetLocation().Y != building->GetActorLocation().Y)
 				return false;
 		}
 		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f) {
@@ -360,13 +365,20 @@ void UBuildComponent::Place()
 	Camera->PlayInteractSound();
 
 	if (BuildingToMove->IsValidLowLevelFast()) {
+		FVector diff = BuildingToMove->GetActorLocation() - Buildings[0]->GetActorLocation();
+
 		BuildingToMove->SetActorLocation(Buildings[0]->GetActorLocation());
 		BuildingToMove->SetActorRotation(Buildings[0]->GetActorRotation());
 
+		BuildingToMove->StoreSocketLocations();
+
 		TArray<ACitizen*> citizens = BuildingToMove->GetCitizensAtBuilding();
 
-		for (ACitizen* citizen : citizens)
-			citizen->SetActorLocation(BuildingToMove->GetActorLocation());
+		for (ACitizen* citizen : citizens) {
+			citizen->Building.EnterLocation += diff;
+
+			BuildingToMove->SetSocketLocation(citizen);
+		}
 
 		UConstructionManager* cm = Camera->ConstructionManager;
 
@@ -387,8 +399,7 @@ void UBuildComponent::Place()
 		return;
 	}
 
-	if (Buildings[0]->IsA<AWall>())
-		Cast<AWall>(Buildings[0])->StoreSocketLocations();
+	Buildings[0]->StoreSocketLocations();
 	
 	for (ABuilding* building : Buildings) {
 		UDecalComponent* decalComp = building->FindComponentByClass<UDecalComponent>();
