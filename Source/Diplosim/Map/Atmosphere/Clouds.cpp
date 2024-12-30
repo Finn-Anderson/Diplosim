@@ -85,6 +85,9 @@ void UCloudComponent::ActivateCloud()
 
 	UNiagaraComponent* cloud = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), CloudSystem, transform.GetLocation(), transform.GetRotation().Rotator(), transform.GetScale3D());
 
+	float gravity = -980 / z;
+	float lifetime = (spawnLoc.Z - Height + 200.0f) / 800.0f + 2.6f;
+
 	int32 chance = FMath::RandRange(1, 100);
 
 	if (chance > 75) {
@@ -92,10 +95,17 @@ void UCloudComponent::ActivateCloud()
 		spawnRate = 400.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
 	}
 
-	if (bSnow)
+	if (bSnow) {
 		cloud->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
-	else
+		gravity /= 4;
+		lifetime *= 4;
+	}
+	else {
 		cloud->SetVariableFloat(TEXT("RainSpawnRate"), spawnRate);
+	}
+
+	cloud->SetVariableVec3(TEXT("Gravity"), FVector(0.0f, 0.0f, gravity));
+	cloud->SetVariableFloat(TEXT("Life"), lifetime);
 
 	cloud->SetBoundsScale(3.0f);
 

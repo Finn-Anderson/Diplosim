@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/AudioComponent.h"
+#include "Misc/FileHelper.h"
 
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -30,7 +31,11 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	bMotionBlur = false;
 
+	bIsMaximised = false;
+
 	ScreenPercentage = 100;
+
+	WindowPosition = FVector2D(0.0f);
 
 	MasterVolume = 1.0f;
 	SFXVolume = 1.0f;
@@ -47,16 +52,41 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	_keyValueSink.BindUObject(this, &UDiplosimUserSettings::HandleSink);
 }
 
+void UDiplosimUserSettings::OnWindowResize(FViewport* Viewport, uint32 Value)
+{
+	FString res = FString::FromInt(Viewport->GetSizeXY().X) + "x" + FString::FromInt(Viewport->GetSizeXY().Y);
+
+	if (GetResolution() == res)
+		return;
+
+	if (GEngine->GameViewport->GetWindow()->GetNativeWindow()->IsMaximized())
+		bIsMaximised = true;
+	else
+		bIsMaximised = false;
+
+	Resolution = res;
+
+	GConfig->SetString(*Section, TEXT("Resolution"), *GetResolution(), Filename);
+	GConfig->SetBool(*Section, TEXT("bIsMaximised"), GetMaximised(), Filename);
+
+	GConfig->Flush(false, Filename);
+}
+
+void UDiplosimUserSettings::OnGameWindowMoved(const TSharedRef<SWindow>& WindowBeingMoved)
+{
+	if (GetWindowPos() == WindowBeingMoved.Get().GetPositionInScreen())
+		return;
+	
+	WindowPosition = WindowBeingMoved.Get().GetPositionInScreen();
+
+	GConfig->SetVector2D(*Section, TEXT("WindowPosition"), GetWindowPos(), Filename);
+
+	GConfig->Flush(false, Filename);
+}
+
 void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 {
 	FString value = FString(Value);
-
-	if (value == "0x0") {
-		TArray<FIntPoint> resolutions;
-		UKismetSystemLibrary::GetSupportedFullscreenResolutions(resolutions);
-
-		value = FString::FromInt(resolutions.Last().X) + "x" + FString::FromInt(resolutions.Last().Y);
-	}
 
 	if (FString("bRenderClouds").Equals(Key))
 		SetRenderClouds(value.ToBool());
@@ -74,6 +104,10 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetMotionBlur(value.ToBool());
 	else if (FString("ScreenPercentage").Equals(Key))
 		SetScreenPercentage(FCString::Atoi(Value));
+	else if (FString("WindowPosition").Equals(Key))
+		SetWindowPos(GetWindowPosAsVector(Value));
+	else if (FString("bIsMaximised").Equals(Key))
+		SetMaximised(value.ToBool());
 	else if (FString("MasterVolume").Equals(Key))
 		SetMasterVolume(FCString::Atof(Value));
 	else if (FString("SFXVolume").Equals(Key))
@@ -84,6 +118,11 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 
 void UDiplosimUserSettings::LoadIniSettings()
 {
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	if (!PlatformFile.FileExists(*Filename))
+		FFileHelper::SaveStringToFile(TEXT(""), *Filename);
+
 	GConfig->Flush(true, Filename);
 
 	GConfig->LoadFile(Filename);
@@ -91,6 +130,16 @@ void UDiplosimUserSettings::LoadIniSettings()
 	GConfig->ForEachEntry(_keyValueSink, *Section, Filename);
 
 	GEngine->Exec(GetWorld(), TEXT("r.FullScreenMode 2"));
+
+	if (Resolution == "0x0") {
+		TArray<FIntPoint> resolutions;
+		UKismetSystemLibrary::GetSupportedFullscreenResolutions(resolutions);
+
+		SetResolution(FString::FromInt(resolutions.Last().X) + "x" + FString::FromInt(resolutions.Last().Y));
+	}
+
+	GEngine->GameViewport->Viewport->ViewportResizedEvent.AddUObject(this, &UDiplosimUserSettings::OnWindowResize);
+	GEngine->GameViewport->GetWindow()->SetOnWindowMoved(FOnWindowMoved::CreateUObject(this, &UDiplosimUserSettings::OnGameWindowMoved));
 }
 
 void UDiplosimUserSettings::SaveIniSettings()
@@ -103,6 +152,8 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bRayTracing"), GetRayTracing(), Filename);
 	GConfig->SetBool(*Section, TEXT("bMotionBlur"), GetMotionBlur(), Filename);
 	GConfig->SetInt(*Section, TEXT("ScreenPercentage"), GetScreenPercentage(), Filename);
+	GConfig->SetVector2D(*Section, TEXT("WindowPosition"), GetWindowPos(), Filename);
+	GConfig->SetBool(*Section, TEXT("bIsMaximised"), GetMaximised(), Filename);
 	GConfig->SetFloat(*Section, TEXT("MasterVolume"), GetMasterVolume(), Filename);
 	GConfig->SetFloat(*Section, TEXT("SFXVolume"), GetSFXVolume(), Filename);
 	GConfig->SetFloat(*Section, TEXT("AmbientVolume"), GetAmbientVolume(), Filename);
@@ -271,6 +322,31 @@ FString UDiplosimUserSettings::GetResolution() const
 	return Resolution;
 }
 
+void UDiplosimUserSettings::SetWindowPos(FVector2D Position)
+{
+	WindowPosition = Position;
+	
+	GEngine->GameViewport->GetWindow()->MoveWindowTo(WindowPosition);
+}
+
+FVector2D UDiplosimUserSettings::GetWindowPos() const
+{
+	return WindowPosition;
+}
+
+void UDiplosimUserSettings::SetMaximised(bool Value)
+{
+	bIsMaximised = Value;
+
+	if (bIsMaximised)
+		GEngine->GameViewport->GetWindow()->GetNativeWindow()->Maximize();
+}
+
+bool UDiplosimUserSettings::GetMaximised() const
+{
+	return bIsMaximised;
+}
+
 void UDiplosimUserSettings::SetMasterVolume(float Value)
 {
 	if (MasterVolume == Value)
@@ -328,6 +404,24 @@ void UDiplosimUserSettings::UpdateAmbientVolume()
 
 	for (ABuilding* building : camera->CitizenManager->Buildings)
 		building->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
+}
+
+FVector2D UDiplosimUserSettings::GetWindowPosAsVector(FString Value)
+{
+	TArray<FString> positions;
+	Value.ParseIntoArray(positions, TEXT(" "));
+
+	TArray<int32> XY;
+
+	for (FString pos : positions) {
+		TArray<FString> position;
+
+		pos.ParseIntoArray(position, TEXT("="));
+
+		XY.Add(FCString::Atoi(*position[1]));
+	}
+
+	return FVector2D(XY[0], XY[1]);
 }
 
 UDiplosimUserSettings* UDiplosimUserSettings::GetDiplosimUserSettings()

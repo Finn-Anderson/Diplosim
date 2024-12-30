@@ -105,6 +105,7 @@ struct FEventStruct
 
 	FEventStruct()
 	{
+		Type = EEventType::Holiday;
 		Buildings = {};
 		Times = {};
 	}
@@ -225,6 +226,7 @@ struct FLawStruct
 	FLawStruct()
 	{
 		BillType = EBillType::WorkAge;
+		Cooldown = 0;
 	}
 
 	bool operator==(const FLawStruct& other) const

@@ -38,6 +38,12 @@ protected:
 		FString Resolution;
 
 	UPROPERTY(Config)
+		FVector2D WindowPosition;
+
+	UPROPERTY(Config)
+		bool bIsMaximised;
+
+	UPROPERTY(Config)
 		float MasterVolume;
 
 	UPROPERTY(Config)
@@ -49,6 +55,10 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
+
+	void OnWindowResize(FViewport* Viewport, uint32 Value);
+
+	void OnGameWindowMoved(const TSharedRef<SWindow>& WindowBeingMoved);
 
 	UFUNCTION(BlueprintCallable)
 		void SaveIniSettings();
@@ -109,6 +119,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Resolution")
 		FString GetResolution() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Resolution")
+		void SetWindowPos(FVector2D Position);
+
+	UFUNCTION(BlueprintPure, Category = "Resolution")
+		FVector2D GetWindowPos() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Resolution")
+		void SetMaximised(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Resolution")
+		bool GetMaximised() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Audio")
 		void SetMasterVolume(float Value);
 
@@ -128,6 +150,8 @@ public:
 		float GetAmbientVolume() const;
 
 	void UpdateAmbientVolume();
+
+	FVector2D GetWindowPosAsVector(FString Value);
 
 	UPROPERTY()
 		class UCloudComponent* Clouds;
