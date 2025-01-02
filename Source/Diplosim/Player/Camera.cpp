@@ -113,6 +113,10 @@ void ACamera::BeginPlay()
 {
 	Super::BeginPlay();
 
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	settings->Camera = this;
+	settings->SetVignette(settings->GetVignette());
+
 	ResourceManager->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 	GetWorldTimerManager().SetTimer(ResourceManager->ValueTimer, ResourceManager, &UResourceManager::SetTradeValues, 300.0f, true);

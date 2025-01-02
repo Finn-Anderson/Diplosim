@@ -1,5 +1,6 @@
 #include "DiplosimUserSettings.h"
 
+#include "Camera/CameraComponent.h"
 #include "NiagaraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/ExponentialHeightFogComponent.h"
@@ -30,6 +31,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bRayTracing = false;
 
 	bMotionBlur = false;
+	bDepthOfField = false;
+	bVignette = true;
 
 	bIsMaximised = false;
 
@@ -102,6 +105,10 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetRayTracing(value.ToBool());
 	else if (FString("bMotionBlur").Equals(Key))
 		SetMotionBlur(value.ToBool());
+	else if (FString("bDepthOfField").Equals(Key))
+		SetDepthOfField(value.ToBool());
+	else if (FString("bVignette").Equals(Key))
+		SetVignette(value.ToBool());
 	else if (FString("ScreenPercentage").Equals(Key))
 		SetScreenPercentage(FCString::Atoi(Value));
 	else if (FString("WindowPosition").Equals(Key))
@@ -151,6 +158,8 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetString(*Section, TEXT("Resolution"), *GetResolution(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRayTracing"), GetRayTracing(), Filename);
 	GConfig->SetBool(*Section, TEXT("bMotionBlur"), GetMotionBlur(), Filename);
+	GConfig->SetBool(*Section, TEXT("bDepthOfField"), GetDepthOfField(), Filename);
+	GConfig->SetBool(*Section, TEXT("bVignette"), GetVignette(), Filename);
 	GConfig->SetInt(*Section, TEXT("ScreenPercentage"), GetScreenPercentage(), Filename);
 	GConfig->SetVector2D(*Section, TEXT("WindowPosition"), GetWindowPos(), Filename);
 	GConfig->SetBool(*Section, TEXT("bIsMaximised"), GetMaximised(), Filename);
@@ -290,6 +299,39 @@ void UDiplosimUserSettings::SetMotionBlur(bool Value)
 bool UDiplosimUserSettings::GetMotionBlur() const
 {
 	return bMotionBlur;
+}
+
+void UDiplosimUserSettings::SetDepthOfField(bool Value)
+{
+	bDepthOfField = Value;
+
+	if (bDepthOfField)
+		GEngine->Exec(GetWorld(), TEXT("r.DepthOfFieldQuality 1"));
+	else
+		GEngine->Exec(GetWorld(), TEXT("r.DepthOfFieldQuality 0"));
+}
+
+bool UDiplosimUserSettings::GetDepthOfField() const
+{
+	return bDepthOfField;
+}
+
+void UDiplosimUserSettings::SetVignette(bool Value)
+{
+	bVignette = Value;
+
+	if (Camera == nullptr)
+		return;
+
+	if (bVignette)
+		Camera->CameraComponent->PostProcessSettings.VignetteIntensity = 0.25f;
+	else
+		Camera->CameraComponent->PostProcessSettings.VignetteIntensity = 0.0f;
+}
+
+bool UDiplosimUserSettings::GetVignette() const
+{
+	return bVignette;
 }
 
 void UDiplosimUserSettings::SetScreenPercentage(int32 Value)

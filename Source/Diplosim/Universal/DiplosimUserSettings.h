@@ -32,6 +32,12 @@ protected:
 		bool bMotionBlur;
 
 	UPROPERTY(Config)
+		bool bDepthOfField;
+
+	UPROPERTY(Config)
+		bool bVignette;
+
+	UPROPERTY(Config)
 		int32 ScreenPercentage;
 
 	UPROPERTY(Config)
@@ -107,6 +113,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Motion Blur")
 		bool GetMotionBlur() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Depth Of Field")
+		void SetDepthOfField(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Vignette")
+		bool GetDepthOfField() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Vignette")
+		void SetVignette(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Vignette")
+		bool GetVignette() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Screen Percentage")
 		void SetScreenPercentage(int32 Value);
 
@@ -161,6 +179,9 @@ public:
 
 	UPROPERTY()
 		class ADiplosimGameModeBase* GameMode;
+
+	UPROPERTY()
+		class ACamera* Camera;
 
 	UPROPERTY()
 		FString Section;
