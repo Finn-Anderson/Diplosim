@@ -31,12 +31,16 @@ UAtmosphereComponent::UAtmosphereComponent()
 	SkyLight->SetCastShadows(false);
 
 	Sun = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Sun"));
+	Sun->SetDynamicShadowDistanceMovableLight(20000.0f);
+	Sun->SetCascadeDistributionExponent(1.0f);
 	Sun->SetAtmosphereSunLightIndex(0);
 	Sun->SetCastShadows(true);
 	Sun->ForwardShadingPriority = 0;
 
 	Moon = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Moon"));
 	Moon->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
+	Moon->SetDynamicShadowDistanceMovableLight(20000.0f);
+	Moon->SetCascadeDistributionExponent(1.0f);
 	Moon->SetAtmosphereSunLightIndex(1);
 	Moon->SetCastShadows(false);
 	Moon->SetIntensity(0.5f);

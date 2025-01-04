@@ -4,24 +4,34 @@
 #include "Components/ActorComponent.h"
 #include "Clouds.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCloudStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	class UNiagaraComponent* Cloud;
+	UPROPERTY()
+		class UHierarchicalInstancedStaticMeshComponent* HISMCloud;
 
-	double Distance;
+	UPROPERTY()
+		class UNiagaraComponent* Precipitation;
+
+	UPROPERTY()
+		double Distance;
+
+	UPROPERTY()
+		bool bHide;
 
 	FCloudStruct()
 	{
-		Cloud = nullptr;
+		HISMCloud = nullptr;
+		Precipitation = nullptr;
 		Distance = 0.0f;
+		bHide = false;
 	}
 
 	bool operator==(const FCloudStruct& other) const
 	{
-		return (other.Cloud == Cloud);
+		return (other.HISMCloud == HISMCloud);
 	}
 };
 
@@ -44,8 +54,15 @@ public:
 	UFUNCTION()
 		void ActivateCloud();
 
+	FCloudStruct CreateCloud(FTransform Transform, int32 Chance);
+
+	TArray<FVector> SetPrecipitationLocations(FTransform Transform);
+
 	UFUNCTION()
 		void UpdateSpawnedClouds();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		UStaticMesh* CloudMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
 		class UNiagaraSystem* CloudSystem;

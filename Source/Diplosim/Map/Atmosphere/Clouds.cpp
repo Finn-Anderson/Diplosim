@@ -2,6 +2,8 @@
 
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 
 #include "AtmosphereComponent.h"
 #include "Map/Grid.h"
@@ -11,7 +13,14 @@ UCloudComponent::UCloudComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
+	CloudMesh = nullptr;
+
+	CloudSystem = nullptr;
+	Settings = nullptr;
+
 	Height = 4000.0f;
+
+	bSnow = false;
 }
 
 void UCloudComponent::BeginPlay()
@@ -32,24 +41,44 @@ void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	for (int32 i = Clouds.Num() - 1; i > -1; i--) {
 		FCloudStruct cloudStruct = Clouds[i];
 
-		FVector location = cloudStruct.Cloud->GetRelativeLocation() + (Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation.Vector());
+		FVector location = cloudStruct.HISMCloud->GetRelativeLocation() + (Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation.Vector());
 
-		cloudStruct.Cloud->SetRelativeLocation(location);
+		float bobAmount = FMath::Sin(GetWorld()->GetTimeSeconds() / 2.0f) / 10.0f;
+		location.Z += bobAmount;
+
+		cloudStruct.HISMCloud->SetRelativeLocation(location);
+
+		UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(cloudStruct.HISMCloud->GetMaterial(0));
+		float opacity = 0.0f;
+		FHashedMaterialParameterInfo info;
+		info.Name = FScriptName("Opacity");
+		material->GetScalarParameterValue(info, opacity);
+
+		if (!cloudStruct.bHide && opacity != 1.0f)
+			material->SetScalarParameterValue("Opacity", FMath::Clamp(opacity + 0.005f, 0.0f, 1.0f));
+		else if (cloudStruct.bHide)
+			material->SetScalarParameterValue("Opacity", FMath::Clamp(opacity - 0.005f, 0.0f, 1.0f));
 
 		double distance = FVector::Dist(location, Cast<AGrid>(GetOwner())->GetActorLocation());
 
 		if (distance > cloudStruct.Distance) {
-			cloudStruct.Cloud->Deactivate();
+			cloudStruct.Precipitation->Deactivate();
 
-			Clouds.Remove(cloudStruct);
+			Clouds[i].bHide = true;
+
+			if (opacity == 0.0f)
+				Clouds.Remove(cloudStruct);
 		}
 	}
 }
 
 void UCloudComponent::Clear()
 {
-	for (FCloudStruct cloudStruct : Clouds)
-		cloudStruct.Cloud->DestroyComponent();
+	for (FCloudStruct cloudStruct : Clouds) {
+		cloudStruct.Precipitation->DestroyComponent();
+
+		cloudStruct.HISMCloud->DestroyComponent();
+	}
 
 	Clouds.Empty();
 
@@ -68,8 +97,6 @@ void UCloudComponent::ActivateCloud()
 	float z = FMath::FRandRange(1.0f, 4.0f);
 	transform.SetScale3D(FVector(x, y, z));
 
-	float spawnRate = 0.0f;
-
 	transform.SetRotation((Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
 
 	FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f;
@@ -83,53 +110,119 @@ void UCloudComponent::ActivateCloud()
 
 	transform.SetLocation(spawnLoc);
 
-	UNiagaraComponent* cloud = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), CloudSystem, transform.GetLocation(), transform.GetRotation().Rotator(), transform.GetScale3D());
-
-	float gravity = -980 / z;
-	float lifetime = (spawnLoc.Z - Height + 200.0f) / 800.0f + 2.6f;
-
 	int32 chance = FMath::RandRange(1, 100);
 
-	if (chance > 75) {
-		cloud->SetVariableLinearColor(TEXT("Color"), FLinearColor(0.1f, 0.1f, 0.1f, 0.9f));
-		spawnRate = 400.0f * transform.GetScale3D().X * transform.GetScale3D().Y;
-	}
-
-	if (bSnow) {
-		cloud->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
-		gravity /= 4;
-		lifetime *= 4;
-	}
-	else {
-		cloud->SetVariableFloat(TEXT("RainSpawnRate"), spawnRate);
-	}
-
-	cloud->SetVariableVec3(TEXT("Gravity"), FVector(0.0f, 0.0f, gravity));
-	cloud->SetVariableFloat(TEXT("Life"), lifetime);
-
-	cloud->SetBoundsScale(3.0f);
-
-	FCloudStruct cloudStruct;
-	cloudStruct.Cloud = cloud;
+	FCloudStruct cloudStruct = CreateCloud(transform, chance);
 	cloudStruct.Distance = FVector::Dist(spawnLoc, Cast<AGrid>(GetOwner())->GetActorLocation());
+
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(cloudStruct.HISMCloud->GetMaterial(0), this);
+	material->SetScalarParameterValue("Opacity", 0.0f);
+
+	if (chance > 75)
+		material->SetVectorParameterValue("Colour", FLinearColor(0.1f, 0.1f, 0.1f, 0.9f));
+
+	cloudStruct.HISMCloud->SetMaterial(0, material);
 
 	Clouds.Add(cloudStruct);
 
 	GetWorld()->GetTimerManager().SetTimer(CloudTimer, this, &UCloudComponent::ActivateCloud, 90.0f);
 }
 
+FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
+{
+	UHierarchicalInstancedStaticMeshComponent* cloud = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass());
+	cloud->SetStaticMesh(CloudMesh);
+	cloud->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
+	cloud->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	cloud->SetRelativeLocation(Transform.GetLocation());
+	cloud->SetRelativeRotation(Transform.GetRotation());
+	cloud->SetupAttachment(GetOwner()->GetRootComponent());
+	cloud->RegisterComponent();
+
+	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
+
+	TArray<FVector> locations;
+	
+	for (int32 i = 0; i < 200; i++) {
+		FTransform t = Transform;
+
+		float x = FMath::FRandRange(-800.0f, 800.0f) * t.GetScale3D().X;
+		float y = FMath::FRandRange(-800.0f, 800.0f) * t.GetScale3D().Y;
+		float z = FMath::FRandRange(-256.0f, 256.0f) * t.GetScale3D().Z;
+		t.SetLocation(FVector(x, y, z));
+
+		float diff = FMath::FRandRange(20.0f, 40.0f);
+		t.SetScale3D(t.GetScale3D() * diff);
+
+		int32 inst = cloud->AddInstance(t);
+
+		if (Chance > 75)
+			locations.Append(SetPrecipitationLocations(t));
+	}
+
+	float spawnRate = 0.0f;
+
+	float gravity = -980.0f;
+	float lifetime = (cloud->GetRelativeLocation().Z - Height + 200.0f) / 800.0f + 3.0f;
+
+	if (Chance > 75) {
+		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(precipitation, TEXT("SpawnLocations"), locations);
+		spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y;
+	}
+
+	if (bSnow) {
+		precipitation->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
+		gravity /= 4;
+		lifetime *= 4;
+	}
+	else {
+		precipitation->SetVariableFloat(TEXT("RainSpawnRate"), spawnRate);
+	}
+
+	precipitation->SetVariableVec3(TEXT("Gravity"), FVector(0.0f, 0.0f, gravity));
+	precipitation->SetVariableFloat(TEXT("Life"), lifetime);
+
+	precipitation->SetBoundsScale(3.0f);
+
+	precipitation->Activate();
+
+	FCloudStruct cloudStruct;
+	cloudStruct.HISMCloud = cloud;
+	cloudStruct.Precipitation = precipitation;
+
+	return cloudStruct;
+}
+
+TArray<FVector> UCloudComponent::SetPrecipitationLocations(FTransform Transform)
+{
+	TArray<FVector> locations;
+
+	float x = 5.0f * Transform.GetScale3D().X * Transform.GetRotation().Vector().X;
+	float y = 5.0f * Transform.GetScale3D().Y * Transform.GetRotation().Vector().Y;
+
+	for (int32 i = 0; i < 9; i++) {
+		for (int32 j = 0; j < 9; j++) {
+			FVector vector = FVector(Transform.GetLocation().X + x - (x / 4.0f * i), Transform.GetLocation().Y + y - (y / 4.0f * j), 0.0f);
+
+			locations.Add(vector);
+		}
+	}
+
+	return locations;
+}
+
 void UCloudComponent::UpdateSpawnedClouds()
 {
 	for (FCloudStruct cloudStruct : Clouds) {
-		int32 spawnRate = 400.0f * cloudStruct.Cloud->GetRelativeScale3D().X * cloudStruct.Cloud->GetRelativeScale3D().Y;
+		int32 spawnRate = 400.0f * cloudStruct.Precipitation->GetRelativeScale3D().X * cloudStruct.Precipitation->GetRelativeScale3D().Y;
 
 		if (bSnow) {
-			cloudStruct.Cloud->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
-			cloudStruct.Cloud->SetVariableFloat(TEXT("RainSpawnRate"), 0.0f);
+			cloudStruct.Precipitation->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
+			cloudStruct.Precipitation->SetVariableFloat(TEXT("RainSpawnRate"), 0.0f);
 		}
 		else {
-			cloudStruct.Cloud->SetVariableFloat(TEXT("SnowSpawnRate"), 0.0f);
-			cloudStruct.Cloud->SetVariableFloat(TEXT("RainSpawnRate"), spawnRate);
+			cloudStruct.Precipitation->SetVariableFloat(TEXT("SnowSpawnRate"), 0.0f);
+			cloudStruct.Precipitation->SetVariableFloat(TEXT("RainSpawnRate"), spawnRate);
 		}
 	}
 }

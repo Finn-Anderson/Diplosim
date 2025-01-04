@@ -249,11 +249,9 @@ void AGrid::Render()
 	}
 
 	// Spawn Actor
-	for (TArray<FTileStruct> &row : Storage) {
-		for (FTileStruct &tile : row) {
+	for (TArray<FTileStruct> &row : Storage)
+		for (FTileStruct &tile : row)
 			GenerateTile(&tile);
-		}
-	}
 
 	// Spawn resources
 	ResourceTiles.Empty();
@@ -302,6 +300,9 @@ void AGrid::Render()
 
 	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();
+
+	if (Camera->PauseUIInstance->IsInViewport())
+		Camera->Pause(true, true);
 }
 
 TArray<FTileStruct*> AGrid::CalculatePath(FTileStruct* Tile, FTileStruct* Target)
@@ -489,7 +490,6 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 				break;
 			}
 		}
-			
 
 		if (bRamp) {
 			inst = HISMRampGround->AddInstance(transform);
@@ -550,7 +550,7 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 {
 	int32 value = FMath::RandRange(Amount - 1, Amount);
 
-	if (value == 0 || !ResourceTiles.Contains(Tile) || Tile->Level < 0)
+	if (value == 0 || !ResourceTiles.Contains(Tile) || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
 		return;
 
 	TArray<int32> usedX;
@@ -708,6 +708,9 @@ void AGrid::Clear()
 	HISMGround->ClearInstances();
 	HISMFlatGround->ClearInstances();
 	HISMRampGround->ClearInstances();
+
+	if (Camera->PauseUIInstance->IsInViewport())
+		Camera->Pause(false, false);
 }
 
 void AGrid::SetSeasonAffect(FString Period)

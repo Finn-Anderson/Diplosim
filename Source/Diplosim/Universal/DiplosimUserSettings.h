@@ -26,7 +26,7 @@ protected:
 		FString GIName;
 
 	UPROPERTY(Config)
-		bool bRayTracing;
+		int32 ShadowLevel;
 
 	UPROPERTY(Config)
 		bool bMotionBlur;
@@ -101,11 +101,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GI")
 		FString GetGI() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Fog")
-		void SetRayTracing(bool Value);
+	UFUNCTION(BlueprintCallable, Category = "Shadows")
+		void SetShadowLevel(int32 Value);
 
-	UFUNCTION(BlueprintPure, Category = "Fog")
-		bool GetRayTracing() const;
+	UFUNCTION(BlueprintPure, Category = "Shadows")
+		int32 GetShadowLevel() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Motion Blur")
 		void SetMotionBlur(bool Value);

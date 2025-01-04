@@ -28,7 +28,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	Resolution = "0x0";
 
-	bRayTracing = false;
+	ShadowLevel = 1;
 
 	bMotionBlur = false;
 	bDepthOfField = false;
@@ -101,8 +101,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetGI(value);
 	else if (FString("Resolution").Equals(Key))
 		SetResolution(value);
-	else if (FString("bRayTracing").Equals(Key))
-		SetRayTracing(value.ToBool());
+	else if (FString("ShadowLevel").Equals(Key))
+		SetShadowLevel(FCString::Atoi(Value));
 	else if (FString("bMotionBlur").Equals(Key))
 		SetMotionBlur(value.ToBool());
 	else if (FString("bDepthOfField").Equals(Key))
@@ -156,7 +156,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetString(*Section, TEXT("AAName"), *GetAA(), Filename);
 	GConfig->SetString(*Section, TEXT("GIName"), *GetGI(), Filename);
 	GConfig->SetString(*Section, TEXT("Resolution"), *GetResolution(), Filename);
-	GConfig->SetBool(*Section, TEXT("bRayTracing"), GetRayTracing(), Filename);
+	GConfig->SetInt(*Section, TEXT("ShadowLevel"), GetShadowLevel(), Filename);
 	GConfig->SetBool(*Section, TEXT("bMotionBlur"), GetMotionBlur(), Filename);
 	GConfig->SetBool(*Section, TEXT("bDepthOfField"), GetDepthOfField(), Filename);
 	GConfig->SetBool(*Section, TEXT("bVignette"), GetVignette(), Filename);
@@ -271,19 +271,25 @@ FString UDiplosimUserSettings::GetGI() const
 	return GIName;
 }
 
-void UDiplosimUserSettings::SetRayTracing(bool Value)
+void UDiplosimUserSettings::SetShadowLevel(int32 Value)
 {
-	bRayTracing = Value;
+	ShadowLevel = Value;
 
-	if (bRayTracing)
+	if (ShadowLevel == 5) {
 		GEngine->Exec(GetWorld(), TEXT("r.RayTracing.Enable 1"));
-	else
+	}
+	else {
 		GEngine->Exec(GetWorld(), TEXT("r.RayTracing.Enable 0"));
+
+		FString cmd = "r.Shadow.CSM.MaxCascades " + FString::FromInt(ShadowLevel);
+
+		GEngine->Exec(GetWorld(), *cmd);
+	}
 }
 
-bool UDiplosimUserSettings::GetRayTracing() const
+int32 UDiplosimUserSettings::GetShadowLevel() const
 {
-	return bRayTracing;
+	return ShadowLevel;
 }
 
 void UDiplosimUserSettings::SetMotionBlur(bool Value)
