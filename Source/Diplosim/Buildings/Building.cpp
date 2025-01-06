@@ -93,6 +93,8 @@ ABuilding::ABuilding()
 	bConstant = true;
 
 	Belief = EReligion::Atheist;
+
+	CurrentSeed = 0;
 }
 
 void ABuilding::BeginPlay()
@@ -138,6 +140,40 @@ void ABuilding::BeginPlay()
 
 		Storage.Add(itemStruct);
 	}
+
+	SetSeed();
+}
+
+void ABuilding::SetSeed()
+{
+	if (Seeds.IsEmpty())
+		return;
+
+	TArray<USceneComponent*> children;
+	BuildingMesh->GetChildrenComponents(true, children);
+
+	for (USceneComponent* component : children)
+		component->DestroyComponent();
+
+	TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
+
+	for (FName socket : sockets) {
+		if (!socket.ToString().Contains("Random"))
+			continue;
+
+		FString result = socket.ToString().Replace(TEXT("Random"), TEXT(""), ESearchCase::IgnoreCase);
+		int32 num = FCString::Atoi(*result) - 1;
+
+		int32 angle = FMath::RandRange(0, 3);
+
+		UStaticMeshComponent* meshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass());
+		meshComp->SetStaticMesh(Seeds[CurrentSeed].Meshes[num]);
+		meshComp->SetupAttachment(BuildingMesh, socket);
+		meshComp->SetRelativeRotation(FRotator(0.0f, 90.0f * angle, 0.0f));
+		meshComp->RegisterComponent();
+	}
+
+	CurrentSeed++;
 }
 
 TArray<FItemStruct> ABuilding::GetRebuildCost()

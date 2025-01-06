@@ -127,6 +127,15 @@ struct FSocketStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FSeedStruct
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		TArray<UStaticMesh*> Meshes;
+};
+
 UCLASS()
 class DIPLOSIM_API ABuilding : public AActor
 {
@@ -166,6 +175,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		TArray<FLinearColor> Colours;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		TArray<FSeedStruct> Seeds;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Randomisation")
+		int32 CurrentSeed;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -174,6 +189,8 @@ public:
 
 	UPROPERTY()
 		TArray<FSocketStruct> SocketList;
+
+	void SetSeed();
 
 	void StoreSocketLocations();
 

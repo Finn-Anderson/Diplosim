@@ -267,15 +267,33 @@ void AGrid::Render()
 
 	int32 num = ResourceTiles.Num() / 2000;
 
+	TArray<TArray<FTileStruct*>> ValidMineralTiles;
+
+	for (FTileStruct* tile : ResourceTiles) {
+		bool valid = true;
+		TArray<FTileStruct*> tiles;
+
+		GetValidSpawnLocations(tile, tile, 1, valid, tiles);
+
+		if (!valid)
+			continue;
+
+		ValidMineralTiles.Add(tiles);
+	}
+
 	for (FResourceHISMStruct &ResourceStruct : MineralStruct) {
 		for (int32 i = 0; i < (num * ResourceStruct.Multiplier); i++) {
-			int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
-			FTileStruct* chosenTile = ResourceTiles[chosenNum];
+			int32 chosenNum = FMath::RandRange(0, ValidMineralTiles.Num() - 1);
+			TArray<FTileStruct*> chosenTiles = ValidMineralTiles[chosenNum];
 
-			GenerateMinerals(chosenTile, ResourceStruct.Resource);
+			GenerateMinerals(chosenTiles[0], ResourceStruct.Resource);
+
+			for (FTileStruct* tile : chosenTiles)
+				for (int32 j = ValidMineralTiles.Num() - 1; j > -1; j--)
+					if (ValidMineralTiles[j].Contains(tile))
+						ValidMineralTiles.RemoveAt(j);
 		}
 	}
-	
 
 	for (int32 i = 0; i < num; i++) {
 		int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
@@ -476,13 +494,11 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		g /= 255.0f;
 		b /= 255.0f;
 
-		bool bRamp = false;
-
 		int32 chance = FMath::RandRange(1, 100);
 
 		for (auto& element : Tile->AdjacentTiles) {
 			if (element.Value->Level > Tile->Level && element.Value->Level != 7 && chance > 99) {
-				bRamp = true;
+				Tile->bRamp = true;
 
 				transform.SetRotation((FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0) - FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, 0)).ToOrientationQuat());
 				transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
@@ -491,7 +507,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 			}
 		}
 
-		if (bRamp) {
+		if (Tile->bRamp) {
 			inst = HISMRampGround->AddInstance(transform);
 			HISMRampGround->SetCustomDataValue(inst, 0, 1.0f);
 			HISMRampGround->SetCustomDataValue(inst, 1, r);
@@ -544,6 +560,24 @@ void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 	mineral->ResourceHISM->GetStaticMesh()->AddSocket(socket);
 
 	ResourceTiles.Remove(Tile);
+}
+
+void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles)
+{
+	if (CheckTile->X > SpawnTile->X + Range || CheckTile->X < SpawnTile->X - Range || CheckTile->Y > SpawnTile->Y + Range || CheckTile->Y < SpawnTile->Y - Range)
+		return;
+
+	if (CheckTile->bRamp || CheckTile->Level != SpawnTile->Level) {
+		Valid = false;
+
+		return;
+	}
+
+	Tiles.Add(CheckTile);
+
+	for (auto& element : CheckTile->AdjacentTiles)
+		if (!Tiles.Contains(element.Value))
+			GetValidSpawnLocations(SpawnTile, element.Value, Range, Valid, Tiles);
 }
 
 void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)

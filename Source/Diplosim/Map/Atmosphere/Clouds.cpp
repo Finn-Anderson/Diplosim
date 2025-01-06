@@ -197,8 +197,8 @@ TArray<FVector> UCloudComponent::SetPrecipitationLocations(FTransform Transform)
 {
 	TArray<FVector> locations;
 
-	float x = 5.0f * Transform.GetScale3D().X * Transform.GetRotation().Vector().X;
-	float y = 5.0f * Transform.GetScale3D().Y * Transform.GetRotation().Vector().Y;
+	float x = 5.0f * Transform.GetScale3D().X * Transform.GetRotation().Vector().X - 1.0f;
+	float y = 5.0f * Transform.GetScale3D().Y * Transform.GetRotation().Vector().Y - 1.0f;
 
 	for (int32 i = 0; i < 9; i++) {
 		for (int32 j = 0; j < 9; j++) {

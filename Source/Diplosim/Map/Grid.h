@@ -20,6 +20,8 @@ struct FTileStruct
 
 	TMap<FString, FTileStruct*> AdjacentTiles;
 
+	bool bRamp;
+
 	FTileStruct() {
 		Level = -1;
 
@@ -32,6 +34,8 @@ struct FTileStruct
 		Y = 0;
 
 		Rotation = FRotator(0.0f, 0.0f, 0.0f).Quaternion();
+
+		bRamp = false;
 	}
 
 	bool operator==(const FTileStruct& other) const
@@ -155,6 +159,8 @@ public:
 
 	// Resources
 	void GenerateMinerals(FTileStruct* Tile, AResource* Resource);
+
+	void GetValidSpawnLocations(FTileStruct* Tile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles);
 
 	void GenerateTrees(FTileStruct* Tile, int32 Amount);
 
