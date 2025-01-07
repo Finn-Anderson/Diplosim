@@ -72,6 +72,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void RefreshRepresentatives();
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void SetSeedVisibility(bool bVisible);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;

@@ -141,13 +141,20 @@ void ABuilding::BeginPlay()
 		Storage.Add(itemStruct);
 	}
 
-	SetSeed();
+	SetSeed(0);
 }
 
-void ABuilding::SetSeed()
+void ABuilding::SetSeed(int32 Increment)
 {
 	if (Seeds.IsEmpty())
 		return;
+
+	CurrentSeed += Increment;
+
+	if (CurrentSeed > Seeds.Num())
+		CurrentSeed = 0;
+	else if (CurrentSeed < 0)
+		CurrentSeed = Seeds.Num() - 1;
 
 	TArray<USceneComponent*> children;
 	BuildingMesh->GetChildrenComponents(true, children);
@@ -172,8 +179,6 @@ void ABuilding::SetSeed()
 		meshComp->SetRelativeRotation(FRotator(0.0f, 90.0f * angle, 0.0f));
 		meshComp->RegisterComponent();
 	}
-
-	CurrentSeed++;
 }
 
 TArray<FItemStruct> ABuilding::GetRebuildCost()

@@ -264,6 +264,9 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 		for (AActor* road : roads)
 			road->SetActorTickEnabled(true);
 	}
+
+	if (!building->Seeds.IsEmpty())
+		Camera->SetSeedVisibility(true);
 }
 
 void UBuildComponent::DetachBuilding()
@@ -287,6 +290,8 @@ void UBuildComponent::DetachBuilding()
 	}
 
 	Buildings.Empty();
+
+	Camera->SetSeedVisibility(false);
 }
 
 void UBuildComponent::RemoveBuilding()

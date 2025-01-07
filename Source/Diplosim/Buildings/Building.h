@@ -190,7 +190,8 @@ public:
 	UPROPERTY()
 		TArray<FSocketStruct> SocketList;
 
-	void SetSeed();
+	UFUNCTION(BlueprintCallable)
+		void SetSeed(int32 Increment);
 
 	void StoreSocketLocations();
 
