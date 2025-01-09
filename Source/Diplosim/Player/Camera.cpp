@@ -570,6 +570,8 @@ void ACamera::Debug()
 
 	// Test Building Damage
 	//CitizenManager->Buildings.Last()->HealthComponent->TakeHealth(1000, CitizenManager->Buildings.Last());
+
+	Grid->SetSeasonAffect("Summer", 0.02f);
 }
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)

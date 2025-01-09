@@ -131,7 +131,7 @@ void UAtmosphereComponent::SetDisplayText(int32 Hour)
 	if (period != Calendar.Period) {
 		Cast<AGrid>(GetOwner())->Camera->DisplayEvent("Season", Calendar.Period);
 
-		Cast<AGrid>(GetOwner())->SetSeasonAffect(Calendar.Period);
+		Cast<AGrid>(GetOwner())->SetSeasonAffect(Calendar.Period, 0.02f);
 	}
 
 	Cast<AGrid>(GetOwner())->Camera->CitizenManager->ExecuteEvent(Calendar.Period, Calendar.Days[Calendar.Index], Calendar.Hour);

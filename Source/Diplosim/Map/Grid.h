@@ -186,11 +186,9 @@ public:
 		FTimerHandle EggBasketTimer;
 
 	// Seasons
-	void SetSeasonAffect(FString Period);
+	void SetSeasonAffect(FString Period, float Increment);
 
-	void IncreaseSeasonAffectGradually(int32 Value);
+	void AlterSeasonAffectGradually(FString Period, float Increment);
 
-	void DecreaseSeasonAffectGradually(int32 Value);
-
-	void SetSeasonAffectGradually(int32 Value);
+	void SetSeasonAffect(TArray<float> Values);
 };

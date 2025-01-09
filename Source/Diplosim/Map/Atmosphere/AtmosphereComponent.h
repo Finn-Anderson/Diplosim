@@ -23,8 +23,8 @@ struct FCalendarStruct
 
 	FCalendarStruct()
 	{
-		Period = "Warmth";
-		Days = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6};
+		Period = "Spring";
+		Days = {1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3};
 		Index = 0;
 		Hour = 6;
 	}
@@ -33,13 +33,20 @@ struct FCalendarStruct
 	{
 		if (Index == (Days.Num() - 1)) {
 			Index = 0;
-			Period = "Warmth";
+			Period = "Spring";
 		}
 		else {
 			Index++;
 
-			if (Days[Index] == 1)
-				Period = "Cold";
+			if (Days[Index] != 1)
+				return;
+
+			if (Period == "Spring")
+				Period = "Summer";
+			else if (Period == "Summer")
+				Period = "Autumn";
+			else if (Period == "Autumn")
+				Period = "Winter";
 		}
 	}
 };

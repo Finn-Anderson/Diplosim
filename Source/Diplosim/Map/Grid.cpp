@@ -32,20 +32,20 @@ AGrid::AGrid()
 	HISMGround->SetupAttachment(GetRootComponent());
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMGround->NumCustomDataFloats = 5;
+	HISMGround->NumCustomDataFloats = 7;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
 	HISMFlatGround->SetupAttachment(GetRootComponent());
 	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMFlatGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMFlatGround->SetCastShadow(false);
-	HISMFlatGround->NumCustomDataFloats = 5;
+	HISMFlatGround->NumCustomDataFloats = 7;
 
 	HISMRampGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRampGround"));
 	HISMRampGround->SetupAttachment(GetRootComponent());
 	HISMRampGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRampGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMRampGround->NumCustomDataFloats = 5;
+	HISMRampGround->NumCustomDataFloats = 7;
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 
@@ -240,13 +240,13 @@ void AGrid::Render()
 		levelCount--;
 	}
 
-	for (TArray<FTileStruct> &row : Storage) {
-		for (FTileStruct &tile : row) {
+	for (TArray<FTileStruct> &row : Storage)
+		for (FTileStruct &tile : row)
 			FillHoles(&tile);
 
+	for (TArray<FTileStruct>& row : Storage)
+		for (FTileStruct& tile : row)
 			SetTileDetails(&tile);
-		}
-	}
 
 	// Spawn Actor
 	for (TArray<FTileStruct> &row : Storage)
@@ -303,6 +303,8 @@ void AGrid::Render()
 
 		GenerateTrees(chosenTile, amount);
 	}
+
+	SetSeasonAffect(AtmosphereComponent->Calendar.Period, 1.0f);
 
 	// Spawn clouds
 	CloudComponent->ActivateCloud();
@@ -615,7 +617,7 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 
 		int32 inst = resource->ResourceHISM->AddInstance(transform);
 
-		resource->ResourceHISM->SetCustomDataValue(inst, 6, size);
+		resource->ResourceHISM->SetCustomDataValue(inst, 8, size);
 
 		float r = 0.0f;
 		float g = 0.0f;
@@ -653,9 +655,9 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 		}
 
 		if (dyingChance == 100)
-			resource->ResourceHISM->SetCustomDataValue(inst, 7, 1.0f);
+			resource->ResourceHISM->SetCustomDataValue(inst, 9, 1.0f);
 		else
-			resource->ResourceHISM->SetCustomDataValue(inst, 7, 0.0f);
+			resource->ResourceHISM->SetCustomDataValue(inst, 9, 0.0f);
 
 		r /= 255.0f;
 		g /= 255.0f;
@@ -747,60 +749,109 @@ void AGrid::Clear()
 		Camera->Pause(false, false);
 }
 
-void AGrid::SetSeasonAffect(FString Period)
+void AGrid::SetSeasonAffect(FString Period, float Increment)
 {
-	if (Period == "Cold") {
+	if (Period == "Winter")
 		CloudComponent->bSnow = true;
-
-		IncreaseSeasonAffectGradually(0.0f);
-	}
-	else {
+	else
 		CloudComponent->bSnow = false;
 
-		DecreaseSeasonAffectGradually(1.0f);
-	}
+	AlterSeasonAffectGradually(Period, Increment);
 
 	CloudComponent->UpdateSpawnedClouds();
 }
 
-void AGrid::IncreaseSeasonAffectGradually(int32 Value)
+void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 {
-	Value += 0.02f;
+	Async(EAsyncExecution::Thread, [this, Period, Increment]() {
+		TArray<float> Values;
+		Values.Add(HISMGround->PerInstanceSMCustomData[4]);
+		Values.Add(HISMGround->PerInstanceSMCustomData[5]);
+		Values.Add(HISMGround->PerInstanceSMCustomData[6]);
 
-	SetSeasonAffectGradually(Value);
+		if (Period == "Spring")
+			Values[0] = FMath::Clamp(Values[0] + Increment, 0.0f, 1.0f);
+		else
+			Values[0] = FMath::Clamp(Values[0] - Increment, 0.0f, 1.0f);
 
-	if (Value == 1.0f)
-		return;
+		if (Period == "Autumn")
+			Values[1] = FMath::Clamp(Values[1] + Increment, 0.0f, 1.0f);
+		else
+			Values[1] = FMath::Clamp(Values[1] - Increment, 0.0f, 1.0f);
 
-	FTimerHandle seasonChangeTimer;
-	GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::IncreaseSeasonAffectGradually, Value), 0.02f, false);
+		if (Period == "Winter")
+			Values[2] = FMath::Clamp(Values[2] + Increment, 0.0f, 1.0f);
+		else
+			Values[2] = FMath::Clamp(Values[2] - Increment, 0.0f, 1.0f);
+
+		SetSeasonAffect(Values);
+
+		Values.Remove(0.0f);
+
+		AsyncTask(ENamedThreads::GameThread, [this, Values, Period, Increment]() {
+			for (FResourceHISMStruct& ResourceStruct : VegetationStruct)
+				ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
+
+			HISMGround->BuildTreeIfOutdated(true, true);
+			HISMFlatGround->BuildTreeIfOutdated(true, true);
+			HISMRampGround->BuildTreeIfOutdated(true, true);
+
+			if (Values.Contains(1.0f) || Values.IsEmpty())
+				return;
+
+			FTimerHandle seasonChangeTimer;
+			GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::AlterSeasonAffectGradually, Period, Increment), 0.02f, false);
+		});
+	});
 }
 
-void AGrid::DecreaseSeasonAffectGradually(int32 Value)
+void AGrid::SetSeasonAffect(TArray<float> Values)
 {
-	Value -= 0.02f;
+	for (FResourceHISMStruct& ResourceStruct : VegetationStruct) {
+		for (int32 inst = 0; inst < ResourceStruct.Resource->ResourceHISM->GetInstanceCount(); inst++) {
+			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 10 + 4] = Values[0];
+			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 10 + 5] = Values[1];
+			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 10 + 6] = Values[2];
+		}
+	}
 
-	SetSeasonAffectGradually(Value);
+	for (int32 inst = 0; inst < HISMGround->GetInstanceCount(); inst++) {
+		FTransform transform;
+		HISMGround->GetInstanceTransform(inst, transform);
 
-	if (Value == 0.0f)
-		return;
+		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
 
-	FTimerHandle seasonChangeTimer;
-	GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::DecreaseSeasonAffectGradually, Value), 0.02f, false);
-}
+		int32 x = transform.GetLocation().X / 100.0f + (bound / 2);
+		int32 y = transform.GetLocation().Y / 100.0f + (bound / 2);
 
-void AGrid::SetSeasonAffectGradually(int32 Value)
-{
-	for (FResourceHISMStruct& ResourceStruct : VegetationStruct)
-		for (int32 inst = 0; inst < ResourceStruct.Resource->ResourceHISM->GetInstanceCount(); inst++)
-			ResourceStruct.Resource->ResourceHISM->SetCustomDataValue(inst, 4, Value);
+		if (Storage[x][y].Fertility == 0.0f)
+			continue;
 
-	for (int32 inst = 0; inst < HISMGround->GetInstanceCount(); inst++)
-		HISMGround->SetCustomDataValue(inst, 4, Value);
+		HISMGround->PerInstanceSMCustomData[inst * 7 + 4] = Values[0];
+		HISMGround->PerInstanceSMCustomData[inst * 7 + 5] = Values[1];
+		HISMGround->PerInstanceSMCustomData[inst * 7 + 6] = Values[2];
+	}
 
-	for (int32 inst = 0; inst < HISMFlatGround->GetInstanceCount(); inst++)
-		HISMFlatGround->SetCustomDataValue(inst, 4, Value);
+	for (int32 inst = 0; inst < HISMFlatGround->GetInstanceCount(); inst++) {
+		FTransform transform;
+		HISMFlatGround->GetInstanceTransform(inst, transform);
 
-	for (int32 inst = 0; inst < HISMRampGround->GetInstanceCount(); inst++)
-		HISMRampGround->SetCustomDataValue(inst, 4, Value);
+		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
+
+		int32 x = transform.GetLocation().X / 100.0f + (bound / 2);
+		int32 y = transform.GetLocation().Y / 100.0f + (bound / 2);
+
+		if (Storage[x][y].Fertility == 0.0f)
+			continue;
+
+		HISMFlatGround->PerInstanceSMCustomData[inst * 7 + 4] = Values[0];
+		HISMFlatGround->PerInstanceSMCustomData[inst * 7 + 5] = Values[1];
+		HISMFlatGround->PerInstanceSMCustomData[inst * 7 + 6] = Values[2];
+	}
+
+	for (int32 inst = 0; inst < HISMRampGround->GetInstanceCount(); inst++) {
+		HISMRampGround->PerInstanceSMCustomData[inst * 7 + 4] = Values[0];
+		HISMRampGround->PerInstanceSMCustomData[inst * 7 + 5] = Values[1];
+		HISMRampGround->PerInstanceSMCustomData[inst * 7 + 6] = Values[2];
+	}
 }

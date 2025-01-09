@@ -75,7 +75,8 @@ void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 void UCloudComponent::Clear()
 {
 	for (FCloudStruct cloudStruct : Clouds) {
-		cloudStruct.Precipitation->DestroyComponent();
+		if (cloudStruct.Precipitation != nullptr)
+			cloudStruct.Precipitation->DestroyComponent();
 
 		cloudStruct.HISMCloud->DestroyComponent();
 	}
@@ -139,6 +140,12 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	cloud->SetupAttachment(GetOwner()->GetRootComponent());
 	cloud->RegisterComponent();
 
+	FCloudStruct cloudStruct;
+	cloudStruct.HISMCloud = cloud;
+
+	if (Chance <= 75)
+		return cloudStruct;
+
 	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 
 	TArray<FVector> locations;
@@ -186,8 +193,6 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 
 	precipitation->Activate();
 
-	FCloudStruct cloudStruct;
-	cloudStruct.HISMCloud = cloud;
 	cloudStruct.Precipitation = precipitation;
 
 	return cloudStruct;
@@ -214,6 +219,9 @@ TArray<FVector> UCloudComponent::SetPrecipitationLocations(FTransform Transform)
 void UCloudComponent::UpdateSpawnedClouds()
 {
 	for (FCloudStruct cloudStruct : Clouds) {
+		if (cloudStruct.Precipitation == nullptr)
+			continue;
+
 		int32 spawnRate = 400.0f * cloudStruct.Precipitation->GetRelativeScale3D().X * cloudStruct.Precipitation->GetRelativeScale3D().Y;
 
 		if (bSnow) {
