@@ -22,6 +22,9 @@ struct FQueueStruct
 		bool bRepeat;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		bool bLimit;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FItemStruct> SellingItems;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
@@ -33,6 +36,7 @@ struct FQueueStruct
 		bCancelled = false;
 		Wait = 0;
 		bRepeat = false;
+		bLimit = false;
 	}
 };
 
@@ -71,10 +75,6 @@ class DIPLOSIM_API ATrader : public AWork
 public:
 	ATrader();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	void SubmitOrder(class ACitizen* Citizen);
@@ -88,30 +88,13 @@ public:
 		void SetOrderWidget(int32 index, class UWidget* Widget);
 
 	UFUNCTION(BlueprintCallable)
-		void SetOrderCancelled(int32 index, bool bCancel);
-
-	UFUNCTION(BlueprintCallable)
-		void SetAutoMode();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetAutoMode();
-
-	UFUNCTION(BlueprintCallable)
-		void SetMinCapPerResource(TArray<FMinStruct> MinCap);
-
-	void AutoGenerateOrder();
+	void SetOrderCancelled(int32 index, bool bCancel);
 
 	UPROPERTY()
 		FTimerHandle WaitTimer;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Resource")
 		TArray<FQueueStruct> Orders;
-
-	UPROPERTY()
-		bool bAuto;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TArray<FMinStruct> AutoMinCap;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> CannonShake;

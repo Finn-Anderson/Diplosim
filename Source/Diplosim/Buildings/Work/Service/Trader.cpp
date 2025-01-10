@@ -13,22 +13,7 @@
 
 ATrader::ATrader()
 {
-	bAuto = false;
-}
 
-void ATrader::BeginPlay()
-{
-	Super::BeginPlay();
-
-	for (FResourceStruct resource : Camera->ResourceManager->ResourceList) {
-		if (resource.Type == Money)
-			continue;
-
-		FMinStruct minStruct;
-		minStruct.Resource = resource.Type;
-
-		AutoMinCap.Add(minStruct);
-	}
 }
 
 void ATrader::Enter(ACitizen* Citizen)
@@ -37,8 +22,6 @@ void ATrader::Enter(ACitizen* Citizen)
 
 	if (!GetOccupied().Contains(Citizen))
 		return;
-
-	AutoGenerateOrder();
 
 	if (Orders.IsEmpty())
 		return;
@@ -124,8 +107,6 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 		else
 			CheckStored(Citizen, Orders[0].SellingItems);
 	}
-	else
-		AutoGenerateOrder();
 }
 
 void ATrader::ReturnResource(class ACitizen* Citizen)
@@ -195,6 +176,26 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 
 void ATrader::SetNewOrder(FQueueStruct Order)
 {
+	if (Order.bLimit) {
+		for (FItemStruct &item : Order.SellingItems) {
+			int32 Amount = Camera->ResourceManager->GetResourceAmount(item.Resource);
+
+			if (Amount <= item.Amount)
+				continue;
+
+			item.Amount = Amount - item.Amount;
+		}
+
+		for (FItemStruct &item : Order.BuyingItems) {
+			int32 Amount = Camera->ResourceManager->GetResourceAmount(item.Resource);
+
+			if (Amount >= item.Amount)
+				continue;
+
+			item.Amount = Amount - item.Amount;
+		}
+	}
+	
 	Orders.Add(Order);
 
 	UResourceManager* rm = Camera->ResourceManager;
@@ -231,42 +232,4 @@ void ATrader::SetOrderCancelled(int32 index, bool bCancel)
 
 	for (ACitizen* Citizen : GetOccupied())
 		Citizen->AIController->AIMoveTo(this);
-}
-
-void ATrader::SetAutoMode()
-{
-	bAuto = !bAuto;
-}
-
-bool ATrader::GetAutoMode()
-{
-	return bAuto;
-}
-
-void ATrader::SetMinCapPerResource(TArray<FMinStruct> MinCap)
-{
-	AutoMinCap = MinCap;
-}
-
-void ATrader::AutoGenerateOrder()
-{
-	if (!Orders.IsEmpty() || !bAuto)
-		return;
-
-	FQueueStruct order;
-
-	for (FMinStruct minStruct : AutoMinCap) {
-		int32 Amount = Camera->ResourceManager->GetResourceAmount(minStruct.Resource);
-
-		if (!minStruct.bSell || Amount <= minStruct.Min)
-			continue;
-
-		FItemStruct item;
-		item.Resource = minStruct.Resource;
-		item.Amount = Amount - minStruct.Min;
-
-		order.SellingItems.Add(item);
-	}
-
-	SetNewOrder(order);
 }

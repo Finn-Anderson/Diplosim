@@ -24,6 +24,7 @@
 #include "Map/Grid.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
+#include "Buildings/Work/Service/Stockpile.h"
 #include "Buildings/Work/Service/Religion.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Production/Farm.h"
@@ -511,6 +512,13 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 			if (!trader->Orders[0].bCancelled)
 				items = trader->Orders[0].SellingItems;
+		}
+		else if (Citizen->Building.Employment->IsA<AStockpile>()) {
+			AStockpile* stockpile = Cast <AStockpile>(Citizen->Building.Employment);
+
+			deliverTo = stockpile;
+
+			items.Add(stockpile->GetItemToGather(Citizen));
 		}
 		
 		if (deliverTo == nullptr) {
