@@ -1,6 +1,7 @@
 #include "Buildings/Work/Service/Stockpile.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Player/Camera.h"
 #include "PLayer/Managers/ResourceManager.h"
@@ -9,7 +10,8 @@
 
 AStockpile::AStockpile()
 {
-
+	HISMBox = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMBox"));
+	HISMBox->SetupAttachment(GetRootComponent());
 }
 
 void AStockpile::BeginPlay()
@@ -31,6 +33,54 @@ void AStockpile::Enter(ACitizen* Citizen)
 
 	if (!GetOccupied().Contains(Citizen))
 		return;
+
+	Gathering.Remove(Citizen);
+
+	ShowBoxesInStockpile();
+}
+
+void AStockpile::ShowBoxesInStockpile()
+{
+	int32 stored = 0;
+
+	for (FItemStruct item : Storage)
+		stored += item.Amount;
+
+	stored /= 50;
+
+	if (stored < HISMBox->GetInstanceCount()) {
+		for (int32 i = HISMBox->GetInstanceCount() - 1; i > stored - 1; i--)
+			HISMBox->RemoveInstance(i);
+	}
+	else {
+		for (int32 i = 0; i < stored - HISMBox->GetInstanceCount(); i++) {
+			FTransform transform;
+			transform.SetLocation(BuildingMesh->GetSocketLocation(*FString::FromInt(i)));
+
+			HISMBox->AddInstance(transform);
+		}
+	}
+}
+
+bool AStockpile::DoesStoreResource(TSubclassOf<class AResource> Resource)
+{
+	bool* bCan = Store.Find(Resource);
+
+	if (bCan == nullptr)
+		return false;
+
+	return *bCan;
+}
+
+void AStockpile::SetItemToGather(TSubclassOf<class AResource> Resource, ACitizen* Citizen, ABuilding* Building)
+{
+	FItemStruct gather;
+	gather.Resource = Resource;
+	gather.Amount = 10;
+
+	Gathering.Add(Citizen, gather);
+
+	Citizen->AIController->AIMoveTo(Building);
 }
 
 FItemStruct AStockpile::GetItemToGather(class ACitizen* Citizen)

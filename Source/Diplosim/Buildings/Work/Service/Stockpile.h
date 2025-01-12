@@ -22,10 +22,19 @@ public:
 	UPROPERTY()
 		TMap<class ACitizen*, FItemStruct> Gathering;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* HISMBox;
+
 	virtual void Enter(class ACitizen* Citizen) override;
+
+	void ShowBoxesInStockpile();
+
+	bool DoesStoreResource(TSubclassOf<class AResource> Resource);
+
+	void SetItemToGather(TSubclassOf<class AResource> Resource, ACitizen* Citizen, ABuilding* Building);
 
 	FItemStruct GetItemToGather(class ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
-	int32 GetStoredResourceAmount(TSubclassOf<class AResource> Resource);
+		int32 GetStoredResourceAmount(TSubclassOf<class AResource> Resource);
 };

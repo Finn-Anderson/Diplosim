@@ -654,7 +654,8 @@ void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<F
 
 	Camera->ResourceManager->TakeLocalResource(resource, this, amount);
 
-	Camera->ResourceManager->TakeCommittedResource(resource, amount);
+	if (!DeliverTo->IsA<AStockpile>())
+		Camera->ResourceManager->TakeCommittedResource(resource, amount);
 
 	Citizen->Carry(Cast<AResource>(resource->GetDefaultObject()), amount, DeliverTo);
 }

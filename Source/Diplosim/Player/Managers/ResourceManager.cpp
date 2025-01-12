@@ -6,6 +6,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Buildings/Building.h"
+#include "Buildings/Work/Service/Stockpile.h"
 #include "Universal/DiplosimGameModeBase.h"
 
 UResourceManager::UResourceManager()
@@ -13,7 +14,7 @@ UResourceManager::UResourceManager()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UResourceManager::StoreBasket(TSubclassOf<class AResource> Resource, class ABuilding* Building)
+void UResourceManager::StoreBasket(TSubclassOf<AResource> Resource, ABuilding* Building)
 {
 	for (FBasketStruct product : Building->Basket) {
 		if (product.Item.Resource != Resource)
@@ -31,7 +32,7 @@ void UResourceManager::StoreBasket(TSubclassOf<class AResource> Resource, class 
 	}
 }
 
-void UResourceManager::AddCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount)
+void UResourceManager::AddCommittedResource(TSubclassOf<AResource> Resource, int32 Amount)
 {
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Type == Resource) {
@@ -42,7 +43,7 @@ void UResourceManager::AddCommittedResource(TSubclassOf<class AResource> Resourc
 	}
 }
 
-void UResourceManager::TakeCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount)
+void UResourceManager::TakeCommittedResource(TSubclassOf<AResource> Resource, int32 Amount)
 {
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Type == Resource) {
@@ -53,7 +54,7 @@ void UResourceManager::TakeCommittedResource(TSubclassOf<class AResource> Resour
 	}
 }
 
-int32 UResourceManager::AddLocalResource(TSubclassOf<class AResource> Resource, ABuilding* Building, int32 Amount)
+int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuilding* Building, int32 Amount)
 {
 	GameMode->TallyEnemyData(Resource, Amount);
 
@@ -79,6 +80,8 @@ int32 UResourceManager::AddLocalResource(TSubclassOf<class AResource> Resource, 
 
 		Amount = 0;
 	}
+
+	GetNearestStockpile(Resource, Building, Building->Storage[index].Amount);
 
 	UpdateResourceUI(Resource);
 
@@ -139,6 +142,8 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 
 					b->Storage[index].Amount = FMath::Clamp(b->Storage[index].Amount + Amount, 0, 1000);
 
+					GetNearestStockpile(Resource, b, b->Storage[index].Amount);
+
 					if (AmountLeft <= 0) {
 						UpdateResourceUI(Resource);
 
@@ -154,7 +159,7 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 	return false;
 }
 
-bool UResourceManager::TakeLocalResource(TSubclassOf<class AResource> Resource, ABuilding* Building, int32 Amount)
+bool UResourceManager::TakeLocalResource(TSubclassOf<AResource> Resource, ABuilding* Building, int32 Amount)
 {
 	FItemStruct itemStruct;
 	itemStruct.Resource = Resource;
@@ -290,18 +295,80 @@ TArray<TSubclassOf<AResource>> UResourceManager::GetResources(ABuilding* Buildin
 	return resources;
 }
 
-TArray<TSubclassOf<class ABuilding>> UResourceManager::GetBuildings(TSubclassOf<class AResource> Resource) 
+TArray<TSubclassOf<ABuilding>> UResourceManager::GetBuildings(TSubclassOf<AResource> Resource) 
 {
 	for (int32 i = 0; i < ResourceList.Num(); i++)
 		if (ResourceList[i].Type == Resource)
 			return ResourceList[i].Buildings;
 
-	TArray<TSubclassOf<class ABuilding>> null;
+	TArray<TSubclassOf<ABuilding>> null;
 
 	return null;
 }
 
-void UResourceManager::UpdateResourceUI(TSubclassOf<class AResource> Resource)
+void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABuilding* Building, int32 Amount)
+{
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
+
+	int32 index = ResourceList.Find(resourceStruct);
+
+	if (ResourceList[index].Category == "Money" || ResourceList[index].Category == "Crystal")
+		return;
+	
+	TArray<AActor*> foundStockpiles;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AStockpile::StaticClass(), foundStockpiles);
+
+	Async(EAsyncExecution::Thread, [this, foundStockpiles, Resource, Building, Amount]() {
+		int32 workersNum = FMath::CeilToInt(Amount / 10.0f);
+
+		AStockpile* nearestStockpile = nullptr;
+
+		TArray<AStockpile*> stockpiles;
+
+		for (AActor* Actor : foundStockpiles) {
+			AStockpile* stockpile = Cast<AStockpile>(Actor);
+
+			if (!stockpile->DoesStoreResource(Resource))
+				continue;
+
+			int32 index = 0;
+
+			for (AStockpile* sp : stockpiles) {
+				double stockpileDist = FVector::Dist(stockpile->GetActorLocation(), Building->GetActorLocation());
+				double spDist = FVector::Dist(sp->GetActorLocation(), Building->GetActorLocation());
+
+				if (stockpileDist > spDist)
+					index++;
+				else
+					break;
+			}
+
+			stockpiles.Insert(stockpile, index);
+		}
+
+		TMap<AStockpile*, ACitizen*> workers;
+
+		[&] {
+			for (AStockpile* stockpile : stockpiles) {
+				for (ACitizen* citizen : stockpile->GetCitizensAtBuilding()) {
+					if (stockpile->Gathering.Contains(citizen))
+						continue;
+
+					workers.Add(stockpile, citizen);
+
+					if (workers.Num() == workersNum)
+						return;
+				}
+			}
+		}();
+
+		for (auto& element : workers)
+			element.Key->SetItemToGather(Resource, element.Value, Building);
+	});
+}
+
+void UResourceManager::UpdateResourceUI(TSubclassOf<AResource> Resource)
 {
 	AsyncTask(ENamedThreads::GameThread, [this, Resource]() {
 		FResourceStruct resourceStruct;

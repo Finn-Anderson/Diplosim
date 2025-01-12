@@ -77,6 +77,8 @@ public:
 
 	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
 
+	void GetNearestStockpile(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
+
 	void UpdateResourceUI(TSubclassOf<class AResource> Resource);
 
 	// Interest
