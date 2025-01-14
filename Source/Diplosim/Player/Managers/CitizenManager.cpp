@@ -32,6 +32,45 @@ UCitizenManager::UCitizenManager()
 	BrochLocation = FVector::Zero();
 
 	FoodCost = 0;
+
+	FString path = FPaths::ProjectDir() + "/Content/Custom/Structs/Personalities.json";
+	FString fileContents;
+
+	FFileHelper::LoadFileToString(fileContents, *path);
+
+	TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject());
+
+	TSharedRef<TJsonReader<>> jsonReader = TJsonReaderFactory<>::Create(fileContents);
+
+	if (FJsonSerializer::Deserialize(jsonReader, jsonObject) && jsonObject.IsValid()) {
+		for (auto& element : jsonObject->Values) {
+			for (auto& e : element.Value->AsArray()) {
+				FPersonality personality;
+
+				for (auto& v : e->AsObject()->Values) {
+					uint8 index = 0;
+
+					if (v.Value->Type == EJson::Array) {
+						for (auto& ev : v.Value->AsArray()) {
+							index = FCString::Atoi(*ev->AsString());
+
+							if (v.Key == "Likes")
+								personality.Likes.Add(EPersonality(index));
+							else
+								personality.Dislikes.Add(EPersonality(index));
+						}
+					}
+					else {
+						index = FCString::Atoi(*v.Value->AsString());
+
+						personality.Trait = EPersonality(index);
+					}
+				}
+
+				Personalities.Add(personality);
+			}
+		}
+	}
 }
 
 void UCitizenManager::BeginPlay()

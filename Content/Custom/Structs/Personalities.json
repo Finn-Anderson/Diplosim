@@ -1,0 +1,34 @@
+{
+	"Personalities": [
+		{
+			"Trait": 0,
+			"Likes": [ 4 ],
+			"Dislikes": [ 1, 5 ]
+		},
+		{
+			"Trait": 1,
+			"Likes": [ 5 ],
+			"Dislikes": [ 0, 4 ]
+		},
+		{
+			"Trait": 2,
+			"Likes": [],
+			"Dislikes": [ 3 ]
+		},
+		{
+			"Trait": 3,
+			"Likes": [ 5 ],
+			"Dislikes": [ 2 ]
+		},
+		{
+			"Trait": 4,
+			"Likes": [ 0 ],
+			"Dislikes": [ 1, 5 ]
+		},
+		{
+			"Trait": 5,
+			"Likes": [ 1, 3 ],
+			"Dislikes": [ 0, 4 ]
+		}
+	]
+}
