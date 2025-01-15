@@ -335,6 +335,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	void ReadJSONFile(FString path, FString Section);
+
 public:	
 	void Loop();
 

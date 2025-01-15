@@ -33,19 +33,34 @@ UCitizenManager::UCitizenManager()
 
 	FoodCost = 0;
 
-	FString path = FPaths::ProjectDir() + "/Content/Custom/Structs/Personalities.json";
-	FString fileContents;
+	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Personalities.json", "Personalities");
 
-	FFileHelper::LoadFileToString(fileContents, *path);
+	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Parties.json", "Parties");
 
+	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Laws.json", "Laws");
+}
+
+void UCitizenManager::BeginPlay()
+{
+	Super::BeginPlay();
+
+	StartDiseaseTimer();
+}
+
+void UCitizenManager::ReadJSONFile(FString path, FString Section)
+{
 	TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject());
 
+	FString fileContents;
+	FFileHelper::LoadFileToString(fileContents, *path);
 	TSharedRef<TJsonReader<>> jsonReader = TJsonReaderFactory<>::Create(fileContents);
 
 	if (FJsonSerializer::Deserialize(jsonReader, jsonObject) && jsonObject.IsValid()) {
 		for (auto& element : jsonObject->Values) {
 			for (auto& e : element.Value->AsArray()) {
 				FPersonality personality;
+				FPartyStruct party;
+				FLawStruct law;
 
 				for (auto& v : e->AsObject()->Values) {
 					uint8 index = 0;
@@ -54,30 +69,74 @@ UCitizenManager::UCitizenManager()
 						for (auto& ev : v.Value->AsArray()) {
 							index = FCString::Atoi(*ev->AsString());
 
-							if (v.Key == "Likes")
-								personality.Likes.Add(EPersonality(index));
-							else
-								personality.Dislikes.Add(EPersonality(index));
+							if (Section == "Personalities") {
+								if (v.Key == "Likes")
+									personality.Likes.Add(EPersonality(index));
+								else
+									personality.Dislikes.Add(EPersonality(index));
+							}
+							else if (Section == "Parties") {
+								party.Agreeable.Add(EPersonality(index));
+							}
+							else {
+								FBillStruct bill;
+
+								for (auto& bv : ev->AsObject()->Values) {
+									if (bv.Value->Type == EJson::Array) {
+										for (auto& bev : bv.Value->AsArray()) {
+											index = FCString::Atoi(*bev->AsString());
+
+											if (v.Key == "Agreeing")
+												bill.Agreeing.Add(EParty(index));
+											else if (v.Key == "Opposing")
+												bill.Opposing.Add(EParty(index));
+											else if (v.Key == "For")
+												bill.For.Add(EPersonality(index));
+											else
+												bill.Against.Add(EPersonality(index));
+										}
+									}
+									else if (v.Value->Type == EJson::Number) {
+										index = FCString::Atoi(*bv.Value->AsString());
+
+										bill.Value = index;
+									}
+									else if (v.Value->Type == EJson::String) {
+										if (v.Key == "Description")
+											bill.Description = v.Value->AsString();
+										else
+											bill.Warning = v.Value->AsString();
+									}
+									else {
+										bill.bIsLaw = v.Value->AsBool();
+									}
+								}
+
+								law.Bills.Add(bill);
+							}
 						}
 					}
 					else {
 						index = FCString::Atoi(*v.Value->AsString());
 
-						personality.Trait = EPersonality(index);
+						if (Section == "Personalities")
+							personality.Trait = EPersonality(index);
+						else if (Section == "Parties")
+							party.Party = EParty(index);
+						else
+							law.BillType = EBillType(index);
 					}
 				}
 
-				Personalities.Add(personality);
+				if (Section == "Personalities")
+					Personalities.Add(personality);
+				else if (Section == "Parties")
+					Parties.Add(party);
+				else
+					Laws.Add(law);
 			}
 		}
 	}
-}
-
-void UCitizenManager::BeginPlay()
-{
-	Super::BeginPlay();
-
-	StartDiseaseTimer();
 }
 
 void UCitizenManager::Loop()
