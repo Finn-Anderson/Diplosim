@@ -1,7 +1,24 @@
 {
   "Parties": [
     {
-
+      "Party": 1,
+      "Agreeable": [ 2, 5, 10 ]
+    },
+    {
+      "Party": 2,
+      "Agreeable": [ 3, 11 ]
+    },
+    {
+      "Party": 3,
+      "Agreeable": [ 9, 13 ]
+    },
+    {
+      "Party": 4,
+      "Agreeable": [ 4, 12 ]
+    },
+    {
+      "Party": 5,
+      "Agreeable": [ 7 ]
     }
   ]
 }

@@ -626,6 +626,9 @@ EParty UCitizenManager::GetCitizenParty(ACitizen* Citizen)
 {
 	FPartyStruct* partyStruct = GetMembersParty(Citizen);
 
+	if (partyStruct == nullptr)
+		return EParty::Undecided;
+
 	return partyStruct->Party;
 }
 
@@ -640,12 +643,12 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 
 	FPartyStruct* party = &Parties[index];
 
-	for (ACitizen* citizen : Citizens) {
-		if (GetMembersParty(citizen)->Party != party->Party || citizen->bHasBeenLeader)
+	for (auto &element : party->Members) {
+		if (GetMembersParty(element.Key)->Party != party->Party || element.Key->bHasBeenLeader)
 			continue;
 
 		if (candidates.Num() < 3)
-			candidates.Add(citizen);
+			candidates.Add(element.Key);
 		else {
 			ACitizen* lowest = nullptr;
 
@@ -653,10 +656,10 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 				if (lowest == nullptr || party->Members.Find(lowest) > party->Members.Find(candidate))
 					lowest = candidate;
 
-			if (party->Members.Find(citizen) > party->Members.Find(lowest)) {
+			if (party->Members.Find(element.Key) > party->Members.Find(lowest)) {
 				candidates.Remove(lowest);
 
-				candidates.Add(citizen);
+				candidates.Add(element.Key);
 			}
 		}
 	}
@@ -991,7 +994,7 @@ void UCitizenManager::Overthrow()
 	CooldownTimer = 1500;
 
 	for (ACitizen* citizen : Citizens) {
-		if (GetMembersParty(citizen)->Party != EParty::ShellBreakers)
+		if (GetMembersParty(citizen) == nullptr || GetMembersParty(citizen)->Party != EParty::ShellBreakers)
 			return;
 
 		if (Representatives.Contains(citizen))
