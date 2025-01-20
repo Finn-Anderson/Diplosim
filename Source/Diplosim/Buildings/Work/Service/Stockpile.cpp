@@ -12,6 +12,8 @@ AStockpile::AStockpile()
 {
 	HISMBox = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMBox"));
 	HISMBox->SetupAttachment(GetRootComponent());
+
+	StorageCap = 1000;
 }
 
 void AStockpile::BeginPlay()
@@ -41,19 +43,21 @@ void AStockpile::Enter(ACitizen* Citizen)
 
 void AStockpile::ShowBoxesInStockpile()
 {
+	float instPerStorage = StorageCap / 32.0f;
+	
 	int32 stored = 0;
 
 	for (FItemStruct item : Storage)
 		stored += item.Amount;
 
-	stored /= 50;
+	int32 instances =  FMath::CeilToInt(stored / instPerStorage);
 
-	if (stored < HISMBox->GetInstanceCount()) {
-		for (int32 i = HISMBox->GetInstanceCount() - 1; i > stored - 1; i--)
+	if (instances < HISMBox->GetInstanceCount()) {
+		for (int32 i = HISMBox->GetInstanceCount() - 1; i > instances - 1; i--)
 			HISMBox->RemoveInstance(i);
 	}
 	else {
-		for (int32 i = 0; i < stored - HISMBox->GetInstanceCount(); i++) {
+		for (int32 i = 0; i < instances - HISMBox->GetInstanceCount(); i++) {
 			FTransform transform;
 			transform.SetLocation(BuildingMesh->GetSocketLocation(*FString::FromInt(i)));
 

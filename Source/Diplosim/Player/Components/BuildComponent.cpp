@@ -13,6 +13,7 @@
 #include "Player/Components/CameraMovementComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Builder.h"
+#include "Buildings/Work/Service/Stockpile.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Map/Grid.h"
 #include "Map/Resources/Vegetation.h"
@@ -71,6 +72,34 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 		if (Buildings.Last()->GetActorLocation().X == location.X && Buildings.Last()->GetActorLocation().Y == location.Y)
 			return;
+
+		if (Buildings[0]->IsA<AStockpile>() && Buildings[0]->GetActorLocation().Z != 0.0f) {
+			auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
+			int32 x = Buildings[0]->GetActorLocation().X / 100.0f + (bound / 2);
+			int32 y = Buildings[0]->GetActorLocation().Y / 100.0f + (bound / 2);
+
+			bool bFlat = true;
+
+			FTileStruct tile = Camera->Grid->Storage[x][y];
+
+			if (!tile.bRamp) {
+				if (tile.AdjacentTiles.Num() < 4)
+					bFlat = false;
+				else
+					for (auto& element : tile.AdjacentTiles)
+						if (element.Value->Level < tile.Level || element.Value->Level == 7)
+							bFlat = false;
+
+				if (bFlat)
+					Camera->Grid->HISMFlatGround->SetCustomDataValue(tile.Instance, 0, 1.0f);
+				else
+					Camera->Grid->HISMGround->SetCustomDataValue(tile.Instance, 0, 1.0f);
+			}
+
+			if (comp != Camera->Grid->HISMRampGround)
+				comp->SetCustomDataValue(instance, 0, 0.0f);
+		}
 
 		if (location.Z >= 0.0f) {
 			location.Z += 100.0f;

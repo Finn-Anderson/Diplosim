@@ -1057,14 +1057,14 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 	int32 chance = FMath::RandRange(0, 100);
 
 	if (chance > 45 * parentsPersonalities.Num()) {
-		int32 index = FMath::RandRange(0, Camera->CitizenManager->Personalities.Num());
+		int32 index = FMath::RandRange(0, Camera->CitizenManager->Personalities.Num() - 1);
 
 		Camera->CitizenManager->Personalities[index].Citizens.Add(this);
 
 		ApplyTraitAffect(Camera->CitizenManager->Personalities[index].Trait);
 	}
 	else {
-		int32 index = FMath::RandRange(0, parentsPersonalities.Num());
+		int32 index = FMath::RandRange(0, parentsPersonalities.Num() - 1);
 
 		for (FPersonality& personality : Camera->CitizenManager->Personalities)
 			if (personality.Trait == parentsPersonalities[index]->Trait)

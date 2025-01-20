@@ -83,7 +83,7 @@ ABuilding::ABuilding()
 	Capacity = 2;
 	MaxCapacity = 2;
 
-	StorageCap = 1000;
+	StorageCap = 150;
 
 	bHideCitizen = true;
 
