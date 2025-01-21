@@ -311,19 +311,28 @@ void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
 		SpringArmComponent->ProbeSize = 6.0f;
 	}
 
-	UDecalComponent* decal = Actor->FindComponentByClass<UDecalComponent>();
-
-	if (IsValid(decal) && decal->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr))
-		decal->SetVisibility(true);
-
 	FString socketName = "InfoSocket";
 
 	if (Instance > -1)
 		socketName.AppendInt(Instance);
 
-	WidgetSpringArmComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName(*socketName));
+	SetInteractStatus(Actor, true, socketName);
+}
 
-	WidgetComponent->SetHiddenInGame(false);
+void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
+{
+	TArray<UDecalComponent*> decalComponents;
+	Actor->GetComponents<UDecalComponent>(decalComponents);
+
+	if (decalComponents.Num() >= 2 && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr))
+		decalComponents[1]->SetVisibility(bStatus);
+
+	WidgetComponent->SetHiddenInGame(!bStatus);
+
+	if (bStatus)
+		WidgetSpringArmComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName(*SocketName));
+	else
+		WidgetSpringArmComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
 void ACamera::Detach()
@@ -442,15 +451,7 @@ void ACamera::Action()
 		FocusedCitizen = nullptr;
 
 		if (WidgetSpringArmComponent->GetAttachParent() != RootComponent && !IsValid(HoveredActor.Actor)) {
-			if (!WidgetComponent->bHiddenInGame)
-				WidgetComponent->SetHiddenInGame(true);
-
-			UDecalComponent* decalComponent = WidgetSpringArmComponent->GetAttachmentRootActor()->GetComponentByClass<UDecalComponent>();
-
-			if (IsValid(decalComponent))
-				decalComponent->SetVisibility(false);
-
-			WidgetSpringArmComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+			SetInteractStatus(WidgetSpringArmComponent->GetAttachmentRootActor(), false);
 
 			return;
 		}

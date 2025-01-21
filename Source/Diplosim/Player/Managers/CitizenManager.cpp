@@ -38,6 +38,8 @@ UCitizenManager::UCitizenManager()
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Parties.json", "Parties");
 
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Laws.json", "Laws");
+
+	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Religions.json", "Religions");
 }
 
 void UCitizenManager::BeginPlay()
@@ -61,6 +63,7 @@ void UCitizenManager::ReadJSONFile(FString path, FString Section)
 				FPersonality personality;
 				FPartyStruct party;
 				FLawStruct law;
+				FReligionStruct religion;
 
 				for (auto& v : e->AsObject()->Values) {
 					uint8 index = 0;
@@ -78,6 +81,9 @@ void UCitizenManager::ReadJSONFile(FString path, FString Section)
 							else if (Section == "Parties") {
 								party.Agreeable.Add(EPersonality(index));
 							}
+							else if (Section == "Religions") {
+								religion.Agreeable.Add(EPersonality(index));
+							}
 							else {
 								FBillStruct bill;
 
@@ -86,29 +92,29 @@ void UCitizenManager::ReadJSONFile(FString path, FString Section)
 										for (auto& bev : bv.Value->AsArray()) {
 											index = FCString::Atoi(*bev->AsString());
 
-											if (v.Key == "Agreeing")
+											if (bv.Key == "Agreeing")
 												bill.Agreeing.Add(EParty(index));
-											else if (v.Key == "Opposing")
+											else if (bv.Key == "Opposing")
 												bill.Opposing.Add(EParty(index));
-											else if (v.Key == "For")
+											else if (bv.Key == "For")
 												bill.For.Add(EPersonality(index));
 											else
 												bill.Against.Add(EPersonality(index));
 										}
 									}
-									else if (v.Value->Type == EJson::Number) {
+									else if (bv.Value->Type == EJson::Number) {
 										index = FCString::Atoi(*bv.Value->AsString());
 
 										bill.Value = index;
 									}
-									else if (v.Value->Type == EJson::String) {
-										if (v.Key == "Description")
-											bill.Description = v.Value->AsString();
+									else if (bv.Value->Type == EJson::String) {
+										if (bv.Key == "Description")
+											bill.Description = bv.Value->AsString();
 										else
-											bill.Warning = v.Value->AsString();
+											bill.Warning = bv.Value->AsString();
 									}
 									else {
-										bill.bIsLaw = v.Value->AsBool();
+										bill.bIsLaw = bv.Value->AsBool();
 									}
 								}
 
@@ -123,6 +129,8 @@ void UCitizenManager::ReadJSONFile(FString path, FString Section)
 							personality.Trait = EPersonality(index);
 						else if (Section == "Parties")
 							party.Party = EParty(index);
+						else if (Section == "Religions")
+							religion.Faith = EReligion(index);
 						else
 							law.BillType = EBillType(index);
 					}
@@ -132,6 +140,8 @@ void UCitizenManager::ReadJSONFile(FString path, FString Section)
 					Personalities.Add(personality);
 				else if (Section == "Parties")
 					Parties.Add(party);
+				else if (Section == "Religions")
+					Religions.Add(religion);
 				else
 					Laws.Add(law);
 			}
@@ -194,7 +204,7 @@ void UCitizenManager::Loop()
 			
 		citizen->SetHappiness();
 
-		if (GetMembersParty(citizen)->Party == EParty::ShellBreakers)
+		if (GetMembersParty(citizen) != nullptr && GetMembersParty(citizen)->Party == EParty::ShellBreakers)
 			rebelCount++;
 	}
 

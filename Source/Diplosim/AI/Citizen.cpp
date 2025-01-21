@@ -1056,7 +1056,7 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 
 	int32 chance = FMath::RandRange(0, 100);
 
-	if (chance > 45 * parentsPersonalities.Num()) {
+	if (chance >= 45 * parentsPersonalities.Num()) {
 		int32 index = FMath::RandRange(0, Camera->CitizenManager->Personalities.Num() - 1);
 
 		Camera->CitizenManager->Personalities[index].Citizens.Add(this);

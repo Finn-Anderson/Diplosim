@@ -1,0 +1,20 @@
+{
+  "Parties": [
+    {
+      "Religion": 0,
+      "Agreeable": [ 3, 5, 13 ]
+    },
+    {
+      "Religion": 1,
+      "Agreeable": [ 0, 4, 12 ]
+    },
+    {
+      "Religion": 2,
+      "Agreeable": [ 2, 8, 10 ]
+    },
+    {
+      "Religion": 3,
+      "Agreeable": [ 1, 7, 9, 11 ]
+    }
+  ]
+}

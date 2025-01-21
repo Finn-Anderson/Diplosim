@@ -263,7 +263,7 @@ struct FReligionStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
 		EReligion Faith;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")

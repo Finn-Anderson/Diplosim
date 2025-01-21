@@ -301,9 +301,9 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 void UBuildComponent::DetachBuilding()
 {
 	if (Buildings.IsEmpty())
-		return;
-
-	Camera->WidgetComponent->SetHiddenInGame(true);
+		return; 
+	
+	Camera->SetInteractStatus(Buildings[0], false);
 
 	SetComponentTickEnabled(false);
 
@@ -436,10 +436,11 @@ void UBuildComponent::Place()
 	Buildings[0]->StoreSocketLocations();
 	
 	for (ABuilding* building : Buildings) {
-		UDecalComponent* decalComp = building->FindComponentByClass<UDecalComponent>();
+		TArray<UDecalComponent*> decalComponents;
+		building->GetComponents<UDecalComponent>(decalComponents);
 
-		if (decalComp != nullptr)
-			decalComp->SetVisibility(false);
+		if (decalComponents.Num() >= 2)
+			decalComponents[1]->SetVisibility(false);
 
 		building->Build();
 	}

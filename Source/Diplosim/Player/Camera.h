@@ -227,6 +227,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void DisplayInteract(AActor* Actor, int32 Instance = -1);
 
+	UFUNCTION(BlueprintCallable)
+		void SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName = "InfoSocket");
+
 	void Detach();
 
 	void Lose();

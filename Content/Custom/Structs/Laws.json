@@ -27,7 +27,7 @@
           "Description": "Set work age to 27",
           "Warning": "",
           "Value": 18.0,
-          "IsLaw": true,
+          "IsLaw": false,
           "Agreeing": [ 2, 4 ],
           "Opposing": [ 1 ],
           "For": [ 3, 13 ],

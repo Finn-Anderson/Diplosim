@@ -15,6 +15,8 @@ ABroch::ABroch()
 	DecalComponent->SetupAttachment(RootComponent);
 	DecalComponent->DecalSize = FVector(2000.0f, 2000.0f, 2000.0f);
 	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
+
+	StorageCap = 1000000;
 }
 
 void ABroch::SpawnCitizens()
