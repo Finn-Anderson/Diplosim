@@ -133,6 +133,9 @@ struct FSeedStruct
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		UTexture* Texture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<UStaticMesh*> Meshes;
 };
 
@@ -179,7 +182,7 @@ public:
 		TArray<FSeedStruct> Seeds;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Randomisation")
-		int32 CurrentSeed;
+		bool bAffectBuildingMesh;
 
 	UPROPERTY()
 		class ACamera* Camera;
@@ -191,7 +194,7 @@ public:
 		TArray<FSocketStruct> SocketList;
 
 	UFUNCTION(BlueprintCallable)
-		void SetSeed(int32 Increment);
+		void SetSeed(int32 Seed);
 
 	void StoreSocketLocations();
 

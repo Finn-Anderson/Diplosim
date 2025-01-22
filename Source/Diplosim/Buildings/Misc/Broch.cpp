@@ -27,7 +27,7 @@ void ABroch::SpawnCitizens()
 		if (name == FName("InfoSocket"))
 			continue;
 
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, BuildingMesh->GetSocketLocation(name), FRotator(0, 0, 0));
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, BuildingMesh->GetSocketLocation(name), GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f));
 
 		citizen->BioStruct.Age = 17;
 		citizen->Birthday();

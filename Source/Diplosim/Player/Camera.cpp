@@ -324,7 +324,7 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
 	TArray<UDecalComponent*> decalComponents;
 	Actor->GetComponents<UDecalComponent>(decalComponents);
 
-	if (decalComponents.Num() >= 2 && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr))
+	if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr))
 		decalComponents[1]->SetVisibility(bStatus);
 
 	WidgetComponent->SetHiddenInGame(!bStatus);

@@ -95,7 +95,7 @@ ABuilding::ABuilding()
 
 	Belief = EReligion::Atheist;
 
-	CurrentSeed = 0;
+	bAffectBuildingMesh = false;
 }
 
 void ABuilding::BeginPlay()
@@ -145,40 +145,38 @@ void ABuilding::BeginPlay()
 	SetSeed(0);
 }
 
-void ABuilding::SetSeed(int32 Increment)
+void ABuilding::SetSeed(int32 Seed)
 {
 	if (Seeds.IsEmpty())
 		return;
 
-	CurrentSeed += Increment;
+	if (bAffectBuildingMesh) {
+		BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
+	}
+	else {
+		TArray<USceneComponent*> children;
+		BuildingMesh->GetChildrenComponents(true, children);
 
-	if (CurrentSeed > Seeds.Num())
-		CurrentSeed = 0;
-	else if (CurrentSeed < 0)
-		CurrentSeed = Seeds.Num() - 1;
+		for (USceneComponent* component : children)
+			component->DestroyComponent();
 
-	TArray<USceneComponent*> children;
-	BuildingMesh->GetChildrenComponents(true, children);
+		TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
 
-	for (USceneComponent* component : children)
-		component->DestroyComponent();
+		for (FName socket : sockets) {
+			if (!socket.ToString().Contains("Random"))
+				continue;
 
-	TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
+			FString result = socket.ToString().Replace(TEXT("Random"), TEXT(""), ESearchCase::IgnoreCase);
+			int32 num = FCString::Atoi(*result) - 1;
 
-	for (FName socket : sockets) {
-		if (!socket.ToString().Contains("Random"))
-			continue;
+			int32 angle = FMath::RandRange(0, 3);
 
-		FString result = socket.ToString().Replace(TEXT("Random"), TEXT(""), ESearchCase::IgnoreCase);
-		int32 num = FCString::Atoi(*result) - 1;
-
-		int32 angle = FMath::RandRange(0, 3);
-
-		UStaticMeshComponent* meshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass());
-		meshComp->SetStaticMesh(Seeds[CurrentSeed].Meshes[num]);
-		meshComp->SetupAttachment(BuildingMesh, socket);
-		meshComp->SetRelativeRotation(FRotator(0.0f, 90.0f * angle, 0.0f));
-		meshComp->RegisterComponent();
+			UStaticMeshComponent* meshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass());
+			meshComp->SetStaticMesh(Seeds[Seed].Meshes[num]);
+			meshComp->SetupAttachment(BuildingMesh, socket);
+			meshComp->SetRelativeRotation(FRotator(0.0f, 90.0f * angle, 0.0f));
+			meshComp->RegisterComponent();
+		}
 	}
 }
 
