@@ -689,10 +689,12 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 
 void UCitizenManager::StartElectionTimer()
 {
+	RemoveTimer("Election", GetOwner());
+	
 	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
 	FTimerStruct timer;
-	timer.CreateTimer("Election", GetOwner(), timeToCompleteDay * 10, FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), true);
+	timer.CreateTimer("Election", GetOwner(), timeToCompleteDay * GetLawValue(EBillType::ElectionTimer), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), false);
 
 	Timers.Add(timer);
 }
@@ -748,7 +750,7 @@ void UCitizenManager::Election()
 		}
 	}
 
-	ResetTimer("Election", GetOwner());
+	StartElectionTimer();
 }
 
 void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
@@ -826,6 +828,24 @@ void UCitizenManager::SetupBill()
 
 	if (ProposedBills.IsEmpty())
 		return;
+
+	if (GetBillType(ProposedBills[0]) == EBillType::Election) {
+		for (FPartyStruct party : Parties) {
+			int32 representativeCount = 0;
+
+			for (ACitizen* citizen : Representatives)
+				if (party.Members.Contains(citizen))
+					representativeCount++;
+
+			float representPerc = representativeCount / Citizens.Num() * 100.0f;
+			float partyPerc = party.Members.Num() / Citizens.Num() * 100.0f;
+
+			if (partyPerc > representPerc)
+				ProposedBills[0].Agreeing.Add(party.Party);
+			else if (representPerc > partyPerc)
+				ProposedBills[0].Opposing.Add(party.Party);
+		}
+	}
 
 	for (ACitizen* citizen : Representatives)
 		GetInitialVotes(citizen, ProposedBills[0]);
@@ -932,6 +952,9 @@ void UCitizenManager::TallyVotes(FBillStruct Bill)
 
 				timer.CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(gamemode->Broch->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
 				Timers.Add(timer);
+			}
+			else if (law.BillType == EBillType::Election) {
+				Election();
 			}
 			else {
 				FBillStruct currentLaw;

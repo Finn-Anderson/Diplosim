@@ -181,7 +181,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<FSeedStruct> Seeds;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Randomisation")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		bool bAffectBuildingMesh;
 
 	UPROPERTY()

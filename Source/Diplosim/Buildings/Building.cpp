@@ -22,6 +22,7 @@
 #include "Player/Components/BuildComponent.h"
 #include "Map/Resources/Vegetation.h"
 #include "Map/Grid.h"
+#include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
 #include "Buildings/Work/Service/Stockpile.h"
@@ -152,6 +153,13 @@ void ABuilding::SetSeed(int32 Seed)
 
 	if (bAffectBuildingMesh) {
 		BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
+
+		if (IsA<AWall>()) {
+			if (Seed > 1)
+				MaxCapacity = 0;
+			else
+				MaxCapacity = 2;
+		}
 	}
 	else {
 		TArray<USceneComponent*> children;

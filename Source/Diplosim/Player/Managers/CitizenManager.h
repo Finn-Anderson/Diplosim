@@ -164,6 +164,8 @@ enum class EBillType : uint8
 	WorkAge,
 	VoteAge,
 	Representatives,
+	ElectionTimer,
+	Election,
 	Abolish
 };
 
