@@ -4,10 +4,14 @@
 
 #include "AI/Citizen.h"
 #include "AI/AttackComponent.h"
+#include "Universal/HealthComponent.h"
 
 AWall::AWall()
 {
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+
+	HealthComponent->MaxHealth = 200;
+	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	DecalComponent->SetVisibility(true);
 

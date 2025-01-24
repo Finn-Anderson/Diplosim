@@ -7,6 +7,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Universal/HealthComponent.h"
 
 AFarm::AFarm()
 {
@@ -14,6 +15,9 @@ AFarm::AFarm()
 	CropMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	CropMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	CropMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
+
+	HealthComponent->MaxHealth = 50;
+	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	Yield = 5;
 

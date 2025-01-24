@@ -4,12 +4,16 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/AI.h"
+#include "Universal/HealthComponent.h"
 
 ARoad::ARoad()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	SetTickableWhenPaused(true);
 	SetActorTickInterval(0.1f);
+
+	HealthComponent->MaxHealth = 20;
+	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
 	BoxCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));

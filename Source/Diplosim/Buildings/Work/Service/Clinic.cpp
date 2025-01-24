@@ -5,10 +5,12 @@
 
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Universal/HealthComponent.h"
 
 AClinic::AClinic()
 {
-
+	HealthComponent->MaxHealth = 50;
+	HealthComponent->Health = HealthComponent->MaxHealth;
 }
 
 bool AClinic::AddCitizen(ACitizen* Citizen)

@@ -7,9 +7,13 @@
 #include "PLayer/Managers/ResourceManager.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "Universal/HealthComponent.h"
 
 AStockpile::AStockpile()
 {
+	HealthComponent->MaxHealth = 200;
+	HealthComponent->Health = HealthComponent->MaxHealth;
+	
 	HISMBox = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMBox"));
 	HISMBox->SetupAttachment(GetRootComponent());
 

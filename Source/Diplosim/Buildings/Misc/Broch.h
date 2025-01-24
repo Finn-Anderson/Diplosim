@@ -16,9 +16,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizens")
 		TSubclassOf<class ACitizen> CitizenClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizens")
-		int32 NumToSpawn;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		class UDecalComponent* DecalComponent;
 

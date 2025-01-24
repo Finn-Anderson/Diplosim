@@ -23,6 +23,7 @@
 #include "Map/Resources/Vegetation.h"
 #include "Map/Grid.h"
 #include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Work/Defence/Fort.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
 #include "Buildings/Work/Service/Stockpile.h"
@@ -52,7 +53,7 @@ ABuilding::ABuilding()
 	RootComponent = BuildingMesh;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
-	HealthComponent->MaxHealth = 200;
+	HealthComponent->MaxHealth = 100;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	ParticleComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ParticleComponent"));
@@ -102,8 +103,6 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
-
-	FVector size = (BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2);
 
 	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
 	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
@@ -155,10 +154,20 @@ void ABuilding::SetSeed(int32 Seed)
 		BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
 
 		if (IsA<AWall>()) {
-			if (Seed > 1)
+			if (Seed > 1) {
+				HealthComponent->MaxHealth = 100;
+				HealthComponent->Health = HealthComponent->MaxHealth;
 				MaxCapacity = 0;
-			else
+			}
+			else {
+				HealthComponent->MaxHealth = 200;
+				HealthComponent->Health = HealthComponent->MaxHealth;
 				MaxCapacity = 2;
+			}
+		}
+		else if (IsA<AFort>()) {
+			HealthComponent->MaxHealth = 100 + 100 * Seed;
+			HealthComponent->Health = HealthComponent->MaxHealth;
 		}
 	}
 	else {

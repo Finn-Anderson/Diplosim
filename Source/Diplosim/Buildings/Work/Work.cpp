@@ -28,8 +28,6 @@ AWork::AWork()
 	SphereComponent->SetupAttachment(RootComponent);
 	SphereComponent->SetSphereRadius(1500.0f);
 
-	bRange = false;
-
 	Wage = 0;
 
 	WorkStart = 6;
@@ -57,26 +55,12 @@ void AWork::BeginPlay()
 
 void AWork::OnRadialOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!bRange || !OtherActor->IsA<AHouse>() || GetOccupied().IsEmpty())
-		return;
-
-	AHouse* house = Cast<AHouse>(OtherActor);
-
-	house->Religions.Add(Belief);
-
-	Houses.Add(house);
+	
 }
 
 void AWork::OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (!Houses.Contains(OtherActor))
-		return;
 
-	AHouse* house = Cast<AHouse>(OtherActor);
-
-	house->Religions.RemoveSingle(Belief);
-
-	Houses.Remove(house);
 }
 
 void AWork::UpkeepCost()

@@ -12,6 +12,9 @@
 
 ABuilder::ABuilder()
 {
+	HealthComponent->MaxHealth = 50;
+	HealthComponent->Health = HealthComponent->MaxHealth;
+
 	BuildPercentage = 0;
 }
 

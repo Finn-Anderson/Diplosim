@@ -10,10 +10,12 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "AI/DiplosimAIController.h"
+#include "Universal/HealthComponent.h"
 
 ATrader::ATrader()
 {
-
+	HealthComponent->MaxHealth = 200;
+	HealthComponent->Health = HealthComponent->MaxHealth;
 }
 
 void ATrader::Enter(ACitizen* Citizen)

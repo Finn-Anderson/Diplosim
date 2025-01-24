@@ -3,9 +3,13 @@
 #include "Components/SphereComponent.h"
 
 #include "AI/AttackComponent.h"
+#include "Universal/HealthComponent.h"
 
 ATower::ATower()
 {
+	HealthComponent->MaxHealth = 50;
+	HealthComponent->Health = HealthComponent->MaxHealth;
+	
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 	AttackComponent->RangeComponent->SetupAttachment(RootComponent);
 	AttackComponent->AttackTime = 5.0f;

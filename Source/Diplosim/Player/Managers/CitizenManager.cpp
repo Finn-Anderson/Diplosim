@@ -314,15 +314,18 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 //
 void UCitizenManager::CheckWorkStatus(int32 Hour)
 {
-	for (ACitizen* citizen : Citizens) {
-		if (citizen->Building.Employment == nullptr)
+	for (ABuilding* building : Buildings) {
+		if (!building->IsA<AWork>())
 			continue;
 
-		AWork* work = citizen->Building.Employment;
+		AWork* work = Cast<AWork>(building);
 
-		if (work->WorkStart == Hour)
+		if (IsWorkEvent(work))
+			continue;
+
+		if (work->WorkStart == Hour && !work->bOpen)
 			work->Open();
-		else if (work->WorkEnd == Hour)
+		else if (work->WorkEnd == Hour && work->bOpen)
 			work->Close();
 	}
 }

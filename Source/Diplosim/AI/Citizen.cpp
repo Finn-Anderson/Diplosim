@@ -777,12 +777,18 @@ void ACitizen::SetReligion()
 		Spirituality.FathersFaith = BioStruct.Father->Spirituality.Faith;
 
 		religionList.Add(Spirituality.FathersFaith); 
+
+		for (EReligion religion : BioStruct.Father->Building.House->Religions)
+			religionList.Add(religion);
 	}
 
 	if (BioStruct.Mother->IsValidLowLevelFast()) {
 		Spirituality.MothersFaith = BioStruct.Mother->Spirituality.Faith;
 
 		religionList.Add(Spirituality.MothersFaith);
+
+		for (EReligion religion : BioStruct.Mother->Building.House->Religions)
+			religionList.Add(religion);
 	}
 
 	if (BioStruct.Partner->IsValidLowLevelFast())

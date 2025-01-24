@@ -7,7 +7,8 @@
 
 ABroch::ABroch()
 {
-	NumToSpawn = 5;
+	HealthComponent->MaxHealth = 300;
+	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	BuildingMesh->bReceivesDecals = false;
 
