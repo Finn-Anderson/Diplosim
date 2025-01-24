@@ -33,13 +33,15 @@ UCitizenManager::UCitizenManager()
 
 	FoodCost = 0;
 
-	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Personalities.json", "Personalities");
+	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Personalities.json");
 
-	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Parties.json", "Parties");
+	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Parties.json");
 
-	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Laws.json", "Laws");
+	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Laws.json");
 
-	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Religions.json", "Religions");
+	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Religions.json");
+
+	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Conditions.json");
 }
 
 void UCitizenManager::BeginPlay()
@@ -49,7 +51,7 @@ void UCitizenManager::BeginPlay()
 	StartDiseaseTimer();
 }
 
-void UCitizenManager::ReadJSONFile(FString path, FString Section)
+void UCitizenManager::ReadJSONFile(FString path)
 {
 	TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject());
 
@@ -64,6 +66,7 @@ void UCitizenManager::ReadJSONFile(FString path, FString Section)
 				FPartyStruct party;
 				FLawStruct law;
 				FReligionStruct religion;
+				FConditionStruct condition;
 
 				for (auto& v : e->AsObject()->Values) {
 					uint8 index = 0;
@@ -72,19 +75,19 @@ void UCitizenManager::ReadJSONFile(FString path, FString Section)
 						for (auto& ev : v.Value->AsArray()) {
 							index = FCString::Atoi(*ev->AsString());
 
-							if (Section == "Personalities") {
+							if (element.Key == "Personalities") {
 								if (v.Key == "Likes")
 									personality.Likes.Add(EPersonality(index));
 								else
 									personality.Dislikes.Add(EPersonality(index));
 							}
-							else if (Section == "Parties") {
+							else if (element.Key == "Parties") {
 								party.Agreeable.Add(EPersonality(index));
 							}
-							else if (Section == "Religions") {
+							else if (element.Key == "Religions") {
 								religion.Agreeable.Add(EPersonality(index));
 							}
-							else {
+							else if (element.Key == "Laws") {
 								FBillStruct bill;
 
 								for (auto& bv : ev->AsObject()->Values) {
@@ -120,30 +123,61 @@ void UCitizenManager::ReadJSONFile(FString path, FString Section)
 
 								law.Bills.Add(bill);
 							}
+							else {
+								FAffectStruct affect;
+
+								for (auto& bv : ev->AsObject()->Values) {
+									index = FCString::Atoi(*bv.Value->AsString());
+
+									if (bv.Key == "Affect")
+										affect.Affect = EAffect(index);
+									else
+										affect.Amount = bv.Value->AsNumber();
+								}
+
+								condition.Affects.Add(affect);
+							}
 						}
+					}
+					else if (v.Value->Type == EJson::String) {
+						condition.Name = v.Value->AsString();
 					}
 					else {
 						index = FCString::Atoi(*v.Value->AsString());
 
-						if (Section == "Personalities")
+						if (element.Key == "Personalities")
 							personality.Trait = EPersonality(index);
-						else if (Section == "Parties")
+						else if (element.Key == "Parties")
 							party.Party = EParty(index);
-						else if (Section == "Religions")
+						else if (element.Key == "Religions")
 							religion.Faith = EReligion(index);
-						else
+						else if (element.Key == "Laws")
 							law.BillType = EBillType(index);
+						else {
+							if (v.Key == "Grade")
+								condition.Grade = EGrade(index);
+							else if (v.Key == "Spreadability")
+								condition.Spreadability = index;
+							else if (v.Key == "Level")
+								condition.Level = index;
+							else
+								condition.DeathLevel = index;
+						}
 					}
 				}
 
-				if (Section == "Personalities")
+				if (element.Key == "Personalities")
 					Personalities.Add(personality);
-				else if (Section == "Parties")
+				else if (element.Key == "Parties")
 					Parties.Add(party);
-				else if (Section == "Religions")
+				else if (element.Key == "Religions")
 					Religions.Add(religion);
-				else
+				else if (element.Key == "Laws")
 					Laws.Add(law);
+				else if (element.Key == "Injuries")
+					Injuries.Add(condition);
+				else
+					Diseases.Add(condition);
 			}
 		}
 	}
@@ -381,17 +415,11 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 
 	if (index < Odds)
 		return;
-	
-	TArray<FConditionStruct> conditions;
 
-	for (FConditionStruct condition : Injuries)
-		if (condition.Buildings.Contains(Citizen->Building.Employment->GetClass()))
-			conditions.Add(condition);
+	index = FMath::RandRange(0, Injuries.Num() - 1);
+	Citizen->HealthIssues.Add(Injuries[index]);
 
-	index = FMath::RandRange(0, conditions.Num() - 1);
-	Citizen->HealthIssues.Add(conditions[index]);
-
-	for (FAffectStruct affect : conditions[index].Affects) {
+	for (FAffectStruct affect : Injuries[index].Affects) {
 		if (affect.Affect == EAffect::Movement)
 			Citizen->MovementComponent->InitialSpeed *= affect.Amount;
 		else if (affect.Affect == EAffect::Damage)

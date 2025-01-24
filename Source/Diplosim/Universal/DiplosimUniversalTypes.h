@@ -96,9 +96,6 @@ struct FConditionStruct
 		int32 DeathLevel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		TArray<TSubclassOf<class ABuilding>> Buildings;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		TArray<FAffectStruct> Affects;
 
 	FConditionStruct()

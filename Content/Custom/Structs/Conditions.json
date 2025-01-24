@@ -1,0 +1,216 @@
+{
+  "Injuries": [
+    {
+      "Name": "Collapsed Air Cell",
+      "Grade": 0,
+      "Spreadability": 0,
+      "Level": 0,
+      "DeathLevel": -1,
+      "Affects": [
+        {
+          "Affect": 0,
+          "Amount": 0.9
+        }
+      ]
+    },
+    {
+      "Name": "Bruised Membrane",
+      "Grade": 0,
+      "Spreadability": 0,
+      "Level": 0,
+      "DeathLevel": -1,
+      "Affects": [
+        {
+          "Affect": 1,
+          "Amount": 0.9
+        }
+      ]
+    },
+    {
+      "Name": "Dislocated Yolk",
+      "Grade": 0,
+      "Spreadability": 0,
+      "Level": 0,
+      "DeathLevel": -1,
+      "Affects": [
+        {
+          "Affect": 2,
+          "Amount": 0.9
+        }
+      ]
+    },
+    {
+      "Name": "Untwisted Chalazae",
+      "Grade": 1,
+      "Spreadability": 0,
+      "Level": 0,
+      "DeathLevel": 300,
+      "Affects": [
+        {
+          "Affect": 2,
+          "Amount": 0.7
+        }
+      ]
+    },
+    {
+      "Name": "Damaged Albumen",
+      "Grade": 1,
+      "Spreadability": 0,
+      "Level": 0,
+      "DeathLevel": 240,
+      "Affects": [
+        {
+          "Affect": 1,
+          "Amount": 0.8
+        },
+        {
+          "Affect": 2,
+          "Amount": 0.9
+        }
+      ]
+    },
+    {
+      "Name": "Cracked Shell",
+      "Grade": 2,
+      "Spreadability": 0,
+      "Level": 0,
+      "DeathLevel": 180,
+      "Affects": [
+        {
+          "Affect": 0,
+          "Amount": 0.6
+        },
+        {
+          "Affect": 1,
+          "Amount": 0.8
+        },
+        {
+          "Affect": 2,
+          "Amount": 0.8
+        }
+      ]
+    },
+    {
+      "Name": "Leaking Yolk",
+      "Grade": 2,
+      "Spreadability": 0,
+      "Level": 0,
+      "DeathLevel": 120,
+      "Affects": [
+        {
+          "Affect": 1,
+          "Amount": 0.6
+        },
+        {
+          "Affect": 2,
+          "Amount": 0.6
+        }
+      ]
+    }
+  ],
+  "Diseases": [
+    {
+      "Name": "Infectious Bronchitis",
+      "Grade": 0,
+      "Spreadability": 90,
+      "Level": 0,
+      "DeathLevel": 300,
+      "Affects": [
+        {
+          "Affect": 1,
+          "Amount": 0.9
+        }
+      ]
+    },
+    {
+      "Name": "Egg Drop Syndrome",
+      "Grade": 0,
+      "Spreadability": 30,
+      "Level": 0,
+      "DeathLevel": 300,
+      "Affects": [
+        {
+          "Affect": 1,
+          "Amount": 0.9
+        }
+      ]
+    },
+    {
+      "Name": "Newcastle Disease",
+      "Grade": 0,
+      "Spreadability": 30,
+      "Level": 0,
+      "DeathLevel": 240,
+      "Affects": [
+        {
+          "Affect": 1,
+          "Amount": 0.9
+        },
+        {
+          "Affect": 2,
+          "Amount": 0.9
+        }
+      ]
+    },
+    {
+      "Name": "Salmonella",
+      "Grade": 1,
+      "Spreadability": 20,
+      "Level": 0,
+      "DeathLevel": 240,
+      "Affects": [
+        {
+          "Affect": 1,
+          "Amount": 0.8
+        }
+      ]
+    },
+    {
+      "Name": "Fowlpox",
+      "Grade": 1,
+      "Spreadability": 60,
+      "Level": 0,
+      "DeathLevel": 180,
+      "Affects": [
+        {
+          "Affect": 1,
+          "Amount": 0.8
+        }
+      ]
+    },
+    {
+      "Name": "Marek's Disease",
+      "Grade": 2,
+      "Spreadability": 20,
+      "Level": 0,
+      "DeathLevel": 60,
+      "Affects": [
+        {
+          "Affect": 0,
+          "Amount": 0.7
+        },
+        {
+          "Affect": 1,
+          "Amount": 0.7
+        },
+        {
+          "Affect": 2,
+          "Amount": 0.7
+        }
+      ]
+    },
+    {
+      "Name": "Influenza",
+      "Grade": 2,
+      "Spreadability": 70,
+      "Level": 0,
+      "DeathLevel": 120,
+      "Affects": [
+        {
+          "Affect": 1,
+          "Amount": 0.5
+        }
+      ]
+    }
+  ]
+}
