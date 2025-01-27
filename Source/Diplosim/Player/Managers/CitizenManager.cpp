@@ -369,8 +369,10 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 //
 void UCitizenManager::StartDiseaseTimer()
 {
+	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+
 	FTimerStruct timer;
-	timer.CreateTimer("Disease", GetOwner(), FMath::RandRange(180, 1200), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
+	timer.CreateTimer("Disease", GetOwner(), FMath::RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
 
 	Timers.Add(timer);
 }

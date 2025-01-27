@@ -139,7 +139,16 @@ struct FSeedStruct
 		int32 Health;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		int32 Capacity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<UStaticMesh*> Meshes;
+
+	FSeedStruct()
+	{
+		Health = -1;
+		Capacity = -1;
+	}
 };
 
 UCLASS()

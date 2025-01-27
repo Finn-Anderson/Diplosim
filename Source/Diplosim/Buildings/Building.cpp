@@ -153,21 +153,14 @@ void ABuilding::SetSeed(int32 Seed)
 	if (bAffectBuildingMesh) {
 		BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
 
-		if (IsA<AWall>()) {
-			if (Seed > 1) {
-				HealthComponent->MaxHealth = 100;
-				HealthComponent->Health = HealthComponent->MaxHealth;
-				MaxCapacity = 0;
-			}
-			else {
-				HealthComponent->MaxHealth = 200;
-				HealthComponent->Health = HealthComponent->MaxHealth;
-				MaxCapacity = 2;
-			}
-		}
-		else if (IsA<AFort>()) {
-			HealthComponent->MaxHealth = 100 + 100 * Seed;
+		if (Seeds[Seed].Health != -1) {
+			HealthComponent->MaxHealth = Seeds[Seed].Health;
 			HealthComponent->Health = HealthComponent->MaxHealth;
+		}
+
+		if (Seeds[Seed].Capacity != -1) {
+			MaxCapacity = Seeds[Seed].Capacity;
+			Capacity = MaxCapacity;
 		}
 	}
 	else {
