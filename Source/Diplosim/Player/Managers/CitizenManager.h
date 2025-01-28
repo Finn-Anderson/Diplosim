@@ -374,6 +374,9 @@ public:
 
 	// Work
 	void CheckWorkStatus(int32 Hour);
+
+	// Sleep
+	void CheckSleepStatus(int32 Hour);
 		
 	// Disease
 	void StartDiseaseTimer();
@@ -388,7 +391,9 @@ public:
 
 	void UpdateHealthText(class ACitizen* Citizen);
 
-	void PickCitizenToHeal(class ACitizen* Healer);
+	void GetClosestHealer(class ACitizen* Citizen);
+
+	void PickCitizenToHeal(class ACitizen* Healer, class ACitizen* Citizen = nullptr);
 
 	UPROPERTY()
 		TArray<class ACitizen*> Infectible;

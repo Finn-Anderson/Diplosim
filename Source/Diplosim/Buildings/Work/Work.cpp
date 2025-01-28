@@ -46,7 +46,7 @@ void AWork::BeginPlay()
 
 	int32 hour = Camera->Grid->AtmosphereComponent->Calendar.Hour;
 
-	if (hour >= WorkStart && hour <= WorkEnd && !Camera->CitizenManager->IsWorkEvent(this))
+	if (hour >= WorkStart && hour < WorkEnd && !Camera->CitizenManager->IsWorkEvent(this))
 		Open();
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AWork::OnRadialOverlapBegin);

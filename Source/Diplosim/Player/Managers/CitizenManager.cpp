@@ -354,13 +354,33 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 
 		AWork* work = Cast<AWork>(building);
 
-		if (IsWorkEvent(work))
+		if (IsWorkEvent(work) || (work->IsA<AClinic>() && (!Infected.IsEmpty() || !Injuries.IsEmpty())))
 			continue;
 
-		if (work->WorkStart == Hour && !work->bOpen)
+		if (Hour >= work->WorkStart && Hour < work->WorkEnd && !work->bOpen)
 			work->Open();
-		else if (work->WorkEnd == Hour && work->bOpen)
+		else if (work->bOpen)
 			work->Close();
+	}
+}
+
+//
+// Sleep
+//
+void UCitizenManager::CheckSleepStatus(int32 Hour)
+{
+	for (ACitizen* citizen : Citizens) {
+		if (citizen->bSleep)
+			citizen->HoursSleptToday++;
+
+		if ((Hour >= citizen->SleepStart || Hour < citizen->SleepEnd) && !citizen->bSleep && !citizen->Building.Employment->bOpen) {
+			citizen->bSleep = true;
+
+			citizen->HoursSleptToday = 0;
+		}
+		else if (citizen->bSleep) {
+			citizen->bSleep = false;
+		}
 	}
 }
 
@@ -403,12 +423,7 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 
 	UpdateHealthText(Citizen);
 
-	TArray<AActor*> clinics;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
-
-	for (AActor* actor : clinics)
-		for (ACitizen* healer : Cast<AClinic>(actor)->GetCitizensAtBuilding())
-			PickCitizenToHeal(healer);
+	GetClosestHealer(Citizen);
 }
 
 void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
@@ -438,12 +453,7 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 
 	UpdateHealthText(Citizen);
 
-	TArray<AActor*> clinics;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
-
-	for (AActor* actor : clinics)
-		for (ACitizen* healer : Cast<AClinic>(actor)->GetCitizensAtBuilding())
-			PickCitizenToHeal(healer);
+	GetClosestHealer(Citizen);
 }
 
 void UCitizenManager::Cure(ACitizen* Citizen)
@@ -488,23 +498,69 @@ void UCitizenManager::UpdateHealthText(ACitizen* Citizen)
 	});
 }
 
-void UCitizenManager::PickCitizenToHeal(ACitizen* Healer)
+void UCitizenManager::GetClosestHealer(class ACitizen* Citizen)
 {
-	ACitizen* goal = nullptr;
+	TArray<AActor*> clinics;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
 
-	for (ACitizen* citizen : Infected) {
-		if (Healing.Contains(citizen))
+	ACitizen* healer = nullptr;
+
+	for (AActor* actor : clinics) {
+		AClinic* clinic = Cast<AClinic>(actor);
+
+		if (!clinic->bOpen) {
+			clinic->Open();
+
 			continue;
+		}
 
-		goal = citizen;
+		for (ACitizen* h : clinic->GetCitizensAtBuilding()) {
+			if (!h->AIController->CanMoveTo(Citizen->GetActorLocation()) || h->AIController->MoveRequest.GetGoalActor() != nullptr)
+				continue;
 
-		break;
+			if (healer == nullptr) {
+				healer = h;
+
+				continue;
+			}
+
+			double magnitude = h->AIController->GetClosestActor(Citizen->GetActorLocation(), healer->GetActorLocation(), h->GetActorLocation());
+
+			if (magnitude > 0.0f)
+				healer = h;
+		}
 	}
 
-	if (goal != nullptr) {
-		Healer->AIController->AIMoveTo(goal);
+	if (healer == nullptr)
+		return;
+	
+	PickCitizenToHeal(healer, Citizen);
+}
 
-		Healing.Add(goal);
+void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
+{
+	if (Citizen == nullptr) {
+		for (ACitizen* citizen : Infected) {
+			if (Healing.Contains(citizen))
+				continue;
+
+			if (Citizen == nullptr) {
+				Citizen = citizen;
+
+				continue;
+			}
+
+			double magnitude = Healer->AIController->GetClosestActor(Healer->GetActorLocation(), Citizen->GetActorLocation(), citizen->GetActorLocation());
+
+			if (magnitude > 0.0f)
+				Citizen = citizen;
+		}
+	}
+
+	if (Citizen != nullptr) {
+		Healer->AIController->AIMoveTo(Citizen);
+
+		Healing.Add(Citizen);
 	}
 	else if (Healer->Building.BuildingAt != Healer->Building.Employment)
 		Healer->AIController->DefaultAction();

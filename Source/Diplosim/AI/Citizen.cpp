@@ -96,6 +96,11 @@ ACitizen::ACitizen()
 
 	ProductivityMultiplier = 1.0f;
 	Fertility = 1.0f;
+
+	SleepStart = 22;
+	SleepEnd = 6;
+	bSleep = false;
+	HoursSleptToday = 0;
 }
 
 void ACitizen::BeginPlay()
@@ -400,7 +405,7 @@ void ACitizen::LoseEnergy()
 
 	MovementComponent->SetMaxSpeed(Energy);
 
-	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || (!Building.Employment->bCanRest && Building.Employment->bOpen) || bWorshipping)
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || (!Building.Employment->bCanRest && Building.Employment->bOpen) || bWorshipping || (Building.Employment->IsA<AClinic>() && Camera->CitizenManager->Healing.Contains(AIController->MoveRequest.GetGoalActor())))
 		return;
 
 	if (Building.House->IsValidLowLevelFast()) {
@@ -864,6 +869,11 @@ void ACitizen::SetHappiness()
 		Happiness.SetValue("Tired", -15);
 	else if (Energy > 70)
 		Happiness.SetValue("Rested", 10);
+
+	if (HoursSleptToday < 6)
+		Happiness.SetValue("Disturbed Sleep", -15);
+	else if (HoursSleptToday > 8)
+		Happiness.SetValue("Slept Like A Baby", 10);
 
 	if (MassStatus == EMassStatus::Missed)
 		Happiness.SetValue("Missed Mass", -25);

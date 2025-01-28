@@ -393,4 +393,17 @@ public:
 	void GivePersonalityTrait(ACitizen* Parent = nullptr);
 
 	void ApplyTraitAffect(EPersonality Trait);
+
+	// Sleep
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sleep")
+		int32 SleepStart;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sleep")
+		int32 SleepEnd;
+
+	UPROPERTY()
+		bool bSleep;
+
+	UPROPERTY()
+		int32 HoursSleptToday;
 };
