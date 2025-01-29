@@ -142,12 +142,16 @@ struct FSeedStruct
 		int32 Capacity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		bool bExplosive;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<UStaticMesh*> Meshes;
 
 	FSeedStruct()
 	{
 		Health = -1;
 		Capacity = -1;
+		bExplosive = false;
 	}
 };
 

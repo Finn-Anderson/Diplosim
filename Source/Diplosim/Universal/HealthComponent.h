@@ -43,7 +43,7 @@ public:
 
 
 	// Death
-	void Death(AActor* Attacker);
+	void Death(AActor* Attacker, int32 Force);
 
 	void Clear(AActor* Attacker);
 

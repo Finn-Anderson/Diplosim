@@ -23,6 +23,7 @@
 #include "Map/Resources/Vegetation.h"
 #include "Map/Grid.h"
 #include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Work/Defence/Trap.h"
 #include "Buildings/Work/Defence/Fort.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
@@ -162,6 +163,9 @@ void ABuilding::SetSeed(int32 Seed)
 			MaxCapacity = Seeds[Seed].Capacity;
 			Capacity = MaxCapacity;
 		}
+
+		if (IsA<ATrap>())
+			Cast<ATrap>(this)->bExplode = Seeds[Seed].bExplosive;
 	}
 	else {
 		TArray<USceneComponent*> children;

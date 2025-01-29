@@ -64,6 +64,8 @@ void UHealthComponent::AddHealth(int32 Amount)
 void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 {
 	AsyncTask(ENamedThreads::GameThread, [this, Amount, Attacker]() {
+		int32 force = FMath::Max(FMath::Abs(Health - Amount), 1);
+
 		Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
 
 		float opacity = (MaxHealth - Health) / float(MaxHealth);
@@ -86,7 +88,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 		GetWorld()->GetTimerManager().SetTimer(matTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), 0.15f, false);
 
 		if (Health == 0)
-			Death(Attacker);
+			Death(Attacker, force);
 	});
 }
 
@@ -106,7 +108,7 @@ void UHealthComponent::RemoveDamageOverlay()
 		Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(nullptr);
 }
 
-void UHealthComponent::Death(AActor* Attacker)
+void UHealthComponent::Death(AActor* Attacker, int32 Force)
 {
 	AActor* actor = GetOwner();
 
@@ -128,7 +130,7 @@ void UHealthComponent::Death(AActor* Attacker)
 		mesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 		mesh->SetSimulatePhysics(true);
 
-		const FVector direction = (actor->GetActorLocation() - Attacker->GetActorLocation()).Rotation().Vector() * 50;
+		const FVector direction = (actor->GetActorLocation() - Attacker->GetActorLocation()).Rotation().Vector() * 50 * Force;
 		mesh->SetPhysicsLinearVelocity(direction, false);
 
 		Cast<AAI>(actor)->DetachFromControllerPendingDestroy();
