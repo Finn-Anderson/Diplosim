@@ -83,6 +83,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		class UExponentialHeightFogComponent* Fog;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
+		class UNiagaraComponent* WindComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		float Speed;
 
@@ -93,6 +96,8 @@ public:
 		FRotator WindRotation;
 
 	void ChangeWindDirection();
+
+	void SetWindDimensions(int32 Size);
 
 	void SetDisplayText(int32 Hour);
 };

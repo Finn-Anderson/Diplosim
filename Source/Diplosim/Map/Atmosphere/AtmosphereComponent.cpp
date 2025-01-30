@@ -7,6 +7,7 @@
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SkyAtmosphereComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
+#include "NiagaraComponent.h"
 
 #include "Map/Grid.h"
 #include "AI/Citizen.h"
@@ -52,6 +53,10 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Fog->SetFogDensity(0.05f);
 	Fog->SetSecondFogDensity(0.05f);
 	Fog->SetSecondFogHeightOffset(5000.0f);
+
+	WindComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WindComponent"));
+	WindComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 2800.0f));
+	WindComponent->bAutoActivate = true;
 }
 
 void UAtmosphereComponent::BeginPlay()
@@ -109,6 +114,8 @@ void UAtmosphereComponent::ChangeWindDirection()
 
 	WindRotation = FRotator(0.0f, yaw, 0.0f);
 
+	WindComponent->SetRelativeRotation(WindRotation + FRotator(0.0f, 180.0f, 0.0f));
+
 	int32 time = FMath::RandRange(180.0f, 600.0f);
 
 	FLatentActionInfo info;
@@ -117,6 +124,12 @@ void UAtmosphereComponent::ChangeWindDirection()
 	info.ExecutionFunction = "ChangeWindDirection";
 	info.UUID = GetUniqueID();
 	UKismetSystemLibrary::Delay(GetWorld(), time, info);
+}
+
+void UAtmosphereComponent::SetWindDimensions(int32 Bound)
+{
+	WindComponent->SetVariableVec3("Dimensions", FVector(Bound * 100.0f * 2.0f, Bound * 100.0f * 2.0f, 5000.0f));
+	WindComponent->SetVariableFloat("SpawnRate", Bound / 10.0f);
 }
 
 void UAtmosphereComponent::SetDisplayText(int32 Hour)

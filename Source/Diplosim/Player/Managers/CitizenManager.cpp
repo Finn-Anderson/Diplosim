@@ -47,8 +47,6 @@ UCitizenManager::UCitizenManager()
 void UCitizenManager::BeginPlay()
 {
 	Super::BeginPlay();
-
-	StartDiseaseTimer();
 }
 
 void UCitizenManager::ReadJSONFile(FString path)

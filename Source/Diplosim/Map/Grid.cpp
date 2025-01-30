@@ -48,6 +48,7 @@ AGrid::AGrid()
 	HISMRampGround->NumCustomDataFloats = 7;
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
+	AtmosphereComponent->WindComponent->SetupAttachment(RootComponent);
 
 	CloudComponent = CreateDefaultSubobject<UCloudComponent>(TEXT("CloudComponent"));
 
@@ -304,7 +305,10 @@ void AGrid::Render()
 		GenerateTrees(chosenTile, amount);
 	}
 
+	// Set Atmosphere Affects
 	SetSeasonAffect(AtmosphereComponent->Calendar.Period, 1.0f);
+
+	AtmosphereComponent->SetWindDimensions(bound);
 
 	// Spawn clouds
 	CloudComponent->ActivateCloud();

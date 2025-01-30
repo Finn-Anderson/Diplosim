@@ -224,7 +224,7 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	GetWorld()->GetTimerManager().SetTimer(ResourceManager->InterestTimer, ResourceManager, &UResourceManager::Interest, 300.0f, true);
 
 	CitizenManager->StartTimers();
-
+	CitizenManager->StartDiseaseTimer();
 	CitizenManager->BrochLocation = Broch->GetActorLocation();
 
 	Cast<ABroch>(Broch)->SpawnCitizens();
