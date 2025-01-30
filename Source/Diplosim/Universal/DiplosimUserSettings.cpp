@@ -20,6 +20,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bEnemies = true;
 
 	bRenderClouds = true;
+	bRenderWind = true;
 	bRenderFog = true;
 
 	AAName = "None";
@@ -93,6 +94,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 
 	if (FString("bRenderClouds").Equals(Key))
 		SetRenderClouds(value.ToBool());
+	else if (FString("bRenderWind").Equals(Key))
+		SetRenderWind(value.ToBool());
 	else if (FString("bRenderFog").Equals(Key))
 		SetRenderFog(value.ToBool());
 	else if (FString("AAName").Equals(Key))
@@ -152,6 +155,7 @@ void UDiplosimUserSettings::LoadIniSettings()
 void UDiplosimUserSettings::SaveIniSettings()
 {
 	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
+	GConfig->SetBool(*Section, TEXT("bRenderWind"), GetRenderWind(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderFog"), GetRenderFog(), Filename);
 	GConfig->SetString(*Section, TEXT("AAName"), *GetAA(), Filename);
 	GConfig->SetString(*Section, TEXT("GIName"), *GetGI(), Filename);
@@ -211,6 +215,24 @@ void UDiplosimUserSettings::SetRenderClouds(bool Value)
 bool UDiplosimUserSettings::GetRenderClouds() const
 {
 	return bRenderClouds;
+}
+
+void UDiplosimUserSettings::SetRenderWind(bool Value)
+{
+	bRenderWind = Value;
+
+	if (Atmosphere == nullptr)
+		return;
+
+	if (bRenderWind)
+		Atmosphere->WindComponent->Activate();
+	else
+		Atmosphere->WindComponent->Deactivate();
+}
+
+bool UDiplosimUserSettings::GetRenderWind() const
+{
+	return bRenderWind;
 }
 
 void UDiplosimUserSettings::SetRenderFog(bool Value)

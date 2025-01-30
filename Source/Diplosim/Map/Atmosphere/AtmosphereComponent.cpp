@@ -70,6 +70,9 @@ void UAtmosphereComponent::BeginPlay()
 
 	if (!settings->GetRenderFog())
 		Fog->SetHiddenInGame(true);
+
+	if (!settings->GetRenderWind())
+		WindComponent->Deactivate();
 }
 
 void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

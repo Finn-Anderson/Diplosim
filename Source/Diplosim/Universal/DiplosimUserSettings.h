@@ -17,6 +17,9 @@ protected:
 		bool bRenderClouds;
 
 	UPROPERTY(Config)
+		bool bRenderWind;
+
+	UPROPERTY(Config)
 		bool bRenderFog;
 
 	UPROPERTY(Config)
@@ -82,6 +85,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Clouds")
 		bool GetRenderClouds() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Wind")
+		void SetRenderWind(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Wind")
+		bool GetRenderWind() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Fog")
 		void SetRenderFog(bool Value);
