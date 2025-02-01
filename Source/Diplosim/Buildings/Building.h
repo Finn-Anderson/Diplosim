@@ -147,6 +147,9 @@ struct FSeedStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<UStaticMesh*> Meshes;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		TArray<FItemStruct> Cost;
+
 	FSeedStruct()
 	{
 		Health = -1;

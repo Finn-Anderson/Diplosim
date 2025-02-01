@@ -164,6 +164,9 @@ void ABuilding::SetSeed(int32 Seed)
 			Capacity = MaxCapacity;
 		}
 
+		if (!Seeds[Seed].Cost.IsEmpty())
+			CostList = Seeds[Seed].Cost;
+
 		if (IsA<ATrap>())
 			Cast<ATrap>(this)->bExplode = Seeds[Seed].bExplosive;
 	}
