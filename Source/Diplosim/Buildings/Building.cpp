@@ -82,6 +82,7 @@ ABuilding::ABuilding()
 	GroundDecalComponent->SetHiddenInGame(true);
 
 	Emissiveness = 0.0f;
+	bBlink = false;
 
 	Capacity = 2;
 	MaxCapacity = 2;
@@ -99,6 +100,8 @@ ABuilding::ABuilding()
 	Belief = EReligion::Atheist;
 
 	bAffectBuildingMesh = false;
+
+	BuildingName = "";
 }
 
 void ABuilding::BeginPlay()
@@ -129,6 +132,10 @@ void ABuilding::BeginPlay()
 	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(BuildingMesh->GetMaterial(0), this);
 	material->SetVectorParameterValue("Colour", chosenColour);
 	material->SetScalarParameterValue("Emissiveness", Emissiveness);
+
+	if (bBlink)
+		material->SetScalarParameterValue("Blink", 1.0f);
+
 	BuildingMesh->SetMaterial(0, material);
 
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
@@ -162,6 +169,12 @@ void ABuilding::SetSeed(int32 Seed)
 		if (Seeds[Seed].Capacity != -1) {
 			MaxCapacity = Seeds[Seed].Capacity;
 			Capacity = MaxCapacity;
+		}
+
+		if (Seeds[Seed].Name != "") {
+			BuildingName = Seeds[Seed].Name;
+
+			Camera->UpdateDisplayName();
 		}
 
 		if (!Seeds[Seed].Cost.IsEmpty())
@@ -688,6 +701,9 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 		for (TSubclassOf<AResource> r : resources)
 			if (Citizen->Carrying.Type->IsA(r))
 				resource = r;
+
+		if (IsA<AWork>() && Cast<AWork>(this)->bBoost)
+			Citizen->Carrying.Amount *= 1.5f;
 
 		int32 extra = Camera->ResourceManager->AddLocalResource(resource, this, Citizen->Carrying.Amount);
 

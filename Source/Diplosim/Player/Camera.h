@@ -43,6 +43,9 @@ public:
 		void SetInteractableText(AActor* Actor, int32 Instance);
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateDisplayName();
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateHealthIssues();
 
 	UFUNCTION(BlueprintImplementableEvent)

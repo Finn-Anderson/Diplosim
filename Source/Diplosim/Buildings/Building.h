@@ -145,6 +145,9 @@ struct FSeedStruct
 		bool bExplosive;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		FString Name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<UStaticMesh*> Meshes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
@@ -195,6 +198,9 @@ public:
 		float Emissiveness;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		bool bBlink;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		TArray<FLinearColor> Colours;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
@@ -202,6 +208,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		bool bAffectBuildingMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		FString BuildingName;
 
 	UPROPERTY()
 		class ACamera* Camera;

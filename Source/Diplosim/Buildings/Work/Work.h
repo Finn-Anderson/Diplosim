@@ -66,4 +66,7 @@ public:
 
 	// Resources
 	virtual void Production(class ACitizen* Citizen);
+
+	UPROPERTY()
+		bool bBoost;
 };
