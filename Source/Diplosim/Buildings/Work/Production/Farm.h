@@ -21,6 +21,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
 		int32 TimeLength;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
+		bool bAffectedByFerility;
+
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	virtual void Production(class ACitizen* Citizen) override;

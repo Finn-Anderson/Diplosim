@@ -11,7 +11,7 @@ void ABooster::OnRadialOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor*
 
 	for (TSubclassOf<AWork> workClass : WorkplacesToBoost) {
 		if (OtherActor->IsA(workClass))
-			Cast<AWork>(OtherActor)->bBoost = true;
+			Cast<AWork>(OtherActor)->Boosters.Add(this);
 
 		break;
 	}
@@ -21,10 +21,6 @@ void ABooster::OnRadialOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* O
 {
 	Super::OnRadialOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
 
-	for (TSubclassOf<AWork> workClass : WorkplacesToBoost) {
-		if (OtherActor->IsA(workClass))
-			Cast<AWork>(OtherActor)->bBoost = false;
-
-		break;
-	}
+	if (OtherActor->IsA<AWork>() && Cast<AWork>(OtherActor)->Boosters.Contains(this))
+		Cast<AWork>(OtherActor)->Boosters.Remove(this);
 }

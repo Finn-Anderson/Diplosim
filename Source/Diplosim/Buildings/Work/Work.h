@@ -68,5 +68,5 @@ public:
 	virtual void Production(class ACitizen* Citizen);
 
 	UPROPERTY()
-		bool bBoost;
+		TArray<class ABooster*> Boosters;
 };

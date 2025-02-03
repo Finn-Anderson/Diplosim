@@ -10,30 +10,26 @@
 
 AHouse::AHouse()
 {
+	Rent = 0;
+}
+
+int32 AHouse::GetQuality()
+{
+	return FMath::Clamp(Rent * 12, 0, 100);
 }
 
 void AHouse::UpkeepCost()
 {
-	int32 rent = 0;
-
-	for (FRentStruct rentStruct : Camera->CitizenManager->RentList) {
-		if (IsA(rentStruct.HouseType)) {
-			rent = rentStruct.Rent;
-
-			break;
-		}
-	}
-
 	for (ACitizen* citizen : GetOccupied()) {
-		if (citizen->Balance < rent) {
+		if (citizen->Balance < Rent) {
 			RemoveCitizen(citizen);
 		}
 		else {
-			citizen->Balance -= rent;
+			citizen->Balance -= Rent;
 		}
 	}
 
-	int32 total = rent * Occupied.Num();
+	int32 total = Rent * Occupied.Num();
 	Camera->ResourceManager->AddUniversalResource(Money, total);
 }
 

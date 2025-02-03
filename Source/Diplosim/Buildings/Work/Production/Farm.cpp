@@ -22,6 +22,8 @@ AFarm::AFarm()
 	Yield = 5;
 
 	TimeLength = 30.0f;
+
+	bAffectedByFerility = false;
 }
 
 void AFarm::Enter(ACitizen* Citizen)
@@ -77,12 +79,18 @@ void AFarm::StartTimer(ACitizen* Citizen)
 
 int32 AFarm::GetFertility()
 {
-	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+	int32 fertility = 5;
+	
+	if (bAffectedByFerility) {
+		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
 
-	int32 x = GetActorLocation().X / 100.0f + bound / 2;
-	int32 y = GetActorLocation().Y / 100.0f + bound / 2;
+		int32 x = GetActorLocation().X / 100.0f + bound / 2;
+		int32 y = GetActorLocation().Y / 100.0f + bound / 2;
 
-	return Camera->Grid->Storage[x][y].Fertility;
+		fertility = Camera->Grid->Storage[x][y].Fertility;
+	}
+
+	return fertility;
 }
 
 int32 AFarm::GetYield()

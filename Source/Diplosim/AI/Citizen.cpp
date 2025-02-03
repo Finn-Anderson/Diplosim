@@ -260,30 +260,13 @@ void ACitizen::FindJobAndHouse()
 			if (GetWorld()->GetTimeSeconds() < TimeOfResidence + 300.0f)
 				continue;
 
-			int32 currentRent = 0;
-			int32 newRent = 0;
+			AHouse* house = Cast<AHouse>(building);
 
-			for (FRentStruct rentStruct : Camera->CitizenManager->RentList) {
-				if (Building.House->IsA(rentStruct.HouseType)) {
-					currentRent = rentStruct.Rent;
-
-					break;
-				}
-			}
-
-			for (FRentStruct rentStruct : Camera->CitizenManager->RentList) {
-				if (building->IsA(rentStruct.HouseType)) {
-					newRent = rentStruct.Rent;
-
-					break;
-				}
-			}
-
-			if (Balance < newRent)
+			if (Building.Employment->Wage <= house->Rent)
 				continue;
 
 			if (Building.Employment != nullptr && Building.House != nullptr) {
-				double magnitude = AIController->GetClosestActor(Building.Employment->GetActorLocation(), Building.House->GetActorLocation(), building->GetActorLocation(), currentRent, newRent);
+				double magnitude = AIController->GetClosestActor(Building.Employment->GetActorLocation(), Building.House->GetActorLocation(), building->GetActorLocation(), Building.House->GetQuality(), house->GetQuality());
 
 				if (magnitude <= 0.0f)
 					continue;
@@ -854,6 +837,11 @@ void ACitizen::SetHappiness()
 		Happiness.SetValue("Homeless", -20);
 	else
 		Happiness.SetValue("Housed", 10);
+
+	if (Building.House->GetQuality() < 35)
+		Happiness.SetValue("Substandard Housing", -20);
+	else if (Building.House->GetQuality() > 65)
+		Happiness.SetValue("High-Quality Housing", 15);
 
 	if (Building.Employment == nullptr)
 		Happiness.SetValue("Unemployed", -10);

@@ -112,24 +112,6 @@ struct FEventStruct
 };
 
 USTRUCT(BlueprintType)
-struct FRentStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rent")
-		TSubclassOf<class AHouse> HouseType;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rent")
-		int32 Rent;
-
-	FRentStruct()
-	{
-		HouseType = nullptr;
-		Rent = 0;
-	}
-};
-
-USTRUCT(BlueprintType)
 struct FPartyStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -360,14 +342,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Citizens")
 		TArray<class ABuilding*> Buildings;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rent")
-		TArray<FRentStruct> RentList;
-
 	UPROPERTY()
 		TArray<FTimerStruct> Timers;
 
 	UPROPERTY()
 		FVector BrochLocation;
+
+	// House
+	UFUNCTION(BlueprintCallable)
+		void UpdateRent(TSubclassOf<class AHouse> HouseType, int32 NewRent);
 
 	// Death
 	void ClearCitizen(ACitizen* Citizen);

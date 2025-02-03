@@ -702,8 +702,8 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			if (Citizen->Carrying.Type->IsA(r))
 				resource = r;
 
-		if (IsA<AWork>() && Cast<AWork>(this)->bBoost)
-			Citizen->Carrying.Amount *= 1.5f;
+		if (IsA<AWork>() && !Cast<AWork>(this)->Boosters.IsEmpty())
+			Citizen->Carrying.Amount *= (1.50f * Cast<AWork>(this)->Boosters.Num());
 
 		int32 extra = Camera->ResourceManager->AddLocalResource(resource, this, Citizen->Carrying.Amount);
 

@@ -17,6 +17,7 @@
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/House.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Map/Grid.h"
@@ -315,6 +316,19 @@ int32 UCitizenManager::GetElapsedTime(FString ID, AActor* Actor)
 		return 0;
 
 	return timer->Target - timer->Timer;
+}
+
+//
+// House
+//
+void UCitizenManager::UpdateRent(TSubclassOf<class AHouse> HouseType, int32 NewRent)
+{
+	for (ABuilding* building : Buildings) {
+		if (!building->IsA(HouseType))
+			continue;
+
+		Cast<AHouse>(building)->Rent = NewRent;
+	}
 }
 
 //

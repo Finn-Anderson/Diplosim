@@ -38,8 +38,6 @@ AWork::AWork()
 	bCanAttendEvents = true;
 
 	bOpen = false;
-
-	bBoost = false;
 }
 
 void AWork::BeginPlay()
