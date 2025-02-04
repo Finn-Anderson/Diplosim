@@ -11,11 +11,6 @@
 
 AFarm::AFarm()
 {
-	CropMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CropMesh"));
-	CropMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	CropMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	CropMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
-
 	HealthComponent->MaxHealth = 50;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
@@ -23,7 +18,7 @@ AFarm::AFarm()
 
 	TimeLength = 30.0f;
 
-	bAffectedByFerility = false;
+	bAffectedByFerility = true;
 }
 
 void AFarm::Enter(ACitizen* Citizen)
@@ -36,7 +31,7 @@ void AFarm::Enter(ACitizen* Citizen)
 	if (!Occupied.Contains(Citizen) || Camera->CitizenManager->Timers.Contains(timer))
 		return;
 
-	if (CropMesh->GetRelativeScale3D().Z == 1.0f)
+	if (CropMeshes[0]->GetRelativeScale3D().Z == 1.0f)
 		ProductionDone(Citizen);
 	else
 		StartTimer(Citizen);
@@ -44,9 +39,10 @@ void AFarm::Enter(ACitizen* Citizen)
 
 void AFarm::Production(ACitizen* Citizen)
 {
-	CropMesh->SetRelativeScale3D(CropMesh->GetRelativeScale3D() + FVector(0.0f, 0.0f, 0.1f));
+	for (UStaticMeshComponent* mesh : CropMeshes)
+		mesh->SetRelativeScale3D(mesh->GetRelativeScale3D() + FVector(0.0f, 0.0f, 0.1f));
 
-	if (CropMesh->GetRelativeScale3D().Z >= 1.0f) {
+	if (CropMeshes[0]->GetRelativeScale3D().Z >= 1.0f) {
 		TArray<ACitizen*> workers = GetCitizensAtBuilding();
 
 		if (workers.IsEmpty())
@@ -60,11 +56,12 @@ void AFarm::Production(ACitizen* Citizen)
 
 void AFarm::ProductionDone(ACitizen* Citizen)
 {
-	Citizen->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), GetYield(), this);
+	Citizen->Carry(Crop->GetDefaultObject<AResource>(), GetYield(), this);
 
 	StoreResource(Citizen);
 
-	CropMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
+	for (UStaticMeshComponent* mesh : CropMeshes)
+		mesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 
 	StartTimer(Citizen);
 }

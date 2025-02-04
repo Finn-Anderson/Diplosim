@@ -13,7 +13,10 @@ public:
 	AFarm();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UStaticMeshComponent* CropMesh;
+		TArray<class UStaticMeshComponent*> CropMeshes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
+		TSubclassOf<class AResource> Crop;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
 		int32 Yield;

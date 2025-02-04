@@ -202,10 +202,29 @@ void ABuilding::SetSeed(int32 Seed)
 			int32 angle = FMath::RandRange(0, 3);
 
 			UStaticMeshComponent* meshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass());
+			meshComp->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+			meshComp->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 			meshComp->SetStaticMesh(Seeds[Seed].Meshes[num]);
 			meshComp->SetupAttachment(BuildingMesh, socket);
 			meshComp->SetRelativeRotation(FRotator(0.0f, 90.0f * angle, 0.0f));
 			meshComp->RegisterComponent();
+
+			if (IsA<AFarm>()) {
+				meshComp->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
+
+				Cast<AFarm>(this)->CropMeshes.Add(meshComp);
+			}
+		}
+
+		if (IsA<AFarm>()) {
+			AFarm* farm = Cast<AFarm>(this);
+
+			farm->Crop = Seeds[Seed].Crop;
+			farm->Yield = Seeds[Seed].Yield;
+			farm->TimeLength = Seeds[Seed].TimeLength;
+
+			BuildingName = Seeds[Seed].Name;
+			Camera->UpdateDisplayName();
 		}
 	}
 }

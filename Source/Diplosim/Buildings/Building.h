@@ -148,6 +148,15 @@ struct FSeedStruct
 		FString Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		TSubclassOf<class AResource> Crop;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		int32 Yield;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		int32 TimeLength;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<UStaticMesh*> Meshes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
