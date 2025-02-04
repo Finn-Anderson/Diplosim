@@ -2,11 +2,11 @@
   "Religions": [
     {
       "Religion": 0,
-      "Agreeable": [ 3, 5, 13 ]
+      "Agreeable": [ 3, 5, 13, 15 ]
     },
     {
       "Religion": 1,
-      "Agreeable": [ 0, 4, 12 ]
+      "Agreeable": [ 0, 4, 12, 14 ]
     },
     {
       "Religion": 2,

@@ -132,7 +132,9 @@ enum class EPersonality : uint8
 	Conscientious,
 	Careless,
 	Energetic,
-	Lethargic
+	Lethargic,
+	Workaholic,
+	Idler
 };
 
 class DIPLOSIM_API DiplosimUniversalTypes

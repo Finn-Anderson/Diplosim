@@ -11,11 +11,13 @@
 AHouse::AHouse()
 {
 	Rent = 0;
+
+	QualityCap = 70;
 }
 
 int32 AHouse::GetQuality()
 {
-	return FMath::Clamp(Rent * 12, 0, 100);
+	return FMath::Clamp(Rent * 12, 0, QualityCap);
 }
 
 void AHouse::UpkeepCost()

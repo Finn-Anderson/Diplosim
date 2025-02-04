@@ -11,6 +11,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Service/Religion.h"
+#include "Buildings/Work/Service/Clinic.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 
@@ -44,10 +45,7 @@ void AWork::BeginPlay()
 {
 	Super::BeginPlay();
 
-	int32 hour = Camera->Grid->AtmosphereComponent->Calendar.Hour;
-
-	if (hour >= WorkStart && hour < WorkEnd && !Camera->CitizenManager->IsWorkEvent(this))
-		Open();
+	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AWork::OnRadialOverlapBegin);
 	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AWork::OnRadialOverlapEnd);
@@ -135,6 +133,25 @@ void AWork::Close()
 		Leave(citizen);
 
 		citizen->AIController->DefaultAction();
+	}
+}
+
+void AWork::CheckWorkStatus(int32 Hour)
+{
+	if (Camera->CitizenManager->IsWorkEvent(this) || (IsA<AClinic>() && (!Camera->CitizenManager->Infected.IsEmpty() || !Camera->CitizenManager->Injuries.IsEmpty())))
+		return;
+
+	if (WorkStart >= WorkEnd) {
+		if ((Hour >= WorkStart || Hour < WorkEnd) && !bOpen)
+			Open();
+		else
+			Close();
+	}
+	else {
+		if (Hour >= WorkStart && Hour < WorkEnd && !bOpen)
+			Open();
+		else if (bOpen)
+			Close();
 	}
 }
 

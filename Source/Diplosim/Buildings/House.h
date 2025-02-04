@@ -15,6 +15,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "House")
 		int32 Rent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "House")
+		int32 QualityCap;
+
 	UPROPERTY()
 		TArray<EReligion> Religions;
 

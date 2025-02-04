@@ -10,11 +10,11 @@
     },
     {
       "Party": 3,
-      "Agreeable": [ 9, 13 ]
+      "Agreeable": [ 9, 13, 15 ]
     },
     {
       "Party": 4,
-      "Agreeable": [ 4, 12 ]
+      "Agreeable": [ 4, 12, 14 ]
     },
     {
       "Party": 5,

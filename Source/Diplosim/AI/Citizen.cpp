@@ -97,10 +97,12 @@ ACitizen::ACitizen()
 	ProductivityMultiplier = 1.0f;
 	Fertility = 1.0f;
 
-	SleepStart = 22;
-	SleepEnd = 6;
 	bSleep = false;
-	HoursSleptToday = 0;
+	IdealHoursSlept = 8;
+	HoursSleptToday = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 };
+
+	IdealHoursWorkedMin = 0;
+	IdealHoursWorkedMax = 12;
 }
 
 void ACitizen::BeginPlay()
@@ -835,13 +837,27 @@ void ACitizen::SetHappiness()
 
 	if (Building.House == nullptr)
 		Happiness.SetValue("Homeless", -20);
-	else
+	else {
 		Happiness.SetValue("Housed", 10);
 
-	if (Building.House->GetQuality() < 35)
-		Happiness.SetValue("Substandard Housing", -20);
-	else if (Building.House->GetQuality() > 65)
-		Happiness.SetValue("High-Quality Housing", 15);
+		int32 quality = (Building.House->GetQuality() / 5 - 10) * 2;
+
+		if (quality > 0)
+			quality *= 0.75f;
+
+		FString message = "";
+
+		if (Building.House->GetQuality() < 25)
+			message = "Awful Housing Quality";
+		else if (Building.House->GetQuality() < 50)
+			message = "Substandard Housing";
+		else if (Building.House->GetQuality() > 50)
+			message = "Quality Housing";
+		else if (Building.House->GetQuality() > 75)
+			message = "High-Quality Housing";
+
+		Happiness.SetValue(message, quality);
+	}
 
 	if (Building.Employment == nullptr)
 		Happiness.SetValue("Unemployed", -10);
@@ -858,10 +874,15 @@ void ACitizen::SetHappiness()
 	else if (Energy > 70)
 		Happiness.SetValue("Rested", 10);
 
-	if (HoursSleptToday < 6)
+	if (HoursSleptToday.Num() < IdealHoursSlept - 2)
 		Happiness.SetValue("Disturbed Sleep", -15);
-	else if (HoursSleptToday > 8)
+	else if (HoursSleptToday.Num() >= IdealHoursSlept)
 		Happiness.SetValue("Slept Like A Baby", 10);
+
+	if (HoursWorked.Num() < IdealHoursWorkedMin || HoursWorked.Num() > IdealHoursWorkedMax)
+		Happiness.SetValue("Inadequate Hours Worked", -15);
+	else if (HoursSleptToday.Num() >= IdealHoursSlept)
+		Happiness.SetValue("Ideal Hours Worked", 10);
 
 	if (MassStatus == EMassStatus::Missed)
 		Happiness.SetValue("Missed Mass", -25);
@@ -1084,11 +1105,13 @@ void ACitizen::ApplyTraitAffect(EPersonality Trait)
 		Fertility *= 1.15f;
 	else if (Trait == EPersonality::Reserved)
 		Fertility *= 0.85f;
-	else if (Trait == EPersonality::Talented || Trait == EPersonality::Diligent)
+
+	if (Trait == EPersonality::Talented || Trait == EPersonality::Diligent)
 		ProductivityMultiplier *= 1.15f;
 	else if (Trait == EPersonality::Inept || Trait == EPersonality::Lazy)
 		ProductivityMultiplier *= 0.85f;
-	else if (Trait == EPersonality::Energetic) {
+
+	if (Trait == EPersonality::Energetic) {
 		MovementComponent->InitialSpeed *= 1.15f;
 		MovementComponent->MaxSpeed *= 1.15f;
 	}
@@ -1096,8 +1119,23 @@ void ACitizen::ApplyTraitAffect(EPersonality Trait)
 		MovementComponent->InitialSpeed *= 0.85f;
 		MovementComponent->MaxSpeed *= 0.85f;
 	}
-	else if (Trait == EPersonality::Brave || Trait == EPersonality::Inept)
+
+	if (Trait == EPersonality::Brave || Trait == EPersonality::Inept)
 		AttackComponent->DamageMultiplier *= 1.5f;
 	else if (Trait == EPersonality::Craven)
 		AttackComponent->DamageMultiplier *= 0.5f;
+
+	if (Trait == EPersonality::Outgoing || Trait == EPersonality::Lethargic || Trait == EPersonality::Workaholic)
+		IdealHoursSlept = 6;
+	else if (Trait == EPersonality::Lazy || Trait == EPersonality::Energetic || Trait == EPersonality::Idler)
+		IdealHoursSlept = 10;
+
+	if (Trait == EPersonality::Workaholic) {
+		IdealHoursWorkedMin = 8;
+		IdealHoursWorkedMax = 16;
+	}
+	else if (Trait == EPersonality::Idler) {
+		IdealHoursWorkedMin = 0;
+		IdealHoursWorkedMax = 8;
+	}
 }

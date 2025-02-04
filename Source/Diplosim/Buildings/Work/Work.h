@@ -64,6 +64,8 @@ public:
 
 	void Close();
 
+	void CheckWorkStatus(int32 Hour);
+
 	// Resources
 	virtual void Production(class ACitizen* Citizen);
 

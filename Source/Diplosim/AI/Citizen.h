@@ -268,6 +268,15 @@ public:
 		int32 Balance;
 
 	UPROPERTY()
+		int32 IdealHoursWorkedMin;
+
+	UPROPERTY()
+		int32 IdealHoursWorkedMax;
+
+	UPROPERTY()
+		TArray<int32> HoursWorked;
+
+	UPROPERTY()
 		double TimeOfEmployment;
 
 	UPROPERTY()
@@ -395,15 +404,12 @@ public:
 	void ApplyTraitAffect(EPersonality Trait);
 
 	// Sleep
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sleep")
-		int32 SleepStart;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sleep")
-		int32 SleepEnd;
-
 	UPROPERTY()
 		bool bSleep;
 
 	UPROPERTY()
-		int32 HoursSleptToday;
+		TArray<int32> HoursSleptToday;
+
+	UPROPERTY()
+		int32 IdealHoursSlept;
 };

@@ -366,13 +366,15 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 
 		AWork* work = Cast<AWork>(building);
 
-		if (IsWorkEvent(work) || (work->IsA<AClinic>() && (!Infected.IsEmpty() || !Injuries.IsEmpty())))
-			continue;
+		for (ACitizen* citizen : work->GetOccupied()) {
+			if (citizen->HoursWorked.Contains(Hour))
+				citizen->HoursWorked.Remove(Hour);
 
-		if (Hour >= work->WorkStart && Hour < work->WorkEnd && !work->bOpen)
-			work->Open();
-		else if (work->bOpen)
-			work->Close();
+			if (work->bOpen)
+				citizen->HoursWorked.Add(Hour);
+		}
+
+		work->CheckWorkStatus(Hour);
 	}
 }
 
@@ -382,17 +384,16 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 void UCitizenManager::CheckSleepStatus(int32 Hour)
 {
 	for (ACitizen* citizen : Citizens) {
+		if (citizen->HoursSleptToday.Contains(Hour))
+			citizen->HoursSleptToday.Remove(Hour);
+
 		if (citizen->bSleep)
-			citizen->HoursSleptToday++;
+			citizen->HoursSleptToday.Add(Hour);
 
-		if ((Hour >= citizen->SleepStart || Hour < citizen->SleepEnd) && !citizen->bSleep && !citizen->Building.Employment->bOpen) {
+		if (citizen->HoursSleptToday.Num() < citizen->IdealHoursSlept && !citizen->bSleep && !citizen->Building.Employment->bOpen && citizen->Building.BuildingAt == citizen->Building.House)
 			citizen->bSleep = true;
-
-			citizen->HoursSleptToday = 0;
-		}
-		else if (citizen->bSleep) {
+		else if (citizen->bSleep)
 			citizen->bSleep = false;
-		}
 	}
 }
 
