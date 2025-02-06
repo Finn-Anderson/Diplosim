@@ -238,7 +238,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 	bool bCoast = false;
 
 	for (FCollisionStruct collision : building->Collisions) {
-		if (collision.HISM == Camera->Grid->HISMLava)
+		if (collision.HISM == Camera->Grid->HISMLava || collision.HISM == Camera->Grid->HISMRiver)
 			return false;
 
 		if ((building->IsA(FoundationClass) && collision.Actor->IsA<AGrid>()) || (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>() && building->GetActorLocation() != collision.Actor->GetActorLocation()))

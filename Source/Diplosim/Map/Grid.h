@@ -22,6 +22,10 @@ struct FTileStruct
 
 	bool bRamp;
 
+	bool bRiver;
+
+	bool bEdge;
+
 	FTileStruct() {
 		Level = -1;
 
@@ -36,6 +40,10 @@ struct FTileStruct
 		Rotation = FRotator(0.0f, 0.0f, 0.0f).Quaternion();
 
 		bRamp = false;
+
+		bRiver = false;
+
+		bEdge = false;
 	}
 
 	bool operator==(const FTileStruct& other) const
@@ -120,12 +128,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMRampGround;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* HISMRiver;
+
 	// Dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Size;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Peaks;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
+		int32 Rivers;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		EType Type;
@@ -150,6 +164,8 @@ public:
 	void FillHoles(FTileStruct* Tile);
 
 	void SetTileDetails(FTileStruct* Tile);
+
+	TArray<FTileStruct*> GenerateRiver(FTileStruct* Tile, FTileStruct* Peak);
 
 	void GenerateTile(FTileStruct* Tile);
 

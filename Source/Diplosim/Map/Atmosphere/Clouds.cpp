@@ -143,13 +143,8 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	FCloudStruct cloudStruct;
 	cloudStruct.HISMCloud = cloud;
 
-	if (Chance <= 75)
-		return cloudStruct;
-
-	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
-
 	TArray<FVector> locations;
-	
+
 	for (int32 i = 0; i < 200; i++) {
 		FTransform t = Transform;
 
@@ -166,6 +161,11 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 		if (Chance > 75)
 			locations.Append(SetPrecipitationLocations(t));
 	}
+
+	if (Chance <= 75)
+		return cloudStruct;
+
+	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 
 	float spawnRate = 0.0f;
 

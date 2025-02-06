@@ -47,6 +47,11 @@ AGrid::AGrid()
 	HISMRampGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMRampGround->NumCustomDataFloats = 7;
 
+	HISMRiver = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRiver"));
+	HISMRiver->SetupAttachment(GetRootComponent());
+	HISMRiver->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	HISMRiver->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 	AtmosphereComponent->WindComponent->SetupAttachment(RootComponent);
 
@@ -54,6 +59,7 @@ AGrid::AGrid()
 
 	Size = 22500;
 	Peaks = 2;
+	Rivers = 2;
 	Type = EType::Round;
 
 	PercentageGround = 30;
@@ -249,6 +255,76 @@ void AGrid::Render()
 		for (FTileStruct& tile : row)
 			SetTileDetails(&tile);
 
+	// Spawn Rivers
+	TArray<FTileStruct*> riverStartTiles;
+
+	for (TArray<FTileStruct>& row : Storage) {
+		for (FTileStruct& tile : row) {
+			if (tile.Level < 4 || tile.Level > 5 || tile.bRamp || tile.bEdge)
+				continue;
+
+			bool bNextToLava = false;
+
+			for (auto& element : tile.AdjacentTiles) {
+				FTileStruct* t = element.Value;
+
+				if (t->Level != 7)
+					continue;
+
+				bNextToLava = true;
+			}
+
+			if (!bNextToLava)
+				riverStartTiles.Add(&tile);
+		}
+	}
+
+	for (int32 i = 0; i < Rivers; i++) {
+		int32 chosenNum = FMath::RandRange(0, riverStartTiles.Num() - 1);
+		FTileStruct* chosenTile = riverStartTiles[chosenNum];
+
+		FTileStruct* closestPeak = nullptr;
+
+		for (FTileStruct* peak : peaksList) {
+			if (closestPeak == nullptr) {
+				closestPeak = peak;
+
+				continue;
+			}
+
+			float d1 = FVector2D::Distance(FVector2D(peak->X, peak->Y), FVector2D(chosenTile->X, chosenTile->Y));
+			float d2 = FVector2D::Distance(FVector2D(closestPeak->X, closestPeak->Y), FVector2D(chosenTile->X, chosenTile->Y));
+
+			if (d2 > d1)
+				closestPeak = peak;
+		}
+
+		TArray<FTileStruct*> tiles = GenerateRiver(chosenTile, closestPeak);
+
+		for (FTileStruct* tile : tiles) {
+			if (riverStartTiles.Contains(tile) && tile->bRiver)
+				riverStartTiles.Remove(tile);
+
+			if (!tile->bRiver)
+				continue;
+
+			int32 index = tiles.Find(tile);
+
+			if (index > 0)
+				tile->Level = tiles[index - 1]->Level;
+
+			for (auto& element : tile->AdjacentTiles) {
+				FTileStruct* t = element.Value;
+
+				if (tile->Level > t->Level)
+					tile->Level = t->Level;
+
+				t->bEdge = true;
+			}
+		}
+				
+	}
+
 	// Spawn Actor
 	for (TArray<FTileStruct> &row : Storage)
 		for (FTileStruct &tile : row)
@@ -259,7 +335,7 @@ void AGrid::Render()
 
 	for (TArray<FTileStruct> &row : Storage) {
 		for (FTileStruct &tile : row) {
-			if (tile.Level < 0 || tile.Level > 4)
+			if (tile.Level < 0 || tile.Level > 4 || tile.bRiver || tile.bRamp)
 				continue;
 
 			ResourceTiles.Add(&tile);
@@ -422,6 +498,55 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 	Tile->Fertility = FMath::Clamp(fTile + value, 1, 5);
 }
 
+TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
+{
+	TArray<FTileStruct*> tiles;
+
+	tiles.Add(Tile);
+	
+	TArray<FTileStruct*> twoMostOuterTiles;
+
+	for (auto& element : Tile->AdjacentTiles) {
+		FTileStruct* t = element.Value;
+
+		if (t->Level < 0)
+			return tiles;
+
+		if (t->bRamp || t->Level > Tile->Level || t->bRiver)
+			continue;
+
+		if (twoMostOuterTiles.Num() < 2) {
+			twoMostOuterTiles.Add(t);
+
+			continue;
+		}
+
+		FTileStruct* chosenTile = t;
+
+		for (FTileStruct* tile : twoMostOuterTiles) {
+			float d1 = FVector2D::Distance(FVector2D(Peak->X, Peak->Y), FVector2D(chosenTile->X, chosenTile->Y));
+			float d2 = FVector2D::Distance(FVector2D(Peak->X, Peak->Y), FVector2D(tile->X, tile->Y));
+
+			if (d2 < d1)
+				chosenTile = tile;
+		}
+
+		twoMostOuterTiles.Add(t);
+		twoMostOuterTiles.Remove(chosenTile);
+	}
+
+	if (!twoMostOuterTiles.IsEmpty()) {
+		int32 index = FMath::RandRange(0, twoMostOuterTiles.Num() - 1);
+		FTileStruct* chosenTile = twoMostOuterTiles[index];
+
+		chosenTile->bRiver = true;
+
+		tiles.Append(GenerateRiver(chosenTile, Peak));
+	}
+
+	return tiles;
+}
+
 void AGrid::GenerateTile(FTileStruct* Tile)
 {
 	FTransform transform;
@@ -457,6 +582,11 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		UNiagaraComponent* comp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LavaSystem, transform.GetLocation());
 
 		LavaComponents.Add(comp);
+	}
+	else if (Tile->bRiver) {
+		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
+
+		inst = HISMRiver->AddInstance(transform);
 	}
 	else {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
@@ -500,49 +630,60 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		g /= 255.0f;
 		b /= 255.0f;
 
-		int32 chance = FMath::RandRange(1, 100);
-
-		for (auto& element : Tile->AdjacentTiles) {
-			if (element.Value->Level > Tile->Level && element.Value->Level != 7 && chance > 99) {
-				Tile->bRamp = true;
-
-				transform.SetRotation((FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0) - FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, 0)).ToOrientationQuat());
-				transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
-
-				break;
-			}
-		}
-
-		if (Tile->bRamp) {
-			inst = HISMRampGround->AddInstance(transform);
-			HISMRampGround->SetCustomDataValue(inst, 0, 1.0f);
-			HISMRampGround->SetCustomDataValue(inst, 1, r);
-			HISMRampGround->SetCustomDataValue(inst, 2, g);
-			HISMRampGround->SetCustomDataValue(inst, 3, b);
+		if (Tile->bEdge) {
+			inst = HISMGround->AddInstance(transform);
+			HISMGround->SetCustomDataValue(inst, 0, 1.0f);
+			HISMGround->SetCustomDataValue(inst, 1, r);
+			HISMGround->SetCustomDataValue(inst, 2, g);
+			HISMGround->SetCustomDataValue(inst, 3, b);
 		}
 		else {
-			bool bFlat = true;
+			int32 chance = FMath::RandRange(1, 100);
 
-			if (Tile->AdjacentTiles.Num() < 4)
-				bFlat = false;
-			else
-				for (auto& element : Tile->AdjacentTiles)
-					if (element.Value->Level < Tile->Level || (element.Value->Level == 7 && Tile->Level != 5))
-						bFlat = false;
+			for (auto& element : Tile->AdjacentTiles) {
+				if (element.Value->Level > Tile->Level && element.Value->Level != 7 && chance > 99) {
+					Tile->bRamp = true;
 
-			if (bFlat) {
-				inst = HISMFlatGround->AddInstance(transform);
-				HISMFlatGround->SetCustomDataValue(inst, 0, 1.0f);
-				HISMFlatGround->SetCustomDataValue(inst, 1, r);
-				HISMFlatGround->SetCustomDataValue(inst, 2, g);
-				HISMFlatGround->SetCustomDataValue(inst, 3, b);
+					transform.SetRotation((FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0) - FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, 0)).ToOrientationQuat());
+					transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
+
+					break;
+				}
+			}
+
+			if (Tile->bRamp) {
+				inst = HISMRampGround->AddInstance(transform);
+				HISMRampGround->SetCustomDataValue(inst, 0, 1.0f);
+				HISMRampGround->SetCustomDataValue(inst, 1, r);
+				HISMRampGround->SetCustomDataValue(inst, 2, g);
+				HISMRampGround->SetCustomDataValue(inst, 3, b);
 			}
 			else {
-				inst = HISMGround->AddInstance(transform);
-				HISMGround->SetCustomDataValue(inst, 0, 1.0f);
-				HISMGround->SetCustomDataValue(inst, 1, r);
-				HISMGround->SetCustomDataValue(inst, 2, g);
-				HISMGround->SetCustomDataValue(inst, 3, b);
+				bool bFlat = true;
+
+				if (Tile->AdjacentTiles.Num() < 4)
+					bFlat = false;
+				else
+					for (auto& element : Tile->AdjacentTiles)
+						if (element.Value->Level < Tile->Level || (element.Value->Level == 7 && Tile->Level != 5))
+							bFlat = false;
+
+				if (bFlat) {
+					inst = HISMFlatGround->AddInstance(transform);
+					HISMFlatGround->SetCustomDataValue(inst, 0, 1.0f);
+					HISMFlatGround->SetCustomDataValue(inst, 1, r);
+					HISMFlatGround->SetCustomDataValue(inst, 2, g);
+					HISMFlatGround->SetCustomDataValue(inst, 3, b);
+				}
+				else {
+					inst = HISMGround->AddInstance(transform);
+					HISMGround->SetCustomDataValue(inst, 0, 1.0f);
+					HISMGround->SetCustomDataValue(inst, 1, r);
+					HISMGround->SetCustomDataValue(inst, 2, g);
+					HISMGround->SetCustomDataValue(inst, 3, b);
+
+					Tile->bEdge = true;
+				}
 			}
 		}
 	}
@@ -573,7 +714,7 @@ void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTil
 	if (CheckTile->X > SpawnTile->X + Range || CheckTile->X < SpawnTile->X - Range || CheckTile->Y > SpawnTile->Y + Range || CheckTile->Y < SpawnTile->Y - Range)
 		return;
 
-	if (CheckTile->bRamp || CheckTile->Level != SpawnTile->Level) {
+	if (CheckTile->bRamp || CheckTile->bRiver || CheckTile->Level != SpawnTile->Level) {
 		Valid = false;
 
 		return;
@@ -590,7 +731,7 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 {
 	int32 value = FMath::RandRange(Amount - 1, Amount);
 
-	if (value == 0 || !ResourceTiles.Contains(Tile) || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
+	if (value == 0 || !ResourceTiles.Contains(Tile) || Tile->bRiver || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
 		return;
 
 	TArray<int32> usedX;
@@ -697,24 +838,16 @@ void AGrid::SpawnEggBasket()
 
 FTransform AGrid::GetTransform(FTileStruct* Tile)
 {
-	bool bFlat = true;
-
-	if (Tile->AdjacentTiles.Num() < 4)
-		bFlat = false;
-	else
-		for (auto& element : Tile->AdjacentTiles)
-			if (element.Value->Level < Tile->Level || element.Value->Level == 7)
-				bFlat = false;
-
 	FTransform transform;
-	int32 z = 100.0f;
-
-	if (bFlat)
-		HISMFlatGround->GetInstanceTransform(Tile->Instance, transform);
-	else
+	
+	if (Tile->bRamp)
+		HISMRampGround->GetInstanceTransform(Tile->Instance, transform);
+	else if(Tile->bEdge)
 		HISMGround->GetInstanceTransform(Tile->Instance, transform);
+	else
+		HISMFlatGround->GetInstanceTransform(Tile->Instance, transform);
 
-	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, z));
+	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
 
 	return transform;
 }
@@ -748,6 +881,7 @@ void AGrid::Clear()
 	HISMGround->ClearInstances();
 	HISMFlatGround->ClearInstances();
 	HISMRampGround->ClearInstances();
+	HISMRiver->ClearInstances();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->Pause(false, false);
