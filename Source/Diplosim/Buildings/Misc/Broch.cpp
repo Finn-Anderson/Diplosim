@@ -1,6 +1,7 @@
 #include "Buildings/Misc/Broch.h"
 
 #include "Components/DecalComponent.h"
+#include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
 #include "Universal/HealthComponent.h"
@@ -28,7 +29,12 @@ void ABroch::SpawnCitizens()
 		if (name == FName("InfoSocket"))
 			continue;
 
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, BuildingMesh->GetSocketLocation(name), GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f));
+		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+		FNavLocation projectedLocation;
+		nav->ProjectPointToNavigation(BuildingMesh->GetSocketLocation(name), projectedLocation, FVector(400.0f, 400.0f, 20.0f));
+
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, projectedLocation.Location, GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f));
 
 		citizen->BioStruct.Age = 17;
 		citizen->Birthday();

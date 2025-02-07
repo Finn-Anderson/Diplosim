@@ -51,6 +51,8 @@ AGrid::AGrid()
 	HISMRiver->SetupAttachment(GetRootComponent());
 	HISMRiver->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRiver->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMRiver->SetCanEverAffectNavigation(false);
+	HISMRiver->NumCustomDataFloats = 4;
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 	AtmosphereComponent->WindComponent->SetupAttachment(RootComponent);
@@ -586,7 +588,19 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 	else if (Tile->bRiver) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
 
+		float r = 0.0f + (76.0f / 5.0f * (5.0f - Tile->Level));
+		float g = 99.0f + (80.0f / 5.0f * (5.0f - Tile->Level));
+		float b = 255.0f;
+
+		r /= 255.0f;
+		g /= 255.0f;
+		b /= 255.0f;
+
 		inst = HISMRiver->AddInstance(transform);
+		HISMRiver->SetCustomDataValue(inst, 0, 1.0f);
+		HISMRiver->SetCustomDataValue(inst, 1, r);
+		HISMRiver->SetCustomDataValue(inst, 2, g);
+		HISMRiver->SetCustomDataValue(inst, 3, b);
 	}
 	else {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
@@ -840,7 +854,9 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 {
 	FTransform transform;
 	
-	if (Tile->bRamp)
+	if (Tile->bRiver)
+		HISMRiver->GetInstanceTransform(Tile->Instance, transform);
+	else if (Tile->bRamp)
 		HISMRampGround->GetInstanceTransform(Tile->Instance, transform);
 	else if(Tile->bEdge)
 		HISMGround->GetInstanceTransform(Tile->Instance, transform);

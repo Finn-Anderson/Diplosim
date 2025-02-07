@@ -367,6 +367,11 @@ void ABuilding::DestroyBuilding()
 		}
 	}
 
+	if (IsA(Camera->BuildComponent->FoundationClass))
+		for (FCollisionStruct collision : Collisions)
+			if (collision.HISM == Camera->Grid->HISMRiver)
+				collision.HISM->PerInstanceSMCustomData[collision.Instance * 4] = 1.0f;
+
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 
 	for (TSubclassOf<AResource> resource : resources)

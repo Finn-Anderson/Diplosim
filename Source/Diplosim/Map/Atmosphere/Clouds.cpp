@@ -62,7 +62,8 @@ void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		double distance = FVector::Dist(location, Cast<AGrid>(GetOwner())->GetActorLocation());
 
 		if (distance > cloudStruct.Distance) {
-			cloudStruct.Precipitation->Deactivate();
+			if (cloudStruct.Precipitation != nullptr)
+				cloudStruct.Precipitation->Deactivate();
 
 			Clouds[i].bHide = true;
 

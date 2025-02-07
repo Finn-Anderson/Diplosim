@@ -18,16 +18,20 @@ struct FRoadStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Roads")
 		bool bStraight;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Roads")
+		bool bBridge;
+
 	FRoadStruct()
 	{
 		Mesh = nullptr;
 		Connections = 0;
 		bStraight = false;
+		bBridge = false;
 	}
 
 	bool operator==(const FRoadStruct& other) const
 	{
-		return (other.Connections == Connections) && (other.bStraight == bStraight);
+		return (other.Connections == Connections && other.bStraight == bStraight && other.bBridge == bBridge);
 	}
 };
 
@@ -43,13 +47,17 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void Tick(float DeltaTime) override;
-
 	UFUNCTION()
 		void OnCitizenOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
 		void OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	UFUNCTION()
+		void OnRoadOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+		void OnRoadOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
 		class UBoxComponent* BoxCollision;
