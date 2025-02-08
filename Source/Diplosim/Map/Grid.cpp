@@ -262,7 +262,7 @@ void AGrid::Render()
 
 	for (TArray<FTileStruct>& row : Storage) {
 		for (FTileStruct& tile : row) {
-			if (tile.Level < 4 || tile.Level > 5 || tile.bRamp || tile.bEdge)
+			if (tile.Level < 3 || tile.Level > 4 || tile.bRamp || tile.bEdge)
 				continue;
 
 			bool bNextToLava = false;
@@ -318,14 +318,24 @@ void AGrid::Render()
 			for (auto& element : tile->AdjacentTiles) {
 				FTileStruct* t = element.Value;
 
+				if (t->bRiver)
+					continue;
+
 				if (tile->Level > t->Level)
 					tile->Level = t->Level;
 
 				t->bEdge = true;
 			}
-		}
-				
+		}	
 	}
+
+	for (TArray<FTileStruct>& row : Storage)
+		for (FTileStruct& rowTile : row)
+			FillHoles(&rowTile, true);
+
+	for (TArray<FTileStruct>& row : Storage)
+		for (FTileStruct& tile : row)
+			FillHoles(&tile);
 
 	// Spawn Actor
 	for (TArray<FTileStruct> &row : Storage)
@@ -432,33 +442,42 @@ TArray<FTileStruct*> AGrid::CalculatePath(FTileStruct* Tile, FTileStruct* Target
 	return tiles;
 }
 
-void AGrid::FillHoles(FTileStruct* Tile)
+void AGrid::FillHoles(FTileStruct* Tile, bool bFillRiver)
 {
+	if (bFillRiver && Tile->bRiver != bFillRiver)
+		return;
+	
 	TArray<int32> levels;
 	levels.Add(Tile->Level);
 
 	for (auto& element : Tile->AdjacentTiles)
 		levels.Add(element.Value->Level);
 
-	for (int32 i = 0; i < levels.Num() - 1; i++)
-		for (int32 j = 0; j < levels.Num() - i - 1; j++)
-			if (levels[j] > levels[j + 1])
-				levels.Swap(j, j + 1);
+	float result = Tile->Level;
 
-	float result;
+	if (!levels.IsEmpty()) {
+		for (int32 i = 0; i < levels.Num() - 1; i++)
+			for (int32 j = 0; j < levels.Num() - i - 1; j++)
+				if (levels[j] > levels[j + 1])
+					levels.Swap(j, j + 1);
 
-	if (levels.Num() % 2 == 0)
-		result = FMath::RoundHalfFromZero((levels[levels.Num() / 2] + levels[levels.Num() / 2 - 1]) / 2.0f);
-	else
-		result = levels[levels.Num() / 2];
+		if (levels.Num() % 2 == 0)
+			result = FMath::RoundHalfFromZero((levels[levels.Num() / 2] + levels[levels.Num() / 2 - 1]) / 2.0f);
+		else
+			result = levels[levels.Num() / 2];
+	}
 
 	if (result == Tile->Level)
 		return;
 
 	Tile->Level = result;
 
-	for (auto& element : Tile->AdjacentTiles)
+	for (auto& element : Tile->AdjacentTiles) {
+		if (bFillRiver && element.Value->bEdge && element.Value->Level < Tile->Level)
+			element.Value->Level++;
+
 		FillHoles(element.Value);
+	}
 }
 
 void AGrid::SetTileDetails(FTileStruct* Tile)
@@ -504,15 +523,15 @@ TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
 {
 	TArray<FTileStruct*> tiles;
 
+	if (Tile->Level < 0)
+		return tiles;
+
 	tiles.Add(Tile);
 	
 	TArray<FTileStruct*> twoMostOuterTiles;
 
 	for (auto& element : Tile->AdjacentTiles) {
 		FTileStruct* t = element.Value;
-
-		if (t->Level < 0)
-			return tiles;
 
 		if (t->bRamp || t->Level > Tile->Level || t->bRiver)
 			continue;
@@ -586,6 +605,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		LavaComponents.Add(comp);
 	}
 	else if (Tile->bRiver) {
+		transform.SetRotation(FRotator(0.0f).Quaternion());
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
 
 		float r = 0.0f + (76.0f / 5.0f * (5.0f - Tile->Level));
@@ -601,6 +621,41 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		HISMRiver->SetCustomDataValue(inst, 1, r);
 		HISMRiver->SetCustomDataValue(inst, 2, g);
 		HISMRiver->SetCustomDataValue(inst, 3, b);
+
+		for (auto& element : Tile->AdjacentTiles) {
+			FTileStruct* t = element.Value;
+
+			if ((!t->bRiver && t->Level > 0) || t->Level >= Tile->Level)
+				continue;
+
+			int32 num = Tile->Level - t->Level;
+			int32 sign = 1;
+
+			FTransform tf;
+
+			for (int32 i = 0; i < num; i++) {
+				if (t->X == Tile->X) {
+					if (t->Y < Tile->Y)
+						sign = -1;
+
+					tf.SetRotation(FRotator(0.0f, 0.0f, 90.0f * sign).Quaternion());
+					tf.SetLocation(transform.GetLocation() + FVector(0.0f, 30.0f * sign * -1, 30.0f - (100.0f * i)));
+				}
+				else {
+					if (t->X > Tile->X)
+						sign = -1;
+
+					tf.SetRotation(FRotator(90.0f * sign, 0.0f, 0.0f).Quaternion());
+					tf.SetLocation(transform.GetLocation() + FVector(30.0f * sign, 0.0f, 30.0f - (100.0f * i)));
+				}
+
+				inst = HISMRiver->AddInstance(tf);
+				HISMRiver->SetCustomDataValue(inst, 0, 1.0f);
+				HISMRiver->SetCustomDataValue(inst, 1, r);
+				HISMRiver->SetCustomDataValue(inst, 2, g);
+				HISMRiver->SetCustomDataValue(inst, 3, b);
+			}
+		}
 	}
 	else {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));

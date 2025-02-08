@@ -161,7 +161,7 @@ public:
 
 	TArray<FTileStruct*> CalculatePath(FTileStruct* Tile, FTileStruct* Target);
 
-	void FillHoles(FTileStruct* Tile);
+	void FillHoles(FTileStruct* Tile, bool bFillRiver = false);
 
 	void SetTileDetails(FTileStruct* Tile);
 
