@@ -290,8 +290,8 @@ void ABuilding::Build(bool bRebuild)
 
 		FVector size = bSize / cSize;
 
-		if (size.Z < 1.0f)
-			size.Z = 1.0f;
+		if (size.Z < 0.75f)
+			size.Z = 0.75f;
 
 		BuildingMesh->SetRelativeScale3D(size);
 		BuildingMesh->SetStaticMesh(ConstructionMesh);

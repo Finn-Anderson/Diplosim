@@ -253,7 +253,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	FVector startLocation = GetOwner()->GetActorLocation();
 
-	if (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt != nullptr)\
+	if (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt != nullptr)
 		startLocation = Cast<ACitizen>(GetOwner())->Building.EnterLocation;
 
 	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), startLocation, MoveRequest.GetLocation(), GetOwner(), filter);

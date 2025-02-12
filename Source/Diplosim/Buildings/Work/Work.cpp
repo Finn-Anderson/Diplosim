@@ -119,6 +119,9 @@ void AWork::Enter(ACitizen* Citizen)
 
 void AWork::Open()
 {
+	if (bOpen)
+		return;
+	
 	bOpen = true;
 
 	for (ACitizen* citizen : GetOccupied())
@@ -127,6 +130,9 @@ void AWork::Open()
 
 void AWork::Close()
 {
+	if (!bOpen)
+		return;
+	
 	bOpen = false;
 
 	for (ACitizen* citizen : GetOccupied()) {
@@ -142,15 +148,15 @@ void AWork::CheckWorkStatus(int32 Hour)
 		return;
 
 	if (WorkStart >= WorkEnd) {
-		if ((Hour >= WorkStart || Hour < WorkEnd) && !bOpen)
+		if ((Hour >= WorkStart || Hour < WorkEnd))
 			Open();
 		else
 			Close();
 	}
 	else {
-		if (Hour >= WorkStart && Hour < WorkEnd && !bOpen)
+		if (Hour >= WorkStart && Hour < WorkEnd)
 			Open();
-		else if (bOpen)
+		else
 			Close();
 	}
 }

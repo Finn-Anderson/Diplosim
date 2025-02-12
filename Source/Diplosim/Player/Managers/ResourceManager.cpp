@@ -30,6 +30,8 @@ void UResourceManager::StoreBasket(TSubclassOf<AResource> Resource, ABuilding* B
 			return;
 		}
 	}
+
+	UpdateResourceUI(Resource);
 }
 
 void UResourceManager::AddCommittedResource(TSubclassOf<AResource> Resource, int32 Amount)
@@ -41,6 +43,8 @@ void UResourceManager::AddCommittedResource(TSubclassOf<AResource> Resource, int
 			break;
 		}
 	}
+
+	UpdateResourceUI(Resource);
 }
 
 void UResourceManager::TakeCommittedResource(TSubclassOf<AResource> Resource, int32 Amount)

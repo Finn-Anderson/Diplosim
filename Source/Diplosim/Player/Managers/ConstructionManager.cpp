@@ -62,7 +62,13 @@ void UConstructionManager::FindBuilder(class ABuilding* Building)
 		constructionStruct.Builder = builder;
 		constructionStruct.Building = builder;
 
-		if (Construction.Contains(constructionStruct) || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder || !builder->GetOccupied()[0]->AIController->CanMoveTo(Building->GetActorLocation()))
+		if (Construction.Contains(constructionStruct) || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder)
+			continue;
+
+		bool bCanMove = builder->GetOccupied()[0]->AIController->CanMoveTo(Building->GetActorLocation());
+		bool bCanMoveRoof = builder->GetOccupied()[0]->AIController->CanMoveTo(Building->GetActorLocation() + FVector(0.0f, 0.0f, 75.0f));
+
+		if (bCanMove == bCanMoveRoof && !bCanMove)
 			continue;
 
 		if (target == nullptr) {
@@ -97,7 +103,13 @@ void UConstructionManager::FindConstruction(class ABuilder* Builder)
 	int32 repairIndex = -1;
 
 	for (int32 i = 0; i < Construction.Num(); i++) {
-		if (Construction[i].Builder != nullptr || !Builder->GetOccupied()[0]->AIController->CanMoveTo(Construction[i].Building->GetActorLocation()))
+		if (Construction[i].Builder != nullptr)
+			continue;
+
+		bool bCanMove = Builder->GetOccupied()[0]->AIController->CanMoveTo(Construction[i].Building->GetActorLocation());
+		bool bCanMoveRoof = Builder->GetOccupied()[0]->AIController->CanMoveTo(Construction[i].Building->GetActorLocation() + FVector(0.0f, 0.0f, 75.0f));
+
+		if (bCanMove == bCanMoveRoof && !bCanMove)
 			continue;
 
 		if (constructionIndex == -1)

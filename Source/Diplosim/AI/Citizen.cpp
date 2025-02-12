@@ -254,6 +254,9 @@ void ACitizen::FindJobAndHouse()
 	if (GetWorld()->GetTimeSeconds() < TimeOfResidence + 300.0f && GetWorld()->GetTimeSeconds() < TimeOfEmployment + 300.0f)
 		return;
 
+	int32 curDiff = 0;
+	ABuilding* curBuilding = nullptr;
+
 	for (ABuilding* building : Camera->CitizenManager->Buildings) {
 		if (building->GetCapacity() == building->GetOccupied().Num() || !CanWork(building) || !AIController->CanMoveTo(building->GetActorLocation()))
 			continue;
@@ -277,30 +280,38 @@ void ACitizen::FindJobAndHouse()
 		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + 300.0f)
 			continue;
 
-		int32* value = Happiness.Modifiers.Find("Work Happiness");
-
-		int32 wage = Cast<AWork>(building)->Wage;
+		int32 diff = Cast<AWork>(building)->Wage;
 
 		if (IsValid(Building.Employment))
-			wage -= Building.Employment->Wage;
+			diff -= Building.Employment->Wage;
 
-		if (*value >= 0 && wage <= 0)
-			continue;
-
-		int32 diff = -*value + wage;
-
-		int32 chance = FMath::RandRange(0, 100);
-
-		if (chance < 60 - (diff * 15))
-			continue;
-
-		AsyncTask(ENamedThreads::GameThread, [this, building]() { 
-			if (Building.Employment != nullptr && building->IsA<AWork>())
-				Building.Employment->RemoveCitizen(this);
-
-			building->AddCitizen(this); 
-		});
+		if (diff > curDiff) {
+			curDiff = diff;
+			curBuilding = building;
+		}
 	}
+
+	if (curBuilding == nullptr)
+		return;
+
+	int32* value = Happiness.Modifiers.Find("Work Happiness");
+
+	if (value != nullptr)
+		curDiff -= *value;
+
+	int32 chance = FMath::RandRange(0, 100);
+
+	if (chance < 50 - (curDiff * 15) && Building.Employment != nullptr)
+		return;
+
+	AsyncTask(ENamedThreads::GameThread, [this, curBuilding]() {
+		if (Building.Employment != nullptr && curBuilding->IsA<AWork>())
+			Building.Employment->RemoveCitizen(this);
+		else if (Building.House != nullptr && curBuilding->IsA<AHouse>())
+			Building.House->RemoveCitizen(this);
+
+		curBuilding->AddCitizen(this);
+	});
 }
 
 //

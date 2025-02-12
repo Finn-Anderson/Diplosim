@@ -639,7 +639,7 @@ void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 
 void ACamera::Look(const struct FInputActionInstance& Instance)
 {
-	if (bInMenu)
+	if (bInMenu || !bMouseCapture)
 		return;
 
 	MovementComponent->Look(Instance);

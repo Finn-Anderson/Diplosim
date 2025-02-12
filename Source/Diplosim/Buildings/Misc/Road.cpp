@@ -17,8 +17,8 @@ ARoad::ARoad()
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
-	BoxCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
-	BoxCollision->SetBoxExtent(FVector(75.0f, 75.0f, 1.0f));
+	BoxCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+	BoxCollision->SetBoxExtent(FVector(99.0f, 99.0f, 20.0f));
 	BoxCollision->SetupAttachment(RootComponent);
 
 	BoxAreaAffect = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxAreaAffect"));
@@ -145,7 +145,7 @@ void ARoad::RegenerateMesh()
 	midPoint /= connectedLocations.Num();
 
 	if (tile.bRiver && roadStruct.bBridge)
-		midPoint.Z = FMath::FloorToInt(midPoint.Z / 75.0f) * 75.0f + 30.0f;
+		midPoint.Z = FMath::FloorToInt(midPoint.Z / 75.0f) * 75.0f + 25.0f;
 
 	int32 index = RoadMeshes.Find(roadStruct);
 
