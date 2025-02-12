@@ -207,11 +207,18 @@ void ADiplosimGameModeBase::SpawnEnemies()
 	EvaluateThreats();
 
 	AsyncTask(ENamedThreads::GameThread, [this, spawnLocations]() {
+		FTimerHandle spawnTimer;
+
+		int32 count = 0;
+
 		for (FEnemiesStruct &enemyData : EnemiesData) {
 			int32 num = FMath::Floor(enemyData.Tally / 200.0f);
 
-			for (int32 i = 0; i < num; i++)
-				SpawnAtValidLocation(spawnLocations, enemyData.Colour);
+			for (int32 i = 0; i < num; i++) {
+				GetWorld()->GetTimerManager().SetTimer(spawnTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, spawnLocations, enemyData.Colour), 0.1f * count, false);
+
+				count++;
+			}
 
 			enemyData.Tally = enemyData.Tally % 200;
 		}

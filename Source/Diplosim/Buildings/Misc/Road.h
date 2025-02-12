@@ -31,7 +31,7 @@ struct FRoadStruct
 
 	bool operator==(const FRoadStruct& other) const
 	{
-		return (other.Connections == Connections && other.bStraight == bStraight && other.bBridge == bBridge);
+		return (other.Connections == Connections && other.bStraight == bStraight && other.bBridge == bBridge) || (other.bBridge == bBridge && bBridge == true);
 	}
 };
 

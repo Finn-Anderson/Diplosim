@@ -649,11 +649,11 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 					tf.SetLocation(transform.GetLocation() + FVector(30.0f * sign, 0.0f, 30.0f - (100.0f * i)));
 				}
 
-				inst = HISMRiver->AddInstance(tf);
-				HISMRiver->SetCustomDataValue(inst, 0, 1.0f);
-				HISMRiver->SetCustomDataValue(inst, 1, r);
-				HISMRiver->SetCustomDataValue(inst, 2, g);
-				HISMRiver->SetCustomDataValue(inst, 3, b);
+				int32 wfInst = HISMRiver->AddInstance(tf);
+				HISMRiver->SetCustomDataValue(wfInst, 0, 1.0f);
+				HISMRiver->SetCustomDataValue(wfInst, 1, r);
+				HISMRiver->SetCustomDataValue(wfInst, 2, g);
+				HISMRiver->SetCustomDataValue(wfInst, 3, b);
 			}
 		}
 	}

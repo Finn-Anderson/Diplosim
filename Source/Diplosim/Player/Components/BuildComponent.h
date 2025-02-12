@@ -50,9 +50,6 @@ public:
 	UPROPERTY()
 		FVector StartLocation;
 
-	UPROPERTY()
-		FVector EndLocation;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class USoundBase* PlaceSound;
 
@@ -68,6 +65,10 @@ public:
 	bool CheckBuildCosts();
 
 	void RotateBuilding(bool Rotate);
+
+	void StartPathPlace();
+
+	void EndPathPlace();
 
 	void Place();
 

@@ -102,6 +102,8 @@ ABuilding::ABuilding()
 	bAffectBuildingMesh = false;
 
 	BuildingName = "";
+
+	bUnique = false;
 }
 
 void ABuilding::BeginPlay()

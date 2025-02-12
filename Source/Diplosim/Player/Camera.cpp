@@ -107,6 +107,8 @@ ACamera::ACamera()
 	ColonyName = "Eggerton";
 
 	FocusedCitizen = nullptr;
+
+	bMouseCapture = true;
 }
 
 void ACamera::BeginPlay()
@@ -122,6 +124,8 @@ void ACamera::BeginPlay()
 	GetWorldTimerManager().SetTimer(ResourceManager->ValueTimer, ResourceManager, &UResourceManager::SetTradeValues, 300.0f, true);
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+
+	SetMouseCapture(false);
 
 	GetWorld()->bIsCameraMoveableWhenPaused = false;
 
@@ -165,6 +169,12 @@ void ACamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bMouseCapture) {
+		APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+
+		pcontroller->SetMouseLocation(MousePosition.X, MousePosition.Y);
+	}
+
 	if (MainMenuUIInstance->IsInViewport() || BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport())
 		return;
 
@@ -194,6 +204,30 @@ void ACamera::Tick(float DeltaTime)
 			HoveredActor.Instance = hit.Item;
 
 		pcontroller->CurrentMouseCursor = EMouseCursor::Hand;
+	}
+}
+
+void ACamera::SetMouseCapture(bool bCapture)
+{
+	if (bMouseCapture == bCapture)
+		return;
+
+	bMouseCapture = bCapture;
+
+	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	pcontroller->SetShowMouseCursor(!bCapture);
+
+	if (bCapture) {
+		FInputModeGameOnly inputMode;
+		inputMode.SetConsumeCaptureMouseDown(bCapture);
+		pcontroller->SetInputMode(inputMode);
+
+		GetWorld()->GetGameViewport()->GetMousePosition(MousePosition);
+	}
+	else {
+		FInputModeGameAndUI inputMode;
+		inputMode.SetHideCursorDuringCapture(bCapture);
+		pcontroller->SetInputMode(inputMode);
 	}
 }
 
@@ -409,7 +443,11 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 
 	// Camera movement
+	Input->BindAction(InputLookChord, ETriggerEvent::Started, this, &ACamera::ActivateLook);
+	Input->BindAction(InputLookChord, ETriggerEvent::Completed, this, &ACamera::ActivateLook);
+
 	Input->BindAction(InputLook, ETriggerEvent::Triggered, this, &ACamera::Look);
+	Input->BindAction(InputLook, ETriggerEvent::Completed, this, &ACamera::Look);
 
 	Input->BindAction(InputMove, ETriggerEvent::Triggered, this, &ACamera::Move);
 
@@ -420,6 +458,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	// Build
 	Input->BindAction(InputAction, ETriggerEvent::Started, this, &ACamera::Action);
+	Input->BindAction(InputAction, ETriggerEvent::Completed, this, &ACamera::Action);
 
 	Input->BindAction(InputCancel, ETriggerEvent::Started, this, &ACamera::Cancel);
 
@@ -436,18 +475,22 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Input->BindAction(InputDebug, ETriggerEvent::Started, this, &ACamera::Debug);
 }
 
-void ACamera::Action()
+void ACamera::Action(const struct FInputActionInstance& Instance)
 {
 	if (bInMenu || ParliamentUIInstance->IsInViewport())
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {
-		if (bQuick)
-			BuildComponent->QuickPlace();
+		if ((bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)) {
+			if (bQuick)
+				BuildComponent->QuickPlace();
+			else
+				BuildComponent->Place();
+		}
 		else
-			BuildComponent->Place();
+			BuildComponent->StartPathPlace();
 	}
-	else {
+	else if (!(bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)) {
 		FocusedCitizen = nullptr;
 
 		if (WidgetSpringArmComponent->GetAttachParent() != RootComponent && !IsValid(HoveredActor.Actor)) {
@@ -581,6 +624,17 @@ void ACamera::Rotate(const struct FInputActionInstance& Instance)
 		return;
 
 	BuildComponent->RotateBuilding(Instance.GetValue().Get<bool>());
+}
+
+void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
+{
+	if (bInMenu)
+		return;
+
+	if (((bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)))
+		SetMouseCapture(false);
+	else
+		SetMouseCapture(true);
 }
 
 void ACamera::Look(const struct FInputActionInstance& Instance)

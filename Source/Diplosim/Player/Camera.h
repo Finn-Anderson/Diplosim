@@ -217,6 +217,14 @@ public:
 	UPROPERTY()
 		class ACitizen* FocusedCitizen;
 
+	UPROPERTY()
+		bool bMouseCapture;
+
+	UPROPERTY()
+		FVector2D MousePosition;
+
+	void SetMouseCapture(bool bCapture);
+
 	UFUNCTION(BlueprintCallable)
 		void StartGame();
 
@@ -262,6 +270,9 @@ public:
 		class UInputAction* InputLook;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputLookChord;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputMove;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -297,7 +308,7 @@ public:
 		FHoverStruct HoveredActor;
 
 	// Commands
-	void Action();
+	void Action(const struct FInputActionInstance& Instance);
 
 	void Cancel();
 
@@ -322,6 +333,8 @@ public:
 	void Rotate(const struct FInputActionInstance& Instance);
 
 	// Camera Movement
+	void ActivateLook(const struct FInputActionInstance& Instance);
+
 	void Look(const struct FInputActionInstance& Instance);
 
 	void Move(const struct FInputActionInstance& Instance);
