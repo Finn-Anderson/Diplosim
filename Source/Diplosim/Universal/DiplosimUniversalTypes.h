@@ -18,7 +18,7 @@ enum class EReligion : uint8
 //
 // Politics
 //
-UENUM()
+UENUM(BlueprintType, meta = (ScriptName = "EParty"))
 enum class EParty : uint8
 {
 	Undecided,

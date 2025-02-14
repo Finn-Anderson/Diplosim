@@ -414,7 +414,7 @@ void AGrid::Render()
 	LoadUIInstance->RemoveFromParent();
 
 	if (Camera->PauseUIInstance->IsInViewport())
-		Camera->Pause(true, true);
+		Camera->SetPause(true, true);
 }
 
 TArray<FTileStruct*> AGrid::CalculatePath(FTileStruct* Tile, FTileStruct* Target)
@@ -955,7 +955,7 @@ void AGrid::Clear()
 	HISMRiver->ClearInstances();
 
 	if (Camera->PauseUIInstance->IsInViewport())
-		Camera->Pause(false, false);
+		Camera->SetPause(false, false);
 }
 
 void AGrid::SetSeasonAffect(FString Period, float Increment)

@@ -5,12 +5,12 @@
 #include "Religion.generated.h"
 
 UCLASS()
-class DIPLOSIM_API AReligion : public AWork
+class DIPLOSIM_API ABroadcast : public AWork
 {
 	GENERATED_BODY()
 	
 public:
-	AReligion();
+	ABroadcast();
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
@@ -20,6 +20,27 @@ public:
 
 	virtual void OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
+	UFUNCTION(BlueprintCallable)
+		void SetBroadcastType(EParty Party = EParty::Undecided, EReligion Religion = EReligion::Atheist);
+
+	void RemoveInfluencedMaterial(class AHouse* House);
+
 	UPROPERTY()
 		TArray<class AHouse*> Houses;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight")
+		class UMaterial* InfluencedMaterial;
+
+	// Influences
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Influence")
+		EReligion Belief;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Influence")
+		EParty Allegiance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Influence")
+		bool bHolyPlace;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Influence")
+		bool bIsPark;
 };

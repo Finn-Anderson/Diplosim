@@ -233,7 +233,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void ShowWarning(FString Warning);
 
-	void Pause(bool bPause, bool bTickWhenPaused);
+	void SetPause(bool bPause, bool bTickWhenPaused);
 
 	UFUNCTION(BlueprintCallable)
 		void DisplayInteract(AActor* Actor, int32 Instance = -1);
@@ -319,6 +319,9 @@ public:
 	void NewMap();
 
 	// Other
+	UPROPERTY()
+		bool bBlockPause;
+
 	void Pause();
 
 	UFUNCTION(BlueprintCallable, Category = "UI")

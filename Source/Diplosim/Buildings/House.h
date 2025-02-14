@@ -19,7 +19,7 @@ public:
 		int32 QualityCap;
 
 	UPROPERTY()
-		TArray<EReligion> Religions;
+		TArray<class ABroadcast*> Influencers;
 
 	int32 GetQuality();
 

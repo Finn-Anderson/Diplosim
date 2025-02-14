@@ -83,7 +83,7 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 	Citizen->Building.Employment = this;
 
 	if (bOpen) {
-		if (bCanAttendEvents && Citizen->AIController->MoveRequest.Actor != nullptr && Citizen->AIController->MoveRequest.Actor->IsA<AReligion>())
+		if (bCanAttendEvents && Citizen->AIController->MoveRequest.Actor != nullptr && Citizen->AIController->MoveRequest.Actor->IsA<ABroadcast>() && Cast<ABroadcast>(Citizen->AIController->MoveRequest.Actor)->bHolyPlace)
 			return true;
 
 		Citizen->AIController->AIMoveTo(this);

@@ -20,7 +20,9 @@
 #include "Managers/ConstructionManager.h"
 #include "Managers/CitizenManager.h"
 #include "Buildings/Building.h"
+#include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Work/Service/Religion.h"
 #include "AI/AI.h"
 #include "AI/Citizen.h"
 #include "Universal/DiplosimGameModeBase.h"
@@ -109,6 +111,8 @@ ACamera::ACamera()
 	FocusedCitizen = nullptr;
 
 	bMouseCapture = true;
+
+	bBlockPause = false;
 }
 
 void ACamera::BeginPlay()
@@ -243,6 +247,11 @@ void ACamera::StartGame()
 
 void ACamera::OnBrochPlace(ABuilding* Broch)
 {
+	if (PauseUIInstance->IsInViewport())
+		Pause();
+
+	bBlockPause = true;
+
 	Start = false;
 	Grid->MapUIInstance->RemoveFromParent();
 
@@ -296,6 +305,8 @@ void ACamera::PlayInteractSound()
 
 void ACamera::DisplayBuildUI()
 {
+	bBlockPause = false;
+
 	BuildUIInstance->AddToViewport();
 
 	Pause();
@@ -308,7 +319,7 @@ void ACamera::ShowWarning(FString Warning)
 	DisplayWarning(Warning);
 }
 
-void ACamera::Pause(bool bPause, bool bTickWhenPaused)
+void ACamera::SetPause(bool bPause, bool bTickWhenPaused)
 {
 	float timeDilation = 0.0001f;
 
@@ -358,8 +369,20 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
 	TArray<UDecalComponent*> decalComponents;
 	Actor->GetComponents<UDecalComponent>(decalComponents);
 
-	if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr))
+	if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr)) {
 		decalComponents[1]->SetVisibility(bStatus);
+
+		if (Actor->IsA<ABroadcast>()) {
+			ABroadcast* broadcaster = Cast<ABroadcast>(Actor);
+
+			if (bStatus)
+				for (AHouse* house : broadcaster->Houses)
+					house->BuildingMesh->SetOverlayMaterial(broadcaster->InfluencedMaterial);
+			else
+				for (AHouse* house : broadcaster->Houses)
+					broadcaster->RemoveInfluencedMaterial(house);
+		}
+	}
 
 	WidgetComponent->SetHiddenInGame(!bStatus);
 
@@ -530,20 +553,20 @@ void ACamera::NewMap()
 
 void ACamera::Pause()
 {
-	if (bInMenu || TLDRUIInstance->IsInViewport())
+	if (bInMenu || TLDRUIInstance->IsInViewport() || bBlockPause)
 		return;
 
 	if (PauseUIInstance->IsInViewport()) {
 		PauseUIInstance->RemoveFromParent();
 
-		Pause(false, false);
+		SetPause(false, false);
 
 		GetWorldTimerManager().UnPauseTimer(ResourceManager->ValueTimer);
 	}
 	else {
 		PauseUIInstance->AddToViewport();
 
-		Pause(true, true);
+		SetPause(true, true);
 
 		GetWorldTimerManager().PauseTimer(ResourceManager->ValueTimer);
 	}
@@ -589,17 +612,17 @@ void ACamera::Menu()
 
 		bInMenu = false;
 
-		Pause(false, false);
+		SetPause(false, false);
 
 		if (PauseUIInstance->IsInViewport())
-			Pause(true, true);
+			SetPause(true, true);
 	}
 	else {
 		MenuUIInstance->AddToViewport();
 
 		bInMenu = true;
 
-		Pause(true, false);
+		SetPause(true, false);
 	}
 }
 

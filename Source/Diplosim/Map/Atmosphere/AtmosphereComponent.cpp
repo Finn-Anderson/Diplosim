@@ -32,6 +32,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 	SkyLight->SetCastShadows(false);
 
 	Sun = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Sun"));
+	Sun->SetRelativeRotation(FRotator(-15.0f, 15.0f, 0.0f));
 	Sun->SetDynamicShadowDistanceMovableLight(20000.0f);
 	Sun->SetCascadeDistributionExponent(1.0f);
 	Sun->SetAtmosphereSunLightIndex(0);
@@ -39,7 +40,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Sun->ForwardShadingPriority = 0;
 
 	Moon = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Moon"));
-	Moon->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
+	Moon->SetRelativeRotation(FRotator(15.0f, 195.0f, 0.0f));
 	Moon->SetDynamicShadowDistanceMovableLight(20000.0f);
 	Moon->SetCascadeDistributionExponent(1.0f);
 	Moon->SetAtmosphereSunLightIndex(1);
@@ -78,6 +79,9 @@ void UAtmosphereComponent::BeginPlay()
 void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (Cast<AGrid>(GetOwner())->Camera->Start)
+		return;
 
 	Sun->AddLocalRotation(FRotator(-Speed, Speed, 0.0f));
 	Moon->AddLocalRotation(FRotator(Speed, Speed, 0.0f));

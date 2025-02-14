@@ -97,8 +97,6 @@ ABuilding::ABuilding()
 
 	bConstant = true;
 
-	Belief = EReligion::Atheist;
-
 	bAffectBuildingMesh = false;
 
 	BuildingName = "";
@@ -265,6 +263,10 @@ void ABuilding::Build(bool bRebuild)
 
 	BuildingMesh->bReceivesDecals = true;
 
+	if (IsA<ABroadcast>())
+		for (AHouse* house : Cast<ABroadcast>(this)->Houses)
+			house->BuildingMesh->SetOverlayMaterial(nullptr);
+
 	UResourceManager* rm = Camera->ResourceManager;
 	UConstructionManager* cm = Camera->ConstructionManager;
 
@@ -386,6 +388,10 @@ void ABuilding::DestroyBuilding()
 
 		citizen->AIController->Idle();
 	}
+
+	if (IsA<ABroadcast>())
+		for (AHouse* house : Cast<ABroadcast>(this)->Houses)
+			Cast<ABroadcast>(this)->RemoveInfluencedMaterial(house);
 
 	Destroy();
 }
@@ -549,7 +555,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 			builder->CheckCosts(Citizen, this);
 		}
 	}
-	else if (!IsA<AHouse>() && !IsA<AReligion>() && Citizen->Building.Employment != this) {
+	else if (!IsA<AHouse>() && !IsA<ABroadcast>() && Citizen->Building.Employment != this) {
 		TArray<FItemStruct> items;
 		ABuilding* deliverTo = nullptr;
 

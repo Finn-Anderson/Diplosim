@@ -609,7 +609,7 @@ void UCitizenManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 			if (command == "start")
 				CallMass(eventStruct.Buildings);
 			else
-				EndMass(Cast<AReligion>(eventStruct.Buildings[0]->GetDefaultObject())->Belief);
+				EndMass(Cast<ABroadcast>(eventStruct.Buildings[0]->GetDefaultObject())->Belief);
 
 			continue;
 		}
@@ -660,13 +660,13 @@ void UCitizenManager::CallMass(TArray<TSubclassOf<ABuilding>> BuildingList)
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), building, actors);
 
 		for (ACitizen* citizen : Citizens) {
-			if (Cast<AReligion>(actors[0])->Belief != citizen->Spirituality.Faith || citizen->Building.Employment->IsA<AReligion>() || !citizen->Building.Employment->bCanAttendEvents)
+			if (Cast<ABroadcast>(actors[0])->Belief != citizen->Spirituality.Faith || citizen->Building.Employment->IsA<ABroadcast>() || !citizen->Building.Employment->bCanAttendEvents)
 				continue;
 
-			AReligion* chosenBuilding = nullptr;
+			ABroadcast* chosenBuilding = nullptr;
 
 			for (AActor* actor : actors) {
-				AReligion* religiousBuilding = Cast<AReligion>(actor);
+				ABroadcast* religiousBuilding = Cast<ABroadcast>(actor);
 
 				if (!citizen->AIController->CanMoveTo(religiousBuilding->GetActorLocation()) || religiousBuilding->GetOccupied().IsEmpty())
 					continue;
