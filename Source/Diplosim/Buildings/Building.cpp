@@ -182,6 +182,16 @@ void ABuilding::SetSeed(int32 Seed)
 
 		if (IsA<ATrap>())
 			Cast<ATrap>(this)->bExplode = Seeds[Seed].bExplosive;
+
+		if (Seeds[Seed].Resource != nullptr) {
+			AInternalProduction* prod = Cast<AInternalProduction>(this);
+
+			prod->ResourceToOverlap = Seeds[Seed].Resource;
+			prod->MaxYield = Seeds[Seed].Yield;
+			prod->TimeLength = Seeds[Seed].TimeLength;
+
+			prod->WorkHat = Seeds[Seed].Meshes[1];
+		}
 	}
 	else {
 		TArray<USceneComponent*> children;
@@ -219,7 +229,7 @@ void ABuilding::SetSeed(int32 Seed)
 		if (IsA<AFarm>()) {
 			AFarm* farm = Cast<AFarm>(this);
 
-			farm->Crop = Seeds[Seed].Crop;
+			farm->Crop = Seeds[Seed].Resource;
 			farm->Yield = Seeds[Seed].Yield;
 			farm->TimeLength = Seeds[Seed].TimeLength;
 
@@ -407,10 +417,6 @@ void ABuilding::OnBuilt()
 	cm->RemoveBuilding(this);
 
 	Camera->CitizenManager->Buildings.Add(this);
-
-	FTimerStruct timer;
-	timer.CreateTimer("Upkeep", this, 300, FTimerDelegate::CreateUObject(this, &ABuilding::UpkeepCost), false);
-	Camera->CitizenManager->Timers.Add(timer);
 
 	if (bConstant)
 		ParticleComponent->Activate();

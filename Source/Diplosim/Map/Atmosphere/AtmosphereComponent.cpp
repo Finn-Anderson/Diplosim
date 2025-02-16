@@ -56,7 +56,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Fog->SetSecondFogHeightOffset(5000.0f);
 
 	WindComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WindComponent"));
-	WindComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 2300.0f));
+	WindComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 2500.0f));
 	WindComponent->bAutoActivate = true;
 }
 
@@ -136,7 +136,7 @@ void UAtmosphereComponent::ChangeWindDirection()
 void UAtmosphereComponent::SetWindDimensions(int32 Bound)
 {
 	WindComponent->SetVariableVec3("Dimensions", FVector(Bound * 100.0f * 2.0f, Bound * 100.0f * 2.0f, 3000.0f));
-	WindComponent->SetVariableFloat("SpawnRate", Bound / 50.0f);
+	WindComponent->SetVariableFloat("SpawnRate", Bound / 100.0f);
 }
 
 void UAtmosphereComponent::SetDisplayText(int32 Hour)

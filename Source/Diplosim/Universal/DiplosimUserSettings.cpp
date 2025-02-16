@@ -6,6 +6,7 @@
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/AudioComponent.h"
 #include "Misc/FileHelper.h"
+#include "Engine/UserInterfaceSettings.h"
 
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -44,6 +45,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	MasterVolume = 1.0f;
 	SFXVolume = 1.0f;
 	AmbientVolume = 1.0f;
+
+	UIScale = 1.0f;
 
 	Atmosphere = nullptr;
 	Clouds = nullptr;
@@ -124,6 +127,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetSFXVolume(FCString::Atof(Value));
 	else if (FString("AmbientVolume").Equals(Key))
 		SetAmbientVolume(FCString::Atof(Value));
+	else if (FString("UIScale").Equals(Key))
+		SetUIScale(FCString::Atof(Value));
 }
 
 void UDiplosimUserSettings::LoadIniSettings()
@@ -170,6 +175,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetFloat(*Section, TEXT("MasterVolume"), GetMasterVolume(), Filename);
 	GConfig->SetFloat(*Section, TEXT("SFXVolume"), GetSFXVolume(), Filename);
 	GConfig->SetFloat(*Section, TEXT("AmbientVolume"), GetAmbientVolume(), Filename);
+	GConfig->SetFloat(*Section, TEXT("UIScale"), GetUIScale(), Filename);
 
 	GConfig->Flush(false, Filename);
 }
@@ -458,6 +464,22 @@ void UDiplosimUserSettings::SetAmbientVolume(float Value)
 float UDiplosimUserSettings::GetAmbientVolume() const
 {
 	return AmbientVolume;
+}
+
+void UDiplosimUserSettings::SetUIScale(float Value)
+{
+	if (UIScale == Value)
+		return;
+
+	UIScale = Value;
+
+	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+	UISettings->ApplicationScale = UIScale;
+}
+
+float UDiplosimUserSettings::GetUIScale() const
+{
+	return UIScale;
 }
 
 void UDiplosimUserSettings::UpdateAmbientVolume()

@@ -106,6 +106,9 @@ ACitizen::ACitizen()
 
 	IdealHoursWorkedMin = 0;
 	IdealHoursWorkedMax = 12;
+
+	SpeedBeforeOld = 100.0f;
+	MaxHealthBeforeOld = 100.0f;
 }
 
 void ACitizen::BeginPlay()
@@ -517,14 +520,23 @@ void ACitizen::Birthday()
 {
 	BioStruct.Age++;
 
-	if (BioStruct.Age >= 60) {
-		HealthComponent->MaxHealth /= 2;
+	if (BioStruct.Age > 50) {
+		float ratio = FMath::Clamp(FMath::Pow(FMath::LogX(50.0f, BioStruct.Age - 50.0f), 3.0f), 0.0f, 1.0f);
+		float odds = ratio * 90.0f;
+
+		HealthComponent->MaxHealth = MaxHealthBeforeOld / (ratio * 5.0f);
 		HealthComponent->AddHealth(0);
+
+		MovementComponent->InitialSpeed = SpeedBeforeOld / (ratio * 2.0f);
 
 		int32 chance = FMath::RandRange(1, 100);
 
-		if (chance < 5)
+		if (chance < odds)
 			HealthComponent->TakeHealth(HealthComponent->MaxHealth, this);
+	}
+	else if (BioStruct.Age == 50) {
+		MaxHealthBeforeOld = HealthComponent->MaxHealth;
+		SpeedBeforeOld = MovementComponent->InitialSpeed;
 	}
 
 	if (BioStruct.Age <= 18) {

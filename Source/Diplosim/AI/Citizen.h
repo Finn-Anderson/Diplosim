@@ -337,6 +337,12 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		FBioStruct BioStruct;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Age")
+		float SpeedBeforeOld;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Age")
+		float MaxHealthBeforeOld;
+
 	// Politics
 	void SetPolticalLeanings();
 

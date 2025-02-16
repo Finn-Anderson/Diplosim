@@ -61,6 +61,9 @@ protected:
 	UPROPERTY(Config)
 		float AmbientVolume;
 
+	UPROPERTY(Config)
+		float UIScale;
+
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
@@ -175,6 +178,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Audio")
 		float GetAmbientVolume() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Accessibility")
+		void SetUIScale(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "Accessibility")
+		float GetUIScale() const;
 
 	void UpdateAmbientVolume();
 

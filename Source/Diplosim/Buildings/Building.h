@@ -148,7 +148,7 @@ struct FSeedStruct
 		FString Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
-		TSubclassOf<class AResource> Crop;
+		TSubclassOf<class AResource> Resource;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		int32 Yield;

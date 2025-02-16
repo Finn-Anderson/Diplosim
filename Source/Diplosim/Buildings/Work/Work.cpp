@@ -135,6 +135,8 @@ void AWork::Close()
 	
 	bOpen = false;
 
+	UpkeepCost();
+
 	for (ACitizen* citizen : GetOccupied()) {
 		Leave(citizen);
 
