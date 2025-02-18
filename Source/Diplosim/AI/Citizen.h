@@ -32,6 +32,9 @@ struct FBuildingStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
 		class AWork* Employment;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Building")
+		class AWork* Education;
+
 	class ABuilding* BuildingAt;
 
 	FVector EnterLocation;
@@ -41,6 +44,7 @@ struct FBuildingStruct
 		House = nullptr;
 		Employment = nullptr;
 		BuildingAt = nullptr;
+		Education = nullptr;
 	}
 };
 
@@ -76,6 +80,9 @@ struct FBioStruct
 		FString Name;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		int32 EducationLevel;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		TArray<class ACitizen*> Children;
 
 	FBioStruct()
@@ -85,6 +92,7 @@ struct FBioStruct
 		Partner = nullptr;
 		Sex = ESex::NaN;
 		Age = 0;
+		EducationLevel = 1;
 		Name = "Citizen";
 	}
 };
@@ -262,7 +270,11 @@ public:
 	// Work
 	bool CanWork(class ABuilding* WorkBuilding);
 
-	void FindJobAndHouse();
+	void FindJobAndHouse(int32 TimeToCompleteDay);
+
+	float GetProductivity();
+
+	void Heal(ACitizen* Citizen);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		int32 Balance;
@@ -281,6 +293,12 @@ public:
 
 	UPROPERTY()
 		double TimeOfResidence;
+
+	UPROPERTY()
+		FTimerHandle HealTimer;
+
+	UPROPERTY()
+		ACitizen* CitizenHealing;
 
 	// Buildings
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")

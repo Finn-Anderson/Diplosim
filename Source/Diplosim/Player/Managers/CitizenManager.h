@@ -223,7 +223,7 @@ struct FLawStruct
 		FString Warning;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		float Value;
+		int32 Value;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FLeanStruct> Lean;
@@ -482,7 +482,7 @@ public:
 		void Bribe(class ACitizen* Representative, bool bAgree);
 
 	UFUNCTION(BlueprintCallable)
-		void ProposeBill(FLawStruct Bill, int32 Value = -1);
+		void ProposeBill(FLawStruct Bill);
 
 	void SetupBill();
 

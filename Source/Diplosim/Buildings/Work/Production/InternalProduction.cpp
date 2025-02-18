@@ -83,7 +83,7 @@ void AInternalProduction::SetTimer(ACitizen* Citizen)
 	float tally = 1;
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		tally *= (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * Citizen->ProductivityMultiplier);
+		tally *= (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * Citizen->GetProductivity());
 
 	float time = TimeLength / GetCitizensAtBuilding().Num() / tally;
 
@@ -103,7 +103,7 @@ void AInternalProduction::AlterTimer()
 	float tally = 1;
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		tally *= (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * citizen->ProductivityMultiplier);
+		tally *= (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * citizen->GetProductivity());
 
 	float time = TimeLength / GetCitizensAtBuilding().Num() / tally;
 

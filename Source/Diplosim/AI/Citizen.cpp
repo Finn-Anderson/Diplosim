@@ -178,11 +178,10 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 				Camera->CitizenManager->Infect(citizen);
 		}
 
-		if (Building.Employment != nullptr && Building.Employment->IsA<AClinic>()) {
-			Camera->CitizenManager->Cure(citizen);
+		if (Building.Employment != nullptr && Building.Employment->IsA<AClinic>() && !GetWorldTimerManager().IsTimerActive(HealTimer)) {
+			CitizenHealing = citizen;
 
-			if (AIController->MoveRequest.GetGoalActor() == citizen)
-				Camera->CitizenManager->PickCitizenToHeal(this);
+			GetWorldTimerManager().SetTimer(HealTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Heal, citizen), 2.0f / GetProductivity(), false);
 		}
 	}
 
@@ -221,6 +220,8 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 
 	if (OtherActor->IsA<AResource>())
 		collidingStruct.Instance = OtherBodyIndex;
+	else if (OtherActor->IsA<ACitizen>() && CitizenHealing == OtherActor && GetWorldTimerManager().IsTimerActive(HealTimer))
+		GetWorldTimerManager().ClearTimer(HealTimer);
 
 	if (StillColliding.Contains(collidingStruct))
 		StillColliding.Remove(collidingStruct);
@@ -255,11 +256,12 @@ bool ACitizen::CanWork(ABuilding* WorkBuilding)
 	return true;
 }
 
-void ACitizen::FindJobAndHouse()
+void ACitizen::FindJobAndHouse(int32 TimeToCompleteDay)
 {
-	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
+		return;
 
-	if (GetWorld()->GetTimeSeconds() < TimeOfResidence + timeToCompleteDay && GetWorld()->GetTimeSeconds() < TimeOfEmployment + timeToCompleteDay)
+	if (GetWorld()->GetTimeSeconds() < TimeOfResidence + TimeToCompleteDay && GetWorld()->GetTimeSeconds() < TimeOfEmployment + TimeToCompleteDay)
 		return;
 
 	int32 curDiff = 0;
@@ -270,7 +272,7 @@ void ACitizen::FindJobAndHouse()
 			continue;
 
 		if (building->IsA<AHouse>()) {
-			if (GetWorld()->GetTimeSeconds() < TimeOfResidence + timeToCompleteDay)
+			if (GetWorld()->GetTimeSeconds() < TimeOfResidence + TimeToCompleteDay)
 				continue;
 
 			AHouse* house = Cast<AHouse>(building);
@@ -285,7 +287,7 @@ void ACitizen::FindJobAndHouse()
 					continue;
 			}
 		}
-		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + timeToCompleteDay)
+		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + TimeToCompleteDay)
 			continue;
 
 		int32 pensionAge = Camera->CitizenManager->GetLawValue(EBillType::PensionAge);
@@ -332,6 +334,35 @@ void ACitizen::FindJobAndHouse()
 
 		curBuilding->AddCitizen(this);
 	});
+}
+
+float ACitizen::GetProductivity()
+{
+	return ProductivityMultiplier * (1 + (BioStruct.EducationLevel - 1) * 0.1);
+}
+
+void ACitizen::Heal(ACitizen* Citizen)
+{		
+	Camera->CitizenManager->Cure(Citizen);
+
+	if (AIController->MoveRequest.GetGoalActor() == Citizen)
+		Camera->CitizenManager->PickCitizenToHeal(this);
+
+	TArray<AActor*> actors;
+	Reach->GetOverlappingActors(actors);
+
+	for (AActor* actor : actors) {
+		if (!actor->IsA<ACitizen>() || Cast<ACitizen>(actor)->HealthIssues.IsEmpty())
+			continue;
+
+		ACitizen* citizen = Cast<ACitizen>(actor);
+
+		CitizenHealing = citizen;
+
+		GetWorldTimerManager().SetTimer(HealTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Heal, citizen), 2.0f / GetProductivity(), false);
+
+		break;
+	}
 }
 
 //
@@ -473,7 +504,7 @@ void ACitizen::GainEnergy()
 void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 {
 	float time = FMath::RandRange(6.0f, 10.0f);
-	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * ProductivityMultiplier);
+	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * GetProductivity());
 
 	FTimerStruct timer;
 	timer.CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), false);
@@ -730,11 +761,13 @@ void ACitizen::SetPolticalLeanings()
 		for (int32 i = 0; i < sway->GetIntValue(); i++)
 			partyList.Add(party->Party);
 
-	for (ABroadcast* broadcaster : Building.House->Influencers) {
-		if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance == EParty::Undecided)
-			continue;
+	if (IsValid(Building.House)) {
+		for (ABroadcast* broadcaster : Building.House->Influencers) {
+			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance == EParty::Undecided)
+				continue;
 
-		partyList.Add(broadcaster->Allegiance);
+			partyList.Add(broadcaster->Allegiance);
+		}
 	}
 
 	int32 itterate = FMath::Floor(GetHappiness() / 10) - 5;
@@ -892,7 +925,7 @@ void ACitizen::SetHappiness()
 {
 	Happiness.ClearValues();
 
-	if (Building.House == nullptr)
+	if (!IsValid(Building.House))
 		Happiness.SetValue("Homeless", -20);
 	else {
 		Happiness.SetValue("Housed", 10);
@@ -914,6 +947,63 @@ void ACitizen::SetHappiness()
 			message = "High-Quality Housing";
 
 		Happiness.SetValue(message, quality);
+
+		if (Spirituality.Faith != EReligion::Atheist) {
+			bool bNearbyFaith = false;
+
+			for (ABroadcast* broadcaster : Building.House->Influencers) {
+				if (broadcaster->GetOccupied().IsEmpty() || !broadcaster->bHolyPlace && broadcaster->Belief != Spirituality.Faith)
+					continue;
+
+				bNearbyFaith = true;
+			}
+
+			if (!bNearbyFaith)
+				Happiness.SetValue("No Working Holy Place Nearby", -25);
+			else
+				Happiness.SetValue("Holy Place Nearby", 15);
+		}
+
+		bool bIsEvil = false;
+
+		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this))
+			if (personality->Trait == EPersonality::Cruel)
+				bIsEvil = true;
+
+		bool bIsPark = false;
+
+		for (ABroadcast* broadcaster : Building.House->Influencers) {
+			if (!broadcaster->bIsPark)
+				continue;
+
+			bIsPark = true;
+
+			break;
+		}
+
+		if (bIsPark) {
+			if (bIsEvil)
+				Happiness.SetValue("Park Nearby", -5);
+			else
+				Happiness.SetValue("Park Nearby", 5);
+		}
+		else
+			Happiness.SetValue("No Nearby Park", -10);
+
+		bool bPropaganda = true;
+
+		for (ABroadcast* broadcaster : Building.House->Influencers) {
+			if (broadcaster->bIsPark || broadcaster->bHolyPlace)
+				continue;
+
+			if (broadcaster->Allegiance == Camera->CitizenManager->GetCitizenParty(this) || broadcaster->Belief == Spirituality.Faith)
+				bPropaganda = false;
+		}
+
+		if (bPropaganda)
+			Happiness.SetValue("Nearby propaganda tower", -25);
+		else
+			Happiness.SetValue("Nearby eggtastic tower", 15);
 	}
 
 	if (Building.Employment == nullptr)
@@ -946,63 +1036,6 @@ void ACitizen::SetHappiness()
 	else if (MassStatus == EMassStatus::Attended)
 		Happiness.SetValue("Attended Mass", 15);
 
-	if (Spirituality.Faith != EReligion::Atheist && IsValid(Building.House)) {
-		bool bNearbyFaith = false;
-
-		for (ABroadcast* broadcaster : Building.House->Influencers) {
-			if (broadcaster->GetOccupied().IsEmpty() || !broadcaster->bHolyPlace && broadcaster->Belief != Spirituality.Faith)
-				continue;
-
-			bNearbyFaith = true;
-		}
-
-		if (!bNearbyFaith)
-			Happiness.SetValue("No Working Holy Place Nearby", -25);
-		else
-			Happiness.SetValue("Holy Place Nearby", 15);
-	}
-
-	bool bIsEvil = false;
-
-	for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this))
-		if (personality->Trait == EPersonality::Cruel)
-			bIsEvil = true;
-
-	bool bIsPark = false;
-
-	for (ABroadcast* broadcaster : Building.House->Influencers) {
-		if (!broadcaster->bIsPark)
-			continue;
-
-		bIsPark = true;
-
-		break;
-	}
-
-	if (bIsPark) {
-		if (bIsEvil)
-			Happiness.SetValue("Park Nearby", -5);
-		else
-			Happiness.SetValue("Park Nearby", 5);
-	}
-	else
-		Happiness.SetValue("No Nearby Park", -10);
-
-	bool bPropaganda = true;
-
-	for (ABroadcast* broadcaster : Building.House->Influencers) {
-		if (broadcaster->bIsPark || broadcaster->bHolyPlace)
-			continue;
-
-		if (broadcaster->Allegiance == Camera->CitizenManager->GetCitizenParty(this) || broadcaster->Belief == Spirituality.Faith)
-			bPropaganda = false;
-	}
-
-	if (bPropaganda)
-		Happiness.SetValue("Nearby propaganda tower", -25);
-	else
-		Happiness.SetValue("Nearby eggtastic tower", 15);
-
 	if (IsValid(Building.Employment) && GetWorld()->GetTimeSeconds() >= TimeOfEmployment + 300.0f) {
 		int32 count = 0;
 
@@ -1032,46 +1065,48 @@ void ACitizen::SetHappiness()
 	else
 		Happiness.SetValue("Rich", 20);
 
-	int32 lawTally = 0;
+	if (Camera->CitizenManager->GetCitizenParty(this) != EParty::Undecided) {
+		int32 lawTally = 0;
 
-	for (FLawStruct law : Camera->CitizenManager->Laws) {
-		if (law.BillType == EBillType::Abolish)
-			continue;
+		for (FLawStruct law : Camera->CitizenManager->Laws) {
+			if (law.BillType == EBillType::Abolish)
+				continue;
 
-		int32 count = 0;
+			int32 count = 0;
 
-		FLeanStruct partyLean;
-		partyLean.Party = Camera->CitizenManager->GetMembersParty(this)->Party;
+			FLeanStruct partyLean;
+			partyLean.Party = Camera->CitizenManager->GetMembersParty(this)->Party;
 
-		int32 index = law.Lean.Find(partyLean);
-
-		if (!law.Lean[index].ForRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].ForRange, law.Value))
-			count++;
-		else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
-			count--;
-
-		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
-			FLeanStruct personalityLean;
-			personalityLean.Personality = personality->Trait;
-
-			index = law.Lean.Find(personalityLean);
+			int32 index = law.Lean.Find(partyLean);
 
 			if (!law.Lean[index].ForRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].ForRange, law.Value))
 				count++;
 			else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
 				count--;
+
+			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
+				FLeanStruct personalityLean;
+				personalityLean.Personality = personality->Trait;
+
+				index = law.Lean.Find(personalityLean);
+
+				if (!law.Lean[index].ForRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].ForRange, law.Value))
+					count++;
+				else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
+					count--;
+			}
+
+			if (count < 0)
+				lawTally--;
+			else
+				lawTally++;
 		}
 
-		if (count < 0)
-			lawTally--;
-		else
-			lawTally++;
+		if (lawTally < -1)
+			Happiness.SetValue("Not Represented", -20);
+		else if (lawTally > 1)
+			Happiness.SetValue("Represented", 15);
 	}
-
-	if (lawTally < -1)
-		Happiness.SetValue("Not Represented", -20);
-	else if (lawTally > 1)
-		Happiness.SetValue("Represented", 15);
 
 	if (GetHappiness() < 20)
 		SadTimer++;

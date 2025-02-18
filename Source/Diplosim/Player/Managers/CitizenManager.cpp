@@ -238,6 +238,8 @@ void UCitizenManager::Loop()
 
 	int32 rebelCount = 0;
 
+	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+
 	for (ACitizen* citizen : Citizens) {
 		if (citizen->Rebel)
 			continue;
@@ -249,7 +251,7 @@ void UCitizenManager::Loop()
 				citizen->HealthComponent->TakeHealth(100, citizen);
 		}
 
-		citizen->FindJobAndHouse();
+		citizen->FindJobAndHouse(timeToCompleteDay);
 			
 		citizen->SetHappiness();
 
@@ -907,7 +909,7 @@ void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
 		Votes.Against.Add(Representative);
 }
 
-void UCitizenManager::ProposeBill(FLawStruct Bill, int32 Value)
+void UCitizenManager::ProposeBill(FLawStruct Bill)
 {
 	int32 index = Laws.Find(Bill);
 
@@ -918,9 +920,6 @@ void UCitizenManager::ProposeBill(FLawStruct Bill, int32 Value)
 
 		return;
 	}
-
-	if (Value > -1)
-		Bill.Value = Value;
 
 	ProposedBills.Add(Bill);
 
