@@ -140,19 +140,37 @@ struct FPartyStruct
 	}
 };
 
-UENUM()
-enum class EBillType : uint8
+USTRUCT(BlueprintType)
+struct FLeanStruct
 {
-	WorkAge,
-	VoteAge,
-	Representatives,
-	ElectionTimer,
-	Election,
-	Abolish
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		EParty Party;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		EPersonality Personality;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<int32> ForRange;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<int32> AgainstRange;
+
+	FLeanStruct()
+	{
+		Party = EParty::Undecided;
+		Personality = EPersonality::Brave;
+	}
+
+	bool operator==(const FLeanStruct& other) const
+	{
+		return (other.Party == Party && other.Personality == Personality);
+	}
 };
 
 USTRUCT(BlueprintType)
-struct FBillStruct
+struct FDescriptionStruct
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -160,37 +178,34 @@ struct FBillStruct
 		FString Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		FString Warning;
+		int32 Min;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		float Value;
+		int32 Max;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		bool bIsLaw;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<EParty> Agreeing;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<EParty> Opposing;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
-		TArray<EPersonality> For;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
-		TArray<EPersonality> Against;
-
-	FBillStruct()
+	FDescriptionStruct()
 	{
 		Description = "";
-		Value = 0.0f;
-		bIsLaw = false;
+		Min = 0;
+		Max = 0;
 	}
+};
 
-	bool operator==(const FBillStruct& other) const
-	{
-		return (other.bIsLaw == bIsLaw);
-	}
+UENUM()
+enum class EBillType : uint8
+{
+	WorkAge,
+	VoteAge,
+	Representatives,
+	RepresentativeType,
+	ElectionTimer,
+	FoodCost,
+	Pension,
+	PensionAge,
+	EducationCost,
+	EducationAge,
+	Election,
+	Abolish,
 };
 
 USTRUCT(BlueprintType)
@@ -202,7 +217,16 @@ struct FLawStruct
 		EBillType BillType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FBillStruct> Bills;
+		TArray<FDescriptionStruct> Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		FString Warning;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		float Value;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<FLeanStruct> Lean;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		int32 Cooldown;
@@ -210,7 +234,20 @@ struct FLawStruct
 	FLawStruct()
 	{
 		BillType = EBillType::WorkAge;
+		Warning = "";
+		Value = 0.0f;
 		Cooldown = 0;
+	}
+
+	int32 GetLeanIndex(EParty Party = EParty::Undecided, EPersonality Personality = EPersonality::Brave)
+	{
+		FLeanStruct lean;
+		lean.Party = Party;
+		lean.Personality = Personality;
+
+		int32 index = Lean.Find(lean);
+
+		return index;
 	}
 
 	bool operator==(const FLawStruct& other) const
@@ -425,7 +462,7 @@ public:
 		FVoteStruct Votes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FBillStruct> ProposedBills;
+		TArray<FLawStruct> ProposedBills;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TSubclassOf<class AResource> Money;
@@ -445,23 +482,20 @@ public:
 		void Bribe(class ACitizen* Representative, bool bAgree);
 
 	UFUNCTION(BlueprintCallable)
-		void ProposeBill(FBillStruct Bill);
+		void ProposeBill(FLawStruct Bill, int32 Value = -1);
 
 	void SetupBill();
 
-	void MotionBill(FBillStruct Bill);
+	void MotionBill(FLawStruct Bill);
 
-	void GetInitialVotes(class ACitizen* Representative, FBillStruct Bill);
+	bool IsInRange(TArray<int32> Range, int32 Value);
 
-	void GetVerdict(class ACitizen* Representative, FBillStruct Bill);
+	void GetVerdict(class ACitizen* Representative, FLawStruct Bill, bool bCanAbstain);
 
-	void TallyVotes(FBillStruct Bill);
+	void TallyVotes(FLawStruct Bill);
 
 	UFUNCTION(BlueprintCallable)
 		float GetLawValue(EBillType BillType);
-
-	UFUNCTION(BlueprintCallable)
-		EBillType GetBillType(FBillStruct Bill);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetCooldownTimer(FLawStruct Law);

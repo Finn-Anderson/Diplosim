@@ -257,7 +257,9 @@ bool ACitizen::CanWork(ABuilding* WorkBuilding)
 
 void ACitizen::FindJobAndHouse()
 {
-	if (GetWorld()->GetTimeSeconds() < TimeOfResidence + 300.0f && GetWorld()->GetTimeSeconds() < TimeOfEmployment + 300.0f)
+	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+
+	if (GetWorld()->GetTimeSeconds() < TimeOfResidence + timeToCompleteDay && GetWorld()->GetTimeSeconds() < TimeOfEmployment + timeToCompleteDay)
 		return;
 
 	int32 curDiff = 0;
@@ -268,7 +270,7 @@ void ACitizen::FindJobAndHouse()
 			continue;
 
 		if (building->IsA<AHouse>()) {
-			if (GetWorld()->GetTimeSeconds() < TimeOfResidence + 300.0f)
+			if (GetWorld()->GetTimeSeconds() < TimeOfResidence + timeToCompleteDay)
 				continue;
 
 			AHouse* house = Cast<AHouse>(building);
@@ -283,8 +285,20 @@ void ACitizen::FindJobAndHouse()
 					continue;
 			}
 		}
-		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + 300.0f)
+		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + timeToCompleteDay)
 			continue;
+
+		int32 pensionAge = Camera->CitizenManager->GetLawValue(EBillType::PensionAge);
+
+		if (BioStruct.Age >= pensionAge) {
+			int32 pension = Camera->CitizenManager->GetLawValue(EBillType::Pension);
+
+			if (pension >= Building.House->Rent) {
+				Building.Employment->RemoveCitizen(this);
+
+				continue;
+			}
+		}
 
 		int32 diff = Cast<AWork>(building)->Wage;
 
@@ -344,7 +358,9 @@ void ACitizen::Eat()
 		totalAmount += curAmount;
 	}
 
-	int32 maxF = FMath::CeilToInt((100 - Hunger) / 25.0f);
+	int32 cost = Camera->CitizenManager->GetLawValue(EBillType::FoodCost);
+
+	int32 maxF = FMath::Clamp(FMath::CeilToInt((100 - Hunger) / 25.0f), 0, FMath::Floor(Balance / cost));
 	int32 quantity = FMath::Clamp(totalAmount, 0, maxF);
 
 	quantity = FMath::Min(quantity, Balance / Camera->CitizenManager->FoodCost);
@@ -1022,25 +1038,39 @@ void ACitizen::SetHappiness()
 		if (law.BillType == EBillType::Abolish)
 			continue;
 
-		FBillStruct billStruct;
-		billStruct.bIsLaw = true;
+		int32 count = 0;
 
-		int32 index = law.Bills.Find(billStruct);
+		FLeanStruct partyLean;
+		partyLean.Party = Camera->CitizenManager->GetMembersParty(this)->Party;
 
-		if (index == INDEX_NONE)
-			continue;
+		int32 index = law.Lean.Find(partyLean);
 
-		FPartyStruct* party = Camera->CitizenManager->GetMembersParty(this);
+		if (!law.Lean[index].ForRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].ForRange, law.Value))
+			count++;
+		else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
+			count--;
 
-		if (law.Bills[index].Agreeing.Contains(party->Party))
-			lawTally++;
-		else if (law.Bills[index].Opposing.Contains(party->Party))
+		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
+			FLeanStruct personalityLean;
+			personalityLean.Personality = personality->Trait;
+
+			index = law.Lean.Find(personalityLean);
+
+			if (!law.Lean[index].ForRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].ForRange, law.Value))
+				count++;
+			else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
+				count--;
+		}
+
+		if (count < 0)
 			lawTally--;
+		else
+			lawTally++;
 	}
 
-	if (lawTally < -2)
+	if (lawTally < -1)
 		Happiness.SetValue("Not Represented", -20);
-	else if (lawTally > 2)
+	else if (lawTally > 1)
 		Happiness.SetValue("Represented", 15);
 
 	if (GetHappiness() < 20)

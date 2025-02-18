@@ -1,194 +1,913 @@
 {
-  "Laws": [
-    {
-      "BillType": 0,
-      "Bills": [
-        {
-          "Description": "Set work age to 9",
-          "Warning": "",
-          "Value": 7.0,
-          "IsLaw": false,
-          "Agreeing": [ 1 ],
-          "Opposing": [ 2, 4 ],
-          "For": [ 2, 4, 14 ],
-          "Against": [ 3, 13, 15 ]
-        },
-        {
-          "Description": "Set work age to 18",
-          "Warning": "",
-          "Value": 18.0,
-          "IsLaw": true,
-          "Agreeing": [],
-          "Opposing": [],
-          "For": [],
-          "Against": []
-        },
-        {
-          "Description": "Set work age to 27",
-          "Warning": "",
-          "Value": 18.0,
-          "IsLaw": false,
-          "Agreeing": [ 2, 4 ],
-          "Opposing": [ 1 ],
-          "For": [ 3, 13, 15 ],
-          "Against": [ 2, 4, 14 ]
-        }
-      ]
-    },
-    {
-      "BillType": 1,
-      "Bills": [
-        {
-          "Description": "Set vote age to 16",
-          "Warning": "",
-          "Value": 16.0,
-          "IsLaw": false,
-          "Agreeing": [ 4 ],
-          "Opposing": [ 1 ],
-          "For": [ 0, 4 ],
-          "Against": [ 1, 5 ]
-        },
-        {
-          "Description": "Set vote age to 18",
-          "Warning": "",
-          "Value": 18.0,
-          "IsLaw": true,
-          "Agreeing": [],
-          "Opposing": [],
-          "For": [],
-          "Against": []
-        },
-        {
-          "Description": "Set vote age to 21",
-          "Warning": "",
-          "Value": 21.0,
-          "IsLaw": false,
-          "Agreeing": [ 1 ],
-          "Opposing": [ 4 ],
-          "For": [ 1, 5 ],
-          "Against": [ 0, 4 ]
-        }
-      ]
-    },
-    {
-      "BillType": 2,
-      "Bills": [
-        {
-          "Description": "Set the number of representatives to 1",
-          "Warning": "",
-          "Value": 1.0,
-          "IsLaw": false,
-          "Agreeing": [ 5 ],
-          "Opposing": [ 1, 2, 3, 4 ],
-          "For": [ 7, 15 ],
-          "Against": [ 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14 ]
-        },
-        {
-          "Description": "Set the number of representatives to 10",
-          "Warning": "",
-          "Value": 10.0,
-          "IsLaw": true,
-          "Agreeing": [],
-          "Opposing": [],
-          "For": [],
-          "Against": []
-        },
-        {
-          "Description": "Set the number of representatives to 50",
-          "Warning": "",
-          "Value": 50.0,
-          "IsLaw": false,
-          "Agreeing": [ 2, 4 ],
-          "Opposing": [ 1, 3 ],
-          "For": [ 4, 6, 11, 15 ],
-          "Against": [ 1, 10, 14 ]
-        },
-        {
-          "Description": "Set the number of representatives to 100",
-          "Warning": "",
-          "Value": 100.0,
-          "IsLaw": false,
-          "Agreeing": [ 2, 4 ],
-          "Opposing": [ 1, 3 ],
-          "For": [ 4, 6, 11, 15 ],
-          "Against": [ 1, 9, 10, 14 ]
-        }
-      ]
-    },
-    {
-      "BillType": 3,
-      "Bills": [
-        {
-          "Description": "Call an election every 3 days",
-          "Warning": "",
-          "Value": 3.0,
-          "IsLaw": false,
-          "Agreeing": [ 5 ],
-          "Opposing": [ 1, 2, 3, 4 ],
-          "For": [ 4, 7, 12 ],
-          "Against": [ 1, 3, 5, 6, 13 ]
-        },
-        {
-          "Description": "Call an election every 6 days",
-          "Warning": "",
-          "Value": 6.0,
-          "IsLaw": false,
-          "Agreeing": [ 2, 4, 5 ],
-          "Opposing": [ 1, 3 ],
-          "For": [ 4, 10, 12 ],
-          "Against": [ 3, 5, 13 ]
-        },
-        {
-          "Description": "Call an election every 12 days",
-          "Warning": "",
-          "Value": 12.0,
-          "IsLaw": true,
-          "Agreeing": [],
-          "Opposing": [],
-          "For": [],
-          "Against": []
-        },
-        {
-          "Description": "Call an election every 24 days",
-          "Warning": "",
-          "Value": 24.0,
-          "IsLaw": false,
-          "Agreeing": [ 1, 3 ],
-          "Opposing": [ 2, 4, 5 ],
-          "For": [ 3, 5, 13 ],
-          "Against": [ 2, 4, 10, 12 ]
-        }
-      ]
-    },
-    {
-      "BillType": 4,
-      "Bills": [
-        {
-          "Description": "Call an Election",
-          "Warning": "",
-          "Value": 0.0,
-          "IsLaw": false,
-          "Agreeing": [ ],
-          "Opposing": [ ],
-          "For": [ ],
-          "Against": [ ]
-        }
-      ]
-    },
-    {
-      "BillType": 5,
-      "Bills": [
-        {
-          "Description": "Abolish the egg timer",
-          "Warning": "THIS WILL END THE GAME",
-          "Value": 0.0,
-          "IsLaw": false,
-          "Agreeing": [ 5 ],
-          "Opposing": [ 1, 2, 3, 4 ],
-          "For": [ 7 ],
-          "Against": [ 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15 ]
-        }
-      ]
-    }
-  ]
+	"Laws": [
+		{
+			"BillType": 0,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set work age to X",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "",
+				"Value": 18,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [ 0, 12 ],
+						"AgainstRange": [ 24, 100 ]
+					},
+					{
+						"Party": 2,
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 12 ]
+					},
+					{
+						"Party": 3,
+						"ForRange": [],
+						"AgainstRange": [ 0, 6 ]
+					},
+					{
+						"Party": 4,
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 12 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 2,
+						"ForRange": [ 0, 12 ],
+						"AgainstRange": [ 24, 100 ]
+					},
+					{
+						"Personality": 3,
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 12 ]
+					},
+					{
+						"Personality": 4,
+						"ForRange": [ 0, 12 ],
+						"AgainstRange": [ 24, 100 ]
+					},
+					{
+						"Personality": 13,
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 12 ]
+					},
+					{
+						"Personality": 14,
+						"ForRange": [ 0, 12 ],
+						"AgainstRange": [ 24, 100 ]
+					},
+					{
+						"Personality": 15,
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 12 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": 1,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set vote age to X",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "",
+				"Value": 18,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [ 21, 100 ],
+						"AgainstRange": [ 0, 16 ]
+					},
+					{
+						"Party": 2,
+						"ForRange": [],
+						"AgainstRange": [ 0, 9 ]
+					},
+					{
+						"Party": 3,
+						"ForRange": [],
+						"AgainstRange": [ 0, 9 ]
+					},
+					{
+						"Party": 4,
+						"ForRange": [ 0, 16 ],
+						"AgainstRange": [ 21, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 0,
+						"ForRange": [ 0, 16 ],
+						"AgainstRange": [ 21, 100 ]
+					},
+					{
+						"Personality": 1,
+						"ForRange": [ 21, 100 ],
+						"AgainstRange": [ 0, 16 ]
+					},
+					{
+						"Personality": 4,
+						"ForRange": [ 0, 16 ],
+						"AgainstRange": [ 21, 100 ]
+					},
+					{
+						"Personality": 5,
+						"ForRange": [ 21, 100 ],
+						"AgainstRange": [ 0, 16 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": 2,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set the number of representatives to X",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "",
+				"Value": 10,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [],
+						"AgainstRange": [ 25, 10 ]
+					},
+					{
+						"Party": 2,
+						"ForRange": [ 60, 100 ],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Party": 3,
+						"ForRange": [],
+						"AgainstRange": [ 40, 10 ]
+					},
+					{
+						"Party": 4,
+						"ForRange": [ 40, 100 ],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Party": 5,
+						"ForRange": [ 0, 10 ],
+						"AgainstRange": []
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 0,
+						"ForRange": [],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 1,
+						"ForRange": [],
+						"AgainstRange": [ 25, 10 ]
+					},
+					{
+						"Personality": 2,
+						"ForRange": [],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 3,
+						"ForRange": [],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 4,
+						"ForRange": [ 40, 100 ],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 5,
+						"ForRange": [],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 6,
+						"ForRange": [ 25, 100 ],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 7,
+						"ForRange": [ 0, 1 ],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 8,
+						"ForRange": [],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 9,
+						"ForRange": [ 0, 10 ],
+						"AgainstRange": [ 10, 100 ]
+					},
+					{
+						"Personality": 10,
+						"ForRange": [ 40, 100 ],
+						"AgainstRange": [ 40, 10 ]
+					},
+					{
+						"Personality": 11,
+						"ForRange": [],
+						"AgainstRange": []
+					},
+					{
+						"Personality": 12,
+						"ForRange": [],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 13,
+						"ForRange": [],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 14,
+						"ForRange": [],
+						"AgainstRange": [ 0, 10 ]
+					},
+					{
+						"Personality": 15,
+						"ForRange": [ 0, 10 ],
+						"AgainstRange": []
+					}
+				]
+			}
+		},
+		{
+			"BillType": 3,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Anyone can be a representative",
+						"Min": 0,
+						"Max": 0
+					},
+					{
+						"Description": "Set representatives to only the employed",
+						"Min": 1,
+						"Max": 1
+					},
+					{
+						"Description": "Set representatives to only the rich",
+						"Min": 2,
+						"Max": 2
+					}
+				],
+				"Warning": "This will take affect in the next election",
+				"Value": 0,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [ 1, 2 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": 4,
+						"ForRange": [ 0, 1 ],
+						"AgainstRange": [ 2, 2 ]
+					},
+					{
+						"Party": 5,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 2 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 1,
+						"ForRange": [],
+						"AgainstRange": [ 2, 2 ]
+					},
+					{
+						"Personality": 2,
+						"ForRange": [ 1, 2 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 3,
+						"ForRange": [],
+						"AgainstRange": [ 1, 1 ]
+					},
+					{
+						"Personality": 4,
+						"ForRange": [ 0, 1 ],
+						"AgainstRange": []
+					},
+					{
+						"Personality": 6,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 2, 2 ]
+					},
+					{
+						"Personality": 7,
+						"ForRange": [ 2, 2 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 8,
+						"ForRange": [],
+						"AgainstRange": [ 2, 2 ]
+					},
+					{
+						"Personality": 9,
+						"ForRange": [ 2, 2 ],
+						"AgainstRange": []
+					},
+					{
+						"Personality": 10,
+						"ForRange": [],
+						"AgainstRange": [ 2, 2 ]
+					},
+					{
+						"Personality": 11,
+						"ForRange": [ 2, 2 ],
+						"AgainstRange": []
+					},
+					{
+						"Personality": 12,
+						"ForRange": [ 0, 1 ],
+						"AgainstRange": []
+					},
+					{
+						"Personality": 13,
+						"ForRange": [],
+						"AgainstRange": [ 1, 1 ]
+					},
+					{
+						"Personality": 14,
+						"ForRange": [ 0, 1 ],
+						"AgainstRange": [ 2, 2 ]
+					},
+					{
+						"Personality": 15,
+						"ForRange": [],
+						"AgainstRange": [ 0, 2 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": 4,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Call an election every X days",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "",
+				"Value": 12,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [ 18, 100 ],
+						"AgainstRange": [ 0, 9 ]
+					},
+					{
+						"Party": 2,
+						"ForRange": [ 6, 12 ],
+						"AgainstRange": [ 15, 3 ]
+					},
+					{
+						"Party": 3,
+						"ForRange": [ 18, 100 ],
+						"AgainstRange": [ 0, 9 ]
+					},
+					{
+						"Party": 4,
+						"ForRange": [ 6, 12 ],
+						"AgainstRange": [ 15, 3 ]
+					},
+					{
+						"Party": 5,
+						"ForRange": [ 0, 6 ],
+						"AgainstRange": [ 9, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 1,
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 9 ]
+					},
+					{
+						"Personality": 2,
+						"ForRange": [],
+						"AgainstRange": [ 24, 100 ]
+					},
+					{
+						"Personality": 3,
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 9 ]
+					},
+					{
+						"Personality": 4,
+						"ForRange": [ 0, 9 ],
+						"AgainstRange": [ 24, 100 ]
+					},
+					{
+						"Personality": 5,
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 9 ]
+					},
+					{
+						"Personality": 10,
+						"ForRange": [ 6, 12 ],
+						"AgainstRange": [ 24, 100 ]
+					},
+					{
+						"Personality": 12,
+						"ForRange": [ 0, 9 ],
+						"AgainstRange": [ 24, 100 ]
+					},
+					{
+						"Personality": 13,
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 9 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": 5,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set food cost to X",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "",
+				"Value": 0,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": 4,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Party": 5,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 2,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 3,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Personality": 6,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Personality": 7,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 11,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": 6,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set pension to X",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "",
+				"Value": 2,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Party": 2,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": 4,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": 5,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 2,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Personality": 3,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 6,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 7,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Personality": 11,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": 7,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set pension age to X",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "",
+				"Value": 65,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [ 75, 100 ],
+						"AgainstRange": [ 0, 65 ]
+					},
+					{
+						"Party": 2,
+						"ForRange": [ 0, 50 ],
+						"AgainstRange": [ 65, 100 ]
+					},
+					{
+						"Party": 4,
+						"ForRange": [ 60, 70 ],
+						"AgainstRange": [ 75, 50 ]
+					},
+					{
+						"Party": 5,
+						"ForRange": [ 0, 50 ],
+						"AgainstRange": [ 65, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 3,
+						"ForRange": [ 0, 50 ],
+						"AgainstRange": [ 65, 100 ]
+					},
+					{
+						"Personality": 6,
+						"ForRange": [ 50, 70 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 7,
+						"ForRange": [ 90, 100 ],
+						"AgainstRange": [ 0, 80 ]
+					},
+					{
+						"Personality": 12,
+						"ForRange": [ 70, 80 ],
+						"AgainstRange": [ 0, 60 ]
+					},
+					{
+						"Personality": 13,
+						"ForRange": [ 0, 50 ],
+						"AgainstRange": [ 65, 100 ]
+					},
+					{
+						"Personality": 14,
+						"ForRange": [ 70, 80 ],
+						"AgainstRange": [ 0, 60 ]
+					},
+					{
+						"Personality": 15,
+						"ForRange": [ 0, 50 ],
+						"AgainstRange": [ 65, 100 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": 8,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set education cost to X",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "",
+				"Value": 0,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": 2,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Party": 5,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 2,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 3,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Personality": 6,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Personality": 7,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 11,
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": 9,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set starting education age to X",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "",
+				"Value": 3,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [ 0, 3 ],
+						"AgainstRange": [ 4, 100 ]
+					},
+					{
+						"Party": 2,
+						"ForRange": [ 5, 100 ],
+						"AgainstRange": [ 0, 4 ]
+					},
+					{
+						"Party": 3,
+						"ForRange": [ 3, 5 ],
+						"AgainstRange": [ 7, 100 ]
+					},
+					{
+						"Party": 5,
+						"ForRange": [  ],
+						"AgainstRange": [ 0, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 3,
+						"ForRange": [ 5, 7 ],
+						"AgainstRange": [ 0, 4 ]
+					},
+					{
+						"Personality": 4,
+						"ForRange": [ 0, 5 ],
+						"AgainstRange": [ 6, 100 ]
+					},
+					{
+						"Personality": 6,
+						"ForRange": [ 3, 100 ],
+						"AgainstRange": [ 0, 3 ]
+					},
+					{
+						"Personality": 7,
+						"ForRange": [],
+						"AgainstRange": [ 0, 100 ]
+					},
+					{
+						"Personality": 13,
+						"ForRange": [ 5, 7 ],
+						"AgainstRange": [ 0, 4 ]
+					},
+					{
+						"Personality": 14,
+						"ForRange": [ 0, 3 ],
+						"AgainstRange": [ 4, 100 ]
+					},
+					{
+						"Personality": 15,
+						"ForRange": [ 5, 7 ],
+						"AgainstRange": [ 0, 4 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": 10,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Call an election",
+						"Min": -1,
+						"Max": -1
+					}
+				],
+				"Warning": "",
+				"Value": -1,
+				"Parties": [],
+				"Personalities": []
+			}
+		},
+		{
+			"BillType": 11,
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Abolish the Egg Timer",
+						"Min": -1,
+						"Max": -1
+					}
+				],
+				"Warning": "THIS WILL END THE GAME",
+				"Value": -1,
+				"Parties": [
+					{
+						"Party": 1,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": 2,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": 3,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": 4,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": 5,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": []
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": 0,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 1,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 2,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 3,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 4,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 5,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 6,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 7,
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": []
+					},
+					{
+						"Personality": 8,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 9,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 10,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 11,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 12,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 13,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 14,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": 15,
+						"ForRange": [],
+						"AgainstRange": [ 0, 0 ]
+					}
+				]
+			}
+		}
+	]
 }

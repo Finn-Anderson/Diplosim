@@ -70,7 +70,59 @@ void UCitizenManager::ReadJSONFile(FString path)
 				for (auto& v : e->AsObject()->Values) {
 					uint8 index = 0;
 
-					if (v.Value->Type == EJson::Array) {
+					if (v.Value->Type == EJson::Object) {
+						for (auto& bv : v.Value->AsObject()->Values) {
+							if (bv.Value->Type == EJson::Array) {
+								for (auto& bev : bv.Value->AsArray()) {
+									if (bv.Key == "Descriptions") {
+										FDescriptionStruct description;
+
+										for (auto& pv : bev->AsObject()->Values) {
+											if (pv.Key == "Description")
+												description.Description = pv.Value->AsString();
+											else if (pv.Key == "Min")
+												description.Min = FCString::Atoi(*pv.Value->AsString());
+											else
+												description.Max = FCString::Atoi(*pv.Value->AsString());
+										}
+
+										law.Description.Add(description);
+									}
+									else {
+										FLeanStruct lean;
+
+										for (auto& pv : bev->AsObject()->Values) {
+											if (pv.Key == "Party")
+												lean.Party = EParty(FCString::Atoi(*pv.Value->AsString()));
+											else if (pv.Key == "Personality")
+												lean.Personality = EPersonality(FCString::Atoi(*pv.Value->AsString()));
+											else {
+												for (auto& pev : pv.Value->AsArray()) {
+													int32 value = FCString::Atoi(*pv.Value->AsString());
+
+													if (pv.Key == "ForRange")
+														lean.ForRange.Add(value);
+													else
+														lean.AgainstRange.Add(value);
+												}
+											}
+										}
+
+										law.Lean.Add(lean);
+									}
+								}
+							}
+							else if (bv.Value->Type == EJson::Number) {
+								index = FCString::Atoi(*bv.Value->AsString());
+
+								law.Value = index;
+							}
+							else if (bv.Value->Type == EJson::String) {
+								law.Warning = bv.Value->AsString();
+							}
+						}
+					}
+					else if (v.Value->Type == EJson::Array) {
 						for (auto& ev : v.Value->AsArray()) {
 							index = FCString::Atoi(*ev->AsString());
 
@@ -85,42 +137,6 @@ void UCitizenManager::ReadJSONFile(FString path)
 							}
 							else if (element.Key == "Religions") {
 								religion.Agreeable.Add(EPersonality(index));
-							}
-							else if (element.Key == "Laws") {
-								FBillStruct bill;
-
-								for (auto& bv : ev->AsObject()->Values) {
-									if (bv.Value->Type == EJson::Array) {
-										for (auto& bev : bv.Value->AsArray()) {
-											index = FCString::Atoi(*bev->AsString());
-
-											if (bv.Key == "Agreeing")
-												bill.Agreeing.Add(EParty(index));
-											else if (bv.Key == "Opposing")
-												bill.Opposing.Add(EParty(index));
-											else if (bv.Key == "For")
-												bill.For.Add(EPersonality(index));
-											else
-												bill.Against.Add(EPersonality(index));
-										}
-									}
-									else if (bv.Value->Type == EJson::Number) {
-										index = FCString::Atoi(*bv.Value->AsString());
-
-										bill.Value = index;
-									}
-									else if (bv.Value->Type == EJson::String) {
-										if (bv.Key == "Description")
-											bill.Description = bv.Value->AsString();
-										else
-											bill.Warning = bv.Value->AsString();
-									}
-									else {
-										bill.bIsLaw = bv.Value->AsBool();
-									}
-								}
-
-								law.Bills.Add(bill);
 							}
 							else {
 								FAffectStruct affect;
@@ -256,7 +272,7 @@ void UCitizenManager::Loop()
 
 				int32 index = Laws.Find(lawStruct);
 
-				ProposeBill(Laws[index].Bills[0]);
+				ProposeBill(Laws[index]);
 			}
 		}
 	}
@@ -807,11 +823,17 @@ void UCitizenManager::Election()
 
 	TMap<EParty, TArray<ACitizen*>> tally;
 
+	int32 representativeType = GetLawValue(EBillType::RepresentativeType);
+
 	for (FPartyStruct party : Parties) {
 		TArray<ACitizen*> citizens;
 
-		for (TPair<ACitizen*, TEnumAsByte<ESway>> pair : party.Members)
+		for (TPair<ACitizen*, TEnumAsByte<ESway>> pair : party.Members) {
+			if ((representativeType == 1.0f && pair.Key->Building.Employment == nullptr) || (representativeType == 2.0f && pair.Key->Balance < 15))
+				continue;
+
 			citizens.Add(pair.Key);
+		}
 
 		tally.Add(party.Party, citizens);
 	}
@@ -885,34 +907,26 @@ void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
 		Votes.Against.Add(Representative);
 }
 
-void UCitizenManager::ProposeBill(FBillStruct Bill)
+void UCitizenManager::ProposeBill(FLawStruct Bill, int32 Value)
 {
-	for (FLawStruct& law : Laws) {
-		if (!law.Bills.Contains(Bill))
-			continue;
+	int32 index = Laws.Find(Bill);
 
-		if (law.Cooldown == 0)
-			break;
-
-		FString string = "You must wait " + law.Cooldown;
+	if (Laws[index].Cooldown != 0) {
+		FString string = "You must wait " + Laws[index].Cooldown;
 
 		Cast<ACamera>(GetOwner())->ShowWarning(string + " seconds");
 
 		return;
 	}
 
+	if (Value > -1)
+		Bill.Value = Value;
+
 	ProposedBills.Add(Bill);
 
-	for (FLawStruct& law : Laws) {
-		if (!law.Bills.Contains(Bill))
-			continue;
+	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-		int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
-
-		law.Cooldown = timeToCompleteDay;
-
-		break;
-	}
+	Laws[index].Cooldown = timeToCompleteDay;
 
 	if (ProposedBills.Num() > 1)
 		return;
@@ -931,7 +945,7 @@ void UCitizenManager::SetupBill()
 	if (ProposedBills.IsEmpty())
 		return;
 
-	if (GetBillType(ProposedBills[0]) == EBillType::Election) {
+	if (ProposedBills[0].BillType == EBillType::Election) {
 		for (FPartyStruct party : Parties) {
 			int32 representativeCount = 0;
 
@@ -942,15 +956,20 @@ void UCitizenManager::SetupBill()
 			float representPerc = representativeCount / Citizens.Num() * 100.0f;
 			float partyPerc = party.Members.Num() / Citizens.Num() * 100.0f;
 
+			FLeanStruct lean;
+			lean.Party = party.Party;
+
 			if (partyPerc > representPerc)
-				ProposedBills[0].Agreeing.Add(party.Party);
+				lean.ForRange.Append({ 0, 0 });
 			else if (representPerc > partyPerc)
-				ProposedBills[0].Opposing.Add(party.Party);
+				lean.AgainstRange.Append({ 0, 0 });
+
+			ProposedBills[0].Lean.Add(lean);
 		}
 	}
 
 	for (ACitizen* citizen : Representatives)
-		GetInitialVotes(citizen, ProposedBills[0]);
+		GetVerdict(citizen, ProposedBills[0], true);
 
 	for (ACitizen* citizen : Representatives) {
 		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return FMath::RandRange(2, 20); }).Get();
@@ -969,7 +988,7 @@ void UCitizenManager::SetupBill()
 	Timers.Add(timer);
 }
 
-void UCitizenManager::MotionBill(FBillStruct Bill)
+void UCitizenManager::MotionBill(FLawStruct Bill)
 {
 	AsyncTask(ENamedThreads::GameThread, [this, Bill]() {
 		int32 count = 1;
@@ -979,7 +998,7 @@ void UCitizenManager::MotionBill(FBillStruct Bill)
 				continue;
 
 			FTimerHandle VerdictTimer;
-			GetWorld()->GetTimerManager().SetTimer(VerdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, citizen, Bill), 0.1f * count, false);
+			GetWorld()->GetTimerManager().SetTimer(VerdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, citizen, Bill, false), 0.1f * count, false);
 
 			count++;
 		}
@@ -989,21 +1008,42 @@ void UCitizenManager::MotionBill(FBillStruct Bill)
 	});
 }
 
-void UCitizenManager::GetInitialVotes(ACitizen* Representative, FBillStruct Bill)
+bool UCitizenManager::IsInRange(TArray<int32> Range, int32 Value)
+{
+	if (Value == -1 || (Range[0] > Range[1] && Value >= Range[0] || Value <= Range[1]) || (Range[0] <= Range[1] && Value >= Range[0] && Value <= Range[1]))
+		return true;
+
+	return false;
+}
+
+void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool bCanAbstain)
 {
 	TArray<FString> verdict;
 
-	if (Bill.Agreeing.Contains(GetMembersParty(Representative)->Party))
+	FLeanStruct partyLean;
+	partyLean.Party = GetMembersParty(Representative)->Party;
+
+	int32 index = Bill.Lean.Find(partyLean);
+
+	if (!Bill.Lean[index].ForRange.IsEmpty() && IsInRange(Bill.Lean[index].ForRange, Bill.Value))
 		verdict = { "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Abstaining", "Abstaining", "Opposing" };
-	else if (Bill.Opposing.Contains(GetMembersParty(Representative)->Party))
+	else if (!Bill.Lean[index].AgainstRange.IsEmpty() && IsInRange(Bill.Lean[index].AgainstRange, Bill.Value))
 		verdict = { "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Abstaining", "Abstaining", "Agreeing" };
 	else
 		verdict = { "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Agreeing", "Agreeing", "Opposing", "Opposing" };
 
+	if (!bCanAbstain)
+		verdict.Remove("Abstaining");
+
 	for (FPersonality* personality : GetCitizensPersonalities(Representative)) {
-		if (Bill.For.Contains(personality->Trait))
+		FLeanStruct personalityLean;
+		personalityLean.Personality = personality->Trait;
+
+		index = Bill.Lean.Find(personalityLean);
+
+		if (!Bill.Lean[index].ForRange.IsEmpty() && IsInRange(Bill.Lean[index].ForRange, Bill.Value))
 			verdict.Append({ "Agreeing", "Agreeing", "Agreeing" });
-		else if (Bill.Against.Contains(personality->Trait))
+		else if (!Bill.Lean[index].AgainstRange.IsEmpty() && IsInRange(Bill.Lean[index].AgainstRange, Bill.Value))
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 
@@ -1017,63 +1057,30 @@ void UCitizenManager::GetInitialVotes(ACitizen* Representative, FBillStruct Bill
 		Votes.Against.Add(Representative);
 }
 
-void UCitizenManager::GetVerdict(ACitizen* Representative, FBillStruct Bill)
-{
-	TArray<FString> verdict;
-
-	if (Bill.Agreeing.Contains(GetMembersParty(Representative)->Party))
-		verdict = { "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Opposing" };
-	else if (Bill.Opposing.Contains(GetMembersParty(Representative)->Party))
-		verdict = { "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Agreeing" };
-	else
-		verdict = { "Agreeing", "Agreeing", "Opposing", "Opposing" };
-
-	auto value = Async(EAsyncExecution::TaskGraph, [verdict]() { return FMath::RandRange(0, verdict.Num() - 1); });
-
-	FString result = verdict[value.Get()];
-
-	if (result == "Agreeing")
-		Votes.For.Add(Representative);
-	else if (result == "Opposing")
-		Votes.Against.Add(Representative);
-}
-
-void UCitizenManager::TallyVotes(FBillStruct Bill)
+void UCitizenManager::TallyVotes(FLawStruct Bill)
 {
 	bool bPassed = false;
 
 	if (Votes.For.Num() > Votes.Against.Num()) {
-		for (FLawStruct &law : Laws) {
-			if (!law.Bills.Contains(Bill))
-				continue;
+		int32 index = Laws.Find(Bill);
 
-			if (law.BillType == EBillType::Abolish) {
-				ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+		if (Laws[index].BillType == EBillType::Abolish) {
+			ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
-				FTimerStruct timer;
+			FTimerStruct timer;
 
-				timer.CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(gamemode->Broch->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
-				Timers.Add(timer);
-			}
-			else if (law.BillType == EBillType::Election) {
-				Election();
-			}
-			else {
-				FBillStruct currentLaw;
-				currentLaw.bIsLaw = true;
-
-				int32 index = law.Bills.Find(currentLaw);
-				law.Bills[index].bIsLaw = false;
-
-				index = law.Bills.Find(Bill);
-				law.Bills[index].bIsLaw = true;
-			}
-
-			if (law.BillType == EBillType::Representatives && Cast<ACamera>(GetOwner())->ParliamentUIInstance->IsInViewport())
-				Cast<ACamera>(GetOwner())->RefreshRepresentatives();
-
-			break;
+			timer.CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(gamemode->Broch->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
+			Timers.Add(timer);
 		}
+		else if (Laws[index].BillType == EBillType::Election) {
+			Election();
+		}
+		else {
+			Laws[index].Value = Bill.Value;
+		}
+
+		if (Laws[index].BillType == EBillType::Representatives && Cast<ACamera>(GetOwner())->ParliamentUIInstance->IsInViewport())
+			Cast<ACamera>(GetOwner())->RefreshRepresentatives();
 
 		bPassed = true;
 	}
@@ -1093,22 +1100,8 @@ float UCitizenManager::GetLawValue(EBillType BillType)
 	lawStruct.BillType = BillType;
 
 	int32 index = Laws.Find(lawStruct);
-
-	FBillStruct billStruct;
-	billStruct.bIsLaw = true;
-
-	int32 index2 = Laws[index].Bills.Find(billStruct);
 	
-	return Laws[index].Bills[index2].Value;
-}
-
-EBillType UCitizenManager::GetBillType(FBillStruct Bill)
-{
-	for (FLawStruct law : Laws)
-		if (law.Bills.Contains(Bill))
-			return law.BillType;
-
-	return EBillType::Abolish;
+	return Laws[index].Value;
 }
 
 int32 UCitizenManager::GetCooldownTimer(FLawStruct Law)
