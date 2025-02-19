@@ -33,7 +33,7 @@ struct FBuildingStruct
 		class AWork* Employment;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class AWork* Education;
+		class ASchool* School;
 
 	class ABuilding* BuildingAt;
 
@@ -44,7 +44,7 @@ struct FBuildingStruct
 		House = nullptr;
 		Employment = nullptr;
 		BuildingAt = nullptr;
-		Education = nullptr;
+		School = nullptr;
 	}
 };
 
@@ -82,6 +82,12 @@ struct FBioStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		int32 EducationLevel;
 
+	UPROPERTY()
+		int32 EducationProgress;
+
+	UPROPERTY()
+		int32 PaidForEducationLevel;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		TArray<class ACitizen*> Children;
 
@@ -93,6 +99,8 @@ struct FBioStruct
 		Sex = ESex::NaN;
 		Age = 0;
 		EducationLevel = 1;
+		EducationProgress = 0;
+		PaidForEducationLevel = 0;
 		Name = "Citizen";
 	}
 };
@@ -266,6 +274,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UNiagaraComponent* TorchNiagaraComponent;
+
+	// Education
+	bool CanAffordEducationLevel();
+
+	void PayForEducationsLevels();
+
+	void PayForEducationLevels();
 
 	// Work
 	bool CanWork(class ABuilding* WorkBuilding);

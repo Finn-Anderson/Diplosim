@@ -78,7 +78,7 @@
 						"Max": 100
 					}
 				],
-				"Warning": "",
+				"Warning": "This will take affect in the next election",
 				"Value": 18,
 				"Parties": [
 					{
@@ -136,7 +136,7 @@
 						"Max": 100
 					}
 				],
-				"Warning": "",
+				"Warning": "This will take affect in the next election",
 				"Value": 10,
 				"Parties": [
 					{
@@ -649,7 +649,7 @@
 						"Max": 100
 					}
 				],
-				"Warning": "",
+				"Warning": "Cost per education level",
 				"Value": 0,
 				"Parties": [
 					{

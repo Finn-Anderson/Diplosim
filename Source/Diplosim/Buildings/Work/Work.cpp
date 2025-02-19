@@ -12,6 +12,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Work/Service/Clinic.h"
+#include "Buildings/Work/Service/School.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 
@@ -135,8 +136,6 @@ void AWork::Close()
 	
 	bOpen = false;
 
-	UpkeepCost();
-
 	for (ACitizen* citizen : GetOccupied()) {
 		Leave(citizen);
 
@@ -146,6 +145,12 @@ void AWork::Close()
 
 void AWork::CheckWorkStatus(int32 Hour)
 {
+	if (Hour == WorkEnd && bOpen)
+		UpkeepCost();
+
+	if (IsA<ASchool>() && bOpen && !GetCitizensAtBuilding().IsEmpty())
+		Cast<ASchool>(this)->AddProgress();
+
 	if (Camera->CitizenManager->IsWorkEvent(this) || (IsA<AClinic>() && (!Camera->CitizenManager->Infected.IsEmpty() || !Camera->CitizenManager->Injuries.IsEmpty())))
 		return;
 

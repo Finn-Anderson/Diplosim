@@ -22,6 +22,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/Religion.h"
+#include "Buildings/Work/Service/School.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -87,8 +88,8 @@ ACitizen::ACitizen()
 	Hunger = 100;
 	Energy = 100;
 
-	TimeOfEmployment = -300.0f;
-	TimeOfResidence = -300.0f;
+	TimeOfEmployment = -1000.0f;
+	TimeOfResidence = -1000.0f;
 
 	bGain = false;
 
@@ -243,6 +244,93 @@ void ACitizen::SetTorch(int32 Hour)
 }
 
 //
+// Education
+//
+bool ACitizen::CanAffordEducationLevel()
+{
+	if (BioStruct.EducationLevel < BioStruct.PaidForEducationLevel)
+		return true;
+	
+	int32 money = Balance;
+
+	if (BioStruct.Mother->IsValidLowLevelFast())
+		money += BioStruct.Mother->Balance;
+
+	if (BioStruct.Father->IsValidLowLevelFast())
+		money += BioStruct.Father->Balance;
+
+	if (money < Camera->CitizenManager->GetLawValue(EBillType::EducationCost))
+		return false;
+
+	if (IsValid(Building.School))
+		PayForEducationsLevels();
+
+	return true;
+}
+
+void ACitizen::PayForEducationsLevels()
+{
+	int32 money = Balance;
+
+	if (BioStruct.Mother->IsValidLowLevelFast())
+		money += BioStruct.Mother->Balance;
+
+	if (BioStruct.Father->IsValidLowLevelFast())
+		money += BioStruct.Father->Balance;
+
+	int32 levels = FMath::Clamp(money / Camera->CitizenManager->GetLawValue(EBillType::EducationCost), 0, 5);
+
+	int32 cost = Camera->CitizenManager->GetLawValue(EBillType::EducationCost) * levels;
+
+	for (int32 i = 0; i < cost; i++) {
+		if (BioStruct.Mother->IsValidLowLevelFast() && BioStruct.Father->IsValidLowLevelFast()) {
+			if (BioStruct.Mother->Balance > BioStruct.Father->Balance && BioStruct.Mother->Balance > Balance)
+				BioStruct.Mother->Balance--;
+			else if (BioStruct.Father->Balance > BioStruct.Mother->Balance && BioStruct.Father->Balance > Balance)
+				BioStruct.Father->Balance--;
+			else
+				Balance--;
+		}
+		else if (BioStruct.Mother->IsValidLowLevelFast()) {
+			if (BioStruct.Mother->Balance > Balance)
+				BioStruct.Mother->Balance--;
+			else
+				Balance--;
+		}
+		else {
+			if (BioStruct.Father->Balance > Balance)
+				BioStruct.Father->Balance--;
+			else
+				Balance--;
+		}
+	}
+}
+
+void ACitizen::PayForEducationLevels()
+{
+	if (BioStruct.EducationProgress < 100)
+		return;
+
+	float progress = BioStruct.EducationProgress / 100.0f;
+	int32 levels = FMath::FloorToInt(progress);
+
+	for (int32 i = 0; i < levels; i++) {
+		if (!CanAffordEducationLevel())
+			return;
+
+		BioStruct.EducationProgress -= 100;
+
+		BioStruct.EducationLevel++;
+
+		if (BioStruct.EducationLevel == 5) {
+			Building.School->RemoveStudent(this);
+
+			return;
+		}
+	}
+}
+
+//
 // Work
 //
 bool ACitizen::CanWork(ABuilding* WorkBuilding)
@@ -258,49 +346,111 @@ bool ACitizen::CanWork(ABuilding* WorkBuilding)
 
 void ACitizen::FindJobAndHouse(int32 TimeToCompleteDay)
 {
-	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
+	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+		if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::EducationAge) && BioStruct.EducationLevel < 5 && CanAffordEducationLevel()) {
+			ASchool* chosenSchool = Building.School;
+
+			for (ABuilding* building : Camera->CitizenManager->Buildings) {
+				if (!building->IsA<ASchool>() || building->GetOccupied().IsEmpty() || !AIController->CanMoveTo(building->GetActorLocation()) || chosenSchool == building)
+					continue;
+
+				ASchool* school = Cast<ASchool>(building);
+
+				if (!IsValid(chosenSchool)) {
+					chosenSchool = school;
+
+					continue;
+				}
+
+				FVector location = GetActorLocation();
+
+				if (BioStruct.Mother->IsValidLowLevelFast() && IsValid(BioStruct.Mother->Building.House))
+					location = BioStruct.Mother->Building.House->GetActorLocation();
+				else if (BioStruct.Father->IsValidLowLevelFast() && IsValid(BioStruct.Father->Building.House))
+					location = BioStruct.Mother->Building.House->GetActorLocation();
+
+				double magnitude = AIController->GetClosestActor(location, chosenSchool->GetActorLocation(), building->GetActorLocation(), 2, 1);
+
+				if (magnitude <= 0.0f)
+					continue;
+
+				chosenSchool = school;
+			}
+
+			if (chosenSchool == Building.School)
+				return;
+
+			AsyncTask(ENamedThreads::GameThread, [this, chosenSchool]() {
+				if (IsValid(chosenSchool)) {
+					if (Building.School != nullptr)
+						Building.School->RemoveStudent(this);
+
+					chosenSchool->AddCitizen(this);
+				}
+			});
+			PayForEducationsLevels();
+		}
+
 		return;
+	}
+
+	if (!IsValid(Building.House))
+		TimeOfResidence = -1000.0f;
+
+	if (!IsValid(Building.Employment))
+		TimeOfEmployment = -1000.0f;
 
 	if (GetWorld()->GetTimeSeconds() < TimeOfResidence + TimeToCompleteDay && GetWorld()->GetTimeSeconds() < TimeOfEmployment + TimeToCompleteDay)
 		return;
 
 	int32 curDiff = 0;
-	ABuilding* curBuilding = nullptr;
+	AWork* chosenWorkplace = Building.Employment;
+	AHouse* chosenHouse = Building.House;
 
 	for (ABuilding* building : Camera->CitizenManager->Buildings) {
 		if (building->GetCapacity() == building->GetOccupied().Num() || !CanWork(building) || !AIController->CanMoveTo(building->GetActorLocation()))
 			continue;
 
 		if (building->IsA<AHouse>()) {
-			if (GetWorld()->GetTimeSeconds() < TimeOfResidence + TimeToCompleteDay)
+			if (GetWorld()->GetTimeSeconds() < TimeOfResidence + TimeToCompleteDay || chosenHouse == building)
 				continue;
 
 			AHouse* house = Cast<AHouse>(building);
 
-			if (Building.Employment->Wage <= house->Rent)
+			if (Balance < house->Rent && (!IsValid(Building.Employment) || Building.Employment->Wage < house->Rent))
 				continue;
 
-			if (Building.Employment != nullptr && Building.House != nullptr) {
-				double magnitude = AIController->GetClosestActor(Building.Employment->GetActorLocation(), Building.House->GetActorLocation(), building->GetActorLocation(), Building.House->GetQuality(), house->GetQuality());
+			if (chosenHouse != nullptr) {
+				int32 curLeftoverMoney = 0;
+
+				if (IsValid(Building.Employment))
+					curLeftoverMoney = Building.Employment->Wage;
+				else
+					curLeftoverMoney = Balance;
+
+				int32 newLeftoverMoney = (curLeftoverMoney - house->Rent) * 50;
+
+				curLeftoverMoney -= chosenHouse->Rent;
+				curLeftoverMoney *= 50;
+
+				int32 currentValue = FMath::Max(chosenHouse->GetQuality() + curLeftoverMoney, 0);
+				int32 newValue = FMath::Max(house->GetQuality() + newLeftoverMoney, 0);
+
+				FVector workLocation = GetActorLocation();
+
+				if (IsValid(Building.Employment))
+					workLocation = Building.Employment->GetActorLocation();
+
+				double magnitude = AIController->GetClosestActor(workLocation, chosenHouse->GetActorLocation(), building->GetActorLocation(), currentValue, newValue);
 
 				if (magnitude <= 0.0f)
 					continue;
 			}
+
+			chosenHouse = house;
 		}
-		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + TimeToCompleteDay)
+		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + TimeToCompleteDay || chosenWorkplace == building)
 			continue;
-
-		int32 pensionAge = Camera->CitizenManager->GetLawValue(EBillType::PensionAge);
-
-		if (BioStruct.Age >= pensionAge) {
-			int32 pension = Camera->CitizenManager->GetLawValue(EBillType::Pension);
-
-			if (pension >= Building.House->Rent) {
-				Building.Employment->RemoveCitizen(this);
-
-				continue;
-			}
-		}
 
 		int32 diff = Cast<AWork>(building)->Wage;
 
@@ -309,30 +459,48 @@ void ACitizen::FindJobAndHouse(int32 TimeToCompleteDay)
 
 		if (diff > curDiff) {
 			curDiff = diff;
-			curBuilding = building;
+			chosenWorkplace = Cast<AWork>(building);
 		}
 	}
 
-	if (curBuilding == nullptr)
-		return;
+	int32 pensionAge = Camera->CitizenManager->GetLawValue(EBillType::PensionAge);
 
-	int32* value = Happiness.Modifiers.Find("Work Happiness");
+	if (BioStruct.Age >= pensionAge) {
+		int32 pension = Camera->CitizenManager->GetLawValue(EBillType::Pension);
 
-	if (value != nullptr)
-		curDiff -= *value;
-
-	int32 chance = FMath::RandRange(0, 100);
-
-	if (chance < 50 - (curDiff * 15) && Building.Employment != nullptr)
-		return;
-
-	AsyncTask(ENamedThreads::GameThread, [this, curBuilding]() {
-		if (Building.Employment != nullptr && curBuilding->IsA<AWork>())
+		if (pension >= chosenHouse->Rent) {
 			Building.Employment->RemoveCitizen(this);
-		else if (Building.House != nullptr && curBuilding->IsA<AHouse>())
-			Building.House->RemoveCitizen(this);
 
-		curBuilding->AddCitizen(this);
+			chosenWorkplace = nullptr;
+		}
+	}
+
+	if (IsValid(chosenWorkplace) && chosenWorkplace != Building.Employment) {
+		int32* value = Happiness.Modifiers.Find("Work Happiness");
+
+		if (value != nullptr)
+			curDiff -= *value;
+
+		int32 chance = FMath::RandRange(0, 100);
+
+		if (chance < 50 - (curDiff * 15) && Building.Employment != nullptr)
+			return;
+	}
+
+	AsyncTask(ENamedThreads::GameThread, [this, chosenWorkplace, chosenHouse]() {
+		if (IsValid(chosenWorkplace) && chosenWorkplace != Building.Employment) {
+			if (Building.Employment != nullptr)
+				Building.Employment->RemoveCitizen(this);
+
+			chosenWorkplace->AddCitizen(this);
+		}
+
+		if (IsValid(chosenHouse) && chosenHouse != Building.House) {
+			if (Building.House != nullptr)
+				Building.House->RemoveCitizen(this);
+
+			chosenHouse->AddCitizen(this);
+		}
 	});
 }
 

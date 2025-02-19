@@ -16,6 +16,7 @@
 #include "Universal/HealthComponent.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/Religion.h"
+#include "Buildings/Work/Service/School.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/House.h"
 #include "Player/Camera.h"
@@ -33,6 +34,8 @@ UCitizenManager::UCitizenManager()
 	BrochLocation = FVector::Zero();
 
 	FoodCost = 0;
+
+	IssuePensionHour = 18;
 
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Personalities.json");
 
@@ -1076,6 +1079,16 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 		}
 		else {
 			Laws[index].Value = Bill.Value;
+
+			if (Laws[index].BillType == EBillType::WorkAge || Laws[index].BillType == EBillType::EducationAge) {
+				for (ACitizen* citizen : Citizens) {
+					if (IsValid(citizen->Building.Employment) && !citizen->CanWork(citizen->Building.Employment))
+						citizen->Building.Employment->RemoveCitizen(citizen);
+
+					if (IsValid(citizen->Building.School) && (citizen->BioStruct.Age >= GetLawValue(EBillType::WorkAge) || citizen->BioStruct.Age < GetLawValue(EBillType::EducationAge)))
+						citizen->Building.School->RemoveStudent(citizen);
+				}
+			}
 		}
 
 		if (Laws[index].BillType == EBillType::Representatives && Cast<ACamera>(GetOwner())->ParliamentUIInstance->IsInViewport())
@@ -1093,7 +1106,7 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 	SetupBill();
 }
 
-float UCitizenManager::GetLawValue(EBillType BillType)
+int32 UCitizenManager::GetLawValue(EBillType BillType)
 {
 	FLawStruct lawStruct;
 	lawStruct.BillType = BillType;
@@ -1111,6 +1124,16 @@ int32 UCitizenManager::GetCooldownTimer(FLawStruct Law)
 		return 0;
 
 	return Laws[index].Cooldown;
+}
+
+void UCitizenManager::IssuePensions(int32 Hour)
+{
+	if (Hour != IssuePensionHour)
+		return;
+
+	for (ACitizen* citizen : Citizens)
+		if (citizen->BioStruct.Age >= GetLawValue(EBillType::PensionAge))
+			citizen->Balance += GetLawValue(EBillType::Pension);
 }
 
 //

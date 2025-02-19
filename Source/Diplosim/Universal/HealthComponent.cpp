@@ -19,6 +19,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ResourceManager.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -200,8 +201,50 @@ void UHealthComponent::Clear(AActor* Attacker)
 			citizen->BioStruct.Partner = nullptr;
 		}
 
+		if (citizen->BioStruct.Mother->IsValidLowLevelFast())
+			citizen->BioStruct.Mother->BioStruct.Children.Remove(citizen);
+
+		if (citizen->BioStruct.Father->IsValidLowLevelFast())
+			citizen->BioStruct.Father->BioStruct.Children.Remove(citizen);
+
 		if (Attacker->IsA<AEnemy>())
 			gamemode->WavesData.Last().NumKilled++;
+		else {
+			TMap<ACitizen*, int32> favouredChildren;
+			int32 totalCount = 0;
+
+			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+			ACamera* camera = PController->GetPawn<ACamera>();
+
+			for (ACitizen* c : citizen->BioStruct.Children) {
+				int32 count = 0;
+
+				for (FPersonality* personality : camera->CitizenManager->GetCitizensPersonalities(citizen)) {
+					for (FPersonality* p : camera->CitizenManager->GetCitizensPersonalities(c)) {
+						if (personality->Trait == p->Trait)
+							count += 2;
+						else if (personality->Likes.Contains(p->Trait))
+							count++;
+						else if (personality->Dislikes.Contains(p->Trait))
+							count--;
+					}
+				}
+
+				if (count < 0)
+					continue;
+
+				favouredChildren.Emplace(c, count);
+
+				totalCount += count;
+			}
+
+			int32 remainder = citizen->Balance % totalCount;
+
+			for (auto& element : favouredChildren)
+				element.Key->Balance += (citizen->Balance / totalCount * element.Value);
+
+			camera->ResourceManager->AddUniversalResource(camera->ResourceManager->Money, remainder);
+		}
 	}
 	else if (actor->IsA<AEnemy>()) {
 		if (Attacker->IsA<AProjectile>())

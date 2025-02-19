@@ -110,6 +110,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	if (hour != Calendar.Hour) {
 		Cast<AGrid>(GetOwner())->Camera->CitizenManager->CheckWorkStatus(hour);
+		Cast<AGrid>(GetOwner())->Camera->CitizenManager->IssuePensions(hour);
 
 		SetDisplayText(hour);
 	}

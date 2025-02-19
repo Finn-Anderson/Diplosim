@@ -69,6 +69,8 @@ void ADiplosimAIController::DefaultAction()
 
 		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bOpen)
 			AIMoveTo(citizen->Building.Employment);
+		else if (citizen->Building.School != nullptr)
+			AIMoveTo(citizen->Building.School);
 		else if (citizen->Building.House != nullptr)
 			AIMoveTo(citizen->Building.House);
 		else

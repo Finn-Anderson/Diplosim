@@ -495,10 +495,16 @@ public:
 	void TallyVotes(FLawStruct Bill);
 
 	UFUNCTION(BlueprintCallable)
-		float GetLawValue(EBillType BillType);
+		int32 GetLawValue(EBillType BillType);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetCooldownTimer(FLawStruct Law);
+
+	// Pensions
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pensions")
+		int32 IssuePensionHour;
+
+	void IssuePensions(int32 Hour);
 
 	// Rebel
 	void Overthrow();
