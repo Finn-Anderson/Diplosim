@@ -776,6 +776,9 @@ void ACitizen::Birthday()
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::VoteAge))
 		SetPolticalLeanings();
 
+	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge) && IsValid(Building.School))
+		Building.School->RemoveStudent(this);
+
 	if (BioStruct.Age == 5)
 		GivePersonalityTrait(BioStruct.Mother.Get());
 	else if (BioStruct.Age == 10)

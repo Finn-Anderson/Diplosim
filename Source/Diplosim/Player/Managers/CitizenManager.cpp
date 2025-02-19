@@ -1089,6 +1089,19 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 						citizen->Building.School->RemoveStudent(citizen);
 				}
 			}
+			else if (Laws[index].BillType == EBillType::VoteAge) {
+				for (ACitizen* citizen : Citizens) {
+					if (citizen->BioStruct.Age >= Laws[index].Value)
+						continue;
+
+					FPartyStruct* party = GetMembersParty(citizen);
+
+					if (party == nullptr)
+						continue;
+
+					party->Members.Remove(citizen);
+				}
+			}
 		}
 
 		if (Laws[index].BillType == EBillType::Representatives && Cast<ACamera>(GetOwner())->ParliamentUIInstance->IsInViewport())
