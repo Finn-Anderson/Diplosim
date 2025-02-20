@@ -173,12 +173,6 @@ public:
 		class UUserWidget* EventUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-		TSubclassOf<class UUserWidget> TLDRUI;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-		class UUserWidget* TLDRUIInstance;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> WarningUI;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")

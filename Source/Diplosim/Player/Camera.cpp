@@ -154,8 +154,6 @@ void ACamera::BeginPlay()
 	EventUIInstance = CreateWidget<UUserWidget>(pcontroller, EventUI);
 	EventUIInstance->AddToViewport();
 
-	TLDRUIInstance = CreateWidget<UUserWidget>(pcontroller, TLDRUI);
-
 	WarningUIInstance = CreateWidget<UUserWidget>(pcontroller, WarningUI);
 	WarningUIInstance->AddToViewport();
 
@@ -308,10 +306,6 @@ void ACamera::DisplayBuildUI()
 	bBlockPause = false;
 
 	BuildUIInstance->AddToViewport();
-
-	Pause();
-
-	TLDRUIInstance->AddToViewport();
 }
 
 void ACamera::ShowWarning(FString Warning)
@@ -553,7 +547,7 @@ void ACamera::NewMap()
 
 void ACamera::Pause()
 {
-	if (bInMenu || TLDRUIInstance->IsInViewport() || bBlockPause)
+	if (bInMenu || bBlockPause)
 		return;
 
 	if (PauseUIInstance->IsInViewport()) {

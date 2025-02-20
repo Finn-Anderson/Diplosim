@@ -1261,6 +1261,9 @@ void ACitizen::SetHappiness()
 
 				index = law.Lean.Find(personalityLean);
 
+				if (index == INDEX_NONE)
+					continue;
+
 				if (!law.Lean[index].ForRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].ForRange, law.Value))
 					count++;
 				else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
