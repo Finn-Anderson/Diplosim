@@ -506,7 +506,7 @@ void ACitizen::FindJobAndHouse(int32 TimeToCompleteDay)
 
 float ACitizen::GetProductivity()
 {
-	return ProductivityMultiplier * (1 + (BioStruct.EducationLevel - 1) * 0.1);
+	return ProductivityMultiplier * (1 + BioStruct.EducationLevel * 0.1);
 }
 
 void ACitizen::Heal(ACitizen* Citizen)
@@ -1249,6 +1249,9 @@ void ACitizen::SetHappiness()
 			partyLean.Party = Camera->CitizenManager->GetMembersParty(this)->Party;
 
 			int32 index = law.Lean.Find(partyLean);
+
+			if (index == INDEX_NONE)
+				continue;
 
 			if (!law.Lean[index].ForRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].ForRange, law.Value))
 				count++;

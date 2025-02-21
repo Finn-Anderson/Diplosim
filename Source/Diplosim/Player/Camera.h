@@ -293,9 +293,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputMenu;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-		class UInputAction* InputDebug;
-
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY()
@@ -321,8 +318,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 		void Menu();
 
-	void Debug();
-
 	// Building
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<class ABuilding> StartBuilding;
@@ -339,4 +334,17 @@ public:
 	void Speed(const struct FInputActionInstance& Instance);
 
 	void Scroll(const struct FInputActionInstance& Instance);
+
+	// Debugging
+	UFUNCTION(Exec)
+		void SpawnEnemies();
+
+	UFUNCTION(Exec)
+		void DamageLastBuilding();
+
+	UFUNCTION(Exec)
+		void ChangeSeasonAffect(FString Season);
+
+	UFUNCTION(Exec)
+		void GiveAllResources(int32 Amount);
 };

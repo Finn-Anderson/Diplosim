@@ -122,9 +122,7 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 		}
 	}
 
-	int32 target = stored + Amount;
-
-	if (target > capacity)
+	if (stored == capacity)
 		return false;
 
 	int32 AmountLeft = Amount;
@@ -144,7 +142,12 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 
 					AmountLeft -= (b->StorageCap - b->Storage[index].Amount);
 
-					b->Storage[index].Amount = FMath::Clamp(b->Storage[index].Amount + Amount, 0, 1000);
+					int32 currentAmount = 0;
+
+					for (FItemStruct item : b->Storage)
+						currentAmount += item.Amount;
+
+					b->Storage[index].Amount += FMath::Clamp(Amount, 0, b->StorageCap - currentAmount);
 
 					GetNearestStockpile(Resource, b, b->Storage[index].Amount);
 

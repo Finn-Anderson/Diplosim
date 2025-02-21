@@ -488,8 +488,6 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Input->BindAction(InputPause, ETriggerEvent::Started, this, &ACamera::Pause);
 
 	Input->BindAction(InputMenu, ETriggerEvent::Started, this, &ACamera::Menu);
-
-	Input->BindAction(InputDebug, ETriggerEvent::Started, this, &ACamera::Debug);
 }
 
 void ACamera::Action(const struct FInputActionInstance& Instance)
@@ -620,22 +618,6 @@ void ACamera::Menu()
 	}
 }
 
-void ACamera::Debug()
-{
-	if (bInMenu)
-		return;
-
-	// Spawn Enemies
-	//ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-	//gamemode->SpawnEnemiesAsync();
-
-	// Test Building Damage
-	//CitizenManager->Buildings.Last()->HealthComponent->TakeHealth(1000, CitizenManager->Buildings.Last());
-
-	// Test Seasons
-	//Grid->SetSeasonAffect("Summer", 0.02f);
-}
-
 void ACamera::Rotate(const struct FInputActionInstance& Instance)
 {
 	if (bInMenu)
@@ -689,4 +671,41 @@ void ACamera::Scroll(const struct FInputActionInstance& Instance)
 		return;
 
 	MovementComponent->Scroll(Instance);
+}
+
+//
+// Debugging
+//
+void ACamera::SpawnEnemies()
+{
+	if (bInMenu)
+		return;
+
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	gamemode->SpawnEnemiesAsync();
+}
+
+void ACamera::DamageLastBuilding()
+{
+	if (bInMenu)
+		return;
+
+	CitizenManager->Buildings.Last()->HealthComponent->TakeHealth(1000, CitizenManager->Buildings.Last());
+}
+
+void ACamera::ChangeSeasonAffect(FString Season)
+{
+	if (bInMenu)
+		return;
+
+	Grid->SetSeasonAffect(Season, 0.02f);
+}
+
+void ACamera::GiveAllResources(int32 Amount)
+{
+	if (bInMenu)
+		return;
+
+	for (FResourceStruct resource : ResourceManager->ResourceList)
+		ResourceManager->AddUniversalResource(resource.Type, Amount);
 }

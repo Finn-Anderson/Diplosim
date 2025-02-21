@@ -67,8 +67,11 @@ void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 			Clouds[i].bHide = true;
 
-			if (opacity == 0.0f)
+			if (opacity == 0.0f) {
+				cloudStruct.HISMCloud->DestroyComponent();
+
 				Clouds.Remove(cloudStruct);
+			}
 		}
 	}
 }

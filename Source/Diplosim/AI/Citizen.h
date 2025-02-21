@@ -98,7 +98,7 @@ struct FBioStruct
 		Partner = nullptr;
 		Sex = ESex::NaN;
 		Age = 0;
-		EducationLevel = 1;
+		EducationLevel = 0;
 		EducationProgress = 0;
 		PaidForEducationLevel = 0;
 		Name = "Citizen";
