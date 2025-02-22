@@ -346,5 +346,8 @@ public:
 		void ChangeSeasonAffect(FString Season);
 
 	UFUNCTION(Exec)
-		void GiveAllResources(int32 Amount);
+		void TurnOnInstantBuild(bool Value);
+
+	UPROPERTY()
+		bool bInstantBuildCheat;
 };

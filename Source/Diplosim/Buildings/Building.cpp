@@ -288,6 +288,9 @@ void ABuilding::Build(bool bRebuild)
 	if (CheckInstant()) {
 		OnBuilt();
 
+		if (Camera->bInstantBuildCheat)
+			return;
+
 		for (FItemStruct item : items)
 			rm->TakeUniversalResource(item.Resource, item.Amount, 0);
 	} else {
@@ -452,8 +455,6 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 
 	Occupied.Remove(Citizen);
 
-	Citizen->AIController->DefaultAction();
-
 	return true;
 }
 
@@ -505,7 +506,7 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 		Citizen->SetActorLocation(SocketList[index].SocketLocation);
 		Citizen->SetActorRotation(SocketList[index].SocketRotation);
 	}
-	else {
+	else if (!SocketList.IsEmpty()) {
 		Citizen->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
 
 		for (int32 i = 0; i < SocketList.Num(); i++) {
@@ -519,6 +520,9 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 
 			break;
 		}
+	}
+	else {
+		Citizen->SetActorLocation(GetActorLocation());
 	}
 }
 
@@ -561,7 +565,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 			builder->CheckCosts(Citizen, this);
 		}
 	}
-	else if (!IsA<AHouse>() && !IsA<ABroadcast>() && Citizen->Building.Employment != this) {
+	else if (!IsA<AHouse>() && !IsA<ABroadcast>() && !GetOccupied().Contains(Citizen) && Citizen->Building.Employment != nullptr) {
 		TArray<FItemStruct> items;
 		ABuilding* deliverTo = nullptr;
 
@@ -594,6 +598,9 @@ void ABuilding::Enter(ACitizen* Citizen)
 			Citizen->AIController->AIMoveTo(deliverTo);
 		else
 			CarryResources(Citizen, deliverTo, items);
+	}
+	else if (!GetOccupied().Contains(Citizen)) {
+		Leave(Citizen);
 	}
 }
 
@@ -641,6 +648,9 @@ void ABuilding::Leave(ACitizen* Citizen)
 
 bool ABuilding::CheckInstant()
 {
+	if (Camera->bInstantBuildCheat)
+		bInstantConstruction = true;
+
 	return bInstantConstruction;
 }
 

@@ -87,7 +87,7 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 		if (bCanAttendEvents && Citizen->AIController->MoveRequest.Actor != nullptr && Citizen->AIController->MoveRequest.Actor->IsA<ABroadcast>() && Cast<ABroadcast>(Citizen->AIController->MoveRequest.Actor)->bHolyPlace)
 			return true;
 
-		Citizen->AIController->AIMoveTo(this);
+		Citizen->AIController->DefaultAction();
 	}
 
 	return true;
@@ -103,6 +103,8 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 	Citizen->Building.Employment = nullptr;
 
 	Citizen->HatMesh->SetStaticMesh(nullptr);
+
+	Citizen->AIController->DefaultAction();
 
 	return true;
 }

@@ -113,6 +113,8 @@ ACamera::ACamera()
 	bMouseCapture = true;
 
 	bBlockPause = false;
+
+	bInstantBuildCheat = false;
 }
 
 void ACamera::BeginPlay()
@@ -701,11 +703,10 @@ void ACamera::ChangeSeasonAffect(FString Season)
 	Grid->SetSeasonAffect(Season, 0.02f);
 }
 
-void ACamera::GiveAllResources(int32 Amount)
+void ACamera::TurnOnInstantBuild(bool Value)
 {
 	if (bInMenu)
 		return;
 
-	for (FResourceStruct resource : ResourceManager->ResourceList)
-		ResourceManager->AddUniversalResource(resource.Type, Amount);
+	bInstantBuildCheat = Value;
 }

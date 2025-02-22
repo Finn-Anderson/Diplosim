@@ -173,6 +173,9 @@ void UBuildComponent::SetBuildingsOnPath()
 				if (hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsHidden())
 					bBuildingExists = true;
 
+			if (Buildings.Last()->IsA(FoundationClass))
+				location.Z -= 70.0f;
+
 			if (!bBuildingExists)
 				SpawnBuilding(Buildings[0]->GetClass(), location);
 
@@ -245,7 +248,7 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 {
 	TArray<FItemStruct> items;
 
-	if (Buildings.IsEmpty())
+	if (Buildings.IsEmpty() || Camera->bInstantBuildCheat)
 		return items;
 	
 	items = Buildings[0]->CostList;
@@ -263,6 +266,9 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 
 bool UBuildComponent::CheckBuildCosts()
 {
+	if (Camera->bInstantBuildCheat)
+		return true;
+	
 	UResourceManager* rm = Camera->ResourceManager;
 
 	TArray<FItemStruct> items = GetBuildCosts();
@@ -285,7 +291,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 	bool bCoast = false;
 
 	for (FCollisionStruct collision : building->Collisions) {
-		if (collision.HISM == Camera->Grid->HISMLava || collision.HISM == Camera->Grid->HISMRampGround)
+		if (collision.HISM == Camera->Grid->HISMLava || (collision.HISM == Camera->Grid->HISMRampGround && !(building->IsA(FoundationClass) || building->IsA(RampClass))))
 			return false;
 
 		FTransform transform;
@@ -296,9 +302,6 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 			transform = collision.Actor->GetTransform();
 
 		if (collision.HISM == Camera->Grid->HISMRiver && Camera->Grid->HISMRiver->PerInstanceSMCustomData[collision.Instance * 4] == 1.0f) {
-			if (transform.GetRotation().X != 0.0f && transform.GetRotation().Y != 0.0f)
-				return true;
-
 			if (building->IsA<ARoad>()) {
 				auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
 
@@ -326,14 +329,12 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 
 				return true;
 			}
-			else if (!building->IsA(FoundationClass)) {
-				return false;
+			else if (building->IsA(FoundationClass)) {
+				return true;
 			}
 		}
 
-		if (building->IsA(FoundationClass) && collision.HISM == Camera->Grid->HISMGround)
-			return false;
-		else if ((building->IsA(FoundationClass) && collision.Actor->IsA<AGrid>()) || (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>()))
+		if (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>())
 			continue;
 
 		if (building->IsA<AWall>() && collision.Actor->IsA<AWall>()) {
@@ -537,12 +538,21 @@ void UBuildComponent::Place()
 
 		BuildingToMove->StoreSocketLocations();
 
-		TArray<ACitizen*> citizens = BuildingToMove->GetCitizensAtBuilding();
+		for (ACitizen* citizen : BuildingToMove->GetOccupied()) {
+			if (!citizen->AIController->CanMoveTo(BuildingToMove->GetActorLocation())) {
+				BuildingToMove->RemoveCitizen(citizen);
 
-		for (ACitizen* citizen : citizens) {
-			citizen->Building.EnterLocation += diff;
+				continue;
+			}
 
-			BuildingToMove->SetSocketLocation(citizen);
+			if (BuildingToMove->GetCitizensAtBuilding().Contains(citizen)) {
+				citizen->Building.EnterLocation += diff;
+
+				BuildingToMove->SetSocketLocation(citizen);
+			}
+			else {
+				citizen->AIController->RecalculateMovement(BuildingToMove);
+			}
 		}
 
 		UConstructionManager* cm = Camera->ConstructionManager;
@@ -553,9 +563,6 @@ void UBuildComponent::Place()
 			if (builder != nullptr && !builder->GetOccupied().IsEmpty())
 				builder->GetOccupied()[0]->AIController->RecalculateMovement(BuildingToMove);
 		}
-
-		for (ACitizen* citizen : BuildingToMove->GetOccupied())
-			citizen->AIController->RecalculateMovement(BuildingToMove);
 
 		BuildingToMove = nullptr;
 

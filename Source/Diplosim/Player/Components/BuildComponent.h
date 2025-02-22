@@ -29,6 +29,9 @@ public:
 		TSubclassOf<ABuilding> FoundationClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+		TSubclassOf<ABuilding> RampClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<ABuilding> WharfClass;
 
 	// Building

@@ -408,7 +408,7 @@ void ACitizen::FindJobAndHouse(int32 TimeToCompleteDay)
 	AHouse* chosenHouse = Building.House;
 
 	for (ABuilding* building : Camera->CitizenManager->Buildings) {
-		if (building->GetCapacity() == building->GetOccupied().Num() || !CanWork(building) || !AIController->CanMoveTo(building->GetActorLocation()))
+		if (!IsValid(building) || building->GetCapacity() == building->GetOccupied().Num() || !CanWork(building) || !AIController->CanMoveTo(building->GetActorLocation()))
 			continue;
 
 		if (building->IsA<AHouse>()) {
@@ -449,7 +449,7 @@ void ACitizen::FindJobAndHouse(int32 TimeToCompleteDay)
 
 			chosenHouse = house;
 		}
-		else if (GetWorld()->GetTimeSeconds() < TimeOfEmployment + TimeToCompleteDay || chosenWorkplace == building)
+		else if (!building->IsA<AWork>() || GetWorld()->GetTimeSeconds() < TimeOfEmployment + TimeToCompleteDay || chosenWorkplace == building)
 			continue;
 
 		int32 diff = Cast<AWork>(building)->Wage;

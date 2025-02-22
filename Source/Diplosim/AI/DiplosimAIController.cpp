@@ -216,15 +216,9 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	if (!Actor->IsValidLowLevelFast()) {
-		DefaultAction();
-
+	if (Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()) || (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor))
 		return;
-	}
-
-	if (Actor == MoveRequest.GetGoalActor())
-		return;
-
+	
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);
 	MoveRequest.SetLocation(Actor->GetActorLocation());

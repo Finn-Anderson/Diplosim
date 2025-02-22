@@ -58,6 +58,8 @@ bool AHouse::AddCitizen(ACitizen* Citizen)
 
 	Citizen->Building.House = this;
 
+	Citizen->AIController->DefaultAction();
+
 	return true;
 }
 
@@ -69,6 +71,8 @@ bool AHouse::RemoveCitizen(ACitizen* Citizen)
 		return false;
 
 	Citizen->Building.House = nullptr;
+
+	Citizen->AIController->DefaultAction();
 
 	return true;
 }

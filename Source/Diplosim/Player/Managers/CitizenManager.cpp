@@ -382,7 +382,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 void UCitizenManager::CheckWorkStatus(int32 Hour)
 {
 	for (ABuilding* building : Buildings) {
-		if (!building->IsA<AWork>())
+		if (!IsValid(building) || !building->IsA<AWork>())
 			continue;
 
 		AWork* work = Cast<AWork>(building);
