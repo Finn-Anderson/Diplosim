@@ -74,6 +74,9 @@ void UAtmosphereComponent::BeginPlay()
 
 	if (!settings->GetRenderWind())
 		WindComponent->Deactivate();
+
+	Sun->SetIntensity(settings->GetSunBrightness());
+	Moon->SetIntensity(settings->GetMoonBrightness());
 }
 
 void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

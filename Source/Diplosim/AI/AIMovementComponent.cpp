@@ -81,6 +81,4 @@ void UAIMovementComponent::SetMaxSpeed(int32 Energy)
 void UAIMovementComponent::SetMultiplier(float Multiplier)
 {
 	SpeedMultiplier = Multiplier;
-
-	MaxSpeed *= Multiplier;
 }

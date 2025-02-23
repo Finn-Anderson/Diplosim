@@ -157,6 +157,9 @@ struct FSeedStruct
 		int32 TimeLength;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		int32 Tier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<UStaticMesh*> Meshes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
@@ -167,6 +170,10 @@ struct FSeedStruct
 		Health = -1;
 		Capacity = -1;
 		bExplosive = false;
+		Name = "";
+		Yield = -1;
+		TimeLength = -1;
+		Tier = 1;
 	}
 };
 

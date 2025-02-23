@@ -23,6 +23,12 @@ protected:
 		bool bRenderFog;
 
 	UPROPERTY(Config)
+		float SunBrightness;
+
+	UPROPERTY(Config)
+		float MoonBrightness;
+
+	UPROPERTY(Config)
 		FString AAName;
 
 	UPROPERTY(Config)
@@ -100,6 +106,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Fog")
 		bool GetRenderFog() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Brightness")
+		void SetSunBrightness(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "Brightness")
+		float GetSunBrightness() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Brightness")
+		void SetMoonBrightness(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "Brightness")
+		float GetMoonBrightness() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AA")
 		void SetAA(FString Value);

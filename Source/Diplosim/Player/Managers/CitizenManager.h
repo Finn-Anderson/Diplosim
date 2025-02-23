@@ -543,7 +543,4 @@ public:
 		TArray<FPersonality> Personalities;
 
 		TArray<FPersonality*> GetCitizensPersonalities(class ACitizen* Citizen);
-
-	// Food
-	int32 FoodCost;
 };

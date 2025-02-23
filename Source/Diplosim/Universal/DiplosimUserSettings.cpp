@@ -7,6 +7,7 @@
 #include "Components/AudioComponent.h"
 #include "Misc/FileHelper.h"
 #include "Engine/UserInterfaceSettings.h"
+#include "Components/DirectionalLightComponent.h"
 
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -23,6 +24,9 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bRenderClouds = true;
 	bRenderWind = true;
 	bRenderFog = true;
+
+	SunBrightness = 10.0f;
+	MoonBrightness = 0.5f;
 
 	AAName = "None";
 
@@ -61,7 +65,10 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 void UDiplosimUserSettings::OnWindowResize(FViewport* Viewport, uint32 Value)
 {
-	FString res = FString::FromInt(Viewport->GetSizeXY().X) + "x" + FString::FromInt(Viewport->GetSizeXY().Y);
+	FVector2D viewportSize;
+	GEngine->GameViewport->GetViewportSize(viewportSize);
+	
+	FString res = FString::FromInt(viewportSize.X) + "x" + FString::FromInt(viewportSize.Y);
 
 	if (GetResolution() == res)
 		return;
@@ -101,6 +108,10 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetRenderWind(value.ToBool());
 	else if (FString("bRenderFog").Equals(Key))
 		SetRenderFog(value.ToBool());
+	else if (FString("SunBrightness").Equals(Key))
+		SetSunBrightness(FCString::Atof(Value));
+	else if (FString("MoonBrightness").Equals(Key))
+		SetMoonBrightness(FCString::Atof(Value));
 	else if (FString("AAName").Equals(Key))
 		SetAA(value);
 	else if (FString("GIName").Equals(Key))
@@ -162,6 +173,8 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderWind"), GetRenderWind(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderFog"), GetRenderFog(), Filename);
+	GConfig->SetFloat(*Section, TEXT("SunBrightness"), GetSunBrightness(), Filename);
+	GConfig->SetFloat(*Section, TEXT("MoonBrightness"), GetMoonBrightness(), Filename);
 	GConfig->SetString(*Section, TEXT("AAName"), *GetAA(), Filename);
 	GConfig->SetString(*Section, TEXT("GIName"), *GetGI(), Filename);
 	GConfig->SetString(*Section, TEXT("Resolution"), *GetResolution(), Filename);
@@ -257,6 +270,36 @@ void UDiplosimUserSettings::SetRenderFog(bool Value)
 bool UDiplosimUserSettings::GetRenderFog() const
 {
 	return bRenderFog;
+}
+
+void UDiplosimUserSettings::SetSunBrightness(float Value)
+{
+	SunBrightness = Value;
+
+	if (Atmosphere == nullptr)
+		return;
+
+	Atmosphere->Sun->SetIntensity(SunBrightness);
+}
+
+float UDiplosimUserSettings::GetSunBrightness() const
+{
+	return SunBrightness;
+}
+
+void UDiplosimUserSettings::SetMoonBrightness(float Value)
+{
+	MoonBrightness = Value;
+
+	if (Atmosphere == nullptr)
+		return;
+
+	Atmosphere->Moon->SetIntensity(MoonBrightness);
+}
+
+float UDiplosimUserSettings::GetMoonBrightness() const
+{
+	return MoonBrightness;
 }
 
 void UDiplosimUserSettings::SetAA(FString Value)

@@ -33,8 +33,6 @@ UCitizenManager::UCitizenManager()
 
 	BrochLocation = FVector::Zero();
 
-	FoodCost = 0;
-
 	IssuePensionHour = 18;
 
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Personalities.json");

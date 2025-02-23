@@ -181,6 +181,14 @@ void UBuildComponent::SetBuildingsOnPath()
 
 			if (Buildings.Last()->IsA<AStockpile>())
 				SetTileOpacity(Buildings.Last(), 0.0f);
+
+			if (Buildings.Last()->IsA<ARoad>()) {
+				ARoad* road = Cast<ARoad>(Buildings.Last());
+
+				road->SetTier(Cast<ARoad>(Buildings[0])->Tier);
+
+				road->RegenerateMesh();
+			}
 		}
 		else
 			Buildings.Last()->SetActorLocation(location);

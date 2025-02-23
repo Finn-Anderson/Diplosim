@@ -559,10 +559,11 @@ void ACitizen::Eat()
 
 	int32 cost = Camera->CitizenManager->GetLawValue(EBillType::FoodCost);
 
-	int32 maxF = FMath::Clamp(FMath::CeilToInt((100 - Hunger) / 25.0f), 0, FMath::Floor(Balance / cost));
+	int32 maxF = FMath::CeilToInt((100 - Hunger) / 25.0f);
 	int32 quantity = FMath::Clamp(totalAmount, 0, maxF);
 
-	quantity = FMath::Min(quantity, Balance / Camera->CitizenManager->FoodCost);
+	if (cost > 0)
+		quantity = FMath::Min(quantity, Balance / cost);
 
 	if (quantity == 0) {
 		PopupComponent->SetHiddenInGame(false);
@@ -590,6 +591,9 @@ void ACitizen::Eat()
 				break;
 			}
 		}
+
+		Balance -= cost;
+		AsyncTask(ENamedThreads::GameThread, [this]() { Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, 1); });
 
 		Hunger = FMath::Clamp(Hunger + 25, 0, 100);
 	}

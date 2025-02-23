@@ -32,6 +32,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Production/InternalProduction.h"
+#include "Buildings/Misc/Road.h"
 #include "Universal/EggBasket.h"
 
 ABuilding::ABuilding()
@@ -159,7 +160,8 @@ void ABuilding::SetSeed(int32 Seed)
 		return;
 
 	if (bAffectBuildingMesh) {
-		BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
+		if (!Seeds[Seed].Meshes.IsEmpty())
+			BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
 
 		if (Seeds[Seed].Health != -1) {
 			HealthComponent->MaxHealth = Seeds[Seed].Health;
@@ -182,6 +184,13 @@ void ABuilding::SetSeed(int32 Seed)
 
 		if (IsA<ATrap>())
 			Cast<ATrap>(this)->bExplode = Seeds[Seed].bExplosive;
+
+		if (IsA<ARoad>()) {
+			ARoad* road = Cast<ARoad>(this);
+
+			road->SetTier(Seeds[Seed].Tier);
+			road->RegenerateMesh();
+		}
 
 		if (Seeds[Seed].Resource != nullptr) {
 			AInternalProduction* prod = Cast<AInternalProduction>(this);

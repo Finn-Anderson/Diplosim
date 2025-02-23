@@ -27,6 +27,8 @@ ARoad::ARoad()
 	BoxAreaAffect->SetCanEverAffectNavigation(true);
 	BoxAreaAffect->SetupAttachment(RootComponent);
 	BoxAreaAffect->bDynamicObstacle = true;
+
+	Tier = 1;
 }
 
 void ARoad::BeginPlay()
@@ -45,7 +47,7 @@ void ARoad::OnCitizenOverlapBegin(class UPrimitiveComponent* OverlappedComp, cla
 	if (!OtherActor->IsA<AAI>())
 		return;
 
-	Cast<AAI>(OtherActor)->MovementComponent->SetMultiplier(1.15f);
+	Cast<AAI>(OtherActor)->MovementComponent->SetMultiplier(1.15f * Tier);
 }
 
 void ARoad::OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -53,7 +55,7 @@ void ARoad::OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class
 	if (!OtherActor->IsA<AAI>())
 		return;
 
-	Cast<AAI>(OtherActor)->MovementComponent->SetMultiplier(0.85f);
+	Cast<AAI>(OtherActor)->MovementComponent->SetMultiplier(1.0f);
 }
 
 void ARoad::OnRoadOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -76,6 +78,7 @@ void ARoad::RegenerateMesh()
 {
 	FRoadStruct bridgeStruct;
 	bridgeStruct.bBridge = true;
+	bridgeStruct.Tier = Tier;
 
 	int32 i = RoadMeshes.Find(bridgeStruct);
 
@@ -106,6 +109,7 @@ void ARoad::RegenerateMesh()
 	if (tile.bRiver) {
 		roadStruct.bStraight = true;
 		roadStruct.bBridge = true;
+		roadStruct.Tier = Tier;
 
 		connectedLocations.Empty();
 
@@ -137,6 +141,11 @@ void ARoad::RegenerateMesh()
 		roadStruct.Connections = 2;
 	}
 
+	int32 index = RoadMeshes.Find(roadStruct);
+
+	if (index == INDEX_NONE)
+		return;
+
 	FVector midPoint;
 
 	for (FVector location : connectedLocations)
@@ -147,12 +156,8 @@ void ARoad::RegenerateMesh()
 	if (tile.bRiver && roadStruct.bBridge)
 		midPoint.Z = FMath::FloorToInt(midPoint.Z / 75.0f) * 75.0f + 25.0f;
 
-	int32 index = RoadMeshes.Find(roadStruct);
-
-	if (index == INDEX_NONE)
-		return;
-
 	BuildingMesh->SetStaticMesh(RoadMeshes[index].Mesh);
+	//SetTier(Tier);
 
 	FRotator rotation = (midPoint - GetActorLocation()).Rotation();
 	rotation.Pitch = 0.0f;
@@ -172,4 +177,30 @@ void ARoad::RegenerateMesh()
 
 	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2;
 	BoxAreaAffect->SetBoxExtent(FVector(size.X, size.Y, 20.0f));
+}
+
+void ARoad::SetTier(int32 Value)
+{
+	Tier = Value;
+
+	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(BuildingMesh->GetMaterial(0));
+
+	float r = 0;
+	float g = 0;
+	float b = 0;
+
+	if (Tier == 1) {
+		r = 0.473531;
+		g = 0.361307;
+		b = 0.187821;
+	}
+	else if (Tier == 2) {
+		r = 0.571125;
+		g = 0.590619;
+		b = 0.64448;
+	}
+
+	FLinearColor chosenColour = FLinearColor(r, g, b);
+
+	material->SetVectorParameterValue("Colour", chosenColour);
 }

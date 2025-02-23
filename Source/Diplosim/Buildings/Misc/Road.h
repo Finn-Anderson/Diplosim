@@ -21,17 +21,21 @@ struct FRoadStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Roads")
 		bool bBridge;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Roads")
+		int32 Tier;
+
 	FRoadStruct()
 	{
 		Mesh = nullptr;
 		Connections = 0;
 		bStraight = false;
 		bBridge = false;
+		Tier = -1;
 	}
 
 	bool operator==(const FRoadStruct& other) const
 	{
-		return (other.Connections == Connections && other.bStraight == bStraight && other.bBridge == bBridge) || (other.bBridge == bBridge && bBridge == true);
+		return (other.Connections == Connections && other.bStraight == bStraight && other.bBridge == bBridge && other.Tier == Tier) || (other.bBridge == bBridge && bBridge == true && other.Tier == Tier);
 	}
 };
 
@@ -69,4 +73,9 @@ public:
 		TArray<FRoadStruct> RoadMeshes;
 
 	void RegenerateMesh();
+
+	UPROPERTY()
+		int32 Tier;
+
+	void SetTier(int32 Value);
 };
