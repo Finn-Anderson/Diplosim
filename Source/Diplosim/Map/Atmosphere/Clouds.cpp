@@ -8,6 +8,11 @@
 #include "AtmosphereComponent.h"
 #include "Map/Grid.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "Buildings/Building.h"
+#include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
+#include "AI/Citizen.h"
+#include "Universal/EggBasket.h"
 
 UCloudComponent::UCloudComponent()
 {
@@ -47,6 +52,9 @@ void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		location.Z += bobAmount;
 
 		cloudStruct.HISMCloud->SetRelativeLocation(location);
+
+		if (cloudStruct.Precipitation != nullptr)
+			cloudStruct.Precipitation->SetVariableVec3(TEXT("CloudLocation"), cloudStruct.HISMCloud->GetRelativeLocation());
 
 		UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(cloudStruct.HISMCloud->GetMaterial(0));
 		float opacity = 0.0f;
@@ -116,6 +124,7 @@ void UCloudComponent::ActivateCloud()
 	transform.SetLocation(spawnLoc);
 
 	int32 chance = FMath::RandRange(1, 100);
+	chance = 100;
 
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);
 	cloudStruct.Distance = FVector::Dist(spawnLoc, Cast<AGrid>(GetOwner())->GetActorLocation());
@@ -139,6 +148,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	cloud->SetStaticMesh(CloudMesh);
 	cloud->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
 	cloud->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	cloud->SetAffectDistanceFieldLighting(false);
 	cloud->SetRelativeLocation(Transform.GetLocation());
 	cloud->SetRelativeRotation(Transform.GetRotation());
 	cloud->SetupAttachment(GetOwner()->GetRootComponent());
@@ -162,14 +172,21 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 
 		int32 inst = cloud->AddInstance(t);
 
+		cloud->GetInstanceTransform(inst, t, true);
+		t.SetLocation(t.GetLocation() - Transform.GetLocation());
+
+		float bounds = cloud->GetStaticMesh().Get()->GetBounds().GetBox().GetSize().X / 2.0f;
+
 		if (Chance > 75)
-			locations.Append(SetPrecipitationLocations(t));
+			locations.Append(SetPrecipitationLocations(t, bounds));
 	}
 
 	if (Chance <= 75)
 		return cloudStruct;
 
 	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
+	precipitation->SetVariableObject(TEXT("Callback"), GetOwner());
+	precipitation->SetVariableVec3(TEXT("CloudLocation"), Transform.GetLocation());
 
 	float spawnRate = 0.0f;
 
@@ -202,16 +219,19 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	return cloudStruct;
 }
 
-TArray<FVector> UCloudComponent::SetPrecipitationLocations(FTransform Transform)
+TArray<FVector> UCloudComponent::SetPrecipitationLocations(FTransform Transform, float Bounds)
 {
 	TArray<FVector> locations;
 
-	float x = 5.0f * Transform.GetScale3D().X * Transform.GetRotation().Vector().X - 1.0f;
-	float y = 5.0f * Transform.GetScale3D().Y * Transform.GetRotation().Vector().Y - 1.0f;
+	float x = Bounds * Transform.GetScale3D().X - Transform.GetScale3D().X;
+	float y = Bounds * Transform.GetScale3D().Y - Transform.GetScale3D().Y;
 
 	for (int32 i = 0; i < 9; i++) {
 		for (int32 j = 0; j < 9; j++) {
-			FVector vector = FVector(Transform.GetLocation().X + x - (x / 4.0f * i), Transform.GetLocation().Y + y - (y / 4.0f * j), 0.0f);
+			float xCoord = (x - (x / 4.0f * i)) * FMath::Cos(FMath::DegreesToRadians(Transform.GetRotation().Rotator().Yaw)) - (y - (y / 4.0f * j)) * FMath::Sin(FMath::DegreesToRadians(Transform.GetRotation().Rotator().Yaw));
+			float yCoord = (x - (x / 4.0f * i)) * FMath::Sin(FMath::DegreesToRadians(Transform.GetRotation().Rotator().Yaw)) + (y - (y / 4.0f * j)) * FMath::Cos(FMath::DegreesToRadians(Transform.GetRotation().Rotator().Yaw));
+
+			FVector vector = FVector(Transform.GetLocation().X + xCoord, Transform.GetLocation().Y + yCoord, 0.0f);
 
 			locations.Add(vector);
 		}
@@ -236,5 +256,89 @@ void UCloudComponent::UpdateSpawnedClouds()
 			cloudStruct.Precipitation->SetVariableFloat(TEXT("SnowSpawnRate"), 0.0f);
 			cloudStruct.Precipitation->SetVariableFloat(TEXT("RainSpawnRate"), spawnRate);
 		}
+	}
+}
+
+void UCloudComponent::RainCollisionHandler(FVector CollisionLocation)
+{
+	FHitResult hit(ForceInit);
+
+	if (GetWorld()->SweepSingleByChannel(hit, CollisionLocation, FVector::Zero(), GetOwner()->GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(FVector(15.0f, 15.0f, 15.0f))))
+	{
+		if (hit.GetActor()->IsA<ABuilding>() || hit.GetActor()->IsA<AAI>() || hit.GetActor()->IsA<AEggBasket>())
+			SetRainMaterialEffect(1.0f, hit.GetActor());
+		else if (hit.Component != nullptr && hit.Component->IsA<UHierarchicalInstancedStaticMeshComponent>() && hit.Component != Cast<AGrid>(GetOwner())->HISMRiver)
+			SetRainMaterialEffect(1.0f, nullptr, Cast<UHierarchicalInstancedStaticMeshComponent>(hit.Component), hit.Item);
+	}
+}
+
+void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
+{
+	if (Value == 1.0f) {
+		ACamera* camera = Cast<AGrid>(GetOwner())->Camera;
+
+		FTimerStruct timer;
+
+		FString id = "Wet";
+
+		if (Actor != nullptr)
+			id += FString::FromInt(Actor->GetUniqueID());
+		else
+			id += FString::FromInt(HISM->GetUniqueID()) + FString::FromInt(Instance);
+
+		timer.CreateTimer(id, GetOwner(), 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false);
+
+		if (camera->CitizenManager->FindTimer(id, GetOwner()) != nullptr) {
+			camera->CitizenManager->ResetTimer(id, GetOwner());
+
+			return;
+		}
+		else {
+			camera->CitizenManager->Timers.Add(timer);
+		}
+	}
+	
+	if (Actor != nullptr) {
+		if (Actor->IsA<AAI>()) {
+			SetMaterialWetness(Cast<AAI>(Actor)->Mesh->GetMaterial(0), Value, nullptr, Cast<AAI>(Actor)->Mesh);
+
+			if (Actor->IsA<ACitizen>())
+				SetMaterialWetness(Cast<ACitizen>(Actor)->HatMesh->GetMaterial(0), Value, Cast<ACitizen>(Actor)->HatMesh, nullptr);
+		}
+		else {
+			UStaticMeshComponent* meshComp = nullptr;
+
+			if (Actor->IsA<ABuilding>())
+				meshComp = Cast<ABuilding>(Actor)->BuildingMesh;
+			else
+				meshComp = Cast<AEggBasket>(Actor)->BasketMesh;
+
+			SetMaterialWetness(meshComp->GetMaterial(0), Value, meshComp, nullptr);
+		}
+	}
+	else {
+		HISM->SetCustomDataValue(Instance, 0, Value);
+	}
+}
+
+void UCloudComponent::SetMaterialWetness(UMaterialInterface* MaterialInterface, float Value, UStaticMeshComponent* StaticMesh, USkeletalMeshComponent* SkeletalMesh)
+{
+	if (!IsValid(MaterialInterface))
+		return;
+	
+	UMaterialInstanceDynamic* material = nullptr;
+
+	if (MaterialInterface->IsA<UMaterialInstanceDynamic>())
+		material = Cast<UMaterialInstanceDynamic>(MaterialInterface);
+	else
+		material = UMaterialInstanceDynamic::Create(MaterialInterface, this);
+
+	material->SetScalarParameterValue("WetAlpha", Value);
+
+	if (!MaterialInterface->IsA<UMaterialInstanceDynamic>()) {
+		if (StaticMesh != nullptr)
+			StaticMesh->SetMaterial(0, material);
+		else
+			SkeletalMesh->SetMaterial(0, material);
 	}
 }

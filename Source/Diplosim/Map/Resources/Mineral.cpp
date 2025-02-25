@@ -10,4 +10,5 @@ AMineral::AMineral()
 {
 	ResourceHISM->SetCanEverAffectNavigation(true);
 	ResourceHISM->bFillCollisionUnderneathForNavmesh = true;
+	ResourceHISM->NumCustomDataFloats = 1;
 }

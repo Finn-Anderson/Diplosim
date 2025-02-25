@@ -56,10 +56,17 @@ public:
 
 	FCloudStruct CreateCloud(FTransform Transform, int32 Chance);
 
-	TArray<FVector> SetPrecipitationLocations(FTransform Transform);
+	TArray<FVector> SetPrecipitationLocations(FTransform Transform, float Bounds);
 
 	UFUNCTION()
 		void UpdateSpawnedClouds();
+
+	UFUNCTION(BlueprintCallable)
+		void RainCollisionHandler(FVector CollisionLocation);
+
+	void SetRainMaterialEffect(float Value, class AActor* Actor, class UHierarchicalInstancedStaticMeshComponent* HISM = nullptr, int32 Instance = -1);
+
+	void SetMaterialWetness(UMaterialInterface* MaterialInterface, float Value, UStaticMeshComponent* StaticMesh, USkeletalMeshComponent* SkeletalMesh);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		UStaticMesh* CloudMesh;

@@ -133,7 +133,7 @@ void UBuildComponent::SetTileOpacity(ABuilding* Building, float Opacity)
 	if (tile.bRamp || tile.bEdge)
 		return;
 
-	Camera->Grid->HISMFlatGround->SetCustomDataValue(tile.Instance, 0, Opacity);
+	Camera->Grid->HISMFlatGround->SetCustomDataValue(tile.Instance, 1, Opacity);
 }
 
 void UBuildComponent::SetBuildingsOnPath()
@@ -150,7 +150,7 @@ void UBuildComponent::SetBuildingsOnPath()
 			continue;
 
 		for (FTreeStruct treeStruct : Buildings[i]->TreeList)
-			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 0, 1.0f);
+			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
 
 		if (Buildings[0]->IsA<AStockpile>())
 			SetTileOpacity(Buildings[i], 1.0f);
@@ -418,7 +418,7 @@ void UBuildComponent::RemoveBuilding()
 
 	for (ABuilding* building : Buildings) {
 		for (FTreeStruct treeStruct : building->TreeList)
-			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 0, 1.0f);
+			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
 
 		if (building->IsA<AStockpile>())
 			SetTileOpacity(building, 1.0f);
@@ -479,7 +479,7 @@ void UBuildComponent::EndPathPlace()
 
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
 		for (FTreeStruct treeStruct : Buildings[i]->TreeList)
-			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 0, 1.0f);
+			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
 
 		if (Buildings[i]->IsA<AStockpile>())
 			SetTileOpacity(Buildings[i], 1.0f);

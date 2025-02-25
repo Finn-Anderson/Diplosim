@@ -32,20 +32,20 @@ AGrid::AGrid()
 	HISMGround->SetupAttachment(GetRootComponent());
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMGround->NumCustomDataFloats = 7;
+	HISMGround->NumCustomDataFloats = 8;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
 	HISMFlatGround->SetupAttachment(GetRootComponent());
 	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMFlatGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMFlatGround->SetCastShadow(false);
-	HISMFlatGround->NumCustomDataFloats = 7;
+	HISMFlatGround->NumCustomDataFloats = 8;
 
 	HISMRampGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRampGround"));
 	HISMRampGround->SetupAttachment(GetRootComponent());
 	HISMRampGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRampGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
-	HISMRampGround->NumCustomDataFloats = 7;
+	HISMRampGround->NumCustomDataFloats = 8;
 
 	HISMRiver = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRiver"));
 	HISMRiver->SetupAttachment(GetRootComponent());
@@ -701,10 +701,11 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 		if (Tile->bEdge) {
 			inst = HISMGround->AddInstance(transform);
-			HISMGround->SetCustomDataValue(inst, 0, 1.0f);
-			HISMGround->SetCustomDataValue(inst, 1, r);
-			HISMGround->SetCustomDataValue(inst, 2, g);
-			HISMGround->SetCustomDataValue(inst, 3, b);
+			HISMGround->SetCustomDataValue(inst, 0, 0.0f);
+			HISMGround->SetCustomDataValue(inst, 1, 1.0f);
+			HISMGround->SetCustomDataValue(inst, 2, r);
+			HISMGround->SetCustomDataValue(inst, 3, g);
+			HISMGround->SetCustomDataValue(inst, 4, b);
 		}
 		else {
 			int32 chance = FMath::RandRange(1, 100);
@@ -722,10 +723,11 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 			if (Tile->bRamp) {
 				inst = HISMRampGround->AddInstance(transform);
-				HISMRampGround->SetCustomDataValue(inst, 0, 1.0f);
-				HISMRampGround->SetCustomDataValue(inst, 1, r);
-				HISMRampGround->SetCustomDataValue(inst, 2, g);
-				HISMRampGround->SetCustomDataValue(inst, 3, b);
+				HISMRampGround->SetCustomDataValue(inst, 0, 0.0f);
+				HISMRampGround->SetCustomDataValue(inst, 1, 1.0f);
+				HISMRampGround->SetCustomDataValue(inst, 2, r);
+				HISMRampGround->SetCustomDataValue(inst, 3, g);
+				HISMRampGround->SetCustomDataValue(inst, 4, b);
 			}
 			else {
 				bool bFlat = true;
@@ -739,17 +741,19 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 				if (bFlat) {
 					inst = HISMFlatGround->AddInstance(transform);
-					HISMFlatGround->SetCustomDataValue(inst, 0, 1.0f);
-					HISMFlatGround->SetCustomDataValue(inst, 1, r);
-					HISMFlatGround->SetCustomDataValue(inst, 2, g);
-					HISMFlatGround->SetCustomDataValue(inst, 3, b);
+					HISMFlatGround->SetCustomDataValue(inst, 0, 0.0f);
+					HISMFlatGround->SetCustomDataValue(inst, 1, 1.0f);
+					HISMFlatGround->SetCustomDataValue(inst, 2, r);
+					HISMFlatGround->SetCustomDataValue(inst, 3, g);
+					HISMFlatGround->SetCustomDataValue(inst, 4, b);
 				}
 				else {
 					inst = HISMGround->AddInstance(transform);
-					HISMGround->SetCustomDataValue(inst, 0, 1.0f);
-					HISMGround->SetCustomDataValue(inst, 1, r);
-					HISMGround->SetCustomDataValue(inst, 2, g);
-					HISMGround->SetCustomDataValue(inst, 3, b);
+					HISMGround->SetCustomDataValue(inst, 0, 0.0f);
+					HISMGround->SetCustomDataValue(inst, 1, 1.0f);
+					HISMGround->SetCustomDataValue(inst, 2, r);
+					HISMGround->SetCustomDataValue(inst, 3, g);
+					HISMGround->SetCustomDataValue(inst, 4, b);
 
 					Tile->bEdge = true;
 				}
@@ -765,6 +769,7 @@ void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 	AMineral* mineral = Cast<AMineral>(Resource);
 
 	int32 inst = mineral->ResourceHISM->AddInstance(GetTransform(Tile));
+	mineral->ResourceHISM->SetCustomDataValue(inst, 0, 0.0f);
 
 	FString socketName = "InfoSocket";
 	socketName.AppendInt(inst);
@@ -831,7 +836,7 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 
 		int32 inst = resource->ResourceHISM->AddInstance(transform);
 
-		resource->ResourceHISM->SetCustomDataValue(inst, 8, size);
+		resource->ResourceHISM->SetCustomDataValue(inst, 9, size);
 
 		float r = 0.0f;
 		float g = 0.0f;
@@ -869,18 +874,19 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 		}
 
 		if (dyingChance == 100)
-			resource->ResourceHISM->SetCustomDataValue(inst, 9, 1.0f);
+			resource->ResourceHISM->SetCustomDataValue(inst, 10, 1.0f);
 		else
-			resource->ResourceHISM->SetCustomDataValue(inst, 9, 0.0f);
+			resource->ResourceHISM->SetCustomDataValue(inst, 10, 0.0f);
 
 		r /= 255.0f;
 		g /= 255.0f;
 		b /= 255.0f;
 
-		resource->ResourceHISM->SetCustomDataValue(inst, 0, 1.0f);
-		resource->ResourceHISM->SetCustomDataValue(inst, 1, r);
-		resource->ResourceHISM->SetCustomDataValue(inst, 2, g);
-		resource->ResourceHISM->SetCustomDataValue(inst, 3, b);
+		resource->ResourceHISM->SetCustomDataValue(inst, 0, 0.0f);
+		resource->ResourceHISM->SetCustomDataValue(inst, 1, 1.0f);
+		resource->ResourceHISM->SetCustomDataValue(inst, 2, r);
+		resource->ResourceHISM->SetCustomDataValue(inst, 3, g);
+		resource->ResourceHISM->SetCustomDataValue(inst, 4, b);
 	}
 
 	ResourceTiles.Remove(Tile);
@@ -974,9 +980,9 @@ void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 {
 	Async(EAsyncExecution::Thread, [this, Period, Increment]() {
 		TArray<float> Values;
-		Values.Add(HISMGround->PerInstanceSMCustomData[4]);
 		Values.Add(HISMGround->PerInstanceSMCustomData[5]);
 		Values.Add(HISMGround->PerInstanceSMCustomData[6]);
+		Values.Add(HISMGround->PerInstanceSMCustomData[7]);
 
 		if (Period == "Spring")
 			Values[0] = FMath::Clamp(Values[0] + Increment, 0.0f, 1.0f);
@@ -1018,9 +1024,9 @@ void AGrid::SetSeasonAffect(TArray<float> Values)
 {
 	for (FResourceHISMStruct& ResourceStruct : VegetationStruct) {
 		for (int32 inst = 0; inst < ResourceStruct.Resource->ResourceHISM->GetInstanceCount(); inst++) {
-			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 10 + 4] = Values[0];
-			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 10 + 5] = Values[1];
-			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 10 + 6] = Values[2];
+			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 5] = Values[0];
+			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 6] = Values[1];
+			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 7] = Values[2];
 		}
 	}
 
@@ -1036,9 +1042,9 @@ void AGrid::SetSeasonAffect(TArray<float> Values)
 		if (Storage[x][y].Fertility == 0.0f)
 			continue;
 
-		HISMGround->PerInstanceSMCustomData[inst * 7 + 4] = Values[0];
-		HISMGround->PerInstanceSMCustomData[inst * 7 + 5] = Values[1];
-		HISMGround->PerInstanceSMCustomData[inst * 7 + 6] = Values[2];
+		HISMGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];
+		HISMGround->PerInstanceSMCustomData[inst * 8 + 6] = Values[1];
+		HISMGround->PerInstanceSMCustomData[inst * 8 + 7] = Values[2];
 	}
 
 	for (int32 inst = 0; inst < HISMFlatGround->GetInstanceCount(); inst++) {
@@ -1053,14 +1059,14 @@ void AGrid::SetSeasonAffect(TArray<float> Values)
 		if (Storage[x][y].Fertility == 0.0f)
 			continue;
 
-		HISMFlatGround->PerInstanceSMCustomData[inst * 7 + 4] = Values[0];
-		HISMFlatGround->PerInstanceSMCustomData[inst * 7 + 5] = Values[1];
-		HISMFlatGround->PerInstanceSMCustomData[inst * 7 + 6] = Values[2];
+		HISMFlatGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];
+		HISMFlatGround->PerInstanceSMCustomData[inst * 8 + 6] = Values[1];
+		HISMFlatGround->PerInstanceSMCustomData[inst * 8 + 7] = Values[2];
 	}
 
 	for (int32 inst = 0; inst < HISMRampGround->GetInstanceCount(); inst++) {
-		HISMRampGround->PerInstanceSMCustomData[inst * 7 + 4] = Values[0];
-		HISMRampGround->PerInstanceSMCustomData[inst * 7 + 5] = Values[1];
-		HISMRampGround->PerInstanceSMCustomData[inst * 7 + 6] = Values[2];
+		HISMRampGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];
+		HISMRampGround->PerInstanceSMCustomData[inst * 8 + 6] = Values[1];
+		HISMRampGround->PerInstanceSMCustomData[inst * 8 + 7] = Values[2];
 	}
 }

@@ -238,12 +238,17 @@ void UHealthComponent::Clear(AActor* Attacker)
 				totalCount += count;
 			}
 
-			int32 remainder = citizen->Balance % totalCount;
+			if (totalCount > 0) {
+				int32 remainder = citizen->Balance % totalCount;
 
-			for (auto& element : favouredChildren)
-				element.Key->Balance += (citizen->Balance / totalCount * element.Value);
+				for (auto& element : favouredChildren)
+					element.Key->Balance += (citizen->Balance / totalCount * element.Value);
 
-			camera->ResourceManager->AddUniversalResource(camera->ResourceManager->Money, remainder);
+				camera->ResourceManager->AddUniversalResource(camera->ResourceManager->Money, remainder);
+			}
+			else {
+				camera->ResourceManager->AddUniversalResource(camera->ResourceManager->Money, citizen->Balance);
+			}
 		}
 	}
 	else if (actor->IsA<AEnemy>()) {
