@@ -124,7 +124,9 @@ void UCloudComponent::ActivateCloud()
 	transform.SetLocation(spawnLoc);
 
 	int32 chance = FMath::RandRange(1, 100);
-	chance = 100;
+
+	if (!Settings->GetRain())
+		chance = 1;
 
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);
 	cloudStruct.Distance = FVector::Dist(spawnLoc, Cast<AGrid>(GetOwner())->GetActorLocation());
@@ -195,7 +197,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 
 	if (Chance > 75) {
 		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(precipitation, TEXT("SpawnLocations"), locations);
-		spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y;
+		spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y * FMath::FRandRange(0.5f, 1.5f);
 	}
 
 	if (bSnow) {
@@ -231,7 +233,7 @@ TArray<FVector> UCloudComponent::SetPrecipitationLocations(FTransform Transform,
 			float xCoord = (x - (x / 4.0f * i)) * FMath::Cos(FMath::DegreesToRadians(Transform.GetRotation().Rotator().Yaw)) - (y - (y / 4.0f * j)) * FMath::Sin(FMath::DegreesToRadians(Transform.GetRotation().Rotator().Yaw));
 			float yCoord = (x - (x / 4.0f * i)) * FMath::Sin(FMath::DegreesToRadians(Transform.GetRotation().Rotator().Yaw)) + (y - (y / 4.0f * j)) * FMath::Cos(FMath::DegreesToRadians(Transform.GetRotation().Rotator().Yaw));
 
-			FVector vector = FVector(Transform.GetLocation().X + xCoord, Transform.GetLocation().Y + yCoord, 0.0f);
+			FVector vector = FVector(Transform.GetLocation().X + xCoord, Transform.GetLocation().Y + yCoord, Transform.GetLocation().Z);
 
 			locations.Add(vector);
 		}
@@ -286,7 +288,7 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		else
 			id += FString::FromInt(HISM->GetUniqueID()) + FString::FromInt(Instance);
 
-		timer.CreateTimer(id, GetOwner(), 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false);
+		timer.CreateTimer(id, GetOwner(), 2, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false);
 
 		if (camera->CitizenManager->FindTimer(id, GetOwner()) != nullptr) {
 			camera->CitizenManager->ResetTimer(id, GetOwner());

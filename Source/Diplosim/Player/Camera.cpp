@@ -242,6 +242,8 @@ void ACamera::StartGame()
 	bStartMenu = false;
 	bInMenu = false;
 
+	CitizenManager->StartTimers();
+
 	Grid->MapUIInstance->AddToViewport();
 }
 
@@ -266,7 +268,6 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	GetWorld()->GetTimerManager().SetTimer(ResourceManager->InterestTimer, ResourceManager, &UResourceManager::Interest, 300.0f, true);
 
-	CitizenManager->StartTimers();
 	CitizenManager->StartDiseaseTimer();
 	CitizenManager->BrochLocation = Broch->GetActorLocation();
 

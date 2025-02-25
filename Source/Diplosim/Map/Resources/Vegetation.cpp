@@ -14,7 +14,7 @@ AVegetation::AVegetation()
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
 	AsyncTask(ENamedThreads::GameThread, [this, Instance]() {
-		if (ResourceHISM->PerInstanceSMCustomData[Instance * 10 + 10] == 0.0f) {
+		if (ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10] == 0.0f) {
 			ResourceHISM->RemoveInstance(Instance);
 
 			return;
@@ -22,7 +22,7 @@ void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 
 		FTransform transform;
 		ResourceHISM->GetInstanceTransform(Instance, transform);
-		transform.SetScale3D(FVector(ResourceHISM->PerInstanceSMCustomData[Instance * 10 + 9] / 10));
+		transform.SetScale3D(FVector(ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] / 10));
 
 		ResourceHISM->UpdateInstanceTransform(Instance, transform, false);
 
@@ -38,9 +38,9 @@ void AVegetation::Grow()
 	for (int32 i = GrowingInstances.Num() - 1; i > -1; i--) {
 		int32 inst = GrowingInstances[i];
 
-		ResourceHISM->SetCustomDataValue(inst, 1, FMath::Clamp(ResourceHISM->PerInstanceSMCustomData[inst * 10 + 8] + 1.0f, 0.0f, 10.0f));
+		ResourceHISM->SetCustomDataValue(inst, 1, FMath::Clamp(ResourceHISM->PerInstanceSMCustomData[inst * 11 + 8] + 1.0f, 0.0f, 10.0f));
 
-		if (ResourceHISM->PerInstanceSMCustomData[inst * 10 + 8] < 10)
+		if (ResourceHISM->PerInstanceSMCustomData[inst * 11 + 8] < 10)
 			continue;
 
 		FTransform transform;
@@ -48,20 +48,20 @@ void AVegetation::Grow()
 
 		FVector scale = transform.GetScale3D();
 
-		if (scale.X < ResourceHISM->PerInstanceSMCustomData[inst * 10 + 9])
-			scale.X += ResourceHISM->PerInstanceSMCustomData[inst * 10 + 9] / 10;
+		if (scale.X < ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9])
+			scale.X += ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] / 10;
 
-		if (scale.Y < ResourceHISM->PerInstanceSMCustomData[inst * 10 + 9])
-			scale.Y += ResourceHISM->PerInstanceSMCustomData[inst * 10 + 9] / 10;
+		if (scale.Y < ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9])
+			scale.Y += ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] / 10;
 
-		if (scale.Z < ResourceHISM->PerInstanceSMCustomData[inst * 10 + 9])
-			scale.Z += ResourceHISM->PerInstanceSMCustomData[inst * 10 + 9] / 10;
+		if (scale.Z < ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9])
+			scale.Z += ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] / 10;
 
 		transform.SetScale3D(scale);
 
 		ResourceHISM->UpdateInstanceTransform(inst, transform, false);
 
-		ResourceHISM->PerInstanceSMCustomData[inst * 10 + 8] = 0;
+		ResourceHISM->PerInstanceSMCustomData[inst * 11 + 8] = 0;
 
 		if (!IsHarvestable(inst, scale))
 			continue;
@@ -75,7 +75,7 @@ void AVegetation::Grow()
 
 bool AVegetation::IsHarvestable(int32 Instance, FVector Scale)
 {
-	if (Scale.X < ResourceHISM->PerInstanceSMCustomData[Instance * 10 + 9] || Scale.Y < ResourceHISM->PerInstanceSMCustomData[Instance * 10 + 9] || Scale.Z < ResourceHISM->PerInstanceSMCustomData[Instance * 10 + 9])
+	if (Scale.X < ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] || Scale.Y < ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] || Scale.Z < ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9])
 		return false;
 
 	return true;

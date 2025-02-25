@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "Engine/ExponentialHeightFog.h"
 
 #include "Atmosphere/Clouds.h"
@@ -53,6 +54,10 @@ AGrid::AGrid()
 	HISMRiver->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 	HISMRiver->SetCanEverAffectNavigation(false);
 	HISMRiver->NumCustomDataFloats = 4;
+
+	LavaComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("LavaComponent"));
+	LavaComponent->SetupAttachment(GetRootComponent());
+	LavaComponent->bAutoActivate = false;
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 	AtmosphereComponent->WindComponent->SetupAttachment(RootComponent);
@@ -410,6 +415,11 @@ void AGrid::Render()
 	// Spawn egg basket
 	GetWorld()->GetTimerManager().SetTimer(EggBasketTimer, this, &AGrid::SpawnEggBasket, 300.0f, true, 0.0f);
 
+	// Lava Component
+	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(LavaComponent, TEXT("SpawnLocations"), LavaSpawnLocations);
+	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
+	LavaComponent->Activate();
+
 	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();
 
@@ -600,9 +610,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 		inst = HISMLava->AddInstance(transform);
 
-		UNiagaraComponent* comp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LavaSystem, transform.GetLocation());
-
-		LavaComponents.Add(comp);
+		LavaSpawnLocations.Add(transform.GetLocation());
 	}
 	else if (Tile->bRiver) {
 		transform.SetRotation(FRotator(0.0f).Quaternion());
@@ -939,10 +947,8 @@ void AGrid::Clear()
 
 	Storage.Empty();
 
-	for (UNiagaraComponent* comp : LavaComponents)
-		comp->DestroyComponent();
-
-	LavaComponents.Empty();
+	LavaComponent->Deactivate();
+	LavaSpawnLocations.Empty();
 
 	CloudComponent->Clear();
 

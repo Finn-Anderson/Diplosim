@@ -36,6 +36,8 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Sun->SetDynamicShadowDistanceMovableLight(20000.0f);
 	Sun->SetCascadeDistributionExponent(1.0f);
 	Sun->SetAtmosphereSunLightIndex(0);
+	Sun->SetShadowSlopeBias(1.0f);
+	Sun->SetShadowBias(1.0f);
 	Sun->SetCastShadows(true);
 	Sun->ForwardShadingPriority = 0;
 
@@ -44,6 +46,8 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Moon->SetDynamicShadowDistanceMovableLight(20000.0f);
 	Moon->SetCascadeDistributionExponent(1.0f);
 	Moon->SetAtmosphereSunLightIndex(1);
+	Moon->SetShadowSlopeBias(1.0f);
+	Moon->SetShadowBias(1.0f);
 	Moon->SetCastShadows(false);
 	Moon->SetIntensity(0.5f);
 	Moon->ForwardShadingPriority = 1;

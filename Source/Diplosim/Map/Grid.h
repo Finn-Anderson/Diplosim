@@ -147,12 +147,12 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
-	// Lava Particle System
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles")
-		class UNiagaraSystem* LavaSystem;
+	// Lava
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lava")
+		class UNiagaraComponent* LavaComponent;
 
 	UPROPERTY()
-		TArray<class UNiagaraComponent*> LavaComponents;
+		TArray<FVector> LavaSpawnLocations;
 
 	// Map
 	void Load();

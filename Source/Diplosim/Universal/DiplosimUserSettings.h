@@ -17,6 +17,9 @@ protected:
 		bool bRenderClouds;
 
 	UPROPERTY(Config)
+		bool bRain;
+
+	UPROPERTY(Config)
 		bool bRenderWind;
 
 	UPROPERTY(Config)
@@ -45,6 +48,12 @@ protected:
 
 	UPROPERTY(Config)
 		bool bVignette;
+
+	UPROPERTY(Config)
+		bool bSSAO;
+
+	UPROPERTY(Config)
+		float Bloom;
 
 	UPROPERTY(Config)
 		int32 ScreenPercentage;
@@ -95,6 +104,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Clouds")
 		bool GetRenderClouds() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Clouds")
+		void SetRain(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Clouds")
+		bool GetRain() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Wind")
 		void SetRenderWind(bool Value);
 
@@ -143,17 +158,29 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Motion Blur")
 		bool GetMotionBlur() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Depth Of Field")
+	UFUNCTION(BlueprintCallable, Category = "Post Processing")
 		void SetDepthOfField(bool Value);
 
-	UFUNCTION(BlueprintPure, Category = "Vignette")
+	UFUNCTION(BlueprintPure, Category = "Post Processing")
 		bool GetDepthOfField() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Vignette")
+	UFUNCTION(BlueprintCallable, Category = "Post Processing")
 		void SetVignette(bool Value);
 
-	UFUNCTION(BlueprintPure, Category = "Vignette")
+	UFUNCTION(BlueprintPure, Category = "Post Processing")
 		bool GetVignette() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Post Processing")
+		void SetSSAO(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Post Processing")
+		bool GetSSAO() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Post Processing")
+		void SetBloom(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "Post Processing")
+		float GetBloom() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Screen Percentage")
 		void SetScreenPercentage(int32 Value);

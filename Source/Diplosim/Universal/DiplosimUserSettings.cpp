@@ -8,6 +8,7 @@
 #include "Misc/FileHelper.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -24,6 +25,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bRenderClouds = true;
 	bRenderWind = true;
 	bRenderFog = true;
+	bRain = true;
 
 	SunBrightness = 10.0f;
 	MoonBrightness = 0.5f;
@@ -39,6 +41,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bMotionBlur = false;
 	bDepthOfField = false;
 	bVignette = true;
+	bSSAO = true;
+	Bloom = 0.6f;
 
 	bIsMaximised = false;
 
@@ -74,9 +78,9 @@ void UDiplosimUserSettings::OnWindowResize(FViewport* Viewport, uint32 Value)
 		return;
 
 	if (GEngine->GameViewport->GetWindow()->GetNativeWindow()->IsMaximized())
-		bIsMaximised = true;
+		SetMaximised(true);
 	else
-		bIsMaximised = false;
+		SetMaximised(false);
 
 	Resolution = res;
 
@@ -106,6 +110,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetRenderClouds(value.ToBool());
 	else if (FString("bRenderWind").Equals(Key))
 		SetRenderWind(value.ToBool());
+	else if (FString("bRain").Equals(Key))
+		SetRain(value.ToBool());
 	else if (FString("bRenderFog").Equals(Key))
 		SetRenderFog(value.ToBool());
 	else if (FString("SunBrightness").Equals(Key))
@@ -126,6 +132,10 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetDepthOfField(value.ToBool());
 	else if (FString("bVignette").Equals(Key))
 		SetVignette(value.ToBool());
+	else if (FString("bSSAO").Equals(Key))
+		SetSSAO(value.ToBool());
+	else if (FString("Bloom").Equals(Key))
+		SetBloom(FCString::Atof(Value));
 	else if (FString("ScreenPercentage").Equals(Key))
 		SetScreenPercentage(FCString::Atoi(Value));
 	else if (FString("WindowPosition").Equals(Key))
@@ -172,6 +182,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 {
 	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderWind"), GetRenderWind(), Filename);
+	GConfig->SetBool(*Section, TEXT("bRain"), GetRain(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderFog"), GetRenderFog(), Filename);
 	GConfig->SetFloat(*Section, TEXT("SunBrightness"), GetSunBrightness(), Filename);
 	GConfig->SetFloat(*Section, TEXT("MoonBrightness"), GetMoonBrightness(), Filename);
@@ -182,6 +193,8 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bMotionBlur"), GetMotionBlur(), Filename);
 	GConfig->SetBool(*Section, TEXT("bDepthOfField"), GetDepthOfField(), Filename);
 	GConfig->SetBool(*Section, TEXT("bVignette"), GetVignette(), Filename);
+	GConfig->SetBool(*Section, TEXT("bSSAO"), GetSSAO(), Filename);
+	GConfig->SetFloat(*Section, TEXT("Bloom"), GetBloom(), Filename);
 	GConfig->SetInt(*Section, TEXT("ScreenPercentage"), GetScreenPercentage(), Filename);
 	GConfig->SetVector2D(*Section, TEXT("WindowPosition"), GetWindowPos(), Filename);
 	GConfig->SetBool(*Section, TEXT("bIsMaximised"), GetMaximised(), Filename);
@@ -234,6 +247,34 @@ void UDiplosimUserSettings::SetRenderClouds(bool Value)
 bool UDiplosimUserSettings::GetRenderClouds() const
 {
 	return bRenderClouds;
+}
+
+void UDiplosimUserSettings::SetRain(bool Value)
+{
+	if (bRain == Value)
+		return;
+
+	bRain = Value;
+
+	if (Clouds == nullptr || bRain)
+		return;
+
+	for (int32 i = Clouds->Clouds.Num() - 1; i > -1; i--) {
+		FCloudStruct cloudStruct = Clouds->Clouds[i];
+
+		if (cloudStruct.Precipitation == nullptr)
+			continue;
+
+		cloudStruct.Precipitation->DestroyComponent();
+		cloudStruct.HISMCloud->DestroyComponent();
+
+		Clouds->Clouds.RemoveAt(i);
+	}
+}
+
+bool UDiplosimUserSettings::GetRain() const
+{
+	return bRain;
 }
 
 void UDiplosimUserSettings::SetRenderWind(bool Value)
@@ -411,6 +452,42 @@ bool UDiplosimUserSettings::GetVignette() const
 	return bVignette;
 }
 
+void UDiplosimUserSettings::SetSSAO(bool Value)
+{
+	bSSAO = Value;
+
+	if (Camera == nullptr)
+		return;
+
+	if (bSSAO)
+		Camera->CameraComponent->PostProcessSettings.AmbientOcclusionIntensity = 0.5f;
+	else
+		Camera->CameraComponent->PostProcessSettings.AmbientOcclusionIntensity = 0.0f;
+}
+
+bool UDiplosimUserSettings::GetSSAO() const
+{
+	return bSSAO;
+}
+
+void UDiplosimUserSettings::SetBloom(float Value)
+{
+	if (Bloom == Value)
+		return;
+
+	Bloom = Value;
+
+	if (Camera == nullptr)
+		return;
+
+	Camera->CameraComponent->PostProcessSettings.BloomIntensity = Value;
+}
+
+float UDiplosimUserSettings::GetBloom() const
+{
+	return Bloom;
+}
+
 void UDiplosimUserSettings::SetScreenPercentage(int32 Value)
 {
 	ScreenPercentage = Value;
@@ -434,6 +511,8 @@ void UDiplosimUserSettings::SetResolution(FString Value)
 	FString cmd = "r.SetRes " + Resolution;
 
 	GEngine->Exec(GetWorld(), *cmd);
+
+	SetMaximised(false);
 }
 
 FString UDiplosimUserSettings::GetResolution() const

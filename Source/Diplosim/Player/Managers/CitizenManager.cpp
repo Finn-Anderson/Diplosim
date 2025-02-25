@@ -22,6 +22,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Map/Grid.h"
+#include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
 
@@ -202,7 +203,7 @@ void UCitizenManager::ReadJSONFile(FString path)
 void UCitizenManager::Loop()
 {
 	for (int32 i = Timers.Num() - 1; i > -1; i--) {
-		if ((!Citizens.Contains(Timers[i].Actor) && !Buildings.Contains(Timers[i].Actor) && Timers[i].Actor != GetOwner()) || (Timers[i].Actor->IsA<ACitizen>() && Cast<ACitizen>(Timers[i].Actor)->Rebel)) {
+		if (!IsValid(Timers[i].Actor) || (Timers[i].Actor->IsA<ACitizen>() && (!Citizens.Contains(Timers[i].Actor) || Cast<ACitizen>(Timers[i].Actor)->Rebel)) || (Timers[i].Actor->IsA<ABuilding>() && !Buildings.Contains(Timers[i].Actor))) {
 			Timers.RemoveAt(i);
 
 			continue;
@@ -223,59 +224,61 @@ void UCitizenManager::Loop()
 		}
 	}
 
-	for (FPartyStruct& party : Parties) {
-		if (party.Leader != nullptr)
-			continue;
+	if (!Citizens.IsEmpty()) {
+		for (FPartyStruct& party : Parties) {
+			if (party.Leader != nullptr)
+				continue;
 
-		SelectNewLeader(party.Party);
-	}
-
-	for (FLawStruct& law : Laws) {
-		if (law.Cooldown == 0)
-			continue;
-
-		law.Cooldown--;
-	}
-
-	int32 rebelCount = 0;
-
-	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
-
-	for (ACitizen* citizen : Citizens) {
-		if (citizen->Rebel)
-			continue;
-
-		for (FConditionStruct &condition : citizen->HealthIssues) {
-			condition.Level++;
-
-			if (condition.Level == condition.DeathLevel)
-				citizen->HealthComponent->TakeHealth(100, citizen);
+			SelectNewLeader(party.Party);
 		}
 
-		citizen->FindJobAndHouse(timeToCompleteDay);
-			
-		citizen->SetHappiness();
+		for (FLawStruct& law : Laws) {
+			if (law.Cooldown == 0)
+				continue;
 
-		if (GetMembersParty(citizen) != nullptr && GetMembersParty(citizen)->Party == EParty::ShellBreakers)
-			rebelCount++;
-	}
+			law.Cooldown--;
+		}
 
-	if (Citizens.Num() > 0 && (rebelCount / Citizens.Num()) * 100 > 33 && !IsRebellion()) {
-		CooldownTimer--;
+		int32 rebelCount = 0;
 
-		if (CooldownTimer < 1) {
-			auto value = Async(EAsyncExecution::TaskGraphMainThread, [this]() { return FMath::RandRange(1, 3); });
+		int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-			if (value.Get() == 3) {
-				Overthrow();
+		for (ACitizen* citizen : Citizens) {
+			if (citizen->Rebel)
+				continue;
+
+			for (FConditionStruct& condition : citizen->HealthIssues) {
+				condition.Level++;
+
+				if (condition.Level == condition.DeathLevel)
+					citizen->HealthComponent->TakeHealth(100, citizen);
 			}
-			else {
-				FLawStruct lawStruct;
-				lawStruct.BillType = EBillType::Abolish;
 
-				int32 index = Laws.Find(lawStruct);
+			citizen->FindJobAndHouse(timeToCompleteDay);
 
-				ProposeBill(Laws[index]);
+			citizen->SetHappiness();
+
+			if (GetMembersParty(citizen) != nullptr && GetMembersParty(citizen)->Party == EParty::ShellBreakers)
+				rebelCount++;
+		}
+
+		if ((rebelCount / Citizens.Num()) * 100 > 33 && !IsRebellion()) {
+			CooldownTimer--;
+
+			if (CooldownTimer < 1) {
+				auto value = Async(EAsyncExecution::TaskGraphMainThread, [this]() { return FMath::RandRange(1, 3); });
+
+				if (value.Get() == 3) {
+					Overthrow();
+				}
+				else {
+					FLawStruct lawStruct;
+					lawStruct.BillType = EBillType::Abolish;
+
+					int32 index = Laws.Find(lawStruct);
+
+					ProposeBill(Laws[index]);
+				}
 			}
 		}
 	}
