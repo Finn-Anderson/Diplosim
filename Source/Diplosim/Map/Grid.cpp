@@ -68,6 +68,8 @@ AGrid::AGrid()
 	Peaks = 2;
 	Rivers = 2;
 	Type = EType::Round;
+	bLava = true;
+	MaxLevel = 7;
 
 	PercentageGround = 30;
 }
@@ -149,22 +151,23 @@ void AGrid::Render()
 
 	int32 levelTotal = Size * (PercentageGround / 100.0f);
 
-	int32 level = 8;
+	int32 level = MaxLevel + 1;
 
 	int32 levelCount = 0;
 
 	float pow = 0.5f;
 
 	// Set tile information based on adjacent tile types until all tile struct choices are set
-	while (levelTotal > 0) {
+	while (true) {
 		// Set current level
 		if (levelCount <= 0) {
 			level--;
 
-			if (level == 0)
-				levelCount = levelTotal;
-			else
-				levelCount = FMath::Pow(pow, FMath::Abs(level)) * levelTotal;
+			if (level < 0)
+				break;
+
+			float percentage = (2.0f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2)) * FMath::Exp(-1.0f * (FMath::Square(level) / (2.0f * FMath::Square(MaxLevel / 2)))));
+			levelCount = FMath::Clamp(percentage * levelTotal, 0, levelTotal);
 		}
 
 		// Get Tile and adjacent tiles
@@ -207,12 +210,14 @@ void AGrid::Render()
 
 					chooseableTiles.Remove(tile);
 
-					levelTotal--;
 					levelCount--;
 				}
 			}
 		}
 		else {
+			if (chooseableTiles.IsEmpty())
+				break;
+
 			int32 chosenNum = FMath::RandRange(0, chooseableTiles.Num() - 1);
 			chosenTile = chooseableTiles[chosenNum];
 
@@ -250,7 +255,6 @@ void AGrid::Render()
 
 		chooseableTiles.Remove(chosenTile);
 
-		levelTotal--;
 		levelCount--;
 	}
 
@@ -267,18 +271,26 @@ void AGrid::Render()
 
 	for (TArray<FTileStruct>& row : Storage) {
 		for (FTileStruct& tile : row) {
-			if (tile.Level < 3 || tile.Level > 4 || tile.bRamp || tile.bEdge)
+			int32 lowPoint = FMath::Floor(MaxLevel / 2.0f);
+			int32 highPoint = MaxLevel;
+
+			if (bLava)
+				highPoint -= 2;
+
+			if (tile.Level < lowPoint || tile.Level > highPoint || tile.bRamp || tile.bEdge)
 				continue;
 
 			bool bNextToLava = false;
 
-			for (auto& element : tile.AdjacentTiles) {
-				FTileStruct* t = element.Value;
+			if (bLava) {
+				for (auto& element : tile.AdjacentTiles) {
+					FTileStruct* t = element.Value;
 
-				if (t->Level != 7)
-					continue;
+					if (t->Level != 7)
+						continue;
 
-				bNextToLava = true;
+					bNextToLava = true;
+				}
 			}
 
 			if (!bNextToLava)
@@ -287,6 +299,9 @@ void AGrid::Render()
 	}
 
 	for (int32 i = 0; i < Rivers; i++) {
+		if (riverStartTiles.IsEmpty())
+			break;
+
 		int32 chosenNum = FMath::RandRange(0, riverStartTiles.Num() - 1);
 		FTileStruct* chosenTile = riverStartTiles[chosenNum];
 
@@ -477,6 +492,9 @@ void AGrid::FillHoles(FTileStruct* Tile, bool bFillRiver)
 			result = levels[levels.Num() / 2];
 	}
 
+	if (bLava && levels.Contains(MaxLevel) && Tile->Level != MaxLevel && result < MaxLevel - 1)
+		result = MaxLevel - 1;
+
 	if (result == Tile->Level)
 		return;
 
@@ -498,7 +516,7 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 	Tile->Rotation = (FRotator(0.0f, 90.0f, 0.0f) * rand).Quaternion();
 
 	// Set fertility
-	if (Tile->Level == 7 || Tile->Level < 0)
+	if ((bLava && Tile->Level == MaxLevel) || Tile->Level < 0)
 		return;
 
 	int32 value = FMath::RandRange(-1, 1);
@@ -509,7 +527,7 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 	for (auto& element : Tile->AdjacentTiles) {
 		FTileStruct* t = element.Value;
 
-		if (t->Level == 7) {
+		if (bLava && t->Level == MaxLevel) {
 			Tile->Fertility = 0;
 
 			return;
@@ -605,8 +623,8 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 		inst = HISMFlatGround->AddInstance(transform);
 	}
-	else if (Tile->Level == 7) {
-		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * 5));
+	else if (bLava && Tile->Level == MaxLevel) {
+		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * (MaxLevel - 2)));
 
 		inst = HISMLava->AddInstance(transform);
 
@@ -630,39 +648,54 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		HISMRiver->SetCustomDataValue(inst, 2, g);
 		HISMRiver->SetCustomDataValue(inst, 3, b);
 
+		FTransform tf;
+		int32 num = Tile->Level - -1;
+		int32 sign = 1;
+		bool bOnYAxis = true;
+
+		if (Tile->AdjacentTiles.Num() < 4) {
+			TArray<FString> directionList;
+
+			if (!Tile->AdjacentTiles.Contains("Above"))
+				directionList.Add("Above");
+
+			if (!Tile->AdjacentTiles.Contains("Below"))
+				directionList.Add("Below");
+
+			if (!Tile->AdjacentTiles.Contains("Left"))
+				directionList.Add("Left");
+
+			if (!Tile->AdjacentTiles.Contains("Right"))
+				directionList.Add("Right");
+
+			for (FString direction : directionList) {
+				if (direction == "Below" || direction == "Right")
+					sign = -1;
+
+				if (direction == "Left" || direction == "Right")
+					bOnYAxis = false;
+
+				CreateWaterfall(transform.GetLocation(), num, sign, bOnYAxis, r, g, b);
+			}
+		}
+
 		for (auto& element : Tile->AdjacentTiles) {
 			FTileStruct* t = element.Value;
 
 			if ((!t->bRiver && t->Level > 0) || t->Level >= Tile->Level)
 				continue;
 
-			int32 num = Tile->Level - t->Level;
-			int32 sign = 1;
+			num = Tile->Level - t->Level;
+			sign = 1;
+			bOnYAxis = true;
 
-			FTransform tf;
+			if (t->Y < Tile->Y || t->X > Tile->X)
+				sign = -1;
 
-			for (int32 i = 0; i < num; i++) {
-				if (t->X == Tile->X) {
-					if (t->Y < Tile->Y)
-						sign = -1;
+			if (t->Y == Tile->Y)
+				bOnYAxis = false;
 
-					tf.SetRotation(FRotator(0.0f, 0.0f, 90.0f * sign).Quaternion());
-					tf.SetLocation(transform.GetLocation() + FVector(0.0f, 30.0f * sign * -1, 30.0f - (100.0f * i)));
-				}
-				else {
-					if (t->X > Tile->X)
-						sign = -1;
-
-					tf.SetRotation(FRotator(90.0f * sign, 0.0f, 0.0f).Quaternion());
-					tf.SetLocation(transform.GetLocation() + FVector(30.0f * sign, 0.0f, 30.0f - (100.0f * i)));
-				}
-
-				int32 wfInst = HISMRiver->AddInstance(tf);
-				HISMRiver->SetCustomDataValue(wfInst, 0, 1.0f);
-				HISMRiver->SetCustomDataValue(wfInst, 1, r);
-				HISMRiver->SetCustomDataValue(wfInst, 2, g);
-				HISMRiver->SetCustomDataValue(wfInst, 3, b);
-			}
+			CreateWaterfall(transform.GetLocation(), num, sign, bOnYAxis, r, g, b);
 		}
 	}
 	else {
@@ -719,7 +752,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 			int32 chance = FMath::RandRange(1, 100);
 
 			for (auto& element : Tile->AdjacentTiles) {
-				if (element.Value->Level > Tile->Level && element.Value->Level != 7 && chance > 99) {
+				if (element.Value->Level > Tile->Level && element.Value->Level != MaxLevel && chance > 99) {
 					Tile->bRamp = true;
 
 					transform.SetRotation((FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0) - FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, 0)).ToOrientationQuat());
@@ -744,7 +777,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 					bFlat = false;
 				else
 					for (auto& element : Tile->AdjacentTiles)
-						if (element.Value->Level < Tile->Level || (element.Value->Level == 7 && Tile->Level != 5))
+						if (element.Value->Level < Tile->Level || (element.Value->Level == MaxLevel && Tile->Level == (MaxLevel - 1)))
 							bFlat = false;
 
 				if (bFlat) {
@@ -770,6 +803,28 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 	}
 
 	Tile->Instance = inst;
+}
+
+void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis, float R, float G, float B)
+{
+	for (int32 i = 0; i < Num; i++) {
+		FTransform transform;
+
+		if (bOnYAxis) {
+			transform.SetRotation(FRotator(0.0f, 0.0f, 90.0f * Sign).Quaternion());
+			transform.SetLocation(Location + FVector(0.0f, 30.0f * Sign * -1, 30.0f - (100.0f * i)));
+		}
+		else {
+			transform.SetRotation(FRotator(90.0f * Sign, 0.0f, 0.0f).Quaternion());
+			transform.SetLocation(Location + FVector(30.0f * Sign, 0.0f, 30.0f - (100.0f * i)));
+		}
+
+		int32 wfInst = HISMRiver->AddInstance(transform);
+		HISMRiver->SetCustomDataValue(wfInst, 0, 1.0f);
+		HISMRiver->SetCustomDataValue(wfInst, 1, R);
+		HISMRiver->SetCustomDataValue(wfInst, 2, G);
+		HISMRiver->SetCustomDataValue(wfInst, 3, B);
+	}
 }
 
 void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)

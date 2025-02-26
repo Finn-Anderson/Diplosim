@@ -144,6 +144,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		EType Type;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
+		int32 MaxLevel;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
+		bool bLava;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -168,6 +174,8 @@ public:
 	TArray<FTileStruct*> GenerateRiver(FTileStruct* Tile, FTileStruct* Peak);
 
 	void GenerateTile(FTileStruct* Tile);
+
+	void CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis, float R, float G, float B);
 
 	void Clear();
 
