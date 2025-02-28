@@ -92,6 +92,6 @@ public:
 	UPROPERTY()
 		AActor* CurrentTarget;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Attack")
 		int32 DamageMultiplier;
 };

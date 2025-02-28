@@ -1053,6 +1053,37 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 
+	if (Bill.BillType == EBillType::EducationCost || Bill.BillType == EBillType::FoodCost) {
+		int32 leftoverMoney = 0;
+
+		if (IsValid(Representative->Building.Employment))
+			leftoverMoney += Representative->Building.Employment->Wage;
+
+		if (IsValid(Representative->Building.House))
+			leftoverMoney -= Representative->Building.House->Rent;
+
+		if (leftoverMoney < Bill.Value)
+			verdict.Append({ "Opposing", "Opposing", "Opposing" });
+	}
+	else if (Bill.BillType == EBillType::PensionAge) {
+		index = Laws.Find(Bill);
+
+		if (Laws[index].Value <= Representative->BioStruct.Age) {
+			if (Bill.Value > Representative->BioStruct.Age)
+				verdict.Append({ "Opposing", "Opposing", "Opposing" });
+			else
+				verdict.Append({ "Abstaining", "Abstaining", "Abstaining" });
+		}
+		else if (Bill.Value <= Representative->BioStruct.Age)
+			verdict.Append({ "Agreeing", "Agreeing", "Agreeing" });
+	}
+	else if (Bill.BillType == EBillType::RepresentativeType) {
+		if (Bill.Value == 1 && !IsValid(Representative->Building.Employment))
+			verdict.Append({ "Opposing", "Opposing", "Opposing" });
+		else if (Bill.Value = 2 && Representative->Balance < 15)
+			verdict.Append({ "Opposing", "Opposing", "Opposing" });
+	}
+
 	auto value = Async(EAsyncExecution::TaskGraph, [verdict]() { return FMath::RandRange(0, verdict.Num() - 1); });
 
 	FString result = verdict[value.Get()];

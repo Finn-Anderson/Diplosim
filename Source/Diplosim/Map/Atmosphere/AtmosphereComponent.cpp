@@ -99,11 +99,11 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		hour += 24;
 
 	if (Calendar.Hour != hour && (hour == 6 || hour == 18)) {
-		TArray<AActor*> citizens;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACitizen::StaticClass(), citizens);
+		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
-		for (AActor* Actor : citizens)
-			Cast<ACitizen>(Actor)->SetTorch(hour);
+		if (settings->GetRenderTorches())
+			for (AActor* Actor : Cast<AGrid>(GetOwner())->Camera->CitizenManager->Citizens)
+				Cast<ACitizen>(Actor)->SetTorch(hour);
 
 		if (hour == 18) {
 			Sun->SetCastShadows(false);

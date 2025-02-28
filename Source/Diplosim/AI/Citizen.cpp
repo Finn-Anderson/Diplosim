@@ -23,6 +23,7 @@
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Work/Service/School.h"
+#include "Universal/DiplosimUserSettings.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -105,7 +106,7 @@ ACitizen::ACitizen()
 	IdealHoursSlept = 8;
 	HoursSleptToday = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 };
 
-	IdealHoursWorkedMin = 0;
+	IdealHoursWorkedMin = 4;
 	IdealHoursWorkedMax = 12;
 
 	SpeedBeforeOld = 100.0f;
@@ -151,7 +152,10 @@ void ACitizen::BeginPlay()
 
 	AIController->Idle();
 
-	SetTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour);
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+
+	if (settings->GetRenderTorches())
+		SetTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
 	GenerateGenetics();
 }
@@ -1203,7 +1207,7 @@ void ACitizen::SetHappiness()
 
 	if (HoursWorked.Num() < IdealHoursWorkedMin || HoursWorked.Num() > IdealHoursWorkedMax)
 		Happiness.SetValue("Inadequate Hours Worked", -15);
-	else if (HoursSleptToday.Num() >= IdealHoursSlept)
+	else
 		Happiness.SetValue("Ideal Hours Worked", 10);
 
 	if (MassStatus == EMassStatus::Missed)

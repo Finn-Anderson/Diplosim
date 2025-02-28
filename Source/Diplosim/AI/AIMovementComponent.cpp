@@ -78,6 +78,11 @@ void UAIMovementComponent::SetMaxSpeed(int32 Energy)
 	MaxSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, InitialSpeed * 0.3f, InitialSpeed) * SpeedMultiplier;
 }
 
+float UAIMovementComponent::GetMaximumSpeed()
+{
+	return MaxSpeed;
+}
+
 void UAIMovementComponent::SetMultiplier(float Multiplier)
 {
 	SpeedMultiplier = Multiplier;

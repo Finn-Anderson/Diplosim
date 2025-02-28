@@ -20,6 +20,9 @@ public:
 
 	void SetMaxSpeed(int32 Energy);
 
+	UFUNCTION(BlueprintCallable)
+		float GetMaximumSpeed();
+
 	void SetMultiplier(float Multiplier);
 
 	UPROPERTY()

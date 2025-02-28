@@ -294,13 +294,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		int32 Balance;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		int32 IdealHoursWorkedMin;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		int32 IdealHoursWorkedMax;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		TArray<int32> HoursWorked;
 
 	UPROPERTY()
@@ -427,10 +427,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Genetics")
 		TArray<FGeneticsStruct> Genetics;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Genetics")
 		float ProductivityMultiplier;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Genetics")
 		float Fertility;
 
 	void GenerateGenetics();
@@ -446,9 +446,9 @@ public:
 	UPROPERTY()
 		bool bSleep;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		TArray<int32> HoursSleptToday;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		int32 IdealHoursSlept;
 };

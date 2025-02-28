@@ -14,6 +14,9 @@ protected:
 		bool bEnemies;
 
 	UPROPERTY(Config)
+		bool bRenderTorches;
+
+	UPROPERTY(Config)
 		bool bRenderClouds;
 
 	UPROPERTY(Config)
@@ -97,6 +100,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Enemies")
 		bool GetSpawnEnemies() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Torches")
+		void SetRenderTorches(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Torches")
+		bool GetRenderTorches() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Clouds")
 		void SetRenderClouds(bool Value);

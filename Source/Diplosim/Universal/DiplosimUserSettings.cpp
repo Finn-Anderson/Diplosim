@@ -22,6 +22,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 {
 	bEnemies = true;
 
+	bRenderTorches = true;
+
 	bRenderClouds = true;
 	bRenderWind = true;
 	bRenderFog = true;
@@ -60,6 +62,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	Clouds = nullptr;
 
 	GameMode = nullptr;
+
+	Camera = nullptr;
 
 	Section = "/Script/Diplosim.DiplosimUserSettings";
 	Filename = FPaths::ProjectDir() + "/Content/Settings/CustomUserSettings.ini";
@@ -106,7 +110,11 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 {
 	FString value = FString(Value);
 
-	if (FString("bRenderClouds").Equals(Key))
+	if (FString("bEnemies").Equals(Key))
+		SetSpawnEnemies(value.ToBool());
+	if (FString("bRenderTorches").Equals(Key))
+		SetRenderTorches(value.ToBool());
+	else if (FString("bRenderClouds").Equals(Key))
 		SetRenderClouds(value.ToBool());
 	else if (FString("bRenderWind").Equals(Key))
 		SetRenderWind(value.ToBool());
@@ -180,6 +188,8 @@ void UDiplosimUserSettings::LoadIniSettings()
 
 void UDiplosimUserSettings::SaveIniSettings()
 {
+	GConfig->SetBool(*Section, TEXT("bEnemies"), GetSpawnEnemies(), Filename);
+	GConfig->SetBool(*Section, TEXT("bRenderTorches"), GetRenderTorches(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderWind"), GetRenderWind(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRain"), GetRain(), Filename);
@@ -220,6 +230,27 @@ void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
 bool UDiplosimUserSettings::GetSpawnEnemies() const
 {
 	return bEnemies;
+}
+
+void UDiplosimUserSettings::SetRenderTorches(bool Value)
+{
+	bRenderTorches = Value;
+
+	if (Camera == nullptr || Atmosphere == nullptr)
+		return;
+
+	int32 hour = 12;
+
+	if (bRenderTorches)
+		hour = Atmosphere->Calendar.Hour;
+
+	for (ACitizen* citizen : Camera->CitizenManager->Citizens)
+		citizen->SetTorch(hour);
+}
+
+bool UDiplosimUserSettings::GetRenderTorches() const
+{
+	return bRenderTorches;
 }
 
 void UDiplosimUserSettings::SetRenderClouds(bool Value)
