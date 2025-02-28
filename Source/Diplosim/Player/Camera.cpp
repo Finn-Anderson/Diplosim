@@ -157,7 +157,7 @@ void ACamera::BeginPlay()
 	EventUIInstance->AddToViewport();
 
 	WarningUIInstance = CreateWidget<UUserWidget>(pcontroller, WarningUI);
-	WarningUIInstance->AddToViewport();
+	WarningUIInstance->AddToViewport(1000);
 
 	ParliamentUIInstance = CreateWidget<UUserWidget>(pcontroller, ParliamentUI);
 
@@ -495,6 +495,9 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action(const struct FInputActionInstance& Instance)
 {
+	if (BribeUIInstance->IsInViewport())
+		BribeUIInstance->RemoveFromParent();
+	
 	if (bInMenu || ParliamentUIInstance->IsInViewport())
 		return;
 

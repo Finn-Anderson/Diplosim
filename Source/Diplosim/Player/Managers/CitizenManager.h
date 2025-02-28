@@ -542,5 +542,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
 		TArray<FPersonality> Personalities;
 
-		TArray<FPersonality*> GetCitizensPersonalities(class ACitizen* Citizen);
+	TArray<FPersonality*> GetCitizensPersonalities(class ACitizen* Citizen);
 };

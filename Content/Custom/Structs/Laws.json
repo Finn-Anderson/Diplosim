@@ -254,7 +254,7 @@
 			"Bills": {
 				"Descriptions": [
 					{
-						"Description": "Anyone can be a representative",
+						"Description": "Set representatives to anyone",
 						"Min": 0,
 						"Max": 0
 					},

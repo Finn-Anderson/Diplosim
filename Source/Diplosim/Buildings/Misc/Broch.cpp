@@ -30,12 +30,12 @@ void ABroch::SpawnCitizens()
 
 		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, BuildingMesh->GetSocketLocation(name), GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f));
 
+		for (int32 i = 0; i < 2; i++)
+			citizen->GivePersonalityTrait();
+
 		citizen->BioStruct.Age = 17;
 		citizen->Birthday();
 
 		citizen->HealthComponent->AddHealth(100);
-
-		for (int32 i = 0; i < 2; i++)
-			citizen->GivePersonalityTrait();
 	}
 }

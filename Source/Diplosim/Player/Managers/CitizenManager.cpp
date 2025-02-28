@@ -835,7 +835,7 @@ void UCitizenManager::Election()
 		TArray<ACitizen*> citizens;
 
 		for (TPair<ACitizen*, TEnumAsByte<ESway>> pair : party.Members) {
-			if ((representativeType == 1.0f && pair.Key->Building.Employment == nullptr) || (representativeType == 2.0f && pair.Key->Balance < 15))
+			if ((representativeType == 1 && pair.Key->Building.Employment == nullptr) || (representativeType == 2 && pair.Key->Balance < 15))
 				continue;
 
 			citizens.Add(pair.Key);
@@ -1000,14 +1000,14 @@ void UCitizenManager::MotionBill(FLawStruct Bill)
 			if (Votes.For.Contains(citizen) || Votes.Against.Contains(citizen))
 				continue;
 
-			FTimerHandle VerdictTimer;
-			GetWorld()->GetTimerManager().SetTimer(VerdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, citizen, Bill, false), 0.1f * count, false);
+			FTimerHandle verdictTimer;
+			GetWorld()->GetTimerManager().SetTimer(verdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, citizen, Bill, false), 0.1f * count, false);
 
 			count++;
 		}
 
-		FTimerHandle VerdictTimer;
-		GetWorld()->GetTimerManager().SetTimer(VerdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::TallyVotes, Bill), 0.1f * count + 0.1f, false);
+		FTimerHandle tallyTimer;
+		GetWorld()->GetTimerManager().SetTimer(tallyTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::TallyVotes, Bill), 0.1f * count + 0.1f, false);
 	});
 }
 
@@ -1028,9 +1028,9 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 
 	int32 index = Bill.Lean.Find(partyLean);
 
-	if (!Bill.Lean[index].ForRange.IsEmpty() && IsInRange(Bill.Lean[index].ForRange, Bill.Value))
+	if (index != INDEX_NONE && !Bill.Lean[index].ForRange.IsEmpty() && IsInRange(Bill.Lean[index].ForRange, Bill.Value))
 		verdict = { "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Agreeing", "Abstaining", "Abstaining", "Opposing" };
-	else if (!Bill.Lean[index].AgainstRange.IsEmpty() && IsInRange(Bill.Lean[index].AgainstRange, Bill.Value))
+	else if (index != INDEX_NONE && !Bill.Lean[index].AgainstRange.IsEmpty() && IsInRange(Bill.Lean[index].AgainstRange, Bill.Value))
 		verdict = { "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Opposing", "Abstaining", "Abstaining", "Agreeing" };
 	else
 		verdict = { "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Abstaining", "Agreeing", "Agreeing", "Opposing", "Opposing" };
@@ -1043,6 +1043,9 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 		personalityLean.Personality = personality->Trait;
 
 		index = Bill.Lean.Find(personalityLean);
+
+		if (index == INDEX_NONE)
+			continue;
 
 		if (!Bill.Lean[index].ForRange.IsEmpty() && IsInRange(Bill.Lean[index].ForRange, Bill.Value))
 			verdict.Append({ "Agreeing", "Agreeing", "Agreeing" });

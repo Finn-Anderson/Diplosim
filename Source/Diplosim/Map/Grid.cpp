@@ -166,7 +166,7 @@ void AGrid::Render()
 			if (level < 0)
 				break;
 
-			float percentage = (2.0f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2)) * FMath::Exp(-1.0f * (FMath::Square(level) / (2.0f * FMath::Square(MaxLevel / 2)))));
+			float percentage = (2.0f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(level) / (2.0f * FMath::Square(MaxLevel / 2.5f)))));
 			levelCount = FMath::Clamp(percentage * levelTotal, 0, levelTotal);
 		}
 
