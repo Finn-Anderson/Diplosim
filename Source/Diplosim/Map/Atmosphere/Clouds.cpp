@@ -313,13 +313,12 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 	WetnessStruct.Add(wetness);
 
 	if (!GetWorld()->GetTimerManager().IsTimerActive(WetnessTimer))
-		SetGradualWetness();
+		GetWorld()->GetTimerManager().SetTimer(WetnessTimer, this, &UCloudComponent::SetGradualWetness, 0.02f, true, 0.0f);
 }
 
 void UCloudComponent::SetGradualWetness()
 {
 	for (int32 i = (WetnessStruct.Num() - 1); i > -1; i--) {
-
 		WetnessStruct[i].Value += WetnessStruct[i].Increment;
 
 		if (WetnessStruct[i].Actor != nullptr) {
@@ -347,8 +346,9 @@ void UCloudComponent::SetGradualWetness()
 		if (WetnessStruct[i].Value <= 0.0f || WetnessStruct[i].Value >= 1.0f)
 			WetnessStruct.RemoveAt(i);
 	}
-	
-	GetWorld()->GetTimerManager().SetTimer(WetnessTimer, this, &UCloudComponent::SetGradualWetness, 0.02f, false);
+
+	if (WetnessStruct.IsEmpty())
+		GetWorld()->GetTimerManager().ClearTimer(WetnessTimer);
 }
 
 void UCloudComponent::SetMaterialWetness(UMaterialInterface* MaterialInterface, float Value, UStaticMeshComponent* StaticMesh, USkeletalMeshComponent* SkeletalMesh)
