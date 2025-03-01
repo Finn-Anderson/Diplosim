@@ -288,7 +288,7 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		else
 			id += FString::FromInt(HISM->GetUniqueID()) + FString::FromInt(Instance);
 
-		timer.CreateTimer(id, GetOwner(), 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false);
+		timer.CreateTimer(id, GetOwner(), 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false, true);
 
 		if (camera->CitizenManager->FindTimer(id, GetOwner()) != nullptr) {
 			camera->CitizenManager->ResetTimer(id, GetOwner());
@@ -300,27 +300,55 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		}
 	}
 
-	if (Actor != nullptr) {
-		if (Actor->IsA<AAI>()) {
-			SetMaterialWetness(Cast<AAI>(Actor)->Mesh->GetMaterial(0), Value, nullptr, Cast<AAI>(Actor)->Mesh);
+	float increment = 0.02;
 
-			if (Actor->IsA<ACitizen>())
-				SetMaterialWetness(Cast<ACitizen>(Actor)->HatMesh->GetMaterial(0), Value, Cast<ACitizen>(Actor)->HatMesh, nullptr);
+	if (Value == 0.0f)
+		increment *= -1;
+
+	Value = (Value - 1.0f) * -1.0f;
+
+	FWetnessStruct wetness;
+	wetness.Create(Value, Actor, HISM, Instance, increment);
+
+	WetnessStruct.Add(wetness);
+
+	if (!GetWorld()->GetTimerManager().IsTimerActive(WetnessTimer))
+		SetGradualWetness();
+}
+
+void UCloudComponent::SetGradualWetness()
+{
+	for (int32 i = (WetnessStruct.Num() - 1); i > -1; i--) {
+
+		WetnessStruct[i].Value += WetnessStruct[i].Increment;
+
+		if (WetnessStruct[i].Actor != nullptr) {
+			if (WetnessStruct[i].Actor->IsA<AAI>()) {
+				SetMaterialWetness(Cast<AAI>(WetnessStruct[i].Actor)->Mesh->GetMaterial(0), WetnessStruct[i].Value, nullptr, Cast<AAI>(WetnessStruct[i].Actor)->Mesh);
+
+				if (WetnessStruct[i].Actor->IsA<ACitizen>())
+					SetMaterialWetness(Cast<ACitizen>(WetnessStruct[i].Actor)->HatMesh->GetMaterial(0), WetnessStruct[i].Value, Cast<ACitizen>(WetnessStruct[i].Actor)->HatMesh, nullptr);
+			}
+			else {
+				UStaticMeshComponent* meshComp = nullptr;
+
+				if (WetnessStruct[i].Actor->IsA<ABuilding>())
+					meshComp = Cast<ABuilding>(WetnessStruct[i].Actor)->BuildingMesh;
+				else
+					meshComp = Cast<AEggBasket>(WetnessStruct[i].Actor)->BasketMesh;
+
+				SetMaterialWetness(meshComp->GetMaterial(0), WetnessStruct[i].Value, meshComp, nullptr);
+			}
 		}
 		else {
-			UStaticMeshComponent* meshComp = nullptr;
-
-			if (Actor->IsA<ABuilding>())
-				meshComp = Cast<ABuilding>(Actor)->BuildingMesh;
-			else
-				meshComp = Cast<AEggBasket>(Actor)->BasketMesh;
-
-			SetMaterialWetness(meshComp->GetMaterial(0), Value, meshComp, nullptr);
+			WetnessStruct[i].HISM->SetCustomDataValue(WetnessStruct[i].Instance, 0, WetnessStruct[i].Value);
 		}
+
+		if (WetnessStruct[i].Value <= 0.0f || WetnessStruct[i].Value >= 1.0f)
+			WetnessStruct.RemoveAt(i);
 	}
-	else {
-		HISM->SetCustomDataValue(Instance, 0, Value);
-	}
+	
+	GetWorld()->GetTimerManager().SetTimer(WetnessTimer, this, &UCloudComponent::SetGradualWetness, 0.02f, false);
 }
 
 void UCloudComponent::SetMaterialWetness(UMaterialInterface* MaterialInterface, float Value, UStaticMeshComponent* StaticMesh, USkeletalMeshComponent* SkeletalMesh)

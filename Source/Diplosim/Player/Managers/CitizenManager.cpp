@@ -215,14 +215,10 @@ void UCitizenManager::Loop()
 		Timers[i].Timer++;
 
 		if (Timers[i].Timer >= Timers[i].Target) {
-			AsyncTask(ENamedThreads::GameThread, [this, i]() { 
-				Timers[i].Delegate.ExecuteIfBound();
-
-				if (Timers[i].bRepeat)
-					Timers[i].Timer = 0;
-				else
-					Timers.RemoveAt(i); 
-			});
+			if (Timers[i].bOnGameThread)
+				AsyncTask(ENamedThreads::GameThread, [this, i]() { ExecTimerDelegate(i); });
+			else
+				ExecTimerDelegate(i);
 		}
 	}
 
@@ -296,6 +292,16 @@ void UCitizenManager::Loop()
 void UCitizenManager::StartTimers()
 {
 	Async(EAsyncExecution::Thread, [this]() { Loop(); });
+}
+
+void UCitizenManager::ExecTimerDelegate(int32 Index)
+{
+	Timers[Index].Delegate.ExecuteIfBound();
+
+	if (Timers[Index].bRepeat)
+		Timers[Index].Timer = 0;
+	else
+		Timers.RemoveAt(Index);
 }
 
 FTimerStruct* UCitizenManager::FindTimer(FString ID, AActor* Actor)
@@ -780,7 +786,7 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 	FPartyStruct* party = &Parties[index];
 
 	for (auto &element : party->Members) {
-		if (GetMembersParty(element.Key)->Party != party->Party || element.Key->bHasBeenLeader)
+		if (!IsValid(element.Key) || GetMembersParty(element.Key)->Party != party->Party || element.Key->bHasBeenLeader)
 			continue;
 
 		if (candidates.Num() < 3)

@@ -28,6 +28,9 @@ struct FTimerStruct
 		bool bRepeat;
 
 	UPROPERTY()
+		bool bOnGameThread;
+
+	UPROPERTY()
 		bool bPaused;
 
 	FTimerStruct()
@@ -37,16 +40,18 @@ struct FTimerStruct
 		Timer = 0;
 		Target = 0;
 		bRepeat = false;
+		bOnGameThread = false;
 		bPaused = false;
 	}
 
-	void CreateTimer(FString Identifier, AActor* Caller, int32 Time, FTimerDelegate TimerDelegate, bool Repeat)
+	void CreateTimer(FString Identifier, AActor* Caller, int32 Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread = false)
 	{
 		ID = Identifier;
 		Actor = Caller;
 		Target = Time;
 		Delegate = TimerDelegate;
 		bRepeat = Repeat;
+		bOnGameThread = OnGameThread;
 	}
 
 	bool operator==(const FTimerStruct& other) const
@@ -363,6 +368,8 @@ public:
 
 	// Timers
 	void StartTimers();
+
+	void ExecTimerDelegate(int32 Index);
 
 	FTimerStruct* FindTimer(FString ID, AActor* Actor);
 

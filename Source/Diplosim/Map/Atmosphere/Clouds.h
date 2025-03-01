@@ -35,6 +35,50 @@ struct FCloudStruct
 	}
 };
 
+USTRUCT()
+struct FWetnessStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		float Value;
+
+	UPROPERTY()
+		AActor* Actor;
+
+	UPROPERTY()
+		class UHierarchicalInstancedStaticMeshComponent* HISM;
+
+	UPROPERTY()
+		int32 Instance;
+
+	UPROPERTY()
+		float Increment;
+
+	FWetnessStruct()
+	{
+		Value = 0.0f;
+		Actor = nullptr;
+		HISM = nullptr;
+		Instance = -1;
+		Increment = 0.0f;
+	}
+
+	void Create(float V, AActor* A, class UHierarchicalInstancedStaticMeshComponent* H, int32 Inst, float Inc)
+	{
+		Value = V;
+		Actor = A;
+		HISM = H;
+		Instance = Inst;
+		Increment = Inc;
+	}
+
+	bool operator==(const FWetnessStruct& other) const
+	{
+		return (other.Actor == Actor) || (other.HISM == HISM && other.Instance == Instance);
+	}
+};
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class DIPLOSIM_API UCloudComponent : public UActorComponent
 {
@@ -66,6 +110,8 @@ public:
 
 	void SetRainMaterialEffect(float Value, class AActor* Actor, class UHierarchicalInstancedStaticMeshComponent* HISM = nullptr, int32 Instance = -1);
 
+	void SetGradualWetness();
+
 	void SetMaterialWetness(UMaterialInterface* MaterialInterface, float Value, UStaticMeshComponent* StaticMesh, USkeletalMeshComponent* SkeletalMesh);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
@@ -88,4 +134,10 @@ public:
 
 	UPROPERTY()
 		bool bSnow;
+
+	UPROPERTY()
+		FTimerHandle WetnessTimer;
+
+	UPROPERTY()
+		TArray<FWetnessStruct> WetnessStruct;
 };
