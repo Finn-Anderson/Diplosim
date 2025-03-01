@@ -288,7 +288,7 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		else
 			id += FString::FromInt(HISM->GetUniqueID()) + FString::FromInt(Instance);
 
-		timer.CreateTimer(id, GetOwner(), 2, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false);
+		timer.CreateTimer(id, GetOwner(), 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false);
 
 		if (camera->CitizenManager->FindTimer(id, GetOwner()) != nullptr) {
 			camera->CitizenManager->ResetTimer(id, GetOwner());
@@ -299,7 +299,7 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 			camera->CitizenManager->Timers.Add(timer);
 		}
 	}
-	
+
 	if (Actor != nullptr) {
 		if (Actor->IsA<AAI>()) {
 			SetMaterialWetness(Cast<AAI>(Actor)->Mesh->GetMaterial(0), Value, nullptr, Cast<AAI>(Actor)->Mesh);

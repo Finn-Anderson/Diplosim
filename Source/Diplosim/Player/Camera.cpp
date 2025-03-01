@@ -165,6 +165,8 @@ void ACamera::BeginPlay()
 
 	BribeUIInstance = CreateWidget<UUserWidget>(pcontroller, BribeUI);
 
+	BuildingColourUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildingColourUI);
+
 	if (GetWorld()->GetMapName() == "Map")
 		Grid->Load();
 }
@@ -497,8 +499,14 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 {
 	if (BribeUIInstance->IsInViewport())
 		BribeUIInstance->RemoveFromParent();
+
+	if (BuildingColourUIInstance->IsInViewport()) {
+		BuildingColourUIInstance->RemoveFromParent();
+
+		return;
+	}
 	
-	if (bInMenu || ParliamentUIInstance->IsInViewport())
+	if (bInMenu || ParliamentUIInstance->IsInViewport() || BuildingColourUIInstance->IsInViewport())
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {

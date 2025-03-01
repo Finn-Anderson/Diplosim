@@ -240,6 +240,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetSeed(int32 Seed);
 
+	void SetBuildingColour(float R, float G, float B);
+
 	void StoreSocketLocations();
 
 	void SetSocketLocation(class ACitizen* Citizen);

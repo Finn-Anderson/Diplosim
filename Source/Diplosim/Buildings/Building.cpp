@@ -248,6 +248,14 @@ void ABuilding::SetSeed(int32 Seed)
 	}
 }
 
+void ABuilding::SetBuildingColour(float R, float G, float B)
+{
+	FLinearColor chosenColour = FLinearColor(R, G, B);
+
+	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(BuildingMesh->GetMaterial(0));
+	material->SetVectorParameterValue("Colour", chosenColour);
+}
+
 TArray<FItemStruct> ABuilding::GetRebuildCost()
 {
 	TArray<FItemStruct> items;

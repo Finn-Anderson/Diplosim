@@ -453,7 +453,7 @@ void ACitizen::FindJobAndHouse(int32 TimeToCompleteDay)
 
 			chosenHouse = house;
 		}
-		else if (!building->IsA<AWork>() || GetWorld()->GetTimeSeconds() < TimeOfEmployment + TimeToCompleteDay || chosenWorkplace == building)
+		else if (chosenWorkplace == building || !building->IsA<AWork>() || GetWorld()->GetTimeSeconds() < TimeOfEmployment + TimeToCompleteDay)
 			continue;
 
 		int32 diff = Cast<AWork>(building)->Wage;

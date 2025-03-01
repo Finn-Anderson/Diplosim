@@ -197,6 +197,12 @@ public:
 		class UUserWidget* BribeUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> BuildingColourUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* BuildingColourUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class USpringArmComponent* WidgetSpringArmComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")

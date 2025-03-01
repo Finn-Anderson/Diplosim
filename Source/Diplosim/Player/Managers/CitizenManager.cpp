@@ -215,12 +215,14 @@ void UCitizenManager::Loop()
 		Timers[i].Timer++;
 
 		if (Timers[i].Timer >= Timers[i].Target) {
-			Timers[i].Delegate.ExecuteIfBound();
+			AsyncTask(ENamedThreads::GameThread, [this, i]() { 
+				Timers[i].Delegate.ExecuteIfBound();
 
-			if (Timers[i].bRepeat)
-				Timers[i].Timer = 0;
-			else
-				Timers.RemoveAt(i);
+				if (Timers[i].bRepeat)
+					Timers[i].Timer = 0;
+				else
+					Timers.RemoveAt(i); 
+			});
 		}
 	}
 
