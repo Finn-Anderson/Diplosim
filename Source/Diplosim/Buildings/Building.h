@@ -283,6 +283,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		bool bUnique;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		bool bCoastal;
+
 	UPROPERTY()
 		TArray<FTreeStruct> TreeList;
 

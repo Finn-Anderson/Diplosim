@@ -322,20 +322,23 @@ void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABui
 
 	if (ResourceList[index].Category == "Money" || ResourceList[index].Category == "Crystal")
 		return;
-	
-	TArray<AActor*> foundStockpiles;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AStockpile::StaticClass(), foundStockpiles);
 
-	Async(EAsyncExecution::Thread, [this, foundStockpiles, Resource, Building, Amount]() {
+
+	Async(EAsyncExecution::Thread, [this, Resource, Building, Amount]() {
+		ACamera* camera = Cast<ACamera>(GetOwner());
+		TArray<AStockpile*> foundStockpiles;
+
+		for (ABuilding* building : camera->CitizenManager->Buildings)
+			if (building->IsA<AStockpile>())
+				foundStockpiles.Add(Cast<AStockpile>(building));
+
 		int32 workersNum = FMath::CeilToInt(Amount / 10.0f);
 
 		AStockpile* nearestStockpile = nullptr;
 
 		TArray<AStockpile*> stockpiles;
 
-		for (AActor* Actor : foundStockpiles) {
-			AStockpile* stockpile = Cast<AStockpile>(Actor);
-
+		for (AStockpile* stockpile : foundStockpiles) {
 			if (!stockpile->DoesStoreResource(Resource))
 				continue;
 
@@ -371,7 +374,7 @@ void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABui
 		}();
 
 		for (auto& element : workers)
-			element.Key->SetItemToGather(Resource, element.Value, Building);
+			AsyncTask(ENamedThreads::GameThread, [this, element, Resource, Building]() { element.Key->SetItemToGather(Resource, element.Value, Building); });
 	});
 }
 

@@ -14,6 +14,9 @@ protected:
 		bool bEnemies;
 
 	UPROPERTY(Config)
+		bool bSmoothCamera;
+
+	UPROPERTY(Config)
 		bool bRenderTorches;
 
 	UPROPERTY(Config)
@@ -100,6 +103,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Enemies")
 		bool GetSpawnEnemies() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+		void SetSmoothCamera(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Camera")
+		bool GetSmoothCamera() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Torches")
 		void SetRenderTorches(bool Value);

@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 
 #include "Player/Camera.h"
+#include "Universal/DiplosimUserSettings.h"
 
 UCameraMovementComponent::UCameraMovementComponent()
 {
@@ -30,6 +31,8 @@ void UCameraMovementComponent::BeginPlay()
 
 	Camera = Cast<ACamera>(GetOwner());
 
+	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+
 	PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PController->SetControlRotation(FRotator(-25.0f, 180.0f, 0.0f));
 	PController->SetInputMode(FInputModeGameAndUI());
@@ -45,12 +48,20 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	if (DeltaTime > 1.0f)
 		return;
 
+	float armSpeed = CameraSpeed / 3.0f;
+	float movementSpeed = CameraSpeed / 2.0f;
+
+	if (!Settings->GetSmoothCamera()) {
+		armSpeed *= 10.0f;
+		movementSpeed *= 10.0f;
+	}
+
 	if (Camera->GetAttachParentActor() != nullptr)
 		MovementLocation = Camera->GetAttachParentActor()->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f);
 
-	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, DeltaTime, CameraSpeed / 3.0f);
+	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, DeltaTime, armSpeed);
 
-	Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(), MovementLocation, DeltaTime, CameraSpeed / 2.0f));
+	Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(), MovementLocation, DeltaTime, movementSpeed));
 
 	if (!bShake)
 		return;

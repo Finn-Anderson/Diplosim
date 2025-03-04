@@ -103,6 +103,8 @@ ABuilding::ABuilding()
 	BuildingName = "";
 
 	bUnique = false;
+
+	bCoastal = false;
 }
 
 void ABuilding::BeginPlay()

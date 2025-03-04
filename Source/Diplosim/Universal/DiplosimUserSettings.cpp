@@ -22,6 +22,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 {
 	bEnemies = true;
 
+	bSmoothCamera = true;
+
 	bRenderTorches = true;
 
 	bRenderClouds = true;
@@ -112,7 +114,9 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 
 	if (FString("bEnemies").Equals(Key))
 		SetSpawnEnemies(value.ToBool());
-	if (FString("bRenderTorches").Equals(Key))
+	else if (FString("bSmoothCamera").Equals(Key))
+		SetSmoothCamera(value.ToBool());
+	else if (FString("bRenderTorches").Equals(Key))
 		SetRenderTorches(value.ToBool());
 	else if (FString("bRenderClouds").Equals(Key))
 		SetRenderClouds(value.ToBool());
@@ -189,6 +193,7 @@ void UDiplosimUserSettings::LoadIniSettings()
 void UDiplosimUserSettings::SaveIniSettings()
 {
 	GConfig->SetBool(*Section, TEXT("bEnemies"), GetSpawnEnemies(), Filename);
+	GConfig->SetBool(*Section, TEXT("bSmoothCamera"), GetSmoothCamera(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderTorches"), GetRenderTorches(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderWind"), GetRenderWind(), Filename);
@@ -230,6 +235,16 @@ void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
 bool UDiplosimUserSettings::GetSpawnEnemies() const
 {
 	return bEnemies;
+}
+
+void UDiplosimUserSettings::SetSmoothCamera(bool Value)
+{
+	bSmoothCamera = Value;
+}
+
+bool UDiplosimUserSettings::GetSmoothCamera() const
+{
+	return bSmoothCamera;
 }
 
 void UDiplosimUserSettings::SetRenderTorches(bool Value)

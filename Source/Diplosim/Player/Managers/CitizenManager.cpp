@@ -420,7 +420,7 @@ void UCitizenManager::CheckSleepStatus(int32 Hour)
 		if (citizen->bSleep)
 			citizen->HoursSleptToday.Add(Hour);
 
-		if (citizen->HoursSleptToday.Num() < citizen->IdealHoursSlept && !citizen->bSleep && !citizen->Building.Employment->bOpen && citizen->Building.BuildingAt == citizen->Building.House)
+		if (citizen->HoursSleptToday.Num() < citizen->IdealHoursSlept && !citizen->bSleep && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->bOpen) && IsValid(citizen->Building.House) && citizen->Building.BuildingAt == citizen->Building.House)
 			citizen->bSleep = true;
 		else if (citizen->bSleep)
 			citizen->bSleep = false;
@@ -939,6 +939,8 @@ void UCitizenManager::ProposeBill(FLawStruct Bill)
 
 	Laws[index].Cooldown = timeToCompleteDay;
 
+	Cast<ACamera>(GetOwner())->DisplayNewBill();
+
 	if (ProposedBills.Num() > 1)
 		return;
 
@@ -950,8 +952,6 @@ void UCitizenManager::SetupBill()
 	Votes.Clear();
 
 	BribeValue.Empty();
-
-	Cast<ACamera>(GetOwner())->DisplayNewBill();
 
 	if (ProposedBills.IsEmpty())
 		return;

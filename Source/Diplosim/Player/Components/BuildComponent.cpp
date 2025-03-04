@@ -297,6 +297,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		return false;
 
 	bool bCoast = false;
+	bool bResource = false;
 
 	for (FCollisionStruct collision : building->Collisions) {
 		if (collision.HISM == Camera->Grid->HISMLava || (collision.HISM == Camera->Grid->HISMRampGround && !(building->IsA(FoundationClass) || building->IsA(RampClass))))
@@ -349,7 +350,10 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 			if (FVector::Dist(building->GetActorLocation(), collision.Actor->GetActorLocation()) < Cast<ABuilding>(collision.Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X)
 				return false;
 		}
-		else if (building->IsA<AInternalProduction>() && collision.Actor->IsA(Cast<AInternalProduction>(building)->ResourceToOverlap)) {
+		else if (building->IsA<AInternalProduction>() && Cast<AInternalProduction>(building)->ResourceToOverlap != nullptr && collision.Actor->IsA<AResource>()) {
+			if (collision.Actor->IsA(Cast<AInternalProduction>(building)->ResourceToOverlap))
+				bResource = true;
+
 			if (transform.GetLocation().X != building->GetActorLocation().X || transform.GetLocation().Y != building->GetActorLocation().Y)
 				return false;
 		}
@@ -363,14 +367,14 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 
 			size = FVector(FMath::RoundHalfFromZero(size.X), FMath::RoundHalfFromZero(size.Y), FMath::RoundHalfFromZero(size.Z));
 
-			if (building->IsA(WharfClass) && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
+			if (building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
 				bCoast = true;
 			else if (!collision.Actor->IsHidden() && FMath::Abs(building->GetActorLocation().X - transform.GetLocation().X) < size.X && FMath::Abs(building->GetActorLocation().Y - transform.GetLocation().Y) < size.Y)
 				return false;
 		}
 	}
 
-	if (!bCoast && building->IsA(WharfClass))
+	if ((!bCoast && building->bCoastal) || (!bResource && building->IsA<AInternalProduction>()))
 		return false;
 
 	return true;

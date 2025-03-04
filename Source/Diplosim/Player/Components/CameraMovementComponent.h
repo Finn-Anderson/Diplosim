@@ -23,6 +23,9 @@ public:
 		class ACamera* Camera;
 
 	UPROPERTY()
+	class UDiplosimUserSettings* Settings;
+
+	UPROPERTY()
 		class APlayerController* PController;
 
 	UPROPERTY()
