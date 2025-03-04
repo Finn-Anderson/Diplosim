@@ -29,6 +29,9 @@ public:
 		float CameraSpeed;
 
 	UPROPERTY()
+		float MovementSpeed;
+
+	UPROPERTY()
 		float Sensitivity;
 
 	// Map Bounds

@@ -42,14 +42,20 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, 0.01f, CameraSpeed / 3.0f);
+	if (DeltaTime > 1.0f)
+		return;
 
-	Camera->SetActorLocation(FMath::VInterpTo(MovementLocation, Camera->GetActorLocation(), 0.01f, CameraSpeed / 24.0f));
+	if (Camera->GetAttachParentActor() != nullptr)
+		MovementLocation = Camera->GetAttachParentActor()->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f);
+
+	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, DeltaTime, CameraSpeed / 3.0f);
+
+	Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(), MovementLocation, DeltaTime, CameraSpeed / 2.0f));
 
 	if (!bShake)
 		return;
 
-	Runtime += DeltaTime * CameraSpeed;
+	Runtime += DeltaTime * Camera->CustomTimeDilation * CameraSpeed;
 
 	double sin = FMath::Clamp(FMath::Sin(Runtime), 0.0f, 1.0f);
 
@@ -83,6 +89,9 @@ void UCameraMovementComponent::Look(const struct FInputActionInstance& Instance)
 
 void UCameraMovementComponent::Move(const struct FInputActionInstance& Instance)
 {
+	if (GetWorld()->DeltaTimeSeconds > 1.0f)
+		return;
+	
 	FVector2D value = Instance.GetValue().Get<FVector2D>();
 
 	const FRotator rotation = Camera->Controller->GetControlRotation();
@@ -93,7 +102,9 @@ void UCameraMovementComponent::Move(const struct FInputActionInstance& Instance)
 
 	FVector loc = MovementLocation;
 
-	loc += (directionX * value.X * CameraSpeed) + (directionY * value.Y * CameraSpeed);
+	double deltaTime = GetWorld()->DeltaTimeSeconds / UGameplayStatics::GetGlobalTimeDilation(GetWorld()) * 200.0f;
+
+	loc += (directionX * value.X * CameraSpeed * deltaTime) + (directionY * value.Y * CameraSpeed * deltaTime);
 
 	if (loc.X > MaxXBounds || loc.X < MinXBounds) {
 		if (loc.X > MaxXBounds) {
@@ -126,7 +137,7 @@ void UCameraMovementComponent::Speed(const struct FInputActionInstance& Instance
 
 void UCameraMovementComponent::Scroll(const struct FInputActionInstance& Instance)
 {
-	float target = 250.0f * Instance.GetValue().Get<float>();
+	float target = 500.0f * Instance.GetValue().Get<float>();
 
-	TargetLength = FMath::Clamp(TargetLength + target, 50.0f, 6000.0f);
+	TargetLength = FMath::Clamp(TargetLength + target, 50.0f, 12000.0f);
 }

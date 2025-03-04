@@ -166,7 +166,7 @@ void AGrid::Render()
 			if (level < 0)
 				break;
 
-			float percentage = (2.0f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(level) / (2.0f * FMath::Square(MaxLevel / 2.5f)))));
+			float percentage = (1.85f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(level) / (1.85f * FMath::Square(MaxLevel / 2.5f)))));
 			levelCount = FMath::Clamp(percentage * levelTotal, 0, levelTotal);
 		}
 
@@ -829,19 +829,19 @@ void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAx
 
 void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 {
-	AMineral* mineral = Cast<AMineral>(Resource);
-
-	int32 inst = mineral->ResourceHISM->AddInstance(GetTransform(Tile));
-	mineral->ResourceHISM->SetCustomDataValue(inst, 0, 0.0f);
+	FTransform transform = GetTransform(Tile);
+	
+	int32 inst = Resource->ResourceHISM->AddInstance(transform);
+	Resource->ResourceHISM->SetCustomDataValue(inst, 0, 0.0f);
 
 	FString socketName = "InfoSocket";
 	socketName.AppendInt(inst);
 
-	UStaticMeshSocket* socket = NewObject<UStaticMeshSocket>(mineral);
-	socket->SocketName = FName(*socketName);
-	socket->RelativeLocation = GetTransform(Tile).GetLocation() + FVector(0.0f, 0.0f, mineral->ResourceHISM->GetStaticMesh()->GetBounds().GetBox().GetSize().Z);
+	UStaticMeshSocket* socket = NewObject<UStaticMeshSocket>(Resource);
+	socket->SocketName = *socketName;
+	socket->RelativeLocation = transform.GetLocation() + FVector(0.0f, 0.0f, Resource->ResourceHISM->GetStaticMesh()->GetBounds().GetBox().GetSize().Z);
 
-	mineral->ResourceHISM->GetStaticMesh()->AddSocket(socket);
+	Resource->ResourceHISM->GetStaticMesh()->AddSocket(socket);
 
 	ResourceTiles.Remove(Tile);
 }
@@ -994,11 +994,17 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 
 void AGrid::Clear()
 {
-	for (FResourceHISMStruct &ResourceStruct : VegetationStruct)
+	for (FResourceHISMStruct& ResourceStruct : VegetationStruct) {
 		ResourceStruct.Resource->ResourceHISM->ClearInstances();
 
-	for (FResourceHISMStruct &ResourceStruct : MineralStruct)
+		ResourceStruct.Resource->ResourceHISM->GetStaticMesh()->Sockets.Empty();
+	}
+
+	for (FResourceHISMStruct& ResourceStruct : MineralStruct) {
 		ResourceStruct.Resource->ResourceHISM->ClearInstances();
+
+		ResourceStruct.Resource->ResourceHISM->GetStaticMesh()->Sockets.Empty();
+	}
 
 	Storage.Empty();
 

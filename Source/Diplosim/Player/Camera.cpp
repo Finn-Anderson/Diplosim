@@ -88,7 +88,7 @@ ACamera::ACamera()
 	WidgetComponent->SetTickableWhenPaused(true);
 	WidgetComponent->SetHiddenInGame(true);
 	WidgetComponent->SetDrawSize(FVector2D(0.0f, 0.0f));
-	WidgetComponent->SetPivot(FVector2D(0.5f, 1.3f));
+	WidgetComponent->SetPivot(FVector2D(0.5f, 1.1f));
 
 	SmiteComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SmiteComponent"));
 	SmiteComponent->SetupAttachment(RootComponent);
@@ -338,19 +338,27 @@ void ACamera::SetPause(bool bPause, bool bTickWhenPaused)
 
 void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
 {
+	if (!IsValid(Actor))
+		return;
+	
 	SetInteractableText(Actor, Instance);
 
 	if (Actor->IsA<AAI>()) {
+		bool bAttach = true;
+
 		if (Actor->IsA<ACitizen>()) {
 			ABuilding* building = Cast<ACitizen>(Actor)->Building.BuildingAt;
 
-			if (building == nullptr)
-				AttachToActor(Actor, FAttachmentTransformRules::KeepRelativeTransform);
+			if (building != nullptr)
+				bAttach = false;
 
 			FocusedCitizen = Cast<ACitizen>(Actor);
 		}
 
-		SetActorLocation(Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
+		if (bAttach)
+			AttachToActor(Actor, FAttachmentTransformRules::KeepWorldTransform);
+
+		MovementComponent->MovementLocation = Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f);
 
 		SpringArmComponent->ProbeSize = 6.0f;
 	}
@@ -386,21 +394,23 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
 	WidgetComponent->SetHiddenInGame(!bStatus);
 
 	if (bStatus)
-		WidgetSpringArmComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName(*SocketName));
+		WidgetSpringArmComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, *SocketName);
 	else
 		WidgetSpringArmComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
 void ACamera::Detach()
 {
-	if (GetAttachParentActor() != nullptr)
-		SpringArmComponent->ProbeSize = 12.0f;
+	if (GetAttachParentActor() == nullptr)
+		return;
+	
+	SpringArmComponent->ProbeSize = 12.0f;
 
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	FVector location = GetActorLocation();
 	location.Z = 800.0f;
-	SetActorLocation(location);
+	MovementComponent->MovementLocation = location;
 
 	FocusedCitizen = nullptr;
 }

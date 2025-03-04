@@ -672,7 +672,7 @@ void ACitizen::GainEnergy()
 
 	HealthComponent->AddHealth(1);
 
-	if (Energy >= 100)
+	if (Energy >= 100 && !bSleep)
 		AIController->DefaultAction();
 }
 

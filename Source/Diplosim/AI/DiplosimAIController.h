@@ -4,12 +4,13 @@
 #include "AIController.h"
 #include "DiplosimAIController.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMoveStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	AActor* Actor;
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+		AActor* Actor;
 
 	int32 Instance;
 
@@ -84,6 +85,6 @@ public:
 
 	virtual void StopMovement() override;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 		FMoveStruct MoveRequest;
 };

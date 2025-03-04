@@ -563,7 +563,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 		Citizen->SetActorLocation(GetActorLocation());
 
 		if (Camera->FocusedCitizen == Citizen)
-			Camera->Detach();
+			Camera->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	}
 
 	if (Citizen->Carrying.Amount > 0)

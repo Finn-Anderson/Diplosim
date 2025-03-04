@@ -13,6 +13,7 @@
 #include "Buildings/Building.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Work.h"
+#include "Buildings/Work/Service/School.h"
 #include "Buildings/Misc/Broch.h"
 #include "Universal/Resource.h"
 #include "AttackComponent.h"
@@ -69,7 +70,7 @@ void ADiplosimAIController::DefaultAction()
 
 		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bOpen)
 			AIMoveTo(citizen->Building.Employment);
-		else if (citizen->Building.School != nullptr)
+		else if (citizen->Building.School != nullptr && citizen->Building.School->bOpen)
 			AIMoveTo(citizen->Building.School);
 		else if (citizen->Building.House != nullptr)
 			AIMoveTo(citizen->Building.House);

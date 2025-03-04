@@ -35,7 +35,8 @@ struct FBuildingStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
 		class ASchool* School;
 
-	class ABuilding* BuildingAt;
+	UPROPERTY(BlueprintReadOnly, Category = "Building")
+		class ABuilding* BuildingAt;
 
 	FVector EnterLocation;
 
@@ -351,7 +352,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Energy")
 		int32 Energy;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Energy")
 		bool bGain;
 
 	// Bio
@@ -443,7 +444,7 @@ public:
 	void ApplyTraitAffect(EPersonality Trait);
 
 	// Sleep
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Sleep")
 		bool bSleep;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Hours")
