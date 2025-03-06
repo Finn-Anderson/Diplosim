@@ -7,7 +7,12 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Stockpile.h"
+#include "Buildings/House.h"
+#include "Buildings/Work/Production/Farm.h"
 #include "Universal/DiplosimGameModeBase.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
+#include "AI/Citizen.h"
 
 UResourceManager::UResourceManager()
 {
@@ -441,4 +446,87 @@ int32 UResourceManager::GetMarketValue(TSubclassOf<class AResource> Resource)
 			return resource.Value;
 
 	return 0;
+}
+
+//
+// Trends
+//
+void UResourceManager::SetTrendOnHour(int32 Hour)
+{
+	for (int32 i = 0; i < TrendList.Num(); i++) {
+		int32 amount = GetResourceAmount(TrendList[i].Type);
+
+		int32 change = amount - TrendList[i].LastHourAmount;
+
+		TrendList[i].HourlyTrend.Emplace(Hour, change);
+	}
+
+	Cast<ACamera>(GetOwner())->UpdateTrends();
+}
+
+int32 UResourceManager::GetResourceTrend(TSubclassOf<class AResource> Resource)
+{
+	FTrendStruct trend;
+	trend.Type = Resource;
+
+	int32 index = TrendList.Find(trend);
+
+	int32 overallTrend = 0;
+
+	for (auto& element : TrendList[index].HourlyTrend)
+		overallTrend += element.Value;
+
+	return overallTrend;
+}
+
+int32 UResourceManager::GetCategoryTrend(FString Category)
+{
+	int32 overallTrend = 0;
+
+	UCitizenManager* citizenManager = Cast<ACamera>(GetOwner())->CitizenManager;
+
+	if (Category == "Money") {
+		for (ABuilding* building : citizenManager->Buildings) {
+			if (building->IsA<AWork>())
+				overallTrend -= Cast<AWork>(building)->Wage * building->GetOccupied().Num();
+			else if (building->IsA<AHouse>())
+				overallTrend += Cast<AHouse>(building)->Rent * building->GetOccupied().Num();
+		}
+	}
+	else if (Category == "Food") {
+		overallTrend -= citizenManager->Citizens.Num() * 8;
+
+		for (ABuilding* building : citizenManager->Buildings) {
+			if (!building->IsA<AFarm>() || building->GetOccupied().IsEmpty())
+				continue;
+
+			AFarm* farm = Cast<AFarm>(building);
+			int32 timeLength = farm->TimeLength / farm->GetOccupied()[0]->GetProductivity();
+
+			int32 timePerHour = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed) / 24;
+
+			int32 hours = farm->WorkEnd - farm->WorkStart;
+
+			if (farm->WorkEnd == farm->WorkStart)
+				hours = 24;
+			else if (farm->WorkEnd < farm->WorkStart)
+				hours = 24 - farm->WorkStart + farm->WorkEnd;
+
+			int32 workdayTime = hours * timePerHour;
+			int32 amount = workdayTime / timeLength;
+
+			overallTrend += (amount * farm->GetYield());
+		}
+	}
+	else {
+		for (FTrendStruct& trend : TrendList) {
+			if (trend.Category != Category)
+				continue;
+
+			for (auto& element : trend.HourlyTrend)
+				overallTrend += element.Value;
+		}
+	}
+
+	return overallTrend;
 }

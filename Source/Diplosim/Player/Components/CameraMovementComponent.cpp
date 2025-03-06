@@ -7,6 +7,8 @@
 
 #include "Player/Camera.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "AI/AI.h"
+#include "Buildings/Building.h"
 
 UCameraMovementComponent::UCameraMovementComponent()
 {
@@ -56,8 +58,7 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		movementSpeed *= 10.0f;
 	}
 
-	if (Camera->GetAttachParentActor() != nullptr)
-		MovementLocation = Camera->GetAttachParentActor()->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f);
+	SetAttachedMovementLocation(Camera->ActorAttachedTo);
 
 	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, DeltaTime, armSpeed);
 
@@ -77,6 +78,21 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 		bShake = false;
 	}
+}
+
+void UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor)
+{
+	if (Actor == nullptr)
+		return;
+
+	FVector height = FVector::Zero();
+
+	if (Actor->IsA<AAI>())
+		height.Z = Cast<AAI>(Actor)->Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z / 2;
+	else if (Actor->IsA<ABuilding>())
+		height.Z = Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2;
+
+	MovementLocation = Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f) + height;
 }
 
 void UCameraMovementComponent::SetBounds(FVector start, FVector end) {
@@ -100,7 +116,9 @@ void UCameraMovementComponent::Look(const struct FInputActionInstance& Instance)
 
 void UCameraMovementComponent::Move(const struct FInputActionInstance& Instance)
 {
-	if (GetWorld()->DeltaTimeSeconds > 1.0f)
+	double deltaTime = GetWorld()->DeltaTimeSeconds / UGameplayStatics::GetGlobalTimeDilation(GetWorld()) * 200.0f;
+	
+	if (deltaTime > 100.0f)
 		return;
 	
 	FVector2D value = Instance.GetValue().Get<FVector2D>();
@@ -112,8 +130,6 @@ void UCameraMovementComponent::Move(const struct FInputActionInstance& Instance)
 	FVector directionY = FRotationMatrix(rotation).GetScaledAxis(EAxis::Y);
 
 	FVector loc = MovementLocation;
-
-	double deltaTime = GetWorld()->DeltaTimeSeconds / UGameplayStatics::GetGlobalTimeDilation(GetWorld()) * 200.0f;
 
 	loc += (directionX * value.X * CameraSpeed * deltaTime) + (directionY * value.Y * CameraSpeed * deltaTime);
 

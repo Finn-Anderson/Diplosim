@@ -13,6 +13,7 @@
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ResourceManager.h"
 #include "Universal/DiplosimUserSettings.h"
 
 UAtmosphereComponent::UAtmosphereComponent()
@@ -119,6 +120,8 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		Cast<AGrid>(GetOwner())->Camera->CitizenManager->CheckWorkStatus(hour);
 		Cast<AGrid>(GetOwner())->Camera->CitizenManager->CheckSleepStatus(hour);
 		Cast<AGrid>(GetOwner())->Camera->CitizenManager->IssuePensions(hour);
+
+		Cast<AGrid>(GetOwner())->Camera->ResourceManager->SetTrendOnHour(hour);
 
 		SetDisplayText(hour);
 	}

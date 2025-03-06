@@ -125,7 +125,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 
 			int32 index = validResource.Resource->WorkerStruct.Find(workerStruct);
 
-			if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < 1.0f || (index > -1 && validResource.Resource->WorkerStruct[index].Citizens.Num() == validResource.Resource->MaxWorkers))
+			if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < validResource.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] || (index > -1 && validResource.Resource->WorkerStruct[index].Citizens.Num() == validResource.Resource->MaxWorkers))
 				continue;
 
 			if (instance == -1) {
@@ -138,7 +138,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 			FTransform currentTransform;
 			resource->ResourceHISM->GetInstanceTransform(instance, currentTransform);
 
-			double magnitude = Citizen->AIController->GetClosestActor(GetActorLocation(), currentTransform.GetLocation(), transform.GetLocation());
+			double magnitude = Citizen->AIController->GetClosestActor(50.0f, GetActorLocation(), currentTransform.GetLocation(), transform.GetLocation(), false);
 
 			if (magnitude <= 0.0f)
 				continue;

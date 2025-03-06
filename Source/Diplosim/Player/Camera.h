@@ -78,6 +78,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void SetSeedVisibility(bool bVisible);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateTrends();
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -223,6 +226,9 @@ public:
 	UPROPERTY()
 		FVector2D MousePosition;
 
+	UPROPERTY()
+		AActor* ActorAttachedTo;
+
 	void SetMouseCapture(bool bCapture);
 
 	UFUNCTION(BlueprintCallable)
@@ -240,6 +246,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName = "InfoSocket");
+
+	void Attach(AActor* Actor);
 
 	void Detach();
 

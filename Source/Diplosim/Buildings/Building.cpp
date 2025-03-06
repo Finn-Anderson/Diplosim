@@ -105,6 +105,8 @@ ABuilding::ABuilding()
 	bUnique = false;
 
 	bCoastal = false;
+
+	SeedNum = 0;
 }
 
 void ABuilding::BeginPlay()
@@ -153,13 +155,15 @@ void ABuilding::BeginPlay()
 		Storage.Add(itemStruct);
 	}
 
-	SetSeed(0);
+	SetSeed(SeedNum);
 }
 
 void ABuilding::SetSeed(int32 Seed)
 {
 	if (Seeds.IsEmpty())
 		return;
+
+	Camera->SetInteractStatus(this, false);
 
 	if (bAffectBuildingMesh) {
 		if (!Seeds[Seed].Meshes.IsEmpty())
@@ -213,22 +217,36 @@ void ABuilding::SetSeed(int32 Seed)
 
 		TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
 
+		if (IsA<AFarm>())
+			Cast<AFarm>(this)->CropMeshes.Empty();
+
 		for (FName socket : sockets) {
 			if (!socket.ToString().Contains("Random"))
 				continue;
 
-			FString result = socket.ToString().Replace(TEXT("Random"), TEXT(""), ESearchCase::IgnoreCase);
-			int32 num = FCString::Atoi(*result) - 1;
-
+			int32 num = 0;
 			int32 angle = FMath::RandRange(0, 3);
+
+			if (Seeds[Seed].Meshes.Num() > 1) {
+				FString result = socket.ToString().Replace(TEXT("Random"), TEXT(""), ESearchCase::IgnoreCase);
+				num = FCString::Atoi(*result) - 1;
+			}
 
 			UStaticMeshComponent* meshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass());
 			meshComp->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 			meshComp->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+			meshComp->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 			meshComp->SetStaticMesh(Seeds[Seed].Meshes[num]);
 			meshComp->SetupAttachment(BuildingMesh, socket);
 			meshComp->SetRelativeRotation(FRotator(0.0f, 90.0f * angle, 0.0f));
 			meshComp->RegisterComponent();
+
+			if (!Colours.IsEmpty()) {
+				UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(meshComp->GetMaterial(0), this);
+				material->SetVectorParameterValue("Colour", Colours[0]);
+
+				meshComp->SetMaterial(0, material);
+			}
 
 			if (IsA<AFarm>()) {
 				meshComp->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
@@ -245,9 +263,12 @@ void ABuilding::SetSeed(int32 Seed)
 			farm->TimeLength = Seeds[Seed].TimeLength;
 
 			BuildingName = Seeds[Seed].Name;
-			Camera->UpdateDisplayName();
 		}
 	}
+
+	SeedNum = Seed;
+
+	Camera->DisplayInteract(this);
 }
 
 void ABuilding::SetBuildingColour(float R, float G, float B)
@@ -540,17 +561,20 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 			break;
 		}
 	}
-	else {
+	else if (bHideCitizen || Camera->ConstructionManager->IsBeingConstructed(this, nullptr)) {
 		Citizen->SetActorLocation(GetActorLocation());
 	}
 }
 
 void ABuilding::Enter(ACitizen* Citizen)
 {
-	SetSocketLocation(Citizen);
-
+	if (GetCitizensAtBuilding().Contains(Citizen))
+		return;
+	
 	Citizen->Building.BuildingAt = this;
 	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
+
+	SetSocketLocation(Citizen);
 
 	Inside.Add(Citizen);
 
@@ -559,13 +583,11 @@ void ABuilding::Enter(ACitizen* Citizen)
 	
 	UConstructionManager* cm = Camera->ConstructionManager;
 
-	if (bHideCitizen) {
+	if (bHideCitizen || cm->IsBeingConstructed(this, nullptr)) {
 		Citizen->SetActorHiddenInGame(true);
 
-		Citizen->SetActorLocation(GetActorLocation());
-
 		if (Camera->FocusedCitizen == Citizen)
-			Camera->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
+			Camera->Attach(this);
 	}
 
 	if (Citizen->Carrying.Amount > 0)
@@ -576,13 +598,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 		if (cm->IsRepairJob(this, builder))
 			builder->Repair(Citizen, this);
-		else {
-			Citizen->SetActorHiddenInGame(true);
-
-			Citizen->SetActorLocation(GetActorLocation());
-
+		else
 			builder->CheckCosts(Citizen, this);
-		}
 	}
 	else if (!IsA<AHouse>() && !IsA<ABroadcast>() && !GetOccupied().Contains(Citizen) && Citizen->Building.Employment != nullptr) {
 		TArray<FItemStruct> items;
@@ -643,7 +660,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 		return;
 
 	if (Camera->FocusedCitizen == Citizen)
-		Camera->AttachToActor(Citizen, FAttachmentTransformRules::KeepRelativeTransform);
+		Camera->Attach(Citizen);
 
 	FHitResult hit;
 

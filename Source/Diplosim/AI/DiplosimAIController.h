@@ -73,7 +73,7 @@ public:
 
 	void Idle();
 
-	double GetClosestActor(FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, int32 CurrentValue = 1, int32 NewValue = 1);
+	double GetClosestActor(float Range, FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, bool bProjectLocation = true, int32 CurrentValue = 1, int32 NewValue = 1);
 
 	void GetGatherSite(class ACamera* Camera, TSubclassOf<class AResource> Resource);
 

@@ -42,6 +42,39 @@ struct FResourceStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FTrendStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> Type;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		FString Category;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 LastHourAmount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TMap<int32, int32> HourlyTrend;
+
+	FTrendStruct()
+	{
+		Type = nullptr;
+		Category = "";
+		LastHourAmount = 0;
+
+		for (int32 i = 0; i < 24; i++)
+			HourlyTrend.Add(i, 0);
+	}
+
+	bool operator==(const FTrendStruct& other) const
+	{
+		return (other.Type == Type);
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UResourceManager : public UActorComponent
 {
@@ -103,4 +136,16 @@ public:
 
 	UPROPERTY()
 		FTimerHandle ValueTimer;
+
+	// Trends
+	void SetTrendOnHour(int32 Hour);
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetResourceTrend(TSubclassOf<class AResource> Resource);
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetCategoryTrend(FString Category);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<FTrendStruct> TrendList;
 };

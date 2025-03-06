@@ -110,7 +110,7 @@ void ADiplosimAIController::Idle()
 	});
 }
 
-double ADiplosimAIController::GetClosestActor(FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, int32 CurrentValue, int32 NewValue)
+double ADiplosimAIController::GetClosestActor(float Range, FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, bool bProjectLocation, int32 CurrentValue, int32 NewValue)
 {
 	if (!CanMoveTo(NewLocation))
 		return -1000000.0f;
@@ -118,20 +118,26 @@ double ADiplosimAIController::GetClosestActor(FVector TargetLocation, FVector Cu
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-	FNavLocation projectedTarget;
-	nav->ProjectPointToNavigation(TargetLocation, projectedTarget, FVector(400.0f, 400.0f, 20.0f));
+	if (bProjectLocation) {
+		FNavLocation projectedTarget;
+		nav->ProjectPointToNavigation(TargetLocation, projectedTarget, FVector(Range, Range, 20.0f));
 
-	FNavLocation projectedCurrent;
-	nav->ProjectPointToNavigation(CurrentLocation, projectedCurrent, FVector(400.0f, 400.0f, 20.0f));
+		FNavLocation projectedCurrent;
+		nav->ProjectPointToNavigation(CurrentLocation, projectedCurrent, FVector(Range, Range, 20.0f));
 
-	FNavLocation projectedNew;
-	nav->ProjectPointToNavigation(NewLocation, projectedNew, FVector(400.0f, 400.0f, 20.0f));
+		FNavLocation projectedNew;
+		nav->ProjectPointToNavigation(NewLocation, projectedNew, FVector(Range, Range, 20.0f));
 
+		TargetLocation = projectedTarget.Location;
+		CurrentLocation = projectedCurrent.Location;
+		NewLocation = projectedNew.Location;
+	}
+	
 	double curLength = 100000000000.0f;
-	navData->CalcPathLength(projectedTarget, projectedCurrent, curLength);
+	navData->CalcPathLength(TargetLocation, CurrentLocation, curLength);
 
 	double newLength = 100000000000.0f;
-	navData->CalcPathLength(projectedTarget, projectedNew, newLength);
+	navData->CalcPathLength(TargetLocation, NewLocation, newLength);
 
 	double magnitude = curLength / CurrentValue - newLength / NewValue;
 
@@ -167,7 +173,7 @@ void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource
 
 			int32 targetIndex = target->Storage.Find(itemStruct);
 
-			double magnitude = GetClosestActor(GetOwner()->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation(), target->Storage[targetIndex].Amount, building->Storage[index].Amount);
+			double magnitude = GetClosestActor(400.0f, GetOwner()->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation(), true, target->Storage[targetIndex].Amount, building->Storage[index].Amount);
 
 			if (magnitude <= 0.0f)
 				continue;

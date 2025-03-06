@@ -115,6 +115,8 @@ ACamera::ACamera()
 	bBlockPause = false;
 
 	bInstantBuildCheat = false;
+
+	ActorAttachedTo = nullptr;
 }
 
 void ACamera::BeginPlay()
@@ -349,18 +351,14 @@ void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
 		if (Actor->IsA<ACitizen>()) {
 			ABuilding* building = Cast<ACitizen>(Actor)->Building.BuildingAt;
 
-			if (building != nullptr)
+			if (building != nullptr && building->bHideCitizen)
 				bAttach = false;
 
 			FocusedCitizen = Cast<ACitizen>(Actor);
 		}
 
 		if (bAttach)
-			AttachToActor(Actor, FAttachmentTransformRules::KeepWorldTransform);
-
-		MovementComponent->MovementLocation = Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f);
-
-		SpringArmComponent->ProbeSize = 6.0f;
+			Attach(Actor);
 	}
 
 	FString socketName = "InfoSocket";
@@ -399,14 +397,24 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
 		WidgetSpringArmComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
+void ACamera::Attach(AActor* Actor)
+{
+	if (ActorAttachedTo == Actor)
+		return;
+	
+	ActorAttachedTo = Actor;
+
+	SpringArmComponent->ProbeSize = 6.0f;
+}
+
 void ACamera::Detach()
 {
-	if (GetAttachParentActor() == nullptr)
+	if (ActorAttachedTo == nullptr)
 		return;
 	
 	SpringArmComponent->ProbeSize = 12.0f;
 
-	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	ActorAttachedTo = nullptr;
 
 	FVector location = GetActorLocation();
 	location.Z = 800.0f;
@@ -594,7 +602,7 @@ void ACamera::Menu()
 		return;
 
 	if (!WidgetComponent->bHiddenInGame && !BuildComponent->IsComponentTickEnabled()) {
-		WidgetComponent->SetHiddenInGame(true);
+		SetInteractStatus(WidgetSpringArmComponent->GetAttachmentRootActor(), false);
 
 		return;
 	}

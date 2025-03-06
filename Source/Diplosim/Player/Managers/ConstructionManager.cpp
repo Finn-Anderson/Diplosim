@@ -77,7 +77,7 @@ void UConstructionManager::FindBuilder(class ABuilding* Building)
 			continue;
 		}
 
-		double magnitude = builder->GetOccupied()[0]->AIController->GetClosestActor(Building->GetActorLocation(), target->GetActorLocation(), builder->GetActorLocation());
+		double magnitude = builder->GetOccupied()[0]->AIController->GetClosestActor(400.0f, Building->GetActorLocation(), target->GetActorLocation(), builder->GetActorLocation());
 
 		if (magnitude <= 0.0f)
 			continue;

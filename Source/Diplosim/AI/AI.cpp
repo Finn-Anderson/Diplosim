@@ -101,7 +101,7 @@ void AAI::MoveToBroch()
 				continue;
 			}
 
-			double magnitude = AIController->GetClosestActor(GetActorLocation(), target->GetActorLocation(), actor->GetActorLocation());
+			double magnitude = AIController->GetClosestActor(400.0f, GetActorLocation(), target->GetActorLocation(), actor->GetActorLocation());
 
 			double targetDistToBroch = FVector::Dist(target->GetActorLocation(), brochs[0]->GetActorLocation()) + magnitude;
 

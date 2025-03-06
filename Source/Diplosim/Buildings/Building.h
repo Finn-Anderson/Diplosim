@@ -237,6 +237,9 @@ public:
 	UPROPERTY()
 		TArray<FSocketStruct> SocketList;
 
+	UPROPERTY()
+		int32 SeedNum;
+
 	UFUNCTION(BlueprintCallable)
 		void SetSeed(int32 Seed);
 

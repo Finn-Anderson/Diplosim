@@ -567,7 +567,7 @@ void UCitizenManager::GetClosestHealer(class ACitizen* Citizen)
 				continue;
 			}
 
-			double magnitude = h->AIController->GetClosestActor(Citizen->GetActorLocation(), healer->GetActorLocation(), h->GetActorLocation());
+			double magnitude = h->AIController->GetClosestActor(50.0f, Citizen->GetActorLocation(), healer->GetActorLocation(), h->GetActorLocation());
 
 			if (magnitude > 0.0f)
 				healer = h;
@@ -593,7 +593,7 @@ void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
 				continue;
 			}
 
-			double magnitude = Healer->AIController->GetClosestActor(Healer->GetActorLocation(), Citizen->GetActorLocation(), citizen->GetActorLocation());
+			double magnitude = Healer->AIController->GetClosestActor(50.0f, Healer->GetActorLocation(), Citizen->GetActorLocation(), citizen->GetActorLocation());
 
 			if (magnitude > 0.0f)
 				Citizen = citizen;
@@ -707,7 +707,7 @@ void UCitizenManager::CallMass(TArray<TSubclassOf<ABuilding>> BuildingList)
 					continue;
 				}
 
-				double magnitude = citizen->AIController->GetClosestActor(citizen->GetActorLocation(), chosenBuilding->GetActorLocation(), religiousBuilding->GetActorLocation());
+				double magnitude = citizen->AIController->GetClosestActor(400.0f, citizen->GetActorLocation(), chosenBuilding->GetActorLocation(), religiousBuilding->GetActorLocation());
 
 				if (magnitude <= 0.0f)
 					continue;

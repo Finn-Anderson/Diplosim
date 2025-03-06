@@ -179,6 +179,8 @@ void UBuildComponent::SetBuildingsOnPath()
 			if (!bBuildingExists)
 				SpawnBuilding(Buildings[0]->GetClass(), location);
 
+			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
+
 			if (Buildings.Last()->IsA<AStockpile>())
 				SetTileOpacity(Buildings.Last(), 0.0f);
 

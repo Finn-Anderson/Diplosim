@@ -80,6 +80,7 @@ ACitizen::ACitizen()
 	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
 	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
 
+	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
 	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
 	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
 	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
@@ -127,7 +128,7 @@ void ACitizen::BeginPlay()
 
 	FTimerStruct timer;
 
-	timer.CreateTimer("Eat", this, timeToCompleteDay / 200, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true);
+	timer.CreateTimer("Eat", this, timeToCompleteDay / 200, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true, true);
 	Camera->CitizenManager->Timers.Add(timer);
 
 	timer.CreateTimer("Energy", this, timeToCompleteDay / 100, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
@@ -373,7 +374,7 @@ void ACitizen::FindJobAndHouse(int32 TimeToCompleteDay)
 				else if (BioStruct.Father->IsValidLowLevelFast() && IsValid(BioStruct.Father->Building.House))
 					location = BioStruct.Mother->Building.House->GetActorLocation();
 
-				double magnitude = AIController->GetClosestActor(location, chosenSchool->GetActorLocation(), building->GetActorLocation(), 2, 1);
+				double magnitude = AIController->GetClosestActor(400.0f, location, chosenSchool->GetActorLocation(), building->GetActorLocation(), true, 2, 1);
 
 				if (magnitude <= 0.0f)
 					continue;
@@ -445,7 +446,7 @@ void ACitizen::FindJobAndHouse(int32 TimeToCompleteDay)
 				if (IsValid(Building.Employment))
 					workLocation = Building.Employment->GetActorLocation();
 
-				double magnitude = AIController->GetClosestActor(workLocation, chosenHouse->GetActorLocation(), building->GetActorLocation(), currentValue, newValue);
+				double magnitude = AIController->GetClosestActor(400.0f, workLocation, chosenHouse->GetActorLocation(), building->GetActorLocation(), true, currentValue, newValue);
 
 				if (magnitude <= 0.0f)
 					continue;
@@ -549,15 +550,13 @@ void ACitizen::Eat()
 	if (Hunger > 25)
 		return;
 	else if (Hunger == 0)
-		AsyncTask(ENamedThreads::GameThread, [this]() { HealthComponent->TakeHealth(10, this); });
+		HealthComponent->TakeHealth(10, this);
 
 	TArray<int32> foodAmounts;
 	int32 totalAmount = 0;
 
 	for (int32 i = 0; i < Food.Num(); i++) {
-		auto value = Async(EAsyncExecution::TaskGraphMainThread, [this, i]() { return Camera->ResourceManager->GetResourceAmount(Food[i]); });
-
-		int32 curAmount = value.Get();
+		int32 curAmount = Camera->ResourceManager->GetResourceAmount(Food[i]);
 
 		foodAmounts.Add(curAmount);
 		totalAmount += curAmount;
@@ -576,7 +575,7 @@ void ACitizen::Eat()
 
 		SetActorTickEnabled(true);
 
-		AsyncTask(ENamedThreads::GameThread, [this]() { SetPopupImageState("Add", "Hunger"); });
+		SetPopupImageState("Add", "Hunger");
 
 		return;
 	}
@@ -589,7 +588,7 @@ void ACitizen::Eat()
 				selected -= foodAmounts[j];
 			}
 			else {
-				AsyncTask(ENamedThreads::GameThread, [this, j]() { Camera->ResourceManager->TakeUniversalResource(Food[j], 1, 0); });
+				Camera->ResourceManager->TakeUniversalResource(Food[j], 1, 0);
 
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
@@ -599,7 +598,7 @@ void ACitizen::Eat()
 		}
 
 		Balance -= cost;
-		AsyncTask(ENamedThreads::GameThread, [this]() { Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, 1); });
+		Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, 1);
 
 		Hunger = FMath::Clamp(Hunger + 25, 0, 100);
 	}
@@ -611,7 +610,7 @@ void ACitizen::Eat()
 			SetActorTickEnabled(false);
 		}
 
-		AsyncTask(ENamedThreads::GameThread, [this]() { SetPopupImageState("Remove", "Hunger"); });
+		SetPopupImageState("Remove", "Hunger");
 	}
 }
 
@@ -876,7 +875,7 @@ void ACitizen::FindPartner()
 			continue;
 		}
 
-		double magnitude = AIController->GetClosestActor(GetActorLocation(), citizen->GetActorLocation(), c->GetActorLocation(), curCount, count);
+		double magnitude = AIController->GetClosestActor(50.0f, GetActorLocation(), citizen->GetActorLocation(), c->GetActorLocation(), true, curCount, count);
 
 		if (magnitude <= 0.0f)
 			continue;
