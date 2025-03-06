@@ -164,7 +164,7 @@ void UCameraMovementComponent::Speed(const struct FInputActionInstance& Instance
 
 void UCameraMovementComponent::Scroll(const struct FInputActionInstance& Instance)
 {
-	float target = 500.0f * Instance.GetValue().Get<float>();
+	float target = (FMath::Abs(TargetLength - Camera->SpringArmComponent->TargetArmLength) + 100.0f) * Instance.GetValue().Get<float>();
 
-	TargetLength = FMath::Clamp(TargetLength + target, 50.0f, 12000.0f);
+	TargetLength = FMath::Clamp(TargetLength + target, 100.0f, 20000.0f);
 }

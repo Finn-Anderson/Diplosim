@@ -453,12 +453,14 @@ int32 UResourceManager::GetMarketValue(TSubclassOf<class AResource> Resource)
 //
 void UResourceManager::SetTrendOnHour(int32 Hour)
 {
-	for (int32 i = 0; i < TrendList.Num(); i++) {
-		int32 amount = GetResourceAmount(TrendList[i].Type);
+	for (int32 i = 0; i < ResourceList.Num(); i++) {
+		int32 amount = GetResourceAmount(ResourceList[i].Type);
 
-		int32 change = amount - TrendList[i].LastHourAmount;
+		int32 change = amount - ResourceList[i].LastHourAmount;
 
-		TrendList[i].HourlyTrend.Emplace(Hour, change);
+		ResourceList[i].HourlyTrend.Emplace(Hour, change);
+
+		ResourceList[i].LastHourAmount = amount;
 	}
 
 	Cast<ACamera>(GetOwner())->UpdateTrends();
@@ -466,14 +468,14 @@ void UResourceManager::SetTrendOnHour(int32 Hour)
 
 int32 UResourceManager::GetResourceTrend(TSubclassOf<class AResource> Resource)
 {
-	FTrendStruct trend;
-	trend.Type = Resource;
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
 
-	int32 index = TrendList.Find(trend);
+	int32 index = ResourceList.Find(resourceStruct);
 
 	int32 overallTrend = 0;
 
-	for (auto& element : TrendList[index].HourlyTrend)
+	for (auto& element : ResourceList[index].HourlyTrend)
 		overallTrend += element.Value;
 
 	return overallTrend;
@@ -519,11 +521,11 @@ int32 UResourceManager::GetCategoryTrend(FString Category)
 		}
 	}
 	else {
-		for (FTrendStruct& trend : TrendList) {
-			if (trend.Category != Category)
+		for (FResourceStruct &resource : ResourceList) {
+			if (resource.Category != Category)
 				continue;
 
-			for (auto& element : trend.HourlyTrend)
+			for (auto& element : resource.HourlyTrend)
 				overallTrend += element.Value;
 		}
 	}
