@@ -646,8 +646,6 @@ void ABuilding::Leave(ACitizen* Citizen)
 
 	Inside.Remove(Citizen);
 
-	Citizen->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-
 	FSocketStruct socketStruct;
 	socketStruct.Citizen = Citizen;
 

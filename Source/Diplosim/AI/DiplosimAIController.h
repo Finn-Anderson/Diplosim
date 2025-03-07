@@ -79,6 +79,8 @@ public:
 
 	bool CanMoveTo(FVector Location);
 
+	TArray<FVector> GetPathPoints(FVector StartLocation, FVector EndLocation);
+
 	void AIMoveTo(AActor* Actor, FVector Location = FVector::Zero(), int32 Instance = -1);
 
 	void RecalculateMovement(AActor* Actor);

@@ -35,6 +35,9 @@ public:
 		float SpeedMultiplier;
 
 	UPROPERTY()
+		int32 avoidPoints;
+
+	UPROPERTY()
 		TArray<FVector> Points;
 
 	UPROPERTY()

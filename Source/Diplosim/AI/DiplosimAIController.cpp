@@ -221,6 +221,23 @@ bool ADiplosimAIController::CanMoveTo(FVector Location)
 	return false;
 }
 
+TArray<FVector> ADiplosimAIController::GetPathPoints(FVector StartLocation, FVector EndLocation)
+{
+	TSubclassOf<UNavigationQueryFilter> filter = nullptr;
+
+	if (GetOwner()->IsValidLowLevelFast() && Cast<AAI>(GetOwner())->NavQueryFilter != nullptr)
+		filter = Cast<AAI>(GetOwner())->NavQueryFilter;
+
+	if (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt != nullptr)
+		StartLocation = Cast<ACitizen>(GetOwner())->Building.EnterLocation;
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), StartLocation, EndLocation, GetOwner(), filter);
+
+	return path->PathPoints;
+}
+
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
 	if (Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()) || (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor))
@@ -242,11 +259,6 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 			MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 	}
 
-	TSubclassOf<UNavigationQueryFilter> filter = nullptr;
-
-	if (GetOwner()->IsValidLowLevelFast() && Cast<AAI>(GetOwner())->NavQueryFilter != nullptr)
-		filter = Cast<AAI>(GetOwner())->NavQueryFilter;
-
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
 	FNavLocation navLoc;
@@ -254,14 +266,9 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	MoveRequest.SetLocation(navLoc.Location);
 
-	FVector startLocation = GetOwner()->GetActorLocation();
+	TArray<FVector> points = GetPathPoints(GetOwner()->GetActorLocation(), MoveRequest.GetLocation());
 
-	if (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt != nullptr)
-		startLocation = Cast<ACitizen>(GetOwner())->Building.EnterLocation;
-
-	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), startLocation, MoveRequest.GetLocation(), GetOwner(), filter);
-
-	Cast<AAI>(GetOwner())->MovementComponent->SetPoints(path->PathPoints);
+	Cast<AAI>(GetOwner())->MovementComponent->SetPoints(points);
 
 	SetFocus(Actor);
 

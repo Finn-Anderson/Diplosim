@@ -1384,12 +1384,12 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 	}
 	else if (Genetic.Type == EGeneticsType::Reach) {
 		if (Genetic.Grade == EGeneticsGrade::Good) {
-			SetActorScale3D(FVector(1.25f));
+			Capsule->SetWorldScale3D(FVector(1.25f));
 
 			AttackComponent->RangeComponent->SetRelativeScale3D(FVector(0.8f));
 		}
 		else if (Genetic.Grade == EGeneticsGrade::Bad) {
-			SetActorScale3D(FVector(0.75f));
+			Capsule->SetWorldScale3D(FVector(0.75f));
 
 			AttackComponent->RangeComponent->SetRelativeScale3D(FVector(1.333333333333f));
 		}
