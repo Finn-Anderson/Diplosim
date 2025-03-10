@@ -47,7 +47,7 @@ void ARoad::OnCitizenOverlapBegin(class UPrimitiveComponent* OverlappedComp, cla
 	if (!OtherActor->IsA<AAI>())
 		return;
 
-	Cast<AAI>(OtherActor)->MovementComponent->SetMultiplier(1.15f * Tier);
+	Cast<AAI>(OtherActor)->MovementComponent->SpeedMultiplier += (0.15f * Tier);
 }
 
 void ARoad::OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -55,7 +55,7 @@ void ARoad::OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class
 	if (!OtherActor->IsA<AAI>())
 		return;
 
-	Cast<AAI>(OtherActor)->MovementComponent->SetMultiplier(1.0f);
+	Cast<AAI>(OtherActor)->MovementComponent->SpeedMultiplier -= (0.15f * Tier);
 }
 
 void ARoad::OnRoadOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

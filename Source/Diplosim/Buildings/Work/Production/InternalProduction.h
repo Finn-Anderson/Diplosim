@@ -18,6 +18,8 @@ public:
 
 	virtual void Production(class ACitizen* Citizen) override;
 
+	float GetTime();
+
 	void SetTimer(class ACitizen* Citizen);
 
 	void AlterTimer();

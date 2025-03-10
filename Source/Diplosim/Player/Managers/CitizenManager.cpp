@@ -348,6 +348,16 @@ int32 UCitizenManager::GetElapsedTime(FString ID, AActor* Actor)
 	return timer->Target - timer->Timer;
 }
 
+void UCitizenManager::UpdateTimerLength(FString ID, AActor* Actor, int32 NewTarget)
+{
+	FTimerStruct* timer = FindTimer(ID, Actor);
+
+	if (timer == nullptr)
+		return;
+
+	timer->Target = NewTarget;
+}
+
 //
 // House
 //
@@ -481,15 +491,11 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 
 	for (FAffectStruct affect : Injuries[index].Affects) {
 		if (affect.Affect == EAffect::Movement)
-			Citizen->MovementComponent->InitialSpeed *= affect.Amount;
+			Citizen->ApplyToMultiplier("Speed", affect.Amount);
 		else if (affect.Affect == EAffect::Damage)
-			Citizen->AttackComponent->Damage *= affect.Amount;
-		else {
-			Citizen->HealthComponent->MaxHealth *= affect.Amount;
-
-			if (Citizen->HealthComponent->Health > Citizen->HealthComponent->MaxHealth)
-				Citizen->HealthComponent->Health = Citizen->HealthComponent->MaxHealth;
-		}
+			Citizen->ApplyToMultiplier("Damage", affect.Amount);
+		else
+			Citizen->ApplyToMultiplier("Health", affect.Amount);
 	}
 
 	Injured.Add(Citizen);
@@ -504,11 +510,11 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 	for (FConditionStruct condition : Citizen->HealthIssues) {
 		for (FAffectStruct affect : condition.Affects) {
 			if (affect.Affect == EAffect::Movement)
-				Citizen->MovementComponent->InitialSpeed /= affect.Amount;
+				Citizen->ApplyToMultiplier("Speed", 1.0f + (1.0f - affect.Amount));
 			else if (affect.Affect == EAffect::Damage)
-				Citizen->AttackComponent->Damage /= affect.Amount;
+				Citizen->ApplyToMultiplier("Damage", 1.0f + (1.0f - affect.Amount));
 			else
-				Citizen->HealthComponent->MaxHealth /= affect.Amount;
+				Citizen->ApplyToMultiplier("Health", 1.0f + (1.0f - affect.Amount));
 		}
 	}
 

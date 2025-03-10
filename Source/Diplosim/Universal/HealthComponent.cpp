@@ -275,8 +275,3 @@ int32 UHealthComponent::GetHealth()
 {
 	return Health;
 }
-
-void UHealthComponent::SetHealthMultiplier(float Multiplier)
-{
-	HealthMultiplier = Multiplier;
-}

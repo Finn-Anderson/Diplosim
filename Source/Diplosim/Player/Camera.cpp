@@ -19,6 +19,7 @@
 #include "Managers/ResourceManager.h"
 #include "Managers/ConstructionManager.h"
 #include "Managers/CitizenManager.h"
+#include "Managers/ResearchManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
@@ -74,6 +75,8 @@ ACamera::ACamera()
 	ConstructionManager->SetTickableWhenPaused(true);
 
 	CitizenManager = CreateDefaultSubobject<UCitizenManager>(TEXT("CitizenManager"));
+
+	ResearchManager = CreateDefaultSubobject<UResearchManager>(TEXT("ResearchManager"));
 
 	WidgetSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("WidgetSpringArmComponent"));
 	WidgetSpringArmComponent->SetupAttachment(RootComponent);

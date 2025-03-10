@@ -102,6 +102,11 @@ ACitizen::ACitizen()
 
 	ProductivityMultiplier = 1.0f;
 	Fertility = 1.0f;
+	ReachMultiplier = 1.0f;
+	AwarenessMultiplier = 1.0f;
+	FoodMultiplier = 1.0f;
+	HungerMultiplier = 1.0f;
+	EnergyMultiplier = 1.0f;
 
 	bSleep = false;
 	IdealHoursSlept = 8;
@@ -128,10 +133,10 @@ void ACitizen::BeginPlay()
 
 	FTimerStruct timer;
 
-	timer.CreateTimer("Eat", this, timeToCompleteDay / 200, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true, true);
+	timer.CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true, true);
 	Camera->CitizenManager->Timers.Add(timer);
 
-	timer.CreateTimer("Energy", this, timeToCompleteDay / 100, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
+	timer.CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
 	timer.CreateTimer("Birthday", this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
@@ -564,7 +569,7 @@ void ACitizen::Eat()
 
 	int32 cost = Camera->CitizenManager->GetLawValue(EBillType::FoodCost);
 
-	int32 maxF = FMath::CeilToInt((100 - Hunger) / 25.0f);
+	int32 maxF = FMath::CeilToInt((100 - Hunger) / (25.0f * FoodMultiplier));
 	int32 quantity = FMath::Clamp(totalAmount, 0, maxF);
 
 	if (cost > 0)
@@ -1364,53 +1369,40 @@ void ACitizen::GenerateGenetics()
 void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 {
 	if (Genetic.Type == EGeneticsType::Speed) {
-		if (Genetic.Grade == EGeneticsGrade::Good) {
-			MovementComponent->InitialSpeed = 250.0f;
-			MovementComponent->MaxSpeed = 250.0f;
-		}
-		else if (Genetic.Grade == EGeneticsGrade::Bad) {
-			MovementComponent->InitialSpeed = 150.0f;
-			MovementComponent->MaxSpeed = 150.0f;
-		}
+		if (Genetic.Grade == EGeneticsGrade::Good)
+			ApplyToMultiplier("Speed", 1.25f);
+		else if (Genetic.Grade == EGeneticsGrade::Bad)
+			ApplyToMultiplier("Speed", 0.75f);
 	}
 	else if (Genetic.Type == EGeneticsType::Shell) {
 		if (Genetic.Grade == EGeneticsGrade::Good)
-			HealthComponent->SetHealthMultiplier(1.25f);
+			ApplyToMultiplier("Health", 1.25f);
 		else if (Genetic.Grade == EGeneticsGrade::Bad)
-			HealthComponent->SetHealthMultiplier(0.75f);
-
-		HealthComponent->MaxHealth = HealthComponent->MaxHealth * HealthComponent->HealthMultiplier;
-		HealthComponent->Health = HealthComponent->MaxHealth;
+			ApplyToMultiplier("Health", 0.75f);
 	}
 	else if (Genetic.Type == EGeneticsType::Reach) {
-		if (Genetic.Grade == EGeneticsGrade::Good) {
-			Capsule->SetWorldScale3D(FVector(1.25f));
-
-			AttackComponent->RangeComponent->SetRelativeScale3D(FVector(0.8f));
-		}
-		else if (Genetic.Grade == EGeneticsGrade::Bad) {
-			Capsule->SetWorldScale3D(FVector(0.75f));
-
-			AttackComponent->RangeComponent->SetRelativeScale3D(FVector(1.333333333333f));
-		}
+		if (Genetic.Grade == EGeneticsGrade::Good)
+			ApplyToMultiplier("Reach", 1.25f);
+		else if (Genetic.Grade == EGeneticsGrade::Bad)
+			ApplyToMultiplier("Reach", 0.75f);
 	}
 	else if (Genetic.Type == EGeneticsType::Awareness) {
 		if (Genetic.Grade == EGeneticsGrade::Good)
-			AttackComponent->RangeComponent->SetWorldScale3D(AttackComponent->RangeComponent->GetRelativeScale3D() * FVector(1.25f));
+			ApplyToMultiplier("Awareness", 1.25f);
 		else if (Genetic.Grade == EGeneticsGrade::Bad)
-			AttackComponent->RangeComponent->SetWorldScale3D(AttackComponent->RangeComponent->GetRelativeScale3D() * FVector(0.75f));
+			ApplyToMultiplier("Awareness", 0.75f);
 	}
 	else if (Genetic.Type == EGeneticsType::Productivity) {
 		if (Genetic.Grade == EGeneticsGrade::Good)
-			ProductivityMultiplier = 1.15f;
+			ApplyToMultiplier("Productivity", 1.15f);
 		else if (Genetic.Grade == EGeneticsGrade::Bad)
-			ProductivityMultiplier = 0.85f;
+			ApplyToMultiplier("Productivity", 0.85f);
 	}
 	else {
 		if (Genetic.Grade == EGeneticsGrade::Good)
-			Fertility = 1.15f;
+			ApplyToMultiplier("Fertility", 1.15f);
 		else if (Genetic.Grade == EGeneticsGrade::Bad)
-			Fertility = 0.85f;
+			ApplyToMultiplier("Fertility", 0.85f);
 	}
 }
 
@@ -1459,28 +1451,24 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 void ACitizen::ApplyTraitAffect(EPersonality Trait)
 {
 	if (Trait == EPersonality::Outgoing)
-		Fertility *= 1.15f;
+		ApplyToMultiplier("Fertility", 1.15f);
 	else if (Trait == EPersonality::Reserved)
-		Fertility *= 0.85f;
+		ApplyToMultiplier("Fertility", 0.85f);
 
 	if (Trait == EPersonality::Talented || Trait == EPersonality::Diligent)
-		ProductivityMultiplier *= 1.15f;
+		ApplyToMultiplier("Productivity", 1.15f);
 	else if (Trait == EPersonality::Inept || Trait == EPersonality::Lazy)
-		ProductivityMultiplier *= 0.85f;
+		ApplyToMultiplier("Productivity", 0.85f);
 
-	if (Trait == EPersonality::Energetic) {
-		MovementComponent->InitialSpeed *= 1.15f;
-		MovementComponent->MaxSpeed *= 1.15f;
-	}
-	else if (Trait == EPersonality::Lethargic) {
-		MovementComponent->InitialSpeed *= 0.85f;
-		MovementComponent->MaxSpeed *= 0.85f;
-	}
+	if (Trait == EPersonality::Energetic)
+		ApplyToMultiplier("Speed", 1.15f);
+	else if (Trait == EPersonality::Lethargic)
+		ApplyToMultiplier("Speed", 0.85f);
 
 	if (Trait == EPersonality::Brave || Trait == EPersonality::Inept)
-		AttackComponent->DamageMultiplier *= 1.5f;
+		ApplyToMultiplier("Damage", 1.5f);
 	else if (Trait == EPersonality::Craven)
-		AttackComponent->DamageMultiplier *= 0.5f;
+		ApplyToMultiplier("Damage", 0.5f);
 
 	if (Trait == EPersonality::Outgoing || Trait == EPersonality::Lethargic || Trait == EPersonality::Workaholic)
 		IdealHoursSlept = 6;
@@ -1494,5 +1482,57 @@ void ACitizen::ApplyTraitAffect(EPersonality Trait)
 	else if (Trait == EPersonality::Idler) {
 		IdealHoursWorkedMin = 0;
 		IdealHoursWorkedMax = 8;
+	}
+}
+
+void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
+{
+	Amount = Amount - 1.0f;
+	
+	if (Affect == "Damage") {
+		AttackComponent->DamageMultiplier += Amount;
+	}
+	else if (Affect == "Speed") {
+		MovementComponent->SpeedMultiplier += Amount;
+	}
+	else if (Affect == "Health") {
+		HealthComponent->HealthMultiplier += Amount;
+
+		float percHealth = HealthComponent->Health / HealthComponent->MaxHealth;
+		HealthComponent->MaxHealth = FMath::Clamp(10 + (5 * BioStruct.Age), 0, 100) * HealthComponent->HealthMultiplier;
+		HealthComponent->Health = HealthComponent->MaxHealth * percHealth;
+	}
+	else if (Affect == "Fertility") {
+		Fertility += Amount;
+	}
+	else if (Affect == "Productivity") {
+		ProductivityMultiplier += Amount;
+	}
+	else if (Affect == "Reach") {
+		ReachMultiplier += Amount;
+
+		Capsule->SetWorldScale3D(FVector(1.0f) * ReachMultiplier);
+
+		AttackComponent->RangeComponent->SetWorldScale3D(FVector(1.0f) * AwarenessMultiplier * (1.0f / ReachMultiplier));
+	}
+	else if (Affect == "Awareness") {
+		AwarenessMultiplier += Amount;
+
+		AttackComponent->RangeComponent->SetWorldScale3D(FVector(1.0f) * AwarenessMultiplier * (1.0f / ReachMultiplier));
+	}
+	else if (Affect == "Food") {
+		FoodMultiplier += Amount;
+	}
+	else if (Affect == "Hunger") {
+		HungerMultiplier += Amount;
+
+		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+		Camera->CitizenManager->UpdateTimerLength("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier);
+	}
+	else if (Affect == "Energy") {
+		EnergyMultiplier += Amount;
+
+		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+		Camera->CitizenManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier);
 	}
 }

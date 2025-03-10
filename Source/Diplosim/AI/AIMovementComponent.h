@@ -23,15 +23,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 		float GetMaximumSpeed();
 
-	void SetMultiplier(float Multiplier);
-
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float MaxSpeed;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float InitialSpeed;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float SpeedMultiplier;
 
 	UPROPERTY()

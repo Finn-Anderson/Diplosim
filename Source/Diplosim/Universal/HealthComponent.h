@@ -39,8 +39,6 @@ public:
 
 	int32 GetHealth();
 
-	void SetHealthMultiplier(float Multiplier);
-
 
 	// Death
 	void Death(AActor* Attacker, int32 Force);

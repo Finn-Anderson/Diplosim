@@ -97,6 +97,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen Manager")
 		class UCitizenManager* CitizenManager;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Research Manager")
+		class UResearchManager* ResearchManager;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		class UBuildComponent* BuildComponent;
 

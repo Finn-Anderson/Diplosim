@@ -145,8 +145,3 @@ float UAIMovementComponent::GetMaximumSpeed()
 {
 	return MaxSpeed;
 }
-
-void UAIMovementComponent::SetMultiplier(float Multiplier)
-{
-	SpeedMultiplier = Multiplier;
-}

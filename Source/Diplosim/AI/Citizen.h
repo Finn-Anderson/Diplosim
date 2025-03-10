@@ -428,12 +428,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Genetics")
 		TArray<FGeneticsStruct> Genetics;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Genetics")
-		float ProductivityMultiplier;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Genetics")
-		float Fertility;
-
 	void GenerateGenetics();
 
 	void ApplyGeneticAffect(FGeneticsStruct Genetic);
@@ -452,4 +446,28 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		int32 IdealHoursSlept;
+
+	// Multipliers
+	UPROPERTY(BlueprintReadOnly, Category = "Multiplier")
+		float ProductivityMultiplier;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Multiplier")
+		float Fertility;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Multiplier")
+		float ReachMultiplier;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Multiplier")
+		float AwarenessMultiplier;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Multiplier")
+		float FoodMultiplier;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Multiplier")
+		float HungerMultiplier;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Multiplier")
+		float EnergyMultiplier;
+
+	void ApplyToMultiplier(FString Affect, float Amount);
 };

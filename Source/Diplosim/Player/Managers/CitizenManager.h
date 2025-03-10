@@ -377,6 +377,8 @@ public:
 
 	void ResetTimer(FString ID, AActor* Actor);
 
+	void UpdateTimerLength(FString ID, AActor* Actor, int32 NewTarget);
+
 	UFUNCTION(BlueprintCallable)
 		int32 GetElapsedTime(FString ID, AActor* Actor);
 

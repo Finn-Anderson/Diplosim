@@ -78,17 +78,20 @@ void AInternalProduction::Production(ACitizen* Citizen)
 				CheckStored(citizen, Intake);
 }
 
-void AInternalProduction::SetTimer(ACitizen* Citizen)
+float AInternalProduction::GetTime()
 {
-	float tally = 1;
+	float time = TimeLength / GetCitizensAtBuilding().Num();
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		tally *= (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * Citizen->GetProductivity());
+		time -= (time / GetCitizensAtBuilding().Num()) * (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * citizen->GetProductivity() - 1.0f);
 
-	float time = TimeLength / GetCitizensAtBuilding().Num() / tally;
+	return time;
+}
 
+void AInternalProduction::SetTimer(ACitizen* Citizen)
+{
 	FTimerStruct timer;
-	timer.CreateTimer("Internal", this, time, FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, Citizen), false);
+	timer.CreateTimer("Internal", this, GetTime(), FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, Citizen), false);
 
 	Camera->CitizenManager->Timers.Add(timer);
 }
@@ -100,14 +103,7 @@ void AInternalProduction::AlterTimer()
 	if (timer == nullptr)
 		return;
 
-	float tally = 1;
-
-	for (ACitizen* citizen : GetCitizensAtBuilding())
-		tally *= (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * citizen->GetProductivity());
-
-	float time = TimeLength / GetCitizensAtBuilding().Num() / tally;
-
-	timer->Target = time;
+	timer->Target = GetTime();
 }
 
 void AInternalProduction::PauseTimer(bool bPause)

@@ -7,6 +7,8 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 
 AHouse::AHouse()
 {
@@ -40,6 +42,8 @@ void AHouse::Enter(ACitizen* Citizen)
 	Super::Enter(Citizen);
 
 	Citizen->bGain = true;
+
+	Camera->CitizenManager->UpdateTimerLength("Energy", this, 1);
 }
 
 void AHouse::Leave(ACitizen* Citizen)
@@ -47,6 +51,9 @@ void AHouse::Leave(ACitizen* Citizen)
 	Super::Leave(Citizen);
 
 	Citizen->bGain = false;
+
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+	Camera->CitizenManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * Citizen->EnergyMultiplier);
 }
 
 bool AHouse::AddCitizen(ACitizen* Citizen)
