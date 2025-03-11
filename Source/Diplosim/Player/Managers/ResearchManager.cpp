@@ -96,5 +96,8 @@ void UResearchManager::Research(float Amount)
 		for (ACitizen* citizen : Cast<ACamera>(GetOwner())->CitizenManager->Citizens)
 			citizen->ApplyToMultiplier(element.Key, element.Value);
 
+	Cast<ACamera>(GetOwner())->ResearchComplete(CurrentIndex);
+	Cast<ACamera>(GetOwner())->DisplayEvent(ResearchStruct[CurrentIndex].ResearchName, "Research Complete");
+
 	CurrentIndex = INDEX_NONE;
 }

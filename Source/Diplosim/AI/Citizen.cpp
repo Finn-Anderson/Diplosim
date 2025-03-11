@@ -17,6 +17,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConstructionManager.h"
+#include "Player/Managers/ResearchManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/House.h"
@@ -125,6 +126,11 @@ void ACitizen::BeginPlay()
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
+
+	for (FResearchStruct research : Camera->ResearchManager->ResearchStruct)
+		if (research.bResearched)
+			for (auto& element : research.Modifiers)
+				ApplyToMultiplier(element.Key, element.Value);
 
 	Camera->CitizenManager->Citizens.Add(this);
 	Camera->CitizenManager->Infectible.Add(this);

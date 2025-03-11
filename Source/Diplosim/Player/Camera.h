@@ -81,6 +81,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateTrends();
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void ResearchComplete(int32 Index);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -207,6 +210,18 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* BuildingColourUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> ResearchUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* ResearchUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> ResearchHoverUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* ResearchHoverUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class USpringArmComponent* WidgetSpringArmComponent;
@@ -361,6 +376,9 @@ public:
 
 	UFUNCTION(Exec)
 		void ChangeSeasonAffect(FString Season);
+
+	UFUNCTION(Exec)
+		void CompleteResearch();
 
 	UFUNCTION(Exec)
 		void TurnOnInstantBuild(bool Value);

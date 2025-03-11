@@ -172,6 +172,10 @@ void ACamera::BeginPlay()
 
 	BuildingColourUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildingColourUI);
 
+	ResearchUIInstance = CreateWidget<UUserWidget>(pcontroller, ResearchUI);
+
+	ResearchHoverUIInstance = CreateWidget<UUserWidget>(pcontroller, ResearchHoverUI);
+
 	if (GetWorld()->GetMapName() == "Map")
 		Grid->Load();
 }
@@ -521,13 +525,16 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 	if (BribeUIInstance->IsInViewport())
 		BribeUIInstance->RemoveFromParent();
 
+	if (ResearchHoverUIInstance->IsInViewport())
+		ResearchHoverUIInstance->RemoveFromRoot();
+
 	if (BuildingColourUIInstance->IsInViewport()) {
 		BuildingColourUIInstance->RemoveFromParent();
 
 		return;
 	}
 	
-	if (bInMenu || ParliamentUIInstance->IsInViewport() || BuildingColourUIInstance->IsInViewport())
+	if (bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport())
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {
@@ -734,6 +741,11 @@ void ACamera::ChangeSeasonAffect(FString Season)
 		return;
 
 	Grid->SetSeasonAffect(Season, 0.02f);
+}
+
+void ACamera::CompleteResearch()
+{
+	ResearchManager->Research(100000000000.0f);
 }
 
 void ACamera::TurnOnInstantBuild(bool Value)

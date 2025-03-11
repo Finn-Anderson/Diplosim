@@ -63,7 +63,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool CanResearch(FResearchStruct Research);
 
-	bool IsReseached(FString Name);
+	UFUNCTION(BlueprintCallable)
+		bool IsReseached(FString Name);
 
 	void Research(float Amount);
 };
