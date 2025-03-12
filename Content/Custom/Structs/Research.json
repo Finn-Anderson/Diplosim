@@ -1,0 +1,114 @@
+{
+  "Research": [
+    {
+      "Name": "Satiate more hunger per food",
+      "Target": 120,
+      "Modifiers": [
+        {
+          "Food": "1.4"
+        }
+      ],
+      "Dependants": []
+    },
+    {
+      "Name": "Increase damage",
+      "Target": 120,
+      "Modifiers": [
+        {
+          "Damage": "1.5"
+        }
+      ],
+      "Dependants": []
+    },
+    {
+      "Name": "Increase reach",
+      "Target": 240,
+      "Modifiers": [
+        {
+          "Reach": "1.25"
+        }
+      ],
+      "Dependants": [ "Satiate more hunger per food", "Increase fertility", "Extend hunger time" ]
+    },
+    {
+      "Name": "Increase health",
+      "Target": 240,
+      "Modifiers": [
+        {
+          "Health": "1.2"
+        }
+      ],
+      "Dependants": [ "Increase damage", "Increase Awareness", "Extend energy time" ]
+    },
+    {
+      "Name": "Increase fertility",
+      "Target": 240,
+      "Modifiers": [
+        {
+          "Fertility": "1.15"
+        }
+      ],
+      "Dependants": [ "Satiate more hunger per food", "Increase reach", "Increase Awareness", "Unlock ancient buildings" ]
+    },
+    {
+      "Name": "Increase Awareness",
+      "Target": 240,
+      "Modifiers": [
+        {
+          "Awareness": "1.25"
+        }
+      ],
+      "Dependants": [ "Increase damage", "Increase health", "Increase fertility", "Unlock ancient buildings" ]
+    },
+    {
+      "Name": "Unlock ancient buildings",
+      "Target": 960,
+      "Modifiers": [
+        {
+
+        }
+      ],
+      "Dependants": [ "Increase Awareness", "Increase fertility", "Increase Speed" ]
+    },
+    {
+      "Name": "Extend hunger time",
+      "Target": 480,
+      "Modifiers": [
+        {
+          "Hunger": "1.5"
+        }
+      ],
+      "Dependants": [ "Increase reach", "Increase Speed", "Increase Productivity" ]
+    },
+    {
+      "Name": "Extend energy time",
+      "Target": 480,
+      "Modifiers": [
+        {
+          "Energy": "1.5"
+        }
+      ],
+      "Dependants": [ "Increase health", "Increase Speed", "Increase Productivity" ]
+    },
+    {
+      "Name": "Increase Speed",
+      "Target": 480,
+      "Modifiers": [
+        {
+          "Awareness": "1.5"
+        }
+      ],
+      "Dependants": [ "Unlock ancient buildings", "Increase reach", "Increase health", "Increase Productivity" ]
+    },
+    {
+      "Name": "Increase Productivity",
+      "Target": 960,
+      "Modifiers": [
+        {
+          "Awareness": "1.5"
+        }
+      ],
+      "Dependants": [ "Extend hunger time", "Extend energy time", "Increase Speed" ]
+    }
+  ]
+}

@@ -526,7 +526,7 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 		BribeUIInstance->RemoveFromParent();
 
 	if (ResearchHoverUIInstance->IsInViewport())
-		ResearchHoverUIInstance->RemoveFromRoot();
+		ResearchHoverUIInstance->RemoveFromParent();
 
 	if (BuildingColourUIInstance->IsInViewport()) {
 		BuildingColourUIInstance->RemoveFromParent();

@@ -35,13 +35,11 @@ void UResearchManager::ReadJSONFile(FString Path)
 								research.Dependants.Add(ev->AsString());
 							else
 								for (auto& bev : ev->AsObject()->Values)
-									research.Modifiers.Add(bev.Key, bev.Value->AsNumber());
+									research.Modifiers.Add(bev.Key, FCString::Atof(*bev.Value->AsString()));
 						}
 					}
 					else if (v.Value->Type == EJson::String)
 						research.ResearchName = v.Value->AsString();
-					else if (v.Value->Type == EJson::Boolean)
-						research.bResearched = v.Value->AsBool();
 					else
 						research.Target = FCString::Atoi(*v.Value->AsString());
 				}

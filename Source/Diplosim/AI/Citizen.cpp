@@ -162,7 +162,7 @@ void ACitizen::BeginPlay()
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
 
-	AIController->Idle();
+	AIController->DefaultAction();
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
@@ -694,6 +694,9 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 	float time = FMath::RandRange(6.0f, 10.0f);
 	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * GetProductivity());
 
+	AttackComponent->MeleeAnim->RateScale = time / 10.0f;
+	Mesh->PlayAnimation(AttackComponent->MeleeAnim, true);
+
 	FTimerStruct timer;
 	timer.CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), false);
 
@@ -715,6 +718,8 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 
 void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 {
+	Mesh->Play(false);
+	
 	AResource* resource = Resource->GetHarvestedResource();
 
 	Camera->CitizenManager->RemoveTimer("AmbientHarvestSound", this);

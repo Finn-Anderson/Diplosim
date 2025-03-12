@@ -72,41 +72,72 @@ void ADiplosimAIController::DefaultAction()
 			AIMoveTo(citizen->Building.Employment);
 		else if (citizen->Building.School != nullptr && citizen->Building.School->bOpen)
 			AIMoveTo(citizen->Building.School);
-		else if (citizen->Building.House != nullptr)
-			AIMoveTo(citizen->Building.House);
 		else
-			Idle();
+			Idle(citizen);
 	}
 	else
 		Cast<AAI>(GetOwner())->MoveToBroch();
 }
 
-void ADiplosimAIController::Idle()
+void ADiplosimAIController::Idle(ACitizen* Citizen)
 {
-	AsyncTask(ENamedThreads::GameThread, [this]() {
-		if (!GetOwner()->IsValidLowLevelFast())
+	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
+		if (!Citizen->IsValidLowLevelFast())
 			return;
 
-		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+		int32 chance = FMath::RandRange(0, 100);
 
-		FNavLocation location;
-		nav->GetRandomPointInNavigableRadius(Cast<ACitizen>(GetOwner())->Camera->CitizenManager->BrochLocation, 1000, location);
+		int32 hoursLeft = 0;
 
-		double length;
-		nav->GetPathLength(GetOwner()->GetActorLocation(), location, length);
+		if (Citizen->Building.Employment->WorkEnd > Citizen->Building.Employment->WorkStart)
+			hoursLeft = (23 - Citizen->Building.Employment->WorkEnd) + Citizen->Building.Employment->WorkStart;
+		else
+			hoursLeft = Citizen->Building.Employment->WorkStart - Citizen->Building.Employment->WorkEnd;
 
-		FTimerStruct timer;
-		timer.CreateTimer("Idle", GetOwner(), FMath::RandRange(3, 10), FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle), false);
+		if (IsValid(Citizen->Building.House) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
+			AIMoveTo(Citizen->Building.House);
+		else {
+			int32 time = FMath::RandRange(3, 10);
 
-		Cast<ACitizen>(GetOwner())->Camera->CitizenManager->Timers.Add(timer);
+			TArray<ABuilding*> buildings;
 
-		if (length > 5000.0f)
-			return;
+			for (ABuilding* building : Citizen->Camera->CitizenManager->Buildings) {
+				if (building->IsA<ABroch>() || building->IsA<AWork>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()))
+					continue;
 
-		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), GetOwner()->GetActorLocation(), location, GetOwner(), Cast<AAI>(GetOwner())->NavQueryFilter);
+				buildings.Add(building);
+			}
 
-		Cast<AAI>(GetOwner())->MovementComponent->SetPoints(path->PathPoints);
+			if (chance < 66 || buildings.IsEmpty()) {
+				UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+				const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+
+				FNavLocation location;
+				nav->GetRandomPointInNavigableRadius(Citizen->Camera->CitizenManager->BrochLocation, 1000, location);
+
+				double length;
+				nav->GetPathLength(Citizen->GetActorLocation(), location, length);
+
+				if (length > 5000.0f)
+					return;
+
+				UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), location, Citizen, Citizen->NavQueryFilter);
+
+				Citizen->MovementComponent->SetPoints(path->PathPoints);
+			}
+			else {
+				int32 index = FMath::RandRange(0, buildings.Num() - 1);
+
+				AIMoveTo(buildings[index]);
+
+				time = FMath::RandRange(20, 30);
+			}
+
+			FTimerStruct timer;
+			timer.CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle, Citizen), false);
+
+			Citizen->Camera->CitizenManager->Timers.Add(timer);
+		}
 	});
 }
 

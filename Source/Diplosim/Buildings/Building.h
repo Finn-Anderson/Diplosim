@@ -160,6 +160,9 @@ struct FSeedStruct
 		int32 Tier;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		class UNiagaraSystem* NiagaraSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<UStaticMesh*> Meshes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
@@ -174,6 +177,7 @@ struct FSeedStruct
 		Yield = -1;
 		TimeLength = -1;
 		Tier = 1;
+		NiagaraSystem = nullptr;
 	}
 };
 
@@ -324,6 +328,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
 		TArray<class ACitizen*> Occupied;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+		TMap<FName, UAnimSequence*> AnimSockets;
 
 	FTimerHandle CostTimer;
 

@@ -96,7 +96,7 @@ ABuilding::ABuilding()
 
 	ActualMesh = nullptr;
 
-	bConstant = true;
+	bConstant = false;
 
 	bAffectBuildingMesh = false;
 
@@ -168,6 +168,8 @@ void ABuilding::SetSeed(int32 Seed)
 	if (bAffectBuildingMesh) {
 		if (!Seeds[Seed].Meshes.IsEmpty())
 			BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
+
+		ParticleComponent->SetAsset(Seeds[Seed].NiagaraSystem);
 
 		if (Seeds[Seed].Health != -1) {
 			HealthComponent->MaxHealth = Seeds[Seed].Health;
@@ -439,7 +441,7 @@ void ABuilding::DestroyBuilding()
 	for (ACitizen* citizen : GetOccupied()) {
 		RemoveCitizen(citizen);
 
-		citizen->AIController->Idle();
+		citizen->AIController->DefaultAction();
 	}
 
 	if (IsA<ABroadcast>())
@@ -461,7 +463,7 @@ void ABuilding::OnBuilt()
 
 	Camera->CitizenManager->Buildings.Add(this);
 
-	if (bConstant)
+	if (bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Activate();
 }
 
@@ -537,6 +539,8 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	if (!Occupied.Contains(Citizen))
 		return;
 
+	bool bAnim = false;
+
 	FSocketStruct socketStruct;
 	socketStruct.Citizen = Citizen;
 
@@ -558,12 +562,26 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 			Citizen->SetActorLocation(SocketList[i].SocketLocation);
 			Citizen->SetActorRotation(SocketList[i].SocketRotation);
 
+			index = i;
+
 			break;
 		}
 	}
 	else if (bHideCitizen || Camera->ConstructionManager->IsBeingConstructed(this, nullptr)) {
 		Citizen->SetActorLocation(GetActorLocation());
 	}
+
+	UAnimSequence* anim;
+
+	if (AnimSockets.Find(SocketList[index].Name) == nullptr)
+		anim = nullptr;
+	else
+		anim = *AnimSockets.Find(SocketList[index].Name);
+
+	if (!IsValid(anim))
+		return;
+
+	Citizen->Mesh->PlayAnimation(anim, true);
 }
 
 void ABuilding::Enter(ACitizen* Citizen)
@@ -577,6 +595,9 @@ void ABuilding::Enter(ACitizen* Citizen)
 	SetSocketLocation(Citizen);
 
 	Inside.Add(Citizen);
+
+	if (GetCitizensAtBuilding().Num() == 1 && !bConstant && ParticleComponent->GetAsset() != nullptr)
+		ParticleComponent->Activate();
 
 	if (!IsA<AFarm>())
 		Citizen->AIController->StopMovement();
@@ -644,7 +665,12 @@ void ABuilding::Leave(ACitizen* Citizen)
 {
 	Citizen->Building.BuildingAt = nullptr;
 
+	Citizen->Mesh->Play(false);
+
 	Inside.Remove(Citizen);
+
+	if (GetCitizensAtBuilding().IsEmpty() && !bConstant && ParticleComponent->GetAsset() != nullptr)
+		ParticleComponent->Deactivate();
 
 	FSocketStruct socketStruct;
 	socketStruct.Citizen = Citizen;
