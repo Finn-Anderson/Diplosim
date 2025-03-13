@@ -72,13 +72,16 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 					nav->ProjectPointToNavigation(startTrace + (rotation.Vector() * 90.0f), location, FVector(400.0f, 400.0f, 20.0f));
 
 					TArray<FVector> newPoints = Cast<AAI>(GetOwner())->AIController->GetPathPoints(startTrace, location.Location);
-					TArray<FVector> regeneratedPoints = Cast<AAI>(GetOwner())->AIController->GetPathPoints(newPoints.Last(), Points.Last());
 
-					avoidPoints = newPoints.Num();
+					if (!newPoints.IsEmpty()) {
+						TArray<FVector> regeneratedPoints = Cast<AAI>(GetOwner())->AIController->GetPathPoints(newPoints.Last(), Points.Last());
 
-					newPoints.Append(regeneratedPoints);
+						avoidPoints = newPoints.Num();
 
-					Points = newPoints;
+						newPoints.Append(regeneratedPoints);
+
+						Points = newPoints;
+					}
 				}
 				else
 					Points.RemoveAt(0);

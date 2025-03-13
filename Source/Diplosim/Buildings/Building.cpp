@@ -573,7 +573,7 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 
 	UAnimSequence* anim;
 
-	if (AnimSockets.Find(SocketList[index].Name) == nullptr)
+	if (index == INDEX_NONE || AnimSockets.Find(SocketList[index].Name) == nullptr)
 		anim = nullptr;
 	else
 		anim = *AnimSockets.Find(SocketList[index].Name);

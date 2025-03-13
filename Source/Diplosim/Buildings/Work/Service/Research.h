@@ -12,14 +12,35 @@ class DIPLOSIM_API AResearch : public AWork
 public:
 	AResearch();
 
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UStaticMeshComponent* TurretMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UStaticMeshComponent* TelescopeMesh;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		int32 TimeLength;
+
+	UPROPERTY()
+		FRotator TurretTargetRotation;
+
+	UPROPERTY()
+		FRotator TelescopeTargetRotation;
+
+	void Tick(float DeltaTime) override;
+
+	void BeginRotation();
+
+	virtual void Build(bool bRebuild = false) override;
+
+	virtual void OnBuilt() override;
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	virtual void Leave(class ACitizen* Citizen) override;
 
-	float GetTime();
+	float GetTime(int32 time);
 
 	void SetResearchTimer();
 

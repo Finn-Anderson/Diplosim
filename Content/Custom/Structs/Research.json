@@ -95,7 +95,7 @@
       "Target": 480,
       "Modifiers": [
         {
-          "Awareness": "1.5"
+          "Speed": "1.5"
         }
       ],
       "Dependants": [ "Unlock ancient buildings", "Increase reach", "Increase health", "Increase Productivity" ]
@@ -105,7 +105,7 @@
       "Target": 960,
       "Modifiers": [
         {
-          "Awareness": "1.5"
+          "Productivity": "1.5"
         }
       ],
       "Dependants": [ "Extend hunger time", "Extend energy time", "Increase Speed" ]

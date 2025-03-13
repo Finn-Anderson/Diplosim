@@ -305,7 +305,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Rebuild();
 
-	void Build(bool bRebuild = false);
+	virtual void Build(bool bRebuild = false);
 
 	virtual void OnBuilt();
 

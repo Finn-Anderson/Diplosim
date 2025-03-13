@@ -14,6 +14,7 @@
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Stockpile.h"
+#include "Buildings/Work/Service/Research.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Map/Grid.h"
 #include "Map/Resources/Vegetation.h"
@@ -106,11 +107,25 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (!IsValidLocation(building) || !CheckBuildCosts()) {
 			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
+			if (building->IsA<AResearch>()) {
+				AResearch* station = Cast<AResearch>(building);
+
+				station->TurretMesh->SetOverlayMaterial(BlockedMaterial);
+				station->TelescopeMesh->SetOverlayMaterial(BlockedMaterial);
+			}
+
 			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
 				decalComp->SetVisibility(false);
 		}
 		else {
 			building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
+
+			if (building->IsA<AResearch>()) {
+				AResearch* station = Cast<AResearch>(building);
+
+				station->TurretMesh->SetOverlayMaterial(BlueprintMaterial);
+				station->TelescopeMesh->SetOverlayMaterial(BlueprintMaterial);
+			}
 
 			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
 				decalComp->SetVisibility(true);

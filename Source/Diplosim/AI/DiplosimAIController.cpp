@@ -87,12 +87,14 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 
 		int32 chance = FMath::RandRange(0, 100);
 
-		int32 hoursLeft = 0;
+		int32 hoursLeft = Citizen->HoursSleptToday.Num();
 
-		if (Citizen->Building.Employment->WorkEnd > Citizen->Building.Employment->WorkStart)
-			hoursLeft = (23 - Citizen->Building.Employment->WorkEnd) + Citizen->Building.Employment->WorkStart;
-		else
-			hoursLeft = Citizen->Building.Employment->WorkStart - Citizen->Building.Employment->WorkEnd;
+		if (IsValid(Citizen->Building.Employment)) {
+			if (Citizen->Building.Employment->WorkEnd > Citizen->Building.Employment->WorkStart)
+				hoursLeft = (24 - Citizen->Building.Employment->WorkEnd) + Citizen->Building.Employment->WorkStart;
+			else
+				hoursLeft = Citizen->Building.Employment->WorkStart - Citizen->Building.Employment->WorkEnd;
+		}
 
 		if (IsValid(Citizen->Building.House) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
 			AIMoveTo(Citizen->Building.House);
@@ -118,12 +120,11 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 				double length;
 				nav->GetPathLength(Citizen->GetActorLocation(), location, length);
 
-				if (length > 5000.0f)
-					return;
+				if (length < 5000.0f) {
+					UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), location, Citizen, Citizen->NavQueryFilter);
 
-				UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), location, Citizen, Citizen->NavQueryFilter);
-
-				Citizen->MovementComponent->SetPoints(path->PathPoints);
+					Citizen->MovementComponent->SetPoints(path->PathPoints);
+				}
 			}
 			else {
 				int32 index = FMath::RandRange(0, buildings.Num() - 1);
