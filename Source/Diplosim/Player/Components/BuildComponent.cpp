@@ -73,7 +73,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			
 		FVector location = transform.GetLocation();
 
-		if (Buildings[0]->GetActorLocation().X == location.X && Buildings[0]->GetActorLocation().Y == location.Y)
+		if (Buildings[0]->GetActorLocation().X == location.X && Buildings[0]->GetActorLocation().Y == location.Y && Buildings[0]->GetActorRotation() == Rotation)
 			return;
 
 		if (Buildings[0]->IsA<AStockpile>())
@@ -88,6 +88,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			location.Z = FMath::RoundHalfFromZero(location.Z);
 
 			Buildings[0]->SetActorLocation(location);
+			Buildings[0]->SetActorRotation(Rotation);
 
 			if (StartLocation != FVector::Zero())
 				SetBuildingsOnPath();
@@ -478,11 +479,6 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 		bCanRotate = false;
 
 		Rotation.Yaw = yaw;
-
-		if (Buildings.Num() > 1)
-			SetBuildingsOnPath();
-		else
-			Buildings[0]->SetActorRotation(Rotation);
 	}
 	else if (!Rotate) {
 		bCanRotate = true;
