@@ -96,8 +96,27 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 				hoursLeft = Citizen->Building.Employment->WorkStart - Citizen->Building.Employment->WorkEnd;
 		}
 
-		if (IsValid(Citizen->Building.House) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
-			AIMoveTo(Citizen->Building.House);
+		AHouse* house = Citizen->Building.House;
+
+		if (!IsValid(house) && Citizen->BioStruct.Age < Citizen->Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+			TArray<AHouse*> familyHouses;
+
+			for (ACitizen* citizen : Citizen->GetLikedFamily()) {
+				if (!IsValid(citizen->Building.House))
+					continue;
+
+				familyHouses.Add(citizen->Building.House);
+			}
+
+			if (!familyHouses.IsEmpty()) {
+				int32 index = FMath::RandRange(0, familyHouses.Num() - 1);
+
+				house = familyHouses[index];
+			}
+		}
+
+		if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
+			AIMoveTo(house);
 		else {
 			int32 time = FMath::RandRange(3, 10);
 

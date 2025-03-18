@@ -60,6 +60,11 @@ ACitizen::ACitizen()
 	TorchNiagaraComponent->SetRelativeScale3D(FVector(0.12f, 0.12f, 0.12f));
 	TorchNiagaraComponent->bAutoActivate = false;
 
+	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
+	HarvestNiagaraComponent->SetupAttachment(Mesh);
+	HarvestNiagaraComponent->SetRelativeLocation(FVector(20.0f, 0.0f, 17.0f));
+	HarvestNiagaraComponent->bAutoActivate = false;
+
 	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
 	DiseaseNiagaraComponent->SetupAttachment(Mesh);
 	DiseaseNiagaraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 6.0f));
@@ -76,6 +81,9 @@ ACitizen::ACitizen()
 	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
 	AmbientAudioComponent->SetupAttachment(RootComponent);
 	AmbientAudioComponent->SetVolumeMultiplier(0.0f);
+	AmbientAudioComponent->bCanPlayMultipleInstances = true;
+	AmbientAudioComponent->PitchModulationMin = 0.9f;
+	AmbientAudioComponent->PitchModulationMax = 1.1f;
 
 	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
 	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
@@ -242,6 +250,49 @@ void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AAc
 
 	if (StillColliding.Contains(collidingStruct))
 		StillColliding.Remove(collidingStruct);
+}
+
+//
+// On Hit
+//
+void ACitizen::SetHarvestVisuals(AResource* Resource)
+{
+	USoundBase* sound = nullptr;
+
+	FHitResult hit(ForceInit);
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(this);
+
+	FLinearColor colour;
+
+	if (Resource->IsA<AMineral>()) {
+		sound = Mines[FMath::RandRange(0, Mines.Num() - 1)];
+
+		FResourceStruct resourceStruct;
+		resourceStruct.Type = Resource->GetClass();
+
+		int32 index = Camera->ResourceManager->ResourceList.Find(resourceStruct);
+		FString category = Camera->ResourceManager->ResourceList[index].Category;
+
+		if (category == "Stone")
+			colour = FLinearColor(0.571125f, 0.590619f, 0.64448f);
+		else if (category == "Marble")
+			colour = FLinearColor(0.768151f, 0.73791f, 0.610496f);
+		else if (category == "Iron")
+			colour = FLinearColor(0.291771f, 0.097587f, 0.066626f);
+		else
+			colour = FLinearColor(1.0f, 0.672443f, 0.0f);
+	}
+	else {
+		sound = Chops[FMath::RandRange(0, Chops.Num() - 1)];
+
+		colour = FLinearColor(0.270498f, 0.158961f, 0.07036f);
+	}
+
+	HarvestNiagaraComponent->SetVariableLinearColor(TEXT("Colour"), colour);
+	HarvestNiagaraComponent->Activate();
+
+	Camera->PlayAmbientSound(AmbientAudioComponent, sound);
 }
 
 //
@@ -578,8 +629,25 @@ void ACitizen::Eat()
 	int32 maxF = FMath::CeilToInt((100 - Hunger) / (25.0f * FoodMultiplier));
 	int32 quantity = FMath::Clamp(totalAmount, 0, maxF);
 
-	if (cost > 0)
-		quantity = FMath::Min(quantity, Balance / cost);
+	TMap<ACitizen*, int32> wallet;
+
+	if (cost > 0) {
+		if ((Balance / cost) < quantity) {
+			for (ACitizen* citizen : GetLikedFamily()) {
+				if ((citizen->Balance / cost) < quantity)
+					continue;
+
+				wallet.Add(citizen, citizen->Balance);
+			}
+		}
+
+		int32 total = Balance;
+
+		for (auto& element : wallet)
+			total += element.Value;
+
+		quantity = FMath::Min(quantity, total / cost);
+	}
 
 	if (quantity == 0) {
 		PopupComponent->SetHiddenInGame(false);
@@ -604,12 +672,28 @@ void ACitizen::Eat()
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
 
+				if (cost > 0) {
+					if ((Balance - cost) < 0) {
+						int32 index = FMath::RandRange(0, wallet.Num() - 1);
+
+						TArray<ACitizen*> family;
+						wallet.GenerateKeyArray(family);
+
+						family[index]->Balance -= cost;
+
+						if (family[index]->Balance == 0)
+							wallet.Remove(family[index]);
+					}
+					else {
+						Balance -= cost;
+					}
+				}
+
 				break;
 			}
 		}
 
-		Balance -= cost;
-		Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, 1);
+		Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, cost);
 
 		Hunger = FMath::Clamp(Hunger + 25, 0, 100);
 	}
@@ -662,7 +746,7 @@ void ACitizen::LoseEnergy()
 			}
 		}
 	}
-	else if (BioStruct.Age < 18) {
+	else {
 		TArray<TWeakObjectPtr<ACitizen>> parents = { BioStruct.Mother, BioStruct.Father };
 
 		for (TWeakObjectPtr<ACitizen> parent : parents) {
@@ -694,7 +778,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 	float time = FMath::RandRange(6.0f, 10.0f);
 	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * GetProductivity());
 
-	AttackComponent->MeleeAnim->RateScale = time / 10.0f;
+	AttackComponent->MeleeAnim->RateScale = 10.0f / time;
 	Mesh->PlayAnimation(AttackComponent->MeleeAnim, true);
 
 	FTimerStruct timer;
@@ -702,16 +786,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 
 	Camera->CitizenManager->Timers.Add(timer);
 
-	USoundBase* sound = nullptr;
-
-	if (Resource->IsA<AMineral>())
-		sound = Mines[FMath::RandRange(0, Mines.Num() - 1)];
-	else
-		sound = Chops[FMath::RandRange(0, Chops.Num() - 1)];
-
-	timer.CreateTimer("AmbientHarvestSound", this, 1, FTimerDelegate::CreateUObject(Camera, &ACamera::PlayAmbientSound, AmbientAudioComponent, sound), true);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	GetWorldTimerManager().SetTimer(AmbientAudioHandle, FTimerDelegate::CreateUObject(this, &ACitizen::SetHarvestVisuals, Resource), time / 10.0f, true, time / 10.0f / 2.0f);
 
 	AIController->StopMovement();
 }
@@ -722,7 +797,7 @@ void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 	
 	AResource* resource = Resource->GetHarvestedResource();
 
-	Camera->CitizenManager->RemoveTimer("AmbientHarvestSound", this);
+	GetWorldTimerManager().ClearTimer(AmbientAudioHandle);
 
 	Camera->CitizenManager->Injure(this, 99);
 
@@ -936,6 +1011,47 @@ void ACitizen::HaveChild()
 	BioStruct.Partner->BioStruct.Children.Add(citizen);
 }
 
+TArray<ACitizen*> ACitizen::GetLikedFamily()
+{
+	TArray<ACitizen*> family;
+
+	if (BioStruct.Mother->IsValidLowLevelFast())
+		family.Add(Cast<ACitizen>(BioStruct.Mother));
+
+	if (BioStruct.Father->IsValidLowLevelFast())
+		family.Add(Cast<ACitizen>(BioStruct.Father));
+
+	if (BioStruct.Partner->IsValidLowLevelFast())
+		family.Add(Cast<ACitizen>(BioStruct.Partner));
+
+	for (ACitizen* child : BioStruct.Children)
+		if (IsValid(child))
+			family.Add(child);
+
+	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+		for (int32 i = (family.Num() - 1); i > -1; i--) {
+			ACitizen* citizen = family[i];
+			int32 count = 0;
+
+			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
+				for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
+					if (personality->Trait == p->Trait)
+						count += 2;
+					else if (personality->Likes.Contains(p->Trait))
+						count++;
+					else if (personality->Dislikes.Contains(p->Trait))
+						count--;
+				}
+			}
+
+			if (count < 0)
+				family.RemoveAt(i);
+		}
+	}
+
+	return family;
+}
+
 //
 // Politics
 //
@@ -1120,6 +1236,9 @@ int32 ACitizen::GetHappiness()
 void ACitizen::SetHappiness()
 {
 	Happiness.ClearValues();
+
+	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
+		return;
 
 	if (!IsValid(Building.House))
 		Happiness.SetValue("Homeless", -20);
@@ -1522,14 +1641,14 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 	else if (Affect == "Reach") {
 		ReachMultiplier += Amount;
 
-		Capsule->SetWorldScale3D(FVector(1.0f) * ReachMultiplier);
+		Capsule->SetRelativeScale3D(FVector(1.0f) * ReachMultiplier);
 
-		AttackComponent->RangeComponent->SetWorldScale3D(FVector(1.0f) * AwarenessMultiplier * (1.0f / ReachMultiplier));
+		AttackComponent->RangeComponent->SetRelativeScale3D(FVector(1.0f) * AwarenessMultiplier * (1.0f / ReachMultiplier));
 	}
 	else if (Affect == "Awareness") {
 		AwarenessMultiplier += Amount;
 
-		AttackComponent->RangeComponent->SetWorldScale3D(FVector(1.0f) * AwarenessMultiplier * (1.0f / ReachMultiplier));
+		AttackComponent->RangeComponent->SetRelativeScale3D(FVector(1.0f) * AwarenessMultiplier * (1.0f / ReachMultiplier));
 	}
 	else if (Affect == "Food") {
 		FoodMultiplier += Amount;

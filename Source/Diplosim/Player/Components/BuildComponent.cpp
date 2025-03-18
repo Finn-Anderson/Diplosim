@@ -416,16 +416,27 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 		Camera->SetSeedVisibility(true);
 }
 
+void UBuildComponent::ResetBuilding(ABuilding* Building)
+{
+	StartLocation = FVector::Zero();
+
+	Buildings.Empty();
+
+	Building->SetActorHiddenInGame(false);
+
+	Buildings.Add(Building);
+}
+
 void UBuildComponent::DetachBuilding()
 {
 	if (Buildings.IsEmpty())
 		return; 
+
+	StartLocation = FVector::Zero();
 	
 	Camera->SetInteractStatus(Buildings[0], false);
 
 	SetComponentTickEnabled(false);
-
-	StartLocation = FVector::Zero();
 
 	Buildings.Empty();
 
@@ -480,7 +491,7 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 
 void UBuildComponent::StartPathPlace()
 {
-	if (StartLocation != FVector::Zero() || Buildings[0]->bUnique)
+	if (StartLocation != FVector::Zero() || Buildings[0]->bUnique || BuildingToMove)
 		return;
 	
 	StartLocation = Buildings[0]->GetActorLocation();
@@ -513,7 +524,7 @@ void UBuildComponent::EndPathPlace()
 	Camera->DisplayInteract(Buildings[0]);
 }
 
-void UBuildComponent::Place()
+void UBuildComponent::Place(bool bQuick)
 {
 	if (Buildings.IsEmpty() || !CheckBuildCosts()) {
 		if (!CheckBuildCosts())
@@ -537,8 +548,11 @@ void UBuildComponent::Place()
 		}
 	}
 
+	ABuilding* b = Buildings[0];
+
 	if (StartLocation != FVector::Zero()) {
-		Buildings[0]->DestroyBuilding();
+		if (!bQuick)
+			Buildings[0]->DestroyBuilding();
 
 		Buildings.RemoveAt(0);
 	}
@@ -599,8 +613,6 @@ void UBuildComponent::Place()
 
 		return;
 	}
-
-	Buildings[0]->StoreSocketLocations();
 	
 	for (ABuilding* building : Buildings) {
 		TArray<UDecalComponent*> decalComponents;
@@ -609,13 +621,18 @@ void UBuildComponent::Place()
 		if (decalComponents.Num() >= 2)
 			decalComponents[1]->SetVisibility(false);
 
+		building->StoreSocketLocations();
+
 		building->Build();
 	}
 
 	if (Camera->Start)
 		Camera->OnBrochPlace(Buildings[0]);
 
-	DetachBuilding();
+	if (bQuick)
+		ResetBuilding(b);
+	else
+		DetachBuilding();
 }
 
 void UBuildComponent::QuickPlace()
@@ -626,9 +643,5 @@ void UBuildComponent::QuickPlace()
 		return;
 	}
 
-	ABuilding* building = Buildings[0];
-
-	Place();
-
-	SpawnBuilding(building->GetClass());
+	Place(true);
 }

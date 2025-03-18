@@ -163,7 +163,10 @@ struct FSeedStruct
 		class UNiagaraSystem* NiagaraSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
-		TArray<UStaticMesh*> Meshes;
+		class UStaticMesh* WorkHat;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		TArray<class UStaticMesh*> Meshes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		TArray<FItemStruct> Cost;
@@ -232,6 +235,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		FString BuildingName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		USoundBase* CitizenSound;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -243,6 +249,9 @@ public:
 
 	UPROPERTY()
 		int32 SeedNum;
+
+	UPROPERTY()
+		FLinearColor ChosenColour;
 
 	UFUNCTION(BlueprintCallable)
 		void SetSeed(int32 Seed);

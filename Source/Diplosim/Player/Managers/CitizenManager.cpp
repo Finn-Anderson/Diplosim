@@ -549,41 +549,43 @@ void UCitizenManager::UpdateHealthText(ACitizen* Citizen)
 
 void UCitizenManager::GetClosestHealer(class ACitizen* Citizen)
 {
-	TArray<AActor*> clinics;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
+	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
+		TArray<AActor*> clinics;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
 
-	ACitizen* healer = nullptr;
+		ACitizen* healer = nullptr;
 
-	for (AActor* actor : clinics) {
-		AClinic* clinic = Cast<AClinic>(actor);
+		for (AActor* actor : clinics) {
+			AClinic* clinic = Cast<AClinic>(actor);
 
-		if (!clinic->bOpen) {
-			clinic->Open();
-
-			continue;
-		}
-
-		for (ACitizen* h : clinic->GetCitizensAtBuilding()) {
-			if (!h->AIController->CanMoveTo(Citizen->GetActorLocation()) || h->AIController->MoveRequest.GetGoalActor() != nullptr)
-				continue;
-
-			if (healer == nullptr) {
-				healer = h;
+			if (!clinic->bOpen) {
+				clinic->Open();
 
 				continue;
 			}
 
-			double magnitude = h->AIController->GetClosestActor(50.0f, Citizen->GetActorLocation(), healer->GetActorLocation(), h->GetActorLocation());
+			for (ACitizen* h : clinic->GetCitizensAtBuilding()) {
+				if (!h->AIController->CanMoveTo(Citizen->GetActorLocation()) || h->AIController->MoveRequest.GetGoalActor() != nullptr)
+					continue;
 
-			if (magnitude > 0.0f)
-				healer = h;
+				if (healer == nullptr) {
+					healer = h;
+
+					continue;
+				}
+
+				double magnitude = h->AIController->GetClosestActor(50.0f, Citizen->GetActorLocation(), healer->GetActorLocation(), h->GetActorLocation());
+
+				if (magnitude > 0.0f)
+					healer = h;
+			}
 		}
-	}
 
-	if (healer == nullptr)
-		return;
-	
-	PickCitizenToHeal(healer, Citizen);
+		if (healer == nullptr)
+			return;
+
+		PickCitizenToHeal(healer, Citizen);
+	});
 }
 
 void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)

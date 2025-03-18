@@ -253,9 +253,18 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
+	// On Hit
+	void SetHarvestVisuals(AResource* Resource);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
+		class UNiagaraComponent* HarvestNiagaraComponent;
+
 	// Audio
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* AmbientAudioComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		FTimerHandle AmbientAudioHandle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		TArray<USoundBase*> Chops;
@@ -367,6 +376,8 @@ public:
 	void SetPartner(ACitizen* Citizen);
 
 	void HaveChild();
+
+	TArray<ACitizen*> GetLikedFamily();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		FBioStruct BioStruct;

@@ -11,9 +11,11 @@
 #include "Components/WidgetComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Engine/StaticMeshSocket.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/AIMovementComponent.h"
 #include "Universal/HealthComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
@@ -74,6 +76,9 @@ ABuilding::ABuilding()
 	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
 	AmbientAudioComponent->SetupAttachment(RootComponent);
 	AmbientAudioComponent->SetVolumeMultiplier(0.0f);
+	AmbientAudioComponent->bCanPlayMultipleInstances = true;
+	AmbientAudioComponent->PitchModulationMin = 0.9f;
+	AmbientAudioComponent->PitchModulationMax = 1.1f;
 
 	GroundDecalComponent = CreateDefaultSubobject<UDecalComponent>("GroundDecalComponent");
 	GroundDecalComponent->SetupAttachment(RootComponent);
@@ -119,23 +124,21 @@ void ABuilding::BeginPlay()
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
 
-	FLinearColor chosenColour;
-
 	if (!Colours.IsEmpty()) {
 		int32 index = FMath::RandRange(0, Colours.Num() - 1);
 
-		chosenColour = Colours[index];
+		ChosenColour = Colours[index];
 	}
 	else {
 		float r = FMath::FRandRange(0.0f, 1.0f);
 		float g = FMath::FRandRange(0.0f, 1.0f);
 		float b = FMath::FRandRange(0.0f, 1.0f);
 
-		chosenColour = FLinearColor(r, g, b);
+		ChosenColour = FLinearColor(r, g, b);
 	}
 
 	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(BuildingMesh->GetMaterial(0), this);
-	material->SetVectorParameterValue("Colour", chosenColour);
+	material->SetVectorParameterValue("Colour", ChosenColour);
 	material->SetScalarParameterValue("Emissiveness", Emissiveness);
 
 	if (bBlink)
@@ -169,8 +172,6 @@ void ABuilding::SetSeed(int32 Seed)
 		if (!Seeds[Seed].Meshes.IsEmpty())
 			BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
 
-		ParticleComponent->SetAsset(Seeds[Seed].NiagaraSystem);
-
 		if (Seeds[Seed].Health != -1) {
 			HealthComponent->MaxHealth = Seeds[Seed].Health;
 			HealthComponent->Health = HealthComponent->MaxHealth;
@@ -179,12 +180,6 @@ void ABuilding::SetSeed(int32 Seed)
 		if (Seeds[Seed].Capacity != -1) {
 			MaxCapacity = Seeds[Seed].Capacity;
 			Capacity = MaxCapacity;
-		}
-
-		if (Seeds[Seed].Name != "") {
-			BuildingName = Seeds[Seed].Name;
-
-			Camera->UpdateDisplayName();
 		}
 
 		if (!Seeds[Seed].Cost.IsEmpty())
@@ -198,16 +193,6 @@ void ABuilding::SetSeed(int32 Seed)
 
 			road->SetTier(Seeds[Seed].Tier);
 			road->RegenerateMesh();
-		}
-
-		if (Seeds[Seed].Resource != nullptr) {
-			AInternalProduction* prod = Cast<AInternalProduction>(this);
-
-			prod->ResourceToOverlap = Seeds[Seed].Resource;
-			prod->MaxYield = Seeds[Seed].Yield;
-			prod->TimeLength = Seeds[Seed].TimeLength;
-
-			prod->WorkHat = Seeds[Seed].Meshes[1];
 		}
 	}
 	else {
@@ -229,6 +214,9 @@ void ABuilding::SetSeed(int32 Seed)
 			int32 num = 0;
 			int32 angle = FMath::RandRange(0, 3);
 
+			if (IsA<AInternalProduction>())
+				angle = 0;
+
 			if (Seeds[Seed].Meshes.Num() > 1) {
 				FString result = socket.ToString().Replace(TEXT("Random"), TEXT(""), ESearchCase::IgnoreCase);
 				num = FCString::Atoi(*result) - 1;
@@ -243,17 +231,23 @@ void ABuilding::SetSeed(int32 Seed)
 			meshComp->SetRelativeRotation(FRotator(0.0f, 90.0f * angle, 0.0f));
 			meshComp->RegisterComponent();
 
-			if (!Colours.IsEmpty()) {
-				UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(meshComp->GetMaterial(0), this);
-				material->SetVectorParameterValue("Colour", Colours[0]);
-
-				meshComp->SetMaterial(0, material);
-			}
+			UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(meshComp->GetMaterial(0), this);
+			material->SetVectorParameterValue("Colour", ChosenColour);
+			meshComp->SetMaterial(0, material);
 
 			if (IsA<AFarm>()) {
 				meshComp->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 
 				Cast<AFarm>(this)->CropMeshes.Add(meshComp);
+			}
+
+			const UStaticMeshSocket* pSocket = meshComp->GetSocketByName("ParticleSocket");
+
+			if (pSocket != nullptr) {
+				UStaticMeshSocket* p = const_cast<UStaticMeshSocket*>(meshComp->GetSocketByName("ParticleSocket"));
+
+				UStaticMeshSocket* s = const_cast<UStaticMeshSocket*>(BuildingMesh->GetSocketByName("ParticleSocket"));
+				s->RelativeLocation = p->RelativeLocation;
 			}
 		}
 
@@ -266,6 +260,23 @@ void ABuilding::SetSeed(int32 Seed)
 
 			BuildingName = Seeds[Seed].Name;
 		}
+		else if (Seeds[Seed].Resource != nullptr) {
+			AInternalProduction* prod = Cast<AInternalProduction>(this);
+
+			prod->ResourceToOverlap = Seeds[Seed].Resource;
+			prod->MaxYield = Seeds[Seed].Yield;
+			prod->TimeLength = Seeds[Seed].TimeLength;
+
+			prod->WorkHat = Seeds[Seed].WorkHat;
+		}
+	}
+
+	ParticleComponent->SetAsset(Seeds[Seed].NiagaraSystem);
+
+	if (Seeds[Seed].Name != "") {
+		BuildingName = Seeds[Seed].Name;
+
+		Camera->UpdateDisplayName();
 	}
 
 	SeedNum = Seed;
@@ -581,13 +592,26 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	if (!IsValid(anim))
 		return;
 
+	Citizen->MovementComponent->CurrentAnim = anim;
+
+	anim->RateScale = 1.0f * Citizen->GetProductivity();
 	Citizen->Mesh->PlayAnimation(anim, true);
+
+	if (!IsValid(CitizenSound))
+		return;
+
+	AResource* resource = Cast<AResource>(Cast<AInternalProduction>(this)->ResourceToOverlap->GetDefaultObject());
+
+	GetWorldTimerManager().SetTimer(Citizen->AmbientAudioHandle, FTimerDelegate::CreateUObject(Citizen, &ACitizen::SetHarvestVisuals, resource), anim->GetPlayLength() / anim->RateScale, true, anim->GetPlayLength() / anim->RateScale / 2.0f);
 }
 
 void ABuilding::Enter(ACitizen* Citizen)
 {
 	if (GetCitizensAtBuilding().Contains(Citizen))
 		return;
+
+	if (!IsA<AFarm>())
+		Citizen->AIController->StopMovement();
 	
 	Citizen->Building.BuildingAt = this;
 	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
@@ -598,9 +622,6 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 	if (GetCitizensAtBuilding().Num() == 1 && !bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Activate();
-
-	if (!IsA<AFarm>())
-		Citizen->AIController->StopMovement();
 	
 	UConstructionManager* cm = Camera->ConstructionManager;
 
@@ -665,6 +686,9 @@ void ABuilding::Leave(ACitizen* Citizen)
 {
 	Citizen->Building.BuildingAt = nullptr;
 
+	GetWorldTimerManager().ClearTimer(Citizen->AmbientAudioHandle);
+
+	Citizen->MovementComponent->CurrentAnim = nullptr;
 	Citizen->Mesh->Play(false);
 
 	Inside.Remove(Citizen);

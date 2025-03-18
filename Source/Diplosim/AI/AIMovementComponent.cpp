@@ -107,25 +107,24 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		location.Z = deltaTarget.Location.Z + 6.0f;
 
 		GetOwner()->SetActorLocation(location);
-	}
 
-	if (!Points.IsEmpty()) {
-		FRotator targetRotation = (GetOwner()->GetActorLocation() - Points[0]).Rotation();
-		targetRotation.Pitch = 0.0f; 
-		
+		FRotator targetRotation = deltaV.Rotation() - FRotator(0.0f, 180.0f, 0.0f);
+		targetRotation.Pitch = 0.0f;
+
 		if (GetOwner()->GetActorRotation() != targetRotation)
 			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), targetRotation, DeltaTime, 10.0f));
-	}
-	
-	if (Velocity == FVector::Zero() && CurrentAnim != nullptr) {
-		Cast<AAI>(GetOwner())->Mesh->Play(false);
 
-		CurrentAnim = nullptr;
-	}
-	else if (CurrentAnim == nullptr) {
+		if (CurrentAnim != nullptr)
+			return;
+
 		Cast<AAI>(GetOwner())->Mesh->PlayAnimation(MoveAnim, true);
 
 		CurrentAnim = MoveAnim;
+	}
+	else if (CurrentAnim == MoveAnim) {
+		Cast<AAI>(GetOwner())->Mesh->Play(false);
+
+		CurrentAnim = nullptr;
 	}
 }
 
