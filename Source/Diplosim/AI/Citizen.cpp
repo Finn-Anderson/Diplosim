@@ -1541,6 +1541,11 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 //
 void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 {
+	if (!IsValid(Camera)) {
+		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		Camera = PController->GetPawn<ACamera>();
+	}
+
 	TArray<FPersonality*> parentsPersonalities = Camera->CitizenManager->GetCitizensPersonalities(Parent);
 	TArray<FPersonality> personalities;
 

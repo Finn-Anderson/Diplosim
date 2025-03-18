@@ -32,8 +32,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float SpeedMultiplier;
 
-	UPROPERTY()
-		int32 avoidPoints;
+	TMap<AActor*, TArray<FVector>> avoidPoints;
 
 	UPROPERTY()
 		TArray<FVector> Points;
