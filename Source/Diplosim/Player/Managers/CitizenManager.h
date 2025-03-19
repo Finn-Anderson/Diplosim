@@ -89,6 +89,9 @@ struct FEventTimeStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		bool bRecurring;
 
+	UPROPERTY()
+		bool bStarted;
+
 	FEventTimeStruct()
 	{
 		Period = "";
@@ -96,6 +99,7 @@ struct FEventTimeStruct
 		StartHour = 0;
 		EndHour = 0;
 		bRecurring = false;
+		bStarted = false;
 	}
 
 	bool operator==(const FEventTimeStruct& other) const
@@ -119,7 +123,7 @@ struct FEventStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		TSubclassOf<class ABuilding> Building;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	UPROPERTY()
 		TArray<class ACitizen*> Attendees;
 
 	FEventStruct()

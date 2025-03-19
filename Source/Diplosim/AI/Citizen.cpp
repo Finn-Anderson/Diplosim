@@ -1456,7 +1456,7 @@ void ACitizen::SetHappiness()
 			Happiness.SetValue("Represented", 15);
 	}
 
-	if (GetHappiness() < 20)
+	if (GetHappiness() < 35)
 		SadTimer++;
 	else
 		SadTimer = 0;

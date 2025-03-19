@@ -659,7 +659,7 @@ void UCitizenManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 
 			if (times.StartHour == Hour)
 				command = "start";
-			else if (times.EndHour == Hour)
+			else if (times.EndHour == Hour && times.bStarted)
 				command = "end";
 
 			if (command != "") {
@@ -777,6 +777,11 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 
 void UCitizenManager::StartEvent(FEventStruct Event, FEventTimeStruct Time)
 {
+	int32 index = Events.Find(Event);
+	int32 i = Events[index].Times.Find(Time);
+
+	Events[index].Times[i].bStarted = true;
+	
 	if (Event.Type == EEventType::Holliday)
 		for (ABuilding* building : Buildings)
 			if (building->IsA<AWork>())
@@ -792,6 +797,8 @@ void UCitizenManager::EndEvent(FEventStruct Event, FEventTimeStruct Time)
 	int32 i = Events[index].Times.Find(Time);
 
 	Events[index].Attendees.Empty();
+	
+	Events[index].Times[i].bStarted = false;
 
 	if (!Time.bRecurring)
 		Events[index].Times.RemoveAt(i);
