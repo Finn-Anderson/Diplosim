@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
+#include "NavigationPath.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Components/WidgetComponent.h"
@@ -620,13 +621,40 @@ void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
 //
 // Event
 //
+void UCitizenManager::CreateEvent(EEventType Type, TSubclassOf<class ABuilding> Building, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring)
+{
+	FEventStruct event;
+	event.Type = Type;
+
+	int32 index = Events.Find(event);
+
+	FEventTimeStruct times;
+	times.Period = Period;
+	times.Day = Day;
+	times.StartHour = StartHour;
+	times.EndHour = EndHour;
+	times.bRecurring = bRecurring;
+	
+	if (index != INDEX_NONE) {
+		Events[index].Times.Add(times);
+
+		return;
+	}
+
+	event.Times.Add(times);
+	event.Building = Building;
+
+	Events.Add(event);
+}
+
 void UCitizenManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 {
-	for (FEventStruct eventStruct : Events) {
+	for (FEventStruct event : Events) {
 		FString command = "";
+		FEventTimeStruct time;
 
-		for (FEventTimeStruct times : eventStruct.Times) {
-			if (times.Period != Period && times.Day != Day)
+		for (FEventTimeStruct times : event.Times) {
+			if (times.Period != "" && times.Day != 0 && times.Period != Period && times.Day != Day)
 				continue;
 
 			if (times.StartHour == Hour)
@@ -634,118 +662,164 @@ void UCitizenManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 			else if (times.EndHour == Hour)
 				command = "end";
 
-			if (command != "")
+			if (command != "") {
+				time = times;
+
 				break;
+			}
 		}
 
 		if (command == "")
 			continue;
 
-		Cast<ACamera>(GetOwner())->DisplayEvent("Event", UEnum::GetValueAsString(eventStruct.Type));
+		if (command == "start")
+			StartEvent(event, time);
+		else
+			EndEvent(event, time);
 
-		if (eventStruct.Type == EEventType::Mass) {
-			if (command == "start")
-				CallMass(eventStruct.Buildings);
-			else
-				EndMass(Cast<ABroadcast>(eventStruct.Buildings[0]->GetDefaultObject())->Belief);
-
-			continue;
-		}
-
-		for (TSubclassOf<ABuilding> Building : eventStruct.Buildings) {
-			TArray<AActor*> actors;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), Building, actors);
-
-			for (AActor* actor : actors) {
-				AWork* work = Cast<AWork>(actor);
-
-				if (!work->bCanAttendEvents)
-					continue;
-
-				if (command == "start")
-					work->Close();
-				else if (work->WorkStart <= Hour && work->WorkEnd > Hour)
-					work->Open();
-			}
-		}
+		Cast<ACamera>(GetOwner())->DisplayEvent("Event", UEnum::GetValueAsString(event.Type));
 	}
 }
 
-bool UCitizenManager::IsWorkEvent(AWork* Work)
+bool UCitizenManager::IsAttendingEvent(ACitizen* Citizen)
 {
-	for (FEventStruct eventStruct : Events) {
-		if (!eventStruct.Buildings.Contains(Work->GetClass()))
-			continue;
-
-		UAtmosphereComponent* atmosphere = Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent;
-
-		for (FEventTimeStruct times : eventStruct.Times) {
-			if (times.Period != atmosphere->Calendar.Period && times.Day != atmosphere->Calendar.Days[atmosphere->Calendar.Index])
-				continue;
-
-			if (atmosphere->Calendar.Hour >= times.StartHour && atmosphere->Calendar.Hour < times.EndHour)
-				return true;
-		}
-	}
+	for (FEventStruct event : OngoingEvents())
+		if (event.Attendees.Contains(Citizen))
+			return true;
 
 	return false;
 }
 
-void UCitizenManager::CallMass(TArray<TSubclassOf<ABuilding>> BuildingList)
+TArray<FEventStruct> UCitizenManager::OngoingEvents()
 {
-	for (TSubclassOf<ABuilding> building : BuildingList) {
-		TArray<AActor*> actors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), building, actors);
+	TArray<FEventStruct> events;
+	
+	for (FEventStruct event : Events) {
+		UAtmosphereComponent* atmosphere = Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent;
 
-		for (ACitizen* citizen : Citizens) {
-			if (Cast<ABroadcast>(actors[0])->Belief != citizen->Spirituality.Faith || citizen->Building.Employment->IsA<ABroadcast>() || !citizen->Building.Employment->bCanAttendEvents)
+		for (FEventTimeStruct times : event.Times) {
+			if (times.Period != atmosphere->Calendar.Period && times.Day != atmosphere->Calendar.Days[atmosphere->Calendar.Index])
 				continue;
 
-			ABroadcast* chosenBuilding = nullptr;
-
-			for (AActor* actor : actors) {
-				ABroadcast* religiousBuilding = Cast<ABroadcast>(actor);
-
-				if (!citizen->AIController->CanMoveTo(religiousBuilding->GetActorLocation()) || religiousBuilding->GetOccupied().IsEmpty())
-					continue;
-
-				if (chosenBuilding == nullptr) {
-					chosenBuilding = religiousBuilding;
-
-					continue;
-				}
-
-				double magnitude = citizen->AIController->GetClosestActor(400.0f, citizen->GetActorLocation(), chosenBuilding->GetActorLocation(), religiousBuilding->GetActorLocation());
-
-				if (magnitude <= 0.0f)
-					continue;
-
-				chosenBuilding = religiousBuilding;
-			}
-
-			if (chosenBuilding != nullptr)
-				citizen->AIController->AIMoveTo(chosenBuilding);
+			if (atmosphere->Calendar.Hour >= times.StartHour && atmosphere->Calendar.Hour < times.EndHour)
+				events.Add(event);
 		}
 	}
+
+	return events;
 }
 
-void UCitizenManager::EndMass(EReligion Belief)
+void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 {
-	for (ACitizen* citizen : Citizens) {
-		if (Belief != citizen->Spirituality.Faith)
+	if (IsAttendingEvent(Citizen) || (Event.Type != EEventType::Protest && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->bOpen) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith))
+		return;
+
+	if (Event.Type != EEventType::Holliday) {
+		int32 index = Events.Find(Event);
+
+		Events[index].Attendees.Add(Citizen);
+	}
+	
+	ABuilding* chosenBuilding = nullptr;
+
+	if (Event.Type == EEventType::Holliday) {
+		Citizen->SetHolliday(true);
+	}
+	else if (Event.Type == EEventType::Protest) {
+		chosenBuilding = Buildings[FMath::RandRange(0, Buildings.Num() - 1)];
+
+		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+
+		FNavLocation location;
+		nav->GetRandomPointInNavigableRadius(chosenBuilding->GetActorLocation(), 400, location);
+
+		double length;
+		nav->GetPathLength(Citizen->GetActorLocation(), location, length);
+
+		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), location, Citizen, Citizen->NavQueryFilter);
+
+		Citizen->MovementComponent->SetPoints(path->PathPoints);
+
+		return;
+	}
+
+	TArray<AActor*> actors;
+
+	if (IsValid(Event.Building))
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), Event.Building, actors);
+
+	for (AActor* actor : actors) {
+		ABuilding* building = Cast<ABuilding>(actor);
+
+		if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || building->GetOccupied().IsEmpty())
 			continue;
 
-		if (citizen->bWorshipping)
-			citizen->SetMassStatus(EMassStatus::Attended);
-		else
-			citizen->SetMassStatus(EMassStatus::Missed);
+		if (chosenBuilding == nullptr) {
+			chosenBuilding = building;
 
-		int32 timeToCompleteDay = 360 / (24 * citizen->Camera->Grid->AtmosphereComponent->Speed);
+			continue;
+		}
 
-		FTimerStruct timer;
-		timer.CreateTimer("Mass", citizen, timeToCompleteDay * 2, FTimerDelegate::CreateUObject(citizen, &ACitizen::SetMassStatus, EMassStatus::Neutral), false);
+		double magnitude = Citizen->AIController->GetClosestActor(400.0f, Citizen->GetActorLocation(), chosenBuilding->GetActorLocation(), building->GetActorLocation());
 
-		Timers.Add(timer);
+		if (magnitude <= 0.0f)
+			continue;
+
+		chosenBuilding = building;
+	}
+
+	if (chosenBuilding != nullptr)
+		Citizen->AIController->AIMoveTo(chosenBuilding);
+	else
+		Citizen->AIController->DefaultAction();
+}
+
+void UCitizenManager::StartEvent(FEventStruct Event, FEventTimeStruct Time)
+{
+	if (Event.Type == EEventType::Holliday)
+		for (ABuilding* building : Buildings)
+			if (building->IsA<AWork>())
+				Cast<AWork>(building)->CheckWorkStatus(Time.StartHour);
+	
+	for (ACitizen* citizen : Citizens)
+		GotoEvent(citizen, Event);
+}
+
+void UCitizenManager::EndEvent(FEventStruct Event, FEventTimeStruct Time)
+{
+	int32 index = Events.Find(Event);
+	int32 i = Events[index].Times.Find(Time);
+
+	Events[index].Attendees.Empty();
+
+	if (!Time.bRecurring)
+		Events[index].Times.RemoveAt(i);
+
+	if (Event.Type == EEventType::Holliday)
+		for (ABuilding* building : Buildings)
+			if (building->IsA<AWork>())
+				Cast<AWork>(building)->CheckWorkStatus(Time.EndHour);
+
+	for (ACitizen* citizen : Citizens) {
+		if (Event.Type == EEventType::Holliday) {
+			citizen->SetHolliday(false);
+		}
+		else if (Event.Type == EEventType::Mass) {
+			if (Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != citizen->Spirituality.Faith)
+				continue;
+
+			if (citizen->bWorshipping)
+				citizen->SetAttendStatus(EAttendStatus::Attended, true);
+			else
+				citizen->SetAttendStatus(EAttendStatus::Missed, true);
+		}
+		else if (Event.Type == EEventType::Festival) {
+			if (citizen->Building.BuildingAt->IsA(Event.Building))
+				citizen->SetAttendStatus(EAttendStatus::Attended, false);
+			else
+				citizen->SetAttendStatus(EAttendStatus::Missed, false);
+		}
 
 		citizen->AIController->DefaultAction();
 	}

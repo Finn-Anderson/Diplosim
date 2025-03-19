@@ -106,6 +106,10 @@ ACitizen::ACitizen()
 
 	bHasBeenLeader = false;
 
+	bHolliday = false;
+	MassStatus = EAttendStatus::Neutral;
+	FestivalStatus = EAttendStatus::Neutral;
+
 	HealthComponent->MaxHealth = 10;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
@@ -879,7 +883,7 @@ void ACitizen::Birthday()
 	}
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::VoteAge))
-		SetPolticalLeanings();
+		SetPoliticalLeanings();
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge) && IsValid(Building.School))
 		Building.School->RemoveStudent(this);
@@ -1055,7 +1059,7 @@ TArray<ACitizen*> ACitizen::GetLikedFamily()
 //
 // Politics
 //
-void ACitizen::SetPolticalLeanings()
+void ACitizen::SetPoliticalLeanings()
 {
 	TArray<EParty> partyList;
 
@@ -1215,14 +1219,29 @@ void ACitizen::SetReligion()
 	Spirituality.Faith = religionList[index];
 }
 
-void ACitizen::SetMassStatus(EMassStatus Status)
-{
-	MassStatus = Status;
-}
-
 //
 // Happiness
 //
+void ACitizen::SetAttendStatus(EAttendStatus Status, bool bMass)
+{
+	if (bMass)
+		MassStatus = Status;
+	else
+		FestivalStatus = Status;
+
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+
+	FTimerStruct timer;
+	timer.CreateTimer("Mass", this, timeToCompleteDay * 2, FTimerDelegate::CreateUObject(this, &ACitizen::SetAttendStatus, EAttendStatus::Neutral, bMass), false);
+
+	Camera->CitizenManager->Timers.Add(timer);
+}
+
+void ACitizen::SetHolliday(bool bStatus)
+{
+	bHolliday = bStatus;
+}
+
 int32 ACitizen::GetHappiness()
 {
 	int32 value = 50;
@@ -1346,10 +1365,18 @@ void ACitizen::SetHappiness()
 	else
 		Happiness.SetValue("Ideal Hours Worked", 10);
 
-	if (MassStatus == EMassStatus::Missed)
+	if (MassStatus == EAttendStatus::Missed)
 		Happiness.SetValue("Missed Mass", -25);
-	else if (MassStatus == EMassStatus::Attended)
+	else if (MassStatus == EAttendStatus::Attended)
 		Happiness.SetValue("Attended Mass", 15);
+
+	if (FestivalStatus == EAttendStatus::Missed)
+		Happiness.SetValue("Missed Mass", -15);
+	else if (FestivalStatus == EAttendStatus::Attended)
+		Happiness.SetValue("Attended Mass", 10);
+
+	if (bHolliday)
+		Happiness.SetValue("Holliday", 10);
 
 	if (IsValid(Building.Employment) && GetWorld()->GetTimeSeconds() >= TimeOfEmployment + 300.0f) {
 		int32 count = 0;
@@ -1434,8 +1461,15 @@ void ACitizen::SetHappiness()
 	else
 		SadTimer = 0;
 
-	if (SadTimer == 300)
-		HealthComponent->TakeHealth(HealthComponent->GetHealth(), this);
+	if (SadTimer == 300) {
+		FEventStruct event;
+		event.Type = EEventType::Protest;
+
+		int32 index = Camera->CitizenManager->Events.Find(event);
+		
+		if (Camera->CitizenManager->Events[index].Times.IsEmpty())
+			Camera->CitizenManager->CreateEvent(EEventType::Protest, nullptr, "", 0, FMath::RandRange(6, 9), FMath::RandRange(12, 18), false);
+	}
 }
 
 //

@@ -64,7 +64,9 @@ UENUM()
 enum class EEventType : uint8
 {
 	Mass,
-	Holiday
+	Festival,
+	Holliday,
+	Protest
 };
 
 USTRUCT(BlueprintType)
@@ -84,12 +86,21 @@ struct FEventTimeStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		int32 EndHour;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		bool bRecurring;
+
 	FEventTimeStruct()
 	{
 		Period = "";
 		Day = 0;
 		StartHour = 0;
 		EndHour = 0;
+		bRecurring = false;
+	}
+
+	bool operator==(const FEventTimeStruct& other) const
+	{
+		return (other.Period == Period && other.Day == Day && other.StartHour == StartHour && other.EndHour == EndHour);
 	}
 };
 
@@ -103,16 +114,24 @@ struct FEventStruct
 		EEventType Type;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		TArray<TSubclassOf<class ABuilding>> Buildings;
+		TArray<FEventTimeStruct> Times;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		TArray<FEventTimeStruct> Times;
+		TSubclassOf<class ABuilding> Building;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		TArray<class ACitizen*> Attendees;
 
 	FEventStruct()
 	{
-		Type = EEventType::Holiday;
-		Buildings = {};
+		Type = EEventType::Holliday;
 		Times = {};
+		Building = nullptr;
+	}
+
+	bool operator==(const FEventStruct& other) const
+	{
+		return (other.Type == Type);
 	}
 };
 
@@ -443,13 +462,20 @@ public:
 		TArray<ACitizen*> Healing;
 
 	// Events
+	UFUNCTION(BlueprintCallable)
+		void CreateEvent(EEventType Type, TSubclassOf<class ABuilding> Building, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring);
+
 	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
 
-	bool IsWorkEvent(class AWork* Work);
+	bool IsAttendingEvent(class ACitizen* Citizen);
 
-	void CallMass(TArray<TSubclassOf<class ABuilding>> BuildingList);
+	TArray<FEventStruct> OngoingEvents();
 
-	void EndMass(EReligion Belief);
+	void GotoEvent(ACitizen* Citizen, FEventStruct Event);
+
+	void StartEvent(FEventStruct Event, FEventTimeStruct Time);
+
+	void EndEvent(FEventStruct Event, FEventTimeStruct Time);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		TArray<FEventStruct> Events;

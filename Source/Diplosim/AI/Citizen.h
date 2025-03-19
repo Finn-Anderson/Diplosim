@@ -107,7 +107,7 @@ struct FBioStruct
 };
 
 UENUM(BlueprintType)
-enum class EMassStatus : uint8
+enum class EAttendStatus : uint8
 {
 	Neutral,
 	Attended,
@@ -389,7 +389,7 @@ public:
 		float MaxHealthBeforeOld;
 
 	// Politics
-	void SetPolticalLeanings();
+	void SetPoliticalLeanings();
 
 	bool bHasBeenLeader;
 
@@ -401,11 +401,9 @@ public:
 		bool bWorshipping;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")
-		EMassStatus MassStatus;
+		EAttendStatus MassStatus;
 
 	void SetReligion();
-
-	void SetMassStatus(EMassStatus Status);
 
 	// Disease
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
@@ -424,11 +422,21 @@ public:
 	UPROPERTY()
 		int32 SadTimer;
 
+	UPROPERTY()
+		bool bHolliday;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Happiness")
 		class UStaticMesh* RebelHat;
 
 	UPROPERTY()
 		float Rebel;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Festival")
+		EAttendStatus FestivalStatus;
+
+	void SetAttendStatus(EAttendStatus Status, bool bMass);
+
+	void SetHolliday(bool bStatus);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetHappiness();

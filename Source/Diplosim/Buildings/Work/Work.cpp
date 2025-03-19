@@ -153,7 +153,9 @@ void AWork::CheckWorkStatus(int32 Hour)
 	if (IsA<ASchool>() && bOpen && !GetCitizensAtBuilding().IsEmpty())
 		Cast<ASchool>(this)->AddProgress();
 
-	if (Camera->CitizenManager->IsWorkEvent(this) || (IsA<AClinic>() && (!Camera->CitizenManager->Infected.IsEmpty() || !Camera->CitizenManager->Injuries.IsEmpty())))
+	FEventStruct event;
+
+	if (Camera->CitizenManager->OngoingEvents().Contains(event) || (IsA<AClinic>() && (!Camera->CitizenManager->Infected.IsEmpty() || !Camera->CitizenManager->Injuries.IsEmpty())))
 		return;
 
 	if (WorkStart >= WorkEnd) {
