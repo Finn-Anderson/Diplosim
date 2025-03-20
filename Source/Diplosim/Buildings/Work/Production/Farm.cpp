@@ -28,7 +28,7 @@ void AFarm::Enter(ACitizen* Citizen)
 	FTimerStruct timer;
 	timer.CreateTimer("Farm", this, TimeLength / 10.0f / Citizen->GetProductivity(), FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false, true);
 
-	if (!Occupied.Contains(Citizen) || Camera->CitizenManager->Timers.Contains(timer))
+	if (!GetOccupied().Contains(Citizen) || Camera->CitizenManager->Timers.Contains(timer))
 		return;
 
 	if (CropMeshes[0]->GetRelativeScale3D().Z == 1.0f)

@@ -24,7 +24,7 @@ void AWall::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!Occupied.Contains(Citizen))
+	if (!GetOccupied().Contains(Citizen))
 		return;
 
 	Citizen->AttackComponent->SetProjectileClass(BuildingProjectileClass);
@@ -34,7 +34,7 @@ void AWall::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
-	if (!Occupied.Contains(Citizen))
+	if (!GetOccupied().Contains(Citizen))
 		return;
 
 	Citizen->AttackComponent->SetProjectileClass(nullptr);

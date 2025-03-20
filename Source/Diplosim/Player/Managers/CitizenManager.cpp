@@ -19,6 +19,7 @@
 #include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Misc/Festival.h"
 #include "Buildings/House.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
@@ -714,15 +715,11 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 	if (IsAttendingEvent(Citizen) || (Event.Type != EEventType::Protest && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->bOpen) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith))
 		return;
 
-	if (Event.Type != EEventType::Holliday) {
-		int32 index = Events.Find(Event);
-
-		Events[index].Attendees.Add(Citizen);
-	}
+	int32 index = Events.Find(Event);
 	
 	ABuilding* chosenBuilding = nullptr;
 
-	if (Event.Type == EEventType::Holliday) {
+	if (Event.Type == EEventType::Holliday || Event.Type == EEventType::Festival) {
 		Citizen->SetHolliday(true);
 	}
 	else if (Event.Type == EEventType::Protest) {
@@ -752,7 +749,10 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 	for (AActor* actor : actors) {
 		ABuilding* building = Cast<ABuilding>(actor);
 
-		if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || building->GetOccupied().IsEmpty())
+		if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || (Event.Type == EEventType::Mass && building->GetOccupied().IsEmpty()) || (Event.Type == EEventType::Festival && !Cast<AFestival>(building)->bCanHostFestival))
+			continue;
+
+		if (Event.Type == EEventType::Festival && chosenBuilding->Occupied[0].Visitors.Num() == building->Space)
 			continue;
 
 		if (chosenBuilding == nullptr) {
@@ -768,9 +768,16 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 
 		chosenBuilding = building;
 	}
+		
 
-	if (chosenBuilding != nullptr)
+	if (chosenBuilding != nullptr) {
+		Event.Attendees.Add(Citizen);
+
+		if (Event.Type == EEventType::Festival)
+			chosenBuilding->Occupied[0].Visitors.Add(Citizen);
+
 		Citizen->AIController->AIMoveTo(chosenBuilding);
+	}
 	else
 		Citizen->AIController->DefaultAction();
 }
@@ -782,10 +789,14 @@ void UCitizenManager::StartEvent(FEventStruct Event, FEventTimeStruct Time)
 
 	Events[index].Times[i].bStarted = true;
 	
-	if (Event.Type == EEventType::Holliday)
-		for (ABuilding* building : Buildings)
+	if (Event.Type == EEventType::Holliday || Event.Type == EEventType::Festival) {
+		for (ABuilding* building : Buildings) {
 			if (building->IsA<AWork>())
 				Cast<AWork>(building)->CheckWorkStatus(Time.StartHour);
+			else if (building->IsA<AFestival>() && Event.Type == EEventType::Festival)
+				Cast<AFestival>(building)->StartFestival(Time.bFireFestival);
+		}
+	}
 	
 	for (ACitizen* citizen : Citizens)
 		GotoEvent(citizen, Event);
@@ -795,22 +806,32 @@ void UCitizenManager::EndEvent(FEventStruct Event, FEventTimeStruct Time)
 {
 	int32 index = Events.Find(Event);
 	int32 i = Events[index].Times.Find(Time);
-
-	Events[index].Attendees.Empty();
 	
+	Event.Attendees.Empty();
 	Events[index].Times[i].bStarted = false;
 
 	if (!Time.bRecurring)
 		Events[index].Times.RemoveAt(i);
 
-	if (Event.Type == EEventType::Holliday)
-		for (ABuilding* building : Buildings)
+	if (Event.Type == EEventType::Holliday || Event.Type == EEventType::Festival) {
+		for (ABuilding* building : Buildings) {
 			if (building->IsA<AWork>())
 				Cast<AWork>(building)->CheckWorkStatus(Time.EndHour);
+			else if (building->IsA<AFestival>() && Event.Type == EEventType::Festival)
+				Cast<AFestival>(building)->StopFestival();
+		}
+	}
 
 	for (ACitizen* citizen : Citizens) {
-		if (Event.Type == EEventType::Holliday) {
+		if (Event.Type == EEventType::Holliday || Event.Type == EEventType::Festival) {
 			citizen->SetHolliday(false);
+
+			if (Event.Type == EEventType::Festival) {
+				if (citizen->Building.BuildingAt->IsA(Event.Building))
+					citizen->SetAttendStatus(EAttendStatus::Attended, false);
+				else
+					citizen->SetAttendStatus(EAttendStatus::Missed, false);
+			}
 		}
 		else if (Event.Type == EEventType::Mass) {
 			if (Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != citizen->Spirituality.Faith)
@@ -820,12 +841,6 @@ void UCitizenManager::EndEvent(FEventStruct Event, FEventTimeStruct Time)
 				citizen->SetAttendStatus(EAttendStatus::Attended, true);
 			else
 				citizen->SetAttendStatus(EAttendStatus::Missed, true);
-		}
-		else if (Event.Type == EEventType::Festival) {
-			if (citizen->Building.BuildingAt->IsA(Event.Building))
-				citizen->SetAttendStatus(EAttendStatus::Attended, false);
-			else
-				citizen->SetAttendStatus(EAttendStatus::Missed, false);
 		}
 
 		citizen->AIController->DefaultAction();

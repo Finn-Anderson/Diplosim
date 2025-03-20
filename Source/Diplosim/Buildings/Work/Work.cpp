@@ -64,13 +64,10 @@ void AWork::OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class 
 
 void AWork::UpkeepCost()
 {
-	for (int i = 0; i < Occupied.Num(); i++) {
-		ACitizen* c = Cast<ACitizen>(Occupied[i]);
+	for (ACitizen* citizen : GetOccupied())
+		citizen->Balance += Wage;
 
-		c->Balance += Wage;
-	}
-
-	int32 upkeep = Wage * Occupied.Num();
+	int32 upkeep = Wage * GetOccupied().Num();
 	Camera->ResourceManager->TakeUniversalResource(Money, upkeep, -100000);
 }
 

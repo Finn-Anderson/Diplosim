@@ -25,11 +25,50 @@ int32 AHouse::GetQuality()
 void AHouse::UpkeepCost()
 {
 	for (ACitizen* citizen : GetOccupied()) {
-		if (citizen->Balance < Rent) {
+
+
+		TArray<ACitizen*> family;
+		int32 total = citizen->Balance;
+
+		FOccupantStruct occupant;
+		occupant.Occupant = citizen;
+
+		int32 index = Occupied.Find(occupant);
+
+		for (ACitizen* c : Occupied[index].Visitors) {
+			family.Add(c);
+
+			total += c->Balance;
+		}
+
+		if (total < Rent) {
+			for (ACitizen* c : citizen->GetLikedFamily()) {
+				if (c->Balance < Rent || family.Contains(c))
+					continue;
+
+				family.Add(c);
+
+				total += c->Balance;
+			}
+		}
+
+		if (total < Rent) {
 			RemoveCitizen(citizen);
 		}
 		else {
-			citizen->Balance -= Rent;
+			for (int32 i = 0; i < Rent; i++) {
+				if (citizen->Balance == 0) {
+					index = FMath::RandRange(0, family.Num() - 1);
+
+					family[index]->Balance -= 1;
+
+					if (family[index]->Balance == 0)
+						family.RemoveAt(index);
+				}
+				else {
+					citizen->Balance -= 1;
+				}
+			}
 		}
 	}
 
@@ -76,6 +115,14 @@ bool AHouse::RemoveCitizen(ACitizen* Citizen)
 
 	if (!bCheck)
 		return false;
+
+	FOccupantStruct occupant;
+	occupant.Occupant = Citizen;
+
+	int32 index = Occupied.Find(occupant);
+
+	for (ACitizen* citizen : Occupied[index].Visitors)
+		citizen->Building.House = nullptr;
 
 	Citizen->Building.House = nullptr;
 

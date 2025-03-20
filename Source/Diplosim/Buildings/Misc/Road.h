@@ -73,9 +73,4 @@ public:
 		TArray<FRoadStruct> RoadMeshes;
 
 	void RegenerateMesh();
-
-	UPROPERTY()
-		int32 Tier;
-
-	void SetTier(int32 Value);
 };

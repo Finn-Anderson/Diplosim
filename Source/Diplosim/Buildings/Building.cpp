@@ -35,6 +35,7 @@
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Buildings/Misc/Road.h"
+#include "Buildings/Misc/Festival.h"
 #include "Universal/EggBasket.h"
 
 ABuilding::ABuilding()
@@ -112,6 +113,8 @@ ABuilding::ABuilding()
 	bCoastal = false;
 
 	SeedNum = 0;
+
+	Tier = 1;
 }
 
 void ABuilding::BeginPlay()
@@ -188,11 +191,11 @@ void ABuilding::SetSeed(int32 Seed)
 		if (IsA<ATrap>())
 			Cast<ATrap>(this)->bExplode = Seeds[Seed].bExplosive;
 
-		if (IsA<ARoad>()) {
-			ARoad* road = Cast<ARoad>(this);
+		if (IsA<ARoad>() || IsA<AFestival>()) {
+			SetTier(Seeds[Seed].Tier);
 
-			road->SetTier(Seeds[Seed].Tier);
-			road->RegenerateMesh();
+			if (IsA<ARoad>())
+				Cast<ARoad>(this)->RegenerateMesh();
 		}
 	}
 	else {
@@ -282,6 +285,28 @@ void ABuilding::SetSeed(int32 Seed)
 	SeedNum = Seed;
 
 	Camera->DisplayInteract(this);
+}
+
+void ABuilding::SetTier(int32 Value)
+{
+	Tier = Value;
+	
+	float r = 0;
+	float g = 0;
+	float b = 0;
+
+	if (Value == 1) {
+		r = 0.473531;
+		g = 0.361307;
+		b = 0.187821;
+	}
+	else if (Value == 2) {
+		r = 0.571125;
+		g = 0.590619;
+		b = 0.64448;
+	}
+
+	SetBuildingColour(r, g, b);
 }
 
 void ABuilding::SetBuildingColour(float R, float G, float B)
@@ -493,20 +518,26 @@ bool ABuilding::AddCitizen(ACitizen* Citizen)
 	else
 		Citizen->TimeOfEmployment = GetWorld()->GetTimeSeconds();
 
-	Occupied.Add(Citizen);
+	FOccupantStruct occupant;
+	occupant.Occupant = Citizen;
+
+	Occupied.Add(occupant);
 
 	return true;
 }
 
 bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 {
-	if (!Occupied.Contains(Citizen))
+	if (!GetOccupied().Contains(Citizen))
 		return false;
 
 	if (Citizen->Building.BuildingAt == this)
 		Leave(Citizen);
 
-	Occupied.Remove(Citizen);
+	FOccupantStruct occupant;
+	occupant.Occupant = Citizen;
+
+	Occupied.Remove(occupant);
 
 	return true;
 }
@@ -533,8 +564,24 @@ void ABuilding::StoreSocketLocations()
 
 	FSocketStruct socketStruct;
 
+	int32 limit = 0;
+
+	if (IsA<AFestival>()) {
+		int32 size = FMath::RoundHalfFromZero(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X / 250.0f);
+
+		for (int32 i = 0; i < size; i++)
+			limit += FMath::Max(1, i * 2) * 8;
+
+		Space = limit;
+	}
+	else
+		limit += 1000000000;
+
 	for (FName socket : sockets) {
-		if (!socket.ToString().Contains("Position"))
+		TArray<FString> list;
+		socket.ToString().ParseIntoArray(list, TEXT("Position"));
+
+		if (!socket.ToString().Contains("Position") && FCString::Atoi(*list[1]) < limit)
 			continue;
 
 		socketStruct.Name = socket;
@@ -547,7 +594,7 @@ void ABuilding::StoreSocketLocations()
 
 void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 {
-	if (!Occupied.Contains(Citizen))
+	if (!GetOccupied().Contains(Citizen))
 		return;
 
 	bool bAnim = false;
@@ -584,10 +631,17 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 
 	UAnimSequence* anim;
 
-	if (index == INDEX_NONE || AnimSockets.Find(SocketList[index].Name) == nullptr)
-		anim = nullptr;
-	else
-		anim = *AnimSockets.Find(SocketList[index].Name);
+	TArray<FName> keys;
+	AnimSockets.GenerateKeyArray(keys);
+
+	if (keys[0] == FName("All"))
+		anim = *AnimSockets.Find(keys[0]);
+	else {
+		if (index == INDEX_NONE || AnimSockets.Find(SocketList[index].Name) == nullptr)
+			anim = nullptr;
+		else
+			anim = *AnimSockets.Find(SocketList[index].Name);
+	}
 
 	if (!IsValid(anim))
 		return;
@@ -618,7 +672,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 	SetSocketLocation(Citizen);
 
-	Inside.Add(Citizen);
+	if (!Inside.Contains(Citizen))
+		Inside.Add(Citizen);
 
 	if (GetCitizensAtBuilding().Num() == 1 && !bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Activate();
@@ -676,9 +731,6 @@ void ABuilding::Enter(ACitizen* Citizen)
 			Citizen->AIController->AIMoveTo(deliverTo);
 		else
 			CarryResources(Citizen, deliverTo, items);
-	}
-	else if (!GetOccupied().Contains(Citizen)) {
-		Leave(Citizen);
 	}
 }
 
@@ -764,9 +816,14 @@ int32 ABuilding::GetCapacity()
 	return Capacity;
 }
 
-TArray<class ACitizen*> ABuilding::GetOccupied()
+TArray<ACitizen*> ABuilding::GetOccupied()
 {
-	return Occupied;
+	TArray<ACitizen*> citizens;
+
+	for (FOccupantStruct &occupant : Occupied)
+		citizens.Add(occupant.Occupant);
+
+	return citizens;
 }
 
 bool ABuilding::CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items)

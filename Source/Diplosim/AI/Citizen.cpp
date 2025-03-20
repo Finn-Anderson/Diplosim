@@ -677,7 +677,7 @@ void ACitizen::Eat()
 				totalAmount -= 1;
 
 				if (cost > 0) {
-					if ((Balance - cost) < 0) {
+					if (Balance == 0) {
 						int32 index = FMath::RandRange(0, wallet.Num() - 1);
 
 						TArray<ACitizen*> family;
@@ -1371,9 +1371,9 @@ void ACitizen::SetHappiness()
 		Happiness.SetValue("Attended Mass", 15);
 
 	if (FestivalStatus == EAttendStatus::Missed)
-		Happiness.SetValue("Missed Mass", -15);
+		Happiness.SetValue("Missed Festival", -5);
 	else if (FestivalStatus == EAttendStatus::Attended)
-		Happiness.SetValue("Attended Mass", 10);
+		Happiness.SetValue("Attended Festival", 15);
 
 	if (bHolliday)
 		Happiness.SetValue("Holliday", 10);

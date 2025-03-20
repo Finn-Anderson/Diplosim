@@ -184,6 +184,28 @@ struct FSeedStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FOccupantStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
+		class ACitizen* Occupant;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
+		TArray<class ACitizen*> Visitors;
+
+	FOccupantStruct()
+	{
+		Occupant = nullptr;
+	}
+
+	bool operator==(const FOccupantStruct& other) const
+	{
+		return (other.Occupant == Occupant);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API ABuilding : public AActor
 {
@@ -253,8 +275,13 @@ public:
 	UPROPERTY()
 		FLinearColor ChosenColour;
 
+	UPROPERTY()
+		int32 Tier;
+
 	UFUNCTION(BlueprintCallable)
 		void SetSeed(int32 Seed);
+
+	void SetTier(int32 Value);
 
 	void SetBuildingColour(float R, float G, float B);
 
@@ -335,8 +362,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
 		TArray<class ACitizen*> Inside;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
-		TArray<class ACitizen*> Occupied;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
+		TArray<FOccupantStruct> Occupied;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		TMap<FName, UAnimSequence*> AnimSockets;
@@ -348,6 +375,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		int32 MaxCapacity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
+		int32 Space;
 
 	UFUNCTION(BlueprintCallable)
 		void AddCapacity();

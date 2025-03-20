@@ -34,7 +34,7 @@ void ABuilder::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!Occupied.Contains(Citizen))
+	if (!GetOccupied().Contains(Citizen))
 		return;
 
 	UConstructionManager* cm = Camera->ConstructionManager;

@@ -1,9 +1,8 @@
 #include "Buildings/Misc/Road.h"
 
 #include "Kismet/GameplayStatics.h"
-
 #include "Components/BoxComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
+
 #include "AI/AIMovementComponent.h"
 #include "AI/AI.h"
 #include "Universal/HealthComponent.h"
@@ -27,8 +26,6 @@ ARoad::ARoad()
 	BoxAreaAffect->SetCanEverAffectNavigation(true);
 	BoxAreaAffect->SetupAttachment(RootComponent);
 	BoxAreaAffect->bDynamicObstacle = true;
-
-	Tier = 1;
 }
 
 void ARoad::BeginPlay()
@@ -157,7 +154,6 @@ void ARoad::RegenerateMesh()
 		midPoint.Z = FMath::FloorToInt(midPoint.Z / 75.0f) * 75.0f + 25.0f;
 
 	BuildingMesh->SetStaticMesh(RoadMeshes[index].Mesh);
-	//SetTier(Tier);
 
 	FRotator rotation = (midPoint - GetActorLocation()).Rotation();
 	rotation.Pitch = 0.0f;
@@ -177,30 +173,4 @@ void ARoad::RegenerateMesh()
 
 	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2;
 	BoxAreaAffect->SetBoxExtent(FVector(size.X, size.Y, 20.0f));
-}
-
-void ARoad::SetTier(int32 Value)
-{
-	Tier = Value;
-
-	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(BuildingMesh->GetMaterial(0));
-
-	float r = 0;
-	float g = 0;
-	float b = 0;
-
-	if (Tier == 1) {
-		r = 0.473531;
-		g = 0.361307;
-		b = 0.187821;
-	}
-	else if (Tier == 2) {
-		r = 0.571125;
-		g = 0.590619;
-		b = 0.64448;
-	}
-
-	FLinearColor chosenColour = FLinearColor(r, g, b);
-
-	material->SetVectorParameterValue("Colour", chosenColour);
 }

@@ -92,6 +92,9 @@ struct FEventTimeStruct
 	UPROPERTY()
 		bool bStarted;
 
+	UPROPERTY()
+		bool bFireFestival;
+
 	FEventTimeStruct()
 	{
 		Period = "";
@@ -100,6 +103,7 @@ struct FEventTimeStruct
 		EndHour = 0;
 		bRecurring = false;
 		bStarted = false;
+		bFireFestival = false;
 	}
 
 	bool operator==(const FEventTimeStruct& other) const
