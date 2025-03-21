@@ -47,6 +47,8 @@ void ASchool::AddStudent(ACitizen* Citizen)
 {
 	Citizen->Building.School = this;
 
+	Citizen->PayForEducationLevels();
+
 	Citizen->AIController->DefaultAction();
 }
 
@@ -95,9 +97,9 @@ void ASchool::AddProgress()
 
 			citizen->BioStruct.EducationProgress = progress * 100.0f;
 
-			citizen->BioStruct.EducationLevel = FMath::Clamp(citizen->BioStruct.EducationLevel + levels, 0, 5);
+			citizen->BioStruct.EducationLevel = FMath::Clamp(citizen->BioStruct.EducationLevel + levels, 0, citizen->BioStruct.PaidForEducationLevel);
 
-			if (citizen->BioStruct.EducationLevel == 5)
+			if (citizen->BioStruct.EducationLevel == 5 || !citizen->CanAffordEducationLevel())
 				RemoveStudent(citizen);
 		}
 	}

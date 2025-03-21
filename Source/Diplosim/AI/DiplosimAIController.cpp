@@ -111,11 +111,11 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 
 		AHouse* house = Citizen->Building.House;
 
-		if (!IsValid(house) && Citizen->BioStruct.Age < Citizen->Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+		if (!IsValid(house)) {
 			TArray<AHouse*> familyHouses;
 
 			for (ACitizen* citizen : Citizen->GetLikedFamily()) {
-				if (!IsValid(citizen->Building.House))
+				if (!IsValid(citizen->Building.House) || citizen->Building.House->GetVisitors(citizen->Building.House->GetOccupant(citizen)).Num() == citizen->Building.House->Space)
 					continue;
 
 				familyHouses.Add(citizen->Building.House);
@@ -125,6 +125,10 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 				int32 index = FMath::RandRange(0, familyHouses.Num() - 1);
 
 				house = familyHouses[index];
+
+				ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+				familyHouses[index]->AddVisitor(house->GetOccupant(citizen), citizen);
 			}
 		}
 

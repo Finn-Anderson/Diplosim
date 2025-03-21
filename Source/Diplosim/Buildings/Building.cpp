@@ -513,11 +513,6 @@ bool ABuilding::AddCitizen(ACitizen* Citizen)
 	if (GetCapacity() <= Occupied.Num())
 		return false;
 
-	if (IsA<AHouse>())
-		Citizen->TimeOfResidence = GetWorld()->GetTimeSeconds();
-	else
-		Citizen->TimeOfEmployment = GetWorld()->GetTimeSeconds();
-
 	FOccupantStruct occupant;
 	occupant.Occupant = Citizen;
 
@@ -534,12 +529,62 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	if (Citizen->Building.BuildingAt == this)
 		Leave(Citizen);
 
+	for (ACitizen* citizen : GetVisitors(Citizen))
+		RemoveVisitor(Citizen, citizen);
+
 	FOccupantStruct occupant;
 	occupant.Occupant = Citizen;
 
 	Occupied.Remove(occupant);
 
 	return true;
+}
+
+ACitizen* ABuilding::GetOccupant(class ACitizen* Citizen)
+{
+	if (GetOccupied().Contains(Citizen))
+		return Citizen;
+
+	for (FOccupantStruct occupant : Occupied) {
+		if (!occupant.Visitors.Contains(Citizen))
+			continue;
+
+		return occupant.Occupant;
+	}
+
+	return nullptr;
+}
+
+TArray<ACitizen*> ABuilding::GetVisitors(ACitizen* Occupant)
+{
+	FOccupantStruct occupant;
+	occupant.Occupant = Occupant;
+
+	int32 index = Occupied.Find(occupant);
+
+	return Occupied[index].Visitors;
+}
+
+void ABuilding::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
+{
+	FOccupantStruct occupant;
+	occupant.Occupant = Occupant;
+
+	int32 index = Occupied.Find(occupant);
+
+	Occupied[index].Visitors.Add(Visitor);
+}
+
+void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
+{
+	FOccupantStruct occupant;
+	occupant.Occupant = Occupant;
+
+	int32 index = Occupied.Find(occupant);
+
+	Occupied[index].Visitors.Remove(Visitor);
+
+	Visitor->AIController->DefaultAction();
 }
 
 TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()

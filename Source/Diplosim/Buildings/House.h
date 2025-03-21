@@ -33,4 +33,8 @@ public:
 	virtual bool AddCitizen(class ACitizen* Citizen) override;
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
+
+	virtual void AddVisitor(class ACitizen* Occupant, class ACitizen* Visitor) override;
+
+	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor) override;
 };

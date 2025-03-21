@@ -253,8 +253,25 @@ void UCitizenManager::Loop()
 				if (condition.Level == condition.DeathLevel)
 					citizen->HealthComponent->TakeHealth(100, citizen);
 			}
+			
+			citizen->AllocatedBuildings.Empty(); 
+			citizen->AllocatedBuildings = { citizen->Building.School, citizen->Building.Employment, citizen->Building.House };
 
-			citizen->FindJobAndHouse(timeToCompleteDay);
+			if (citizen->CanFindAnything(timeToCompleteDay)) {
+				for (ABuilding* building : Buildings) {
+					if (!IsValid(building) || !citizen->AIController->CanMoveTo(building->GetActorLocation()) || citizen->AllocatedBuildings.Contains(building))
+						continue;
+
+					if (building->IsA<ASchool>())
+						citizen->FindEducation(Cast<ASchool>(building), timeToCompleteDay);
+					else if (building->IsA<AWork>())
+						citizen->FindJob(Cast<AWork>(building), timeToCompleteDay);
+					else if (building->IsA<AHouse>())
+						citizen->FindHouse(Cast<AHouse>(building), timeToCompleteDay);
+				}
+
+				AsyncTask(ENamedThreads::GameThread, [this, citizen, timeToCompleteDay]() { citizen->SetJobHouseEducation(timeToCompleteDay); });
+			}
 
 			citizen->SetHappiness();
 

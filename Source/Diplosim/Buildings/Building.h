@@ -300,6 +300,14 @@ public:
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen);
 
+	class ACitizen* GetOccupant(class ACitizen* Citizen);
+
+	TArray<class ACitizen*> GetVisitors(class ACitizen* Occupant);
+
+	virtual void AddVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
+
+	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
+
 	TArray<class ACitizen*> GetCitizensAtBuilding();
 
 	virtual bool CheckInstant();

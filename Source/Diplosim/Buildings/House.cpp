@@ -116,17 +116,23 @@ bool AHouse::RemoveCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	FOccupantStruct occupant;
-	occupant.Occupant = Citizen;
-
-	int32 index = Occupied.Find(occupant);
-
-	for (ACitizen* citizen : Occupied[index].Visitors)
-		citizen->Building.House = nullptr;
-
 	Citizen->Building.House = nullptr;
 
 	Citizen->AIController->DefaultAction();
 
 	return true;
+}
+
+void AHouse::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
+{
+	Super::AddVisitor(Occupant, Visitor);
+
+	Visitor->Building.House = this;
+}
+
+void AHouse::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
+{
+	Super::RemoveVisitor(Occupant, Visitor);
+
+	Visitor->Building.House = nullptr;
 }

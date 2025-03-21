@@ -253,6 +253,27 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
+	// Find Job, House and Education
+	void FindEducation(class ASchool* Education, int32 TimeToCompleteDay);
+
+	void FindJob(class AWork* Job, int32 TimeToCompleteDay);
+
+	void FindHouse(class AHouse* House, int32 TimeToCompleteDay);
+
+	void SetJobHouseEducation(int32 TimeToCompleteDay);
+
+	float GetAcquiredTime(int32 Index);
+
+	void SetAcquiredTime(int32 Index, float Time);
+
+	bool CanFindAnything(int32 TimeToCompleteDay);
+
+	UPROPERTY()
+		TArray<float> TimeOfAcquirement;
+
+	UPROPERTY()
+		TArray<ABuilding*> AllocatedBuildings;
+
 	// On Hit
 	void SetHarvestVisuals(AResource* Resource);
 
@@ -288,18 +309,18 @@ public:
 	// Education
 	bool CanAffordEducationLevel();
 
-	void PayForEducationsLevels();
-
 	void PayForEducationLevels();
 
 	// Work
 	bool CanWork(class ABuilding* WorkBuilding);
 
-	void FindJobAndHouse(int32 TimeToCompleteDay);
+	bool WillWork();
 
 	float GetProductivity();
 
 	void Heal(ACitizen* Citizen);
+
+	int32 GetLeftoverMoney();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		int32 Balance;
@@ -312,12 +333,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		TArray<int32> HoursWorked;
-
-	UPROPERTY()
-		double TimeOfEmployment;
-
-	UPROPERTY()
-		double TimeOfResidence;
 
 	UPROPERTY()
 		FTimerHandle HealTimer;
