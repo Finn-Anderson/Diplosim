@@ -729,7 +729,7 @@ TArray<FEventStruct> UCitizenManager::OngoingEvents()
 
 void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 {
-	if (IsAttendingEvent(Citizen) || (Event.Type != EEventType::Protest && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->bOpen) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith))
+	if (IsAttendingEvent(Citizen) || (Event.Type != EEventType::Protest && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->bOpen) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith && Citizen->BioStruct.Age >= 18))
 		return;
 
 	int32 index = Events.Find(Event);
@@ -756,6 +756,15 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 		Citizen->MovementComponent->SetPoints(path->PathPoints);
 
 		return;
+	}
+	else if (Event.Type == EEventType::Mass && Citizen->BioStruct.Age < 18) {
+		bool validReligion = false;
+
+		if (Citizen->BioStruct.Mother->IsValidLowLevelFast() && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->BioStruct.Mother->Spirituality.Faith || Citizen->BioStruct.Father->IsValidLowLevelFast() && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->BioStruct.Father->Spirituality.Faith)
+			validReligion = true;
+
+		if (!validReligion)
+			return;
 	}
 
 	TArray<AActor*> actors;
@@ -1068,6 +1077,33 @@ void UCitizenManager::ProposeBill(FLawStruct Bill)
 	SetupBill();
 }
 
+void UCitizenManager::SetElectionBillLeans(FLawStruct* Bill)
+{
+	if (Bill->BillType != EBillType::Election)
+		return;
+
+	for (FPartyStruct party : Parties) {
+		int32 representativeCount = 0;
+
+		for (ACitizen* citizen : Representatives)
+			if (party.Members.Contains(citizen))
+				representativeCount++;
+
+		float representPerc = representativeCount / Citizens.Num() * 100.0f;
+		float partyPerc = party.Members.Num() / Citizens.Num() * 100.0f;
+
+		FLeanStruct lean;
+		lean.Party = party.Party;
+
+		if (partyPerc > representPerc)
+			lean.ForRange.Append({ 0, 0 });
+		else if (representPerc > partyPerc)
+			lean.AgainstRange.Append({ 0, 0 });
+
+		Bill->Lean.Add(lean);
+	}
+}
+
 void UCitizenManager::SetupBill()
 {
 	Votes.Clear();
@@ -1077,31 +1113,10 @@ void UCitizenManager::SetupBill()
 	if (ProposedBills.IsEmpty())
 		return;
 
-	if (ProposedBills[0].BillType == EBillType::Election) {
-		for (FPartyStruct party : Parties) {
-			int32 representativeCount = 0;
-
-			for (ACitizen* citizen : Representatives)
-				if (party.Members.Contains(citizen))
-					representativeCount++;
-
-			float representPerc = representativeCount / Citizens.Num() * 100.0f;
-			float partyPerc = party.Members.Num() / Citizens.Num() * 100.0f;
-
-			FLeanStruct lean;
-			lean.Party = party.Party;
-
-			if (partyPerc > representPerc)
-				lean.ForRange.Append({ 0, 0 });
-			else if (representPerc > partyPerc)
-				lean.AgainstRange.Append({ 0, 0 });
-
-			ProposedBills[0].Lean.Add(lean);
-		}
-	}
+	SetElectionBillLeans(&ProposedBills[0]);
 
 	for (ACitizen* citizen : Representatives)
-		GetVerdict(citizen, ProposedBills[0], true);
+		GetVerdict(citizen, ProposedBills[0], true, false);
 
 	for (ACitizen* citizen : Representatives) {
 		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return FMath::RandRange(2, 20); }).Get();
@@ -1130,7 +1145,7 @@ void UCitizenManager::MotionBill(FLawStruct Bill)
 				continue;
 
 			FTimerHandle verdictTimer;
-			GetWorld()->GetTimerManager().SetTimer(verdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, citizen, Bill, false), 0.1f * count, false);
+			GetWorld()->GetTimerManager().SetTimer(verdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, citizen, Bill, false, false), 0.1f * count, false);
 
 			count++;
 		}
@@ -1142,13 +1157,13 @@ void UCitizenManager::MotionBill(FLawStruct Bill)
 
 bool UCitizenManager::IsInRange(TArray<int32> Range, int32 Value)
 {
-	if (Value == -1 || (Range[0] > Range[1] && Value >= Range[0] || Value <= Range[1]) || (Range[0] <= Range[1] && Value >= Range[0] && Value <= Range[1]))
+	if (Value == 255 || (Range[0] > Range[1] && Value >= Range[0] || Value <= Range[1]) || (Range[0] <= Range[1] && Value >= Range[0] && Value <= Range[1]))
 		return true;
 
 	return false;
 }
 
-void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool bCanAbstain)
+void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool bCanAbstain, bool bPrediction)
 {
 	TArray<FString> verdict;
 
@@ -1217,10 +1232,18 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 
 	FString result = verdict[value.Get()];
 
-	if (result == "Agreeing")
-		Votes.For.Add(Representative);
-	else if (result == "Opposing")
-		Votes.Against.Add(Representative);
+	if (bPrediction) {
+		if (result == "Agreeing")
+			Predictions.For.Add(Representative);
+		else if (result == "Opposing")
+			Predictions.Against.Add(Representative);
+	}
+	else {
+		if (result == "Agreeing")
+			Votes.For.Add(Representative);
+		else if (result == "Opposing")
+			Votes.Against.Add(Representative);
+	}
 }
 
 void UCitizenManager::TallyVotes(FLawStruct Bill)
@@ -1281,6 +1304,38 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 	ProposedBills.Remove(Bill);
 
 	SetupBill();
+}
+
+FString UCitizenManager::GetBillPassChance(FLawStruct Bill)
+{
+	Predictions.Clear();
+
+	TArray<int32> results = { 0, 0, 0 };
+	
+	SetElectionBillLeans(&Bill);
+
+	for (int32 i = 0; i < 10; i++) {
+		for (ACitizen* citizen : Representatives)
+			GetVerdict(citizen, Bill, true, true);
+
+		int32 abstainers = (Representatives.Num() - Predictions.For.Num() - Predictions.Against.Num());
+
+		if (Predictions.For.Num() > Predictions.Against.Num() + abstainers)
+			results[0]++;
+		else if (Predictions.Against.Num() > Predictions.For.Num() + abstainers)
+			results[1]++;
+		else
+			results[2]++;
+
+		Predictions.Clear();
+	}
+
+	if (results[0] > results[1] + results[2])
+		return "High";
+	else if (results[1] > results[0] + results[2])
+		return "Low";
+	else
+		return "Random";
 }
 
 int32 UCitizenManager::GetLawValue(EBillType BillType)

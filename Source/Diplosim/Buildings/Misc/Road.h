@@ -73,4 +73,6 @@ public:
 		TArray<FRoadStruct> RoadMeshes;
 
 	void RegenerateMesh();
+
+	void SetTier(int32 Value) override;
 };

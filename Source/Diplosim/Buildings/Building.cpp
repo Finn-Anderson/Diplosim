@@ -191,12 +191,8 @@ void ABuilding::SetSeed(int32 Seed)
 		if (IsA<ATrap>())
 			Cast<ATrap>(this)->bExplode = Seeds[Seed].bExplosive;
 
-		if (IsA<ARoad>() || IsA<AFestival>()) {
+		if (IsA<ARoad>() || IsA<AFestival>())
 			SetTier(Seeds[Seed].Tier);
-
-			if (IsA<ARoad>())
-				Cast<ARoad>(this)->RegenerateMesh();
-		}
 	}
 	else {
 		TArray<USceneComponent*> children;
@@ -285,6 +281,11 @@ void ABuilding::SetSeed(int32 Seed)
 	SeedNum = Seed;
 
 	Camera->DisplayInteract(this);
+}
+
+int32 ABuilding::GetTier()
+{
+	return Tier;
 }
 
 void ABuilding::SetTier(int32 Value)
@@ -623,10 +624,9 @@ void ABuilding::StoreSocketLocations()
 		limit += 1000000000;
 
 	for (FName socket : sockets) {
-		TArray<FString> list;
-		socket.ToString().ParseIntoArray(list, TEXT("Position"));
+		int32 number = FCString::Atoi(*socket.ToString().LeftChop(8));
 
-		if (!socket.ToString().Contains("Position") && FCString::Atoi(*list[1]) < limit)
+		if (!socket.ToString().Contains("Position") || number >= limit)
 			continue;
 
 		socketStruct.Name = socket;
@@ -735,7 +735,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 	if (Citizen->Carrying.Amount > 0)
 		StoreResource(Citizen);
 
-	if (Citizen->Building.Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
+	if (IsValid(Citizen->Building.Employment) && Citizen->Building.Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
 		ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
 
 		if (cm->IsRepairJob(this, builder))
@@ -743,7 +743,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 		else
 			builder->CheckCosts(Citizen, this);
 	}
-	else if (!IsA<AHouse>() && !IsA<ABroadcast>() && !GetOccupied().Contains(Citizen) && Citizen->Building.Employment != nullptr) {
+	else if (!IsA<AHouse>() && !IsA<ABroadcast>() && !GetOccupied().Contains(Citizen) && IsValid(Citizen->Building.Employment)) {
 		TArray<FItemStruct> items;
 		ABuilding* deliverTo = nullptr;
 

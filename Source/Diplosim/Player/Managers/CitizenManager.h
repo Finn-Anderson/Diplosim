@@ -236,8 +236,9 @@ enum class EBillType : uint8
 	PensionAge,
 	EducationCost,
 	EducationAge,
+	ChildPolicy,
 	Election,
-	Abolish,
+	Abolish
 };
 
 USTRUCT(BlueprintType)
@@ -504,6 +505,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
 		FVoteStruct Votes;
 
+	UPROPERTY()
+		FVoteStruct Predictions;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FLawStruct> ProposedBills;
 
@@ -527,13 +531,15 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void ProposeBill(FLawStruct Bill);
 
+	void SetElectionBillLeans(FLawStruct* Bill);
+
 	void SetupBill();
 
 	void MotionBill(FLawStruct Bill);
 
 	bool IsInRange(TArray<int32> Range, int32 Value);
 
-	void GetVerdict(class ACitizen* Representative, FLawStruct Bill, bool bCanAbstain);
+	void GetVerdict(class ACitizen* Representative, FLawStruct Bill, bool bCanAbstain, bool bPrediction);
 
 	void TallyVotes(FLawStruct Bill);
 
@@ -542,6 +548,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetCooldownTimer(FLawStruct Law);
+
+	UFUNCTION(BlueprintCallable)
+		FString GetBillPassChance(FLawStruct Bill);
 
 	// Pensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pensions")

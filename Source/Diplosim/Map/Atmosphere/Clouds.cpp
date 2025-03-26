@@ -149,7 +149,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	UHierarchicalInstancedStaticMeshComponent* cloud = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass());
 	cloud->SetStaticMesh(CloudMesh);
 	cloud->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	cloud->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	cloud->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	cloud->SetAffectDistanceFieldLighting(false);
 	cloud->SetRelativeLocation(Transform.GetLocation());
 	cloud->SetRelativeRotation(Transform.GetRotation());

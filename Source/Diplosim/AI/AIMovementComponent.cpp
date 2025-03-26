@@ -2,6 +2,7 @@
 
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/CapsuleComponent.h"
 
 #include "AI.h"
 #include "Citizen.h"
@@ -164,7 +165,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		nav->ProjectPointToNavigation(GetOwner()->GetActorLocation() + deltaV, deltaTarget, FVector(200.0f, 200.0f, 20.0f));
 
 		FVector location = GetOwner()->GetActorLocation() + deltaV;
-		location.Z = deltaTarget.Location.Z + 6.0f;
+		location.Z = deltaTarget.Location.Z + (Cast<AAI>(GetOwner())->Capsule->GetUnscaledCapsuleHalfHeight() / 2.0f);
 
 		GetOwner()->SetActorLocation(location);
 

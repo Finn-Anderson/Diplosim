@@ -174,3 +174,10 @@ void ARoad::RegenerateMesh()
 	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2;
 	BoxAreaAffect->SetBoxExtent(FVector(size.X, size.Y, 20.0f));
 }
+
+void ARoad::SetTier(int32 Value)
+{
+	Super::SetTier(Value);
+
+	RegenerateMesh();
+}

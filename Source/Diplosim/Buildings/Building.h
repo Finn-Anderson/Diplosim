@@ -281,7 +281,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetSeed(int32 Seed);
 
-	void SetTier(int32 Value);
+	UFUNCTION(BlueprintCallable)
+		int32 GetTier();
+
+	virtual void SetTier(int32 Value);
 
 	void SetBuildingColour(float R, float G, float B);
 

@@ -54,6 +54,8 @@ ACamera::ACamera()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	CameraComponent->PrimaryComponentTick.bCanEverTick = false;
+	CameraComponent->PostProcessSettings.AutoExposureMinBrightness = 0.0f;
+	CameraComponent->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
 
 	InteractAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("InteractAudioComponent"));
 	InteractAudioComponent->SetupAttachment(CameraComponent);
@@ -184,26 +186,30 @@ void ACamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bMouseCapture) {
-		APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-
-		pcontroller->SetMouseLocation(MousePosition.X, MousePosition.Y);
-	}
-
-	if (MainMenuUIInstance->IsInViewport() || BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport())
+	if (DeltaTime > 1.0f)
 		return;
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+
+	if (bMouseCapture)
+		pcontroller->SetMouseLocation(MousePosition.X, MousePosition.Y);
+
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+
+	FHitResult hit(ForceInit);
+
+	if (settings->GetDepthOfField() && GetWorld()->LineTraceSingleByChannel(hit, CameraComponent->GetComponentLocation(), CameraComponent->GetComponentLocation() + CameraComponent->GetForwardVector() * 100000, ECollisionChannel::ECC_Visibility))
+		CameraComponent->PostProcessSettings.DepthOfFieldFocalDistance = FMath::FInterpTo(CameraComponent->PostProcessSettings.DepthOfFieldFocalDistance, hit.Distance, DeltaTime, 8.0f);
+
+	if (MainMenuUIInstance->IsInViewport() || BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport())
+		return;
 
 	HoveredActor.Reset();
 
 	pcontroller->CurrentMouseCursor = EMouseCursor::Default;
 
 	FVector mouseLoc, mouseDirection;
-	APlayerController* playerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	playerController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
-
-	FHitResult hit(ForceInit);
+	pcontroller->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
 
 	FVector endTrace = mouseLoc + (mouseDirection * 10000);
 

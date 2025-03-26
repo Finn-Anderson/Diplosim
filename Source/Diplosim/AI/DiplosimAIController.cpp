@@ -140,7 +140,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 			TArray<ABuilding*> buildings;
 
 			for (ABuilding* building : Citizen->Camera->CitizenManager->Buildings) {
-				if (building->IsA<ABroch>() || building->IsA<AWork>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()))
+				if (building->IsA<ABroch>() || building->IsA<AWork>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
 					continue;
 
 				buildings.Add(building);

@@ -41,7 +41,7 @@ ACitizen::ACitizen()
 
 	Mesh->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
 	Mesh->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
-	Mesh->SetWorldScale3D(FVector(0.28f, 0.28f, 0.28f));
+	Mesh->SetRelativeScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));
 	HatMesh->SetWorldScale3D(FVector(0.1f, 0.1f, 0.1f));
@@ -942,7 +942,7 @@ void ACitizen::Birthday()
 		HealthComponent->AddHealth(5 * HealthComponent->HealthMultiplier);
 
 		float scale = (BioStruct.Age * 0.04f) + 0.28f;
-		AsyncTask(ENamedThreads::GameThread, [this, scale]() { Mesh->SetWorldScale3D(FVector(scale, scale, scale)); });
+		AsyncTask(ENamedThreads::GameThread, [this, scale]() { Mesh->SetRelativeScale3D(FVector(scale, scale, scale)); });
 	}
 	else if (BioStruct.Partner != nullptr && BioStruct.Sex == ESex::Female)
 		AsyncTask(ENamedThreads::GameThread, [this]() { HaveChild(); });
@@ -1095,7 +1095,7 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 
 void ACitizen::HaveChild()
 {
-	if (!IsValid(Building.House))
+	if (!IsValid(Building.House) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue(EBillType::ChildPolicy))
 		return;
 
 	ACitizen* occupant = Building.House->GetOccupant(this);
@@ -1369,9 +1369,6 @@ void ACitizen::SetHappiness()
 {
 	Happiness.ClearValues();
 
-	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
-		return;
-
 	if (!IsValid(Building.House))
 		Happiness.SetValue("Homeless", -20);
 	else {
@@ -1453,10 +1450,46 @@ void ACitizen::SetHappiness()
 			Happiness.SetValue("Nearby eggtastic tower", 15);
 	}
 
-	if (Building.Employment == nullptr)
-		Happiness.SetValue("Unemployed", -10);
-	else
-		Happiness.SetValue("Employed", 5);
+	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+		if (Building.Employment == nullptr)
+			Happiness.SetValue("Unemployed", -10);
+		else
+			Happiness.SetValue("Employed", 5);
+
+		if (HoursWorked.Num() < IdealHoursWorkedMin || HoursWorked.Num() > IdealHoursWorkedMax)
+			Happiness.SetValue("Inadequate Hours Worked", -15);
+		else
+			Happiness.SetValue("Ideal Hours Worked", 10);
+
+		if (Balance < 5)
+			Happiness.SetValue("Poor", -25);
+		else if (Balance >= 5 && Balance < 15)
+			Happiness.SetValue("Well Off", 10);
+		else
+			Happiness.SetValue("Rich", 20);
+
+		if (IsValid(Building.Employment) && GetWorld()->GetTimeSeconds() >= GetAcquiredTime(1) + 300.0f) {
+			int32 count = 0;
+
+			for (ACitizen* citizen : Building.Employment->GetOccupied()) {
+				if (citizen == this)
+					continue;
+
+				for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
+					for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
+						if (personality->Trait == p->Trait)
+							count += 2;
+						else if (personality->Likes.Contains(p->Trait))
+							count++;
+						else if (personality->Dislikes.Contains(p->Trait))
+							count--;
+					}
+				}
+			}
+
+			Happiness.SetValue("Work Happiness", count * 5);
+		}
+	}
 
 	if (Hunger < 20)
 		Happiness.SetValue("Hungry", -30);
@@ -1473,11 +1506,6 @@ void ACitizen::SetHappiness()
 	else if (HoursSleptToday.Num() >= IdealHoursSlept)
 		Happiness.SetValue("Slept Like A Baby", 10);
 
-	if (HoursWorked.Num() < IdealHoursWorkedMin || HoursWorked.Num() > IdealHoursWorkedMax)
-		Happiness.SetValue("Inadequate Hours Worked", -15);
-	else
-		Happiness.SetValue("Ideal Hours Worked", 10);
-
 	if (MassStatus == EAttendStatus::Missed)
 		Happiness.SetValue("Missed Mass", -25);
 	else if (MassStatus == EAttendStatus::Attended)
@@ -1490,35 +1518,6 @@ void ACitizen::SetHappiness()
 
 	if (bHolliday)
 		Happiness.SetValue("Holliday", 10);
-
-	if (IsValid(Building.Employment) && GetWorld()->GetTimeSeconds() >= GetAcquiredTime(1) + 300.0f) {
-		int32 count = 0;
-
-		for (ACitizen* citizen : Building.Employment->GetOccupied()) {
-			if (citizen == this)
-				continue;
-
-			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
-				for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
-					if (personality->Trait == p->Trait)
-						count += 2;
-					else if (personality->Likes.Contains(p->Trait))
-						count++;
-					else if (personality->Dislikes.Contains(p->Trait))
-						count--;
-				}
-			}
-		}
-
-		Happiness.SetValue("Work Happiness", count * 5);
-	}
-
-	if (Balance < 5)
-		Happiness.SetValue("Poor", -25);
-	else if (Balance >= 5 && Balance < 15)
-		Happiness.SetValue("Well Off", 10);
-	else
-		Happiness.SetValue("Rich", 20);
 
 	if (Camera->CitizenManager->GetCitizenParty(this) != EParty::Undecided) {
 		int32 lawTally = 0;
@@ -1659,9 +1658,9 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 	}
 	else if (Genetic.Type == EGeneticsType::Reach) {
 		if (Genetic.Grade == EGeneticsGrade::Good)
-			ApplyToMultiplier("Reach", 1.25f);
+			ApplyToMultiplier("Reach", 1.15f);
 		else if (Genetic.Grade == EGeneticsGrade::Bad)
-			ApplyToMultiplier("Reach", 0.75f);
+			ApplyToMultiplier("Reach", 0.85f);
 	}
 	else if (Genetic.Type == EGeneticsType::Awareness) {
 		if (Genetic.Grade == EGeneticsGrade::Good)
