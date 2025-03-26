@@ -66,7 +66,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		FVector endTrace = startTrace + Velocity.Rotation().Vector() * 50.0f;
 
 		if (GetWorld()->SweepSingleByChannel(hit, startTrace, endTrace, FRotator(0.0f).Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeCapsule(FVector(9.0f, 9.0f, 11.5f)), queryParams)) {
-			if (!avoidPoints.Contains(hit.GetActor()) && (hit.GetActor()->IsA<ACitizen>() && GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(hit.GetActor())->Rebel == Cast<ACitizen>(GetOwner())->Rebel) || (hit.GetActor()->IsA<AEnemy>() && GetOwner()->IsA<AEnemy>())) {
+			if (!avoidPoints.Contains(hit.GetActor()) && !hit.GetActor()->IsA<AAI>()) {
 				if (FVector::DistXY(hit.GetActor()->GetActorLocation(), Points[0]) >= 15.0f) {
 					FVector hitSize;
 
@@ -161,11 +161,18 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	if (!deltaV.IsNearlyZero(1e-6f))
 	{
-		FNavLocation deltaTarget;
-		nav->ProjectPointToNavigation(GetOwner()->GetActorLocation() + deltaV, deltaTarget, FVector(200.0f, 200.0f, 20.0f));
+		FHitResult hit;
+
+		FCollisionQueryParams queryParams;
+		queryParams.AddIgnoredActor(GetOwner());
+
+		int32 z = 0;
+		
+		if (GetWorld()->LineTraceSingleByChannel(hit, GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation() - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_GameTraceChannel1, queryParams))
+			z = hit.Location.Z;
 
 		FVector location = GetOwner()->GetActorLocation() + deltaV;
-		location.Z = deltaTarget.Location.Z + (Cast<AAI>(GetOwner())->Capsule->GetUnscaledCapsuleHalfHeight() / 2.0f);
+		location.Z = z + Cast<AAI>(GetOwner())->Capsule->GetScaledCapsuleHalfHeight();
 
 		GetOwner()->SetActorLocation(location);
 

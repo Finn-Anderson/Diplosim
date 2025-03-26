@@ -959,8 +959,17 @@ void ACitizen::Birthday()
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::VoteAge))
 		SetPoliticalLeanings();
 
-	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge) && IsValid(Building.School))
-		Building.School->RemoveStudent(this);
+	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+		if (IsValid(Building.House)) {
+			ACitizen* occupant = Building.House->GetOccupant(this);
+
+			if (occupant != this && !GetLikedFamily().Contains(occupant))
+				Building.House->RemoveVisitor(occupant, this);
+		}
+
+		if (IsValid(Building.School))
+			Building.School->RemoveStudent(this);
+	}
 }
 
 void ACitizen::SetSex()

@@ -598,6 +598,9 @@ TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
 
 void AGrid::GenerateTile(FTileStruct* Tile)
 {
+	if (Tile->Level < 0)
+		return;
+	
 	FTransform transform;
 	FVector loc = FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0.0f);
 	transform.SetLocation(loc);
@@ -605,25 +608,41 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 	int32 inst;
 
-	if (Tile->Level < 0) {
-		bool bCoast = false;
+	if (Tile->AdjacentTiles.Num() < 4) {
+		FTransform t = transform;
+		t.SetLocation(t.GetLocation() + FVector(0.0f, 0.0f, -200.0f));
 
-		for (auto& element : Tile->AdjacentTiles) {
-			if (element.Value->Level > -1) {
-				bCoast = true;
-
-				break;
-			}
+		if (!Tile->AdjacentTiles.Find("Left")) {
+			t.SetLocation(t.GetLocation() + FVector(-100.0f, 0.0f, 0.0f));
+			HISMFlatGround->AddInstance(t);
 		}
 
-		if (!bCoast)
-			return;
+		if (!Tile->AdjacentTiles.Find("Right")) {
+			t.SetLocation(t.GetLocation() + FVector(100.0f, 0.0f, 0.0f));
+			HISMFlatGround->AddInstance(t);
+		}
 
-		transform.SetLocation(loc + FVector(0.0f, 0.0f, -200.0f));
+		if (!Tile->AdjacentTiles.Find("Below")) {
+			t.SetLocation(t.GetLocation() + FVector(0.0f, -100.0f, 0.0f));
+			HISMFlatGround->AddInstance(t);
+		}
 
-		inst = HISMFlatGround->AddInstance(transform);
+		if (!Tile->AdjacentTiles.Find("Above")) {
+			t.SetLocation(t.GetLocation() + FVector(0.0f, 100.0f, 0.0f));
+			HISMFlatGround->AddInstance(t);
+		}
 	}
-	else if (bLava && Tile->Level == MaxLevel) {
+
+	for (auto& element : Tile->AdjacentTiles) {
+		if (element.Value->Level > -1)
+			continue;
+
+		FTransform t;
+		t.SetLocation(FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, -200.0f));
+		HISMFlatGround->AddInstance(t);
+	}
+
+	if (bLava && Tile->Level == MaxLevel) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * (MaxLevel - 2)));
 
 		inst = HISMLava->AddInstance(transform);
@@ -1123,7 +1142,7 @@ void AGrid::SetSeasonAffect(TArray<float> Values)
 		int32 x = transform.GetLocation().X / 100.0f + (bound / 2);
 		int32 y = transform.GetLocation().Y / 100.0f + (bound / 2);
 
-		if (Storage[x][y].Fertility == 0.0f)
+		if (x < 0 || x > (bound - 1) || y < 0 || y > (bound - 1) || Storage[x][y].Fertility == 0.0f)
 			continue;
 
 		HISMFlatGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];
