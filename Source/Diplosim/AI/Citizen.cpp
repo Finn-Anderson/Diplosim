@@ -406,7 +406,7 @@ void ACitizen::SetJobHouseEducation(int32 TimeToCompleteDay)
 			roommates.Append(Building.House->GetVisitors(this));
 
 		if (i == 0 && IsValid(Building.School))
-			Building.School->RemoveStudent(this);
+			Building.School->RemoveVisitor(Building.School->GetOccupant(this), this);
 		else if (i == 1 && IsValid(Building.Employment))
 			Building.Employment->RemoveCitizen(this);
 		else if (i == 2 && IsValid(Building.House)) {
@@ -417,7 +417,7 @@ void ACitizen::SetJobHouseEducation(int32 TimeToCompleteDay)
 		}
 
 		if (i == 0)
-			Cast<ASchool>(building)->AddStudent(this);
+			Cast<ASchool>(building)->AddVisitor(Cast<ASchool>(building)->GetOccupant(this), this);
 		else
 			building->AddCitizen(this);
 
@@ -968,7 +968,7 @@ void ACitizen::Birthday()
 		}
 
 		if (IsValid(Building.School))
-			Building.School->RemoveStudent(this);
+			Building.School->RemoveVisitor(Building.School->GetOccupant(this), this);
 	}
 }
 

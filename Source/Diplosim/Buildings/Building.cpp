@@ -574,6 +574,8 @@ void ABuilding::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 	int32 index = Occupied.Find(occupant);
 
 	Occupied[index].Visitors.Add(Visitor);
+
+	Visitor->AIController->DefaultAction();
 }
 
 void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
@@ -584,6 +586,9 @@ void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 	int32 index = Occupied.Find(occupant);
 
 	Occupied[index].Visitors.Remove(Visitor);
+
+	if (Visitor->Building.BuildingAt == this)
+		Leave(Visitor);
 
 	Visitor->AIController->DefaultAction();
 }
@@ -673,6 +678,9 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	else if (bHideCitizen || Camera->ConstructionManager->IsBeingConstructed(this, nullptr)) {
 		Citizen->SetActorLocation(GetActorLocation());
 	}
+
+	if (IsA<AFestival>())
+		Citizen->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketList[index].Name);
 
 	UAnimSequence* anim;
 

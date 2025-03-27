@@ -12,28 +12,12 @@ class DIPLOSIM_API ASchool : public AWork
 public:
 	ASchool();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Students")
-		TArray<class ACitizen*> Students;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
-		int32 StudentCapacity;
+		int32 MaxSpace;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
-		int32 StudentMaxCapacity;
+	virtual void AddVisitor(class ACitizen* Occupant, class ACitizen* Visitor) override;
 
-	UFUNCTION(BlueprintCallable)
-		void AddStudentCapacity();
-
-	UFUNCTION(BlueprintCallable)
-		void RemoveStudentCapacity();
-
-	int32 GetStudentCapacity();
-
-	TArray<class ACitizen*> GetStudents();
-
-	void AddStudent(class ACitizen* Citizen);
-
-	void RemoveStudent(class ACitizen* Citizen);
+	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor) override;
 
 	TArray<class ACitizen*> GetStudentsAtSchool();
 

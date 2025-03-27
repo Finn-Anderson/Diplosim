@@ -4,11 +4,15 @@
 #include "NiagaraComponent.h"
 
 #include "AI/AIMovementComponent.h"
-#include "AI/AI.h"
+#include "AI/Citizen.h"
 #include "Universal/HealthComponent.h"
 
 AFestival::AFestival()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	SetActorTickInterval(0.05f);
+	
 	HealthComponent->MaxHealth = 50;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
@@ -41,6 +45,16 @@ void AFestival::BeginPlay()
 	BoxAreaAffect->OnComponentEndOverlap.AddDynamic(this, &AFestival::OnCitizenOverlapEnd);
 }
 
+void AFestival::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (DeltaTime > 1.0f)
+		return;
+
+	SpinMesh->SetRelativeRotation(SpinMesh->GetRelativeRotation() + FRotator(0.0f, 0.1f, 0.0f));
+}
+
 void AFestival::OnCitizenOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (!OtherActor->IsA<AAI>())
@@ -68,6 +82,8 @@ void AFestival::StartFestival(bool bFireFestival)
 
 	ParticleComponent->SetAsset(FestivalStruct[index].ParticleSystem);
 	ParticleComponent->Activate();
+
+	SetActorTickEnabled(true);
 }
 
 void AFestival::StopFestival()
@@ -76,5 +92,11 @@ void AFestival::StopFestival()
 
 	ParticleComponent->Deactivate();
 
-	Occupied[0].Visitors.Empty();
+	for (ACitizen* visitor : GetVisitors(Occupied[0].Occupant)) {
+		visitor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+		RemoveVisitor(Occupied[0].Occupant, visitor);
+	}
+
+	SetActorTickEnabled(false);
 }

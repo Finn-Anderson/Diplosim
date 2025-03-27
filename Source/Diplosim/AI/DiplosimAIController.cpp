@@ -72,9 +72,6 @@ void ADiplosimAIController::DefaultAction()
 			return;
 
 		for (FEventStruct event : citizen->Camera->CitizenManager->OngoingEvents()) {
-			if (event.Type == EEventType::Holliday)
-				continue;
-
 			citizen->Camera->CitizenManager->GotoEvent(citizen, event);
 
 			if (citizen->Camera->CitizenManager->IsAttendingEvent(citizen))

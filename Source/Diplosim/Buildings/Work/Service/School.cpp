@@ -8,68 +8,37 @@ ASchool::ASchool()
 	Capacity = 3;
 	MaxCapacity = 3;
 	
-	StudentCapacity = 30.0f;
-	StudentMaxCapacity = 50.0f;
+	Space = 30;
+	MaxSpace = 50;
 }
 
-void ASchool::AddStudentCapacity()
+void ASchool::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	if (StudentCapacity == StudentMaxCapacity)
-		return;
+	Visitor->Building.School = this;
 
-	StudentCapacity++;
+	Visitor->PayForEducationLevels();
+
+	Super::AddVisitor(Occupant, Visitor);
 }
 
-void ASchool::RemoveStudentCapacity()
+void ASchool::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	if (StudentCapacity == 0)
-		return;
+	Visitor->Building.School = nullptr;
 
-	StudentCapacity--;
-
-	if (GetStudents().Num() <= GetStudentCapacity())
-		return;
-
-	RemoveStudent(GetStudents().Last());
-}
-
-int32 ASchool::GetStudentCapacity()
-{
-	return StudentCapacity;
-}
-
-TArray<ACitizen*> ASchool::GetStudents()
-{
-	return Students;
-}
-
-void ASchool::AddStudent(ACitizen* Citizen)
-{
-	Citizen->Building.School = this;
-
-	Citizen->PayForEducationLevels();
-
-	Citizen->AIController->DefaultAction();
-}
-
-void ASchool::RemoveStudent(ACitizen* Citizen)
-{
-	Citizen->Building.School = nullptr;
-
-	Leave(Citizen);
-
-	Citizen->AIController->DefaultAction();
+	Super::RemoveVisitor(Occupant, Visitor);
 }
 
 TArray<ACitizen*> ASchool::GetStudentsAtSchool()
 {
 	TArray<ACitizen*> citizens;
 
-	for (ACitizen* student : Students) {
-		if (student->Building.BuildingAt != this)
-			continue;
+	for (ACitizen* occupant : GetOccupied()) {
+		for (ACitizen* student : GetVisitors(occupant)) {
+			if (student->Building.BuildingAt != this)
+				continue;
 
-		citizens.Add(student);
+			citizens.Add(student);
+		}
 	}
 
 	return citizens;
@@ -79,7 +48,7 @@ void ASchool::AddProgress()
 {
 	TArray<ACitizen*> citizens = GetStudentsAtSchool();
 
-	float efficiency = GetOccupied().Num() * (1.0f - (0.5f * ((citizens.Num() - 1) / (StudentMaxCapacity - 1))));
+	float efficiency = GetOccupied().Num() * (1.0f - (0.5f * ((citizens.Num() - 1) / (MaxSpace - 1))));
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
 		efficiency *= citizen->GetProductivity();
@@ -100,7 +69,7 @@ void ASchool::AddProgress()
 			citizen->BioStruct.EducationLevel = FMath::Clamp(citizen->BioStruct.EducationLevel + levels, 0, citizen->BioStruct.PaidForEducationLevel);
 
 			if (citizen->BioStruct.EducationLevel == 5 || !citizen->CanAffordEducationLevel())
-				RemoveStudent(citizen);
+				RemoveVisitor(GetOccupant(citizen), citizen);
 		}
 	}
  }

@@ -125,14 +125,14 @@ bool AHouse::RemoveCitizen(ACitizen* Citizen)
 
 void AHouse::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Super::AddVisitor(Occupant, Visitor);
-
 	Visitor->Building.House = this;
+
+	Super::AddVisitor(Occupant, Visitor);
 }
 
 void AHouse::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Super::RemoveVisitor(Occupant, Visitor);
-
 	Visitor->Building.House = nullptr;
+
+	Super::RemoveVisitor(Occupant, Visitor);
 }

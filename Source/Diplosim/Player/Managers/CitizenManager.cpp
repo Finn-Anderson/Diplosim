@@ -735,6 +735,7 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 	int32 index = Events.Find(Event);
 	
 	ABuilding* chosenBuilding = nullptr;
+	ACitizen* chosenOccupant = nullptr;
 
 	if (Event.Type == EEventType::Holliday || Event.Type == EEventType::Festival) {
 		Citizen->SetHolliday(true);
@@ -774,15 +775,28 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 
 	for (AActor* actor : actors) {
 		ABuilding* building = Cast<ABuilding>(actor);
+		ACitizen* occupant = nullptr;
 
 		if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || (Event.Type == EEventType::Mass && building->GetOccupied().IsEmpty()) || (Event.Type == EEventType::Festival && !Cast<AFestival>(building)->bCanHostFestival))
 			continue;
 
-		if (Event.Type == EEventType::Festival && chosenBuilding->Occupied[0].Visitors.Num() == building->Space)
-			continue;
+		if (Event.Type == EEventType::Festival || Event.Type == EEventType::Mass) {
+			for (ACitizen* occpnt : building->GetOccupied()) {
+				if (building->GetVisitors(occpnt).Num() == building->Space)
+					continue;
+
+				occupant = occpnt;
+
+				break;
+			}
+
+			if (occupant == nullptr)
+				continue;
+		}
 
 		if (chosenBuilding == nullptr) {
 			chosenBuilding = building;
+			chosenOccupant = occupant;
 
 			continue;
 		}
@@ -793,19 +807,18 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 			continue;
 
 		chosenBuilding = building;
+		chosenOccupant = occupant;
 	}
 		
 
 	if (chosenBuilding != nullptr) {
 		Event.Attendees.Add(Citizen);
 
-		if (Event.Type == EEventType::Festival)
-			chosenBuilding->Occupied[0].Visitors.Add(Citizen);
+		if (IsValid(chosenOccupant))
+			chosenBuilding->AddVisitor(chosenOccupant, Citizen);
 
 		Citizen->AIController->AIMoveTo(chosenBuilding);
 	}
-	else
-		Citizen->AIController->DefaultAction();
 }
 
 void UCitizenManager::StartEvent(FEventStruct Event, FEventTimeStruct Time)
@@ -824,8 +837,14 @@ void UCitizenManager::StartEvent(FEventStruct Event, FEventTimeStruct Time)
 		}
 	}
 	
-	for (ACitizen* citizen : Citizens)
+	for (ACitizen* citizen : Citizens) {
 		GotoEvent(citizen, Event);
+
+		if (IsAttendingEvent(citizen))
+			continue;
+
+		citizen->AIController->DefaultAction();
+	}
 }
 
 void UCitizenManager::EndEvent(FEventStruct Event, FEventTimeStruct Time)
@@ -1273,7 +1292,7 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 						citizen->Building.Employment->RemoveCitizen(citizen);
 
 					if (IsValid(citizen->Building.School) && (citizen->BioStruct.Age >= GetLawValue(EBillType::WorkAge) || citizen->BioStruct.Age < GetLawValue(EBillType::EducationAge)))
-						citizen->Building.School->RemoveStudent(citizen);
+						citizen->Building.School->RemoveVisitor(citizen->Building.School->GetOccupant(citizen), citizen);
 				}
 			}
 			else if (Laws[index].BillType == EBillType::VoteAge) {
