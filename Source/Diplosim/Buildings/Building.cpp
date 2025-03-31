@@ -611,7 +611,11 @@ void ABuilding::StoreSocketLocations()
 {
 	SocketList.Empty();
 	
-	TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
+	TArray<FName> sockets;
+	if (IsA<AFestival>())
+		sockets = Cast<AFestival>(this)->SpinMesh->GetAllSocketNames();
+	else
+		sockets = BuildingMesh->GetAllSocketNames();
 
 	FSocketStruct socketStruct;
 

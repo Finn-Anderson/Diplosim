@@ -9,6 +9,7 @@
 #include "Player/Camera.h"
 #include "Player/Components/BuildComponent.h"
 #include "Map/Grid.h"
+#include "Festival.h"
 
 ARoad::ARoad()
 {
@@ -57,7 +58,7 @@ void ARoad::OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class
 
 void ARoad::OnRoadOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!OtherActor->IsA<ARoad>() || OtherActor->IsHidden() || OtherActor == this || GetActorLocation() == OtherActor->GetActorLocation())
+	if (!(OtherActor->IsA<ARoad>() || OtherActor->IsA<AFestival>()) || OtherActor->IsHidden() || OtherActor == this || GetActorLocation() == OtherActor->GetActorLocation())
 		return;
 
 	RegenerateMesh();
@@ -65,7 +66,7 @@ void ARoad::OnRoadOverlapBegin(class UPrimitiveComponent* OverlappedComp, class 
 
 void ARoad::OnRoadOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (!OtherActor->IsA<ARoad>() || OtherActor->IsHidden() || OtherActor == this || GetActorLocation() == OtherActor->GetActorLocation())
+	if (!(OtherActor->IsA<ARoad>() || OtherActor->IsA<AFestival>()) || OtherActor->IsHidden() || OtherActor == this || GetActorLocation() == OtherActor->GetActorLocation())
 		return;
 
 	RegenerateMesh();
@@ -88,7 +89,7 @@ void ARoad::RegenerateMesh()
 	TArray<FVector> connectedLocations;
 
 	for (AActor* actor : connectedRoads)
-		if ((GetActorLocation().X == actor->GetActorLocation().X || GetActorLocation().Y == actor->GetActorLocation().Y) && IsValid(actor) && actor->IsA<ARoad>() && !actor->IsHidden() && actor != this && GetActorLocation() != actor->GetActorLocation() && Camera->BuildComponent->Buildings[0] != actor)
+		if ((GetActorLocation().X == actor->GetActorLocation().X || GetActorLocation().Y == actor->GetActorLocation().Y) && IsValid(actor) && (actor->IsA<ARoad>() || actor->IsA<AFestival>()) && !actor->IsHidden() && actor != this && GetActorLocation() != actor->GetActorLocation() && Camera->BuildComponent->Buildings[0] != actor)
 			connectedLocations.Add(actor->GetActorLocation());
 
 	FRoadStruct roadStruct;

@@ -2,6 +2,7 @@
 
 #include "Components/BoxComponent.h"
 #include "NiagaraComponent.h"
+#include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 
 #include "AI/AIMovementComponent.h"
 #include "AI/Citizen.h"
@@ -26,15 +27,17 @@ AFestival::AFestival()
 	FestivalMesh->bFillCollisionUnderneathForNavmesh = true;
 
 	SpinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SpinMesh"));
-	SpinMesh->SetupAttachment(BuildingMesh);
+	SpinMesh->SetupAttachment(FestivalMesh);
 	SpinMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	BoxAreaAffect = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxAreaAffect"));
+	BoxAreaAffect->SetupAttachment(BuildingMesh);
 	BoxAreaAffect->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
-	BoxAreaAffect->SetBoxExtent(FVector(20.0f, 20.0f, 20.0f));
+	BoxAreaAffect->SetBoxExtent(FVector(150.0f, 150.0f, 20.0f));
 	BoxAreaAffect->SetCanEverAffectNavigation(true);
-	BoxAreaAffect->SetupAttachment(RootComponent);
 	BoxAreaAffect->bDynamicObstacle = true;
+
+	ParticleComponent->SetupAttachment(FestivalMesh);
 }
 
 void AFestival::BeginPlay()
@@ -81,6 +84,23 @@ void AFestival::StartFestival(bool bFireFestival)
 	FestivalMesh->SetStaticMesh(FestivalStruct[index].Mesh);
 
 	ParticleComponent->SetAsset(FestivalStruct[index].ParticleSystem);
+
+	if (!bFireFestival) {
+		TArray<FVector> locations;
+
+		TArray<FName> socketNames = FestivalMesh->GetAllSocketNames();
+
+		for (FName socket : socketNames)
+			locations.Add(FestivalMesh->GetSocketLocation(socket));
+
+		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(ParticleComponent, TEXT("SpawnLocations"), locations);
+
+		ParticleComponent->SetRelativeScale3D(FVector(5.0f, 5.0f, 10.0f));
+	}
+	else {
+		ParticleComponent->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+	}
+
 	ParticleComponent->Activate();
 
 	SetActorTickEnabled(true);
