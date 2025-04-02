@@ -69,6 +69,13 @@ enum class EEventType : uint8
 	Protest
 };
 
+template<typename T>
+FString EnumToString(T EnumValue)
+{
+	static_assert(TIsUEnumClass<T>::Value, "'T' template parameter to EnumToString must be a valid UEnum");
+	return StaticEnum<T>()->GetNameStringByValue((int64)EnumValue);
+}
+
 USTRUCT(BlueprintType)
 struct FEventTimeStruct
 {
@@ -479,6 +486,8 @@ public:
 	bool IsAttendingEvent(class ACitizen* Citizen);
 
 	TArray<FEventStruct> OngoingEvents();
+
+	FEventTimeStruct GetOngoingEventTimes(FEventStruct event);
 
 	void GotoEvent(ACitizen* Citizen, FEventStruct Event);
 

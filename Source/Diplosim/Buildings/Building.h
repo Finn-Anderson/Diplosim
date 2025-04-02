@@ -340,6 +340,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		bool bCoastal;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		bool bOffsetX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		bool bOffsetY;
+
 	UPROPERTY()
 		TArray<FTreeStruct> TreeList;
 

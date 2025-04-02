@@ -73,6 +73,8 @@ public:
 
 	void Idle(class ACitizen* Citizen);
 
+	void ChooseIdleBuilding(class ACitizen* Citizen);
+
 	double GetClosestActor(float Range, FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, bool bProjectLocation = true, int32 CurrentValue = 1, int32 NewValue = 1);
 
 	void GetGatherSite(class ACamera* Camera, TSubclassOf<class AResource> Resource);
@@ -85,8 +87,13 @@ public:
 
 	void RecalculateMovement(AActor* Actor);
 
+	void StartMovement();
+
 	virtual void StopMovement() override;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 		FMoveStruct MoveRequest;
+
+	UPROPERTY()
+		class ABuilding* ChosenBuilding;
 };

@@ -14,6 +14,8 @@
 #include "Map/Grid.h"
 #include "Universal/Resource.h"
 #include "Buildings/Building.h"
+#include "Buildings/Misc/Road.h"
+#include "Buildings/Misc/Festival.h"
 
 UAIMovementComponent::UAIMovementComponent()
 {
@@ -66,14 +68,9 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		FVector endTrace = startTrace + Velocity.Rotation().Vector() * 50.0f;
 
 		if (GetWorld()->SweepSingleByChannel(hit, startTrace, endTrace, FRotator(0.0f).Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeCapsule(FVector(9.0f, 9.0f, 11.5f)), queryParams)) {
-			if (!avoidPoints.Contains(hit.GetActor()) && !hit.GetActor()->IsA<AAI>()) {
+			if (!avoidPoints.Contains(hit.GetActor()) && hit.GetActor()->IsA<ABuilding>() && !(hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA<AFestival>())) {
 				if (FVector::DistXY(hit.GetActor()->GetActorLocation(), Points[0]) >= 15.0f) {
-					FVector hitSize;
-
-					if (hit.GetActor()->IsA<AAI>())
-						hitSize = Cast<AAI>(hit.GetActor())->Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize();
-					else
-						hitSize = Cast<ABuilding>(hit.GetActor())->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+					FVector hitSize = Cast<ABuilding>(hit.GetActor())->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
 					FVector ownerSize = Cast<AAI>(GetOwner())->Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize();
 

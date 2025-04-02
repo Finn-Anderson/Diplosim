@@ -15,6 +15,7 @@
 #include "Buildings/Work/Work.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Misc/Road.h"
 #include "Universal/Resource.h"
 #include "AttackComponent.h"
 #include "Player/Camera.h"
@@ -134,45 +135,68 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 		else {
 			int32 time = FMath::RandRange(3, 10);
 
-			TArray<ABuilding*> buildings;
+			if (chance < 66) {
+				if (ChosenBuilding->bHideCitizen) {
+					AIMoveTo(ChosenBuilding);
 
-			for (ABuilding* building : Citizen->Camera->CitizenManager->Buildings) {
-				if (building->IsA<ABroch>() || building->IsA<AWork>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
-					continue;
-
-				buildings.Add(building);
-			}
-
-			if (chance < 66 || buildings.IsEmpty()) {
-				UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-				const ANavigationData* navData = nav->GetDefaultNavDataInstance();
-
-				FNavLocation location;
-				nav->GetRandomPointInNavigableRadius(Citizen->Camera->CitizenManager->BrochLocation, 1000, location);
-
-				double length;
-				nav->GetPathLength(Citizen->GetActorLocation(), location, length);
-
-				if (length < 5000.0f) {
-					UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), location, Citizen, Citizen->NavQueryFilter);
-
-					Citizen->MovementComponent->SetPoints(path->PathPoints);
+					time = 60.0f;
 				}
-			}
-			else {
-				int32 index = FMath::RandRange(0, buildings.Num() - 1);
+				else {
+					UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+					const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-				AIMoveTo(buildings[index]);
+					int32 range = 1000;
+					
+					if (!ChosenBuilding->IsA<ABroch>()) {
+						FVector size = ChosenBuilding->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-				time = FMath::RandRange(20, 30);
+						if (size.X > size.Y)
+							range = size.X;
+						else
+							range = size.Y;
+					}
+
+					FNavLocation location;
+					nav->GetRandomPointInNavigableRadius(ChosenBuilding->GetActorLocation(), range, location);
+
+					double length;
+					nav->GetPathLength(Citizen->GetActorLocation(), location, length);
+
+					if (length < 5000.0f) {
+						UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), location, Citizen, Citizen->NavQueryFilter);
+
+						Citizen->MovementComponent->SetPoints(path->PathPoints);
+					}
+				}
 			}
 
 			FTimerStruct timer;
-			timer.CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::Idle, Citizen), false);
+			timer.CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::DefaultAction), false);
 
 			Citizen->Camera->CitizenManager->Timers.Add(timer);
 		}
 	});
+}
+
+void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
+{
+	TArray<ABuilding*> buildings;
+
+	for (ABuilding* building : Citizen->Camera->CitizenManager->Buildings) {
+		if (building->IsA<AWork>() || building->IsA<ARoad>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
+			continue;
+
+		buildings.Add(building);
+	}
+
+	int32 index = FMath::RandRange(0, buildings.Num() - 1);
+
+	ChosenBuilding = buildings[index];
+
+	FTimerStruct timer;
+	timer.CreateTimer("ChooseIdleBuilding", Citizen, 60.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::ChooseIdleBuilding, Citizen), true);
+
+	Citizen->Camera->CitizenManager->Timers.Add(timer);
 }
 
 double ADiplosimAIController::GetClosestActor(float Range, FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, bool bProjectLocation, int32 CurrentValue, int32 NewValue)
@@ -327,7 +351,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
 	FNavLocation navLoc;
-	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(400.0f, 400.0f, 20.0f));
+	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(400.0f, 400.0f, 40.0f));
 
 	MoveRequest.SetLocation(navLoc.Location);
 
@@ -374,7 +398,14 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 	AIMoveTo(Actor);
 }
 
+void ADiplosimAIController::StartMovement()
+{
+	Cast<AAI>(GetOwner())->MovementComponent->SetComponentTickEnabled(true);
+}
+
 void ADiplosimAIController::StopMovement()
 {
 	Cast<AAI>(GetOwner())->MovementComponent->SetPoints({});
+
+	Cast<AAI>(GetOwner())->MovementComponent->SetComponentTickEnabled(false);
 }

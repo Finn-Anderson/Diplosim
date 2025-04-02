@@ -172,8 +172,13 @@ void ABuilding::SetSeed(int32 Seed)
 	Camera->SetInteractStatus(this, false);
 
 	if (bAffectBuildingMesh) {
-		if (!Seeds[Seed].Meshes.IsEmpty())
+		if (!Seeds[Seed].Meshes.IsEmpty()) {
 			BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
+
+			FVector size = Seeds[Seed].Meshes[0]->GetBounds().GetBox().GetSize();
+
+			GroundDecalComponent->DecalSize = FVector(size.X / 2.0f, size.Y / 2.0f, 1.0f);
+		}
 
 		if (Seeds[Seed].Health != -1) {
 			HealthComponent->MaxHealth = Seeds[Seed].Health;
@@ -476,6 +481,9 @@ void ABuilding::DestroyBuilding()
 	cm->RemoveBuilding(this);
 
 	for (ACitizen* citizen : GetOccupied()) {
+		if (!IsValid(citizen))
+			continue;
+
 		RemoveCitizen(citizen);
 
 		citizen->AIController->DefaultAction();
@@ -573,9 +581,13 @@ void ABuilding::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 
 	int32 index = Occupied.Find(occupant);
 
+	if (index == INDEX_NONE)
+		return;
+
 	Occupied[index].Visitors.Add(Visitor);
 
-	Visitor->AIController->DefaultAction();
+	if (!IsA<AFestival>())
+		Visitor->AIController->DefaultAction();
 }
 
 void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
@@ -598,7 +610,7 @@ TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()
 	TArray<ACitizen*> citizens;
 
 	for (ACitizen* citizen : GetOccupied()) {
-		if (citizen->Building.BuildingAt != this)
+		if (!IsValid(citizen) || citizen->Building.BuildingAt != this)
 			continue;
 
 		citizens.Add(citizen);
@@ -622,7 +634,7 @@ void ABuilding::StoreSocketLocations()
 	int32 limit = 0;
 
 	if (IsA<AFestival>()) {
-		int32 size = FMath::RoundHalfFromZero(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X / 250.0f);
+		int32 size = FMath::Floor(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X / 200.0f);
 
 		for (int32 i = 0; i < size; i++)
 			limit += FMath::Max(1, i * 2) * 8;
@@ -648,7 +660,7 @@ void ABuilding::StoreSocketLocations()
 
 void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 {
-	if (!GetOccupied().Contains(Citizen))
+	if (!GetOccupied().Contains(Citizen) && (Occupied.IsEmpty() || !Occupied[0].Visitors.Contains(Citizen)))
 		return;
 
 	bool bAnim = false;
@@ -683,8 +695,14 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 		Citizen->SetActorLocation(GetActorLocation());
 	}
 
-	if (IsA<AFestival>())
-		Citizen->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketList[index].Name);
+	if (IsA<AFestival>()) {
+		Citizen->AttachToComponent(Cast<AFestival>(this)->SpinMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketList[index].Name);
+
+		Citizen->SetActorRelativeLocation(FVector(0.0f, 0.0f, Citizen->Capsule->GetScaledCapsuleHalfHeight()));
+
+		FRotator rot = (Cast<AFestival>(this)->SpinMesh->GetSocketLocation(SocketList[index].Name) - GetActorLocation()).Rotation() - FRotator(0.0f, 90.0f, 0.0f);
+		Citizen->SetActorRotation(FRotator(0.0f, rot.Yaw, 0.0f));
+	}
 
 	UAnimSequence* anim;
 
@@ -703,9 +721,11 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	if (!IsValid(anim))
 		return;
 
-	Citizen->MovementComponent->CurrentAnim = anim;
+	Citizen->MovementComponent->CurrentAnim = nullptr;
 
-	anim->RateScale = 1.0f * Citizen->GetProductivity();
+	if (!IsA<AFestival>())
+		anim->RateScale = 1.0f * Citizen->GetProductivity();
+
 	Citizen->Mesh->PlayAnimation(anim, true);
 
 	if (!IsValid(CitizenSound))
@@ -718,7 +738,7 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 
 void ABuilding::Enter(ACitizen* Citizen)
 {
-	if (GetCitizensAtBuilding().Contains(Citizen))
+	if (Citizen->Building.BuildingAt == this)
 		return;
 
 	if (!IsA<AFarm>())
@@ -813,6 +833,11 @@ void ABuilding::Leave(ACitizen* Citizen)
 	if (index != INDEX_NONE)
 		SocketList[index].Citizen = nullptr;
 
+	if (IsA<AFestival>())
+		Citizen->SetActorLocation(Citizen->Building.EnterLocation);
+
+	Citizen->AIController->StartMovement();
+
 	if (!Citizen->IsHidden())
 		return;
 
@@ -827,11 +852,11 @@ void ABuilding::Leave(ACitizen* Citizen)
 	FVector location = Citizen->Building.EnterLocation;
 
 	if (BuildingMesh->DoesSocketExist("Entrance")) {
-			FVector pos = BuildingMesh->GetSocketLocation("Entrance");
+		FVector pos = BuildingMesh->GetSocketLocation("Entrance");
 
-			if (GetWorld()->LineTraceSingleByChannel(hit, pos, pos - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_WorldStatic, QueryParams))
-				if (hit.GetActor()->IsA<AGrid>() && hit.GetComponent() == Cast<AGrid>(hit.GetActor())->HISMGround)
-					location = pos;
+		if (GetWorld()->LineTraceSingleByChannel(hit, pos, pos - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_WorldStatic, QueryParams))
+			if (hit.GetActor()->IsA<AGrid>() && hit.GetComponent() == Cast<AGrid>(hit.GetActor())->HISMGround)
+				location = pos;
 	}
 
 	Citizen->SetActorLocation(location);

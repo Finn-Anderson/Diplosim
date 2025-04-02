@@ -173,6 +173,7 @@ void ACitizen::BeginPlay()
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
 
+	AIController->ChooseIdleBuilding(this);
 	AIController->DefaultAction();
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();

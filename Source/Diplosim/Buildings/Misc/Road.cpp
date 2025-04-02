@@ -88,9 +88,35 @@ void ARoad::RegenerateMesh()
 
 	TArray<FVector> connectedLocations;
 
-	for (AActor* actor : connectedRoads)
-		if ((GetActorLocation().X == actor->GetActorLocation().X || GetActorLocation().Y == actor->GetActorLocation().Y) && IsValid(actor) && (actor->IsA<ARoad>() || actor->IsA<AFestival>()) && !actor->IsHidden() && actor != this && GetActorLocation() != actor->GetActorLocation() && Camera->BuildComponent->Buildings[0] != actor)
-			connectedLocations.Add(actor->GetActorLocation());
+	for (AActor* actor : connectedRoads) {
+		if (!actor->IsA<ARoad>() && !actor->IsA<AFestival>())
+			continue;
+
+		FVector location = actor->GetActorLocation();
+
+		if (actor->IsA<AFestival>()) {
+			FVector dist = GetActorLocation() - location;
+
+			float x = FMath::RoundHalfFromZero(FMath::Abs(dist.X));
+			float y = FMath::RoundHalfFromZero(FMath::Abs(dist.Y));
+
+			if (x > y) {
+				if (dist.X < 0)
+					location = GetActorLocation() + FVector(100.0f, 0.0f, 0.0f);
+				else
+					location = GetActorLocation() - FVector(100.0f, 0.0f, 0.0f);
+			}
+			else if (y > x) {
+				if (dist.Y < 0)
+					location = GetActorLocation() + FVector(0.0f, 100.0f, 0.0f);
+				else
+					location = GetActorLocation() - FVector(0.0f, 100.0f, 0.0f);
+			}
+		}
+
+		if ((GetActorLocation().X == location.X || GetActorLocation().Y == location.Y) && IsValid(actor) && !actor->IsHidden() && actor != this && GetActorLocation() != location && Camera->BuildComponent->Buildings[0] != actor)
+			connectedLocations.Add(location);
+	}
 
 	FRoadStruct roadStruct;
 	roadStruct.Connections = connectedLocations.Num();

@@ -378,16 +378,24 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f) {
 			FRotator rotation = (building->GetActorLocation() - transform.GetLocation()).Rotation();
 
-			FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+			FVector origin;
+			FVector size;
+			building->GetActorBounds(true, origin, size);
 
-			if (FMath::RoundToInt(building->GetActorRotation().Yaw / 90.0f) % 2 != 0)
-				size = FVector(size.Y, size.X, size.Z);
+			float x = 1.0f;
+			float y = 1.0f;
 
-			size = FVector(FMath::RoundHalfFromZero(size.X), FMath::RoundHalfFromZero(size.Y), FMath::RoundHalfFromZero(size.Z));
+			if (building->bOffsetX)
+				x = 1.75f;
+
+			if (building->bOffsetY)
+				y = 1.75f;
+
+			size = FVector(FMath::RoundHalfFromZero(size.X * x), FMath::RoundHalfFromZero(size.Y * y), FMath::RoundHalfFromZero(size.Z));
 
 			if (building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
 				bCoast = true;
-			else if (!collision.Actor->IsHidden() && FMath::Abs(building->GetActorLocation().X - transform.GetLocation().X) < size.X && FMath::Abs(building->GetActorLocation().Y - transform.GetLocation().Y) < size.Y)
+			else if (!collision.Actor->IsHidden() && (FMath::Abs(building->GetActorLocation().X - transform.GetLocation().X) < size.X || FMath::Abs(building->GetActorLocation().Y - transform.GetLocation().Y) < size.Y))
 				return false;
 		}
 	}

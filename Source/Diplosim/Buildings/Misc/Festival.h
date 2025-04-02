@@ -57,6 +57,8 @@ public:
 	UFUNCTION()
 		void OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	void OnBuilt() override;
+
 	void StartFestival(bool bFireFestival);
 
 	void StopFestival();
