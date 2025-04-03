@@ -295,6 +295,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void DestroyBuilding();
 
+	TArray<FItemStruct> GetGradeCost(int32 Grade);
+
+	UFUNCTION(BlueprintCallable)
+		void SetBuildingGrade(int32 Grade);
+
 	virtual void Enter(class ACitizen* Citizen);
 
 	virtual void Leave(class ACitizen* Citizen);

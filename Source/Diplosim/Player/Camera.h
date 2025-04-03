@@ -375,6 +375,9 @@ public:
 		void SpawnEnemies();
 
 	UFUNCTION(Exec)
+		void AddEnemies(FString Category, int32 Amount);
+
+	UFUNCTION(Exec)
 		void DamageLastBuilding();
 
 	UFUNCTION(Exec)
@@ -388,6 +391,12 @@ public:
 
 	UFUNCTION(Exec)
 		void SpawnCitizen(int32 Amount, bool bAdult);
+
+	UFUNCTION(Exec)
+		void SetEvent(FString Type, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring, bool bFireFestival = false);
+
+	UFUNCTION(Exec)
+		void DamageActor(int32 Amount);
 
 	UPROPERTY()
 		bool bInstantBuildCheat;

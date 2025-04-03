@@ -48,6 +48,12 @@ public:
 		class ABuilding* BuildingToMove;
 
 	UPROPERTY()
+		bool bUpgrade;
+		
+	UPROPERTY()
+		bool bBulldoze;
+
+	UPROPERTY()
 		FVector StartLocation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")

@@ -471,6 +471,10 @@ void ABuilding::DestroyBuilding()
 			rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);
 		}
 	}
+	else {
+		for (FItemStruct items : CostList)
+			rm->AddUniversalResource(items.Resource, items.Stored / 2.0f);
+	}
 
 	if (IsA(Camera->BuildComponent->FoundationClass))
 		for (FCollisionStruct collision : Collisions)
@@ -498,6 +502,50 @@ void ABuilding::DestroyBuilding()
 			Cast<ABroadcast>(this)->RemoveInfluencedMaterial(house);
 
 	Destroy();
+}
+
+TArray<FItemStruct> ABuilding::GetGradeCost(int32 Grade)
+{
+	TArray<FItemStruct> items;
+
+	items = Seeds[Grade].Cost;
+
+	for (FItemStruct item : Seeds[SeedNum].Cost) {
+		item.Amount = -item.Amount;
+
+		int32 index = items.Find(item);
+
+		if (index != INDEX_NONE)
+			items[index].Amount += item.Amount;
+		else
+			items.Add(item);
+	}
+
+	return items;
+}
+
+void ABuilding::SetBuildingGrade(int32 Grade)
+{
+	UResourceManager* rm = Camera->ResourceManager;
+	
+	TArray<FItemStruct> items = GetGradeCost(Grade);
+
+	for (FItemStruct item : items) {
+		if (item.Amount > rm->GetResourceAmount(item.Resource)) {
+			Camera->ShowWarning("Cannot afford upgrade");
+
+			return;
+		}
+	}
+
+	for (FItemStruct item : items) {
+		if (item.Amount < 0)
+			rm->AddUniversalResource(item.Resource, FMath::Abs(item.Amount) / 2.0f);
+		else
+			rm->TakeUniversalResource(item.Resource, item.Amount, 0.0f);
+	}
+	
+	SetSeed(Grade);
 }
 
 void ABuilding::OnBuilt()

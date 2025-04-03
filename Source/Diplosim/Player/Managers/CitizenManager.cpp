@@ -639,7 +639,7 @@ void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
 //
 // Event
 //
-void UCitizenManager::CreateEvent(EEventType Type, TSubclassOf<class ABuilding> Building, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring)
+void UCitizenManager::CreateEvent(EEventType Type, TSubclassOf<class ABuilding> Building, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring, bool bFireFestival)
 {
 	FEventStruct event;
 	event.Type = Type;
@@ -652,6 +652,7 @@ void UCitizenManager::CreateEvent(EEventType Type, TSubclassOf<class ABuilding> 
 	times.StartHour = StartHour;
 	times.EndHour = EndHour;
 	times.bRecurring = bRecurring;
+	times.bFireFestival = bFireFestival;
 	
 	if (index != INDEX_NONE) {
 		Events[index].Times.Add(times);

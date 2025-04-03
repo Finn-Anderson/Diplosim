@@ -23,6 +23,7 @@
 #include "Buildings/Building.h"
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Misc/Festival.h"
 #include "Buildings/Work/Service/Religion.h"
 #include "AI/AI.h"
 #include "AI/Citizen.h"
@@ -732,6 +733,24 @@ void ACamera::SpawnEnemies()
 	gamemode->SpawnEnemiesAsync();
 }
 
+void ACamera::AddEnemies(FString Category, int32 Amount)
+{
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+
+	TSubclassOf<AResource> resource;
+
+	for (FResourceStruct resourceStruct : ResourceManager->ResourceList) {
+		if (resourceStruct.Category != Category)
+			continue;
+
+		resource = resourceStruct.Type;
+
+		break;
+	}
+
+	gamemode->TallyEnemyData(resource, Amount * 200);
+}
+
 void ACamera::DamageLastBuilding()
 {
 	if (bInMenu)
@@ -750,6 +769,9 @@ void ACamera::ChangeSeasonAffect(FString Season)
 
 void ACamera::CompleteResearch()
 {
+	if (bInMenu)
+		return;
+
 	ResearchManager->Research(100000000000.0f);
 }
 
@@ -763,6 +785,9 @@ void ACamera::TurnOnInstantBuild(bool Value)
 
 void ACamera::SpawnCitizen(int32 Amount, bool bAdult)
 {
+	if (bInMenu)
+		return;
+
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
 	for (int32 i = 0; i < Amount; i++) {
@@ -779,4 +804,35 @@ void ACamera::SpawnCitizen(int32 Amount, bool bAdult)
 
 		citizen->HealthComponent->AddHealth(100);
 	}
+}
+
+void ACamera::SetEvent(FString Type, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring, bool bFireFestival)
+{
+	if (bInMenu)
+		return;
+	
+	EEventType type;
+	TSubclassOf<ABuilding> building = nullptr;
+
+	if (Type == "Holliday")
+		type = EEventType::Holliday;
+	else if (Type == "Festival") {
+		type = EEventType::Festival;
+		building = AFestival::StaticClass();
+	}
+	else if (Type == "Mass")
+		type = EEventType::Mass;
+	else
+		type = EEventType::Protest;
+
+	CitizenManager->CreateEvent(type, building, Period, Day, StartHour, EndHour, bRecurring, bFireFestival);
+}
+
+void ACamera::DamageActor(int32 Amount)
+{
+	if (!IsValid(HoveredActor.Actor) || !(HoveredActor.Actor->IsA<AAI>() && HoveredActor.Actor->IsA<ABuilding>()))
+		return;
+
+	UHealthComponent* healthComp = HoveredActor.Actor->GetComponentByClass<UHealthComponent>();
+	healthComp->TakeHealth(Amount, HoveredActor.Actor);
 }

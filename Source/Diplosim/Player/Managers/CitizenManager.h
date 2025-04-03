@@ -479,7 +479,7 @@ public:
 
 	// Events
 	UFUNCTION(BlueprintCallable)
-		void CreateEvent(EEventType Type, TSubclassOf<class ABuilding> Building, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring);
+		void CreateEvent(EEventType Type, TSubclassOf<class ABuilding> Building, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring, bool bFireFestival = false);
 
 	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
 

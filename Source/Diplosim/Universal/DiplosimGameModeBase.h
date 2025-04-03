@@ -129,11 +129,11 @@ public:
 
 	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
 
-	TArray<FVector> GetSpawnPoints(class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
+	TArray<FVector> GetSpawnPoints();
 
 	TArray<FVector> PickSpawnPoints();
 
-	TArray<FVector> GetValidLocations(class UHierarchicalInstancedStaticMeshComponent* HISMComponent, TArray<int32> Instances, class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
+	TArray<FVector> GetValidLocations(class UHierarchicalInstancedStaticMeshComponent* HISMComponent, TArray<int32> Instances, TArray<FVector> ValidTiles);
 
 	void SpawnEnemies();
 
