@@ -245,6 +245,9 @@ public:
 		FVector2D MousePosition;
 
 	UPROPERTY()
+		FVector MouseHitLocation;
+
+	UPROPERTY()
 		AActor* ActorAttachedTo;
 
 	void SetMouseCapture(bool bCapture);
@@ -382,6 +385,9 @@ public:
 
 	UFUNCTION(Exec)
 		void TurnOnInstantBuild(bool Value);
+
+	UFUNCTION(Exec)
+		void SpawnCitizen(int32 Amount, bool bAdult);
 
 	UPROPERTY()
 		bool bInstantBuildCheat;

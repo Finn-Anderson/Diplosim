@@ -276,6 +276,9 @@ void UCloudComponent::RainCollisionHandler(FVector CollisionLocation)
 
 void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
 {
+	if (!IsValid(Actor) && !IsValid(HISM))
+		return;
+	
 	if (Value == 1.0f) {
 		ACamera* camera = Cast<AGrid>(GetOwner())->Camera;
 
@@ -283,7 +286,7 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 
 		FString id = "Wet";
 
-		if (Actor != nullptr)
+		if (IsValid(Actor))
 			id += FString::FromInt(Actor->GetUniqueID());
 		else
 			id += FString::FromInt(HISM->GetUniqueID()) + FString::FromInt(Instance);

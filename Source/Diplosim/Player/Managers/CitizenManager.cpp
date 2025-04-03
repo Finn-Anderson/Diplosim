@@ -903,7 +903,8 @@ void UCitizenManager::EndEvent(FEventStruct Event, FEventTimeStruct Time)
 				citizen->SetAttendStatus(EAttendStatus::Missed, true);
 		}
 
-		citizen->AIController->DefaultAction();
+		if (!IsValid(Event.Building))
+			citizen->AIController->DefaultAction();
 	}
 }
 

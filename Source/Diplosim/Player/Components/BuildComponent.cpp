@@ -318,6 +318,9 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 	bool bResource = false;
 
 	for (FCollisionStruct collision : building->Collisions) {
+		if (collision.Actor->IsHidden())
+			continue;
+
 		if (collision.HISM == Camera->Grid->HISMLava || (collision.HISM == Camera->Grid->HISMRampGround && !(building->IsA(FoundationClass) || building->IsA(RampClass))))
 			return false;
 
@@ -359,6 +362,8 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 			else if (building->IsA(FoundationClass)) {
 				return true;
 			}
+			else
+				return false;
 		}
 
 		if (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>())
@@ -378,24 +383,16 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f) {
 			FRotator rotation = (building->GetActorLocation() - transform.GetLocation()).Rotation();
 
-			FVector origin;
-			FVector size;
-			building->GetActorBounds(true, origin, size);
+			FCollisionQueryParams params;
+			params.AddIgnoredActor(collision.Actor);
 
-			float x = 1.0f;
-			float y = 1.0f;
+			FHitResult hit;
 
-			if (building->bOffsetX)
-				x = 1.75f;
-
-			if (building->bOffsetY)
-				y = 1.75f;
-
-			size = FVector(FMath::RoundHalfFromZero(size.X * x), FMath::RoundHalfFromZero(size.Y * y), FMath::RoundHalfFromZero(size.Z));
+			FVector endTrace = transform.GetLocation() + FVector(0.0f, 0.0f, building->GetActorLocation().Z - transform.GetLocation().Z);
 
 			if (building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
 				bCoast = true;
-			else if (!collision.Actor->IsHidden() && (FMath::Abs(building->GetActorLocation().X - transform.GetLocation().X) < size.X || FMath::Abs(building->GetActorLocation().Y - transform.GetLocation().Y) < size.Y))
+			else if (GetWorld()->SweepSingleByChannel(hit, transform.GetLocation(), endTrace, FRotator(0.0f).Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(FVector(50.0f)), params) && !hit.GetActor()->IsHidden())
 				return false;
 		}
 	}

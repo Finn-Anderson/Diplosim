@@ -12,6 +12,7 @@
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/StaticMeshSocket.h"
+#include "Components/BoxComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -178,6 +179,9 @@ void ABuilding::SetSeed(int32 Seed)
 			FVector size = Seeds[Seed].Meshes[0]->GetBounds().GetBox().GetSize();
 
 			GroundDecalComponent->DecalSize = FVector(size.X / 2.0f, size.Y / 2.0f, 1.0f);
+
+			if (IsA<AFestival>())
+				Cast<AFestival>(this)->BoxAreaAffect->SetBoxExtent(FVector(size.X / 2.0f, size.Y / 2.0f, 20.0f));
 		}
 
 		if (Seeds[Seed].Health != -1) {
@@ -625,7 +629,7 @@ void ABuilding::StoreSocketLocations()
 	
 	TArray<FName> sockets;
 	if (IsA<AFestival>())
-		sockets = Cast<AFestival>(this)->SpinMesh->GetAllSocketNames();
+		sockets = Cast<AFestival>(this)->GetSpinSockets();
 	else
 		sockets = BuildingMesh->GetAllSocketNames();
 
@@ -637,7 +641,7 @@ void ABuilding::StoreSocketLocations()
 		int32 size = FMath::Floor(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X / 200.0f);
 
 		for (int32 i = 0; i < size; i++)
-			limit += FMath::Max(1, i * 2) * 8;
+			limit += FMath::Max(1, i * 1.5f) * 48;
 
 		Space = limit;
 	}
@@ -695,14 +699,8 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 		Citizen->SetActorLocation(GetActorLocation());
 	}
 
-	if (IsA<AFestival>()) {
-		Citizen->AttachToComponent(Cast<AFestival>(this)->SpinMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketList[index].Name);
-
-		Citizen->SetActorRelativeLocation(FVector(0.0f, 0.0f, Citizen->Capsule->GetScaledCapsuleHalfHeight()));
-
-		FRotator rot = (Cast<AFestival>(this)->SpinMesh->GetSocketLocation(SocketList[index].Name) - GetActorLocation()).Rotation() - FRotator(0.0f, 90.0f, 0.0f);
-		Citizen->SetActorRotation(FRotator(0.0f, rot.Yaw, 0.0f));
-	}
+	if (IsA<AFestival>())
+		Cast<AFestival>(this)->AttachToSpinMesh(Citizen, SocketList[index].Name);
 
 	UAnimSequence* anim;
 
@@ -832,9 +830,6 @@ void ABuilding::Leave(ACitizen* Citizen)
 
 	if (index != INDEX_NONE)
 		SocketList[index].Citizen = nullptr;
-
-	if (IsA<AFestival>())
-		Citizen->SetActorLocation(Citizen->Building.EnterLocation);
 
 	Citizen->AIController->StartMovement();
 

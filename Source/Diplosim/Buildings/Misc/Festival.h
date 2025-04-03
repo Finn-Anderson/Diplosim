@@ -35,7 +35,19 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UStaticMeshComponent* SpinMesh;
+		class UStaticMeshComponent* InnerSpinMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UStaticMeshComponent* InnerIntermediateSpinMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UStaticMeshComponent* IntermediateSpinMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UStaticMeshComponent* OuterIntermediateSpinMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
+		class UStaticMeshComponent* OuterSpinMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* FestivalMesh;
@@ -62,4 +74,8 @@ public:
 	void StartFestival(bool bFireFestival);
 
 	void StopFestival();
+
+	TArray<FName> GetSpinSockets();
+
+	void AttachToSpinMesh(class ACitizen* Citizen, FName Socket);
 };

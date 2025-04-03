@@ -96,11 +96,11 @@ struct FEventTimeStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		bool bRecurring;
 
-	UPROPERTY()
-		bool bStarted;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		bool bFireFestival;
 
 	UPROPERTY()
-		bool bFireFestival;
+		bool bStarted;
 
 	FEventTimeStruct()
 	{

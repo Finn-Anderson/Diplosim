@@ -198,9 +198,6 @@ void ACamera::Tick(float DeltaTime)
 
 	FHitResult hit(ForceInit);
 
-	if (settings->GetDepthOfField() && GetWorld()->LineTraceSingleByChannel(hit, CameraComponent->GetComponentLocation(), CameraComponent->GetComponentLocation() + CameraComponent->GetForwardVector() * 100000, ECollisionChannel::ECC_Visibility))
-		CameraComponent->PostProcessSettings.DepthOfFieldFocalDistance = FMath::FInterpTo(CameraComponent->PostProcessSettings.DepthOfFieldFocalDistance, hit.Distance, DeltaTime, 8.0f);
-
 	if (MainMenuUIInstance->IsInViewport() || BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport())
 		return;
 
@@ -215,6 +212,8 @@ void ACamera::Tick(float DeltaTime)
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 		AActor* actor = hit.GetActor();
+
+		MouseHitLocation = hit.Location;
 
 		if (!actor->IsA<AAI>() && !actor->IsA<ABuilding>() && !actor->IsA<AEggBasket>() && !actor->IsA<AMineral>())
 			return;
@@ -760,4 +759,24 @@ void ACamera::TurnOnInstantBuild(bool Value)
 		return;
 
 	bInstantBuildCheat = Value;
+}
+
+void ACamera::SpawnCitizen(int32 Amount, bool bAdult)
+{
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+
+	for (int32 i = 0; i < Amount; i++) {
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(Cast<ABroch>(gamemode->Broch)->CitizenClass, MouseHitLocation, FRotator(0.0f));
+
+		if (!bAdult || !IsValid(citizen))
+			continue;
+
+		for (int32 j = 0; j < 2; j++)
+			citizen->GivePersonalityTrait();
+
+		citizen->BioStruct.Age = 17;
+		citizen->Birthday();
+
+		citizen->HealthComponent->AddHealth(100);
+	}
 }

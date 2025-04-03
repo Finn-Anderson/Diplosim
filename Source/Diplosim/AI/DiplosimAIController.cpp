@@ -136,7 +136,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 			int32 time = FMath::RandRange(3, 10);
 
 			if (chance < 66) {
-				if (ChosenBuilding->bHideCitizen) {
+				if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen) {
 					AIMoveTo(ChosenBuilding);
 
 					time = 60.0f;
@@ -146,24 +146,28 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 					const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 					int32 range = 1000;
+
+					FVector location = Citizen->Camera->CitizenManager->BrochLocation;
 					
-					if (!ChosenBuilding->IsA<ABroch>()) {
+					if (IsValid(ChosenBuilding) && !ChosenBuilding->IsA<ABroch>()) {
 						FVector size = ChosenBuilding->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
 						if (size.X > size.Y)
 							range = size.X;
 						else
 							range = size.Y;
+
+						location = ChosenBuilding->GetActorLocation();
 					}
 
-					FNavLocation location;
-					nav->GetRandomPointInNavigableRadius(ChosenBuilding->GetActorLocation(), range, location);
+					FNavLocation navLoc;
+					nav->GetRandomPointInNavigableRadius(location, range, navLoc);
 
 					double length;
-					nav->GetPathLength(Citizen->GetActorLocation(), location, length);
+					nav->GetPathLength(Citizen->GetActorLocation(), navLoc.Location, length);
 
 					if (length < 5000.0f) {
-						UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), location, Citizen, Citizen->NavQueryFilter);
+						UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), navLoc.Location, Citizen, Citizen->NavQueryFilter);
 
 						Citizen->MovementComponent->SetPoints(path->PathPoints);
 					}
@@ -187,6 +191,12 @@ void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 			continue;
 
 		buildings.Add(building);
+	}
+
+	if (buildings.IsEmpty()) {
+		ChosenBuilding = nullptr;
+
+		return;
 	}
 
 	int32 index = FMath::RandRange(0, buildings.Num() - 1);
