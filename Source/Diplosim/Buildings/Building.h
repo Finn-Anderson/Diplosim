@@ -297,9 +297,6 @@ public:
 
 	TArray<FItemStruct> GetGradeCost(int32 Grade);
 
-	UFUNCTION(BlueprintCallable)
-		void SetBuildingGrade(int32 Grade);
-
 	virtual void Enter(class ACitizen* Citizen);
 
 	virtual void Leave(class ACitizen* Citizen);
@@ -323,6 +320,9 @@ public:
 	// Construct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
 		TArray<FItemStruct> CostList;
+
+	UPROPERTY()
+		TArray<FItemStruct> TargetList;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		class UStaticMesh* ConstructionMesh;
@@ -357,7 +357,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Rebuild();
 
-	virtual void Build(bool bRebuild = false);
+	virtual void Build(bool bRebuild = false, bool bUpgrade = false, int32 Grade = 0);
 
 	virtual void OnBuilt();
 

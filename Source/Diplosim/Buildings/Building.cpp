@@ -192,6 +192,9 @@ void ABuilding::SetSeed(int32 Seed)
 		if (Seeds[Seed].Capacity != -1) {
 			MaxCapacity = Seeds[Seed].Capacity;
 			Capacity = MaxCapacity;
+
+			for (int32 i = GetOccupied().Num() - 1; i > Capacity; i--)
+				RemoveCitizen(GetOccupied()[i]);
 		}
 
 		if (!Seeds[Seed].Cost.IsEmpty())
@@ -353,7 +356,7 @@ void ABuilding::Rebuild()
 	GroundDecalComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -0.75f));
 }
 
-void ABuilding::Build(bool bRebuild)
+void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 {
 	BuildingMesh->SetOverlayMaterial(nullptr);
 
@@ -368,10 +371,27 @@ void ABuilding::Build(bool bRebuild)
 	UResourceManager* rm = Camera->ResourceManager;
 	UConstructionManager* cm = Camera->ConstructionManager;
 
-	TArray<FItemStruct> items = CostList;
+	TargetList = CostList;
 
 	if (bRebuild)
-		items = GetRebuildCost();
+		TargetList = GetRebuildCost();
+	else if (bUpgrade) {
+		TargetList = GetGradeCost(Grade);
+
+		for (int32 i = TargetList.Num() - 1; i > -1; i--) {
+			if (TargetList[i].Amount >= 0)
+				continue;
+
+			rm->AddUniversalResource(TargetList[i].Resource, FMath::Abs(TargetList[i].Amount) / 2.0f);
+
+			TargetList.RemoveAt(i);
+		}
+
+		for (int32 i = GetOccupied().Num() - 1; i > -1; i--)
+			RemoveCitizen(GetOccupied()[i]);
+
+		SetSeed(Grade);
+	}
 
 	if (CheckInstant()) {
 		OnBuilt();
@@ -379,10 +399,10 @@ void ABuilding::Build(bool bRebuild)
 		if (Camera->bInstantBuildCheat)
 			return;
 
-		for (FItemStruct item : items)
+		for (FItemStruct item : TargetList)
 			rm->TakeUniversalResource(item.Resource, item.Amount, 0);
 	} else {
-		for (FItemStruct item : items)
+		for (FItemStruct item : TargetList)
 			rm->AddCommittedResource(item.Resource, item.Amount);
 
 		cm->AddBuilding(this, EBuildStatus::Construction);
@@ -522,30 +542,6 @@ TArray<FItemStruct> ABuilding::GetGradeCost(int32 Grade)
 	}
 
 	return items;
-}
-
-void ABuilding::SetBuildingGrade(int32 Grade)
-{
-	UResourceManager* rm = Camera->ResourceManager;
-	
-	TArray<FItemStruct> items = GetGradeCost(Grade);
-
-	for (FItemStruct item : items) {
-		if (item.Amount > rm->GetResourceAmount(item.Resource)) {
-			Camera->ShowWarning("Cannot afford upgrade");
-
-			return;
-		}
-	}
-
-	for (FItemStruct item : items) {
-		if (item.Amount < 0)
-			rm->AddUniversalResource(item.Resource, FMath::Abs(item.Amount) / 2.0f);
-		else
-			rm->TakeUniversalResource(item.Resource, item.Amount, 0.0f);
-	}
-	
-	SetSeed(Grade);
 }
 
 void ABuilding::OnBuilt()

@@ -21,6 +21,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Buildings/Misc/Road.h"
+#include "Buildings/Misc/Festival.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Universal/DiplosimUserSettings.h"
 
@@ -186,7 +187,7 @@ void UBuildComponent::SetBuildingsOnPath()
 			FHitResult hit(ForceInit);
 
 			if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 50.0f), location, ECollisionChannel::ECC_Visibility))
-				if (hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsHidden())
+				if (hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsHidden() && (Buildings[0]->GetClass() != hit.GetActor()->GetClass() || Buildings[0]->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum || Buildings[0]->GetActorLocation() != hit.GetActor()->GetActorLocation()))
 					bBuildingExists = true;
 
 			if (Buildings.Last()->IsA(FoundationClass))
@@ -276,6 +277,31 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 
 	if (Buildings.IsEmpty() || Camera->bInstantBuildCheat)
 		return items;
+
+	int32 count = 0;
+
+	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
+		ABuilding* building = Buildings[i];
+
+		for (FCollisionStruct collision : building->Collisions) {
+			if (building->GetClass() != collision.Actor->GetClass() || building->SeedNum == Cast<ABuilding>(collision.Actor)->SeedNum || building->GetActorLocation() != collision.Actor->GetActorLocation())
+				continue;
+
+			ABuilding* b = Cast<ABuilding>(collision.Actor);
+			TArray<FItemStruct> cost = b->GetGradeCost(building->SeedNum);
+
+			for (FItemStruct item : cost) {
+				int32 index = items.Find(item);
+
+				if (index == INDEX_NONE)
+					items.Add(item);
+				else
+					items[index].Amount += item.Amount;
+			}
+
+			count++;
+		}
+	}
 	
 	items = Buildings[0]->CostList;
 
@@ -285,7 +311,7 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 		modifier = 1;
 
 	for (int32 i = 0; i < items.Num(); i++)
-		items[i].Amount *= (Buildings.Num() - modifier);
+		items[i].Amount *= (Buildings.Num() - count - modifier);
 
 	return items;
 }
@@ -366,6 +392,9 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 				return false;
 		}
 
+		if (building->GetClass() == collision.Actor->GetClass() && building->SeedNum != Cast<ABuilding>(collision.Actor)->SeedNum && building->GetActorLocation() == collision.Actor->GetActorLocation())
+			continue;
+
 		if (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>())
 			continue;
 
@@ -435,12 +464,9 @@ void UBuildComponent::ResetBuilding(ABuilding* Building)
 
 void UBuildComponent::DetachBuilding()
 {
-	if (Buildings.IsEmpty())
-		return; 
-
 	StartLocation = FVector::Zero();
 	
-	Camera->SetInteractStatus(Buildings[0], false);
+	Camera->SetInteractStatus(nullptr, false);
 
 	SetComponentTickEnabled(false);
 
@@ -549,6 +575,31 @@ void UBuildComponent::Place(bool bQuick)
 		}
 	}
 
+	Camera->MovementComponent->bShake = true;
+
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+
+	Camera->SetInteractAudioSound(PlaceSound, settings->GetMasterVolume() * settings->GetSFXVolume());
+	Camera->PlayInteractSound();
+
+	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
+		ABuilding* building = Buildings[i];
+
+		for (FCollisionStruct collision : building->Collisions) {
+			if (building->GetClass() != collision.Actor->GetClass() || building->SeedNum == Cast<ABuilding>(collision.Actor)->SeedNum || building->GetActorLocation() != collision.Actor->GetActorLocation())
+				continue;
+
+			ABuilding* b = Cast<ABuilding>(collision.Actor);
+			b->Build(false, true, building->SeedNum);
+
+			building->DestroyBuilding();
+
+			Buildings.RemoveAt(i);
+
+			break;
+		}
+	}
+
 	ABuilding* b = Buildings[0];
 
 	if (StartLocation != FVector::Zero()) {
@@ -558,18 +609,11 @@ void UBuildComponent::Place(bool bQuick)
 		Buildings.RemoveAt(0);
 	}
 
-	Camera->MovementComponent->bShake = true;
-
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-
 	for (ABuilding* building : Buildings)
 		for (FTreeStruct treeStruct : building->TreeList)
 			treeStruct.Resource->ResourceHISM->RemoveInstance(treeStruct.Instance);
 
-	Camera->SetInteractAudioSound(PlaceSound, settings->GetMasterVolume() * settings->GetSFXVolume());
-	Camera->PlayInteractSound();
-
-	if (Buildings[0]->IsA(FoundationClass))
+	if (!Buildings.IsEmpty() && Buildings[0]->IsA(FoundationClass))
 		for (FCollisionStruct collision : Buildings[0]->Collisions)
 			if (collision.HISM == Camera->Grid->HISMRiver)
 				collision.HISM->PerInstanceSMCustomData[collision.Instance * 4] = 0.0f;

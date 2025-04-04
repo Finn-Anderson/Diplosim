@@ -48,7 +48,7 @@ void AResearch::BeginRotation()
 	Camera->CitizenManager->Timers.Add(timer);
 }
 
-void AResearch::Build(bool bRebuild)
+void AResearch::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 {
 	TurretMesh->SetOverlayMaterial(nullptr);
 	TelescopeMesh->SetOverlayMaterial(nullptr);
@@ -58,7 +58,7 @@ void AResearch::Build(bool bRebuild)
 	
 	TurretMesh->SetHiddenInGame(true, true);
 
-	Super::Build(bRebuild);
+	Super::Build(bRebuild, bUpgrade, Grade);
 
 	if (!CheckInstant()) {
 		FVector bSize = ActualMesh->GetBounds().GetBox().GetSize();

@@ -52,6 +52,9 @@ UCitizenManager::UCitizenManager()
 void UCitizenManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (GetWorld()->GetMapName() == "Map")
+		StartTimers();
 }
 
 void UCitizenManager::ReadJSONFile(FString path)

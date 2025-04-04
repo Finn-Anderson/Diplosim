@@ -330,11 +330,16 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		bool bBulldoze;
+
 	UPROPERTY()
 		FHoverStruct HoveredActor;
 
 	// Commands
 	void Action(const struct FInputActionInstance& Instance);
+
+	void Bulldoze();
 
 	void Cancel();
 

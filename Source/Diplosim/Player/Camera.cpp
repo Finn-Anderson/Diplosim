@@ -204,7 +204,10 @@ void ACamera::Tick(float DeltaTime)
 
 	HoveredActor.Reset();
 
-	pcontroller->CurrentMouseCursor = EMouseCursor::Default;
+	if (bBulldoze)
+		pcontroller->CurrentMouseCursor = EMouseCursor::CardinalCross;
+	else
+		pcontroller->CurrentMouseCursor = EMouseCursor::Default;
 
 	FVector mouseLoc, mouseDirection;
 	pcontroller->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
@@ -224,7 +227,8 @@ void ACamera::Tick(float DeltaTime)
 		if (actor->IsA<AMineral>())
 			HoveredActor.Instance = hit.Item;
 
-		pcontroller->CurrentMouseCursor = EMouseCursor::Hand;
+		if (!bBulldoze)
+			pcontroller->CurrentMouseCursor = EMouseCursor::Hand;
 	}
 }
 
@@ -258,8 +262,6 @@ void ACamera::StartGame()
 
 	bStartMenu = false;
 	bInMenu = false;
-
-	CitizenManager->StartTimers();
 
 	Grid->MapUIInstance->AddToViewport();
 }
@@ -384,21 +386,23 @@ void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
 
 void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
 {
-	TArray<UDecalComponent*> decalComponents;
-	Actor->GetComponents<UDecalComponent>(decalComponents);
+	if (IsValid(Actor)) {
+		TArray<UDecalComponent*> decalComponents;
+		Actor->GetComponents<UDecalComponent>(decalComponents);
 
-	if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr)) {
-		decalComponents[1]->SetVisibility(bStatus);
+		if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr)) {
+			decalComponents[1]->SetVisibility(bStatus);
 
-		if (Actor->IsA<ABroadcast>()) {
-			ABroadcast* broadcaster = Cast<ABroadcast>(Actor);
+			if (Actor->IsA<ABroadcast>()) {
+				ABroadcast* broadcaster = Cast<ABroadcast>(Actor);
 
-			if (bStatus)
-				for (AHouse* house : broadcaster->Houses)
-					house->BuildingMesh->SetOverlayMaterial(broadcaster->InfluencedMaterial);
-			else
-				for (AHouse* house : broadcaster->Houses)
-					broadcaster->RemoveInfluencedMaterial(house);
+				if (bStatus)
+					for (AHouse* house : broadcaster->Houses)
+						house->BuildingMesh->SetOverlayMaterial(broadcaster->InfluencedMaterial);
+				else
+					for (AHouse* house : broadcaster->Houses)
+						broadcaster->RemoveInfluencedMaterial(house);
+			}
 		}
 	}
 
@@ -511,6 +515,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	// Build
 	Input->BindAction(InputAction, ETriggerEvent::Started, this, &ACamera::Action);
+	Input->BindAction(InputAction, ETriggerEvent::Ongoing, this, &ACamera::Action);
 	Input->BindAction(InputAction, ETriggerEvent::Completed, this, &ACamera::Action);
 
 	Input->BindAction(InputCancel, ETriggerEvent::Started, this, &ACamera::Cancel);
@@ -540,7 +545,7 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 		return;
 	}
 	
-	if (bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport())
+	if (bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || bBulldoze)
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {
@@ -572,12 +577,23 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 	}
 }
 
+void ACamera::Bulldoze()
+{
+	if (!bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy)
+		return;
+
+	Cast<ABuilding>(HoveredActor.Actor)->DestroyBuilding();
+}
+
 void ACamera::Cancel()
 {
 	if (!BuildComponent->IsComponentTickEnabled() || Start || bInMenu)
 		return;
 
-	BuildComponent->RemoveBuilding();
+	if (bBulldoze)
+		bBulldoze = false;
+	else
+		BuildComponent->RemoveBuilding();
 }
 
 void ACamera::NewMap()
