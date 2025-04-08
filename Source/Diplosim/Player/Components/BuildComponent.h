@@ -57,7 +57,7 @@ public:
 
 	void SetBuildingsOnPath();
 
-	TArray<FVector> CalculatePath(struct FTileStruct Tile, struct FTileStruct StartingTile, int32 z = 0.0f);
+	TArray<FVector> CalculatePath(struct FTileStruct StartTile, struct FTileStruct EndTile);
 
 	bool IsValidLocation(ABuilding* building);
 

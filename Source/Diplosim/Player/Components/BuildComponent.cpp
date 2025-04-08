@@ -89,7 +89,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			location.Z = FMath::RoundHalfFromZero(location.Z);
 
 			Buildings[0]->SetActorLocation(location);
-			Buildings[0]->SetActorRotation(Rotation);
 
 			if (StartLocation != FVector::Zero())
 				SetBuildingsOnPath();
@@ -157,10 +156,13 @@ void UBuildComponent::SetBuildingsOnPath()
 {
 	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
 
-	int32 x = FMath::FloorToInt(StartLocation.X / 100.0f + bound / 2);
-	int32 y = FMath::FloorToInt(StartLocation.Y / 100.0f + bound / 2);
+	int32 xStart = FMath::FloorToInt(StartLocation.X / 100.0f + bound / 2);
+	int32 yStart = FMath::FloorToInt(StartLocation.Y / 100.0f + bound / 2);
 
-	TArray<FVector> locations = CalculatePath(Camera->Grid->Storage[x][y], Camera->Grid->Storage[x][y]);
+	int32 xEnd = FMath::FloorToInt(Buildings[0]->GetActorLocation().X / 100.0f + bound / 2);
+	int32 yEnd = FMath::FloorToInt(Buildings[0]->GetActorLocation().Y / 100.0f + bound / 2);
+
+	TArray<FVector> locations = CalculatePath(Camera->Grid->Storage[xStart][yStart], Camera->Grid->Storage[xEnd][yEnd]);
 
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
 		if (locations.Contains(Buildings[i]->GetActorLocation()))
@@ -198,6 +200,9 @@ void UBuildComponent::SetBuildingsOnPath()
 
 			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
 
+			if (Buildings[0]->IsA<AWall>())
+				Cast<AWall>(Buildings.Last())->SetRotationMesh(Rotation.Yaw);
+
 			if (Buildings.Last()->IsA<AStockpile>())
 				SetTileOpacity(Buildings.Last(), 0.0f);
 
@@ -227,46 +232,54 @@ void UBuildComponent::SetBuildingsOnPath()
 	Camera->DisplayInteract(Buildings[0]);
 }
 
-TArray<FVector> UBuildComponent::CalculatePath(FTileStruct Tile, FTileStruct StartingTile, int32 z)
+TArray<FVector> UBuildComponent::CalculatePath(FTileStruct StartTile, FTileStruct EndTile)
 {
 	TArray<FVector> locations;
 
-	FTransform transform;
-	transform = Camera->Grid->GetTransform(&Tile);
+	int32 x = FMath::Abs(StartTile.X - EndTile.X);
+	int32 y = FMath::Abs(StartTile.Y - EndTile.Y);
 
-	FVector location = transform.GetLocation() + FVector(0.0f, 0.0f, z);
+	FTileStruct tileX = StartTile;
+	FTileStruct tileY = StartTile;
 
-	locations.Add(location);
+	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
 
-	FTileStruct closestTile = Tile;
+	if (x < y) {
+		if (tileY.Y > EndTile.Y)
+			tileY = EndTile;
 
-	for (auto& element : Tile.AdjacentTiles) {
-		if (element.Value->X != StartingTile.X && element.Value->Y != StartingTile.Y)
-			continue;
+		for (int32 i = 0; i <= y; i++) {
+			FTransform transform;
+			transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[tileX.X + bound / 2][tileY.Y + i + bound / 2]);
 
-		FVector currentClosestLoc = Camera->Grid->GetTransform(&closestTile).GetLocation();
-
-		FVector newClosestLoc = Camera->Grid->GetTransform(element.Value).GetLocation();
-
-		float currentDist = FVector::Dist(currentClosestLoc, Buildings[0]->GetActorLocation());
-		float newDist = FVector::Dist(newClosestLoc, Buildings[0]->GetActorLocation());
-
-		if (currentDist > newDist)
-			closestTile = *element.Value;
+			locations.Add(transform.GetLocation());
+		}
 	}
+	else if (y < x) {
+		if (tileX.X > EndTile.X)
+			tileX = EndTile;
 
-	z = 0.0f;
+		for (int32 i = 0; i <= x; i++) {
+			FTransform transform;
+			transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[tileX.X + i + bound / 2][tileY.Y + bound / 2]);
 
-	if (closestTile.bRiver) {
-		FTransform tf;
-		tf = Camera->Grid->GetTransform(&closestTile);
-
-		if (tf.GetLocation().Z < transform.GetLocation().Z)
-			z += transform.GetLocation().Z - tf.GetLocation().Z;
+			locations.Add(transform.GetLocation());
+		}
 	}
+	else {
+		if (tileX.X > EndTile.X)
+			tileX = EndTile;
 
-	if (closestTile != Tile)
-		locations.Append(CalculatePath(closestTile, StartingTile));
+		if (tileY.Y > EndTile.Y)
+			tileY = EndTile;
+
+		for (int32 i = 0; i <= x; i++) {
+			FTransform transform;
+			transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[tileX.X + i + bound / 2][tileY.Y + i + bound / 2]);
+
+			locations.Add(transform.GetLocation());
+		}
+	}
 
 	return locations;
 }
@@ -396,11 +409,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		if (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>())
 			continue;
 
-		if (building->IsA<AWall>() && collision.Actor->IsA<AWall>()) {
-			if (FVector::Dist(building->GetActorLocation(), collision.Actor->GetActorLocation()) < Cast<ABuilding>(collision.Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X)
-				return false;
-		}
-		else if (building->IsA<AInternalProduction>() && Cast<AInternalProduction>(building)->ResourceToOverlap != nullptr && collision.Actor->IsA<AResource>()) {
+		if (building->IsA<AInternalProduction>() && Cast<AInternalProduction>(building)->ResourceToOverlap != nullptr && collision.Actor->IsA<AResource>()) {
 			if (collision.Actor->IsA(Cast<AInternalProduction>(building)->ResourceToOverlap))
 				bResource = true;
 
@@ -519,6 +528,13 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 		bCanRotate = false;
 
 		Rotation.Yaw = yaw;
+
+		for (ABuilding* building : Buildings) {
+			building->SetActorRotation(Rotation);
+
+			if (building->IsA<AWall>())
+				Cast<AWall>(building)->SetRotationMesh(yaw);
+		}
 	}
 	else if (!Rotate) {
 		bCanRotate = true;

@@ -16,6 +16,8 @@ public:
 
 	virtual void Leave(class ACitizen* Citizen) override;
 
+	void SetRotationMesh(int32 yaw);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class AProjectile> BuildingProjectileClass;
 };

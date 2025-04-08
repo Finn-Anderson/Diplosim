@@ -39,3 +39,16 @@ void AWall::Leave(ACitizen* Citizen)
 
 	Citizen->AttackComponent->SetProjectileClass(nullptr);
 }
+
+void AWall::SetRotationMesh(int32 yaw)
+{
+	if (SeedNum != 0)
+		return;
+
+	FVector scale = FVector(1.0f);
+
+	if (yaw % 90 != 0)
+		scale = FVector(1.415f, 1.0f, 1.0f);
+		
+	BuildingMesh->SetRelativeScale3D(scale);
+}
