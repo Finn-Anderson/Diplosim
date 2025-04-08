@@ -515,8 +515,9 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	// Build
 	Input->BindAction(InputAction, ETriggerEvent::Started, this, &ACamera::Action);
-	Input->BindAction(InputAction, ETriggerEvent::Ongoing, this, &ACamera::Action);
 	Input->BindAction(InputAction, ETriggerEvent::Completed, this, &ACamera::Action);
+
+	Input->BindAction(InputAction, ETriggerEvent::Triggered, this, &ACamera::Bulldoze);
 
 	Input->BindAction(InputCancel, ETriggerEvent::Started, this, &ACamera::Cancel);
 
@@ -582,17 +583,22 @@ void ACamera::Bulldoze()
 	if (!bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy)
 		return;
 
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+
+	SetInteractAudioSound(BuildComponent->PlaceSound, settings->GetMasterVolume() * settings->GetSFXVolume());
+	PlayInteractSound();
+
 	Cast<ABuilding>(HoveredActor.Actor)->DestroyBuilding();
 }
 
 void ACamera::Cancel()
 {
-	if (!BuildComponent->IsComponentTickEnabled() || Start || bInMenu)
+	if (Start || bInMenu)
 		return;
 
 	if (bBulldoze)
 		bBulldoze = false;
-	else
+	else if (BuildComponent->IsComponentTickEnabled())
 		BuildComponent->RemoveBuilding();
 }
 

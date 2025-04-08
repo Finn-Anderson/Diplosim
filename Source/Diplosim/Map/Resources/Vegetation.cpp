@@ -1,6 +1,10 @@
 #include "Vegetation.h"
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
+
+#include "Player/Camera.h"
+#include "Map/Grid.h"
 
 AVegetation::AVegetation()
 {
@@ -15,7 +19,10 @@ void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
 	AsyncTask(ENamedThreads::GameThread, [this, Instance]() {
 		if (ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10] == 0.0f) {
-			ResourceHISM->RemoveInstance(Instance);
+			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+			ACamera* camera = PController->GetPawn<ACamera>();
+
+			camera->Grid->RemoveTree(this, Instance);
 
 			return;
 		}

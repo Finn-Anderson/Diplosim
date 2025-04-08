@@ -188,6 +188,8 @@ public:
 
 	void GenerateTrees(FTileStruct* Tile, int32 Amount);
 
+	void RemoveTree(AResource* Resource, int32 Instance);
+
 	FTransform GetTransform(FTileStruct* Tile);
 
 	TArray<FTileStruct*> ResourceTiles;

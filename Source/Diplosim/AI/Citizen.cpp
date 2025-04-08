@@ -231,7 +231,7 @@ void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class A
 	if (OtherActor->IsA<AResource>()) {
 		AResource* r = Cast<AResource>(OtherActor);
 
-		StartHarvestTimer(r, OtherBodyIndex);
+		StartHarvestTimer(r);
 	}
 	else if (OtherActor->IsA<ABuilding>()) {
 		ABuilding* b = Cast<ABuilding>(OtherActor);
@@ -297,35 +297,37 @@ void ACitizen::FindJob(class AWork* Job, int32 TimeToCompleteDay)
 
 	AWork* chosenWorkplace = Cast<AWork>(AllocatedBuildings[1]);
 
-	int32 diff = Job->Wage;
+	if (!IsValid(chosenWorkplace)) {
+		AllocatedBuildings[1] = Job;
+	}
+	else {
+		int32 diff = Job->Wage - chosenWorkplace->Wage;
 
-	if (IsValid(chosenWorkplace))
-		diff -= chosenWorkplace->Wage;
+		int32* happiness = Happiness.Modifiers.Find("Work Happiness");
 
-	int32* happiness = Happiness.Modifiers.Find("Work Happiness");
+		if (happiness != nullptr)
+			diff -= *happiness / 5;
 
-	if (happiness != nullptr)
-		diff -= *happiness / 5;
-	
-	FVector location = GetActorLocation();
+		FVector location = GetActorLocation();
 
-	if (IsValid(AllocatedBuildings[1]))
-		location = AllocatedBuildings[1]->GetActorLocation();
+		if (IsValid(AllocatedBuildings[1]))
+			location = AllocatedBuildings[1]->GetActorLocation();
 
-	int32 currentValue = 1;
-	int32 newValue = 1;
+		int32 currentValue = 1;
+		int32 newValue = 1;
 
-	if (diff < 0)
-		currentValue += FMath::Abs(diff);
-	else if (diff > 0)
-		newValue += diff;
+		if (diff < 0)
+			currentValue += FMath::Abs(diff);
+		else if (diff > 0)
+			newValue += diff;
 
-	double magnitude = AIController->GetClosestActor(400.0f, location, chosenWorkplace->GetActorLocation(), Job->GetActorLocation(), true, currentValue, newValue);
+		auto magnitude = AIController->GetClosestActor(400.0f, location, chosenWorkplace->GetActorLocation(), Job->GetActorLocation(), true, currentValue, newValue);
 
-	if (magnitude <= 0.0f)
-		return;
+		if (magnitude <= 0.0f)
+			return;
 
-	AllocatedBuildings[1] = Job;
+		AllocatedBuildings[1] = Job;
+	}
 }
 
 void ACitizen::FindHouse(class AHouse* House, int32 TimeToCompleteDay)
@@ -403,18 +405,19 @@ void ACitizen::SetJobHouseEducation(int32 TimeToCompleteDay)
 
 		TArray<ACitizen*> roommates;
 
-		if (i == 2)
-			roommates.Append(Building.House->GetVisitors(this));
-
 		if (i == 0 && IsValid(Building.School))
 			Building.School->RemoveVisitor(Building.School->GetOccupant(this), this);
 		else if (i == 1 && IsValid(Building.Employment))
 			Building.Employment->RemoveCitizen(this);
 		else if (i == 2 && IsValid(Building.House)) {
-			if (Building.House->GetOccupied().Contains(this))
+			if (Building.House->GetOccupied().Contains(this)) {
+				roommates.Append(Building.House->GetVisitors(this));
+
 				Building.House->RemoveCitizen(this);
-			else
+			}
+			else {
 				Building.House->RemoveVisitor(Building.House->GetOccupant(this), this);
+			}
 		}
 
 		if (i == 0)
@@ -852,7 +855,7 @@ void ACitizen::GainEnergy()
 //
 // Resources
 //
-void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
+void ACitizen::StartHarvestTimer(AResource* Resource)
 {
 	float time = FMath::RandRange(6.0f, 10.0f);
 	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * GetProductivity());
@@ -861,7 +864,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 	Mesh->PlayAnimation(AttackComponent->MeleeAnim, true);
 
 	FTimerStruct timer;
-	timer.CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource, Instance), false);
+	timer.CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource), false, true);
 
 	Camera->CitizenManager->Timers.Add(timer);
 
@@ -870,17 +873,20 @@ void ACitizen::StartHarvestTimer(AResource* Resource, int32 Instance)
 	AIController->StopMovement();
 }
 
-void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
+void ACitizen::HarvestResource(AResource* Resource)
 {
 	Mesh->Play(false);
 	
 	AResource* resource = Resource->GetHarvestedResource();
 
 	GetWorldTimerManager().ClearTimer(AmbientAudioHandle);
+	HarvestNiagaraComponent->Deactivate();
 
 	Camera->CitizenManager->Injure(this, 99);
 
 	LoseEnergy();
+
+	int32 instance = AIController->MoveRequest.GetGoalInstance();
 
 	if (!Camera->ResourceManager->GetResources(Building.Employment).Contains(resource->GetClass())) {
 		ABuilding* broch = Camera->ResourceManager->GameMode->Broch;
@@ -888,10 +894,10 @@ void ACitizen::HarvestResource(AResource* Resource, int32 Instance)
 		if (!AIController->CanMoveTo(broch->GetActorLocation()))
 			AIController->DefaultAction();
 		else
-			Carry(resource, Resource->GetYield(this, Instance), broch);
+			Carry(resource, Resource->GetYield(this, instance), broch);
 	}
 	else
-		Carry(resource, Resource->GetYield(this, Instance), Building.Employment);
+		Carry(resource, Resource->GetYield(this, instance), Building.Employment);
 }
 
 void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
@@ -1453,6 +1459,9 @@ void ACitizen::SetHappiness()
 			if (broadcaster->Allegiance == Camera->CitizenManager->GetCitizenParty(this) || broadcaster->Belief == Spirituality.Faith)
 				bPropaganda = false;
 		}
+
+		if (Building.House->Influencers.IsEmpty())
+			bPropaganda = false;
 
 		if (bPropaganda)
 			Happiness.SetValue("Nearby propaganda tower", -25);

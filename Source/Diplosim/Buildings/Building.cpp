@@ -743,6 +743,9 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 		Citizen->SetActorLocation(GetActorLocation());
 	}
 
+	if (AnimSockets.IsEmpty())
+		return;
+
 	if (IsA<AFestival>())
 		Cast<AFestival>(this)->AttachToSpinMesh(Citizen, SocketList[index].Name);
 

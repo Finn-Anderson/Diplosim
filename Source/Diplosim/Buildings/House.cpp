@@ -25,8 +25,6 @@ int32 AHouse::GetQuality()
 void AHouse::UpkeepCost()
 {
 	for (ACitizen* citizen : GetOccupied()) {
-
-
 		TArray<ACitizen*> family;
 		int32 total = citizen->Balance;
 

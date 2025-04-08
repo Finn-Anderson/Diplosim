@@ -388,8 +388,6 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 			else if (building->IsA(FoundationClass)) {
 				return true;
 			}
-			else
-				return false;
 		}
 
 		if (building->GetClass() == collision.Actor->GetClass() && building->SeedNum != Cast<ABuilding>(collision.Actor)->SeedNum && building->GetActorLocation() == collision.Actor->GetActorLocation())
@@ -414,6 +412,17 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 
 			FCollisionQueryParams params;
 			params.AddIgnoredActor(collision.Actor);
+			params.AddIgnoredActor(Camera->Grid);
+
+			FVector extent;
+
+			if (collision.Actor->IsA<AResource>() || collision.Actor->IsA<AGrid>()) {
+				extent = FVector(45.0f);
+			}
+			else {
+				FVector origin;
+				collision.Actor->GetActorBounds(true, origin, extent);
+			}
 
 			FHitResult hit;
 
@@ -421,7 +430,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 
 			if (building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
 				bCoast = true;
-			else if (GetWorld()->SweepSingleByChannel(hit, transform.GetLocation(), endTrace, FRotator(0.0f).Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(FVector(50.0f)), params) && !hit.GetActor()->IsHidden())
+			else if (GetWorld()->SweepSingleByChannel(hit, transform.GetLocation(), endTrace, FRotator(0.0f).Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(extent * 0.9f), params) && !hit.GetActor()->IsHidden())
 				return false;
 		}
 	}
@@ -611,7 +620,7 @@ void UBuildComponent::Place(bool bQuick)
 
 	for (ABuilding* building : Buildings)
 		for (FTreeStruct treeStruct : building->TreeList)
-			treeStruct.Resource->ResourceHISM->RemoveInstance(treeStruct.Instance);
+			Camera->Grid->RemoveTree(treeStruct.Resource, treeStruct.Instance);
 
 	if (!Buildings.IsEmpty() && Buildings[0]->IsA(FoundationClass))
 		for (FCollisionStruct collision : Buildings[0]->Collisions)

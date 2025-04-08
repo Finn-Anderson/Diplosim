@@ -348,9 +348,9 @@ public:
 		TArray<FCollidingStruct> StillColliding;
 
 	// Resources
-	void StartHarvestTimer(class AResource* Resource, int32 Instance);
+	void StartHarvestTimer(class AResource* Resource);
 
-	void HarvestResource(class AResource* Resource, int32 Instance);
+	void HarvestResource(class AResource* Resource);
 
 	void Carry(class AResource* Resource, int32 Amount, AActor* Location);
 

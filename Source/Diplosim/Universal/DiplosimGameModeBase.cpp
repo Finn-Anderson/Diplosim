@@ -197,25 +197,6 @@ TArray<FVector> ADiplosimGameModeBase::GetValidLocations(UHierarchicalInstancedS
 
 void ADiplosimGameModeBase::SpawnEnemies()
 {
-	bool bEnemies = false;
-
-	for (FEnemiesStruct& enemyData : EnemiesData) {
-		int32 num = FMath::Floor(enemyData.Tally / 200.0f);
-
-		if (num == 0)
-			continue;
-
-		bEnemies = true;
-
-		break;
-	}
-	
-	if (!bEnemies) {
-		SetWaveTimer();
-
-		return;
-	}
-
 	TArray<FVector> spawnLocations = PickSpawnPoints();
 
 	if (spawnLocations.IsEmpty()) {
@@ -247,12 +228,7 @@ void ADiplosimGameModeBase::SpawnEnemies()
 			enemyData.Tally = enemyData.Tally % 200;
 		}
 
-		bool status = CheckEnemiesStatus();
-
-		if (status)
-			SetWaveTimer();
-		else
-			Camera->DisplayEvent("Event", "Raid");
+		Camera->DisplayEvent("Event", "Raid");
 	});
 }
 
@@ -294,6 +270,9 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations,
 
 bool ADiplosimGameModeBase::CheckEnemiesStatus()
 {
+	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies())
+		return false;
+	
 	if (!WavesData.IsEmpty()) {
 		int32 tally = 0;
 
@@ -304,10 +283,20 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 			return false;
 	}
 
-	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies())
-		return false;
+	bool bEnemies = false;
 
-	return true;
+	for (FEnemiesStruct& enemyData : EnemiesData) {
+		int32 num = FMath::Floor(enemyData.Tally / 200.0f);
+
+		if (num == 0)
+			continue;
+
+		bEnemies = true;
+
+		break;
+	}
+
+	return bEnemies;
 }
 
 void ADiplosimGameModeBase::SetWaveTimer()
@@ -323,7 +312,7 @@ void ADiplosimGameModeBase::SetWaveTimer()
 		}
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(WaveTimer, this, &ADiplosimGameModeBase::SpawnEnemiesAsync, 1800.0f, false);
+	GetWorld()->GetTimerManager().SetTimer(WaveTimer, this, &ADiplosimGameModeBase::SpawnEnemiesAsync, 1800.0f, true);
 }
 
 void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)

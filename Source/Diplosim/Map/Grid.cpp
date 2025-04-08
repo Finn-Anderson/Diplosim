@@ -15,8 +15,11 @@
 #include "Resources/Vegetation.h"
 #include "Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Universal/EggBasket.h"
+#include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
 
 AGrid::AGrid()
 {
@@ -975,6 +978,24 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 
 	for (auto& element : Tile->AdjacentTiles)
 		GenerateTrees(element.Value, value);
+}
+
+void AGrid::RemoveTree(AResource* Resource, int32 Instance)
+{
+	int32 lastInstance = Resource->ResourceHISM->GetInstanceCount() - 1;
+
+	for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
+		if (citizen->AIController->MoveRequest.GetGoalInstance() == lastInstance) {
+			citizen->AIController->MoveRequest.SetGoalInstance(Instance);
+
+			Resource->RemoveWorker(citizen, lastInstance);
+			Resource->AddWorker(citizen, Instance);
+
+			break;
+		}
+	}
+	
+	Resource->ResourceHISM->RemoveInstance(Instance);
 }
 
 void AGrid::SpawnEggBasket()

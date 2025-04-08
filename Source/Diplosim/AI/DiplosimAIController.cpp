@@ -113,7 +113,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 			TArray<AHouse*> familyHouses;
 
 			for (ACitizen* citizen : Citizen->GetLikedFamily()) {
-				if (!IsValid(citizen->Building.House) || citizen->Building.House->GetVisitors(citizen->Building.House->GetOccupant(citizen)).Num() == citizen->Building.House->Space)
+				if (!IsValid(citizen->Building.House) || !IsValid(citizen->Building.House->GetOccupant(citizen)) || citizen->Building.House->GetVisitors(citizen->Building.House->GetOccupant(citizen)).Num() == citizen->Building.House->Space)
 					continue;
 
 				familyHouses.Add(citizen->Building.House);
@@ -348,10 +348,10 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	SetActorTickEnabled(true);
 
-	if (Location != FVector::Zero())
+	if (Location != FVector::Zero()) {
 		MoveRequest.SetLocation(Location);
-
-	if (Actor->IsA<ABuilding>()) {
+	}
+	else if (Actor->IsA<ABuilding>()) {
 		UStaticMeshComponent* comp = Actor->GetComponentByClass<UStaticMeshComponent>();
 
 		if (comp && comp->DoesSocketExist("Entrance"))
@@ -396,7 +396,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	else if (Actor->IsA<AResource>()) {
 		AResource* resource = Cast<AResource>(Actor);
 
-		citizen->StartHarvestTimer(resource, Instance);
+		citizen->StartHarvestTimer(resource);
 	}
 }
 
@@ -410,6 +410,8 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 
 void ADiplosimAIController::StartMovement()
 {
+	Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = nullptr;
+
 	Cast<AAI>(GetOwner())->MovementComponent->SetComponentTickEnabled(true);
 }
 
