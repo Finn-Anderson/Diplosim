@@ -90,7 +90,10 @@ void AGrid::BeginPlay()
 
 	Camera->Grid = this;
 
-	for (FResourceHISMStruct &ResourceStruct : VegetationStruct)
+	for (FResourceHISMStruct &ResourceStruct : TreeStruct)
+		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
+
+	for (FResourceHISMStruct& ResourceStruct : FlowerStruct)
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 
 	for (FResourceHISMStruct &ResourceStruct : MineralStruct)
@@ -407,13 +410,52 @@ void AGrid::Render()
 		}
 	}
 
-	for (int32 i = 0; i < num; i++) {
-		int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
-		FTileStruct* chosenTile = ResourceTiles[chosenNum];
+	TMap<int32, TArray<FResourceHISMStruct>> vegetation;
+	vegetation.Add(2, FlowerStruct);
+	vegetation.Add(5, TreeStruct);
 
-		int32 amount = FMath::RandRange(1, 5);
+	for (auto& element : vegetation) {
+		int32 iterations = num;
 
-		GenerateTrees(chosenTile, amount);
+		if (element.Key == 2)
+			iterations = FMath::Max(1.0f, iterations / 3.0f);
+
+		for (int32 i = 0; i < iterations; i++) {
+			for (FResourceHISMStruct ResourceStruct : element.Value)
+				ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
+
+			int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
+			FTileStruct* chosenTile = ResourceTiles[chosenNum];
+
+			int32 amount = FMath::RandRange(1, element.Key);
+
+			bool bTree = false;
+
+			int32 scale = 1.5f;
+
+			if (element.Key == 5) {
+				bTree = true;
+
+				scale = 1.1f;
+			}
+
+			VegetationLimitCounter = 0;
+			VegetationLimit = amount * 50;
+
+			VegetationTiles.Empty();
+
+			GenerateVegetation(element.Value, chosenTile, amount, scale, bTree);
+
+			if (bTree)
+				for (FTileStruct* tile : VegetationTiles)
+					ResourceTiles.Remove(tile);
+
+			for (FResourceHISMStruct ResourceStruct : element.Value) {
+				ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = true;
+
+				ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
+			}
+		}
 	}
 
 	// Set Atmosphere Affects
@@ -886,17 +928,24 @@ void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTil
 			GetValidSpawnLocations(SpawnTile, element.Value, Range, Valid, Tiles);
 }
 
-void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
+void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* Tile, int32 Amount, float Scale, bool bTree)
 {
 	int32 value = FMath::RandRange(Amount - 1, Amount);
 
-	if (value == 0 || !ResourceTiles.Contains(Tile) || Tile->bRiver || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
+	VegetationLimitCounter++;
+
+	if (value == 0 || VegetationLimitCounter == VegetationLimit || Tile->Fertility == 0 || !ResourceTiles.Contains(Tile) || VegetationTiles.Contains(Tile) || Tile->bRiver || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
 		return;
 
 	TArray<int32> usedX;
 	TArray<int32> usedY;
 
-	for (int32 i = 0; i < Amount; i++) {
+	int32 num = Amount;
+
+	if (!bTree)
+		num *= FMath::RandRange(10, 20);
+
+	for (int32 i = 0; i < num; i++) {
 		bool validXY = false;
 		int32 x = 0;
 		int32 y = 0;
@@ -912,72 +961,100 @@ void AGrid::GenerateTrees(FTileStruct* Tile, int32 Amount)
 		FTransform transform;
 		transform.SetLocation(GetTransform(Tile).GetLocation() + FVector(x, y, 0.0f));
 
-		float size = FMath::FRandRange(0.9f, 1.1f);
+		float size = FMath::FRandRange(1.0f / Scale, Scale);
 		transform.SetScale3D(FVector(size));
 
-		int32 index = FMath::RandRange(0, VegetationStruct.Num() - 1);
+		transform.SetRotation(FRotator(0.0f, FMath::RandRange(0, 360), 0.0f).Quaternion());
 
-		AVegetation* resource = Cast<AVegetation>(VegetationStruct[index].Resource);
+		int32 index = FMath::RandRange(0, Vegetation.Num() - 1);
+
+		AVegetation* resource = Cast<AVegetation>(Vegetation[index].Resource);
 
 		int32 inst = resource->ResourceHISM->AddInstance(transform);
 
 		resource->ResourceHISM->SetCustomDataValue(inst, 9, size);
 
-		float r = 0.0f;
-		float g = 0.0f;
-		float b = 0.0f;
-
-		int32 colour = FMath::RandRange(0, 3);
-
-		if (colour == 0) {
-			r = 53.0f;
-			g = 90.0f;
-			b = 32.0f;
-		}
-		else if (colour == 1) {
-			r = 54.0f;
-			g = 79.0f;
-			b = 38.0f;
-		}
-		else if (colour == 2) {
-			r = 32.0f;
-			g = 90.0f;
-			b = 40.0f;
-		}
-		else {
-			r = 38.0f;
-			g = 79.0f;
-			b = 43.0f;
-		}
-
-		int32 dyingChance = FMath::RandRange(0, 100);
-
-		if (dyingChance >= 97) {
-			r = 82.0f;
-			g = 90.0f;
-			b = 32.0f;
-		}
-
-		if (dyingChance == 100)
-			resource->ResourceHISM->SetCustomDataValue(inst, 10, 1.0f);
+		if (bTree)
+			GenerateTree(resource, inst);
 		else
-			resource->ResourceHISM->SetCustomDataValue(inst, 10, 0.0f);
-
-		r /= 255.0f;
-		g /= 255.0f;
-		b /= 255.0f;
-
-		resource->ResourceHISM->SetCustomDataValue(inst, 0, 0.0f);
-		resource->ResourceHISM->SetCustomDataValue(inst, 1, 1.0f);
-		resource->ResourceHISM->SetCustomDataValue(inst, 2, r);
-		resource->ResourceHISM->SetCustomDataValue(inst, 3, g);
-		resource->ResourceHISM->SetCustomDataValue(inst, 4, b);
+			GenerateFlower(Tile, resource, inst);
 	}
 
-	ResourceTiles.Remove(Tile);
+	VegetationTiles.Add(Tile);
 
 	for (auto& element : Tile->AdjacentTiles)
-		GenerateTrees(element.Value, value);
+		GenerateVegetation(Vegetation, element.Value, value, Scale, bTree);
+}
+
+void AGrid::GenerateTree(AVegetation* Resource, int32 Instance)
+{
+	float r = 0.0f;
+	float g = 0.0f;
+	float b = 0.0f;
+
+	int32 colour = FMath::RandRange(0, 3);
+
+	if (colour == 0) {
+		r = 53.0f;
+		g = 90.0f;
+		b = 32.0f;
+	}
+	else if (colour == 1) {
+		r = 54.0f;
+		g = 79.0f;
+		b = 38.0f;
+	}
+	else if (colour == 2) {
+		r = 32.0f;
+		g = 90.0f;
+		b = 40.0f;
+	}
+	else {
+		r = 38.0f;
+		g = 79.0f;
+		b = 43.0f;
+	}
+
+	int32 dyingChance = FMath::RandRange(0, 100);
+
+	if (dyingChance >= 97) {
+		r = 82.0f;
+		g = 90.0f;
+		b = 32.0f;
+	}
+
+	if (dyingChance == 100)
+		Resource->ResourceHISM->SetCustomDataValue(Instance, 10, 1.0f);
+	else
+		Resource->ResourceHISM->SetCustomDataValue(Instance, 10, 0.0f);
+
+	r /= 255.0f;
+	g /= 255.0f;
+	b /= 255.0f;
+
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 0, 0.0f);
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 1, 1.0f);
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 2, r);
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 3, g);
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 4, b);
+}
+
+void AGrid::GenerateFlower(FTileStruct* Tile, AVegetation* Resource, int32 Instance)
+{
+	UHierarchicalInstancedStaticMeshComponent* HISM = HISMFlatGround;
+
+	if (Tile->bEdge)
+		HISM = HISMGround;
+
+	float r = FMath::FRandRange(0.0f, 1.0f);;
+	float g = FMath::FRandRange(0.0f, 1.0f);
+	float b = FMath::FRandRange(0.0f, 1.0f);
+
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 0, 0.0f);
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 1, 1.0f);
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 2, r);
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 3, g);
+	Resource->ResourceHISM->SetCustomDataValue(Instance, 4, b);
 }
 
 void AGrid::RemoveTree(AResource* Resource, int32 Instance)
@@ -1034,13 +1111,12 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 
 void AGrid::Clear()
 {
-	for (FResourceHISMStruct& ResourceStruct : VegetationStruct) {
-		ResourceStruct.Resource->ResourceHISM->ClearInstances();
-
-		ResourceStruct.Resource->ResourceHISM->GetStaticMesh()->Sockets.Empty();
-	}
-
-	for (FResourceHISMStruct& ResourceStruct : MineralStruct) {
+	TArray<FResourceHISMStruct> resourceList;
+	resourceList.Append(TreeStruct);
+	resourceList.Append(FlowerStruct);
+	resourceList.Append(MineralStruct);
+	
+	for (FResourceHISMStruct& ResourceStruct : resourceList) {
 		ResourceStruct.Resource->ResourceHISM->ClearInstances();
 
 		ResourceStruct.Resource->ResourceHISM->GetStaticMesh()->Sockets.Empty();
@@ -1111,7 +1187,11 @@ void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 		Values.Remove(0.0f);
 
 		AsyncTask(ENamedThreads::GameThread, [this, Values, Period, Increment]() {
-			for (FResourceHISMStruct& ResourceStruct : VegetationStruct)
+			TArray<FResourceHISMStruct> resourceList;
+			resourceList.Append(TreeStruct);
+			resourceList.Append(FlowerStruct);
+
+			for (FResourceHISMStruct& ResourceStruct : resourceList)
 				ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
 
 			HISMGround->BuildTreeIfOutdated(true, true);
@@ -1129,7 +1209,11 @@ void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 
 void AGrid::SetSeasonAffect(TArray<float> Values)
 {
-	for (FResourceHISMStruct& ResourceStruct : VegetationStruct) {
+	TArray<FResourceHISMStruct> resourceList;
+	resourceList.Append(TreeStruct);
+	resourceList.Append(FlowerStruct);
+
+	for (FResourceHISMStruct& ResourceStruct : resourceList) {
 		for (int32 inst = 0; inst < ResourceStruct.Resource->ResourceHISM->GetInstanceCount(); inst++) {
 			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 5] = Values[0];
 			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 6] = Values[1];

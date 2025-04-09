@@ -239,46 +239,41 @@ TArray<FVector> UBuildComponent::CalculatePath(FTileStruct StartTile, FTileStruc
 	int32 x = FMath::Abs(StartTile.X - EndTile.X);
 	int32 y = FMath::Abs(StartTile.Y - EndTile.Y);
 
-	FTileStruct tileX = StartTile;
-	FTileStruct tileY = StartTile;
+	int32 xSign = 1;
+	int32 ySign = 1;
+
+	if (StartTile.X > EndTile.X)
+		xSign = -1;
+
+	if (StartTile.Y > EndTile.Y)
+		ySign = -1;
 
 	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
 
-	if (x < y) {
-		if (tileY.Y > EndTile.Y)
-			tileY = EndTile;
+	bool bDiagonal = false;
 
-		for (int32 i = 0; i <= y; i++) {
-			FTransform transform;
-			transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[tileX.X + bound / 2][tileY.Y + i + bound / 2]);
+	if (y == x || (x < y && x > y / 2.0f) || (y < x && y > x / 2.0f))
+		bDiagonal = true;
 
-			locations.Add(transform.GetLocation());
-		}
-	}
-	else if (y < x) {
-		if (tileX.X > EndTile.X)
-			tileX = EndTile;
+	int32 num = x;
 
-		for (int32 i = 0; i <= x; i++) {
-			FTransform transform;
-			transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[tileX.X + i + bound / 2][tileY.Y + bound / 2]);
+	if (x < y)
+		num = y;
 
-			locations.Add(transform.GetLocation());
-		}
-	}
-	else {
-		if (tileX.X > EndTile.X)
-			tileX = EndTile;
+	for (int32 i = 0; i <= num; i++) {
+		int32 xi = StartTile.X + bound / 2;
+		int32 yi = StartTile.Y + bound / 2;
 
-		if (tileY.Y > EndTile.Y)
-			tileY = EndTile;
+		if (x < y || bDiagonal)
+			yi += (i * ySign);
 
-		for (int32 i = 0; i <= x; i++) {
-			FTransform transform;
-			transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[tileX.X + i + bound / 2][tileY.Y + i + bound / 2]);
+		if (y < x || bDiagonal)
+			xi += (i * xSign);
 
-			locations.Add(transform.GetLocation());
-		}
+		FTransform transform;
+		transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[xi][yi]);
+
+		locations.Add(transform.GetLocation());
 	}
 
 	return locations;
@@ -406,9 +401,6 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		if (building->GetClass() == collision.Actor->GetClass() && building->SeedNum != Cast<ABuilding>(collision.Actor)->SeedNum && building->GetActorLocation() == collision.Actor->GetActorLocation())
 			continue;
 
-		if (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>())
-			continue;
-
 		if (building->IsA<AInternalProduction>() && Cast<AInternalProduction>(building)->ResourceToOverlap != nullptr && collision.Actor->IsA<AResource>()) {
 			if (collision.Actor->IsA(Cast<AInternalProduction>(building)->ResourceToOverlap))
 				bResource = true;
@@ -425,12 +417,15 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 
 			FVector extent;
 
-			if (collision.Actor->IsA<AResource>() || collision.Actor->IsA<AGrid>()) {
-				extent = FVector(45.0f);
+			UHierarchicalInstancedStaticMeshComponent* HISM = collision.Actor->FindComponentByClass<UHierarchicalInstancedStaticMeshComponent>();
+
+			if (IsValid(HISM)) {
+				extent = HISM->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 			}
 			else {
-				FVector origin;
-				collision.Actor->GetActorBounds(true, origin, extent);
+				UStaticMeshComponent* mesh = collision.Actor->FindComponentByClass<UStaticMeshComponent>();
+
+				extent = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 			}
 
 			FHitResult hit;
@@ -439,7 +434,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 
 			if (building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
 				bCoast = true;
-			else if (GetWorld()->SweepSingleByChannel(hit, transform.GetLocation(), endTrace, FRotator(0.0f).Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(extent * 0.9f), params) && !hit.GetActor()->IsHidden())
+			else if (GetWorld()->SweepSingleByChannel(hit, transform.GetLocation(), endTrace, collision.Actor->GetActorRotation().Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(extent * 0.8f), params) && !hit.GetActor()->IsHidden())
 				return false;
 		}
 	}

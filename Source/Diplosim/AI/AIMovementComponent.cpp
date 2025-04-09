@@ -61,7 +61,11 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		queryParams.AddIgnoredActor(GetOwner());
 		queryParams.AddIgnoredActor(camera->Grid);
 
-		for (FResourceHISMStruct vegetation : camera->Grid->VegetationStruct)
+		TArray<FResourceHISMStruct> resourceList;
+		resourceList.Append(camera->Grid->TreeStruct);
+		resourceList.Append(camera->Grid->FlowerStruct);
+
+		for (FResourceHISMStruct vegetation : resourceList)
 			queryParams.AddIgnoredActor(vegetation.Resource);
 
 		FVector startTrace = GetOwner()->GetActorLocation();

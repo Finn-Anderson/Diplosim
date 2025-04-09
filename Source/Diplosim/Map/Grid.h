@@ -186,21 +186,32 @@ public:
 
 	void GetValidSpawnLocations(FTileStruct* Tile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles);
 
-	void GenerateTrees(FTileStruct* Tile, int32 Amount);
+	void GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* Tile, int32 Amount, float Scale, bool bTree);
+
+	void GenerateTree(class AVegetation* Resource, int32 Instance);
+
+	void GenerateFlower(FTileStruct* Tile, class AVegetation* Resource, int32 Instance);
 
 	void RemoveTree(AResource* Resource, int32 Instance);
 
 	FTransform GetTransform(FTileStruct* Tile);
 
+	int32 VegetationLimit;
+
+	int32 VegetationLimitCounter;
+
 	TArray<FTileStruct*> ResourceTiles;
 
+	TArray<FTileStruct*> VegetationTiles;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TArray<FResourceHISMStruct> VegetationStruct;
+		TArray<FResourceHISMStruct> TreeStruct;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<FResourceHISMStruct> FlowerStruct;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FResourceHISMStruct> MineralStruct;
-
-	bool Forest;
 
 	// Egg Basket
 	void SpawnEggBasket();
