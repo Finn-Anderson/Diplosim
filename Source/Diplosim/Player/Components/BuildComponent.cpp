@@ -108,6 +108,9 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (!IsValidLocation(building) || !CheckBuildCosts()) {
 			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
+			if (building->IsA<ARoad>())
+				Cast<ARoad>(building)->HISMRoad->SetOverlayMaterial(BlockedMaterial);
+
 			if (building->IsA<AResearch>()) {
 				AResearch* station = Cast<AResearch>(building);
 
@@ -120,6 +123,9 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		}
 		else {
 			building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
+
+			if (building->IsA<ARoad>())
+				Cast<ARoad>(building)->HISMRoad->SetOverlayMaterial(BlueprintMaterial);
 
 			if (building->IsA<AResearch>()) {
 				AResearch* station = Cast<AResearch>(building);
@@ -367,29 +373,10 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 
 		if (collision.HISM == Camera->Grid->HISMRiver && Camera->Grid->HISMRiver->PerInstanceSMCustomData[collision.Instance * 4] == 1.0f) {
 			if (building->IsA<ARoad>()) {
-				auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+				ARoad* road = Cast<ARoad>(building);
 
-				int32 x = building->GetActorLocation().X / 100.0f + bound / 2;
-				int32 y = building->GetActorLocation().Y / 100.0f + bound / 2;
-
-				FTileStruct tile = Camera->Grid->Storage[x][y];
-
-				TArray<FTileStruct*> riverTiles;
-
-				for (auto& element : tile.AdjacentTiles) {
-					if (!element.Value->bRiver)
-						continue;
-
-					riverTiles.Add(element.Value);
-				}
-
-				if (riverTiles.Num() > 1) {
-					if (riverTiles.Num() > 2)
-						return false;
-
-					if (riverTiles[0]->X != riverTiles[1]->X && riverTiles[0]->Y != riverTiles[1]->Y)
-						return false;
-				}
+				if (road->BuildingMesh->GetStaticMesh() == road->RoadMeshes[0])
+					return false;
 
 				return true;
 			}
@@ -401,6 +388,9 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		if (building->GetClass() == collision.Actor->GetClass() && building->SeedNum != Cast<ABuilding>(collision.Actor)->SeedNum && building->GetActorLocation() == collision.Actor->GetActorLocation())
 			continue;
 
+		if (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>())
+			continue;
+
 		if (building->IsA<AInternalProduction>() && Cast<AInternalProduction>(building)->ResourceToOverlap != nullptr && collision.Actor->IsA<AResource>()) {
 			if (collision.Actor->IsA(Cast<AInternalProduction>(building)->ResourceToOverlap))
 				bResource = true;
@@ -408,7 +398,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 			if (transform.GetLocation().X != building->GetActorLocation().X || transform.GetLocation().Y != building->GetActorLocation().Y)
 				return false;
 		}
-		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f) {
+		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f || collision.HISM == Camera->Grid->HISMRiver) {
 			FRotator rotation = (building->GetActorLocation() - transform.GetLocation()).Rotation();
 
 			FCollisionQueryParams params;

@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Components/BoxComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI/AIMovementComponent.h"
 #include "AI/AI.h"
@@ -16,6 +17,10 @@ ARoad::ARoad()
 	HealthComponent->MaxHealth = 20;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
+	HISMRoad = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRoad"));
+	HISMRoad->SetupAttachment(RootComponent);
+	HISMRoad->bAutoRebuildTreeOnInstanceChanges = false;
+
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
 	BoxCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 	BoxCollision->SetBoxExtent(FVector(99.0f, 99.0f, 20.0f));
@@ -23,7 +28,7 @@ ARoad::ARoad()
 
 	BoxAreaAffect = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxAreaAffect"));
 	BoxAreaAffect->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
-	BoxAreaAffect->SetBoxExtent(FVector(20.0f, 20.0f, 20.0f));
+	BoxAreaAffect->SetBoxExtent(FVector(50.0f, 50.0f, 20.0f));
 	BoxAreaAffect->SetCanEverAffectNavigation(true);
 	BoxAreaAffect->SetupAttachment(RootComponent);
 	BoxAreaAffect->bDynamicObstacle = true;
@@ -58,7 +63,7 @@ void ARoad::OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class
 
 void ARoad::OnRoadOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!(OtherActor->IsA<ARoad>() || OtherActor->IsA<AFestival>()) || OtherActor->IsHidden() || OtherActor == this || GetActorLocation() == OtherActor->GetActorLocation())
+	if (!(OtherActor->IsA<ARoad>() || OtherActor->IsA<AFestival>()) || OtherActor->IsHidden() || OtherActor == this || GetActorLocation() == OtherActor->GetActorLocation() || OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>() || !OtherComp->IsA<UStaticMeshComponent>())
 		return;
 
 	RegenerateMesh();
@@ -74,19 +79,51 @@ void ARoad::OnRoadOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 
 void ARoad::RegenerateMesh()
 {
-	FRoadStruct bridgeStruct;
-	bridgeStruct.bBridge = true;
-	bridgeStruct.Tier = Tier;
-
-	int32 i = RoadMeshes.Find(bridgeStruct);
-
-	if (RoadMeshes[i].Mesh == BuildingMesh->GetStaticMesh() && !Camera->BuildComponent->Buildings.Contains(this))
-		return;
+	HISMRoad->ClearInstances();
 	
+	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+	FTileStruct tile = Camera->Grid->Storage[GetActorLocation().X / 100.0f + bound / 2][GetActorLocation().Y / 100.0f + bound / 2];
+
+	if (tile.bRiver) {
+		FTileStruct* left = *tile.AdjacentTiles.Find("Left");
+		FTileStruct* right = *tile.AdjacentTiles.Find("Right");
+
+		FTileStruct* below = *tile.AdjacentTiles.Find("Below");
+		FTileStruct* above = *tile.AdjacentTiles.Find("Above");
+
+		FTileStruct* chosen = nullptr;
+
+		if (left->bEdge && right->bEdge && left->Level == right->Level)
+			chosen = left;
+		else if (below->bEdge && above->bEdge && below->Level == above->Level)
+			chosen = below;
+
+		if (chosen != nullptr) {
+			FTransform transform = Camera->Grid->GetTransform(chosen);
+
+			FRotator rotation = FRotator(0.0f, 90.0f + (GetActorLocation() - transform.GetLocation()).Rotation().Yaw, 0.0f);
+
+			BuildingMesh->SetRelativeRotation(rotation);
+
+			if (tile.Level != chosen->Level)
+				SetActorLocation(GetActorLocation() + FVector(0.0f, 0.0f, 75.0f));
+
+			if (GetTier() == 1)
+				BuildingMesh->SetStaticMesh(RoadMeshes[1]);
+			else
+				BuildingMesh->SetStaticMesh(RoadMeshes[2]);
+
+			return;
+		}
+	}
+
+	BuildingMesh->SetRelativeRotation(FRotator(0.0f));
+	BuildingMesh->SetStaticMesh(RoadMeshes[0]);
+
+	TArray<FTransform> transforms;
+
 	TArray<AActor*> connectedRoads;
 	BoxCollision->GetOverlappingActors(connectedRoads);
-
-	TArray<FVector> connectedLocations;
 
 	for (AActor* actor : connectedRoads) {
 		if ((!actor->IsA<ARoad>() && !actor->IsA<AFestival>()) || (!Camera->BuildComponent->Buildings.IsEmpty() && Camera->BuildComponent->Buildings[0] == actor))
@@ -100,106 +137,54 @@ void ARoad::RegenerateMesh()
 			float x = FMath::RoundHalfFromZero(FMath::Abs(dist.X));
 			float y = FMath::RoundHalfFromZero(FMath::Abs(dist.Y));
 
-			if (x > y) {
-				if (dist.X < 0)
-					location = GetActorLocation() + FVector(100.0f, 0.0f, 0.0f);
-				else
-					location = GetActorLocation() - FVector(100.0f, 0.0f, 0.0f);
-			}
-			else if (y > x) {
-				if (dist.Y < 0)
-					location = GetActorLocation() + FVector(0.0f, 100.0f, 0.0f);
-				else
-					location = GetActorLocation() - FVector(0.0f, 100.0f, 0.0f);
-			}
+			int32 xSign = 1;
+			int32 ySign = 1;
+
+			if (dist.X > 0)
+				xSign = -1;
+
+			if (dist.Y > 0)
+				ySign = -1;
+
+			if (x > y)
+				ySign = 0;
+			else if (y > x)
+				xSign = 0;
+
+			location = GetActorLocation() + FVector(100.0f * xSign, 100.0f * ySign, 0.0f);
 		}
 
-		if ((GetActorLocation().X == location.X || GetActorLocation().Y == location.Y) && IsValid(actor) && !actor->IsHidden() && actor != this && GetActorLocation() != location && (Camera->BuildComponent->Buildings.IsEmpty() || Camera->BuildComponent->Buildings[0] != actor) && !connectedLocations.Contains(location))
-			connectedLocations.Add(location);
-	}
+		FTransform transform;
 
-	FRoadStruct roadStruct;
-	roadStruct.Connections = connectedLocations.Num();
-	roadStruct.bStraight = false;
-	roadStruct.bBridge = false;
+		if (IsValid(actor) && !actor->IsHidden() && actor != this && GetActorLocation() != location && (Camera->BuildComponent->Buildings.IsEmpty() || Camera->BuildComponent->Buildings[0] != actor)) {
+			transform.SetRotation(FRotator(0.0f, 90.0f + (GetActorLocation() - location).Rotation().Yaw, 0.0f).Quaternion());
 
-	if (connectedLocations.Num() == 2)
-		if (connectedLocations[0].X == connectedLocations[1].X || connectedLocations[0].Y == connectedLocations[1].Y)
-			roadStruct.bStraight = true;
+			FTileStruct t = Camera->Grid->Storage[location.X / 100.0f + bound / 2][location.Y / 100.0f + bound / 2];
 
-	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
-	FTileStruct tile = Camera->Grid->Storage[GetActorLocation().X / 100.0f + bound / 2][GetActorLocation().Y / 100.0f + bound / 2];
-
-	if (tile.bRiver) {
-		roadStruct.bStraight = true;
-		roadStruct.bBridge = true;
-		roadStruct.Tier = Tier;
-
-		connectedLocations.Empty();
-
-		for (auto& element : tile.AdjacentTiles) {
-			FTileStruct* t = element.Value;
-
-			if (!t->bEdge || t->bRiver)
+			if (t.Level != tile.Level)
 				continue;
 
-			FTransform transform = Camera->Grid->GetTransform(t);
+			if (t.bRiver) {
+				bool bValid = false;
 
-			connectedLocations.Add(transform.GetLocation());
+				for (auto& element : t.AdjacentTiles)
+					if (element.Value->X == tile.X && element.Value->Y == tile.Y)
+						bValid = true;
+
+				if (!bValid)
+					continue;
+
+				transform.SetScale3D(FVector(1.0f, 0.4f, 1.0f));
+			}
+
+			transforms.Add(transform);
 		}
-
-		roadStruct.Connections = connectedLocations.Num();
 	}
 
-	if (roadStruct.Connections == 3 && roadStruct.bBridge) {
-		if (connectedLocations[0].X == connectedLocations[1].X || connectedLocations[0].Y == connectedLocations[1].Y)
-			connectedLocations.RemoveAt(2);
-		else if (connectedLocations[0].X == connectedLocations[2].X || connectedLocations[0].Y == connectedLocations[2].Y)
-			connectedLocations.RemoveAt(1);
-		else
-			connectedLocations.RemoveAt(0);
+	for (FTransform transform : transforms)
+		HISMRoad->AddInstance(transform);
 
-		if (connectedLocations[0].Z != connectedLocations[1].Z)
-			return;
-
-		roadStruct.Connections = 2;
-	}
-
-	int32 index = RoadMeshes.Find(roadStruct);
-
-	if (index == INDEX_NONE)
-		return;
-
-	FVector midPoint;
-
-	for (FVector location : connectedLocations)
-		midPoint += location;
-
-	midPoint /= connectedLocations.Num();
-
-	if (tile.bRiver && roadStruct.bBridge)
-		midPoint.Z = FMath::FloorToInt(midPoint.Z / 75.0f) * 75.0f + 25.0f;
-
-	BuildingMesh->SetStaticMesh(RoadMeshes[index].Mesh);
-
-	FRotator rotation = (midPoint - GetActorLocation()).Rotation();
-	rotation.Pitch = 0.0f;
-	rotation.Roll = 0.0f;
-	rotation.Yaw = FMath::FloorToInt(rotation.Yaw / 90.0f) * 90.0f - 90.0f;
-
-	if (roadStruct.bStraight && roadStruct.Connections == 2 && connectedLocations[0].X == connectedLocations[1].X)
-		rotation.Yaw += 90.0f;
-
-	if (rotation.Yaw == 360.0f)
-		rotation.Yaw = 0.0f;
-
-	SetActorRotation(rotation);
-
-	if (tile.bRiver && roadStruct.bBridge)
-		SetActorLocation(GetActorLocation() + FVector(0.0f, 0.0f, midPoint.Z - GetActorLocation().Z));
-
-	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2;
-	BoxAreaAffect->SetBoxExtent(FVector(size.X, size.Y, 20.0f));
+	HISMRoad->BuildTreeIfOutdated(true, true);
 }
 
 void ARoad::SetTier(int32 Value)

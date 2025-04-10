@@ -330,17 +330,6 @@ void AGrid::Render()
 		TArray<FTileStruct*> tiles = GenerateRiver(chosenTile, closestPeak);
 
 		for (FTileStruct* tile : tiles) {
-			if (riverStartTiles.Contains(tile) && tile->bRiver)
-				riverStartTiles.Remove(tile);
-
-			if (!tile->bRiver)
-				continue;
-
-			int32 index = tiles.Find(tile);
-
-			if (index > 0)
-				tile->Level = tiles[index - 1]->Level;
-
 			for (auto& element : tile->AdjacentTiles) {
 				FTileStruct* t = element.Value;
 
@@ -348,20 +337,12 @@ void AGrid::Render()
 					continue;
 
 				if (tile->Level > t->Level)
-					tile->Level = t->Level;
+					t->Level = tile->Level;
 
 				t->bEdge = true;
 			}
 		}	
 	}
-
-	for (TArray<FTileStruct>& row : Storage)
-		for (FTileStruct& rowTile : row)
-			FillHoles(&rowTile, true);
-
-	for (TArray<FTileStruct>& row : Storage)
-		for (FTileStruct& tile : row)
-			FillHoles(&tile);
 
 	// Spawn Actor
 	for (TArray<FTileStruct> &row : Storage)
@@ -512,11 +493,8 @@ TArray<FTileStruct*> AGrid::CalculatePath(FTileStruct* Tile, FTileStruct* Target
 	return tiles;
 }
 
-void AGrid::FillHoles(FTileStruct* Tile, bool bFillRiver)
+void AGrid::FillHoles(FTileStruct* Tile)
 {
-	if (bFillRiver && Tile->bRiver != bFillRiver)
-		return;
-	
 	TArray<int32> levels;
 	levels.Add(Tile->Level);
 
@@ -544,13 +522,6 @@ void AGrid::FillHoles(FTileStruct* Tile, bool bFillRiver)
 		return;
 
 	Tile->Level = result;
-
-	for (auto& element : Tile->AdjacentTiles) {
-		if (bFillRiver && element.Value->bEdge && element.Value->Level < Tile->Level)
-			element.Value->Level++;
-
-		FillHoles(element.Value);
-	}
 }
 
 void AGrid::SetTileDetails(FTileStruct* Tile)

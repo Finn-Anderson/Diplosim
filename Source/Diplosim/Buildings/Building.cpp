@@ -328,6 +328,9 @@ void ABuilding::SetBuildingColour(float R, float G, float B)
 
 	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(BuildingMesh->GetMaterial(0));
 	material->SetVectorParameterValue("Colour", chosenColour);
+
+	if (IsA<ARoad>())
+		Cast<ARoad>(this)->HISMRoad->SetMaterial(0, material);
 }
 
 TArray<FItemStruct> ABuilding::GetRebuildCost()
