@@ -353,7 +353,7 @@ void ACitizen::FindHouse(class AHouse* House, int32 TimeToCompleteDay)
 
 		int32 spaceRequired = 0;
 
-		if (IsValid(Building.House)) {
+		if (IsValid(Building.House) && Building.House->GetOccupied().Contains(this)) {
 			TArray<ACitizen*> visitors = Building.House->GetVisitors(this);
 
 			for (ACitizen* citizen : visitors)

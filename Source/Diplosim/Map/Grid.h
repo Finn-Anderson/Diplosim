@@ -186,7 +186,7 @@ public:
 
 	void GetValidSpawnLocations(FTileStruct* Tile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles);
 
-	void GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* Tile, int32 Amount, float Scale, bool bTree);
+	void GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* StartingTile, FTileStruct* Tile, int32 Amount, float Scale, bool bTree);
 
 	void GenerateTree(class AVegetation* Resource, int32 Instance);
 

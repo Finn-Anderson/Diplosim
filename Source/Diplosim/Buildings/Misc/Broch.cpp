@@ -33,9 +33,12 @@ void ABroch::SpawnCitizens()
 		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 		FNavLocation location;
-		nav->ProjectPointToNavigation(BuildingMesh->GetSocketLocation(name), location, FVector(400.0f, 400.0f, 20.0f));
+		nav->ProjectPointToNavigation(BuildingMesh->GetSocketLocation(name), location, FVector(400.0f, 400.0f, 30.0f));
 
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, location, GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f));
+		FActorSpawnParameters params;
+		params.bNoFail = true;
+
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, location, GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f), params);
 
 		for (int32 i = 0; i < 2; i++)
 			citizen->GivePersonalityTrait();

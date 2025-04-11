@@ -408,7 +408,7 @@ void AGrid::Render()
 			int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
 			FTileStruct* chosenTile = ResourceTiles[chosenNum];
 
-			int32 amount = FMath::RandRange(1, element.Key);
+			int32 amount = FMath::RandRange(element.Key / 2, element.Key);
 
 			bool bTree = false;
 
@@ -421,11 +421,11 @@ void AGrid::Render()
 			}
 
 			VegetationLimitCounter = 0;
-			VegetationLimit = amount * 50;
+			VegetationLimit = amount * (element.Key * 25);
 
 			VegetationTiles.Empty();
 
-			GenerateVegetation(element.Value, chosenTile, amount, scale, bTree);
+			GenerateVegetation(element.Value, chosenTile, chosenTile, amount, scale, bTree);
 
 			if (bTree)
 				for (FTileStruct* tile : VegetationTiles)
@@ -899,13 +899,12 @@ void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTil
 			GetValidSpawnLocations(SpawnTile, element.Value, Range, Valid, Tiles);
 }
 
-void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* Tile, int32 Amount, float Scale, bool bTree)
+void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* StartingTile, FTileStruct* Tile, int32 Amount, float Scale, bool bTree)
 {
-	int32 value = FMath::RandRange(Amount - 1, Amount);
+	if (FMath::Abs(StartingTile->X - Tile->X) + FMath::Abs(StartingTile->Y - Tile->Y) > 5)
+		Amount = FMath::RandRange(Amount - 1, Amount);
 
-	VegetationLimitCounter++;
-
-	if (value == 0 || VegetationLimitCounter == VegetationLimit || Tile->Fertility == 0 || !ResourceTiles.Contains(Tile) || VegetationTiles.Contains(Tile) || Tile->bRiver || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
+	if (Amount == 0 || VegetationLimitCounter == VegetationLimit || Tile->Fertility == 0 || !ResourceTiles.Contains(Tile) || VegetationTiles.Contains(Tile) || Tile->bRiver || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
 		return;
 
 	TArray<int32> usedX;
@@ -953,8 +952,10 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 
 	VegetationTiles.Add(Tile);
 
+	VegetationLimitCounter++;
+
 	for (auto& element : Tile->AdjacentTiles)
-		GenerateVegetation(Vegetation, element.Value, value, Scale, bTree);
+		GenerateVegetation(Vegetation, StartingTile, element.Value, Amount, Scale, bTree);
 }
 
 void AGrid::GenerateTree(AVegetation* Resource, int32 Instance)

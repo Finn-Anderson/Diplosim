@@ -682,6 +682,8 @@ void ACamera::Menu()
 	else {
 		MenuUIInstance->AddToViewport();
 
+		SetMouseCapture(false);
+
 		bInMenu = true;
 
 		SetPause(true, false);
@@ -698,7 +700,7 @@ void ACamera::Rotate(const struct FInputActionInstance& Instance)
 
 void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 {
-	if (bInMenu)
+	if (bInMenu && !bMouseCapture)
 		return;
 
 	if (((bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)))
