@@ -179,6 +179,12 @@ public:
 
 	void Clear();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Seed");
+		FString Seed;
+
+	UPROPERTY();
+		FRandomStream Stream;
+
 	TArray<TArray<FTileStruct>> Storage;
 
 	// Resources

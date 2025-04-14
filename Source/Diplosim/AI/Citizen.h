@@ -92,6 +92,12 @@ struct FBioStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		TArray<class ACitizen*> Children;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		TArray<class ACitizen*> Siblings;
+
+	UPROPERTY()
+		bool bAdopted;
+
 	FBioStruct()
 	{
 		Mother = nullptr;

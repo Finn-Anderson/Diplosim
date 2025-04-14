@@ -1138,6 +1138,11 @@ void ACitizen::HaveChild()
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Partner;
 
+	for (ACitizen* child : BioStruct.Children) {
+		citizen->BioStruct.Siblings.Add(child);
+		child->BioStruct.Siblings.Add(citizen);
+	}
+
 	citizen->Building.House->AddVisitor(occupant, citizen);
 
 	BioStruct.Children.Add(citizen);
@@ -1160,6 +1165,10 @@ TArray<ACitizen*> ACitizen::GetLikedFamily()
 	for (ACitizen* child : BioStruct.Children)
 		if (IsValid(child))
 			family.Add(child);
+
+	for (ACitizen* sibling : BioStruct.Siblings)
+		if (IsValid(sibling))
+			family.Add(sibling);
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
 		for (int32 i = (family.Num() - 1); i > -1; i--) {

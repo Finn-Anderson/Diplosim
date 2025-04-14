@@ -75,6 +75,8 @@ AGrid::AGrid()
 	MaxLevel = 7;
 
 	PercentageGround = 30;
+
+	Seed = "";
 }
 
 void AGrid::BeginPlay()
@@ -104,6 +106,17 @@ void AGrid::Load()
 {
 	// Add loading screen
 	LoadUIInstance->AddToViewport();
+
+	Stream.Initialize(*Seed);
+
+	FString s = Seed;
+
+	if (s == "")
+		s = FString::FromInt(Stream.GetCurrentSeed());
+
+	Camera->UpdateMapSeed(s);
+
+	Seed = "";
 
 	FTimerHandle RenderTimer;
 	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::Render, 0.001, false);
@@ -183,8 +196,8 @@ void AGrid::Render()
 			int32 x = Storage.Num();
 			int32 y = Storage[0].Num();
 
-			int32 chosenX = FMath::RandRange(bound / 4, x - bound / 4 - 1);
-			int32 chosenY = FMath::RandRange(bound / 4, y - bound / 4 - 1);
+			int32 chosenX = Stream.RandRange(bound / 4, x - bound / 4 - 1);
+			int32 chosenY = Stream.RandRange(bound / 4, y - bound / 4 - 1);
 
 			chosenTile = &Storage[chosenX][chosenY];
 
@@ -224,7 +237,7 @@ void AGrid::Render()
 			if (chooseableTiles.IsEmpty())
 				break;
 
-			int32 chosenNum = FMath::RandRange(0, chooseableTiles.Num() - 1);
+			int32 chosenNum = Stream.RandRange(0, chooseableTiles.Num() - 1);
 			chosenTile = chooseableTiles[chosenNum];
 
 			for (FTileStruct* tile : chooseableTiles) {
@@ -308,7 +321,7 @@ void AGrid::Render()
 		if (riverStartTiles.IsEmpty())
 			break;
 
-		int32 chosenNum = FMath::RandRange(0, riverStartTiles.Num() - 1);
+		int32 chosenNum = Stream.RandRange(0, riverStartTiles.Num() - 1);
 		FTileStruct* chosenTile = riverStartTiles[chosenNum];
 
 		FTileStruct* closestPeak = nullptr;
@@ -379,7 +392,7 @@ void AGrid::Render()
 
 	for (FResourceHISMStruct &ResourceStruct : MineralStruct) {
 		for (int32 i = 0; i < (num * ResourceStruct.Multiplier); i++) {
-			int32 chosenNum = FMath::RandRange(0, ValidMineralTiles.Num() - 1);
+			int32 chosenNum = Stream.RandRange(0, ValidMineralTiles.Num() - 1);
 			TArray<FTileStruct*> chosenTiles = ValidMineralTiles[chosenNum];
 
 			GenerateMinerals(chosenTiles[0], ResourceStruct.Resource);
@@ -405,10 +418,10 @@ void AGrid::Render()
 			for (FResourceHISMStruct ResourceStruct : element.Value)
 				ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
 
-			int32 chosenNum = FMath::RandRange(0, ResourceTiles.Num() - 1);
+			int32 chosenNum = Stream.RandRange(0, ResourceTiles.Num() - 1);
 			FTileStruct* chosenTile = ResourceTiles[chosenNum];
 
-			int32 amount = FMath::RandRange(element.Key / 2, element.Key);
+			int32 amount = Stream.RandRange(element.Key / 2, element.Key);
 
 			bool bTree = false;
 
@@ -527,7 +540,7 @@ void AGrid::FillHoles(FTileStruct* Tile)
 void AGrid::SetTileDetails(FTileStruct* Tile)
 {
 	// Set Rotation
-	int32 rand = FMath::RandRange(0, 3);
+	int32 rand = Stream.RandRange(0, 3);
 
 	Tile->Rotation = (FRotator(0.0f, 90.0f, 0.0f) * rand).Quaternion();
 
@@ -535,7 +548,7 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 	if ((bLava && Tile->Level == MaxLevel) || Tile->Level < 0)
 		return;
 
-	int32 value = FMath::RandRange(-1, 1);
+	int32 value = Stream.RandRange(-1, 1);
 
 	int32 fTile = 0;
 	int32 count = 0;
@@ -601,7 +614,7 @@ TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
 	}
 
 	if (!twoMostOuterTiles.IsEmpty()) {
-		int32 index = FMath::RandRange(0, twoMostOuterTiles.Num() - 1);
+		int32 index = Stream.RandRange(0, twoMostOuterTiles.Num() - 1);
 		FTileStruct* chosenTile = twoMostOuterTiles[index];
 
 		chosenTile->bRiver = true;
@@ -784,7 +797,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 			HISMGround->SetCustomDataValue(inst, 4, b);
 		}
 		else {
-			int32 chance = FMath::RandRange(1, 100);
+			int32 chance = Stream.RandRange(1, 100);
 
 			for (auto& element : Tile->AdjacentTiles) {
 				if (element.Value->Level > Tile->Level && element.Value->Level != MaxLevel && chance > 99) {
@@ -902,7 +915,7 @@ void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTil
 void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* StartingTile, FTileStruct* Tile, int32 Amount, float Scale, bool bTree)
 {
 	if (FMath::Abs(StartingTile->X - Tile->X) + FMath::Abs(StartingTile->Y - Tile->Y) > 5)
-		Amount = FMath::RandRange(Amount - 1, Amount);
+		Amount = Stream.RandRange(Amount - 1, Amount);
 
 	if (Amount == 0 || VegetationLimitCounter == VegetationLimit || Tile->Fertility == 0 || !ResourceTiles.Contains(Tile) || VegetationTiles.Contains(Tile) || Tile->bRiver || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
 		return;
@@ -913,7 +926,7 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 	int32 num = Amount;
 
 	if (!bTree)
-		num *= FMath::RandRange(10, 20);
+		num *= Stream.RandRange(10, 20);
 
 	for (int32 i = 0; i < num; i++) {
 		bool validXY = false;
@@ -921,8 +934,8 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 		int32 y = 0;
 
 		while (!validXY) {
-			x = FMath::RandRange(-40, 40);
-			y = FMath::RandRange(-40, 40);
+			x = Stream.RandRange(-40, 40);
+			y = Stream.RandRange(-40, 40);
 
 			if (!usedX.Contains(x) && !usedY.Contains(y))
 				validXY = true;
@@ -931,12 +944,12 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 		FTransform transform;
 		transform.SetLocation(GetTransform(Tile).GetLocation() + FVector(x, y, 0.0f));
 
-		float size = FMath::FRandRange(1.0f / Scale, Scale);
+		float size = Stream.FRandRange(1.0f / Scale, Scale);
 		transform.SetScale3D(FVector(size));
 
-		transform.SetRotation(FRotator(0.0f, FMath::RandRange(0, 360), 0.0f).Quaternion());
+		transform.SetRotation(FRotator(0.0f, Stream.RandRange(0, 360), 0.0f).Quaternion());
 
-		int32 index = FMath::RandRange(0, Vegetation.Num() - 1);
+		int32 index = Stream.RandRange(0, Vegetation.Num() - 1);
 
 		AVegetation* resource = Cast<AVegetation>(Vegetation[index].Resource);
 
@@ -964,7 +977,7 @@ void AGrid::GenerateTree(AVegetation* Resource, int32 Instance)
 	float g = 0.0f;
 	float b = 0.0f;
 
-	int32 colour = FMath::RandRange(0, 3);
+	int32 colour = Stream.RandRange(0, 3);
 
 	if (colour == 0) {
 		r = 53.0f;
@@ -987,7 +1000,7 @@ void AGrid::GenerateTree(AVegetation* Resource, int32 Instance)
 		b = 43.0f;
 	}
 
-	int32 dyingChance = FMath::RandRange(0, 100);
+	int32 dyingChance = Stream.RandRange(0, 100);
 
 	if (dyingChance >= 97) {
 		r = 82.0f;
@@ -1018,9 +1031,9 @@ void AGrid::GenerateFlower(FTileStruct* Tile, AVegetation* Resource, int32 Insta
 	if (Tile->bEdge)
 		HISM = HISMGround;
 
-	float r = FMath::FRandRange(0.0f, 1.0f);;
-	float g = FMath::FRandRange(0.0f, 1.0f);
-	float b = FMath::FRandRange(0.0f, 1.0f);
+	float r = Stream.FRandRange(0.0f, 1.0f);;
+	float g = Stream.FRandRange(0.0f, 1.0f);
+	float b = Stream.FRandRange(0.0f, 1.0f);
 
 	Resource->ResourceHISM->SetCustomDataValue(Instance, 0, 0.0f);
 	Resource->ResourceHISM->SetCustomDataValue(Instance, 1, 1.0f);
@@ -1049,7 +1062,7 @@ void AGrid::RemoveTree(AResource* Resource, int32 Instance)
 
 void AGrid::SpawnEggBasket()
 {
-	int32 index = FMath::RandRange(0, ResourceTiles.Num() - 1);
+	int32 index = Stream.RandRange(0, ResourceTiles.Num() - 1);
 
 	if (index == INDEX_NONE)
 		return;

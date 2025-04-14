@@ -84,6 +84,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void ResearchComplete(int32 Index);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateMapSeed(const FString& Seed);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
