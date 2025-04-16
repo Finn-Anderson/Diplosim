@@ -85,6 +85,7 @@ ACitizen::ACitizen()
 	AmbientAudioComponent->PitchModulationMin = 0.9f;
 	AmbientAudioComponent->PitchModulationMax = 1.1f;
 
+	AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
 	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
 	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
@@ -527,7 +528,7 @@ bool ACitizen::CanAffordEducationLevel()
 	if (leftoverMoney > 0)
 		money += leftoverMoney;
 
-	for (ACitizen* citizen : GetLikedFamily()) {
+	for (ACitizen* citizen : GetLikedFamily(false)) {
 		int32 leftover = citizen->GetLeftoverMoney();
 
 		if (leftover <= 0)
@@ -557,7 +558,7 @@ void ACitizen::PayForEducationLevels()
 
 	if (cost > 0) {
 		if (leftoverMoney < cost) {
-			for (ACitizen* citizen : GetLikedFamily()) {
+			for (ACitizen* citizen : GetLikedFamily(false)) {
 				int32 leftover = citizen->GetLeftoverMoney();
 
 				if (leftover <= 0)
@@ -697,7 +698,7 @@ void ACitizen::Eat()
 
 	if (cost > 0) {
 		if (FMath::Floor(leftoverMoney / cost) < quantity) {
-			for (ACitizen* citizen : GetLikedFamily()) {
+			for (ACitizen* citizen : GetLikedFamily(true)) {
 				int32 leftover = citizen->GetLeftoverMoney();
 
 				if (leftover <= 0)
@@ -954,7 +955,7 @@ void ACitizen::Birthday()
 	else if (BioStruct.Partner != nullptr && BioStruct.Sex == ESex::Female)
 		AsyncTask(ENamedThreads::GameThread, [this]() { HaveChild(); });
 
-	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
+	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr && !Camera->Start)
 		FindPartner();
 
 	if (BioStruct.Age == 18) {
@@ -970,7 +971,7 @@ void ACitizen::Birthday()
 		if (IsValid(Building.House)) {
 			ACitizen* occupant = Building.House->GetOccupant(this);
 
-			if (occupant != this && !GetLikedFamily().Contains(occupant))
+			if (occupant != this && !GetLikedFamily(false).Contains(occupant))
 				Building.House->RemoveVisitor(occupant, this);
 		}
 
@@ -1034,7 +1035,7 @@ void ACitizen::FindPartner()
 	for (AActor* actor : Camera->CitizenManager->Citizens) {
 		ACitizen* c = Cast<ACitizen>(actor);
 
-		if (c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
+		if (!IsValid(c) || c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
 			continue;
 
 		int32 count = 0;
@@ -1132,7 +1133,7 @@ void ACitizen::HaveChild()
 
 	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), location, GetActorRotation());
 
-	if (!citizen->IsValidLowLevelFast())
+	if (!IsValid(citizen))
 		return;
 
 	citizen->BioStruct.Mother = this;
@@ -1149,7 +1150,7 @@ void ACitizen::HaveChild()
 	BioStruct.Partner->BioStruct.Children.Add(citizen);
 }
 
-TArray<ACitizen*> ACitizen::GetLikedFamily()
+TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
 {
 	TArray<ACitizen*> family;
 
@@ -1170,25 +1171,26 @@ TArray<ACitizen*> ACitizen::GetLikedFamily()
 		if (IsValid(sibling))
 			family.Add(sibling);
 
-	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
-		for (int32 i = (family.Num() - 1); i > -1; i--) {
-			ACitizen* citizen = family[i];
-			int32 count = 0;
+	if (bFactorAge && BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
+		return family;
 
-			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
-				for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
-					if (personality->Trait == p->Trait)
-						count += 2;
-					else if (personality->Likes.Contains(p->Trait))
-						count++;
-					else if (personality->Dislikes.Contains(p->Trait))
-						count--;
-				}
+	for (int32 i = (family.Num() - 1); i > -1; i--) {
+		ACitizen* citizen = family[i];
+		int32 count = 0;
+
+		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
+			for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
+				if (personality->Trait == p->Trait)
+					count += 2;
+				else if (personality->Likes.Contains(p->Trait))
+					count++;
+				else if (personality->Dislikes.Contains(p->Trait))
+					count--;
 			}
-
-			if (count < 0)
-				family.RemoveAt(i);
 		}
+
+		if (count < 0)
+			family.RemoveAt(i);
 	}
 
 	return family;

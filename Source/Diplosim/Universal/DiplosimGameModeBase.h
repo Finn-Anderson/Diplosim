@@ -170,4 +170,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		TArray<FEnemiesStruct> EnemiesData;
+
+	UPROPERTY()
+		bool bOngoingRaid;
 };

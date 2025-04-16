@@ -40,7 +40,7 @@ void AHouse::UpkeepCost()
 		}
 
 		if (total < Rent) {
-			for (ACitizen* c : citizen->GetLikedFamily()) {
+			for (ACitizen* c : citizen->GetLikedFamily(false)) {
 				if (c->Balance < Rent || family.Contains(c))
 					continue;
 

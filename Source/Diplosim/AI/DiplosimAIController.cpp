@@ -5,6 +5,7 @@
 #include "NavigationPath.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavFilters/NavigationQueryFilter.h"
+#include "Components/SphereComponent.h"
 
 #include "AI.h"
 #include "Citizen.h"
@@ -33,7 +34,7 @@ void ADiplosimAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (DeltaTime < 0.0001f)
+	if (DeltaTime > 1.0f)
 		return;
 
 	if (Cast<AAI>(Owner)->HealthComponent->Health == 0 || !IsValid(MoveRequest.GetGoalActor()))
@@ -92,94 +93,92 @@ void ADiplosimAIController::DefaultAction()
 
 void ADiplosimAIController::Idle(ACitizen* Citizen)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
-		if (!Citizen->IsValidLowLevelFast())
-			return;
+	if (!Citizen->IsValidLowLevelFast())
+		return;
 
-		int32 chance = FMath::RandRange(0, 100);
+	int32 chance = FMath::RandRange(0, 100);
 
-		int32 hoursLeft = Citizen->HoursSleptToday.Num();
+	int32 hoursLeft = Citizen->HoursSleptToday.Num();
 
-		if (IsValid(Citizen->Building.Employment)) {
-			if (Citizen->Building.Employment->WorkEnd > Citizen->Building.Employment->WorkStart)
-				hoursLeft = (24 - Citizen->Building.Employment->WorkEnd) + Citizen->Building.Employment->WorkStart;
-			else
-				hoursLeft = Citizen->Building.Employment->WorkStart - Citizen->Building.Employment->WorkEnd;
+	if (IsValid(Citizen->Building.Employment)) {
+		if (Citizen->Building.Employment->WorkEnd > Citizen->Building.Employment->WorkStart)
+			hoursLeft = (24 - Citizen->Building.Employment->WorkEnd) + Citizen->Building.Employment->WorkStart;
+		else
+			hoursLeft = Citizen->Building.Employment->WorkStart - Citizen->Building.Employment->WorkEnd;
+	}
+
+	AHouse* house = Citizen->Building.House;
+
+	if (!IsValid(house)) {
+		TArray<AHouse*> familyHouses;
+
+		for (ACitizen* citizen : Citizen->GetLikedFamily(false)) {
+			if (!IsValid(citizen->Building.House) || !IsValid(citizen->Building.House->GetOccupant(citizen)) || citizen->Building.House->GetVisitors(citizen->Building.House->GetOccupant(citizen)).Num() == citizen->Building.House->Space)
+				continue;
+
+			familyHouses.Add(citizen->Building.House);
 		}
 
-		AHouse* house = Citizen->Building.House;
+		if (!familyHouses.IsEmpty()) {
+			int32 index = FMath::RandRange(0, familyHouses.Num() - 1);
 
-		if (!IsValid(house)) {
-			TArray<AHouse*> familyHouses;
+			house = familyHouses[index];
 
-			for (ACitizen* citizen : Citizen->GetLikedFamily()) {
-				if (!IsValid(citizen->Building.House) || !IsValid(citizen->Building.House->GetOccupant(citizen)) || citizen->Building.House->GetVisitors(citizen->Building.House->GetOccupant(citizen)).Num() == citizen->Building.House->Space)
-					continue;
+			ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-				familyHouses.Add(citizen->Building.House);
-			}
-
-			if (!familyHouses.IsEmpty()) {
-				int32 index = FMath::RandRange(0, familyHouses.Num() - 1);
-
-				house = familyHouses[index];
-
-				ACitizen* citizen = Cast<ACitizen>(GetOwner());
-
-				familyHouses[index]->AddVisitor(house->GetOccupant(citizen), citizen);
-			}
+			familyHouses[index]->AddVisitor(house->GetOccupant(citizen), citizen);
 		}
+	}
 
-		if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
-			AIMoveTo(house);
+	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
+		AIMoveTo(house);
+	else {
+		int32 time = FMath::RandRange(3, 10);
+
+		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66) {
+			AIMoveTo(ChosenBuilding);
+
+			time = 60.0f;
+		}
 		else {
-			int32 time = FMath::RandRange(3, 10);
+			Cast<AAI>(GetOwner())->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
 
-			if (chance < 66) {
-				if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen) {
-					AIMoveTo(ChosenBuilding);
+			UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+			const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-					time = 60.0f;
-				}
-				else {
-					UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-					const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+			int32 range = 1000;
 
-					int32 range = 1000;
-
-					FVector location = Citizen->Camera->CitizenManager->BrochLocation;
+			FVector location = Citizen->Camera->CitizenManager->BrochLocation;
 					
-					if (IsValid(ChosenBuilding) && !ChosenBuilding->IsA<ABroch>()) {
-						FVector size = ChosenBuilding->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+			if (IsValid(ChosenBuilding) && !ChosenBuilding->IsA<ABroch>()) {
+				FVector size = ChosenBuilding->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-						if (size.X > size.Y)
-							range = size.X;
-						else
-							range = size.Y;
+				if (size.X > size.Y)
+					range = size.X;
+				else
+					range = size.Y;
 
-						location = ChosenBuilding->GetActorLocation();
-					}
-
-					FNavLocation navLoc;
-					nav->GetRandomPointInNavigableRadius(location, range, navLoc);
-
-					double length;
-					nav->GetPathLength(Citizen->GetActorLocation(), navLoc.Location, length);
-
-					if (length < 5000.0f) {
-						UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), navLoc.Location, Citizen, Citizen->NavQueryFilter);
-
-						Citizen->MovementComponent->SetPoints(path->PathPoints);
-					}
-				}
+				location = ChosenBuilding->GetActorLocation();
 			}
 
-			FTimerStruct timer;
-			timer.CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::DefaultAction), false);
+			FNavLocation navLoc;
+			nav->GetRandomPointInNavigableRadius(location, range, navLoc);
 
-			Citizen->Camera->CitizenManager->Timers.Add(timer);
+			double length;
+			nav->GetPathLength(Citizen->GetActorLocation(), navLoc.Location, length);
+
+			if (length < 5000.0f) {
+				UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), navLoc.Location, Citizen, Citizen->NavQueryFilter);
+
+				Citizen->MovementComponent->SetPoints(path->PathPoints);
+			}
 		}
-	});
+
+		FTimerStruct timer;
+		timer.CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::DefaultAction), false, true);
+
+		Citizen->Camera->CitizenManager->Timers.Add(timer);
+	}
 }
 
 void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
@@ -293,7 +292,7 @@ void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource
 
 bool ADiplosimAIController::CanMoveTo(FVector Location)
 {
-	if (!Owner->IsValidLowLevelFast())
+	if (!IsValid(GetOwner()))
 		return false;
 
 	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
@@ -370,6 +369,9 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	Cast<AAI>(GetOwner())->MovementComponent->SetPoints(points);
 
 	SetFocus(Actor);
+
+	if (Actor->IsA<ABuilding>())
+		Cast<AAI>(GetOwner())->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 
 	if (!GetOwner()->IsA<ACitizen>() || Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor)
 		return;

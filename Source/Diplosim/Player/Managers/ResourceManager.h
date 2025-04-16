@@ -98,9 +98,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		TSubclassOf<class AResource> Money;
 
-	UPROPERTY()
-		FTimerHandle InterestTimer;
-
 	// Trade
 	void RandomiseMarket();
 

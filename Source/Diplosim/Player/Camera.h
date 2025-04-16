@@ -118,6 +118,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
 		FString ColonyName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
+		int32 CitizenNum;
+
 	UPROPERTY()
 		bool Start;
 

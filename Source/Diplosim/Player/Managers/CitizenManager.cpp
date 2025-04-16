@@ -489,6 +489,7 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 {
 	Citizen->DiseaseNiagaraComponent->Activate();
 	Citizen->PopupComponent->SetHiddenInGame(false);
+	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Overlap);
 
 	Citizen->SetActorTickEnabled(true);
 
@@ -539,6 +540,8 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 				Citizen->ApplyToMultiplier("Health", 1.0f + (1.0f - affect.Amount));
 		}
 	}
+
+	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
 
 	Citizen->HealthIssues.Empty();
 
@@ -631,12 +634,17 @@ void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
 	}
 
 	if (Citizen != nullptr) {
+		Healer->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Overlap);
+
 		Healer->AIController->AIMoveTo(Citizen);
 
 		Healing.Add(Citizen);
 	}
-	else if (Healer->Building.BuildingAt != Healer->Building.Employment)
+	else if (Healer->Building.BuildingAt != Healer->Building.Employment) {
+		Healer->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
+
 		Healer->AIController->DefaultAction();
+	}
 }
 
 //
@@ -1415,6 +1423,8 @@ void UCitizenManager::Overthrow()
 	CooldownTimer = 1500;
 
 	for (ACitizen* citizen : Citizens) {
+		citizen->AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
 		if (GetMembersParty(citizen) == nullptr || GetMembersParty(citizen)->Party != EParty::ShellBreakers)
 			return;
 
@@ -1427,6 +1437,9 @@ void UCitizenManager::Overthrow()
 
 void UCitizenManager::SetupRebel(class ACitizen* Citizen)
 {
+	Citizens.Remove(Citizen);
+	Rebels.Add(Citizen);
+
 	Citizen->Rebel = true;
 
 	Citizen->HatMesh->SetStaticMesh(Citizen->RebelHat);

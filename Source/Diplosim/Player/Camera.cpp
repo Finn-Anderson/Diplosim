@@ -113,6 +113,7 @@ ACamera::ACamera()
 	bLost = false;
 
 	ColonyName = "Eggerton";
+	CitizenNum = 10;
 
 	FocusedCitizen = nullptr;
 
@@ -273,7 +274,6 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	bBlockPause = true;
 
-	Start = false;
 	Grid->MapUIInstance->RemoveFromParent();
 
 	ResourceManager->RandomiseMarket();
@@ -285,12 +285,17 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	gamemode->SetWaveTimer();
 
-	GetWorld()->GetTimerManager().SetTimer(ResourceManager->InterestTimer, ResourceManager, &UResourceManager::Interest, 300.0f, true);
+	FTimerStruct timer;
+
+	timer.CreateTimer("Interest", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::Interest), true, true);
+	CitizenManager->Timers.Add(timer);
 
 	CitizenManager->StartDiseaseTimer();
 	CitizenManager->BrochLocation = Broch->GetActorLocation();
 
 	Cast<ABroch>(Broch)->SpawnCitizens();
+
+	Start = false;
 
 	DisplayEvent("Welcome to", ColonyName);
 

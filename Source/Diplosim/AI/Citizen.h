@@ -398,7 +398,7 @@ public:
 
 	void HaveChild();
 
-	TArray<ACitizen*> GetLikedFamily();
+	TArray<ACitizen*> GetLikedFamily(bool bFactorAge);
 
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		FBioStruct BioStruct;

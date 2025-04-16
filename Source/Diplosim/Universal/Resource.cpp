@@ -7,8 +7,11 @@ AResource::AResource()
 	PrimaryActorTick.bCanEverTick = false;
 
 	ResourceHISM = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("ResourceMesh"));
+	ResourceHISM->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	ResourceHISM->SetCollisionObjectType(ECollisionChannel::ECC_Destructible);
-	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+	ResourceHISM->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->SetMobility(EComponentMobility::Static);
 	ResourceHISM->SetCanEverAffectNavigation(false);
 	ResourceHISM->bCastDynamicShadow = true;

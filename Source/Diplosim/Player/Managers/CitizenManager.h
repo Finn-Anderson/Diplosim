@@ -398,7 +398,7 @@ protected:
 
 	void ReadJSONFile(FString path);
 
-public:	
+public:
 	void Loop();
 
 	// Timers
@@ -573,6 +573,9 @@ public:
 	void SetupRebel(class ACitizen* Citizen);
 
 	bool IsRebellion();
+
+	UPROPERTY()
+		TArray<class ACitizen*> Rebels;
 
 	UPROPERTY()
 		int32 CooldownTimer;

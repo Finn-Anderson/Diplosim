@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "NavigationSystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -21,6 +22,7 @@ ADiplosimGameModeBase::ADiplosimGameModeBase()
 {
 	Broch = nullptr;
 	Grid = nullptr;
+	bOngoingRaid = false;
 }
 
 void ADiplosimGameModeBase::BeginPlay()
@@ -211,6 +213,8 @@ void ADiplosimGameModeBase::SpawnEnemies()
 
 	EvaluateThreats();
 
+	bOngoingRaid = true;
+
 	AsyncTask(ENamedThreads::GameThread, [this, spawnLocations]() {
 		FTimerHandle spawnTimer;
 
@@ -228,6 +232,9 @@ void ADiplosimGameModeBase::SpawnEnemies()
 			enemyData.Tally = enemyData.Tally % 200;
 		}
 
+		for (ACitizen* citizen : Camera->CitizenManager->Citizens)
+			citizen->AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
 		Camera->DisplayEvent("Event", "Raid");
 	});
 }
@@ -235,6 +242,22 @@ void ADiplosimGameModeBase::SpawnEnemies()
 void ADiplosimGameModeBase::SpawnEnemiesAsync()
 {
 	if (!CheckEnemiesStatus())
+		return;
+
+	bool bEnemies = false;
+
+	for (FEnemiesStruct& enemyData : EnemiesData) {
+		int32 num = FMath::Floor(enemyData.Tally / 200.0f);
+
+		if (num <= 0)
+			continue;
+
+		bEnemies = true;
+
+		break;
+	}
+
+	if (!bEnemies)
 		return;
 
 	GetWorld()->GetTimerManager().ClearTimer(WaveTimer);
@@ -273,7 +296,7 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies())
 		return false;
 	
-	if (!WavesData.IsEmpty()) {
+	if (bOngoingRaid) {
 		int32 tally = 0;
 
 		for (FDiedToStruct death : WavesData.Last().DiedTo)
@@ -281,22 +304,15 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 
 		if (tally != WavesData.Last().TotalEnemies)
 			return false;
+
+		bOngoingRaid = false;
+
+		if (Camera->CitizenManager->Rebels.IsEmpty())
+			for (ACitizen* citizen : Camera->CitizenManager->Citizens)
+				citizen->AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	bool bEnemies = false;
-
-	for (FEnemiesStruct& enemyData : EnemiesData) {
-		int32 num = FMath::Floor(enemyData.Tally / 200.0f);
-
-		if (num == 0)
-			continue;
-
-		bEnemies = true;
-
-		break;
-	}
-
-	return bEnemies;
+	return true;
 }
 
 void ADiplosimGameModeBase::SetWaveTimer()

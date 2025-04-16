@@ -190,11 +190,26 @@ void UHealthComponent::Clear(AActor* Attacker)
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
-		if (citizen->Building.Employment != nullptr)
+		if (IsValid(citizen->Building.Employment))
 			citizen->Building.Employment->RemoveCitizen(citizen);
 
-		if (citizen->Building.House != nullptr)
-			citizen->Building.House->RemoveCitizen(citizen);
+		if (IsValid(citizen->Building.House)) {
+			if (citizen->Building.House->GetOccupied().Contains(citizen)) {
+				if (citizen->BioStruct.Partner->IsValidLowLevelFast()) {
+					citizen->Building.House->RemoveVisitor(citizen, Cast<ACitizen>(citizen->BioStruct.Partner));
+
+					int32 index = citizen->Building.House->GetOccupied().Find(citizen);
+
+					citizen->Building.House->Occupied[index].Occupant = Cast<ACitizen>(citizen->BioStruct.Partner);
+				}
+				else {
+					citizen->Building.House->RemoveCitizen(citizen);
+				}
+			}
+			else {
+				citizen->Building.House->RemoveVisitor(citizen->Building.House->GetOccupant(citizen), citizen);
+			}
+		}
 
 		if (citizen->BioStruct.Partner != nullptr) {
 			citizen->BioStruct.Partner->BioStruct.Partner = nullptr;
@@ -206,6 +221,17 @@ void UHealthComponent::Clear(AActor* Attacker)
 
 		if (citizen->BioStruct.Father->IsValidLowLevelFast())
 			citizen->BioStruct.Father->BioStruct.Children.Remove(citizen);
+
+		for (ACitizen* sibling : citizen->BioStruct.Siblings)
+			sibling->BioStruct.Siblings.Remove(citizen);
+
+		if (citizen->Rebel) {
+			citizen->Camera->CitizenManager->Rebels.Remove(citizen);
+
+			if (citizen->Camera->CitizenManager->Rebels.IsEmpty() && !citizen->Camera->ResourceManager->GameMode->bOngoingRaid)
+				for (ACitizen* c : citizen->Camera->CitizenManager->Citizens)
+					c->AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
 
 		if (Attacker->IsA<AEnemy>())
 			gamemode->WavesData.Last().NumKilled++;

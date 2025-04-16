@@ -25,36 +25,53 @@ AGrid::AGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	FCollisionResponseContainer response;
+	response.GameTraceChannel1 = ECR_Block;
+	response.WorldStatic = ECR_Ignore;
+	response.WorldDynamic = ECR_Overlap;
+	response.Pawn = ECR_Ignore;
+	response.PhysicsBody = ECR_Ignore;
+	response.Vehicle = ECR_Overlap;
+	response.Destructible = ECR_Ignore;
+	response.GameTraceChannel2 = ECR_Ignore;
+	response.GameTraceChannel3 = ECR_Ignore;
+	response.GameTraceChannel4 = ECR_Ignore;
+
 	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
 	HISMLava->SetupAttachment(GetRootComponent());
+	HISMLava->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMLava->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMLava->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMLava->SetCollisionResponseToChannels(response);
 	HISMLava->SetCanEverAffectNavigation(false);
 	HISMLava->SetCastShadow(false);
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetupAttachment(GetRootComponent());
+	HISMGround->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMGround->SetCollisionResponseToChannels(response);
 	HISMGround->NumCustomDataFloats = 8;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
 	HISMFlatGround->SetupAttachment(GetRootComponent());
+	HISMFlatGround->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMFlatGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMFlatGround->SetCollisionResponseToChannels(response);
 	HISMFlatGround->SetCastShadow(false);
 	HISMFlatGround->NumCustomDataFloats = 8;
 
 	HISMRampGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRampGround"));
 	HISMRampGround->SetupAttachment(GetRootComponent());
+	HISMRampGround->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMRampGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMRampGround->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMRampGround->SetCollisionResponseToChannels(response);
 	HISMRampGround->NumCustomDataFloats = 8;
 
 	HISMRiver = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRiver"));
 	HISMRiver->SetupAttachment(GetRootComponent());
+	HISMRiver->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMRiver->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMRiver->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
+	HISMRiver->SetCollisionResponseToChannels(response);
 	HISMRiver->SetCanEverAffectNavigation(false);
 	HISMRiver->NumCustomDataFloats = 4;
 

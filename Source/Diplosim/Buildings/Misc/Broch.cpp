@@ -5,6 +5,9 @@
 
 #include "AI/Citizen.h"
 #include "Universal/HealthComponent.h"
+#include "Player/Camera.h"
+#include "Map/Grid.h"
+#include "Map/Resources/Mineral.h"
 
 ABroch::ABroch()
 {
@@ -23,29 +26,72 @@ ABroch::ABroch()
 
 void ABroch::SpawnCitizens()
 {
-	TArray<FName> names = BuildingMesh->GetAllSocketNames();
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	for (FName name : names) {
-		if (name == FName("InfoSocket"))
-			continue;
+	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+	FTileStruct tile = Camera->Grid->Storage[GetActorLocation().X / 100.0f + bound / 2][GetActorLocation().Y / 100.0f + bound / 2];
 
-		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+	TArray<FVector> locations = GetSpawnLocations(tile, tile, 4);
 
-		FNavLocation location;
-		nav->ProjectPointToNavigation(BuildingMesh->GetSocketLocation(name), location, FVector(400.0f, 400.0f, 30.0f));
+	for (int32 i = 0; i < Camera->CitizenNum; i++) {
+		if (locations.IsEmpty())
+			return;
+
+		int32 index = FMath::RandRange(0, locations.Num() - 1);
+
+		FNavLocation navLoc;
+		nav->ProjectPointToNavigation(locations[index], navLoc);
 
 		FActorSpawnParameters params;
 		params.bNoFail = true;
 
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, location, GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f), params);
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, navLoc.Location, GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f), params);
 
-		for (int32 i = 0; i < 2; i++)
+		for (int32 j = 0; j < 2; j++)
 			citizen->GivePersonalityTrait();
 
 		citizen->BioStruct.Age = 17;
 		citizen->Birthday();
 
 		citizen->HealthComponent->AddHealth(100);
+
+		locations.RemoveAt(index);
 	}
+}
+
+TArray<FVector> ABroch::GetSpawnLocations(FTileStruct StartingTile, FTileStruct Tile, int32 Radius, int32 Count)
+{
+	TArray<FVector> locations;
+
+	FTransform startTransform = Camera->Grid->GetTransform(&StartingTile);
+	FTransform transform = Camera->Grid->GetTransform(&Tile);
+
+	if (Tiles.Contains(TTuple<int32, int32>(Tile.X, Tile.Y)) || StartingTile.Level != Tile.Level)
+		return locations;
+
+	FHitResult hit(ForceInit);
+
+	if (GetWorld()->LineTraceSingleByChannel(hit, transform.GetLocation(), transform.GetLocation() + FVector(0.0f, 0.0f, 20.0f), ECollisionChannel::ECC_Visibility) && hit.GetActor()->IsA<AMineral>())
+		return locations;
+	
+	Tiles.Add(TTuple<int32, int32>(Tile.X, Tile.Y));
+
+	Count++;
+
+	for (int32 y = -2; y < 3; y++) {
+		for (int32 x = -2; x < 3; x++) {
+			FVector location = transform.GetLocation() + FVector(x * 20.0f, y * 20.0f, 0.0f);
+
+			if (FVector::Dist(startTransform.GetLocation(), location) > 110.0f)
+				locations.Add(location);
+		}
+	}
+
+	if (Count == Radius)
+		return locations;
+
+	for (auto& element : Tile.AdjacentTiles)
+		locations.Append(GetSpawnLocations(StartingTile, *element.Value, Radius, Count));
+
+	return locations;
 }
