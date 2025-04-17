@@ -1,6 +1,7 @@
 #include "Buildings/Misc/Broch.h"
 
 #include "Components/DecalComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
@@ -54,6 +55,8 @@ void ABroch::SpawnCitizens()
 		citizen->Birthday();
 
 		citizen->HealthComponent->AddHealth(100);
+
+		citizen->SetActorLocation(navLoc.Location + FVector(0.0f, 0.0f, citizen->Capsule->GetScaledCapsuleHalfHeight()));
 
 		locations.RemoveAt(index);
 	}

@@ -86,7 +86,8 @@ ACamera::ACamera()
 	WidgetSpringArmComponent->SetTickableWhenPaused(true);
 	WidgetSpringArmComponent->TargetArmLength = 0.0f;
 	WidgetSpringArmComponent->bUsePawnControlRotation = true;
-	WidgetSpringArmComponent->bEnableCameraLag = false;
+	WidgetSpringArmComponent->bEnableCameraLag = true;
+	WidgetSpringArmComponent->CameraLagSpeed = 15.0f;
 	WidgetSpringArmComponent->bDoCollisionTest = false;
 
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
@@ -716,7 +717,7 @@ void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 
 void ACamera::Look(const struct FInputActionInstance& Instance)
 {
-	if (bInMenu || !bMouseCapture)
+	if (bInMenu)
 		return;
 
 	MovementComponent->Look(Instance);

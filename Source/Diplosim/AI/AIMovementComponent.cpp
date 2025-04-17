@@ -3,10 +3,12 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 
 #include "AI.h"
 #include "Citizen.h"
 #include "Enemy.h"
+#include "AttackComponent.h"
 #include "DiplosimAIController.h"
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
@@ -35,7 +37,9 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	if (!Points.IsEmpty() && FVector::DistXY(GetOwner()->GetActorLocation(), Points[0]) < 1.0f) {
+	float distance = FMath::Min(150.0f * DeltaTime, Cast<AAI>(GetOwner())->AttackComponent->RangeComponent->GetUnscaledSphereRadius() / 20.0f);
+
+	if (!Points.IsEmpty() && FVector::DistXY(GetOwner()->GetActorLocation(), Points[0]) < distance) {
 		for (auto& element : avoidPoints) {
 			if (!element.Value.Contains(Points[0]))
 				continue;
@@ -120,7 +124,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 				}
 
 				closest = pos[0];
-					
+
 				if (pos.Num() > 1) {
 					float dist0 = FVector::Dist(GetOwner()->GetActorLocation(), pos[0]);
 					float dist1 = FVector::Dist(GetOwner()->GetActorLocation(), pos[1]);
@@ -146,14 +150,14 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 			}
 		}
 	}
-		
+
 	if (Points.IsEmpty())
 		Velocity = FVector::Zero();
 	else
 		Velocity = CalculateVelocity(Points[0]);
 
 	UpdateComponentVelocity();
-		
+
 	FVector deltaV = Velocity * DeltaTime;
 
 	if (!deltaV.IsNearlyZero(1e-6f))
@@ -164,7 +168,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		queryParams.AddIgnoredActor(GetOwner());
 
 		int32 z = 0;
-		
+
 		if (GetWorld()->LineTraceSingleByChannel(hit, GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation() - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_GameTraceChannel1, queryParams))
 			z = hit.Location.Z;
 
@@ -179,7 +183,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		if (GetOwner()->GetActorRotation() != targetRotation)
 			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), targetRotation, DeltaTime, 10.0f));
 
-		if (CurrentAnim != nullptr)
+		if (IsValid(CurrentAnim))
 			return;
 
 		Cast<AAI>(GetOwner())->Mesh->PlayAnimation(MoveAnim, true);

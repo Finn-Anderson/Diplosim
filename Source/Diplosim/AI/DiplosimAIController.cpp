@@ -54,7 +54,9 @@ void ADiplosimAIController::Tick(float DeltaTime)
 		return;
 	}
 
-	if ((FMath::IsNearlyZero(GetOwner()->GetVelocity().X) && FMath::IsNearlyZero(GetOwner()->GetVelocity().Y)))
+	int32 range = Cast<AAI>(GetOwner())->AttackComponent->RangeComponent->GetUnscaledSphereRadius();
+
+	if ((FMath::IsNearlyZero(GetOwner()->GetVelocity().X) && FMath::IsNearlyZero(GetOwner()->GetVelocity().Y)) && FVector::Dist(GetOwner()->GetActorLocation(), MoveRequest.GetGoalActor()->GetActorLocation()) < (range / 20.0f))
 		RecalculateMovement(MoveRequest.GetGoalActor());
 
 	if (MoveRequest.GetGoalActor()->IsA<AAI>())
@@ -384,7 +386,7 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 	if (MoveRequest.GetGoalActor() != Actor)
 		return;
 
-	AIMoveTo(Actor);
+	AIMoveTo(Actor, MoveRequest.GetLocation(), MoveRequest.GetGoalInstance());
 }
 
 void ADiplosimAIController::StartMovement()

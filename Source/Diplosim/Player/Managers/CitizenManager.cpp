@@ -1,5 +1,6 @@
 #include "Player/Managers/CitizenManager.h"
 
+#include "Camera/CameraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
@@ -227,6 +228,9 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		for (ACitizen* citizen : Citizens) {
 			if (citizen->HealthComponent->GetHealth() <= 0)
 				continue;
+
+			float distance = FVector::Dist(Cast<ACamera>(GetOwner())->CameraComponent->GetComponentLocation(), citizen->GetActorLocation());
+			citizen->MovementComponent->SetComponentTickInterval(distance / 100000.0f);
 
 			int32 range = citizen->AttackComponent->RangeComponent->GetUnscaledSphereRadius();
 			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), citizen->GetActorLocation(), range, objects, nullptr, ignore, actors);
