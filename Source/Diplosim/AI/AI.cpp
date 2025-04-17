@@ -19,16 +19,10 @@ AAI::AAI()
 
 	Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
 	Capsule->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Capsule->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Ignore);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Ignore);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Ignore);
-	Capsule->SetGenerateOverlapEvents(true);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
+	Capsule->SetGenerateOverlapEvents(false);
 	Capsule->bDynamicObstacle = false;
 
 	RootComponent = Capsule;
@@ -37,17 +31,6 @@ AAI::AAI()
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh->SetGenerateOverlapEvents(false);
 	Mesh->SetupAttachment(RootComponent);
-
-	Reach = CreateDefaultSubobject<USphereComponent>(TEXT("ReachCollision"));
-	Reach->SetCollisionProfileName("Spectator", true);
-	Reach->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
-	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
-	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Ignore);
-	Reach->SetSphereRadius(30.0f, true);
-	Reach->SetupAttachment(RootComponent);
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
@@ -72,9 +55,6 @@ void AAI::BeginPlay()
 
 	AIController = GetController<ADiplosimAIController>();
 	AIController->Owner = this;
-
-	Reach->OnComponentBeginOverlap.AddDynamic(this, &AAI::OnOverlapBegin);
-	Reach->OnComponentEndOverlap.AddDynamic(this, &AAI::OnOverlapEnd);
 }
 
 void AAI::MoveToBroch()
@@ -116,16 +96,4 @@ void AAI::MoveToBroch()
 	}
 
 	AIController->AIMoveTo(target);
-}
-
-void AAI::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (AttackComponent->OverlappingEnemies.Contains(OtherActor) && !AttackComponent->MeleeableEnemies.Contains(OtherActor))
-		AttackComponent->CanHit(OtherActor);
-}
-
-void AAI::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (AttackComponent->MeleeableEnemies.Contains(OtherActor))
-		AttackComponent->MeleeableEnemies.Remove(OtherActor);
 }

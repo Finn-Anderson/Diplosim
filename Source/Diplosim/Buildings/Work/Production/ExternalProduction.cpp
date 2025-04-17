@@ -29,17 +29,8 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 	if (amount == StorageCap)
 		return;
 
-	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
-
 	if (GetOccupied().Contains(Citizen))
 		Production(Citizen);
-}
-
-void AExternalProduction::Leave(ACitizen* Citizen)
-{
-	Super::Leave(Citizen);
-
-	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Ignore);
 }
 
 void AExternalProduction::OnRadialOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

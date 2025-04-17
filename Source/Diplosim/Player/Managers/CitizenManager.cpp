@@ -9,8 +9,10 @@
 #include "Kismet/KismetArrayLibrary.h"
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI/Citizen.h"
+#include "AI/Enemy.h"
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
@@ -30,7 +32,8 @@
 
 UCitizenManager::UCitizenManager()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	SetComponentTickInterval(0.2f);
 
 	CooldownTimer = 0;
 
@@ -203,6 +206,173 @@ void UCitizenManager::ReadJSONFile(FString path)
 			}
 		}
 	}
+}
+
+void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	if (Citizens.IsEmpty() && Enemies.IsEmpty())
+		return;
+
+	Async(EAsyncExecution::Thread, [this]() {
+		TArray<TEnumAsByte<EObjectTypeQuery>> objects;
+
+		TArray<AActor*> ignore;
+		ignore.Add(Cast<ACamera>(GetOwner())->Grid);
+
+		for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->MineralStruct)
+			ignore.Add(resourceStruct.Resource);
+
+		TArray<AActor*> actors;
+
+		for (ACitizen* citizen : Citizens) {
+			if (citizen->HealthComponent->GetHealth() <= 0)
+				continue;
+
+			int32 range = citizen->AttackComponent->RangeComponent->GetUnscaledSphereRadius();
+			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), citizen->GetActorLocation(), range, objects, nullptr, ignore, actors);
+
+			for (AActor* actor : actors) {
+				if (actor == citizen || (!actor->IsA<AAI>() && !actor->IsA<AResource>() && !actor->IsA<ABuilding>()))
+					continue;
+
+				if (actor->IsA<AAI>()) {
+					AAI* ai = Cast<AAI>(actor);
+
+					if (!ai->IsA<AEnemy>() && Cast<ACitizen>(ai)->Rebel == citizen->Rebel)
+						continue;
+
+					if (ai->Capsule->GetCollisionObjectType() == citizen->Capsule->GetCollisionObjectType()) {
+						if (FVector::Dist(citizen->GetActorLocation(), ai->GetActorLocation()) < (range / 20.0f) && !Infected.IsEmpty()) {
+							ACitizen* c = Cast<ACitizen>(ai);
+
+							if (c->Building.Employment == nullptr || !c->Building.Employment->IsA<AClinic>()) {
+								for (FConditionStruct condition : citizen->HealthIssues) {
+									if (c->HealthIssues.Contains(condition))
+										continue;
+
+									int32 chance = FMath::RandRange(1, 100);
+
+									if (chance <= condition.Spreadability)
+										c->HealthIssues.Add(condition);
+								}
+
+								if (!c->HealthIssues.IsEmpty() && !c->DiseaseNiagaraComponent->IsActive())
+									Infect(c);
+							}
+
+							if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && !GetWorld()->GetTimerManager().IsTimerActive(citizen->HealTimer)) {
+								citizen->CitizenHealing = c;
+
+								AsyncTask(ENamedThreads::GameThread, [this, citizen, c]() { GetWorld()->GetTimerManager().SetTimer(citizen->HealTimer, FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), 2.0f / citizen->GetProductivity(), false); });
+							}
+						}
+					}
+					else if (ai->HealthComponent->GetHealth() > 0) {
+						if (!*citizen->AttackComponent->ProjectileClass && !citizen->AIController->CanMoveTo(ai->GetActorLocation()))
+							return;
+
+						citizen->AttackComponent->OverlappingEnemies.Add(ai);
+
+						if (citizen->AttackComponent->OverlappingEnemies.Num() == 1)
+							citizen->AttackComponent->SetComponentTickEnabled(true);
+
+						if (FVector::Dist(citizen->GetActorLocation(), ai->GetActorLocation()) < (range / 20.0f))
+							citizen->AttackComponent->MeleeableEnemies.Add(ai);
+					}
+				}
+				else if (citizen->AIController->MoveRequest.GetGoalActor() == actor) {
+					FTransform transform;
+					transform.SetLocation(actor->GetActorLocation());
+
+					if (actor->IsA<ABuilding>()) {
+						FVector location;
+
+						actor->GetComponentByClass<UStaticMeshComponent>()->GetClosestPointOnCollision(citizen->GetActorLocation(), location);
+
+						transform.SetLocation(location);
+					}
+					else {
+						actor->GetComponentByClass<UHierarchicalInstancedStaticMeshComponent>()->GetInstanceTransform(citizen->AIController->MoveRequest.GetGoalInstance(), transform);
+					}
+
+					if (FVector::Dist(citizen->GetActorLocation(), transform.GetLocation()) < (range / 20.0f)) {
+						if (actor->IsA<AResource>()) {
+							AResource* r = Cast<AResource>(actor);
+
+							AsyncTask(ENamedThreads::GameThread, [this, citizen, r]() { citizen->StartHarvestTimer(r); });
+						}
+						else if (actor->IsA<ABuilding>()) {
+							ABuilding* b = Cast<ABuilding>(actor);
+
+							AsyncTask(ENamedThreads::GameThread, [this, citizen, b]() { b->Enter(citizen); });
+						}
+					}
+				}
+			}
+
+			// Cleanup
+			for (int32 i = citizen->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
+				AActor* actor = citizen->AttackComponent->OverlappingEnemies[i];
+
+				if (actors.Contains(actor)) {
+					if (citizen->AttackComponent->MeleeableEnemies.Contains(actor) && FVector::Dist(citizen->GetActorLocation(), actor->GetActorLocation()) >= (range / 20.0f))
+						citizen->AttackComponent->MeleeableEnemies.Remove(actor);
+
+					continue;
+				}
+
+				if (citizen->AttackComponent->MeleeableEnemies.Contains(actor))
+					citizen->AttackComponent->MeleeableEnemies.Remove(actor);
+
+				citizen->AttackComponent->OverlappingEnemies.RemoveAt(i);
+			}
+		}
+
+		for (AAI* enemy : Enemies) {
+			if (enemy->HealthComponent->GetHealth() <= 0)
+				continue;
+
+			int32 range = enemy->AttackComponent->RangeComponent->GetUnscaledSphereRadius();
+			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), enemy->GetActorLocation(), range, objects, nullptr, ignore, actors);
+
+			for (AActor* actor : actors) {
+				if (actor == enemy || !actor->IsA<AAI>())
+					continue;
+
+				AAI* ai = Cast<AAI>(actor);
+
+				if ((enemy->GetClass() == ai->GetClass() && (enemy->IsA<AEnemy>() || (enemy->IsA<ACitizen>() && Cast<ACitizen>(enemy)->Rebel == Cast<ACitizen>(ai)->Rebel))) || ai->HealthComponent->GetHealth() <= 0)
+					continue;
+
+				if (!*enemy->AttackComponent->ProjectileClass && !enemy->AIController->CanMoveTo(ai->GetActorLocation()))
+					return;
+
+				enemy->AttackComponent->OverlappingEnemies.Add(ai);
+
+				if (enemy->AttackComponent->OverlappingEnemies.Num() == 1)
+					enemy->AttackComponent->SetComponentTickEnabled(true);
+
+				if (FVector::Dist(enemy->GetActorLocation(), ai->GetActorLocation()) < (range / 20.0f))
+					enemy->AttackComponent->MeleeableEnemies.Add(ai);
+			}
+
+			for (int32 i = enemy->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
+				AActor* actor = enemy->AttackComponent->OverlappingEnemies[i];
+
+				if (actors.Contains(actor)) {
+					if (enemy->AttackComponent->MeleeableEnemies.Contains(actor) && FVector::Dist(enemy->GetActorLocation(), actor->GetActorLocation()) >= (range / 20.0f))
+						enemy->AttackComponent->MeleeableEnemies.Remove(actor);
+
+					continue;
+				}
+
+				if (enemy->AttackComponent->MeleeableEnemies.Contains(actor))
+					enemy->AttackComponent->MeleeableEnemies.Remove(actor);
+
+				enemy->AttackComponent->OverlappingEnemies.RemoveAt(i);
+			}
+		}
+	});
 }
 
 void UCitizenManager::Loop()
@@ -489,7 +659,6 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 {
 	Citizen->DiseaseNiagaraComponent->Activate();
 	Citizen->PopupComponent->SetHiddenInGame(false);
-	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Overlap);
 
 	Citizen->SetActorTickEnabled(true);
 
@@ -540,8 +709,6 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 				Citizen->ApplyToMultiplier("Health", 1.0f + (1.0f - affect.Amount));
 		}
 	}
-
-	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
 
 	Citizen->HealthIssues.Empty();
 
@@ -634,15 +801,11 @@ void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
 	}
 
 	if (Citizen != nullptr) {
-		Healer->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Overlap);
-
 		Healer->AIController->AIMoveTo(Citizen);
 
 		Healing.Add(Citizen);
 	}
 	else if (Healer->Building.BuildingAt != Healer->Building.Employment) {
-		Healer->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
-
 		Healer->AIController->DefaultAction();
 	}
 }
@@ -1423,8 +1586,6 @@ void UCitizenManager::Overthrow()
 	CooldownTimer = 1500;
 
 	for (ACitizen* citizen : Citizens) {
-		citizen->AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-
 		if (GetMembersParty(citizen) == nullptr || GetMembersParty(citizen)->Party != EParty::ShellBreakers)
 			return;
 
@@ -1438,23 +1599,13 @@ void UCitizenManager::Overthrow()
 void UCitizenManager::SetupRebel(class ACitizen* Citizen)
 {
 	Citizens.Remove(Citizen);
-	Rebels.Add(Citizen);
+	Enemies.Add(Citizen);
 
 	Citizen->Rebel = true;
 
 	Citizen->HatMesh->SetStaticMesh(Citizen->RebelHat);
 
 	Citizen->Capsule->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel3);
-
-	Citizen->AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-
-	Citizen->AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Overlap);
-	Citizen->AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Ignore);
-	Citizen->AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
-
-	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Overlap);
-	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Ignore);
-	Citizen->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
 
 	Citizen->MoveToBroch();
 }

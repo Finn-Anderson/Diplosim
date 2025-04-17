@@ -26,14 +26,12 @@ UAttackComponent::UAttackComponent()
 	SetTickableWhenPaused(false);
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
-	RangeComponent->SetCollisionProfileName("Spectator", true);
-	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
+	RangeComponent->SetGenerateOverlapEvents(false);
+	RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RangeComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
 	RangeComponent->SetSphereRadius(400.0f);
-
-	RangeComponent->bDynamicObstacle = true;
 	RangeComponent->SetCanEverAffectNavigation(false);
+	RangeComponent->bDynamicObstacle = true;
 
 	Damage = 10;
 
@@ -57,9 +55,6 @@ void UAttackComponent::BeginPlay()
 		if (Cast<ACitizen>(GetOwner())->BioStruct.Age < 18)
 			bCanAttack = false;
 	}
-
-	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &UAttackComponent::OnOverlapBegin);
-	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &UAttackComponent::OnOverlapEnd);
 }
 
 void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -75,23 +70,6 @@ void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 		return;
 
 	Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
-}
-
-void UAttackComponent::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (!*ProjectileClass && !Cast<AAI>(GetOwner())->AIController->CanMoveTo(OtherActor->GetActorLocation()))
-		return;
-
-	OverlappingEnemies.Add(OtherActor);
-
-	if (OverlappingEnemies.Num() == 1)
-		SetComponentTickEnabled(true);
-}
-
-void UAttackComponent::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OverlappingEnemies.Contains(OtherActor))
-		OverlappingEnemies.Remove(OtherActor);
 }
 
 void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)

@@ -85,16 +85,6 @@ ACitizen::ACitizen()
 	AmbientAudioComponent->PitchModulationMin = 0.9f;
 	AmbientAudioComponent->PitchModulationMax = 1.1f;
 
-	AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
-	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
-	AttackComponent->RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
-
-	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
-	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
-	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
-	Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
-
 	Balance = 20;
 
 	Hunger = 100;
@@ -183,78 +173,6 @@ void ACitizen::BeginPlay()
 		SetTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
 	GenerateGenetics();
-}
-
-void ACitizen::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	Super::OnOverlapBegin(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
-
-	// Disease
-	if (OtherActor->IsA<ACitizen>()) {
-		ACitizen* citizen = Cast<ACitizen>(OtherActor);
-
-		if (citizen->Building.Employment == nullptr || !citizen->Building.Employment->IsA<AClinic>()) {
-			for (FConditionStruct condition : HealthIssues) {
-				if (citizen->HealthIssues.Contains(condition))
-					continue;
-
-				int32 chance = FMath::RandRange(1, 100);
-
-				if (chance <= condition.Spreadability)
-					citizen->HealthIssues.Add(condition);
-			}
-
-			if (!citizen->HealthIssues.IsEmpty() && !citizen->DiseaseNiagaraComponent->IsActive())
-				Camera->CitizenManager->Infect(citizen);
-		}
-
-		if (Building.Employment != nullptr && Building.Employment->IsA<AClinic>() && !GetWorldTimerManager().IsTimerActive(HealTimer)) {
-			CitizenHealing = citizen;
-
-			GetWorldTimerManager().SetTimer(HealTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Heal, citizen), 2.0f / GetProductivity(), false);
-		}
-	}
-
-	// Movement
-	if (OtherActor->IsA<AResource>() || OtherActor->IsA<ABuilding>()) {
-		FCollidingStruct collidingStruct;
-		collidingStruct.Actor = OtherActor;
-
-		if (OtherActor->IsA<AResource>())
-			collidingStruct.Instance = OtherBodyIndex;
-
-		StillColliding.Add(collidingStruct);
-	}
-
-	if (OtherActor != AIController->MoveRequest.GetGoalActor() || (OtherBodyIndex != AIController->MoveRequest.GetGoalInstance() && AIController->MoveRequest.GetGoalInstance() > -1))
-		return;
-
-	if (OtherActor->IsA<AResource>()) {
-		AResource* r = Cast<AResource>(OtherActor);
-
-		StartHarvestTimer(r);
-	}
-	else if (OtherActor->IsA<ABuilding>()) {
-		ABuilding* b = Cast<ABuilding>(OtherActor);
-
-		b->Enter(this);
-	}
-}
-
-void ACitizen::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	Super::OnOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
-
-	FCollidingStruct collidingStruct;
-	collidingStruct.Actor = OtherActor;
-
-	if (OtherActor->IsA<AResource>())
-		collidingStruct.Instance = OtherBodyIndex;
-	else if (OtherActor->IsA<ACitizen>() && CitizenHealing == OtherActor && GetWorldTimerManager().IsTimerActive(HealTimer))
-		GetWorldTimerManager().ClearTimer(HealTimer);
-
-	if (StillColliding.Contains(collidingStruct))
-		StillColliding.Remove(collidingStruct);
 }
 
 //
@@ -633,22 +551,6 @@ void ACitizen::Heal(ACitizen* Citizen)
 
 	if (AIController->MoveRequest.GetGoalActor() == Citizen)
 		Camera->CitizenManager->PickCitizenToHeal(this);
-
-	TArray<AActor*> actors;
-	Reach->GetOverlappingActors(actors);
-
-	for (AActor* actor : actors) {
-		if (!actor->IsA<ACitizen>() || Cast<ACitizen>(actor)->HealthIssues.IsEmpty())
-			continue;
-
-		ACitizen* citizen = Cast<ACitizen>(actor);
-
-		CitizenHealing = citizen;
-
-		GetWorldTimerManager().SetTimer(HealTimer, FTimerDelegate::CreateUObject(this, &ACitizen::Heal, citizen), 2.0f / GetProductivity(), false);
-
-		break;
-	}
 }
 
 int32 ACitizen::GetLeftoverMoney()
@@ -1824,12 +1726,12 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 
 		Capsule->SetRelativeScale3D(FVector(1.0f) * ReachMultiplier);
 
-		AttackComponent->RangeComponent->SetRelativeScale3D(FVector(1.0f) * AwarenessMultiplier * (1.0f / ReachMultiplier));
+		AttackComponent->RangeComponent->SetSphereRadius(AttackComponent->RangeComponent->GetUnscaledSphereRadius() * AwarenessMultiplier * (1.0f / ReachMultiplier));
 	}
 	else if (Affect == "Awareness") {
 		AwarenessMultiplier += Amount;
 
-		AttackComponent->RangeComponent->SetRelativeScale3D(FVector(1.0f) * AwarenessMultiplier * (1.0f / ReachMultiplier));
+		AttackComponent->RangeComponent->SetSphereRadius(AttackComponent->RangeComponent->GetUnscaledSphereRadius() * AwarenessMultiplier * (1.0f / ReachMultiplier));
 	}
 	else if (Affect == "Food") {
 		FoodMultiplier += Amount;

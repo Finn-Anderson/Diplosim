@@ -123,9 +123,6 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		USkeletalMeshComponent* mesh = actor->GetComponentByClass<USkeletalMeshComponent>();
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
-		attackComp->RangeComponent->SetGenerateOverlapEvents(false);
-		Cast<AAI>(actor)->Reach->SetGenerateOverlapEvents(false);
-
 		attackComp->ClearAttacks();
 
 		mesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
@@ -187,6 +184,12 @@ void UHealthComponent::Clear(AActor* Attacker)
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
+
+	if (actor->IsA<AAI>() && camera->CitizenManager->Enemies.Contains(Cast<AAI>(actor)))
+		camera->CitizenManager->Enemies.Remove(Cast<AAI>(actor));
+
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
@@ -225,22 +228,11 @@ void UHealthComponent::Clear(AActor* Attacker)
 		for (ACitizen* sibling : citizen->BioStruct.Siblings)
 			sibling->BioStruct.Siblings.Remove(citizen);
 
-		if (citizen->Rebel) {
-			citizen->Camera->CitizenManager->Rebels.Remove(citizen);
-
-			if (citizen->Camera->CitizenManager->Rebels.IsEmpty() && !citizen->Camera->ResourceManager->GameMode->bOngoingRaid)
-				for (ACitizen* c : citizen->Camera->CitizenManager->Citizens)
-					c->AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		}
-
 		if (Attacker->IsA<AEnemy>())
 			gamemode->WavesData.Last().NumKilled++;
 		else {
 			TMap<ACitizen*, int32> favouredChildren;
 			int32 totalCount = 0;
-
-			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-			ACamera* camera = PController->GetPawn<ACamera>();
 
 			for (ACitizen* c : citizen->BioStruct.Children) {
 				int32 count = 0;

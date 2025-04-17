@@ -54,7 +54,7 @@ void ADiplosimAIController::Tick(float DeltaTime)
 		return;
 	}
 
-	if ((FMath::IsNearlyZero(GetOwner()->GetVelocity().X) && FMath::IsNearlyZero(GetOwner()->GetVelocity().Y)) && (GetOwner()->IsA<AEnemy>() || !Cast<ACitizen>(GetOwner())->StillColliding.Contains(collidingStruct)))
+	if ((FMath::IsNearlyZero(GetOwner()->GetVelocity().X) && FMath::IsNearlyZero(GetOwner()->GetVelocity().Y)))
 		RecalculateMovement(MoveRequest.GetGoalActor());
 
 	if (MoveRequest.GetGoalActor()->IsA<AAI>())
@@ -141,8 +141,6 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 			time = 60.0f;
 		}
 		else {
-			Cast<AAI>(GetOwner())->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
-
 			UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 			const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
@@ -370,9 +368,6 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	SetFocus(Actor);
 
-	if (Actor->IsA<ABuilding>())
-		Cast<AAI>(GetOwner())->Reach->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-
 	if (!GetOwner()->IsA<ACitizen>() || Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor)
 		return;
 
@@ -382,24 +377,6 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	if (citizen->Building.BuildingAt != nullptr)
 		citizen->Building.BuildingAt->Leave(citizen);
-
-	FCollidingStruct collidingStruct;
-	collidingStruct.Actor = Actor;
-	collidingStruct.Instance = Instance;
-	
-	if (!citizen->StillColliding.Contains(collidingStruct))
-		return;
-
-	if (Actor->IsA<ABuilding>()) {
-		ABuilding* building = Cast<ABuilding>(Actor);
-
-		building->Enter(citizen);
-	}
-	else if (Actor->IsA<AResource>()) {
-		AResource* resource = Cast<AResource>(Actor);
-
-		citizen->StartHarvestTimer(resource);
-	}
 }
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)

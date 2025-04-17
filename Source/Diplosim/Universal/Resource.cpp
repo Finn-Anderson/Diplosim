@@ -11,7 +11,7 @@ AResource::AResource()
 	ResourceHISM->SetCollisionObjectType(ECollisionChannel::ECC_Destructible);
 	ResourceHISM->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
-	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
+	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->SetMobility(EComponentMobility::Static);
 	ResourceHISM->SetCanEverAffectNavigation(false);
 	ResourceHISM->bCastDynamicShadow = true;

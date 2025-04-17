@@ -232,9 +232,6 @@ void ADiplosimGameModeBase::SpawnEnemies()
 			enemyData.Tally = enemyData.Tally % 200;
 		}
 
-		for (ACitizen* citizen : Camera->CitizenManager->Citizens)
-			citizen->AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-
 		Camera->DisplayEvent("Event", "Raid");
 	});
 }
@@ -286,6 +283,8 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations,
 
 	enemy->Colour = Colour;
 
+	Camera->CitizenManager->Enemies.Add(enemy);
+
 	enemy->MoveToBroch();
 
 	WavesData.Last().TotalEnemies++;
@@ -306,10 +305,6 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 			return false;
 
 		bOngoingRaid = false;
-
-		if (Camera->CitizenManager->Rebels.IsEmpty())
-			for (ACitizen* citizen : Camera->CitizenManager->Citizens)
-				citizen->AttackComponent->RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
 	return true;

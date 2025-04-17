@@ -18,20 +18,11 @@ protected:
 public:
 	void MoveToBroch();
 
-	UFUNCTION()
-		virtual void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-		virtual void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CapsuleComponent")
 		class UCapsuleComponent* Capsule;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class USkeletalMeshComponent* Mesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
-		class USphereComponent* Reach;
 
 	// Fighting
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")

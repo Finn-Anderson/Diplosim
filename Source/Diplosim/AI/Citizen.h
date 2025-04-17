@@ -249,10 +249,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
-		
-	virtual void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
-
 	UFUNCTION(BlueprintImplementableEvent)
 		void SetPopupImageState(FName Command, FName Type);
 
@@ -349,9 +345,6 @@ public:
 	// Buildings
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
 		FBuildingStruct Building;
-
-	UPROPERTY()
-		TArray<FCollidingStruct> StillColliding;
 
 	// Resources
 	void StartHarvestTimer(class AResource* Resource);

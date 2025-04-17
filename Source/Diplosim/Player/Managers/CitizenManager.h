@@ -399,6 +399,8 @@ protected:
 	void ReadJSONFile(FString path);
 
 public:
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	void Loop();
 
 	// Timers
@@ -575,7 +577,7 @@ public:
 	bool IsRebellion();
 
 	UPROPERTY()
-		TArray<class ACitizen*> Rebels;
+		TArray<class AAI*> Enemies;
 
 	UPROPERTY()
 		int32 CooldownTimer;

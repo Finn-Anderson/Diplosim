@@ -15,9 +15,9 @@ ATrap::ATrap()
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetCollisionProfileName("Spectator", true);
 	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	RangeComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
+	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
 	RangeComponent->SetupAttachment(BuildingMesh);
 	RangeComponent->SetSphereRadius(150.0f);
 
