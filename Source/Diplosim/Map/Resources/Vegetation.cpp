@@ -17,27 +17,27 @@ AVegetation::AVegetation()
 
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, Instance]() {
-		if (ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10] == 0.0f) {
-			APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-			ACamera* camera = PController->GetPawn<ACamera>();
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%d"), Instance));
+	
+	if (ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10] == 0.0f) {
+		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		ACamera* camera = PController->GetPawn<ACamera>();
 
-			camera->Grid->RemoveTree(this, Instance);
+		camera->Grid->RemoveTree(this, Instance);
 
-			return;
-		}
+		return;
+	}
 
-		FTransform transform;
-		ResourceHISM->GetInstanceTransform(Instance, transform);
-		transform.SetScale3D(FVector(ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] / 10));
+	FTransform transform;
+	ResourceHISM->GetInstanceTransform(Instance, transform);
+	transform.SetScale3D(FVector(ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] / 10));
 
-		ResourceHISM->UpdateInstanceTransform(Instance, transform, false);
+	ResourceHISM->UpdateInstanceTransform(Instance, transform, false);
 
-		GrowingInstances.Add(Instance);
+	GrowingInstances.Add(Instance);
 
-		if (!GetWorldTimerManager().IsTimerActive(GrowTimer))
-			GetWorldTimerManager().SetTimer(GrowTimer, this, &AVegetation::Grow, TimeLength / 100.0f, true);
-	});
+	if (!GetWorldTimerManager().IsTimerActive(GrowTimer))
+		GetWorldTimerManager().SetTimer(GrowTimer, this, &AVegetation::Grow, TimeLength / 100.0f, true);
 }
 
 void AVegetation::Grow()

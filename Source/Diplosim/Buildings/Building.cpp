@@ -788,9 +788,6 @@ void ABuilding::Enter(ACitizen* Citizen)
 {
 	if (Citizen->Building.BuildingAt == this)
 		return;
-
-	if (!IsA<AFarm>())
-		Citizen->AIController->StopMovement();
 	
 	Citizen->Building.BuildingAt = this;
 	Citizen->Building.EnterLocation = Citizen->GetActorLocation();

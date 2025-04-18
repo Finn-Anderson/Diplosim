@@ -37,7 +37,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	float distance = FMath::Min(150.0f * DeltaTime, Cast<AAI>(GetOwner())->AttackComponent->RangeComponent->GetUnscaledSphereRadius() / 20.0f);
+	float distance = FMath::Min(150.0f * DeltaTime, Cast<AAI>(GetOwner())->AttackComponent->RangeComponent->GetUnscaledSphereRadius() / 15.0f);
 
 	if (!Points.IsEmpty() && FVector::DistXY(GetOwner()->GetActorLocation(), Points[0]) < distance) {
 		for (auto& element : avoidPoints) {

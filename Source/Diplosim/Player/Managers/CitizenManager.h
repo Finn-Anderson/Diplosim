@@ -406,7 +406,7 @@ public:
 	// Timers
 	void StartTimers();
 
-	void ExecTimerDelegate(int32 Index);
+	void ExecTimerDelegate(FTimerStruct Timer);
 
 	FTimerStruct* FindTimer(FString ID, AActor* Actor);
 

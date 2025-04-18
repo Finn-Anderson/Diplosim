@@ -406,25 +406,25 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 			params.AddIgnoredActor(Camera->Grid);
 
 			FVector extent;
-
-			UHierarchicalInstancedStaticMeshComponent* HISM = collision.Actor->FindComponentByClass<UHierarchicalInstancedStaticMeshComponent>();
-
-			if (IsValid(HISM)) {
-				extent = HISM->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
+			FVector offset = FVector::Zero();
+			
+			if (IsValid(collision.HISM)) {
+				extent = (collision.HISM->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f);
+				offset = FVector(0.0f, 0.0f, 100.0f - extent.Z);
+				extent *= 0.7f;
 			}
 			else {
 				UStaticMeshComponent* mesh = collision.Actor->FindComponentByClass<UStaticMeshComponent>();
 
-				extent = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
+				extent = (mesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f) * 0.8f;
+				offset = FVector(0.0f, 0.0f, extent.Z);
 			}
 
 			FHitResult hit;
 
-			FVector endTrace = transform.GetLocation() + FVector(0.0f, 0.0f, building->GetActorLocation().Z - transform.GetLocation().Z);
-
 			if (building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
 				bCoast = true;
-			else if (GetWorld()->SweepSingleByChannel(hit, transform.GetLocation(), endTrace, collision.Actor->GetActorRotation().Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(extent * 0.8f), params) && !hit.GetActor()->IsHidden())
+			else if (GetWorld()->SweepSingleByChannel(hit, transform.GetLocation() + offset, transform.GetLocation() + offset, FQuat(0.0f), ECollisionChannel::ECC_PhysicsBody, FCollisionShape::MakeBox(extent), params) && !hit.GetActor()->IsHidden() && hit.GetActor() == building)
 				return false;
 		}
 	}

@@ -1061,16 +1061,17 @@ void AGrid::GenerateFlower(FTileStruct* Tile, AVegetation* Resource, int32 Insta
 
 void AGrid::RemoveTree(AResource* Resource, int32 Instance)
 {
-	int32 lastInstance = Resource->ResourceHISM->NumBuiltInstances - 1;
+	int32 lastInstance = Resource->ResourceHISM->GetInstanceCount() - 1;
 
 	FWorkerStruct workerStruct;
 	workerStruct.Instance = lastInstance;
 
 	int32 index = Resource->WorkerStruct.Find(workerStruct);
-	Resource->WorkerStruct[index].Instance = Instance;
 
-	for (ACitizen* citizen : Resource->WorkerStruct[index].Citizens) {
-		if (citizen->AIController->MoveRequest.GetGoalInstance() == lastInstance) {
+	if (index != INDEX_NONE) {
+		Resource->WorkerStruct[index].Instance = Instance;
+
+		for (ACitizen* citizen : Resource->WorkerStruct[index].Citizens) {
 			citizen->AIController->MoveRequest.SetGoalInstance(Instance);
 
 			break;

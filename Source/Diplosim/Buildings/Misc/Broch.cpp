@@ -69,7 +69,7 @@ TArray<FVector> ABroch::GetSpawnLocations(FTileStruct StartingTile, FTileStruct 
 	FTransform startTransform = Camera->Grid->GetTransform(&StartingTile);
 	FTransform transform = Camera->Grid->GetTransform(&Tile);
 
-	if (Tiles.Contains(TTuple<int32, int32>(Tile.X, Tile.Y)) || StartingTile.Level != Tile.Level)
+	if (Tiles.Contains(TTuple<int32, int32>(Tile.X, Tile.Y)) || FMath::RoundHalfFromZero(transform.GetLocation().Z) != FMath::RoundHalfFromZero(startTransform.GetLocation().Z))
 		return locations;
 
 	FHitResult hit(ForceInit);

@@ -790,6 +790,7 @@ void ACitizen::HarvestResource(AResource* Resource)
 	LoseEnergy();
 
 	int32 instance = AIController->MoveRequest.GetGoalInstance();
+	int32 amount = Resource->GetYield(this, instance);
 
 	if (!Camera->ResourceManager->GetResources(Building.Employment).Contains(resource->GetClass())) {
 		ABuilding* broch = Camera->ResourceManager->GameMode->Broch;
@@ -797,10 +798,10 @@ void ACitizen::HarvestResource(AResource* Resource)
 		if (!AIController->CanMoveTo(broch->GetActorLocation()))
 			AIController->DefaultAction();
 		else
-			Carry(resource, Resource->GetYield(this, instance), broch);
+			Carry(resource, amount, broch);
 	}
 	else
-		Carry(resource, Resource->GetYield(this, instance), Building.Employment);
+		Carry(resource, amount, Building.Employment);
 }
 
 void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
@@ -813,7 +814,7 @@ void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 	if (Location == nullptr)
 		AIController->StopMovement();
 	else
-		AIController->AIMoveTo(Location);
+		AIController->AIMoveTo(Location, FVector::Zero(), AIController->MoveRequest.GetGoalInstance());
 }
 
 //
