@@ -13,14 +13,10 @@ ATower::ATower()
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 	AttackComponent->AttackTime = 5.0f;
 
-	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
-	RangeComponent->SetCollisionProfileName("Spectator", true);
 	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	RangeComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	RangeComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
 	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
-	RangeComponent->SetupAttachment(BuildingMesh);
-	RangeComponent->SetSphereRadius(400.0f);
 }
 
 void ATower::BeginPlay()
@@ -31,9 +27,12 @@ void ATower::BeginPlay()
 	matInfo.Name = FScriptName("Colour");
 
 	BuildingMesh->GetMaterial(0)->GetVectorParameterValue(matInfo, Colour);
+
+	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &ATower::OnTowerOverlapBegin);
+	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &ATower::OnTowerOverlapEnd);
 }
 
-void ATower::OnTrapOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ATower::OnTowerOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AttackComponent->OverlappingEnemies.Add(OtherActor);
 
@@ -41,7 +40,7 @@ void ATower::OnTrapOverlapBegin(class UPrimitiveComponent* OverlappedComp, class
 		AttackComponent->SetComponentTickEnabled(true);
 }
 
-void ATower::OnTrapOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void ATower::OnTowerOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (AttackComponent->OverlappingEnemies.Contains(OtherActor))
 		AttackComponent->OverlappingEnemies.Remove(OtherActor);

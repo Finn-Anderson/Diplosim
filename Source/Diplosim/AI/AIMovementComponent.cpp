@@ -32,14 +32,30 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (DeltaTime > 1.0f)
+	if (DeltaTime > 1.0f || DeltaTime < 0.0001f)
 		return;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	float distance = FMath::Min(150.0f * DeltaTime, Cast<AAI>(GetOwner())->AttackComponent->RangeComponent->GetUnscaledSphereRadius() / 15.0f);
+	float range = FMath::Min(150.0f * DeltaTime, Cast<AAI>(GetOwner())->Range / 15.0f);
+	
+	ADiplosimAIController* aicontroller = Cast<AAI>(GetOwner())->AIController;
+	AActor* goal = aicontroller->MoveRequest.GetGoalActor();
 
-	if (!Points.IsEmpty() && FVector::DistXY(GetOwner()->GetActorLocation(), Points[0]) < distance) {
+	if (IsValid(goal)) {
+		if (Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(goal)) {
+			FRotator rotation = (goal->GetActorLocation() - GetOwner()->GetActorLocation()).Rotation();
+
+			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), rotation, DeltaTime, 100.0f));
+
+			return;
+		}
+
+		if (FVector::Dist(GetOwner()->GetActorLocation(), goal->GetActorLocation()) >= (range / 20.0f) && (Velocity.IsNearlyZero(1e-6f) || goal->IsA<AAI>()))
+			aicontroller->RecalculateMovement(goal);
+	}
+
+	if (!Points.IsEmpty() && FVector::DistXY(GetOwner()->GetActorLocation(), Points[0]) < range) {
 		for (auto& element : avoidPoints) {
 			if (!element.Value.Contains(Points[0]))
 				continue;
@@ -76,7 +92,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		FVector endTrace = startTrace + Velocity.Rotation().Vector() * 50.0f;
 
 		if (GetWorld()->SweepSingleByChannel(hit, startTrace, endTrace, FRotator(0.0f).Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeCapsule(FVector(9.0f, 9.0f, 11.5f)), queryParams)) {
-			if (!avoidPoints.Contains(hit.GetActor()) && hit.GetActor()->IsA<ABuilding>() && Cast<AAI>(GetOwner())->AIController->MoveRequest.GetGoalActor() != hit.GetActor() && !(hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA<AFestival>())) {
+			if (!avoidPoints.Contains(hit.GetActor()) && hit.GetActor()->IsA<ABuilding>() && goal != hit.GetActor() && !(hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA<AFestival>())) {
 				FVector hitSize = Cast<ABuilding>(hit.GetActor())->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
 				FVector ownerSize = Cast<AAI>(GetOwner())->Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize();

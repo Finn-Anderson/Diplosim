@@ -1727,12 +1727,12 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 
 		Capsule->SetRelativeScale3D(FVector(1.0f) * ReachMultiplier);
 
-		AttackComponent->RangeComponent->SetSphereRadius(400.0f * AwarenessMultiplier * (1.0f / ReachMultiplier));
+		Range = InitialRange * AwarenessMultiplier * (1.0f / ReachMultiplier);
 	}
 	else if (Affect == "Awareness") {
 		AwarenessMultiplier += Amount;
 
-		AttackComponent->RangeComponent->SetSphereRadius(400.0f * AwarenessMultiplier * (1.0f / ReachMultiplier));
+		Range = InitialRange * AwarenessMultiplier * (1.0f / ReachMultiplier);
 	}
 	else if (Affect == "Food") {
 		FoodMultiplier += Amount;

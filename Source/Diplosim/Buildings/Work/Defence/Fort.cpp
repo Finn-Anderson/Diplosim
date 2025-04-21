@@ -18,7 +18,7 @@ void AFort::Enter(ACitizen* Citizen)
 
 	int32 z = FMath::Clamp(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 100.0f, 1, 5);
 
-	Citizen->AttackComponent->RangeComponent->SetSphereRadius(Citizen->AttackComponent->RangeComponent->GetUnscaledSphereRadius() * z);
+	Citizen->Range *= z;
 }
 
 void AFort::Leave(ACitizen* Citizen)
@@ -30,5 +30,5 @@ void AFort::Leave(ACitizen* Citizen)
 
 	int32 z = FMath::Clamp(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 100.0f, 1, 5);
 
-	Citizen->AttackComponent->RangeComponent->SetSphereRadius(Citizen->AttackComponent->RangeComponent->GetUnscaledSphereRadius() / z);
+	Citizen->Range /= z;
 }

@@ -1,14 +1,25 @@
 #include "Buildings/Work/Defence/Wall.h"
 
 #include "Components/DecalComponent.h"
+#include "Components/SphereComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/AttackComponent.h"
 #include "Universal/HealthComponent.h"
+#include "Universal/DiplosimGameModeBase.h"
+#include "Fort.h"
 
 AWall::AWall()
 {
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+
+	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
+	RangeComponent->SetGenerateOverlapEvents(false);
+	RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RangeComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	RangeComponent->SetSphereRadius(400.0f);
+	RangeComponent->SetCanEverAffectNavigation(false);
+	RangeComponent->bDynamicObstacle = true;
 
 	HealthComponent->MaxHealth = 200;
 	HealthComponent->Health = HealthComponent->MaxHealth;
@@ -18,6 +29,14 @@ AWall::AWall()
 	bHideCitizen = false;
 
 	DecalComponent->DecalSize = FVector(400.0f, 400.0f, 400.0f);
+}
+
+void AWall::BeginPlay()
+{
+	Super::BeginPlay();
+
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	RangeComponent->SetAreaClassOverride(gamemode->NavAreaThreat);
 }
 
 void AWall::Enter(ACitizen* Citizen)
@@ -51,4 +70,27 @@ void AWall::SetRotationMesh(int32 yaw)
 		scale = FVector(1.415f, 1.0f, 1.0f);
 		
 	BuildingMesh->SetRelativeScale3D(scale);
+}
+
+void AWall::SetRange()
+{
+	if (GetOccupied().IsEmpty())
+		return;
+
+	int32 largestRange = 0.0f;
+	
+	for (ACitizen* citizen : GetOccupied()) {
+		if (citizen->Range <= largestRange)
+			continue;
+
+		largestRange = citizen->Range;
+	}
+
+	if (IsA<AFort>()) {
+		int32 z = FMath::Clamp(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 100.0f, 1, 5);
+
+		largestRange *= z;
+	}
+
+	RangeComponent->SetSphereRadius(largestRange);
 }

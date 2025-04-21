@@ -25,14 +25,6 @@ UAttackComponent::UAttackComponent()
 	SetComponentTickInterval(0.1f);
 	SetTickableWhenPaused(false);
 
-	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
-	RangeComponent->SetGenerateOverlapEvents(false);
-	RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	RangeComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
-	RangeComponent->SetSphereRadius(400.0f);
-	RangeComponent->SetCanEverAffectNavigation(false);
-	RangeComponent->bDynamicObstacle = true;
-
 	Damage = 10;
 
 	AttackTime = 1.0f;
@@ -48,13 +40,8 @@ void UAttackComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (GetOwner()->IsA<ACitizen>()) {
-		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-		RangeComponent->SetAreaClassOverride(gamemode->NavAreaThreat);
-
-		if (Cast<ACitizen>(GetOwner())->BioStruct.Age < 18)
-			bCanAttack = false;
-	}
+	if (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->BioStruct.Age < 18)
+		bCanAttack = false;
 }
 
 void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -100,15 +87,10 @@ void UAttackComponent::PickTarget()
 		TArray<FThreatsStruct> threats = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats;
 
 		if (!threats.IsEmpty() && threats.Contains(threatStruct)) {
-			UAttackComponent* attackComp = threatStruct.Actor->GetComponentByClass<UAttackComponent>();
-
-			if (attackComp->RangeComponent->CanEverAffectNavigation() == true)
+			if (threatStruct.Actor->IsA<AWall>() && Cast<AWall>(threatStruct.Actor)->RangeComponent->CanEverAffectNavigation() == true)
 				continue;
 
 			favoured = Cast<AActor>(threatStruct.Actor);
-
-			if (threatStruct.Actor->IsA<ACitizen>() && Cast<ACitizen>(threatStruct.Actor)->Building.Employment != nullptr)
-				favoured = Cast<ACitizen>(threatStruct.Actor)->Building.Employment;
 
 			break;
 		}

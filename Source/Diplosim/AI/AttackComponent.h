@@ -60,9 +60,6 @@ public:
 		TArray<AActor*> MeleeableEnemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-		class USphereComponent* RangeComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		int32 Damage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")

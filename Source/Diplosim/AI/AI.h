@@ -39,4 +39,10 @@ public:
 		TSubclassOf<class UNavigationQueryFilter> NavQueryFilter;
 
 	class ADiplosimAIController* AIController;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Range")
+		float InitialRange;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Range")
+		float Range;
 };

@@ -67,8 +67,6 @@ class DIPLOSIM_API ADiplosimAIController : public AAIController
 public:
 	ADiplosimAIController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	void Tick(float DeltaTime) override;
-
 	void DefaultAction();
 
 	void Idle(class ACitizen* Citizen);

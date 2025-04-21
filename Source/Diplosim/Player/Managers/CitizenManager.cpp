@@ -232,9 +232,8 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			float distance = FVector::Dist(Cast<ACamera>(GetOwner())->CameraComponent->GetComponentLocation(), citizen->GetActorLocation());
 			citizen->MovementComponent->SetComponentTickInterval(distance / 100000.0f);
 
-			int32 range = citizen->AttackComponent->RangeComponent->GetUnscaledSphereRadius();
-			int32 reach = range / 15.0f;
-			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), citizen->GetActorLocation(), range, objects, nullptr, ignore, actors);
+			int32 reach = citizen->Range / 15.0f;
+			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), citizen->GetActorLocation(), citizen->Range, objects, nullptr, ignore, actors);
 
 			for (AActor* actor : actors) {
 				if (actor == citizen || (!actor->IsA<AAI>() && !actor->IsA<AResource>() && !actor->IsA<ABuilding>()))
@@ -274,14 +273,15 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 					}
 					else if (ai->HealthComponent->GetHealth() > 0) {
 						if (!*citizen->AttackComponent->ProjectileClass && !citizen->AIController->CanMoveTo(ai->GetActorLocation()))
-							return;
+							continue;
 
-						citizen->AttackComponent->OverlappingEnemies.Add(ai);
+						if (!citizen->AttackComponent->OverlappingEnemies.Contains(ai))
+							citizen->AttackComponent->OverlappingEnemies.Add(ai);
 
 						if (citizen->AttackComponent->OverlappingEnemies.Num() == 1)
 							citizen->AttackComponent->SetComponentTickEnabled(true);
 
-						if (FVector::Dist(citizen->GetActorLocation(), ai->GetActorLocation()) < reach)
+						if (FVector::Dist(citizen->GetActorLocation(), ai->GetActorLocation()) < reach && !citizen->AttackComponent->MeleeableEnemies.Contains(ai))
 							citizen->AttackComponent->MeleeableEnemies.Add(ai);
 					}
 				}
@@ -322,7 +322,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				AActor* actor = citizen->AttackComponent->OverlappingEnemies[i];
 
 				if (actors.Contains(actor)) {
-					if (citizen->AttackComponent->MeleeableEnemies.Contains(actor) && FVector::Dist(citizen->GetActorLocation(), actor->GetActorLocation()) >= (range / 20.0f))
+					if (citizen->AttackComponent->MeleeableEnemies.Contains(actor) && FVector::Dist(citizen->GetActorLocation(), actor->GetActorLocation()) >= (citizen->Range / 20.0f))
 						citizen->AttackComponent->MeleeableEnemies.Remove(actor);
 
 					continue;
@@ -339,8 +339,9 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			if (enemy->HealthComponent->GetHealth() <= 0)
 				continue;
 
-			int32 range = enemy->AttackComponent->RangeComponent->GetUnscaledSphereRadius();
-			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), enemy->GetActorLocation(), range, objects, nullptr, ignore, actors);
+			int32 reach = enemy->Range / 15.0f;
+
+			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), enemy->GetActorLocation(), enemy->Range, objects, nullptr, ignore, actors);
 
 			for (AActor* actor : actors) {
 				if (actor == enemy || !actor->IsA<AAI>())
@@ -359,7 +360,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				if (enemy->AttackComponent->OverlappingEnemies.Num() == 1)
 					enemy->AttackComponent->SetComponentTickEnabled(true);
 
-				if (FVector::Dist(enemy->GetActorLocation(), ai->GetActorLocation()) < (range / 20.0f))
+				if (FVector::Dist(enemy->GetActorLocation(), ai->GetActorLocation()) < reach)
 					enemy->AttackComponent->MeleeableEnemies.Add(ai);
 			}
 
@@ -367,7 +368,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				AActor* actor = enemy->AttackComponent->OverlappingEnemies[i];
 
 				if (actors.Contains(actor)) {
-					if (enemy->AttackComponent->MeleeableEnemies.Contains(actor) && FVector::Dist(enemy->GetActorLocation(), actor->GetActorLocation()) >= (range / 20.0f))
+					if (enemy->AttackComponent->MeleeableEnemies.Contains(actor) && FVector::Dist(enemy->GetActorLocation(), actor->GetActorLocation()) >= reach)
 						enemy->AttackComponent->MeleeableEnemies.Remove(actor);
 
 					continue;

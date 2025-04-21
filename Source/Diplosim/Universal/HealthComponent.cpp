@@ -13,6 +13,7 @@
 #include "AI/DiplosimAIController.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
+#include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
 #include "DiplosimGameModeBase.h"
@@ -270,8 +271,16 @@ void UHealthComponent::Clear(AActor* Attacker)
 		}
 	}
 	else if (actor->IsA<AEnemy>()) {
-		if (Attacker->IsA<AProjectile>())
-			gamemode->WavesData.Last().SetDiedTo(Attacker->GetOwner());
+		if (Attacker->IsA<AProjectile>()) {
+			AActor* a = nullptr;
+
+			if (Attacker->GetOwner()->IsA<AWall>())
+				a = Attacker->GetOwner();
+			else
+				a = Cast<ACitizen>(Attacker->GetOwner())->Building.Employment;
+
+			gamemode->WavesData.Last().SetDiedTo(a);
+		}
 		else
 			gamemode->WavesData.Last().SetDiedTo(Attacker);
 

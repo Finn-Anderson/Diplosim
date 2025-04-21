@@ -90,10 +90,8 @@ struct FWaveStruct
 
 	void SetDiedTo(AActor* Attacker)
 	{
-		AActor* actor = Attacker;
-
 		FDiedToStruct diedTo;
-		diedTo.Actor = actor;
+		diedTo.Actor = Attacker;
 		diedTo.Kills = 1;
 
 		if (DiedTo.Contains(diedTo)) {

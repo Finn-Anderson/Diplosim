@@ -51,7 +51,7 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		FWaveStruct wave = WavesData[i];
 
 		for (FDiedToStruct diedTo : wave.DiedTo) {
-			if (diedTo.Actor == nullptr || !diedTo.Actor->IsValidLowLevelFast())
+			if (!diedTo.Actor->IsValidLowLevelFast() || diedTo.Actor->IsA<ACitizen>())
 				continue;
 
 			if (threats.Contains(diedTo)) {
@@ -78,12 +78,13 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		int32 chance = FMath::RandRange(1, 30);
 		chance -= threat.Kills;
 
-		if (chance > 15)
+		if (chance > 15 || Cast<AWall>(threat.Actor)->GetOccupied().IsEmpty())
 			continue;
 
-		UAttackComponent* attackComp = threat.Actor->GetComponentByClass<UAttackComponent>();
+		AWall* wall = Cast<AWall>(threat.Actor);
 
-		attackComp->RangeComponent->SetCanEverAffectNavigation(true);
+		wall->SetRange();
+		wall->RangeComponent->SetCanEverAffectNavigation(true);
 	}
 }
 
@@ -313,13 +314,13 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 void ADiplosimGameModeBase::SetWaveTimer()
 {
 	if (!WavesData.IsEmpty()) {
-		for (FThreatsStruct threatStruct : WavesData.Last().Threats) {
-			UAttackComponent* attackComp = threatStruct.Actor->GetComponentByClass<UAttackComponent>();
+		for (FThreatsStruct threat : WavesData.Last().Threats) {
+			AWall* wall = Cast<AWall>(threat.Actor);
 
-			if (!attackComp->RangeComponent->CanEverAffectNavigation())
+			if (!wall->RangeComponent->CanEverAffectNavigation())
 				continue;
 
-			attackComp->RangeComponent->SetCanEverAffectNavigation(false);
+			wall->RangeComponent->SetCanEverAffectNavigation(false);
 		}
 	}
 

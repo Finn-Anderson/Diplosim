@@ -10,8 +10,6 @@
 
 ATrap::ATrap()
 {
-	PrimaryActorTick.bCanEverTick = false;
-
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
 	RangeComponent->SetCollisionProfileName("Spectator", true);
 	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
@@ -32,8 +30,8 @@ void ATrap::BeginPlay()
 {
 	Super::BeginPlay();
 
-	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &ATrap::OnOverlapBegin);
-	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &ATrap::OnOverlapEnd);
+	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &ATrap::OnTrapOverlapBegin);
+	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &ATrap::OnTrapOverlapEnd);
 }
 
 void ATrap::OnTrapOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

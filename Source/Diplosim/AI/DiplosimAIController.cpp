@@ -26,48 +26,12 @@
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
-	PrimaryActorTick.bCanEverTick = true;
-	SetActorTickInterval(0.4f);
-}
-
-void ADiplosimAIController::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	if (DeltaTime > 1.0f)
-		return;
-
-	if (Cast<AAI>(Owner)->HealthComponent->Health == 0 || !IsValid(MoveRequest.GetGoalActor()))
-		return;
-
-	TSubclassOf<UNavigationQueryFilter> filter = Cast<AAI>(GetOwner())->NavQueryFilter;
-
-	FCollidingStruct collidingStruct;
-	collidingStruct.Actor = MoveRequest.GetGoalActor();
-	collidingStruct.Instance = MoveRequest.GetGoalInstance();
-
-	if (Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor())) {
-		FRotator rotation = (MoveRequest.GetGoalActor()->GetActorLocation() - Owner->GetActorLocation()).Rotation();
-
-		GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), rotation, DeltaTime, 100.0f));
-
-		return;
-	}
-
-	int32 range = Cast<AAI>(GetOwner())->AttackComponent->RangeComponent->GetUnscaledSphereRadius();
-
-	if (GetOwner()->GetVelocity().IsNearlyZero(1e-6f) && FVector::Dist(GetOwner()->GetActorLocation(), MoveRequest.GetGoalActor()->GetActorLocation()) >= (range / 20.0f))
-		RecalculateMovement(MoveRequest.GetGoalActor());
-
-	if (MoveRequest.GetGoalActor()->IsA<AAI>())
-		MoveToActor(MoveRequest.GetGoalActor(), 1.0f, true, true, true, filter, true);
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 void ADiplosimAIController::DefaultAction()
 {
 	MoveRequest.SetGoalActor(nullptr);
-
-	SetActorTickEnabled(false);
 
 	if (GetOwner()->IsA<ACitizen>() && !Cast<ACitizen>(GetOwner())->Rebel) {
 		ACitizen* citizen = Cast<ACitizen>(GetOwner());
@@ -344,8 +308,6 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);
 	MoveRequest.SetLocation(Actor->GetActorLocation());
-
-	SetActorTickEnabled(true);
 
 	if (Location != FVector::Zero()) {
 		MoveRequest.SetLocation(Location);

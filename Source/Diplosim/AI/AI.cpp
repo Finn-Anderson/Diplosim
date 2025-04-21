@@ -35,7 +35,6 @@ AAI::AAI()
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
-	AttackComponent->RangeComponent->SetupAttachment(RootComponent);
 
 	MovementComponent = CreateDefaultSubobject<UAIMovementComponent>(TEXT("MovementComponent"));
 	MovementComponent->SetUpdatedComponent(RootComponent);
@@ -45,6 +44,9 @@ AAI::AAI()
 	AIControllerClass = ADiplosimAIController::StaticClass();
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	InitialRange = 400.0f;
+	Range = InitialRange;
 }
 
 void AAI::BeginPlay()
