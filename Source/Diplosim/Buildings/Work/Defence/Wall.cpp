@@ -86,11 +86,18 @@ void AWall::SetRange()
 		largestRange = citizen->Range;
 	}
 
+	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+
 	if (IsA<AFort>()) {
-		int32 z = FMath::Clamp(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 100.0f, 1, 5);
+		int32 z = FMath::Clamp(size.Z / 100.0f, 1, 5);
 
 		largestRange *= z;
 	}
 
-	RangeComponent->SetSphereRadius(largestRange);
+	float buildingRange = size.Y / 2.0f;
+	
+	if (size.X / 2.0f > buildingRange)
+		buildingRange = size.X / 2.0f;
+
+	RangeComponent->SetSphereRadius(largestRange + buildingRange);
 }

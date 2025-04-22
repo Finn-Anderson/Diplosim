@@ -15,6 +15,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Work/Service/School.h"
+#include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Road.h"
 #include "Universal/Resource.h"
@@ -150,7 +151,7 @@ void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 	TArray<ABuilding*> buildings;
 
 	for (ABuilding* building : Citizen->Camera->CitizenManager->Buildings) {
-		if (building->IsA<AWork>() || building->IsA<ARoad>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
+		if ((building->IsA<AWork>() && !building->IsA<AOrphanage>()) || building->IsA<ARoad>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
 			continue;
 
 		buildings.Add(building);

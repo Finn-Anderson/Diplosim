@@ -40,7 +40,7 @@ public:
 
 	class ADiplosimAIController* AIController;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Range")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		float InitialRange;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Range")

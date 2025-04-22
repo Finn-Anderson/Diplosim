@@ -36,6 +36,9 @@ struct FBuildingStruct
 		class ASchool* School;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
+		class AOrphanage* Orphanage;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Building")
 		class ABuilding* BuildingAt;
 
 	FVector EnterLocation;
@@ -390,6 +393,8 @@ public:
 	void SetPartner(ACitizen* Citizen);
 
 	void HaveChild();
+
+	void RemoveFromHouse();
 
 	TArray<ACitizen*> GetLikedFamily(bool bFactorAge);
 

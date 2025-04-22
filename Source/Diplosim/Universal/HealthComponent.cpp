@@ -14,6 +14,7 @@
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
 #include "DiplosimGameModeBase.h"
@@ -213,6 +214,9 @@ void UHealthComponent::Clear(AActor* Attacker)
 			else {
 				citizen->Building.House->RemoveVisitor(citizen->Building.House->GetOccupant(citizen), citizen);
 			}
+		}
+		else if (IsValid(citizen->Building.Orphanage)) {
+			citizen->Building.Orphanage->RemoveVisitor(citizen->Building.Orphanage->GetOccupant(citizen), citizen);
 		}
 
 		if (citizen->BioStruct.Partner != nullptr) {

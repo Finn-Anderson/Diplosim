@@ -24,6 +24,7 @@
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Work/Service/School.h"
+#include "Buildings/Work/Service/Orphanage.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Map/Grid.h"
@@ -345,6 +346,9 @@ void ACitizen::SetJobHouseEducation(int32 TimeToCompleteDay)
 			building->AddCitizen(this);
 
 		if (i == 2) {
+			if (IsValid(Building.Orphanage))
+				Building.Orphanage->RemoveVisitor(Building.Orphanage->GetOccupant(this), this);
+
 			for (ACitizen* citizen : roommates)
 				building->AddVisitor(this, citizen);
 
@@ -534,7 +538,7 @@ bool ACitizen::WillWork()
 
 	int32 pension = Camera->CitizenManager->GetLawValue(EBillType::Pension);
 
-	if (pension >= Cast<AHouse>(AllocatedBuildings[2])->Rent)
+	if (IsValid(AllocatedBuildings[2]) && pension >= Cast<AHouse>(AllocatedBuildings[2])->Rent)
 		return false;
 
 	return true;
@@ -559,6 +563,18 @@ int32 ACitizen::GetLeftoverMoney()
 
 	if (IsValid(Building.House))
 		money -= Building.House->Rent;
+
+	for (ACitizen* child : BioStruct.Children) {
+		int32 maxF = FMath::CeilToInt((100 - child->Hunger) / (25.0f * child->FoodMultiplier));
+		int32 cost = Camera->CitizenManager->GetLawValue(EBillType::FoodCost);
+
+		int32 modifier = 1;
+
+		if (BioStruct.Partner->IsValidLowLevelFast() && IsValid(BioStruct.Partner->Building.Employment))
+			modifier = 2;
+
+		money -= (cost * maxF) / modifier;
+	}
 
 	int32 maxF = FMath::CeilToInt((100 - Hunger) / (25.0f * FoodMultiplier));
 	int32 cost = Camera->CitizenManager->GetLawValue(EBillType::FoodCost);
@@ -596,31 +612,28 @@ void ACitizen::Eat()
 	int32 quantity = FMath::Clamp(totalAmount, 0, maxF);
 
 	TMap<ACitizen*, int32> wallet;
-	int32 leftoverMoney = GetLeftoverMoney();
 
-	if (cost > 0) {
-		if (FMath::Floor(leftoverMoney / cost) < quantity) {
+	if (cost > 0 && !IsValid(Building.Orphanage)) {
+		if (FMath::Floor(Balance / cost) < quantity) {
 			for (ACitizen* citizen : GetLikedFamily(true)) {
-				int32 leftover = citizen->GetLeftoverMoney();
-
-				if (leftover <= 0)
+				if (citizen->Balance <= 0)
 					continue;
 
-				wallet.Add(citizen, leftover);
+				wallet.Add(citizen, citizen->Balance);
 			}
 		}
 
 		int32 total = 0;
 
-		if (leftoverMoney > 0)
-			total += leftoverMoney;
+		if (Balance > 0)
+			total += Balance;
 
 		for (auto& element : wallet)
 			total += element.Value;
 
 		if (FMath::Floor(total / cost) < 1) {
-			if (leftoverMoney > 0)
-				total -= leftoverMoney;
+			if (Balance > 0)
+				total -= Balance;
 
 			total += Balance;
 		}
@@ -651,9 +664,9 @@ void ACitizen::Eat()
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
 
-				if (cost > 0) {
+				if (cost > 0 && !IsValid(Building.Orphanage)) {
 					for (int32 k = 0; k < cost; k++) {
-						if (GetLeftoverMoney() <= 0 && !wallet.IsEmpty()) {
+						if (Balance <= 0 && !wallet.IsEmpty()) {
 							int32 index = FMath::RandRange(0, wallet.Num() - 1);
 
 							TArray<ACitizen*> family;
@@ -714,10 +727,13 @@ void ACitizen::LoseEnergy()
 	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || (!Building.Employment->bCanRest && Building.Employment->bOpen) || bWorshipping || (Building.Employment->IsA<AClinic>() && Camera->CitizenManager->Healing.Contains(AIController->MoveRequest.GetGoalActor())))
 		return;
 
-	if (Building.House->IsValidLowLevelFast()) {
-		AIController->AIMoveTo(Building.House);
+	if (IsValid(Building.House) || IsValid(Building.Orphanage)) {
+		if (IsValid(Building.House))
+			AIController->AIMoveTo(Building.House);
+		else
+			AIController->AIMoveTo(Building.Orphanage);
 
-		if (!Building.Employment->IsA<AExternalProduction>())
+		if (!IsValid(Building.Employment) || !Building.Employment->IsA<AExternalProduction>())
 			return;
 
 		for (FValidResourceStruct validResource : Cast<AExternalProduction>(Building.Employment)->Resources) {
@@ -735,7 +751,7 @@ void ACitizen::LoseEnergy()
 		TArray<TWeakObjectPtr<ACitizen>> parents = { BioStruct.Mother, BioStruct.Father };
 
 		for (TWeakObjectPtr<ACitizen> parent : parents) {
-			if (parent == nullptr || !parent->Building.House->IsValidLowLevelFast())
+			if (!parent->IsValidLowLevelFast() || !IsValid(parent->Building.House))
 				continue;
 
 			AIController->AIMoveTo(parent->Building.House);
@@ -829,6 +845,8 @@ void ACitizen::Birthday()
 	else if (BioStruct.Age == 10)
 		GivePersonalityTrait(BioStruct.Father.Get());
 
+	RemoveFromHouse();
+
 	if (BioStruct.Age > 50) {
 		float ratio = FMath::Clamp(FMath::Pow(FMath::LogX(50.0f, BioStruct.Age - 50.0f), 3.0f), 0.0f, 1.0f);
 		float odds = ratio * 90.0f;
@@ -865,6 +883,22 @@ void ACitizen::Birthday()
 		AttackComponent->bCanAttack = true;
 
 		SetReligion();
+	}
+
+	if (BioStruct.Age == Camera->CitizenManager->GetLawValue(EBillType::WorkAge) && IsValid(Building.Orphanage)) {
+		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+
+		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("Orphanage", this);
+
+		if (foundTimer != nullptr) {
+			Camera->CitizenManager->ResetTimer("Orphanage", this);
+		}
+		else {
+			FTimerStruct timer;
+			timer.CreateTimer("Orphanage", this, timeToCompleteDay * 2.0f, FTimerDelegate::CreateUObject(Building.Orphanage, &AOrphanage::Kickout, this), false);
+
+			Camera->CitizenManager->Timers.Add(timer);
+		}
 	}
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::VoteAge))
@@ -994,12 +1028,18 @@ void ACitizen::FindPartner()
 		}
 
 		if (bThisHouse) {
-			citizen->Building.House->RemoveCitizen(citizen);
+			if (IsValid(citizen->Building.House))
+				citizen->Building.House->RemoveCitizen(citizen);
+			else if (IsValid(citizen->Building.Orphanage))
+				citizen->Building.Orphanage->RemoveVisitor(citizen->Building.Orphanage->GetOccupant(citizen), citizen);
 
 			Building.House->AddVisitor(this, citizen);
 		}
 		else {
-			Building.House->RemoveCitizen(this);
+			if (IsValid(Building.House))
+				Building.House->RemoveCitizen(this);
+			else if (IsValid(Building.Orphanage))
+				Building.Orphanage->RemoveVisitor(Building.Orphanage->GetOccupant(this), this);
 
 			citizen->Building.House->AddVisitor(citizen, this);
 		}
@@ -1051,6 +1091,59 @@ void ACitizen::HaveChild()
 
 	BioStruct.Children.Add(citizen);
 	BioStruct.Partner->BioStruct.Children.Add(citizen);
+}
+
+void ACitizen::RemoveFromHouse()
+{
+	TArray<ACitizen*> likedFamily = GetLikedFamily(false);
+
+	if (likedFamily.Contains(BioStruct.Mother) || likedFamily.Contains(BioStruct.Father))
+		return;
+
+	for (ACitizen* sibling : likedFamily) {
+		if (!IsValid(sibling->Building.House) || sibling->Building.House->GetVisitors(sibling->Building.House->GetOccupant(sibling)).Num() == sibling->Building.House->Space)
+			continue;
+
+		sibling->Building.House->AddVisitor(sibling->Building.House->GetOccupant(sibling), this);
+
+		return;
+	}
+
+	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+		for (ABuilding* building : Camera->CitizenManager->Buildings) {
+			if (!building->IsA<AOrphanage>())
+				continue;
+
+			for (ACitizen* citizen : building->GetOccupied()) {
+				if (building->GetVisitors(citizen).Num() == building->Space)
+					continue;
+
+				Building.House->RemoveVisitor(Building.House->GetOccupant(this), this);
+
+				if (BioStruct.Mother->IsValidLowLevelFast()) {
+					BioStruct.Mother = nullptr;
+					BioStruct.Mother->BioStruct.Children.Remove(this);
+				}
+
+				if (BioStruct.Father->IsValidLowLevelFast()) {
+					BioStruct.Father = nullptr;
+					BioStruct.Father->BioStruct.Children.Remove(this);
+				}
+
+				for (ACitizen* siblings : BioStruct.Siblings)
+					siblings->BioStruct.Siblings.Remove(this);
+
+				BioStruct.Siblings.Empty();
+
+				Cast<AOrphanage>(building)->AddVisitor(citizen, this);
+
+				return;
+			}
+		}
+	}
+	else {
+		Building.House->RemoveVisitor(Building.House->GetOccupant(this), this);
+	}
 }
 
 TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
@@ -1727,12 +1820,12 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 
 		Capsule->SetRelativeScale3D(FVector(1.0f) * ReachMultiplier);
 
-		Range = InitialRange * AwarenessMultiplier * (1.0f / ReachMultiplier);
+		Range = InitialRange * AwarenessMultiplier * ReachMultiplier;
 	}
 	else if (Affect == "Awareness") {
 		AwarenessMultiplier += Amount;
 
-		Range = InitialRange * AwarenessMultiplier * (1.0f / ReachMultiplier);
+		Range = InitialRange * AwarenessMultiplier * ReachMultiplier;
 	}
 	else if (Affect == "Food") {
 		FoodMultiplier += Amount;
