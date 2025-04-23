@@ -967,7 +967,7 @@ bool ABuilding::CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items)
 void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<FItemStruct> Items)
 {
 	int32 amount = 0;
-	int32 capacity = 10;
+	int32 capacity = 10 * Citizen->GetProductivity();
 
 	TSubclassOf<AResource> resource = nullptr;
 	int32 stored = 0;

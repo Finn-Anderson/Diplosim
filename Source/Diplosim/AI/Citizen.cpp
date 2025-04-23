@@ -546,7 +546,9 @@ bool ACitizen::WillWork()
 
 float ACitizen::GetProductivity()
 {
-	return ProductivityMultiplier * (1 + BioStruct.EducationLevel * 0.1);
+	float scale = (FMath::Min(BioStruct.Age, 18) * 0.04f) + 0.28f;
+
+	return (ProductivityMultiplier * (1 + BioStruct.EducationLevel * 0.1)) * scale;
 }
 
 void ACitizen::Heal(ACitizen* Citizen)
@@ -806,7 +808,7 @@ void ACitizen::HarvestResource(AResource* Resource)
 	LoseEnergy();
 
 	int32 instance = AIController->MoveRequest.GetGoalInstance();
-	int32 amount = Resource->GetYield(this, instance);
+	int32 amount = FMath::Clamp(Resource->GetYield(this, instance), 0, 10 * GetProductivity());
 
 	if (!Camera->ResourceManager->GetResources(Building.Employment).Contains(resource->GetClass())) {
 		ABuilding* broch = Camera->ResourceManager->GameMode->Broch;
@@ -1095,6 +1097,9 @@ void ACitizen::HaveChild()
 
 void ACitizen::RemoveFromHouse()
 {
+	if (!IsValid(Building.House) || Building.House->GetOccupant(this) == this)
+		return;
+	
 	TArray<ACitizen*> likedFamily = GetLikedFamily(false);
 
 	if (likedFamily.Contains(BioStruct.Mother) || likedFamily.Contains(BioStruct.Father))

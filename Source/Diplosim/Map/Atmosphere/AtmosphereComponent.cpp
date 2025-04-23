@@ -31,6 +31,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 	SkyLight = CreateDefaultSubobject<USkyLightComponent>(TEXT("SkyLight"));
 	SkyLight->SetRealTimeCaptureEnabled(true);
 	SkyLight->SetCastShadows(false);
+	SkyLight->SetIntensity(2.0f);
 
 	Sun = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Sun"));
 	Sun->SetRelativeRotation(FRotator(-15.0f, 15.0f, 0.0f));
@@ -40,6 +41,11 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Sun->SetShadowSlopeBias(1.0f);
 	Sun->SetShadowBias(1.0f);
 	Sun->SetCastShadows(true);
+	Sun->SetUseTemperature(true);
+	Sun->SetTemperature(5772.0f);
+	Sun->SetEnableLightShaftOcclusion(true);
+	Sun->SetEnableLightShaftBloom(true);
+	Sun->SetBloomMaxBrightness(0.5f);
 	Sun->ForwardShadingPriority = 0;
 
 	Moon = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Moon"));
@@ -51,14 +57,20 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Moon->SetShadowBias(1.0f);
 	Moon->SetCastShadows(false);
 	Moon->SetIntensity(0.5f);
+	Moon->SetUseTemperature(true);
+	Moon->SetTemperature(4110.0f);
+	Moon->SetEnableLightShaftOcclusion(true);
+	Moon->SetEnableLightShaftBloom(true);
+	Moon->SetBloomMaxBrightness(0.5f);
 	Moon->ForwardShadingPriority = 1;
 
 	SkyAtmosphere = CreateDefaultSubobject<USkyAtmosphereComponent>(TEXT("SkyAtmosphere"));
+	SkyAtmosphere->SetMultiScatteringFactor(4.0f);
 
 	Fog = CreateDefaultSubobject<UExponentialHeightFogComponent>(TEXT("Fog"));
 	Fog->SetFogDensity(0.05f);
-	Fog->SetSecondFogDensity(0.05f);
-	Fog->SetSecondFogHeightOffset(5000.0f);
+	Fog->SetVolumetricFog(true);
+	Fog->SetVolumetricFogDistance(10000.0f);
 
 	WindComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WindComponent"));
 	WindComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 2500.0f));
