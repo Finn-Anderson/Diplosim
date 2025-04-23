@@ -166,11 +166,6 @@ void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 	int32 index = FMath::RandRange(0, buildings.Num() - 1);
 
 	ChosenBuilding = buildings[index];
-
-	FTimerStruct timer;
-	timer.CreateTimer("ChooseIdleBuilding", Citizen, 60.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::ChooseIdleBuilding, Citizen), true);
-
-	Citizen->Camera->CitizenManager->Timers.Add(timer);
 }
 
 double ADiplosimAIController::GetClosestActor(float Range, FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, bool bProjectLocation, int32 CurrentValue, int32 NewValue)

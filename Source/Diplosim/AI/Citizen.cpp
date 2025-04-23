@@ -151,6 +151,9 @@ void ACitizen::BeginPlay()
 	timer.CreateTimer("Birthday", this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
+	timer.CreateTimer("ChooseIdleBuilding", this, 60, FTimerDelegate::CreateUObject(AIController, &ADiplosimAIController::ChooseIdleBuilding, this), true);
+	Camera->CitizenManager->Timers.Add(timer);
+
 	SetSex();
 	SetName();
 

@@ -159,7 +159,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	}
 	else {
 		FTimerStruct timer;
-		timer.CreateTimer("Production", this, 30.0f, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), false);
+		timer.CreateTimer("Production", this, 30, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), false);
 
 		Camera->CitizenManager->Timers.Add(timer);
 	}

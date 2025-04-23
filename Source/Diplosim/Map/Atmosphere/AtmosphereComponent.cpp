@@ -43,7 +43,6 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Sun->SetCastShadows(true);
 	Sun->SetUseTemperature(true);
 	Sun->SetTemperature(5772.0f);
-	Sun->SetEnableLightShaftOcclusion(true);
 	Sun->SetEnableLightShaftBloom(true);
 	Sun->SetBloomMaxBrightness(0.5f);
 	Sun->ForwardShadingPriority = 0;
@@ -59,8 +58,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Moon->SetIntensity(0.5f);
 	Moon->SetUseTemperature(true);
 	Moon->SetTemperature(4110.0f);
-	Moon->SetEnableLightShaftOcclusion(true);
-	Moon->SetEnableLightShaftBloom(true);
+	Moon->SetEnableLightShaftBloom(false);
 	Moon->SetBloomMaxBrightness(0.5f);
 	Moon->ForwardShadingPriority = 1;
 
@@ -120,11 +118,17 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 		if (hour == 18) {
 			Sun->SetCastShadows(false);
+			Sun->SetEnableLightShaftBloom(false);
+
 			Moon->SetCastShadows(true);
+			Moon->SetEnableLightShaftBloom(true);
 		}
 		else {
 			Sun->SetCastShadows(true);
+			Sun->SetEnableLightShaftBloom(true);
+
 			Moon->SetCastShadows(false);
+			Moon->SetEnableLightShaftBloom(false);
 		}
 	}
 
