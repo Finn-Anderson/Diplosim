@@ -386,22 +386,24 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 void UCitizenManager::Loop()
 {
 	for (int32 i = Timers.Num() - 1; i > -1; i--) {
-		if (!IsValid(Timers[i].Actor) || (Timers[i].Actor->IsA<ACitizen>() && (!Citizens.Contains(Timers[i].Actor) || Cast<ACitizen>(Timers[i].Actor)->Rebel)) || (Timers[i].Actor->IsA<ABuilding>() && !Buildings.Contains(Timers[i].Actor))) {
+		FTimerStruct* timer = &Timers[i];
+
+		if (!IsValid(timer->Actor) || (timer->Actor->IsA<ACitizen>() && (!Citizens.Contains(timer->Actor) || Cast<ACitizen>(timer->Actor)->Rebel)) || (timer->Actor->IsA<ABuilding>() && !Buildings.Contains(timer->Actor))) {
 			Timers.RemoveAt(i);
 
 			continue;
 		}
 
-		if (Timers[i].bPaused)
+		if (timer->bPaused)
 			continue;
 
-		Timers[i].Timer++;
+		timer->Timer++;
 
-		if (Timers[i].Timer >= Timers[i].Target) {
-			if (Timers[i].bOnGameThread)
-				AsyncTask(ENamedThreads::GameThread, [this, i]() { ExecTimerDelegate(Timers[i]); });
+		if (timer->Timer >= timer->Target) {
+			if (timer->bOnGameThread)
+				AsyncTask(ENamedThreads::GameThread, [this, timer]() { ExecTimerDelegate(timer); });
 			else
-				ExecTimerDelegate(Timers[i]);
+				ExecTimerDelegate(timer);
 		}
 	}
 
@@ -494,16 +496,14 @@ void UCitizenManager::StartTimers()
 	Async(EAsyncExecution::Thread, [this]() { Loop(); });
 }
 
-void UCitizenManager::ExecTimerDelegate(FTimerStruct Timer)
+void UCitizenManager::ExecTimerDelegate(FTimerStruct* Timer)
 {
-	int32 index = Timers.Find(Timer);
-	
-	Timers[index].Delegate.ExecuteIfBound();
+	Timer->Delegate.ExecuteIfBound();
 
-	if (Timers[index].bRepeat)
-		Timers[index].Timer = 0;
+	if (Timer->bRepeat)
+		Timer->Timer = 0;
 	else
-		Timers.RemoveAt(index);
+		Timers.Remove(*Timer);
 }
 
 FTimerStruct* UCitizenManager::FindTimer(FString ID, AActor* Actor)

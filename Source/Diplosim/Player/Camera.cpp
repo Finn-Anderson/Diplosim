@@ -162,6 +162,7 @@ void ACamera::BeginPlay()
 	LostUIInstance = CreateWidget<UUserWidget>(pcontroller, LostUI);
 
 	SettingsUIInstance = CreateWidget<UUserWidget>(pcontroller, SettingsUI);
+	WikiUIInstance = CreateWidget<UUserWidget>(pcontroller, WikiUI);
 
 	EventUIInstance = CreateWidget<UUserWidget>(pcontroller, EventUI);
 	EventUIInstance->AddToViewport();
@@ -664,6 +665,7 @@ void ACamera::Menu()
 			UDiplosimUserSettings::GetDiplosimUserSettings()->SaveIniSettings();
 
 		SettingsUIInstance->RemoveFromParent();
+		WikiUIInstance->RemoveFromParent();
 
 		if (bStartMenu) {
 			MainMenuUIInstance->AddToViewport();

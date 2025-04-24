@@ -182,6 +182,12 @@ public:
 		class UUserWidget* SettingsUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> WikiUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* WikiUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> EventUI;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")

@@ -28,7 +28,6 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	bRenderClouds = true;
 	bRenderWind = true;
-	bRenderFog = true;
 	bRain = true;
 
 	SunBrightness = 10.0f;
@@ -124,8 +123,6 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetRenderWind(value.ToBool());
 	else if (FString("bRain").Equals(Key))
 		SetRain(value.ToBool());
-	else if (FString("bRenderFog").Equals(Key))
-		SetRenderFog(value.ToBool());
 	else if (FString("SunBrightness").Equals(Key))
 		SetSunBrightness(FCString::Atof(Value));
 	else if (FString("MoonBrightness").Equals(Key))
@@ -198,7 +195,6 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderWind"), GetRenderWind(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRain"), GetRain(), Filename);
-	GConfig->SetBool(*Section, TEXT("bRenderFog"), GetRenderFog(), Filename);
 	GConfig->SetFloat(*Section, TEXT("SunBrightness"), GetSunBrightness(), Filename);
 	GConfig->SetFloat(*Section, TEXT("MoonBrightness"), GetMoonBrightness(), Filename);
 	GConfig->SetString(*Section, TEXT("AAName"), *GetAA(), Filename);
@@ -339,24 +335,6 @@ void UDiplosimUserSettings::SetRenderWind(bool Value)
 bool UDiplosimUserSettings::GetRenderWind() const
 {
 	return bRenderWind;
-}
-
-void UDiplosimUserSettings::SetRenderFog(bool Value)
-{
-	bRenderFog = Value;
-
-	if (Atmosphere == nullptr)
-		return;
-
-	if (bRenderFog)
-		Atmosphere->Fog->SetHiddenInGame(false);
-	else
-		Atmosphere->Fog->SetHiddenInGame(true);
-}
-
-bool UDiplosimUserSettings::GetRenderFog() const
-{
-	return bRenderFog;
 }
 
 void UDiplosimUserSettings::SetSunBrightness(float Value)

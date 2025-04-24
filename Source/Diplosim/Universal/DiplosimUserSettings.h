@@ -29,9 +29,6 @@ protected:
 		bool bRenderWind;
 
 	UPROPERTY(Config)
-		bool bRenderFog;
-
-	UPROPERTY(Config)
 		float SunBrightness;
 
 	UPROPERTY(Config)
@@ -133,12 +130,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Wind")
 		bool GetRenderWind() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Fog")
-		void SetRenderFog(bool Value);
-
-	UFUNCTION(BlueprintPure, Category = "Fog")
-		bool GetRenderFog() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Brightness")
 		void SetSunBrightness(float Value);
