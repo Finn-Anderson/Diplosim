@@ -179,6 +179,9 @@ public:
 
 	void Clear();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crystal")
+		class UStaticMeshComponent* CrystalMesh;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Seed");
 		FString Seed;
 

@@ -84,6 +84,12 @@ AGrid::AGrid()
 
 	CloudComponent = CreateDefaultSubobject<UCloudComponent>(TEXT("CloudComponent"));
 
+	CrystalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CrystalMesh"));
+	CrystalMesh->SetCollisionProfileName("NoCollision", false);
+	CrystalMesh->SetComponentTickEnabled(false);
+	CrystalMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -1000.0f));
+	CrystalMesh->SetupAttachment(RootComponent);
+
 	Size = 22500;
 	Peaks = 2;
 	Rivers = 2;

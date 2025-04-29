@@ -399,11 +399,18 @@ void UCitizenManager::Loop()
 
 		timer->Timer++;
 
-		if (timer->Timer >= timer->Target) {
+		if (timer->Timer == timer->Target) {
+			FTimerDelegate delegate = timer->Delegate;
+
 			if (timer->bOnGameThread)
-				AsyncTask(ENamedThreads::GameThread, [this, timer]() { ExecTimerDelegate(timer); });
+				AsyncTask(ENamedThreads::GameThread, [this, delegate]() { delegate.ExecuteIfBound(); });
 			else
-				ExecTimerDelegate(timer);
+				delegate.ExecuteIfBound();
+
+			if (timer->bRepeat)
+				timer->Timer = 0;
+			else
+				Timers.RemoveAt(i);
 		}
 	}
 
@@ -496,16 +503,6 @@ void UCitizenManager::StartTimers()
 	Async(EAsyncExecution::Thread, [this]() { Loop(); });
 }
 
-void UCitizenManager::ExecTimerDelegate(FTimerStruct* Timer)
-{
-	Timer->Delegate.ExecuteIfBound();
-
-	if (Timer->bRepeat)
-		Timer->Timer = 0;
-	else
-		Timers.Remove(*Timer);
-}
-
 FTimerStruct* UCitizenManager::FindTimer(FString ID, AActor* Actor)
 {
 	FTimerStruct timer;
@@ -527,7 +524,7 @@ void UCitizenManager::RemoveTimer(FString ID, AActor* Actor)
 	if (timer == nullptr)
 		return;
 
-	Timers.RemoveSingle(*timer);
+	timer->Actor = nullptr;
 }
 
 void UCitizenManager::ResetTimer(FString ID, AActor* Actor)

@@ -762,7 +762,8 @@ void ACamera::SpawnEnemies()
 		return;
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-	gamemode->SpawnEnemiesAsync();
+
+	Async(EAsyncExecution::Thread, [this, gamemode]() { gamemode->StartRaid(); });
 }
 
 void ACamera::AddEnemies(FString Category, int32 Amount)

@@ -123,6 +123,8 @@ protected:
 	void BeginPlay() override;
 
 public:
+	void Tick(float DeltaTime) override;
+
 	void EvaluateThreats();
 
 	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
@@ -133,11 +135,15 @@ public:
 
 	TArray<FVector> GetValidLocations(class UHierarchicalInstancedStaticMeshComponent* HISMComponent, TArray<int32> Instances, TArray<FVector> ValidTiles);
 
-	void SpawnEnemies();
+	void ShowRaidCrystal(bool bShow, FVector Location = FVector(0.0f, 0.0f, -1000.0f));
+
+	void SetRaidInformation();
+
+	void SpawnAllEnemies(TArray<FVector> SpawnLocations);
 
 	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour);
 
-	void SpawnEnemiesAsync();
+	void StartRaid();
 
 	bool CheckEnemiesStatus();
 
@@ -171,4 +177,7 @@ public:
 
 	UPROPERTY()
 		bool bOngoingRaid;
+
+	UPROPERTY()
+		bool TargetOpacity;
 };

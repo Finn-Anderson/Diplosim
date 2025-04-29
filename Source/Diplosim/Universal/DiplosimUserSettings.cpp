@@ -221,11 +221,10 @@ void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
 {
 	bEnemies = Value;
 
-	if (GameMode == nullptr)
+	if (!IsValid(GameMode) || !IsValid(Camera) || !IsValid(Camera->CitizenManager))
 		return;
 
-	if (!GameMode->GetWorldTimerManager().IsTimerActive(GameMode->WaveTimer) && GameMode->CheckEnemiesStatus())
-		GameMode->SetWaveTimer();
+	Camera->CitizenManager->ResetTimer("WaveTimer", GameMode);
 }
 
 bool UDiplosimUserSettings::GetSpawnEnemies() const

@@ -20,6 +20,10 @@
 
 ADiplosimGameModeBase::ADiplosimGameModeBase()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
+	TargetOpacity = 0.0f;
+	
 	Broch = nullptr;
 	Grid = nullptr;
 	bOngoingRaid = false;
@@ -36,6 +40,28 @@ void ADiplosimGameModeBase::BeginPlay()
 	settings->GameMode = this;
 
 	settings->LoadIniSettings();
+}
+
+void ADiplosimGameModeBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	
+	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(Camera->Grid->CrystalMesh->GetMaterial(0));
+
+	float opacity = 0.0f;
+	FHashedMaterialParameterInfo info;
+	info.Name = FScriptName("Opacity");
+	material->GetScalarParameterValue(info, opacity);
+
+	if (TargetOpacity == 1.0f)
+		opacity = FMath::Clamp(opacity + 0.005f, 0.0f, 1.0f);
+	else
+		opacity = FMath::Clamp(opacity - 0.005f, 0.0f, 1.0f);
+
+	material->SetScalarParameterValue("Opacity", opacity);
+
+	if (opacity == 0.0f || opacity == 1.0f)
+		SetActorTickEnabled(false);
 }
 
 void ADiplosimGameModeBase::EvaluateThreats()
@@ -168,7 +194,6 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	auto index = Async(EAsyncExecution::TaskGraph, [validTiles]() { return FMath::RandRange(0, validTiles.Num() - 1); });
 
-	WavesData.Last().SpawnLocation = validTiles[index.Get()];
 	spawnLocations.Add(validTiles[index.Get()]);
 
 	FTileStruct* chosenTile = &Grid->Storage[validTiles[index.Get()].X / 100 + Grid->Storage.Num() / 2][validTiles[index.Get()].Y / 100 + Grid->Storage.Num() / 2];
@@ -190,6 +215,7 @@ TArray<FVector> ADiplosimGameModeBase::GetValidLocations(UHierarchicalInstancedS
 		FTransform transform;
 
 		HISMComponent->GetInstanceTransform(inst, transform);
+		transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
 
 		if (ValidTiles.Contains(transform.GetLocation()))
 			spawnLocations.Add(transform.GetLocation());
@@ -198,7 +224,51 @@ TArray<FVector> ADiplosimGameModeBase::GetValidLocations(UHierarchicalInstancedS
 	return spawnLocations;
 }
 
-void ADiplosimGameModeBase::SpawnEnemies()
+void ADiplosimGameModeBase::ShowRaidCrystal(bool bShow, FVector Location)
+{
+	SetActorTickEnabled(true);
+
+	if (bShow)
+		TargetOpacity = 1.0f;
+	else
+		TargetOpacity = 0.0f;
+
+	Camera->Grid->CrystalMesh->SetRelativeLocation(Location);
+
+	if (!bShow)
+		return;
+
+	int32 count = 0;
+
+	float r = 0.0f;
+	float g = 0.0f;
+	float b = 0.0f;
+
+	for (FEnemiesStruct& enemyData : EnemiesData) {
+		int32 num = FMath::Floor(enemyData.Tally / 200.0f);
+
+		r += enemyData.Colour.R * num;
+		g += enemyData.Colour.G * num;
+		b += enemyData.Colour.B * num;
+
+		count += num;
+	}
+
+	r /= count;
+	g /= count;
+	b /= count;
+
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(Camera->Grid->CrystalMesh->GetMaterial(0), this);
+	material->SetScalarParameterValue("Opacity", 0.0f);
+	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
+	material->SetScalarParameterValue("Emissiveness", count / 10.0f);
+
+	Camera->Grid->CrystalMesh->SetMaterial(0, material);
+
+	Camera->DisplayEvent("Upcoming", "Raid");
+}
+
+void ADiplosimGameModeBase::SetRaidInformation()
 {
 	TArray<FVector> spawnLocations = PickSpawnPoints();
 
@@ -207,37 +277,75 @@ void ADiplosimGameModeBase::SpawnEnemies()
 
 		return;
 	}
-	
-	FWaveStruct waveStruct;
 
+	FWaveStruct waveStruct;
 	WavesData.Add(waveStruct);
+
+	WavesData.Last().SpawnLocation = spawnLocations[0];
 
 	EvaluateThreats();
 
 	bOngoingRaid = true;
 
-	AsyncTask(ENamedThreads::GameThread, [this, spawnLocations]() {
-		FTimerHandle spawnTimer;
+	AsyncTask(ENamedThreads::GameThread, [this, spawnLocations]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocation + FVector(0.0f, 0.0f, 500.0f)); });
 
-		int32 count = 0;
-
-		for (FEnemiesStruct &enemyData : EnemiesData) {
-			int32 num = FMath::Floor(enemyData.Tally / 200.0f);
-
-			for (int32 i = 0; i < num; i++) {
-				GetWorld()->GetTimerManager().SetTimer(spawnTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, spawnLocations, enemyData.Colour), 0.1f * count, false);
-
-				count++;
-			}
-
-			enemyData.Tally = enemyData.Tally % 200;
-		}
-
-		Camera->DisplayEvent("Event", "Raid");
-	});
+	FTimerStruct timer;
+	timer.CreateTimer("SpawnEnemies", this, 120, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAllEnemies, spawnLocations), false, true);
+	Camera->CitizenManager->Timers.Add(timer);
 }
 
-void ADiplosimGameModeBase::SpawnEnemiesAsync()
+void ADiplosimGameModeBase::SpawnAllEnemies(TArray<FVector> SpawnLocations)
+{
+	int32 count = 1;
+
+	for (FEnemiesStruct &enemyData : EnemiesData) {
+		int32 num = FMath::Floor(enemyData.Tally / 200.0f);
+
+		for (int32 i = 0; i < num; i++) {
+			FTimerHandle spawnTimer;
+			GetWorld()->GetTimerManager().SetTimer(spawnTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, SpawnLocations, enemyData.Colour), 0.1f * count, false);
+
+			count++;
+		}
+
+		enemyData.Tally = enemyData.Tally % 200;
+	}
+
+	FTimerHandle crystalTimer;
+	GetWorld()->GetTimerManager().SetTimer(crystalTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::ShowRaidCrystal, false, FVector(0.0f, 0.0f, -1000.0f)), 0.1f * count, false);
+
+	Camera->DisplayEvent("Event", "Raid");
+}
+
+void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour)
+{
+	int32 index = FMath::RandRange(0, spawnLocations.Num() - 1);
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+
+	FNavLocation navLocation;
+	nav->ProjectPointToNavigation(spawnLocations[index], navLocation, FVector(100.0f, 100.0f, 50.0f));
+
+	FActorSpawnParameters params;
+	params.bNoFail = true;
+
+	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, navLocation.Location, FRotator(0.0f), params);
+
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(enemy->Mesh->GetMaterial(0), enemy);
+	material->SetVectorParameterValue("Colour", Colour);
+	enemy->Mesh->SetMaterial(0, material);
+
+	enemy->Colour = Colour;
+
+	Camera->CitizenManager->Enemies.Add(enemy);
+
+	enemy->MoveToBroch();
+
+	WavesData.Last().TotalEnemies++;
+}
+
+void ADiplosimGameModeBase::StartRaid()
 {
 	if (!CheckEnemiesStatus())
 		return;
@@ -258,42 +366,14 @@ void ADiplosimGameModeBase::SpawnEnemiesAsync()
 	if (!bEnemies)
 		return;
 
-	GetWorld()->GetTimerManager().ClearTimer(WaveTimer);
+	Camera->CitizenManager->RemoveTimer("WaveTimer", this);
 
-	Async(EAsyncExecution::Thread, [this]() { SpawnEnemies(); });
-}
-
-void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour)
-{
-	int32 index = FMath::RandRange(0, spawnLocations.Num() - 1);
-
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
-
-	FNavLocation navLocation;
-	nav->ProjectPointToNavigation(spawnLocations[index], navLocation, FVector(200.0f, 200.0f, 200.0f));
-
-	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, navLocation.Location, FRotator(0, 0, 0));
-
-	if (!IsValid(enemy))
-		return;
-
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(enemy->Mesh->GetMaterial(0), enemy);
-	material->SetVectorParameterValue("Colour", Colour);
-	enemy->Mesh->SetMaterial(0, material);
-
-	enemy->Colour = Colour;
-
-	Camera->CitizenManager->Enemies.Add(enemy);
-
-	enemy->MoveToBroch();
-
-	WavesData.Last().TotalEnemies++;
+	SetRaidInformation();
 }
 
 bool ADiplosimGameModeBase::CheckEnemiesStatus()
 {
-	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies())
+	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies() || Camera->CitizenManager->FindTimer("SpawnEnemies", this) != nullptr)
 		return false;
 	
 	if (bOngoingRaid) {
@@ -324,7 +404,9 @@ void ADiplosimGameModeBase::SetWaveTimer()
 		}
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(WaveTimer, this, &ADiplosimGameModeBase::SpawnEnemiesAsync, 1800.0f, true);
+	FTimerStruct timer;
+	timer.CreateTimer("WaveTimer", this, 1680, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::StartRaid), true, false);
+	Camera->CitizenManager->Timers.Add(timer);
 }
 
 void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)
