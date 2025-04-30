@@ -41,7 +41,6 @@ ACitizen::ACitizen()
 	Capsule->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel2);
 
 	Mesh->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
-	Mesh->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 	Mesh->SetRelativeScale3D(FVector(0.28f, 0.28f, 0.28f));
 
 	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));

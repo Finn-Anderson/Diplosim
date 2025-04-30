@@ -298,7 +298,9 @@ TArray<FVector> ADiplosimAIController::GetPathPoints(FVector StartLocation, FVec
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	if (Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(MoveRequest.GetGoalActor()) || (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor))
+	int32 reach = Cast<AAI>(GetOwner())->Range / 15.0f;
+	
+	if ((IsValid(MoveRequest.GetGoalActor()) && FVector::Dist(GetOwner()->GetActorLocation(), MoveRequest.GetGoalActor()->GetActorLocation()) < reach) || (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor))
 		return;
 	
 	MoveRequest.SetGoalActor(Actor);

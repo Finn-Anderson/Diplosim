@@ -846,9 +846,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 			items.Add(stockpile->GetItemToGather(Citizen));
 		}
 		
-		if (deliverTo == nullptr) {
+		if (deliverTo == nullptr)
 			Citizen->AIController->DefaultAction();
-		}
 		else if (items.IsEmpty())
 			Citizen->AIController->AIMoveTo(deliverTo);
 		else

@@ -226,7 +226,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		TArray<AActor*> actors;
 
 		for (ACitizen* citizen : Citizens) {
-			if (citizen->HealthComponent->GetHealth() <= 0)
+			if (citizen->HealthComponent->GetHealth() <= 0 || IsValid(citizen->Building.BuildingAt))
 				continue;
 
 			float distance = FVector::Dist(Cast<ACamera>(GetOwner())->CameraComponent->GetComponentLocation(), citizen->GetActorLocation());
@@ -241,9 +241,6 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 				if (actor->IsA<AAI>()) {
 					AAI* ai = Cast<AAI>(actor);
-
-					if (!ai->IsA<AEnemy>() && Cast<ACitizen>(ai)->Rebel == citizen->Rebel)
-						continue;
 
 					if (ai->Capsule->GetCollisionObjectType() == citizen->Capsule->GetCollisionObjectType()) {
 						if (FVector::Dist(citizen->GetActorLocation(), ai->GetActorLocation()) < reach && !Infected.IsEmpty()) {
@@ -271,7 +268,8 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							}
 						}
 					}
-					else if (ai->HealthComponent->GetHealth() > 0) {
+
+					if (ai->HealthComponent->GetHealth() > 0 && (ai->IsA<AEnemy>() || Cast<ACitizen>(ai)->Rebel != citizen->Rebel)) {
 						if (!*citizen->AttackComponent->ProjectileClass && !citizen->AIController->CanMoveTo(ai->GetActorLocation()))
 							continue;
 
@@ -280,9 +278,6 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 						if (citizen->AttackComponent->OverlappingEnemies.Num() == 1)
 							citizen->AttackComponent->SetComponentTickEnabled(true);
-
-						if (FVector::Dist(citizen->GetActorLocation(), ai->GetActorLocation()) < reach && !citizen->AttackComponent->MeleeableEnemies.Contains(ai))
-							citizen->AttackComponent->MeleeableEnemies.Add(ai);
 					}
 				}
 				else if (citizen->AIController->MoveRequest.GetGoalActor() == actor) {
@@ -301,18 +296,20 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 					}
 
 					if (FVector::Dist(citizen->GetActorLocation(), transform.GetLocation()) < reach) {
-						if (actor->IsA<AResource>() && FindTimer("Harvest", citizen) == nullptr) {
-							AResource* r = Cast<AResource>(actor);
+						AsyncTask(ENamedThreads::GameThread, [this, citizen, actor]() {
+							if (actor->IsA<AResource>() && FindTimer("Harvest", citizen) == nullptr) {
+								AResource* r = Cast<AResource>(actor);
 
-							AsyncTask(ENamedThreads::GameThread, [this, citizen, r]() { citizen->StartHarvestTimer(r); });
-						}
-						else if (actor->IsA<ABuilding>()) {
-							ABuilding* b = Cast<ABuilding>(actor);
+								citizen->StartHarvestTimer(r);
+							}
+							else if (actor->IsA<ABuilding>()) {
+								ABuilding* b = Cast<ABuilding>(actor);
 
-							AsyncTask(ENamedThreads::GameThread, [this, citizen, b]() { b->Enter(citizen); });
-						}
+								 b->Enter(citizen);
+							}
 
-						citizen->AIController->StopMovement();
+							citizen->AIController->StopMovement();
+						});
 					}
 				}
 			}
@@ -321,15 +318,8 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			for (int32 i = citizen->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
 				AActor* actor = citizen->AttackComponent->OverlappingEnemies[i];
 
-				if (actors.Contains(actor)) {
-					if (citizen->AttackComponent->MeleeableEnemies.Contains(actor) && FVector::Dist(citizen->GetActorLocation(), actor->GetActorLocation()) >= (citizen->Range / 20.0f))
-						citizen->AttackComponent->MeleeableEnemies.Remove(actor);
-
+				if (actors.Contains(actor))
 					continue;
-				}
-
-				if (citizen->AttackComponent->MeleeableEnemies.Contains(actor))
-					citizen->AttackComponent->MeleeableEnemies.Remove(actor);
 
 				citizen->AttackComponent->OverlappingEnemies.RemoveAt(i);
 			}
@@ -359,23 +349,13 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 				if (enemy->AttackComponent->OverlappingEnemies.Num() == 1)
 					enemy->AttackComponent->SetComponentTickEnabled(true);
-
-				if (FVector::Dist(enemy->GetActorLocation(), ai->GetActorLocation()) < reach)
-					enemy->AttackComponent->MeleeableEnemies.Add(ai);
 			}
 
 			for (int32 i = enemy->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
 				AActor* actor = enemy->AttackComponent->OverlappingEnemies[i];
 
-				if (actors.Contains(actor)) {
-					if (enemy->AttackComponent->MeleeableEnemies.Contains(actor) && FVector::Dist(enemy->GetActorLocation(), actor->GetActorLocation()) >= reach)
-						enemy->AttackComponent->MeleeableEnemies.Remove(actor);
-
+				if (actors.Contains(actor))
 					continue;
-				}
-
-				if (enemy->AttackComponent->MeleeableEnemies.Contains(actor))
-					enemy->AttackComponent->MeleeableEnemies.Remove(actor);
 
 				enemy->AttackComponent->OverlappingEnemies.RemoveAt(i);
 			}

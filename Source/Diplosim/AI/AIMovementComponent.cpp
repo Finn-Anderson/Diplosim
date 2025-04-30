@@ -19,6 +19,8 @@
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Misc/Festival.h"
 
+#include "Buildings/Work/Work.h"
+
 UAIMovementComponent::UAIMovementComponent()
 {
 	MaxSpeed = 200.0f;
@@ -43,8 +45,9 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	AActor* goal = aicontroller->MoveRequest.GetGoalActor();
 
 	if (IsValid(goal)) {
-		if (Cast<AAI>(GetOwner())->AttackComponent->MeleeableEnemies.Contains(goal)) {
-			FRotator rotation = (goal->GetActorLocation() - GetOwner()->GetActorLocation()).Rotation();
+		if (FVector::Dist(GetOwner()->GetActorLocation(), goal->GetActorLocation()) < range) {
+			FRotator rotation = (GetOwner()->GetActorLocation() - goal->GetActorLocation()).Rotation();
+			rotation.Pitch = 0.0f;
 
 			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), rotation, DeltaTime, 100.0f));
 
@@ -69,102 +72,6 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		}
 
 		Points.RemoveAt(0);
-	}
-
-	if (!Points.IsEmpty()) {
-		FHitResult hit;
-
-		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		ACamera* camera = PController->GetPawn<ACamera>();
-
-		FCollisionQueryParams queryParams;
-		queryParams.AddIgnoredActor(GetOwner());
-		queryParams.AddIgnoredActor(camera->Grid);
-
-		TArray<FResourceHISMStruct> resourceList;
-		resourceList.Append(camera->Grid->TreeStruct);
-		resourceList.Append(camera->Grid->FlowerStruct);
-
-		for (FResourceHISMStruct vegetation : resourceList)
-			queryParams.AddIgnoredActor(vegetation.Resource);
-
-		FVector startTrace = GetOwner()->GetActorLocation();
-		FVector endTrace = startTrace + Velocity.Rotation().Vector() * 50.0f;
-
-		if (GetWorld()->SweepSingleByChannel(hit, startTrace, endTrace, FRotator(0.0f).Quaternion(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeCapsule(FVector(9.0f, 9.0f, 11.5f)), queryParams)) {
-			if (!avoidPoints.Contains(hit.GetActor()) && hit.GetActor()->IsA<ABuilding>() && goal != hit.GetActor() && !(hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA<AFestival>())) {
-				FVector hitSize = Cast<ABuilding>(hit.GetActor())->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
-
-				FVector ownerSize = Cast<AAI>(GetOwner())->Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize();
-
-				TArray<FVector> pos;
-
-				for (int32 i = -1; i < 2; i += 2)
-					pos.Add(hit.GetActor()->GetActorLocation() + FVector(i * (hitSize.X + ownerSize.X), 0.0f, 0.0f));
-
-				for (int32 i = -1; i < 2; i += 2)
-					pos.Add(hit.GetActor()->GetActorLocation() + FVector(0.0f, i * (hitSize.Y + ownerSize.Y), 0.0f));
-
-				FVector closest = pos[0];
-				FVector furthest = pos[0];
-
-				for (int32 i = 1; i < pos.Num(); i++) {
-					float curClosestDist = FVector::Dist(GetOwner()->GetActorLocation(), closest);
-					float curFurthestDist = FVector::Dist(GetOwner()->GetActorLocation(), furthest);
-
-					float newDist = FVector::Dist(GetOwner()->GetActorLocation(), pos[i]);
-
-					if (newDist < curClosestDist)
-						closest = pos[i];
-					else if (newDist > curFurthestDist)
-						furthest = pos[i];
-				}
-
-				pos.Remove(closest);
-				pos.Remove(furthest);
-
-				if (hit.GetActor()->IsA<AAI>()) {
-					FVector v = Cast<AAI>(hit.GetActor())->MovementComponent->Velocity;
-					FRotator direction = FRotator(0.0f, FMath::RoundHalfFromZero(v.Rotation().Yaw / 90.0f) * 90.0f, 0.0f);
-
-					for (int32 i = pos.Num() - 1; i > -1; i--) {
-						FRotator rotation = FRotator(0.0f, FMath::RoundHalfFromZero(pos[i].Rotation().Yaw / 90.0f) * 90.0f, 0.0f);
-
-						if (rotation.Yaw != direction.Yaw)
-							continue;
-
-						pos.RemoveAt(i);
-
-						break;
-					}
-				}
-
-				closest = pos[0];
-
-				if (pos.Num() > 1) {
-					float dist0 = FVector::Dist(GetOwner()->GetActorLocation(), pos[0]);
-					float dist1 = FVector::Dist(GetOwner()->GetActorLocation(), pos[1]);
-
-					if (dist0 > dist1)
-						closest = pos[1];
-				}
-
-				FNavLocation location;
-				nav->ProjectPointToNavigation(closest, location, FVector(400.0f, 400.0f, 20.0f));
-
-				TArray<FVector> newPoints = Cast<AAI>(GetOwner())->AIController->GetPathPoints(startTrace, location.Location);
-
-				if (!newPoints.IsEmpty()) {
-					TArray<FVector> regeneratedPoints = Cast<AAI>(GetOwner())->AIController->GetPathPoints(newPoints.Last(), Points.Last());
-
-					avoidPoints.Add(hit.GetActor(), newPoints);
-
-					newPoints.Append(regeneratedPoints);
-
-					Points = newPoints;
-				}
-			}
-		}
 	}
 
 	if (Points.IsEmpty())
@@ -193,7 +100,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 		GetOwner()->SetActorLocation(location);
 
-		FRotator targetRotation = deltaV.Rotation() - FRotator(0.0f, 180.0f, 0.0f);
+		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;
 
 		if (GetOwner()->GetActorRotation() != targetRotation)
@@ -224,6 +131,11 @@ void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 
 	if (!Points.IsEmpty())
 		Cast<AAI>(GetOwner())->AIController->StartMovement();
+	else if (CurrentAnim == MoveAnim) {
+		Cast<AAI>(GetOwner())->Mesh->Play(false);
+
+		CurrentAnim = nullptr;
+	}
 }
 
 void UAIMovementComponent::SetMaxSpeed(int32 Energy)

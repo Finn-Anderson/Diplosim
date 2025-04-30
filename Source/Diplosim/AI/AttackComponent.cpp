@@ -74,9 +74,12 @@ void UAttackComponent::PickTarget()
 
 	AActor* favoured = nullptr;
 
-	for (AActor* target : OverlappingEnemies) {
-		if (!IsValid(target)) {
-			OverlappingEnemies.Remove(target);
+	for (int32 i = OverlappingEnemies.Num() - 1; i > -1; i--) {
+		AActor* target = OverlappingEnemies[i];
+		FFavourabilityStruct targetFavourability = GetActorFavourability(target);
+
+		if (targetFavourability.Hp == 0 || targetFavourability.Hp == 10000000) {
+			OverlappingEnemies.RemoveAt(i);
 
 			continue;
 		}
@@ -95,7 +98,6 @@ void UAttackComponent::PickTarget()
 			break;
 		}
 
-		FFavourabilityStruct targetFavourability = GetActorFavourability(target);
 		FFavourabilityStruct favouredFavourability = GetActorFavourability(favoured);
 
 		double favourability = (favouredFavourability.Hp * favouredFavourability.Dist / favouredFavourability.Dmg) - (targetFavourability.Hp * targetFavourability.Dist / targetFavourability.Dmg);
@@ -110,9 +112,9 @@ void UAttackComponent::PickTarget()
 	if (favoured == nullptr)
 		SetComponentTickEnabled(false);
 
-	AsyncTask(ENamedThreads::GameThread, [this, favoured]() {
-		CurrentTarget = favoured;
+	CurrentTarget = favoured;
 
+	AsyncTask(ENamedThreads::GameThread, [this]() {
 		if (CurrentTarget == nullptr) {
 			if (GetOwner()->IsA<AAI>())
 				Cast<AAI>(GetOwner())->AIController->DefaultAction();
@@ -122,7 +124,9 @@ void UAttackComponent::PickTarget()
 			return;
 		}
 
-		if ((*ProjectileClass || MeleeableEnemies.Contains(CurrentTarget)) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
+		int32 reach = Cast<AAI>(GetOwner())->Range / 15.0f;
+
+		if ((*ProjectileClass || FVector::Dist(GetOwner()->GetActorLocation(), CurrentTarget->GetActorLocation()) < reach) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
 			Attack();
 		else if (GetOwner()->IsA<AAI>())
 			Cast<AAI>(GetOwner())->AIController->AIMoveTo(CurrentTarget);
@@ -133,7 +137,7 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 {
 	FFavourabilityStruct Favourability;
 
-	if (Actor == nullptr || !Actor->IsValidLowLevelFast())
+	if (!IsValid(Actor) || !Actor->IsValidLowLevelFast())
 		return Favourability;
 
 	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
@@ -159,17 +163,6 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 	NavData->CalcPathLength(GetOwner()->GetActorLocation(), Actor->GetActorLocation(), Favourability.Dist);
 
 	return Favourability;
-}
-
-void UAttackComponent::CanHit(AActor* Target)
-{
-	if (!bCanAttack)
-		return;
-
-	MeleeableEnemies.Add(Target);
-
-	if (CurrentTarget == Target)
-		Attack();
 }
 
 void UAttackComponent::Attack()
@@ -305,11 +298,9 @@ void UAttackComponent::ClearAttacks()
 		AAI* ai = Cast<AAI>(target);
 
 		ai->AttackComponent->OverlappingEnemies.Remove(GetOwner());
-		ai->AttackComponent->MeleeableEnemies.Remove(GetOwner());
 	}
 
 	OverlappingEnemies.Empty();
-	MeleeableEnemies.Empty();
 
 	bCanAttack = false;
 

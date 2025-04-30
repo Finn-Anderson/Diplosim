@@ -43,8 +43,6 @@ public:
 
 	FFavourabilityStruct GetActorFavourability(AActor* Actor);
 
-	void CanHit(AActor* Target);
-
 	void Attack();
 
 	void Throw();
@@ -55,9 +53,6 @@ public:
 
 	UPROPERTY()
 		TArray<AActor*> OverlappingEnemies;
-
-	UPROPERTY()
-		TArray<AActor*> MeleeableEnemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		int32 Damage;
