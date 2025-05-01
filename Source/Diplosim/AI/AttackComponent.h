@@ -64,7 +64,7 @@ public:
 		float AttackTime;
 
 	UPROPERTY()
-		FTimerHandle AttackTimer;
+		float AttackTimer;
 
 	UPROPERTY()
 		bool bCanAttack;

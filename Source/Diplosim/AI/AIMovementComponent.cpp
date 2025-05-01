@@ -50,8 +50,6 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 			rotation.Pitch = 0.0f;
 
 			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), rotation, DeltaTime, 100.0f));
-
-			return;
 		}
 		else if (Velocity.IsNearlyZero(1e-6f) || goal->IsA<AAI>()) {
 			aicontroller->RecalculateMovement(goal);

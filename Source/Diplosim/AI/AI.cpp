@@ -12,6 +12,8 @@
 #include "DiplosimAIController.h"
 #include "Enemy.h"
 #include "Buildings/Misc/Broch.h"
+#include "Player/Camera.h"
+#include "Map/Grid.h"
 
 AAI::AAI()
 {
@@ -108,30 +110,30 @@ void AAI::MoveToBroch()
 
 bool AAI::CanReach(AActor* Actor, float Reach)
 {
-	FVector point1;
-	Mesh->GetClosestPointOnCollision(Actor->GetActorLocation(), point1);
-
-	FVector point2;
-	if (Actor->IsA<AResource>()) {
-		FTransform transform;
-
-		Actor->GetComponentByClass<UHierarchicalInstancedStaticMeshComponent>()->GetInstanceTransform(AIController->MoveRequest.GetGoalInstance(), transform);
-
-		point2 = transform.GetLocation();
-	}
-	else if (Actor->IsA<AAI>()) {
-		USkeletalMeshComponent* meshComp = Actor->GetComponentByClass<USkeletalMeshComponent>();
-
-		meshComp->GetClosestPointOnCollision(GetActorLocation(), point2);
-	}
-	else {
-		UStaticMeshComponent* meshComp = Actor->GetComponentByClass<UStaticMeshComponent>();
-
-		meshComp->GetClosestPointOnCollision(GetActorLocation(), point2);
-	}
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
 	
-	if (FVector::Dist(point1, point2) <= Reach)
-		return true;
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(this);
+	params.AddIgnoredActor(camera->Grid);
+	
+	TArray<FHitResult> hits;
+
+	FVector extent = Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize() / 2.0f;
+	extent.X += Reach;
+	extent.Y += Reach;
+	extent.Z += Reach;
+
+	FVector startRange = FVector(0.0f, 0.0f, extent.Z);
+
+	if (GetWorld()->SweepMultiByChannel(hits, GetActorLocation() + startRange, GetActorLocation() - startRange, GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(extent), params)) {
+		for (FHitResult hit : hits) {
+			if (hit.GetActor() != Actor)
+				continue;
+
+			return true;
+		}
+	}
 
 	return false;
 }

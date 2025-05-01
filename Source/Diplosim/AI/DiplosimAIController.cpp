@@ -348,7 +348,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 {
-	if (MoveRequest.GetGoalActor() != Actor)
+	if (MoveRequest.GetGoalActor() != Actor || (!Cast<AAI>(GetOwner())->MovementComponent->Points.IsEmpty() && FVector::Dist(Actor->GetActorLocation(), Cast<AAI>(GetOwner())->MovementComponent->Points.Last()) < 20.0f))
 		return;
 
 	AIMoveTo(Actor, MoveRequest.GetLocation(), MoveRequest.GetGoalInstance());

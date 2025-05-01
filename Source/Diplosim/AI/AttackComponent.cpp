@@ -28,6 +28,7 @@ UAttackComponent::UAttackComponent()
 	Damage = 10;
 
 	AttackTime = 1.0f;
+	AttackTimer = 0.0f;
 
 	CurrentTarget = nullptr;
 
@@ -106,23 +107,29 @@ void UAttackComponent::PickTarget()
 			favoured = target;
 	}
 
-	if (favoured == nullptr)
+	int32 reach = Cast<AAI>(GetOwner())->Range / 15.0f;
+
+	if (favoured == nullptr) {
 		SetComponentTickEnabled(false);
 
-	AsyncTask(ENamedThreads::GameThread, [this, favoured]() {
+		AttackTimer = 0.0f;
+	}
+	else if (!*ProjectileClass && Cast<AAI>(GetOwner())->CanReach(favoured, reach)) {
+		Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = nullptr;
+
+		Cast<AAI>(GetOwner())->AIController->StopMovement();
+	}
+
+	AsyncTask(ENamedThreads::GameThread, [this, favoured, reach]() {
 		if (favoured == nullptr) {
 			Cast<AAI>(GetOwner())->AIController->DefaultAction();
-
-			GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
 
 			return;
 		}
 
-		int32 reach = Cast<AAI>(GetOwner())->Range / 15.0f;
-
-		if ((*ProjectileClass || Cast<AAI>(GetOwner())->CanReach(favoured, reach)) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
+		if ((*ProjectileClass || Cast<AAI>(GetOwner())->CanReach(favoured, reach)))
 			Attack();
-		else if (GetOwner()->IsA<AAI>() && CurrentTarget != favoured)
+		else if (CurrentTarget != favoured)
 			Cast<AAI>(GetOwner())->AIController->AIMoveTo(favoured);
 
 		CurrentTarget = favoured;
@@ -163,9 +170,11 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 
 void UAttackComponent::Attack()
 {
-	Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = nullptr;
+	if (AttackTimer > 0.0f) {
+		AttackTimer -= 0.1f;
 
-	Cast<AAI>(GetOwner())->AIController->StopMovement();
+		return;
+	}
 
 	if (!IsValid(CurrentTarget))
 		return;
@@ -209,7 +218,7 @@ void UAttackComponent::Attack()
 		GetWorld()->GetTimerManager().SetTimer(AnimTimer, this, &UAttackComponent::Melee, time / 2, false);
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(AttackTimer, this, &UAttackComponent::Attack, time, false);
+	AttackTimer = time;
 }
 
 void UAttackComponent::Throw()
@@ -286,18 +295,9 @@ void UAttackComponent::Melee()
 
 void UAttackComponent::ClearAttacks()
 {
-	for (TWeakObjectPtr<AActor> target : OverlappingEnemies) {
-		if (!target->IsValidLowLevelFast() || !target->IsA<AAI>())
-			continue;
-
-		AAI* ai = Cast<AAI>(target);
-
-		ai->AttackComponent->OverlappingEnemies.Remove(GetOwner());
-	}
-
 	OverlappingEnemies.Empty();
 
 	bCanAttack = false;
 
-	AsyncTask(ENamedThreads::GameThread, [this]() { GetWorld()->GetTimerManager().ClearTimer(AttackTimer); });
+	AttackTimer = 0.0f;
 }

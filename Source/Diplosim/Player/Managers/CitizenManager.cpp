@@ -471,6 +471,9 @@ void UCitizenManager::StartTimers()
 
 FTimerStruct* UCitizenManager::FindTimer(FString ID, AActor* Actor)
 {
+	if (!IsValid(Actor))
+		return nullptr;
+	
 	FTimerStruct timer;
 	timer.ID = ID;
 	timer.Actor = Actor;
