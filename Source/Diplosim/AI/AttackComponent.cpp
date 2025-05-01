@@ -106,18 +106,12 @@ void UAttackComponent::PickTarget()
 			favoured = target;
 	}
 
-	if (CurrentTarget == favoured)
-		return;
-
 	if (favoured == nullptr)
 		SetComponentTickEnabled(false);
 
-	CurrentTarget = favoured;
-
-	AsyncTask(ENamedThreads::GameThread, [this]() {
-		if (CurrentTarget == nullptr) {
-			if (GetOwner()->IsA<AAI>())
-				Cast<AAI>(GetOwner())->AIController->DefaultAction();
+	AsyncTask(ENamedThreads::GameThread, [this, favoured]() {
+		if (favoured == nullptr) {
+			Cast<AAI>(GetOwner())->AIController->DefaultAction();
 
 			GetWorld()->GetTimerManager().ClearTimer(AttackTimer);
 
@@ -126,10 +120,12 @@ void UAttackComponent::PickTarget()
 
 		int32 reach = Cast<AAI>(GetOwner())->Range / 15.0f;
 
-		if ((*ProjectileClass || FVector::Dist(GetOwner()->GetActorLocation(), CurrentTarget->GetActorLocation()) < reach) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
+		if ((*ProjectileClass || Cast<AAI>(GetOwner())->CanReach(favoured, reach)) && !GetWorld()->GetTimerManager().IsTimerActive(AttackTimer))
 			Attack();
-		else if (GetOwner()->IsA<AAI>())
-			Cast<AAI>(GetOwner())->AIController->AIMoveTo(CurrentTarget);
+		else if (GetOwner()->IsA<AAI>() && CurrentTarget != favoured)
+			Cast<AAI>(GetOwner())->AIController->AIMoveTo(favoured);
+
+		CurrentTarget = favoured;
 	});
 }
 
@@ -143,7 +139,7 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
 	UAttackComponent* attackComp = Actor->GetComponentByClass<UAttackComponent>();
 
-	if (healthComp->Health == 0)
+	if (!healthComp || healthComp->Health == 0)
 		return Favourability;
 
 	Favourability.Hp = healthComp->Health;
@@ -169,16 +165,15 @@ void UAttackComponent::Attack()
 {
 	Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = nullptr;
 
-	if (!CurrentTarget->IsValidLowLevelFast())
+	Cast<AAI>(GetOwner())->AIController->StopMovement();
+
+	if (!IsValid(CurrentTarget))
 		return;
 
 	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
 
 	if (healthComp->Health == 0)
 		return;
-
-	if (GetOwner()->IsA<AAI>())
-		Cast<AAI>(GetOwner())->AIController->StopMovement();
 
 	float time = AttackTime;
 

@@ -877,8 +877,6 @@ void ABuilding::Leave(ACitizen* Citizen)
 	if (index != INDEX_NONE)
 		SocketList[index].Citizen = nullptr;
 
-	Citizen->AIController->StartMovement();
-
 	if (!Citizen->IsHidden())
 		return;
 

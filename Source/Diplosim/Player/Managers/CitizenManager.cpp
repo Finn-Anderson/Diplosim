@@ -10,7 +10,6 @@
 #include "Kismet/KismetArrayLibrary.h"
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
@@ -223,14 +222,14 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->MineralStruct)
 			ignore.Add(resourceStruct.Resource);
 
+		for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->FlowerStruct)
+			ignore.Add(resourceStruct.Resource);
+
 		TArray<AActor*> actors;
 
 		for (ACitizen* citizen : Citizens) {
 			if (citizen->HealthComponent->GetHealth() <= 0 || IsValid(citizen->Building.BuildingAt))
 				continue;
-
-			float distance = FVector::Dist(Cast<ACamera>(GetOwner())->CameraComponent->GetComponentLocation(), citizen->GetActorLocation());
-			citizen->MovementComponent->SetComponentTickInterval(distance / 100000.0f);
 
 			int32 reach = citizen->Range / 15.0f;
 			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), citizen->GetActorLocation(), citizen->Range, objects, nullptr, ignore, actors);
@@ -239,11 +238,16 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				if (actor == citizen || (!actor->IsA<AAI>() && !actor->IsA<AResource>() && !actor->IsA<ABuilding>()))
 					continue;
 
+				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+
+				if (healthComp && healthComp->GetHealth() <= 0)
+					continue;
+
 				if (actor->IsA<AAI>()) {
 					AAI* ai = Cast<AAI>(actor);
 
 					if (ai->Capsule->GetCollisionObjectType() == citizen->Capsule->GetCollisionObjectType()) {
-						if (FVector::Dist(citizen->GetActorLocation(), ai->GetActorLocation()) < reach && !Infected.IsEmpty()) {
+						if (citizen->CanReach(ai, reach) && !Infected.IsEmpty()) {
 							ACitizen* c = Cast<ACitizen>(ai);
 
 							if (c->Building.Employment == nullptr || !c->Building.Employment->IsA<AClinic>()) {
@@ -269,7 +273,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 						}
 					}
 
-					if (ai->HealthComponent->GetHealth() > 0 && (ai->IsA<AEnemy>() || Cast<ACitizen>(ai)->Rebel != citizen->Rebel)) {
+					if (ai->IsA<AEnemy>() || Cast<ACitizen>(ai)->Rebel != citizen->Rebel) {
 						if (!*citizen->AttackComponent->ProjectileClass && !citizen->AIController->CanMoveTo(ai->GetActorLocation()))
 							continue;
 
@@ -280,37 +284,21 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							citizen->AttackComponent->SetComponentTickEnabled(true);
 					}
 				}
-				else if (citizen->AIController->MoveRequest.GetGoalActor() == actor) {
-					FTransform transform;
-					transform.SetLocation(actor->GetActorLocation());
+				else if (citizen->AIController->MoveRequest.GetGoalActor() == actor && citizen->CanReach(actor, reach)) {
+					AsyncTask(ENamedThreads::GameThread, [this, citizen, actor]() {
+						if (actor->IsA<AResource>() && FindTimer("Harvest", citizen) == nullptr) {
+							AResource* r = Cast<AResource>(actor);
 
-					if (actor->IsA<ABuilding>()) {
-						FVector location;
+							citizen->StartHarvestTimer(r);
+						}
+						else if (actor->IsA<ABuilding>()) {
+							ABuilding* b = Cast<ABuilding>(actor);
 
-						actor->GetComponentByClass<UStaticMeshComponent>()->GetClosestPointOnCollision(citizen->GetActorLocation(), location);
+								b->Enter(citizen);
+						}
 
-						transform.SetLocation(location);
-					}
-					else {
-						actor->GetComponentByClass<UHierarchicalInstancedStaticMeshComponent>()->GetInstanceTransform(citizen->AIController->MoveRequest.GetGoalInstance(), transform);
-					}
-
-					if (FVector::Dist(citizen->GetActorLocation(), transform.GetLocation()) < reach) {
-						AsyncTask(ENamedThreads::GameThread, [this, citizen, actor]() {
-							if (actor->IsA<AResource>() && FindTimer("Harvest", citizen) == nullptr) {
-								AResource* r = Cast<AResource>(actor);
-
-								citizen->StartHarvestTimer(r);
-							}
-							else if (actor->IsA<ABuilding>()) {
-								ABuilding* b = Cast<ABuilding>(actor);
-
-								 b->Enter(citizen);
-							}
-
-							citizen->AIController->StopMovement();
-						});
-					}
+						citizen->AIController->StopMovement();
+					});
 				}
 			}
 
@@ -334,18 +322,18 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), enemy->GetActorLocation(), enemy->Range, objects, nullptr, ignore, actors);
 
 			for (AActor* actor : actors) {
-				if (actor == enemy || !actor->IsA<AAI>())
+				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+
+				if (healthComp && healthComp->GetHealth() <= 0)
 					continue;
 
-				AAI* ai = Cast<AAI>(actor);
-
-				if ((enemy->GetClass() == ai->GetClass() && (enemy->IsA<AEnemy>() || (enemy->IsA<ACitizen>() && Cast<ACitizen>(enemy)->Rebel == Cast<ACitizen>(ai)->Rebel))) || ai->HealthComponent->GetHealth() <= 0)
+				if (actor->IsA<AResource>() || (actor->GetClass() == enemy->GetClass() && (enemy->IsA<AEnemy>() || (enemy->IsA<ACitizen>() && Cast<ACitizen>(enemy)->Rebel == Cast<ACitizen>(actor)->Rebel))))
 					continue;
 
-				if (!*enemy->AttackComponent->ProjectileClass && !enemy->AIController->CanMoveTo(ai->GetActorLocation()))
-					return;
+				if (!*enemy->AttackComponent->ProjectileClass && !enemy->AIController->CanMoveTo(actor->GetActorLocation()))
+					continue;
 
-				enemy->AttackComponent->OverlappingEnemies.Add(ai);
+				enemy->AttackComponent->OverlappingEnemies.Add(actor);
 
 				if (enemy->AttackComponent->OverlappingEnemies.Num() == 1)
 					enemy->AttackComponent->SetComponentTickEnabled(true);
@@ -366,29 +354,27 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 void UCitizenManager::Loop()
 {
 	for (int32 i = Timers.Num() - 1; i > -1; i--) {
-		FTimerStruct* timer = &Timers[i];
-
-		if (!IsValid(timer->Actor) || (timer->Actor->IsA<ACitizen>() && (!Citizens.Contains(timer->Actor) || Cast<ACitizen>(timer->Actor)->Rebel)) || (timer->Actor->IsA<ABuilding>() && !Buildings.Contains(timer->Actor))) {
+		if (!IsValid(Timers[i].Actor) || (Timers[i].Actor->IsA<ACitizen>() && (!Citizens.Contains(Timers[i].Actor) || Cast<ACitizen>(Timers[i].Actor)->Rebel)) || (Timers[i].Actor->IsA<ABuilding>() && !Buildings.Contains(Timers[i].Actor))) {
 			Timers.RemoveAt(i);
 
 			continue;
 		}
 
-		if (timer->bPaused)
+		if (Timers[i].bPaused)
 			continue;
 
-		timer->Timer++;
+		Timers[i].Timer++;
 
-		if (timer->Timer == timer->Target) {
-			FTimerDelegate delegate = timer->Delegate;
+		if (Timers[i].Timer == Timers[i].Target) {
+			FTimerDelegate delegate = Timers[i].Delegate;
 
-			if (timer->bOnGameThread)
+			if (Timers[i].bOnGameThread)
 				AsyncTask(ENamedThreads::GameThread, [this, delegate]() { delegate.ExecuteIfBound(); });
 			else
 				delegate.ExecuteIfBound();
 
-			if (timer->bRepeat)
-				timer->Timer = 0;
+			if (Timers[i].bRepeat)
+				Timers[i].Timer = 0;
 			else
 				Timers.RemoveAt(i);
 		}

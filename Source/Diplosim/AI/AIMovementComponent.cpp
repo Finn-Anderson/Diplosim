@@ -45,7 +45,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	AActor* goal = aicontroller->MoveRequest.GetGoalActor();
 
 	if (IsValid(goal)) {
-		if (FVector::Dist(GetOwner()->GetActorLocation(), goal->GetActorLocation()) < range) {
+		if (Cast<AAI>(GetOwner())->CanReach(goal, range)) {
 			FRotator rotation = (GetOwner()->GetActorLocation() - goal->GetActorLocation()).Rotation();
 			rotation.Pitch = 0.0f;
 
@@ -53,9 +53,9 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 			return;
 		}
-
-		if (FVector::Dist(GetOwner()->GetActorLocation(), goal->GetActorLocation()) >= (range / 20.0f) && (Velocity.IsNearlyZero(1e-6f) || goal->IsA<AAI>()))
+		else if (Velocity.IsNearlyZero(1e-6f) || goal->IsA<AAI>()) {
 			aicontroller->RecalculateMovement(goal);
+		}
 	}
 
 	if (!Points.IsEmpty() && FVector::DistXY(GetOwner()->GetActorLocation(), Points[0]) < range) {

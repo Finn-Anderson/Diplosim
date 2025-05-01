@@ -298,10 +298,15 @@ TArray<FVector> ADiplosimAIController::GetPathPoints(FVector StartLocation, FVec
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
+	if (!IsValid(this) || !IsValid(Owner))
+		return;
+	
 	int32 reach = Cast<AAI>(GetOwner())->Range / 15.0f;
 	
-	if ((IsValid(MoveRequest.GetGoalActor()) && FVector::Dist(GetOwner()->GetActorLocation(), MoveRequest.GetGoalActor()->GetActorLocation()) < reach) || (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor))
+	if ((IsValid(MoveRequest.GetGoalActor()) && Cast<AAI>(GetOwner())->CanReach(MoveRequest.GetGoalActor(), reach)) || (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor))
 		return;
+
+	StartMovement();
 	
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);
@@ -351,6 +356,9 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 
 void ADiplosimAIController::StartMovement()
 {
+	if (Cast<AAI>(GetOwner())->MovementComponent->IsComponentTickEnabled())
+		return;
+	
 	Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = nullptr;
 
 	Cast<AAI>(GetOwner())->MovementComponent->SetComponentTickEnabled(true);

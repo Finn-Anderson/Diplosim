@@ -289,8 +289,8 @@ void ADiplosimGameModeBase::SetRaidInformation()
 
 	AsyncTask(ENamedThreads::GameThread, [this, spawnLocations]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocation + FVector(0.0f, 0.0f, 500.0f)); });
 
-	FTimerStruct timer;
-	timer.CreateTimer("SpawnEnemies", this, 120, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAllEnemies, spawnLocations), false, true);
+	FTimerStruct timer; // 120
+	timer.CreateTimer("SpawnEnemies", this, 5, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAllEnemies, spawnLocations), false, true);
 	Camera->CitizenManager->Timers.Add(timer);
 }
 

@@ -18,6 +18,8 @@ protected:
 public:
 	void MoveToBroch();
 
+	bool CanReach(AActor* Actor, float Reach);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CapsuleComponent")
 		class UCapsuleComponent* Capsule;
 

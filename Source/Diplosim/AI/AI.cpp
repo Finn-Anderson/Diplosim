@@ -4,6 +4,7 @@
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Universal/HealthComponent.h"
 #include "AIMovementComponent.h"
@@ -72,6 +73,11 @@ void AAI::MoveToBroch()
 
 	AActor* target = brochs[0];
 
+	UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
+
+	if (!healthComp || healthComp->GetHealth() == 0)
+		return;
+
 	if (!AIController->CanMoveTo(brochs[0]->GetActorLocation()) && IsA<AEnemy>()) {
 		TArray<AActor*> buildings;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
@@ -98,4 +104,34 @@ void AAI::MoveToBroch()
 	}
 
 	AIController->AIMoveTo(target);
+}
+
+bool AAI::CanReach(AActor* Actor, float Reach)
+{
+	FVector point1;
+	Mesh->GetClosestPointOnCollision(Actor->GetActorLocation(), point1);
+
+	FVector point2;
+	if (Actor->IsA<AResource>()) {
+		FTransform transform;
+
+		Actor->GetComponentByClass<UHierarchicalInstancedStaticMeshComponent>()->GetInstanceTransform(AIController->MoveRequest.GetGoalInstance(), transform);
+
+		point2 = transform.GetLocation();
+	}
+	else if (Actor->IsA<AAI>()) {
+		USkeletalMeshComponent* meshComp = Actor->GetComponentByClass<USkeletalMeshComponent>();
+
+		meshComp->GetClosestPointOnCollision(GetActorLocation(), point2);
+	}
+	else {
+		UStaticMeshComponent* meshComp = Actor->GetComponentByClass<UStaticMeshComponent>();
+
+		meshComp->GetClosestPointOnCollision(GetActorLocation(), point2);
+	}
+	
+	if (FVector::Dist(point1, point2) <= Reach)
+		return true;
+
+	return false;
 }
