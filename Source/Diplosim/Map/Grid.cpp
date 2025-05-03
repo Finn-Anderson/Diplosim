@@ -9,6 +9,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "Engine/ExponentialHeightFog.h"
+#include "NavigationSystem.h"
 
 #include "Atmosphere/Clouds.h"
 #include "Resources/Mineral.h"
@@ -75,6 +76,19 @@ AGrid::AGrid()
 	HISMRiver->SetCanEverAffectNavigation(false);
 	HISMRiver->NumCustomDataFloats = 4;
 
+	HISMWall = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWall"));
+	HISMWall->SetupAttachment(GetRootComponent());
+	HISMWall->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	HISMWall->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	HISMWall->SetCollisionResponseToChannels(response);
+	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Ignore);
+	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
+	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Block);
+	HISMWall->SetCanEverAffectNavigation(true);
+	HISMWall->SetVisibility(false);
+	HISMWall->bAutoRebuildTreeOnInstanceChanges = false;
+
 	LavaComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("LavaComponent"));
 	LavaComponent->SetupAttachment(GetRootComponent());
 	LavaComponent->bAutoActivate = false;
@@ -123,6 +137,13 @@ void AGrid::BeginPlay()
 
 	for (FResourceHISMStruct &ResourceStruct : MineralStruct)
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	FScriptDelegate delegate;
+	delegate.BindUFunction(this, TEXT("OnNavMeshGenerated"));
+
+	nav->OnNavigationGenerationFinishedDelegate.Add(delegate);
 }
 
 void AGrid::Load()
@@ -380,10 +401,16 @@ void AGrid::Render()
 		}	
 	}
 
-	// Spawn Actor
+	// Spawn Tiles
 	for (TArray<FTileStruct> &row : Storage)
 		for (FTileStruct &tile : row)
 			GenerateTile(&tile);
+
+	for (TArray<FTileStruct>& row : Storage)
+		for (FTileStruct& tile : row)
+			CreateEdgeWalls(&tile);
+
+	Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 
 	// Spawn resources
 	ResourceTiles.Empty();
@@ -497,11 +524,14 @@ void AGrid::Render()
 	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
 	LavaComponent->Activate();
 
-	// Remove loading screen
-	LoadUIInstance->RemoveFromParent();
-
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(true, true);
+}
+
+void AGrid::OnNavMeshGenerated()
+{
+	// Remove loading screen
+	LoadUIInstance->RemoveFromParent();
 }
 
 TArray<FTileStruct*> AGrid::CalculatePath(FTileStruct* Tile, FTileStruct* Target)
@@ -876,6 +906,75 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 	Tile->Instance = inst;
 }
 
+void AGrid::CreateEdgeWalls(FTileStruct* Tile)
+{
+	if (Tile->Level < 0 || Tile->bRiver)
+		return;
+
+	TArray<FVector2D> xy;
+
+	if (Tile->AdjacentTiles.Num() < 4) {
+		if (!Tile->AdjacentTiles.Find("Left"))
+			xy.Add(FVector2D(Tile->X - 1, Tile->Y));
+
+		if (!Tile->AdjacentTiles.Find("Right"))
+			xy.Add(FVector2D(Tile->X + 1, Tile->Y));
+
+		if (!Tile->AdjacentTiles.Find("Below"))
+			xy.Add(FVector2D(Tile->X, Tile->Y - 1));
+
+		if (!Tile->AdjacentTiles.Find("Above"))
+			xy.Add(FVector2D(Tile->X, Tile->Y + 1));
+	}
+
+	for (auto& element : Tile->AdjacentTiles) {
+		if ((!Tile->bRamp && element.Value->Level == Tile->Level && !element.Value->bRiver) || element.Value->bRamp || element.Value->Level > Tile->Level)
+			continue;
+
+		xy.Add(FVector2D(element.Value->X, element.Value->Y));
+	}
+
+	for (FVector2D coord : xy) {
+		float x = Tile->X + (coord.X - Tile->X) / 2.0f;
+		float y = Tile->Y + (coord.Y - Tile->Y) / 2.0f;
+
+		FTransform transform;
+		transform.SetLocation(FVector(x * 100.0f, y * 100.0f, Tile->Level * 75.0f + 100.0f));
+
+		if (y != Tile->Y)
+			transform.SetRotation(FRotator(0.0f, 90.0f, 0.0f).Quaternion());
+
+		if (Tile->bRamp) {
+			FTransform tf;
+			HISMRampGround->GetInstanceTransform(Tile->Instance, tf);
+
+			if (FMath::Abs(FMath::RoundHalfFromZero(tf.GetRotation().Rotator().Yaw)) == 90.0f) {
+				if (y != Tile->Y)
+					continue;
+			}
+			else if (x != Tile->X)
+				continue;
+		}
+
+		bool bExists = false;
+
+		for (int32 i = 0; i < HISMWall->GetInstanceCount(); i++) {
+			FTransform tf;
+			HISMWall->GetInstanceTransform(i, tf);
+
+			if (tf.GetLocation() != transform.GetLocation())
+				continue;
+
+			bExists = true;
+
+			break;
+		}
+
+		if (!bExists)
+			HISMWall->AddInstance(transform);
+	}
+}
+
 void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis, float R, float G, float B)
 {
 	for (int32 i = 0; i < Num; i++) {
@@ -1154,6 +1253,7 @@ void AGrid::Clear()
 	HISMFlatGround->ClearInstances();
 	HISMRampGround->ClearInstances();
 	HISMRiver->ClearInstances();
+	HISMWall->ClearInstances();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(false, false);

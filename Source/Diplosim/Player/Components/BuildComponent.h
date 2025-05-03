@@ -86,4 +86,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void RemoveBuilding();
+
+	void RemoveWalls(ABuilding* Building);
 };

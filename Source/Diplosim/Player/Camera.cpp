@@ -123,6 +123,7 @@ ACamera::ACamera()
 	bBlockPause = false;
 
 	bInstantBuildCheat = false;
+	bInstantEnemies = false;
 
 	ActorAttachedTo = nullptr;
 }
@@ -541,6 +542,9 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action(const struct FInputActionInstance& Instance)
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+	
 	if (BribeUIInstance->IsInViewport())
 		BribeUIInstance->RemoveFromParent();
 
@@ -587,6 +591,9 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 
 void ACamera::Bulldoze()
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (!bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy)
 		return;
 
@@ -600,6 +607,9 @@ void ACamera::Bulldoze()
 
 void ACamera::Cancel()
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (Start || bInMenu)
 		return;
 
@@ -611,6 +621,9 @@ void ACamera::Cancel()
 
 void ACamera::NewMap()
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (!Start || bInMenu)
 		return;
 
@@ -622,6 +635,9 @@ void ACamera::NewMap()
 
 void ACamera::Pause()
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (bInMenu || bBlockPause)
 		return;
 
@@ -643,6 +659,9 @@ void ACamera::Pause()
 
 void ACamera::Menu()
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (bLost || MainMenuUIInstance->IsInViewport())
 		return;
 
@@ -700,6 +719,9 @@ void ACamera::Menu()
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (bInMenu)
 		return;
 
@@ -708,6 +730,9 @@ void ACamera::Rotate(const struct FInputActionInstance& Instance)
 
 void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (bInMenu && !bMouseCapture)
 		return;
 
@@ -719,6 +744,9 @@ void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 
 void ACamera::Look(const struct FInputActionInstance& Instance)
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (bInMenu)
 		return;
 
@@ -727,6 +755,9 @@ void ACamera::Look(const struct FInputActionInstance& Instance)
 
 void ACamera::Move(const struct FInputActionInstance& Instance)
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (bInMenu)
 		return;
 
@@ -737,6 +768,9 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 
 void ACamera::Speed(const struct FInputActionInstance& Instance)
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (bInMenu)
 		return;
 
@@ -747,6 +781,9 @@ void ACamera::Speed(const struct FInputActionInstance& Instance)
 
 void ACamera::Scroll(const struct FInputActionInstance& Instance)
 {
+	if (Grid->LoadUIInstance->IsInViewport())
+		return;
+
 	if (bInMenu)
 		return;
 
@@ -760,6 +797,8 @@ void ACamera::SpawnEnemies()
 {
 	if (bInMenu)
 		return;
+
+	bInstantEnemies = true;
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 

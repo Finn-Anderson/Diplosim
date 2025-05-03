@@ -228,10 +228,14 @@ void ADiplosimGameModeBase::ShowRaidCrystal(bool bShow, FVector Location)
 {
 	SetActorTickEnabled(true);
 
-	if (bShow)
+	if (bShow) {
 		TargetOpacity = 1.0f;
-	else
+	}
+	else {
 		TargetOpacity = 0.0f;
+
+		Camera->bInstantEnemies = false;
+	}
 
 	Camera->Grid->CrystalMesh->SetRelativeLocation(Location);
 
@@ -289,8 +293,13 @@ void ADiplosimGameModeBase::SetRaidInformation()
 
 	AsyncTask(ENamedThreads::GameThread, [this, spawnLocations]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocation + FVector(0.0f, 0.0f, 500.0f)); });
 
-	FTimerStruct timer; // 120
-	timer.CreateTimer("SpawnEnemies", this, 5, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAllEnemies, spawnLocations), false, true);
+	int32 time = 120;
+
+	if (Camera->bInstantEnemies)
+		time = 5;
+
+	FTimerStruct timer; 
+	timer.CreateTimer("SpawnEnemies", this, time, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAllEnemies, spawnLocations), false, true);
 	Camera->CitizenManager->Timers.Add(timer);
 }
 

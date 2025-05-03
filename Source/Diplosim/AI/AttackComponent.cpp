@@ -2,6 +2,7 @@
 
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
@@ -107,30 +108,43 @@ void UAttackComponent::PickTarget()
 			favoured = target;
 	}
 
-	int32 reach = Cast<AAI>(GetOwner())->Range / 15.0f;
+	int32 reach = 0.0f;
+	AAI* ai = nullptr;
+
+	if (GetOwner()->IsA<AAI>()) {
+		ai = Cast<AAI>(GetOwner());
+
+		reach = ai->Range / 15.0f;
+
+		ai->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+	}
 
 	if (favoured == nullptr) {
 		SetComponentTickEnabled(false);
 
 		AttackTimer = 0.0f;
-	}
-	else if (!*ProjectileClass && Cast<AAI>(GetOwner())->CanReach(favoured, reach)) {
-		Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = nullptr;
 
-		Cast<AAI>(GetOwner())->AIController->StopMovement();
+		if (IsValid(ai))
+			ai->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+	}
+	else if (!*ProjectileClass && ai->CanReach(favoured, reach)) {
+		ai->MovementComponent->CurrentAnim = nullptr;
+
+		ai->AIController->StopMovement();
 	}
 
-	AsyncTask(ENamedThreads::GameThread, [this, favoured, reach]() {
+	AsyncTask(ENamedThreads::GameThread, [this, favoured, ai, reach]() {
 		if (favoured == nullptr) {
-			Cast<AAI>(GetOwner())->AIController->DefaultAction();
+			if (IsValid(ai))
+				ai->AIController->DefaultAction();
 
 			return;
 		}
 
-		if ((*ProjectileClass || Cast<AAI>(GetOwner())->CanReach(favoured, reach)))
+		if ((*ProjectileClass || ai->CanReach(favoured, reach)))
 			Attack();
 		else if (CurrentTarget != favoured)
-			Cast<AAI>(GetOwner())->AIController->AIMoveTo(favoured);
+			ai->AIController->AIMoveTo(favoured);
 
 		CurrentTarget = favoured;
 	});

@@ -417,4 +417,7 @@ public:
 
 	UPROPERTY()
 		bool bInstantBuildCheat;
+
+	UPROPERTY()
+		bool bInstantEnemies;
 };

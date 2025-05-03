@@ -63,11 +63,20 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
 	{
-		UHierarchicalInstancedStaticMeshComponent* comp = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent());
-		int32 instance = hit.Item;
+		UHierarchicalInstancedStaticMeshComponent* comp = nullptr;
+		int32 instance = 0;
 
 		FTransform transform;
-		comp->GetInstanceTransform(instance, transform);
+
+		if (hit.GetActor()->IsA<ABuilding>()) {
+			transform = hit.GetActor()->GetTransform();
+		}
+		else {
+			comp = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent());
+			instance = hit.Item;
+
+			comp->GetInstanceTransform(instance, transform);
+		}
 
 		if (transform.GetRotation().X != 0.0f || transform.GetRotation().Y != 0.0f)
 			return;
@@ -81,8 +90,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			SetTileOpacity(Buildings[0], 1.0f);
 
 		if (location.Z >= 0.0f) {
-			if (comp == Camera->Grid->HISMRiver && comp->PerInstanceSMCustomData[instance * 4] == 1.0f && Buildings[0]->IsA(FoundationClass))
+			if (IsValid(comp) && comp == Camera->Grid->HISMRiver && comp->PerInstanceSMCustomData[instance * 4] == 1.0f && Buildings[0]->IsA(FoundationClass))
 				location.Z += 30.0f;
+			else if (hit.GetActor()->IsA<ABuilding>())
+				location.Z += 75.0f;
 			else
 				location.Z += 100.0f;
 
@@ -190,19 +201,7 @@ void UBuildComponent::SetBuildingsOnPath()
 			Cast<ARoad>(Buildings.Last())->RegenerateMesh();
 
 		if (IsValidLocation(Buildings.Last()) || Buildings.Num() == 1) {
-			bool bBuildingExists = false;
-
-			FHitResult hit(ForceInit);
-
-			if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 50.0f), location, ECollisionChannel::ECC_Visibility))
-				if (hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsHidden() && (Buildings[0]->GetClass() != hit.GetActor()->GetClass() || Buildings[0]->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum || Buildings[0]->GetActorLocation() != hit.GetActor()->GetActorLocation()))
-					bBuildingExists = true;
-
-			if (Buildings.Last()->IsA(FoundationClass))
-				location.Z -= 70.0f;
-
-			if (!bBuildingExists)
-				SpawnBuilding(Buildings[0]->GetClass(), location);
+			SpawnBuilding(Buildings[0]->GetClass(), location);
 
 			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
 
@@ -277,7 +276,18 @@ TArray<FVector> UBuildComponent::CalculatePath(FTileStruct StartTile, FTileStruc
 			xi += (i * xSign);
 
 		FTransform transform;
-		transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[xi][yi]);
+		transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[xi][yi]); 
+		
+		FCollisionQueryParams params;
+		params.AddIgnoredActor(Camera->Grid);
+
+		FHitResult hit(ForceInit);
+
+		if (GetWorld()->LineTraceSingleByChannel(hit, transform.GetLocation() + FVector(0.0f, 0.0f, 20000.0f), transform.GetLocation(), ECollisionChannel::ECC_Visibility, params) && hit.GetActor()->IsA(FoundationClass)) {
+			transform = hit.GetActor()->GetTransform();
+
+			transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 75.0f));
+		}
 
 		locations.Add(transform.GetLocation());
 	}
@@ -358,7 +368,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 	bool bResource = false;
 
 	for (FCollisionStruct collision : building->Collisions) {
-		if (collision.Actor->IsHidden())
+		if (collision.Actor->IsHidden() || collision.HISM == Camera->Grid->HISMWall)
 			continue;
 
 		if (collision.HISM == Camera->Grid->HISMLava || (collision.HISM == Camera->Grid->HISMRampGround && !(building->IsA(FoundationClass) || building->IsA(RampClass))))
@@ -385,8 +395,12 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 			}
 		}
 
-		if (building->GetClass() == collision.Actor->GetClass() && building->SeedNum != Cast<ABuilding>(collision.Actor)->SeedNum && building->GetActorLocation() == collision.Actor->GetActorLocation())
-			continue;
+		if (building->GetClass() == collision.Actor->GetClass() && building->GetActorLocation() == collision.Actor->GetActorLocation()) {
+			if (building->SeedNum == Cast<ABuilding>(collision.Actor)->SeedNum)
+				return false;
+			else
+				continue;
+		}
 
 		if (building->IsA<ARoad>() && collision.Actor->IsA<ARoad>())
 			continue;
@@ -399,6 +413,9 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 				return false;
 		}
 		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f || collision.HISM == Camera->Grid->HISMRiver) {
+			if (collision.Actor->IsA(FoundationClass) && building->IsA(FoundationClass))
+				continue;
+
 			FRotator rotation = (building->GetActorLocation() - transform.GetLocation()).Rotation();
 
 			FCollisionQueryParams params;
@@ -623,10 +640,45 @@ void UBuildComponent::Place(bool bQuick)
 		for (FTreeStruct treeStruct : building->TreeList)
 			Camera->Grid->RemoveTree(treeStruct.Resource, treeStruct.Instance);
 
-	if (!Buildings.IsEmpty() && Buildings[0]->IsA(FoundationClass))
-		for (FCollisionStruct collision : Buildings[0]->Collisions)
-			if (collision.HISM == Camera->Grid->HISMRiver)
-				collision.HISM->PerInstanceSMCustomData[collision.Instance * 4] = 0.0f;
+	if (!Buildings.IsEmpty() && (Buildings[0]->IsA(FoundationClass) || Buildings[0]->IsA(RampClass) || Buildings[0]->IsA<ARoad>())) {
+		for (ABuilding* building : Buildings)
+			RemoveWalls(building);
+
+		if (!Buildings[0]->IsA<ARoad>()) {
+			for (ABuilding* building : Buildings) {
+				int32 buildingX = FMath::RoundHalfFromZero(building->GetActorLocation().X);
+				int32 buildingY = FMath::RoundHalfFromZero(building->GetActorLocation().Y);
+
+				auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
+				int32 x = buildingX / 100.0f + (bound / 2);
+				int32 y = buildingY / 100.0f + (bound / 2);
+
+				FTileStruct* tile = &Camera->Grid->Storage[x][y];
+
+				if (Buildings[0]->IsA(FoundationClass))
+					tile->Level++;
+				else
+					tile->bRamp = true;
+			}
+
+			for (ABuilding* building : Buildings) {
+				int32 buildingX = FMath::RoundHalfFromZero(building->GetActorLocation().X);
+				int32 buildingY = FMath::RoundHalfFromZero(building->GetActorLocation().Y);
+
+				auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
+				int32 x = buildingX / 100.0f + (bound / 2);
+				int32 y = buildingY / 100.0f + (bound / 2);
+
+				FTileStruct* tile = &Camera->Grid->Storage[x][y];
+
+				Camera->Grid->CreateEdgeWalls(tile);
+			}
+		}
+
+		Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
+	}
 
 	if (BuildingToMove->IsValidLowLevelFast()) {
 		FVector diff = BuildingToMove->GetActorLocation() - Buildings[0]->GetActorLocation();
@@ -699,4 +751,34 @@ void UBuildComponent::QuickPlace()
 	}
 
 	Place(true);
+}
+
+void UBuildComponent::RemoveWalls(ABuilding* Building)
+{
+	int32 buildingX = FMath::RoundHalfFromZero(Building->GetActorLocation().X);
+	int32 buildingY = FMath::RoundHalfFromZero(Building->GetActorLocation().Y);
+
+	TArray<FVector> ends;
+	ends.Add(Building->GetActorLocation() + FVector(60.0f, 0.0f, 75.0f));
+	ends.Add(Building->GetActorLocation() + FVector(-60.0f, 0.0f, 75.0f));
+	ends.Add(Building->GetActorLocation() + FVector(0.0f, 60.0f, 75.0f));
+	ends.Add(Building->GetActorLocation() + FVector(0.0f, -60.0f, 75.0f));
+
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(Building);
+
+	FHitResult hit(ForceInit);
+
+	for (FVector end : ends) {
+		if (!GetWorld()->LineTraceSingleByChannel(hit, Building->GetActorLocation() + FVector(0.0f, 0.0f, 75.0f), end, ECollisionChannel::ECC_Destructible, params) || hit.GetComponent() != Camera->Grid->HISMWall)
+			continue;
+
+		Camera->Grid->HISMWall->RemoveInstance(hit.Item);
+	}
+
+	for (FCollisionStruct collision : Building->Collisions)
+		if (collision.HISM == Camera->Grid->HISMRiver && Building->IsA(FoundationClass))
+			collision.HISM->PerInstanceSMCustomData[collision.Instance * 4] = 0.0f;
+
+	Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 }

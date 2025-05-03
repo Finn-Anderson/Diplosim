@@ -524,6 +524,32 @@ void ABuilding::DestroyBuilding()
 		for (AHouse* house : Cast<ABroadcast>(this)->Houses)
 			Cast<ABroadcast>(this)->RemoveInfluencedMaterial(house);
 
+	if (!Camera->BuildComponent->Buildings.Contains(this) && (IsA(Camera->BuildComponent->FoundationClass) || IsA(Camera->BuildComponent->RampClass) || IsA<ARoad>())) {
+		Camera->BuildComponent->RemoveWalls(this);
+
+		int32 buildingX = FMath::RoundHalfFromZero(GetActorLocation().X);
+		int32 buildingY = FMath::RoundHalfFromZero(GetActorLocation().Y);
+
+		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
+		int32 x = buildingX / 100.0f + (bound / 2);
+		int32 y = buildingY / 100.0f + (bound / 2);
+
+		FTileStruct* tile = &Camera->Grid->Storage[x][y];
+
+		if (IsA(Camera->BuildComponent->FoundationClass))
+			tile->Level--;
+		else if (IsA(Camera->BuildComponent->RampClass))
+			tile->bRamp = false;
+
+		for (auto &element : tile->AdjacentTiles)
+			Camera->Grid->CreateEdgeWalls(element.Value);
+
+		Camera->Grid->CreateEdgeWalls(tile);
+
+		Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
+	}
+
 	Destroy();
 }
 
@@ -553,6 +579,9 @@ void ABuilding::OnBuilt()
 		BuildingMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 		BuildingMesh->SetStaticMesh(ActualMesh);
 	}
+
+	if (IsA(Camera->BuildComponent->FoundationClass))
+		BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 
 	UConstructionManager* cm = Camera->ConstructionManager;
 	cm->RemoveBuilding(this);

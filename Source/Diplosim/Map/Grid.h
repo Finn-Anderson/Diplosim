@@ -131,6 +131,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMRiver;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* HISMWall;
+
 	// Dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Size;
@@ -165,6 +168,9 @@ public:
 
 	void Render();
 
+	UFUNCTION()
+		void OnNavMeshGenerated();
+
 	TArray<FTileStruct*> CalculatePath(FTileStruct* Tile, FTileStruct* Target);
 
 	void FillHoles(FTileStruct* Tile);
@@ -174,6 +180,8 @@ public:
 	TArray<FTileStruct*> GenerateRiver(FTileStruct* Tile, FTileStruct* Peak);
 
 	void GenerateTile(FTileStruct* Tile);
+
+	void CreateEdgeWalls(FTileStruct* Tile);
 
 	void CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis, float R, float G, float B);
 
