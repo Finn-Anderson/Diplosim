@@ -627,6 +627,8 @@ void ACamera::NewMap()
 	if (!Start || bInMenu)
 		return;
 
+	SetMouseCapture(false);
+
 	Grid->Clear();
 	Grid->Load();
 

@@ -489,6 +489,9 @@ int32 UResourceManager::GetCategoryTrend(FString Category)
 
 	if (Category == "Money") {
 		for (ABuilding* building : citizenManager->Buildings) {
+			if (!IsValid(building))
+				continue;
+
 			if (building->IsA<AWork>())
 				overallTrend -= Cast<AWork>(building)->Wage * building->GetOccupied().Num();
 			else if (building->IsA<AHouse>())
@@ -499,7 +502,7 @@ int32 UResourceManager::GetCategoryTrend(FString Category)
 		overallTrend -= citizenManager->Citizens.Num() * 8;
 
 		for (ABuilding* building : citizenManager->Buildings) {
-			if (!building->IsA<AFarm>() || building->GetOccupied().IsEmpty())
+			if (!IsValid(building) || !building->IsA<AFarm>() || building->GetOccupied().IsEmpty())
 				continue;
 
 			AFarm* farm = Cast<AFarm>(building);

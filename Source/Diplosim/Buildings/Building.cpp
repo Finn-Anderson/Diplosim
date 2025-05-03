@@ -482,7 +482,7 @@ void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 	}
 }
 
-void ABuilding::DestroyBuilding()
+void ABuilding::DestroyBuilding(bool bCheckAbove)
 {
 	UResourceManager* rm = Camera->ResourceManager;
 	UConstructionManager* cm = Camera->ConstructionManager;
@@ -525,6 +525,21 @@ void ABuilding::DestroyBuilding()
 			Cast<ABroadcast>(this)->RemoveInfluencedMaterial(house);
 
 	if (!Camera->BuildComponent->Buildings.Contains(this) && (IsA(Camera->BuildComponent->FoundationClass) || IsA(Camera->BuildComponent->RampClass) || IsA<ARoad>())) {
+		if (IsA(Camera->BuildComponent->FoundationClass)) {
+			FCollisionQueryParams params;
+			params.AddIgnoredActor(this);
+			params.AddIgnoredActor(Camera->Grid);
+
+			FHitResult hit;
+
+			while (bCheckAbove) {
+				if (GetWorld()->LineTraceSingleByChannel(hit, GetActorLocation() + FVector(0.0f, 0.0f, 20000.0f), GetActorLocation(), ECollisionChannel::ECC_Visibility, params))
+					Cast<ABuilding>(hit.GetActor())->DestroyBuilding(false);
+				else
+					bCheckAbove = false;
+			}
+		}
+
 		Camera->BuildComponent->RemoveWalls(this);
 
 		int32 buildingX = FMath::RoundHalfFromZero(GetActorLocation().X);
@@ -549,6 +564,9 @@ void ABuilding::DestroyBuilding()
 
 		Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 	}
+
+	if (Camera->CitizenManager->Buildings.Contains(this))
+		Camera->CitizenManager->Buildings.Remove(this);
 
 	Destroy();
 }

@@ -175,6 +175,8 @@ public:
 
 	void FillHoles(FTileStruct* Tile);
 
+	void GetSeaTiles(FTileStruct* Tile);
+
 	void SetTileDetails(FTileStruct* Tile);
 
 	TArray<FTileStruct*> GenerateRiver(FTileStruct* Tile, FTileStruct* Peak);
@@ -195,6 +197,8 @@ public:
 
 	UPROPERTY();
 		FRandomStream Stream;
+
+	TArray<FTileStruct*> SeaTiles;
 
 	TArray<TArray<FTileStruct>> Storage;
 

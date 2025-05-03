@@ -86,7 +86,8 @@ AGrid::AGrid()
 	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
 	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Block);
 	HISMWall->SetCanEverAffectNavigation(true);
-	HISMWall->SetVisibility(false);
+	HISMWall->SetHiddenInGame(true);
+	HISMWall->SetCastShadow(false);
 	HISMWall->bAutoRebuildTreeOnInstanceChanges = false;
 
 	LavaComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("LavaComponent"));
@@ -324,6 +325,20 @@ void AGrid::Render()
 	for (TArray<FTileStruct> &row : Storage)
 		for (FTileStruct &tile : row)
 			FillHoles(&tile);
+
+	for (TArray<FTileStruct>& row : Storage) {
+		for (FTileStruct& tile : row) {
+			SeaTiles.Empty();
+
+			GetSeaTiles(&tile);
+
+			if (SeaTiles.Num() > 32)
+				continue;
+
+			for (FTileStruct* t : SeaTiles)
+				t->Level = 0;
+		}
+	}
 
 	for (TArray<FTileStruct>& row : Storage)
 		for (FTileStruct& tile : row)
@@ -629,6 +644,17 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 	Tile->Fertility = FMath::Clamp(fTile + value, 1, 5);
 }
 
+void AGrid::GetSeaTiles(FTileStruct* Tile) 
+{
+	if (SeaTiles.Contains(Tile) || Tile->Level > -1 || SeaTiles.Num() > 32)
+		return;
+
+	SeaTiles.Add(Tile);
+
+	for (auto& element : Tile->AdjacentTiles)
+		GetSeaTiles(element.Value);
+}
+
 TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
 {
 	TArray<FTileStruct*> tiles;
@@ -903,6 +929,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		}
 	}
 
+	Tile->Rotation = transform.GetRotation();
 	Tile->Instance = inst;
 }
 
@@ -945,10 +972,7 @@ void AGrid::CreateEdgeWalls(FTileStruct* Tile)
 			transform.SetRotation(FRotator(0.0f, 90.0f, 0.0f).Quaternion());
 
 		if (Tile->bRamp) {
-			FTransform tf;
-			HISMRampGround->GetInstanceTransform(Tile->Instance, tf);
-
-			if (FMath::Abs(FMath::RoundHalfFromZero(tf.GetRotation().Rotator().Yaw)) == 90.0f) {
+			if (FMath::Abs(FMath::RoundHalfFromZero(Tile->Rotation.Rotator().Yaw)) == 90.0f || FMath::Abs(FMath::RoundHalfFromZero(Tile->Rotation.Rotator().Yaw)) == 270.0f) {
 				if (y != Tile->Y)
 					continue;
 			}

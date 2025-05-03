@@ -293,7 +293,7 @@ public:
 	void SetSocketLocation(class ACitizen* Citizen);
 	
 	UFUNCTION(BlueprintCallable)
-		void DestroyBuilding();
+		void DestroyBuilding(bool bCheckAbove = true);
 
 	TArray<FItemStruct> GetGradeCost(int32 Grade);
 
