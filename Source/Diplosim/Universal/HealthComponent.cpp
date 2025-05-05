@@ -53,10 +53,14 @@ void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	building->DestructionComponent->SetRelativeLocation(building->DestructionComponent->GetRelativeLocation() + difference);
 	building->GroundDecalComponent->SetRelativeLocation(building->GroundDecalComponent->GetRelativeLocation() + difference);
 
-	if (CrumbleLocation.Z <= building->GetActorLocation().Z)
+	if (CrumbleLocation.Z <= building->GetActorLocation().Z) {
 		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
-	else
+	}
+	else {
 		building->DestructionComponent->Deactivate();
+
+		SetComponentTickEnabled(false);
+	}
 }
 
 void UHealthComponent::AddHealth(int32 Amount)
@@ -295,6 +299,8 @@ void UHealthComponent::Clear(AActor* Attacker)
 		Cast<ABuilding>(actor)->GroundDecalComponent->SetHiddenInGame(false);
 
 		Cast<ABuilding>(actor)->DestructionComponent->Deactivate();
+
+		SetComponentTickEnabled(false);
 
 		return;
 	}

@@ -77,7 +77,7 @@ void AAI::MoveToBroch()
 
 	UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
 
-	if (!healthComp || healthComp->GetHealth() == 0)
+	if (!healthComp || healthComp->GetHealth() <= 0)
 		return;
 
 	if (!AIController->CanMoveTo(brochs[0]->GetActorLocation()) && IsA<AEnemy>()) {
@@ -136,4 +136,21 @@ bool AAI::CanReach(AActor* Actor, float Reach)
 	}
 
 	return false;
+}
+
+void AAI::EnableCollisions(bool bEnable)
+{
+	ECollisionResponse response = ECollisionResponse::ECR_Ignore;
+
+	if (bEnable)
+		response = ECollisionResponse::ECR_Block;
+
+	if (Capsule->GetCollisionResponseToChannel(ECC_Pawn) == response)
+		return;
+
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, response);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, response);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, response);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, response);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, response);
 }

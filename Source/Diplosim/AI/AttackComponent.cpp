@@ -116,7 +116,7 @@ void UAttackComponent::PickTarget()
 
 		reach = ai->Range / 15.0f;
 
-		ai->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+		ai->EnableCollisions(true);
 	}
 
 	if (favoured == nullptr) {
@@ -125,7 +125,7 @@ void UAttackComponent::PickTarget()
 		AttackTimer = 0.0f;
 
 		if (IsValid(ai))
-			ai->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+			ai->EnableCollisions(false);
 	}
 	else if (!*ProjectileClass && ai->CanReach(favoured, reach)) {
 		ai->MovementComponent->CurrentAnim = nullptr;

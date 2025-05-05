@@ -20,6 +20,8 @@ public:
 
 	bool CanReach(AActor* Actor, float Reach);
 
+	void EnableCollisions(bool bEnable);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CapsuleComponent")
 		class UCapsuleComponent* Capsule;
 
