@@ -46,10 +46,10 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	if (IsValid(goal)) {
 		if (Cast<AAI>(GetOwner())->CanReach(goal, range)) {
-			FRotator rotation = (GetOwner()->GetActorLocation() - goal->GetActorLocation()).Rotation();
+			FRotator rotation = (goal->GetActorLocation() - GetOwner()->GetActorLocation()).Rotation();
 			rotation.Pitch = 0.0f;
 
-			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), rotation, DeltaTime, 100.0f));
+			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), rotation, DeltaTime, 10.0f));
 		}
 		else if (Velocity.IsNearlyZero(1e-6f) || goal->IsA<AAI>()) {
 			aicontroller->RecalculateMovement(goal);

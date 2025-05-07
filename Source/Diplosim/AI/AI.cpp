@@ -26,6 +26,7 @@ AAI::AAI()
 	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
 	Capsule->SetGenerateOverlapEvents(false);
+	Capsule->SetCanEverAffectNavigation(false);
 	Capsule->bDynamicObstacle = false;
 
 	RootComponent = Capsule;

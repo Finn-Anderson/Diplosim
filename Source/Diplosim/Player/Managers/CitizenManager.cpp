@@ -435,7 +435,7 @@ void UCitizenManager::Loop()
 				rebelCount++;
 		}
 
-		if ((rebelCount / Citizens.Num()) * 100 > 33 && !IsRebellion()) {
+		if (!Citizens.IsEmpty() && (rebelCount / Citizens.Num()) * 100 > 33 && !IsRebellion()) {
 			CooldownTimer--;
 
 			if (CooldownTimer < 1) {

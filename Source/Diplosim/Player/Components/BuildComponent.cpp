@@ -86,6 +86,14 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (Buildings[0]->GetActorLocation().X == location.X && Buildings[0]->GetActorLocation().Y == location.Y && Buildings[0]->GetActorRotation() == Rotation)
 			return;
 
+		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
+		int32 x = FMath::FloorToInt(location.X / 100.0f + bound / 2);
+		int32 y = FMath::FloorToInt(location.Y / 100.0f + bound / 2);
+
+		if (x < 0 || x >= Camera->Grid->Storage.Num() || y < 0 || y >= Camera->Grid->Storage.Num())
+			return;
+
 		FCollisionQueryParams params;
 		params.AddIgnoredActor(Camera->Grid);
 
@@ -94,26 +102,37 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (GetWorld()->LineTraceSingleByChannel(hit2, transform.GetLocation() + FVector(0.0f, 0.0f, 20000.0f), transform.GetLocation(), ECollisionChannel::ECC_GameTraceChannel1, params) && hit2.GetActor()->IsA(FoundationClass))
 			location = hit2.GetActor()->GetActorLocation();
 
-		if (Buildings[0]->IsA<AStockpile>())
+		if (Buildings[0]->IsA<AStockpile>() || (hit.Component == Camera->Grid->HISMRampGround && Buildings[0]->IsA(FoundationClass)))
 			SetTileOpacity(Buildings[0], 1.0f);
+
+		bool bCalculate = false;
 
 		if (location.Z >= 0.0f) {
 			if (IsValid(comp) && comp == Camera->Grid->HISMRiver && comp->PerInstanceSMCustomData[instance * 4] == 1.0f && Buildings[0]->IsA(FoundationClass))
 				location.Z += 30.0f;
 			else if (IsValid(hit2.GetActor()))
 				location.Z += 75.0f;
-			else
+			else if (!(hit.Component == Camera->Grid->HISMRampGround && Buildings[0]->IsA(FoundationClass)))
 				location.Z += 100.0f;
 
 			location.Z = FMath::RoundHalfFromZero(location.Z);
 
+			bCalculate = true;
+		}
+		else if (Buildings[0]->IsA(FoundationClass)) {
+			location.Z = 25.0f;
+
+			bCalculate = true;
+		}
+
+		if (bCalculate) {
 			Buildings[0]->SetActorLocation(location);
 
 			if (StartLocation != FVector::Zero())
 				SetBuildingsOnPath();
 			else if (Buildings[0]->IsA<ARoad>())
 				Cast<ARoad>(Buildings[0])->RegenerateMesh();
-			else if (Buildings[0]->IsA<AStockpile>())
+			else if (Buildings[0]->IsA<AStockpile>() || (hit.Component == Camera->Grid->HISMRampGround && Buildings[0]->IsA(FoundationClass)))
 				SetTileOpacity(Buildings[0], 0.0f);
 		}
 	}
@@ -171,10 +190,13 @@ void UBuildComponent::SetTileOpacity(ABuilding* Building, float Opacity)
 
 	FTileStruct tile = Camera->Grid->Storage[x][y];
 
-	if (tile.bRamp || tile.bEdge)
+	if ((tile.bRamp && !Building->IsA(FoundationClass)) || tile.bEdge)
 		return;
 
-	Camera->Grid->HISMFlatGround->SetCustomDataValue(tile.Instance, 1, Opacity);
+	if (tile.bRamp)
+		Camera->Grid->HISMRampGround->SetCustomDataValue(tile.Instance, 1, Opacity);
+	else
+		Camera->Grid->HISMFlatGround->SetCustomDataValue(tile.Instance, 1, Opacity);
 }
 
 void UBuildComponent::SetBuildingsOnPath()
@@ -193,10 +215,13 @@ void UBuildComponent::SetBuildingsOnPath()
 		if (locations.Contains(Buildings[i]->GetActorLocation()))
 			continue;
 
+		int32 x = FMath::FloorToInt(Buildings[i]->GetActorLocation().X / 100.0f + bound / 2);
+		int32 y = FMath::FloorToInt(Buildings[i]->GetActorLocation().Y / 100.0f + bound / 2);
+
 		for (FTreeStruct treeStruct : Buildings[i]->TreeList)
 			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
 
-		if (Buildings[0]->IsA<AStockpile>())
+		if (Buildings[0]->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
 			SetTileOpacity(Buildings[i], 1.0f);
 
 		Buildings[i]->DestroyBuilding();
@@ -216,7 +241,10 @@ void UBuildComponent::SetBuildingsOnPath()
 			if (Buildings[0]->IsA<AWall>())
 				Cast<AWall>(Buildings.Last())->SetRotationMesh(Rotation.Yaw);
 
-			if (Buildings.Last()->IsA<AStockpile>())
+			int32 x = FMath::FloorToInt(location.X / 100.0f + bound / 2);
+			int32 y = FMath::FloorToInt(location.Y / 100.0f + bound / 2);
+
+			if (Buildings.Last()->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
 				SetTileOpacity(Buildings.Last(), 0.0f);
 
 			if (Buildings.Last()->IsA<ARoad>()) {
@@ -234,12 +262,15 @@ void UBuildComponent::SetBuildingsOnPath()
 	if (Buildings.Num() == 1)
 		return;
 
+	int32 x = FMath::FloorToInt(Buildings.Last()->GetActorLocation().X / 100.0f + bound / 2);
+	int32 y = FMath::FloorToInt(Buildings.Last()->GetActorLocation().Y / 100.0f + bound / 2);
+
 	if (!IsValidLocation(Buildings.Last())) {
 		Buildings.Last()->DestroyBuilding();
 
 		Buildings.RemoveAt(Buildings.Num() - 1);
 	}
-	else if (Buildings.Last()->IsA<AStockpile>())
+	else if (Buildings.Last()->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
 		SetTileOpacity(Buildings.Last(), 0.0f);
 
 	Camera->DisplayInteract(Buildings[0]);
@@ -283,8 +314,10 @@ TArray<FVector> UBuildComponent::CalculatePath(FTileStruct StartTile, FTileStruc
 		if (y < x || bDiagonal)
 			xi += (i * xSign);
 
+		FTileStruct* tile = &Camera->Grid->Storage[xi][yi];
+
 		FTransform transform;
-		transform = Camera->Grid->GetTransform(&Camera->Grid->Storage[xi][yi]); 
+		transform = Camera->Grid->GetTransform(tile);
 		
 		FCollisionQueryParams params;
 		params.AddIgnoredActor(Camera->Grid);
@@ -296,6 +329,11 @@ TArray<FVector> UBuildComponent::CalculatePath(FTileStruct StartTile, FTileStruc
 
 			transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 75.0f));
 		}
+
+		if (transform.GetLocation().Z < 0.0f)
+			transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, FMath::Abs(transform.GetLocation().Z) + 25.0f));
+		else if (tile->bRamp)
+			transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, -100.0f));
 
 		locations.Add(transform.GetLocation());
 	}
@@ -423,18 +461,18 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f || collision.HISM == Camera->Grid->HISMRiver) {
 			if (collision.Actor->IsA(FoundationClass) && (building->IsA(FoundationClass) || FMath::RoundHalfFromZero(building->GetActorLocation().Z - collision.Actor->GetActorLocation().Z) > 0.0f))
 				continue;
-			else if (collision.Actor->IsA<AGrid>()) {
+			else if (collision.Actor->IsA<AGrid>() && IsValid(collision.HISM) && building->IsA(FoundationClass)) {
 				auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
 
 				int32 x = FMath::FloorToInt(transform.GetLocation().X / 100.0f + bound / 2);
 				int32 y = FMath::FloorToInt(transform.GetLocation().Y / 100.0f + bound / 2);
 
+				if (x < 0 || x >= Camera->Grid->Storage.Num() || y < 0 || y >= Camera->Grid->Storage.Num())
+					return false;
+
 				FTileStruct* tile = &Camera->Grid->Storage[x][y];
 
-				int32 z = tile->Level * 75.0f;
-
-				if (tile->bRamp)
-					z += 100.0f;
+				float z = tile->Level * 75.0f;
 
 				if (transform.GetLocation().Z != z)
 					continue;
@@ -481,7 +519,10 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 	if (!IsComponentTickEnabled())
 		SetComponentTickEnabled(true);
 
-	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation);
+	FActorSpawnParameters params;
+	params.bNoFail = true;
+
+	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation, params);
 
 	Buildings.Add(building);
 
@@ -528,7 +569,12 @@ void UBuildComponent::RemoveBuilding()
 		for (FTreeStruct treeStruct : building->TreeList)
 			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
 
-		if (building->IsA<AStockpile>())
+		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
+		int32 x = FMath::FloorToInt(building->GetActorLocation().X / 100.0f + bound / 2);
+		int32 y = FMath::FloorToInt(building->GetActorLocation().Y / 100.0f + bound / 2);
+
+		if (building->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
 			SetTileOpacity(building, 1.0f);
 
 		building->DestroyBuilding();
@@ -587,11 +633,16 @@ void UBuildComponent::EndPathPlace()
 	Buildings[0]->SetActorHiddenInGame(false);
 	Buildings[0]->BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
+	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
 		for (FTreeStruct treeStruct : Buildings[i]->TreeList)
 			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
 
-		if (Buildings[i]->IsA<AStockpile>())
+		int32 x = FMath::FloorToInt(Buildings[i]->GetActorLocation().X / 100.0f + bound / 2);
+		int32 y = FMath::FloorToInt(Buildings[i]->GetActorLocation().Y / 100.0f + bound / 2);
+
+		if (Buildings[i]->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
 			SetTileOpacity(Buildings[i], 1.0f);
 
 		Buildings[i]->DestroyBuilding();

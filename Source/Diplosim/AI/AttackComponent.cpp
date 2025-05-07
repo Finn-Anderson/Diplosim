@@ -15,6 +15,8 @@
 #include "Citizen.h"
 #include "Projectile.h"
 #include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Work/Defence/Trap.h"
+#include "Buildings/Work/Defence/Tower.h"
 #include "Buildings/Building.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "AIMovementComponent.h"
@@ -116,7 +118,8 @@ void UAttackComponent::PickTarget()
 
 		reach = ai->Range / 15.0f;
 
-		ai->EnableCollisions(true);
+		if (favoured != nullptr)
+			ai->EnableCollisions(true);
 	}
 
 	if (favoured == nullptr) {
@@ -154,7 +157,7 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 {
 	FFavourabilityStruct Favourability;
 
-	if (!IsValid(Actor) || !Actor->IsValidLowLevelFast())
+	if (!IsValid(Actor) || Actor->IsA<ATrap>())
 		return Favourability;
 
 	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
@@ -171,8 +174,14 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 		else
 			Favourability.Dmg = attackComp->Damage;
 	}
-	else if (Actor->IsA<AWall>())
-		Favourability.Dmg = Cast<AWall>(Actor)->BuildingProjectileClass->GetDefaultObject<AProjectile>()->Damage;
+	else if (Actor->IsA<AWall>()) {
+		int32 num = 1;
+
+		if (!Actor->IsA<ATower>())
+			num = Cast<AWall>(Actor)->GetCitizensAtBuilding().Num();
+
+		Favourability.Dmg = Cast<AWall>(Actor)->BuildingProjectileClass->GetDefaultObject<AProjectile>()->Damage * num;
+	}
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();

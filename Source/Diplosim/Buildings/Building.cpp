@@ -533,7 +533,7 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 			FHitResult hit;
 
 			while (bCheckAbove) {
-				if (GetWorld()->LineTraceSingleByChannel(hit, GetActorLocation() + FVector(0.0f, 0.0f, 20000.0f), GetActorLocation(), ECollisionChannel::ECC_Visibility, params))
+				if (GetWorld()->LineTraceSingleByChannel(hit, GetActorLocation() + FVector(0.0f, 0.0f, 20000.0f), GetActorLocation(), ECollisionChannel::ECC_Visibility, params) && hit.GetActor()->GetActorLocation().Z > GetActorLocation().Z)
 					Cast<ABuilding>(hit.GetActor())->DestroyBuilding(false);
 				else
 					bCheckAbove = false;

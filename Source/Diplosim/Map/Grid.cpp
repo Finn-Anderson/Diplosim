@@ -709,9 +709,6 @@ TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
 
 void AGrid::GenerateTile(FTileStruct* Tile)
 {
-	if (Tile->Level < 0)
-		return;
-	
 	FTransform transform;
 	FVector loc = FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0.0f);
 	transform.SetLocation(loc);
@@ -744,16 +741,12 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		}
 	}
 
-	for (auto& element : Tile->AdjacentTiles) {
-		if (element.Value->Level > -1)
-			continue;
+	if (Tile->Level < 0) {
+		transform.SetLocation(loc + FVector(0.0f, 0.0f, -200.0f));
 
-		FTransform t;
-		t.SetLocation(FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, -200.0f));
-		HISMFlatGround->AddInstance(t);
+		inst = HISMFlatGround->AddInstance(transform);
 	}
-
-	if (bLava && Tile->Level == MaxLevel) {
+	else if (bLava && Tile->Level == MaxLevel) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * (MaxLevel - 2)));
 
 		inst = HISMLava->AddInstance(transform);
@@ -968,8 +961,13 @@ void AGrid::CreateEdgeWalls(FTileStruct* Tile)
 		float x = Tile->X + (coord.X - Tile->X) / 2.0f;
 		float y = Tile->Y + (coord.Y - Tile->Y) / 2.0f;
 
+		int32 level = Tile->Level;
+
+		if (level == 7)
+			level = 6;
+
 		FTransform transform;
-		transform.SetLocation(FVector(x * 100.0f, y * 100.0f, Tile->Level * 75.0f + 100.0f));
+		transform.SetLocation(FVector(x * 100.0f, y * 100.0f, level * 75.0f + 100.0f));
 
 		if (y != Tile->Y)
 			transform.SetRotation(FRotator(0.0f, 90.0f, 0.0f).Quaternion());
