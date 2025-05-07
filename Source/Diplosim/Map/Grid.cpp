@@ -45,12 +45,16 @@ AGrid::AGrid()
 	HISMLava->SetCollisionResponseToChannels(response);
 	HISMLava->SetCanEverAffectNavigation(false);
 	HISMLava->SetCastShadow(false);
+	HISMLava->SetEvaluateWorldPositionOffset(false);
+	HISMLava->bWorldPositionOffsetWritesVelocity = false;
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetupAttachment(GetRootComponent());
 	HISMGround->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannels(response);
+	HISMGround->SetEvaluateWorldPositionOffset(false);
+	HISMGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMGround->NumCustomDataFloats = 8;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
@@ -59,6 +63,8 @@ AGrid::AGrid()
 	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMFlatGround->SetCollisionResponseToChannels(response);
 	HISMFlatGround->SetCastShadow(false);
+	HISMFlatGround->SetEvaluateWorldPositionOffset(false);
+	HISMFlatGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMFlatGround->NumCustomDataFloats = 8;
 
 	HISMRampGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRampGround"));
@@ -66,6 +72,8 @@ AGrid::AGrid()
 	HISMRampGround->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMRampGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRampGround->SetCollisionResponseToChannels(response);
+	HISMRampGround->SetEvaluateWorldPositionOffset(false);
+	HISMRampGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMRampGround->NumCustomDataFloats = 8;
 
 	HISMRiver = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRiver"));
@@ -74,6 +82,8 @@ AGrid::AGrid()
 	HISMRiver->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRiver->SetCollisionResponseToChannels(response);
 	HISMRiver->SetCanEverAffectNavigation(false);
+	HISMRiver->SetWorldPositionOffsetDisableDistance(2000);
+	HISMRiver->bWorldPositionOffsetWritesVelocity = false;
 	HISMRiver->NumCustomDataFloats = 4;
 
 	HISMWall = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWall"));
@@ -91,11 +101,13 @@ AGrid::AGrid()
 	HISMWall->SetCanEverAffectNavigation(true);
 	HISMWall->SetHiddenInGame(true);
 	HISMWall->SetCastShadow(false);
+	HISMWall->SetEvaluateWorldPositionOffset(false);
+	HISMWall->bWorldPositionOffsetWritesVelocity = false;
 	HISMWall->bAutoRebuildTreeOnInstanceChanges = false;
 
 	LavaComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("LavaComponent"));
 	LavaComponent->SetupAttachment(GetRootComponent());
-	LavaComponent->bAutoActivate = false;
+	LavaComponent->SetAutoActivate(false);
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 	AtmosphereComponent->WindComponent->SetupAttachment(RootComponent);
@@ -133,13 +145,19 @@ void AGrid::BeginPlay()
 
 	Camera->Grid = this;
 
-	for (FResourceHISMStruct &ResourceStruct : TreeStruct)
+	for (FResourceHISMStruct &ResourceStruct : TreeStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
+		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(2000);
+		ResourceStruct.Resource->ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
+	}
 
-	for (FResourceHISMStruct& ResourceStruct : FlowerStruct)
+	for (FResourceHISMStruct& ResourceStruct : FlowerStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
+		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(2000);
+		ResourceStruct.Resource->ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
+	}
 
-	for (FResourceHISMStruct &ResourceStruct : MineralStruct)
+	for (FResourceHISMStruct& ResourceStruct : MineralStruct)
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
@@ -879,13 +897,14 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 					Tile->bRamp = true;
 
 					transform.SetRotation((FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0) - FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, 0)).ToOrientationQuat());
-					transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
 
 					break;
 				}
 			}
 
 			if (Tile->bRamp) {
+				transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
+
 				inst = HISMRampGround->AddInstance(transform);
 				HISMRampGround->SetCustomDataValue(inst, 0, 0.0f);
 				HISMRampGround->SetCustomDataValue(inst, 1, 1.0f);

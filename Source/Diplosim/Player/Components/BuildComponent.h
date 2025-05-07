@@ -53,8 +53,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class USoundBase* PlaceSound;
 
-	void SetTileOpacity(ABuilding* Building, float Opacity);
-
 	void SetBuildingsOnPath();
 
 	TArray<FVector> CalculatePath(struct FTileStruct StartTile, struct FTileStruct EndTile);

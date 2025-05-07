@@ -59,7 +59,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 	FHitResult hit(ForceInit);
 
-	FVector endTrace = mouseLoc + (mouseDirection * 10000);
+	FVector endTrace = mouseLoc + (mouseDirection * 20000);
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
 	{
@@ -102,9 +102,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (GetWorld()->LineTraceSingleByChannel(hit2, transform.GetLocation() + FVector(0.0f, 0.0f, 20000.0f), transform.GetLocation(), ECollisionChannel::ECC_GameTraceChannel1, params) && hit2.GetActor()->IsA(FoundationClass))
 			location = hit2.GetActor()->GetActorLocation();
 
-		if (Buildings[0]->IsA<AStockpile>() || (hit.Component == Camera->Grid->HISMRampGround && Buildings[0]->IsA(FoundationClass)))
-			SetTileOpacity(Buildings[0], 1.0f);
-
 		bool bCalculate = false;
 
 		if (location.Z >= 0.0f) {
@@ -112,7 +109,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				location.Z += 30.0f;
 			else if (IsValid(hit2.GetActor()))
 				location.Z += 75.0f;
-			else if (!(hit.Component == Camera->Grid->HISMRampGround && Buildings[0]->IsA(FoundationClass)))
+			else
 				location.Z += 100.0f;
 
 			location.Z = FMath::RoundHalfFromZero(location.Z);
@@ -126,14 +123,18 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		}
 
 		if (bCalculate) {
+			if (Buildings[0]->IsA(FoundationClass)) {
+				if (hit.GetComponent() == Camera->Grid->HISMRampGround)
+					location.Z -= 100.0f;
+
+			}
+
 			Buildings[0]->SetActorLocation(location);
 
 			if (StartLocation != FVector::Zero())
 				SetBuildingsOnPath();
 			else if (Buildings[0]->IsA<ARoad>())
 				Cast<ARoad>(Buildings[0])->RegenerateMesh();
-			else if (Buildings[0]->IsA<AStockpile>() || (hit.Component == Camera->Grid->HISMRampGround && Buildings[0]->IsA(FoundationClass)))
-				SetTileOpacity(Buildings[0], 0.0f);
 		}
 	}
 
@@ -178,27 +179,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 }
 
-void UBuildComponent::SetTileOpacity(ABuilding* Building, float Opacity)
-{
-	if (Building->GetActorLocation().Z <= 0.0f)
-		return;
-	
-	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
-
-	int32 x = Building->GetActorLocation().X / 100.0f + (bound / 2);
-	int32 y = Building->GetActorLocation().Y / 100.0f + (bound / 2);
-
-	FTileStruct tile = Camera->Grid->Storage[x][y];
-
-	if ((tile.bRamp && !Building->IsA(FoundationClass)) || tile.bEdge)
-		return;
-
-	if (tile.bRamp)
-		Camera->Grid->HISMRampGround->SetCustomDataValue(tile.Instance, 1, Opacity);
-	else
-		Camera->Grid->HISMFlatGround->SetCustomDataValue(tile.Instance, 1, Opacity);
-}
-
 void UBuildComponent::SetBuildingsOnPath()
 {
 	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
@@ -221,9 +201,6 @@ void UBuildComponent::SetBuildingsOnPath()
 		for (FTreeStruct treeStruct : Buildings[i]->TreeList)
 			treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
 
-		if (Buildings[0]->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
-			SetTileOpacity(Buildings[i], 1.0f);
-
 		Buildings[i]->DestroyBuilding();
 
 		Buildings.RemoveAt(i);
@@ -243,9 +220,6 @@ void UBuildComponent::SetBuildingsOnPath()
 
 			int32 x = FMath::FloorToInt(location.X / 100.0f + bound / 2);
 			int32 y = FMath::FloorToInt(location.Y / 100.0f + bound / 2);
-
-			if (Buildings.Last()->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
-				SetTileOpacity(Buildings.Last(), 0.0f);
 
 			if (Buildings.Last()->IsA<ARoad>()) {
 				ARoad* road = Cast<ARoad>(Buildings.Last());
@@ -270,8 +244,6 @@ void UBuildComponent::SetBuildingsOnPath()
 
 		Buildings.RemoveAt(Buildings.Num() - 1);
 	}
-	else if (Buildings.Last()->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
-		SetTileOpacity(Buildings.Last(), 0.0f);
 
 	Camera->DisplayInteract(Buildings[0]);
 }
@@ -332,8 +304,8 @@ TArray<FVector> UBuildComponent::CalculatePath(FTileStruct StartTile, FTileStruc
 
 		if (transform.GetLocation().Z < 0.0f)
 			transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, FMath::Abs(transform.GetLocation().Z) + 25.0f));
-		else if (tile->bRamp)
-			transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, -100.0f));
+		else if (Buildings[0]->IsA(FoundationClass) && tile->bRamp)
+			transform.SetLocation(transform.GetLocation() - FVector(0.0f, 0.0f, 100.0f));
 
 		locations.Add(transform.GetLocation());
 	}
@@ -474,7 +446,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 
 				float z = tile->Level * 75.0f;
 
-				if (transform.GetLocation().Z != z)
+				if (transform.GetLocation().Z != z || tile->bRamp)
 					continue;
 			}
 
@@ -574,9 +546,6 @@ void UBuildComponent::RemoveBuilding()
 		int32 x = FMath::FloorToInt(building->GetActorLocation().X / 100.0f + bound / 2);
 		int32 y = FMath::FloorToInt(building->GetActorLocation().Y / 100.0f + bound / 2);
 
-		if (building->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
-			SetTileOpacity(building, 1.0f);
-
 		building->DestroyBuilding();
 	}
 
@@ -641,9 +610,6 @@ void UBuildComponent::EndPathPlace()
 
 		int32 x = FMath::FloorToInt(Buildings[i]->GetActorLocation().X / 100.0f + bound / 2);
 		int32 y = FMath::FloorToInt(Buildings[i]->GetActorLocation().Y / 100.0f + bound / 2);
-
-		if (Buildings[i]->IsA<AStockpile>() || (Camera->Grid->Storage[x][y].bRamp && Buildings[0]->IsA(FoundationClass)))
-			SetTileOpacity(Buildings[i], 1.0f);
 
 		Buildings[i]->DestroyBuilding();
 

@@ -4,12 +4,15 @@
 
 #include "Universal/Resource.h"
 #include "Player/Camera.h"
+#include "Player/Components/BuildComponent.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConstructionManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Stockpile.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Production/Farm.h"
 #include "Universal/DiplosimGameModeBase.h"
+#include "Universal/HealthComponent.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "AI/Citizen.h"
@@ -107,19 +110,16 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Type == Resource) {
 			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<AActor*> foundBuildings;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ResourceList[i].Buildings[j], foundBuildings);
+				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
 
-				for (int32 k = 0; k < foundBuildings.Num(); k++) {
-					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
-
+				for (ABuilding* building : foundBuildings) {
 					int32 currentAmount = 0;
 
-					for (FItemStruct item : b->Storage)
+					for (FItemStruct item : building->Storage)
 						currentAmount += item.Amount;
 
 					stored += currentAmount;
-					capacity += b->StorageCap;
+					capacity += building->StorageCap;
 				}
 			}
 
@@ -134,27 +134,24 @@ bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Type == Resource) {
 			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<AActor*> foundBuildings;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ResourceList[i].Buildings[j], foundBuildings);
+				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
 
-				for (int32 k = 0; k < foundBuildings.Num(); k++) {
-					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
-
+				for (ABuilding* building : foundBuildings) {
 					FItemStruct itemStruct;
 					itemStruct.Resource = Resource;
 
-					int32 index = b->Storage.Find(itemStruct);
+					int32 index = building->Storage.Find(itemStruct);
 
-					AmountLeft -= (b->StorageCap - b->Storage[index].Amount);
+					AmountLeft -= (building->StorageCap - building->Storage[index].Amount);
 
 					int32 currentAmount = 0;
 
-					for (FItemStruct item : b->Storage)
+					for (FItemStruct item : building->Storage)
 						currentAmount += item.Amount;
 
-					b->Storage[index].Amount += FMath::Clamp(Amount, 0, b->StorageCap - currentAmount);
+					building->Storage[index].Amount += FMath::Clamp(Amount, 0, building->StorageCap - currentAmount);
 
-					GetNearestStockpile(Resource, b, b->Storage[index].Amount);
+					GetNearestStockpile(Resource, building, building->Storage[index].Amount);
 
 					if (AmountLeft <= 0) {
 						UpdateResourceUI(Resource);
@@ -200,18 +197,15 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Type == Resource) {
 			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<AActor*> foundBuildings;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ResourceList[i].Buildings[j], foundBuildings);
+				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
 
-				for (int32 k = 0; k < foundBuildings.Num(); k++) {
-					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
-
+				for (ABuilding* building : foundBuildings) {
 					FItemStruct itemStruct;
 					itemStruct.Resource = Resource;
 
-					int32 index = b->Storage.Find(itemStruct);
+					int32 index = building->Storage.Find(itemStruct);
 
-					stored += b->Storage[index].Amount;
+					stored += building->Storage[index].Amount;
 				}
 			}
 
@@ -228,23 +222,20 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 	for (int32 i = 0; i < ResourceList.Num(); i++) {
 		if (ResourceList[i].Type == Resource) {
 			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<AActor*> foundBuildings;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ResourceList[i].Buildings[j], foundBuildings);
+				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
 
-				for (int32 k = 0; k < foundBuildings.Num(); k++) {
-					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
-
+				for (ABuilding* building : foundBuildings) {
 					FItemStruct itemStruct;
 					itemStruct.Resource = Resource;
 
-					int32 index = b->Storage.Find(itemStruct);
+					int32 index = building->Storage.Find(itemStruct);
 
-					AmountLeft -= b->Storage[index].Amount - Min;
+					AmountLeft -= building->Storage[index].Amount - Min;
 
-					b->Storage[index].Amount = FMath::Clamp(b->Storage[index].Amount - Amount, Min, 1000);
+					building->Storage[index].Amount = FMath::Clamp(building->Storage[index].Amount - Amount, Min, 1000);
 
-					if (!b->Basket.IsEmpty())
-						StoreBasket(Resource, b);
+					if (!building->Basket.IsEmpty())
+						StoreBasket(Resource, building);
 
 					if (AmountLeft <= 0) {
 						UpdateResourceUI(Resource);
@@ -273,18 +264,15 @@ int32 UResourceManager::GetResourceAmount(TSubclassOf<AResource> Resource)
 			amount -= ResourceList[i].Committed;
 
 			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<AActor*> foundBuildings;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ResourceList[i].Buildings[j], foundBuildings);
+				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
 
-				for (int32 k = 0; k < foundBuildings.Num(); k++) {
-					ABuilding* b = Cast<ABuilding>(foundBuildings[k]);
-
+				for (ABuilding* building : foundBuildings) {
 					FItemStruct itemStruct;
 					itemStruct.Resource = Resource;
 
-					int32 index = b->Storage.Find(itemStruct);
+					int32 index = building->Storage.Find(itemStruct);
 
-					amount += b->Storage[index].Amount;
+					amount += building->Storage[index].Amount;
 				}
 			}
 
@@ -316,6 +304,27 @@ TArray<TSubclassOf<ABuilding>> UResourceManager::GetBuildings(TSubclassOf<AResou
 	TArray<TSubclassOf<ABuilding>> null;
 
 	return null;
+}
+
+TArray<ABuilding*> UResourceManager::GetBuildingsOfClass(TSubclassOf<AActor> Class)
+{
+	TArray<AActor*> foundBuildings;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), Class, foundBuildings);
+
+	TArray<ABuilding*> validBuildings;
+
+	ACamera* camera = Cast<ACamera>(GetOwner());
+
+	for (AActor* actor : foundBuildings) {
+		ABuilding* building = Cast<ABuilding>(actor);
+		
+		if (camera->BuildComponent->Buildings.Contains(building) || camera->ConstructionManager->IsBeingConstructed(building, nullptr) || building->HealthComponent->GetHealth() == 0)
+			continue;
+
+		validBuildings.Add(building);
+	}
+
+	return validBuildings;
 }
 
 void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABuilding* Building, int32 Amount)
