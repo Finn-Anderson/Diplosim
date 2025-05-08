@@ -111,9 +111,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Resource")
 		int32 GetMarketValue(TSubclassOf<class AResource> Resource);
 
-	UPROPERTY()
-		FTimerHandle ValueTimer;
-
 	// Trends
 	void SetTrendOnHour(int32 Hour);
 

@@ -4,6 +4,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
 
 #include "Player/Camera.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -60,9 +61,11 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	SetAttachedMovementLocation(Camera->ActorAttachedTo);
 
-	Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, DeltaTime, armSpeed);
+	if (Camera->SpringArmComponent->TargetArmLength != TargetLength)
+		Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, DeltaTime, armSpeed);
 
-	Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(), MovementLocation, DeltaTime, movementSpeed));
+	if (Camera->GetActorLocation() != MovementLocation)
+		Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(), MovementLocation, DeltaTime, movementSpeed));
 
 	if (!bShake)
 		return;
@@ -82,7 +85,7 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 void UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor)
 {
-	if (Actor == nullptr)
+	if (!IsValid(Actor))
 		return;
 
 	FVector height = FVector::Zero();

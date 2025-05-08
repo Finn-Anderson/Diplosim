@@ -56,6 +56,12 @@ protected:
 		bool bSSAO;
 
 	UPROPERTY(Config)
+		bool bVolumetricFog;
+
+	UPROPERTY(Config)
+		bool bLightShafts;
+
+	UPROPERTY(Config)
 		float Bloom;
 
 	UPROPERTY(Config)
@@ -184,6 +190,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Post Processing")
 		bool GetSSAO() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Fog")
+		void SetVolumetricFog(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Fog")
+		bool GetVolumetricFog() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Light Shafts")
+		void SetLightShafts(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Light Shafts")
+		bool GetLightShafts() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Post Processing")
 		void SetBloom(float Value);

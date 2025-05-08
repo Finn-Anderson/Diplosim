@@ -279,6 +279,12 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 	if (!IsValid(Actor) && !IsValid(HISM))
 		return;
 	
+	FTransform transform;
+	HISM->GetInstanceTransform(Instance, transform);
+
+	if (transform.GetLocation().Z < 0.0f)
+		return;
+
 	if (Value == 1.0f) {
 		ACamera* camera = Cast<AGrid>(GetOwner())->Camera;
 

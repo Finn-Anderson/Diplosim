@@ -553,7 +553,7 @@ void AGrid::Render()
 	Camera->MovementComponent->SetBounds(c1, c2);
 
 	// Spawn egg basket
-	GetWorld()->GetTimerManager().SetTimer(EggBasketTimer, this, &AGrid::SpawnEggBasket, 300.0f, true, 0.0f);
+	SpawnEggBasket();
 
 	// Lava Component
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(LavaComponent, TEXT("SpawnLocations"), LavaSpawnLocations);
@@ -1283,8 +1283,6 @@ void AGrid::Clear()
 	LavaSpawnLocations.Empty();
 
 	CloudComponent->Clear();
-
-	GetWorld()->GetTimerManager().ClearTimer(EggBasketTimer);
 
 	TArray<AActor*> baskets;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEggBasket::StaticClass(), baskets);

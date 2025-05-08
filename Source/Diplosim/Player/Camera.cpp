@@ -36,7 +36,6 @@
 ACamera::ACamera()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	SetTickableWhenPaused(true);
 
 	MovementComponent = CreateDefaultSubobject<UCameraMovementComponent>(TEXT("CameraMovementComponent"));
 	MovementComponent->SetTickableWhenPaused(true);
@@ -135,10 +134,9 @@ void ACamera::BeginPlay()
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	settings->Camera = this;
 	settings->SetVignette(settings->GetVignette());
+	settings->SetSSAO(settings->GetSSAO());
 
 	ResourceManager->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
-
-	GetWorldTimerManager().SetTimer(ResourceManager->ValueTimer, ResourceManager, &UResourceManager::SetTradeValues, 300.0f, true);
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
@@ -216,7 +214,7 @@ void ACamera::Tick(float DeltaTime)
 	FVector mouseLoc, mouseDirection;
 	pcontroller->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
 
-	FVector endTrace = mouseLoc + (mouseDirection * 10000);
+	FVector endTrace = mouseLoc + (mouseDirection * 30000);
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 		AActor* actor = hit.GetActor();
@@ -291,6 +289,12 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	FTimerStruct timer;
 
 	timer.CreateTimer("Interest", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::Interest), true, true);
+	CitizenManager->Timers.Add(timer);
+
+	timer.CreateTimer("TradeValue", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::SetTradeValues), true);
+	CitizenManager->Timers.Add(timer);
+
+	timer.CreateTimer("EggBasket", this, 300, FTimerDelegate::CreateUObject(Grid, &AGrid::SpawnEggBasket), true, true);
 	CitizenManager->Timers.Add(timer);
 
 	CitizenManager->StartDiseaseTimer();
@@ -647,15 +651,11 @@ void ACamera::Pause()
 		PauseUIInstance->RemoveFromParent();
 
 		SetPause(false, false);
-
-		GetWorldTimerManager().UnPauseTimer(ResourceManager->ValueTimer);
 	}
 	else {
 		PauseUIInstance->AddToViewport();
 
 		SetPause(true, true);
-
-		GetWorldTimerManager().PauseTimer(ResourceManager->ValueTimer);
 	}
 }
 

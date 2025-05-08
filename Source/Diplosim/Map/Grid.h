@@ -240,9 +240,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Egg Basket")
 		TSubclassOf<class AEggBasket> EggBasketClass;
 
-	UPROPERTY()
-		FTimerHandle EggBasketTimer;
-
 	// Seasons
 	void SetSeasonAffect(FString Period, float Increment);
 

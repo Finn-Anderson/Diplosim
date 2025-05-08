@@ -210,6 +210,8 @@ void UCitizenManager::ReadJSONFile(FString path)
 
 void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
 	if (Citizens.IsEmpty() && Enemies.IsEmpty())
 		return;
 

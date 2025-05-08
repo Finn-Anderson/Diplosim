@@ -89,8 +89,18 @@ void UAtmosphereComponent::BeginPlay()
 	if (!settings->GetRenderWind())
 		WindComponent->Deactivate();
 
+	Fog->SetVolumetricFog(settings->GetVolumetricFog());
+
 	Sun->SetIntensity(settings->GetSunBrightness());
 	Moon->SetIntensity(settings->GetMoonBrightness());
+
+	float lightShaftIntensity = 0.0f;
+
+	if (settings->GetLightShafts())
+		lightShaftIntensity = 0.5f;
+
+	Sun->SetBloomMaxBrightness(lightShaftIntensity);
+	Moon->SetBloomMaxBrightness(lightShaftIntensity);
 }
 
 void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

@@ -56,11 +56,11 @@ void ADiplosimGameModeBase::Tick(float DeltaTime)
 	if (TargetOpacity == 1.0f)
 		opacity = FMath::Clamp(opacity + 0.005f, 0.0f, 1.0f);
 	else
-		opacity = FMath::Clamp(opacity - 0.005f, 0.0f, 1.0f);
+		opacity = FMath::Clamp(opacity - 0.005f, -0.01f, 1.0f);
 
 	material->SetScalarParameterValue("Opacity", opacity);
 
-	if (opacity == 0.0f || opacity == 1.0f)
+	if (opacity == -0.01f || opacity == 1.0f)
 		SetActorTickEnabled(false);
 }
 

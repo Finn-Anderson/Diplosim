@@ -45,6 +45,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bDepthOfField = false;
 	bVignette = true;
 	bSSAO = true;
+	bVolumetricFog = true;
+	bLightShafts = true;
 	Bloom = 0.6f;
 
 	bIsMaximised = false;
@@ -143,6 +145,10 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetVignette(value.ToBool());
 	else if (FString("bSSAO").Equals(Key))
 		SetSSAO(value.ToBool());
+	else if (FString("bVolumetricFog").Equals(Key))
+		SetVolumetricFog(value.ToBool());
+	else if (FString("bLightShafts").Equals(Key))
+		SetLightShafts(value.ToBool());
 	else if (FString("Bloom").Equals(Key))
 		SetBloom(FCString::Atof(Value));
 	else if (FString("ScreenPercentage").Equals(Key))
@@ -205,6 +211,8 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bDepthOfField"), GetDepthOfField(), Filename);
 	GConfig->SetBool(*Section, TEXT("bVignette"), GetVignette(), Filename);
 	GConfig->SetBool(*Section, TEXT("bSSAO"), GetSSAO(), Filename);
+	GConfig->SetBool(*Section, TEXT("bVolumetricFog"), GetVolumetricFog(), Filename);
+	GConfig->SetBool(*Section, TEXT("bLightShafts"), GetLightShafts(), Filename);
 	GConfig->SetFloat(*Section, TEXT("Bloom"), GetBloom(), Filename);
 	GConfig->SetInt(*Section, TEXT("ScreenPercentage"), GetScreenPercentage(), Filename);
 	GConfig->SetVector2D(*Section, TEXT("WindowPosition"), GetWindowPos(), Filename);
@@ -491,6 +499,42 @@ void UDiplosimUserSettings::SetSSAO(bool Value)
 bool UDiplosimUserSettings::GetSSAO() const
 {
 	return bSSAO;
+}
+
+void UDiplosimUserSettings::SetVolumetricFog(bool Value)
+{
+	bVolumetricFog = Value;
+
+	if (Atmosphere == nullptr)
+		return;
+
+	Atmosphere->Fog->SetVolumetricFog(bVolumetricFog);
+}
+
+bool UDiplosimUserSettings::GetVolumetricFog() const
+{
+	return bVolumetricFog;
+}
+
+void UDiplosimUserSettings::SetLightShafts(bool Value)
+{
+	bLightShafts = Value;
+
+	if (Atmosphere == nullptr)
+		return;
+
+	float intensity = 0.0f;
+	
+	if (bLightShafts)
+		intensity = 0.5f;
+
+	Atmosphere->Sun->SetBloomMaxBrightness(intensity);
+	Atmosphere->Moon->SetBloomMaxBrightness(intensity);
+}
+
+bool UDiplosimUserSettings::GetLightShafts() const
+{
+	return bLightShafts;
 }
 
 void UDiplosimUserSettings::SetBloom(float Value)

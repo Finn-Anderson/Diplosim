@@ -59,7 +59,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 	FHitResult hit(ForceInit);
 
-	FVector endTrace = mouseLoc + (mouseDirection * 20000);
+	FVector endTrace = mouseLoc + (mouseDirection * 30000);
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
 	{
