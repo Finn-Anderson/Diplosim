@@ -35,7 +35,6 @@
 ACitizen::ACitizen()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	SetTickableWhenPaused(true);
 
 	Capsule->SetCapsuleSize(9.0f, 11.5f);
 	Capsule->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel2);
@@ -48,6 +47,7 @@ ACitizen::ACitizen()
 	HatMesh->SetCollisionProfileName("NoCollision", false);
 	HatMesh->SetComponentTickEnabled(false);
 	HatMesh->SetupAttachment(Mesh, "HatSocket");
+	HatMesh->PrimaryComponentTick.bCanEverTick = false;
 
 	TorchMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TorchMesh"));
 	TorchMesh->SetCollisionProfileName("NoCollision", false);
@@ -120,6 +120,9 @@ ACitizen::ACitizen()
 
 	SpeedBeforeOld = 100.0f;
 	MaxHealthBeforeOld = 100.0f;
+
+	HarvestVisualTargetTimer = 0.0f;
+	HarvestVisualResource = nullptr;
 }
 
 void ACitizen::BeginPlay()
@@ -791,7 +794,9 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 
 	Camera->CitizenManager->Timers.Add(timer);
 
-	GetWorldTimerManager().SetTimer(AmbientAudioHandle, FTimerDelegate::CreateUObject(this, &ACitizen::SetHarvestVisuals, Resource), time / 10.0f, true, time / 10.0f / 2.0f);
+	HarvestVisualTimer = time / 5.0f;
+	HarvestVisualTargetTimer = HarvestVisualTimer;
+	HarvestVisualResource = Resource;
 
 	AIController->StopMovement();
 }
@@ -802,7 +807,10 @@ void ACitizen::HarvestResource(AResource* Resource)
 	
 	AResource* resource = Resource->GetHarvestedResource();
 
-	GetWorldTimerManager().ClearTimer(AmbientAudioHandle);
+	HarvestVisualTimer = 0.0f;
+	HarvestVisualTargetTimer = HarvestVisualTimer;
+	HarvestVisualResource = nullptr;
+
 	HarvestNiagaraComponent->Deactivate();
 
 	Camera->CitizenManager->Injure(this, 99);

@@ -19,6 +19,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Universal/EggBasket.h"
+#include "Universal/DiplosimUserSettings.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 
@@ -82,7 +83,7 @@ AGrid::AGrid()
 	HISMRiver->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRiver->SetCollisionResponseToChannels(response);
 	HISMRiver->SetCanEverAffectNavigation(false);
-	HISMRiver->SetWorldPositionOffsetDisableDistance(2000);
+	HISMRiver->SetWorldPositionOffsetDisableDistance(5000);
 	HISMRiver->bWorldPositionOffsetWritesVelocity = false;
 	HISMRiver->NumCustomDataFloats = 4;
 
@@ -145,15 +146,18 @@ void AGrid::BeginPlay()
 
 	Camera->Grid = this;
 
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	HISMRiver->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
+
 	for (FResourceHISMStruct &ResourceStruct : TreeStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
-		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(2000);
+		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
 		ResourceStruct.Resource->ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
 	}
 
 	for (FResourceHISMStruct& ResourceStruct : FlowerStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
-		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(2000);
+		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
 		ResourceStruct.Resource->ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
 	}
 
@@ -545,6 +549,7 @@ void AGrid::Render()
 
 	// Spawn clouds
 	CloudComponent->ActivateCloud();
+	CloudComponent->StartCloudTimer();
 
 	// Set Camera Bounds
 	FVector c1 = FVector(bound * 100, bound * 100, 0);

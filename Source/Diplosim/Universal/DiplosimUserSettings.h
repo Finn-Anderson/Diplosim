@@ -65,6 +65,9 @@ protected:
 		float Bloom;
 
 	UPROPERTY(Config)
+		float WPODistance;
+
+	UPROPERTY(Config)
 		int32 ScreenPercentage;
 
 	UPROPERTY(Config)
@@ -208,6 +211,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Post Processing")
 		float GetBloom() const;
+
+	UFUNCTION(BlueprintCallable, Category = "WPO")
+		void SetWPODistance(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "WPO")
+		float GetWPODistance() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Screen Percentage")
 		void SetScreenPercentage(int32 Value);

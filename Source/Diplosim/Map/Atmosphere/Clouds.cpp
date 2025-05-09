@@ -17,6 +17,7 @@
 UCloudComponent::UCloudComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	SetComponentTickInterval(0.01f);
 
 	CloudMesh = nullptr;
 
@@ -32,6 +33,9 @@ void UCloudComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Camera = PController->GetPawn<ACamera>();
+
 	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	Settings->Clouds = this;
 }
@@ -40,7 +44,7 @@ void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (DeltaTime < 0.0001f)
+	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
 		return;
 
 	for (int32 i = Clouds.Num() - 1; i > -1; i--) {
@@ -95,7 +99,15 @@ void UCloudComponent::Clear()
 
 	Clouds.Empty();
 
-	GetWorld()->GetTimerManager().ClearTimer(CloudTimer);
+	Camera->CitizenManager->RemoveTimer("Cloud", GetOwner());
+}
+
+void UCloudComponent::StartCloudTimer()
+{
+	FTimerStruct timer;
+	timer.CreateTimer("Grow", GetOwner(), 90.0f, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), true, true);
+
+	Camera->CitizenManager->Timers.Add(timer);
 }
 
 void UCloudComponent::ActivateCloud()
@@ -139,9 +151,7 @@ void UCloudComponent::ActivateCloud()
 
 	cloudStruct.HISMCloud->SetMaterial(0, material);
 
-	Clouds.Add(cloudStruct);
-
-	GetWorld()->GetTimerManager().SetTimer(CloudTimer, this, &UCloudComponent::ActivateCloud, 90.0f);
+	Clouds.Add(cloudStruct); 
 }
 
 FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
@@ -286,8 +296,6 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		return;
 
 	if (Value == 1.0f) {
-		ACamera* camera = Cast<AGrid>(GetOwner())->Camera;
-
 		FTimerStruct timer;
 
 		FString id = "Wet";
@@ -299,13 +307,13 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 
 		timer.CreateTimer(id, GetOwner(), 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false, true);
 
-		if (camera->CitizenManager->FindTimer(id, GetOwner()) != nullptr) {
-			camera->CitizenManager->ResetTimer(id, GetOwner());
+		if (Camera->CitizenManager->FindTimer(id, GetOwner()) != nullptr) {
+			Camera->CitizenManager->ResetTimer(id, GetOwner());
 
 			return;
 		}
 		else {
-			camera->CitizenManager->Timers.Add(timer);
+			Camera->CitizenManager->Timers.Add(timer);
 		}
 	}
 

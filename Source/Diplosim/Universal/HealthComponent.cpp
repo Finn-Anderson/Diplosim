@@ -27,17 +27,26 @@ UHealthComponent::UHealthComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+	SetComponentTickInterval(0.01f);
 
 	CrumbleLocation = FVector::Zero();
 
 	HealthMultiplier = 1.0f;
 }
 
+void UHealthComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Camera = PController->GetPawn<ACamera>();
+}
+
 void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (DeltaTime < 0.0001f)
+	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
 		return;
 
 	ABuilding* building = Cast<ABuilding>(GetOwner());
@@ -91,6 +100,18 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 		else
 			Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(material);
 
+		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("RemoveDamageOverlay", GetOwner());
+
+		if (foundTimer == nullptr) {
+			FTimerStruct timer;
+			timer.CreateTimer("RemoveDamageOverlay", GetOwner(), 0.15f, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), false, true);
+
+			Camera->CitizenManager->Timers.Add(timer);
+		}
+		else {
+			Camera->CitizenManager->ResetTimer("RemoveDamageOverlay", GetOwner());
+		}
+
 		FTimerHandle matTimer;
 		GetWorld()->GetTimerManager().SetTimer(matTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), 0.15f, false);
 
@@ -119,11 +140,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 {
 	AActor* actor = GetOwner();
 
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
-
 	if (actor->IsA<ABroch>())
-		camera->Lose();
+		Camera->Lose();
 
 	if (actor->IsA<AAI>()) {
 		USkeletalMeshComponent* mesh = actor->GetComponentByClass<USkeletalMeshComponent>();
@@ -144,7 +162,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 			citizen->PopupComponent->SetHiddenInGame(true);
 
-			camera->CitizenManager->ClearCitizen(citizen);
+			Camera->CitizenManager->ClearCitizen(citizen);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {
@@ -163,7 +181,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 		building->Storage.Empty();
 
-		camera->CitizenManager->Buildings.Remove(building);
+		Camera->CitizenManager->Buildings.Remove(building);
 
 		FVector dimensions = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
@@ -179,8 +197,10 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		SetComponentTickEnabled(true);
 	}
 
-	FTimerHandle clearTimer;
-	GetWorld()->GetTimerManager().SetTimer(clearTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), 10.0f, false);
+	FTimerStruct timer;
+	timer.CreateTimer("Clear", GetOwner(), 10.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), false, true);
+
+	Camera->CitizenManager->Timers.Add(timer);
 
 	actor->SetActorTickEnabled(false);
 	GetWorld()->GetTimerManager().ClearAllTimersForObject(actor);
@@ -192,11 +212,8 @@ void UHealthComponent::Clear(AActor* Attacker)
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
-
-	if (actor->IsA<AAI>() && camera->CitizenManager->Enemies.Contains(Cast<AAI>(actor)))
-		camera->CitizenManager->Enemies.Remove(Cast<AAI>(actor));
+	if (actor->IsA<AAI>() && Camera->CitizenManager->Enemies.Contains(Cast<AAI>(actor)))
+		Camera->CitizenManager->Enemies.Remove(Cast<AAI>(actor));
 
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
@@ -248,8 +265,8 @@ void UHealthComponent::Clear(AActor* Attacker)
 			for (ACitizen* c : citizen->BioStruct.Children) {
 				int32 count = 0;
 
-				for (FPersonality* personality : camera->CitizenManager->GetCitizensPersonalities(citizen)) {
-					for (FPersonality* p : camera->CitizenManager->GetCitizensPersonalities(c)) {
+				for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
+					for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(c)) {
 						if (personality->Trait == p->Trait)
 							count += 2;
 						else if (personality->Likes.Contains(p->Trait))
@@ -273,10 +290,10 @@ void UHealthComponent::Clear(AActor* Attacker)
 				for (auto& element : favouredChildren)
 					element.Key->Balance += (citizen->Balance / totalCount * element.Value);
 
-				camera->ResourceManager->AddUniversalResource(camera->ResourceManager->Money, remainder);
+				Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, remainder);
 			}
 			else {
-				camera->ResourceManager->AddUniversalResource(camera->ResourceManager->Money, citizen->Balance);
+				Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, citizen->Balance);
 			}
 		}
 	}

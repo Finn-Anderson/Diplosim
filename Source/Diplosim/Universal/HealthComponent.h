@@ -13,8 +13,14 @@ class DIPLOSIM_API UHealthComponent : public UActorComponent
 public:	
 	UHealthComponent();
 
+private:
+	virtual void BeginPlay() override;
+
 public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	UPROPERTY()
+		class ACamera* Camera;
 
 	// Health
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")

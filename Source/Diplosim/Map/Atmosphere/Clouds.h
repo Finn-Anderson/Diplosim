@@ -95,6 +95,8 @@ public:
 
 	void Clear();
 
+	void StartCloudTimer();
+
 	UFUNCTION()
 		void ActivateCloud();
 
@@ -130,9 +132,6 @@ public:
 		TArray<FCloudStruct> Clouds;
 
 	UPROPERTY()
-		FTimerHandle CloudTimer;
-
-	UPROPERTY()
 		bool bSnow;
 
 	UPROPERTY()
@@ -140,4 +139,7 @@ public:
 
 	UPROPERTY()
 		TArray<FWetnessStruct> WetnessStruct;
+
+	UPROPERTY()
+		class ACamera* Camera;
 };

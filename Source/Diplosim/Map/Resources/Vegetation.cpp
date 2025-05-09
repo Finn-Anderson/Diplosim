@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
 #include "Map/Grid.h"
 
 AVegetation::AVegetation()
@@ -15,15 +16,18 @@ AVegetation::AVegetation()
 	TimeLength = 30.0f;
 }
 
+void AVegetation::BeginPlay()
+{
+	Super::BeginPlay();
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Camera = PController->GetPawn<ACamera>();
+}
+
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%d"), Instance));
-	
 	if (ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10] == 0.0f) {
-		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		ACamera* camera = PController->GetPawn<ACamera>();
-
-		camera->Grid->RemoveTree(this, Instance);
+		Camera->Grid->RemoveTree(this, Instance);
 
 		return;
 	}
@@ -36,8 +40,12 @@ void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 
 	GrowingInstances.Add(Instance);
 
-	if (!GetWorldTimerManager().IsTimerActive(GrowTimer))
-		GetWorldTimerManager().SetTimer(GrowTimer, this, &AVegetation::Grow, TimeLength / 100.0f, true);
+	if (Camera->CitizenManager->FindTimer("Grow", this) == nullptr) {
+		FTimerStruct timer;
+		timer.CreateTimer("Grow", this, TimeLength / 100.0f, FTimerDelegate::CreateUObject(this, &AVegetation::Grow), true, true);
+
+		Camera->CitizenManager->Timers.Add(timer);
+	}
 }
 
 void AVegetation::Grow()
@@ -77,7 +85,7 @@ void AVegetation::Grow()
 	}
 
 	if (GrowingInstances.IsEmpty())
-		GetWorldTimerManager().ClearTimer(GrowTimer);
+		Camera->CitizenManager->RemoveTimer("Grow", this);
 }
 
 bool AVegetation::IsHarvestable(int32 Instance, FVector Scale)

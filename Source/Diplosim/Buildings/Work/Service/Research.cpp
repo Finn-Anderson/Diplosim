@@ -9,6 +9,7 @@ AResearch::AResearch()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
+	SetActorTickInterval(0.01f);
 	
 	TimeLength = 5.0f;
 
@@ -25,7 +26,7 @@ void AResearch::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (DeltaTime > 1.0f)
+	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
 		return;
 
 	TurretMesh->SetRelativeRotation(FMath::RInterpTo(TurretMesh->GetRelativeRotation(), TurretTargetRotation, DeltaTime, 1.0f));

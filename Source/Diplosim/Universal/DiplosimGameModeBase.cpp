@@ -21,6 +21,7 @@
 ADiplosimGameModeBase::ADiplosimGameModeBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickInterval(0.01f);
 
 	TargetOpacity = 0.0f;
 	
@@ -45,6 +46,9 @@ void ADiplosimGameModeBase::BeginPlay()
 void ADiplosimGameModeBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
+		return;
 	
 	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(Camera->Grid->CrystalMesh->GetMaterial(0));
 

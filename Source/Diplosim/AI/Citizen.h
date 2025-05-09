@@ -290,13 +290,19 @@ public:
 		class UAudioComponent* AmbientAudioComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		FTimerHandle AmbientAudioHandle;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		TArray<USoundBase*> Chops;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		TArray<USoundBase*> Mines;
+
+	UPROPERTY()
+		float HarvestVisualTimer;
+
+	UPROPERTY()
+		float HarvestVisualTargetTimer;
+
+	UPROPERTY()
+		class AResource* HarvestVisualResource;
 
 	// Cosmetics
 	UFUNCTION(BlueprintCallable)
@@ -338,9 +344,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		TArray<int32> HoursWorked;
-
-	UPROPERTY()
-		FTimerHandle HealTimer;
 
 	UPROPERTY()
 		ACitizen* CitizenHealing;

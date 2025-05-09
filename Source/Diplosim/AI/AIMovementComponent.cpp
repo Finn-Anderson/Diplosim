@@ -23,6 +23,8 @@
 
 UAIMovementComponent::UAIMovementComponent()
 {
+	SetComponentTickInterval(0.01f);
+	
 	MaxSpeed = 200.0f;
 	InitialSpeed = 200.0f;
 	SpeedMultiplier = 1.0f;
@@ -34,7 +36,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (DeltaTime > 1.0f || DeltaTime < 0.0001f)
+	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
 		return;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());

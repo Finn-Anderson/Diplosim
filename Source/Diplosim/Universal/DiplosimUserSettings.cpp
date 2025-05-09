@@ -10,6 +10,7 @@
 #include "Components/DirectionalLightComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
+#include "Map/Grid.h"
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "DiplosimGameModeBase.h"
@@ -48,6 +49,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bVolumetricFog = true;
 	bLightShafts = true;
 	Bloom = 0.6f;
+	WPODistance = 5000.0f;
 
 	bIsMaximised = false;
 
@@ -151,6 +153,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetLightShafts(value.ToBool());
 	else if (FString("Bloom").Equals(Key))
 		SetBloom(FCString::Atof(Value));
+	else if (FString("WPODistance").Equals(Key))
+		SetWPODistance(FCString::Atof(Value));
 	else if (FString("ScreenPercentage").Equals(Key))
 		SetScreenPercentage(FCString::Atoi(Value));
 	else if (FString("WindowPosition").Equals(Key))
@@ -214,6 +218,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bVolumetricFog"), GetVolumetricFog(), Filename);
 	GConfig->SetBool(*Section, TEXT("bLightShafts"), GetLightShafts(), Filename);
 	GConfig->SetFloat(*Section, TEXT("Bloom"), GetBloom(), Filename);
+	GConfig->SetFloat(*Section, TEXT("WPODistance"), GetWPODistance(), Filename);
 	GConfig->SetInt(*Section, TEXT("ScreenPercentage"), GetScreenPercentage(), Filename);
 	GConfig->SetVector2D(*Section, TEXT("WindowPosition"), GetWindowPos(), Filename);
 	GConfig->SetBool(*Section, TEXT("bIsMaximised"), GetMaximised(), Filename);
@@ -553,6 +558,30 @@ void UDiplosimUserSettings::SetBloom(float Value)
 float UDiplosimUserSettings::GetBloom() const
 {
 	return Bloom;
+}
+
+void UDiplosimUserSettings::SetWPODistance(float Value)
+{
+	if (WPODistance == Value)
+		return;
+
+	WPODistance = Value;
+
+	if (Camera == nullptr)
+		return;
+
+	Camera->Grid->HISMRiver->SetWorldPositionOffsetDisableDistance(WPODistance);
+
+	for (FResourceHISMStruct& ResourceStruct : Camera->Grid->TreeStruct)
+		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(WPODistance);
+
+	for (FResourceHISMStruct& ResourceStruct : Camera->Grid->FlowerStruct)
+		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(WPODistance);
+}
+
+float UDiplosimUserSettings::GetWPODistance() const
+{
+	return WPODistance;
 }
 
 void UDiplosimUserSettings::SetScreenPercentage(int32 Value)

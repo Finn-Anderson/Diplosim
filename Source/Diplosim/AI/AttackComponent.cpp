@@ -196,6 +196,13 @@ void UAttackComponent::Attack()
 	if (AttackTimer > 0.0f) {
 		AttackTimer -= 0.1f;
 
+		if (AttackTimer <= 0.0f) {
+			if (*ProjectileClass)
+				Throw();
+			else
+				Melee();
+		}
+
 		return;
 	}
 
@@ -212,8 +219,6 @@ void UAttackComponent::Attack()
 	if (GetOwner()->IsA<ACitizen>())
 		time /= FMath::LogX(100.0f, FMath::Clamp(Cast<ACitizen>(GetOwner())->Energy, 2, 100));
 
-	FTimerHandle AnimTimer;
-
 	if (*ProjectileClass) {
 		if (RangeAnim->IsValidLowLevelFast()) {
 			RangeAnim->RateScale = 0.5f / time;
@@ -224,8 +229,6 @@ void UAttackComponent::Attack()
 				Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = RangeAnim;
 			}
 		}
-
-		GetWorld()->GetTimerManager().SetTimer(AnimTimer, this, &UAttackComponent::Throw, time, false);
 	}
 	else {
 		if (MeleeAnim->IsValidLowLevelFast()) {
@@ -237,8 +240,6 @@ void UAttackComponent::Attack()
 		}
 		else if (GetOwner()->IsA<AEnemy>())
 			Cast<AEnemy>(GetOwner())->Zap(CurrentTarget->GetActorLocation());
-
-		GetWorld()->GetTimerManager().SetTimer(AnimTimer, this, &UAttackComponent::Melee, time / 2, false);
 	}
 
 	AttackTimer = time;

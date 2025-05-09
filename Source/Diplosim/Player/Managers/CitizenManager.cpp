@@ -52,14 +52,6 @@ UCitizenManager::UCitizenManager()
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Conditions.json");
 }
 
-void UCitizenManager::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (GetWorld()->GetMapName() == "Map")
-		StartTimers();
-}
-
 void UCitizenManager::ReadJSONFile(FString path)
 {
 	TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject());
@@ -212,10 +204,15 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (Citizens.IsEmpty() && Enemies.IsEmpty())
+	if (DeltaTime < 0.01f || DeltaTime > 1.0f)
 		return;
 
-	Async(EAsyncExecution::Thread, [this]() {
+	Async(EAsyncExecution::Thread, [this, DeltaTime]() {
+		Loop(DeltaTime);
+
+		if (Citizens.IsEmpty() && Enemies.IsEmpty())
+			return;
+
 		TArray<TEnumAsByte<EObjectTypeQuery>> objects;
 
 		TArray<AActor*> ignore;
@@ -252,7 +249,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 						if (citizen->CanReach(ai, reach) && !Infected.IsEmpty()) {
 							ACitizen* c = Cast<ACitizen>(ai);
 
-							if (c->Building.Employment == nullptr || !c->Building.Employment->IsA<AClinic>()) {
+							if (!IsValid(c->Building.Employment) || !c->Building.Employment->IsA<AClinic>()) {
 								for (FConditionStruct condition : citizen->HealthIssues) {
 									if (c->HealthIssues.Contains(condition))
 										continue;
@@ -267,10 +264,11 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 									Infect(c);
 							}
 
-							if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && !GetWorld()->GetTimerManager().IsTimerActive(citizen->HealTimer)) {
+							if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr) {
 								citizen->CitizenHealing = c;
 
-								AsyncTask(ENamedThreads::GameThread, [this, citizen, c]() { GetWorld()->GetTimerManager().SetTimer(citizen->HealTimer, FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), 2.0f / citizen->GetProductivity(), false); });
+								FTimerStruct timer;
+								timer.CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
 							}
 						}
 					}
@@ -353,7 +351,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	});
 }
 
-void UCitizenManager::Loop()
+void UCitizenManager::Loop(float DeltaTime)
 {
 	for (int32 i = Timers.Num() - 1; i > -1; i--) {
 		if (!IsValid(Timers[i].Actor) || (Timers[i].Actor->IsA<ACitizen>() && (!Citizens.Contains(Timers[i].Actor) || Cast<ACitizen>(Timers[i].Actor)->Rebel)) || (Timers[i].Actor->IsA<ABuilding>() && !Buildings.Contains(Timers[i].Actor))) {
@@ -365,9 +363,28 @@ void UCitizenManager::Loop()
 		if (Timers[i].bPaused)
 			continue;
 
-		Timers[i].Timer++;
+		Timers[i].Timer += DeltaTime;
 
-		if (Timers[i].Timer == Timers[i].Target) {
+		if ((Timers[i].ID == "Harvest" || Timers[i].ID == "Internal")) {
+			TArray<ACitizen*> citizens;
+
+			if (Timers[i].Actor->IsA<ACitizen>())
+				citizens.Add(Cast<ACitizen>(Timers[i].Actor));
+			else
+				citizens = Cast<AWork>(Timers[i].Actor)->GetCitizensAtBuilding();
+
+			for (ACitizen* citizen : Citizens) {
+				if (citizen->HarvestVisualTimer < Timers[i].Timer || citizen->HarvestVisualResource == nullptr)
+					continue;
+
+				citizen->HarvestVisualTimer += citizen->HarvestVisualTargetTimer;
+
+				citizen->SetHarvestVisuals(citizen->HarvestVisualResource);
+			}
+			
+		}
+
+		if (Timers[i].Timer >= Timers[i].Target) {
 			FTimerDelegate delegate = Timers[i].Delegate;
 
 			if (Timers[i].bOnGameThread)
@@ -458,17 +475,7 @@ void UCitizenManager::Loop()
 		}
 	}
 
-	AsyncTask(ENamedThreads::GameThread, [this]() {
-		Cast<ACamera>(GetOwner())->UpdateUI();
-
-		FTimerHandle FLoopTimer;
-		GetWorld()->GetTimerManager().SetTimer(FLoopTimer, this, &UCitizenManager::StartTimers, 1.0f);
-	});
-}
-
-void UCitizenManager::StartTimers()
-{
-	Async(EAsyncExecution::Thread, [this]() { Loop(); });
+	AsyncTask(ENamedThreads::GameThread, [this]() { Cast<ACamera>(GetOwner())->UpdateUI(); });
 }
 
 FTimerStruct* UCitizenManager::FindTimer(FString ID, AActor* Actor)

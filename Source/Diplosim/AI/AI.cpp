@@ -17,7 +17,7 @@
 
 AAI::AAI()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
@@ -28,6 +28,7 @@ AAI::AAI()
 	Capsule->SetGenerateOverlapEvents(false);
 	Capsule->SetCanEverAffectNavigation(false);
 	Capsule->bDynamicObstacle = false;
+	Capsule->PrimaryComponentTick.bCanEverTick = false;
 
 	RootComponent = Capsule;
 

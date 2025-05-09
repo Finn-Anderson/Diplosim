@@ -47,8 +47,16 @@ void ABuilder::Enter(ACitizen* Citizen)
 
 void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 {
-	if (CheckStored(Citizen, Building->TargetList))
-		GetWorldTimerManager().SetTimer(ConstructTimer, FTimerDelegate::CreateUObject(this, &ABuilder::AddBuildPercentage, Citizen, Building), 0.1f / Citizen->GetProductivity(), true);
+	if (CheckStored(Citizen, Building->TargetList)) {
+		FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+
+		float time = (size.X + size.Y + size.Z) / 500.0f * 0.2f / Citizen->GetProductivity();
+
+		FTimerStruct timer;
+		timer.CreateTimer("Construct", GetOwner(), time, FTimerDelegate::CreateUObject(this, &ABuilder::AddBuildPercentage, Citizen, Building), true, true);
+
+		Camera->CitizenManager->Timers.Add(timer);
+	}
 }
 
 void ABuilder::AddBuildPercentage(ACitizen* Citizen, ABuilding* Building)
@@ -65,29 +73,33 @@ void ABuilder::AddBuildPercentage(ACitizen* Citizen, ABuilding* Building)
 
 		BuildPercentage = 0;
 
-		GetWorldTimerManager().ClearTimer(ConstructTimer);
-
 		if (Camera->WidgetComponent->GetAttachParent() == GetRootComponent())
 			Camera->DisplayInteract(this);
 	}
 }
 
+void ABuilder::StartRepairTimer(ACitizen* Citizen, ABuilding* Building)
+{
+	FTimerStruct timer;
+	timer.CreateTimer("Repair", GetOwner(), 0.2f, FTimerDelegate::CreateUObject(this, &ABuilder::Repair, Citizen, Building), true, true);
+
+	Camera->CitizenManager->Timers.Add(timer);
+}
+
 void ABuilder::Repair(ACitizen* Citizen, ABuilding* Building)
 {
-	Building->HealthComponent->AddHealth(1);
+	Building->HealthComponent->AddHealth(2);
 
 	if (Building->HealthComponent->IsMaxHealth()) {
 		Done(Citizen, Building);
 
 		return;
 	}
-
-	FTimerHandle checkSitesTimer;
-	GetWorldTimerManager().SetTimer(checkSitesTimer, FTimerDelegate::CreateUObject(this, &ABuilder::Repair, Citizen, Building), 0.1f, false);
 }
 
 void ABuilder::Done(ACitizen* Citizen, ABuilding* Building)
 {
-	UConstructionManager* cm = Camera->ConstructionManager;
-	cm->RemoveBuilding(Building);
+	Camera->CitizenManager->RemoveTimer("Repair", GetOwner());
+
+	Camera->ConstructionManager->RemoveBuilding(Building);
 }

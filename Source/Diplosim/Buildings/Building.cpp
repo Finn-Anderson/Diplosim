@@ -55,6 +55,7 @@ ABuilding::ABuilding()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Block);
 	BuildingMesh->SetCanEverAffectNavigation(false);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
+	BuildingMesh->PrimaryComponentTick.bCanEverTick = false;
 
 	RootComponent = BuildingMesh;
 
@@ -88,6 +89,7 @@ ABuilding::ABuilding()
 	GroundDecalComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -0.75f));
 	GroundDecalComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	GroundDecalComponent->SetHiddenInGame(true);
+	GroundDecalComponent->PrimaryComponentTick.bCanEverTick = false;
 
 	Emissiveness = 0.0f;
 	bBlink = false;
@@ -828,7 +830,9 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 
 	AResource* resource = Cast<AResource>(Cast<AInternalProduction>(this)->ResourceToOverlap->GetDefaultObject());
 
-	GetWorldTimerManager().SetTimer(Citizen->AmbientAudioHandle, FTimerDelegate::CreateUObject(Citizen, &ACitizen::SetHarvestVisuals, resource), anim->GetPlayLength() / anim->RateScale, true, anim->GetPlayLength() / anim->RateScale / 2.0f);
+	Citizen->HarvestVisualTimer = anim->GetPlayLength() / anim->RateScale;
+	Citizen->HarvestVisualTargetTimer = Citizen->HarvestVisualTimer;
+	Citizen->HarvestVisualResource = resource;
 }
 
 void ABuilding::Enter(ACitizen* Citizen)
@@ -863,7 +867,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 		ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
 
 		if (cm->IsRepairJob(this, builder))
-			builder->Repair(Citizen, this);
+			builder->StartRepairTimer(Citizen, this);
 		else
 			builder->CheckCosts(Citizen, this);
 	}
@@ -906,7 +910,9 @@ void ABuilding::Leave(ACitizen* Citizen)
 {
 	Citizen->Building.BuildingAt = nullptr;
 
-	GetWorldTimerManager().ClearTimer(Citizen->AmbientAudioHandle);
+	Citizen->HarvestVisualTimer = 0.0f;
+	Citizen->HarvestVisualTargetTimer = Citizen->HarvestVisualTimer;
+	Citizen->HarvestVisualResource = nullptr;
 
 	Citizen->MovementComponent->CurrentAnim = nullptr;
 	Citizen->Mesh->Play(false);

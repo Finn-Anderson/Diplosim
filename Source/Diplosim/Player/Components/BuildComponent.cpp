@@ -50,7 +50,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (Buildings.IsEmpty() || Camera->bInMenu || Camera->bMouseCapture)
+	if (DeltaTime > 1.0f || Buildings.IsEmpty() || Camera->bInMenu || Camera->bMouseCapture)
 		return;
 
 	FVector mouseLoc, mouseDirection;

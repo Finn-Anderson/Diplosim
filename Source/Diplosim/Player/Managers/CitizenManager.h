@@ -17,10 +17,10 @@ struct FTimerStruct
 		AActor* Actor;
 
 	UPROPERTY()
-		int32 Timer;
+		float Timer;
 
 	UPROPERTY()
-		int32 Target;
+		float Target;
 
 	FTimerDelegate Delegate;
 
@@ -44,7 +44,7 @@ struct FTimerStruct
 		bPaused = false;
 	}
 
-	void CreateTimer(FString Identifier, AActor* Caller, int32 Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread = false)
+	void CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread = false)
 	{
 		ID = Identifier;
 		Actor = Caller;
@@ -394,18 +394,14 @@ public:
 	UCitizenManager();
 
 protected:
-	virtual void BeginPlay() override;
-
 	void ReadJSONFile(FString path);
 
 public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void Loop();
+	void Loop(float DeltaTime);
 
 	// Timers
-	void StartTimers();
-
 	FTimerStruct* FindTimer(FString ID, AActor* Actor);
 
 	void RemoveTimer(FString ID, AActor* Actor);
