@@ -570,18 +570,23 @@ void UDiplosimUserSettings::SetWPODistance(float Value)
 	if (Camera == nullptr)
 		return;
 
-	Camera->Grid->HISMRiver->SetWorldPositionOffsetDisableDistance(WPODistance);
+	Camera->Grid->HISMRiver->SetWorldPositionOffsetDisableDistance(GetWPODistance());
 
 	for (FResourceHISMStruct& ResourceStruct : Camera->Grid->TreeStruct)
-		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(WPODistance);
+		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(GetWPODistance());
 
 	for (FResourceHISMStruct& ResourceStruct : Camera->Grid->FlowerStruct)
-		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(WPODistance);
+		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(GetWPODistance());
 }
 
 float UDiplosimUserSettings::GetWPODistance() const
 {
-	return WPODistance;
+	float distance = WPODistance;
+
+	if (distance == 0.0f)
+		distance = 1.0f;
+
+	return distance;
 }
 
 void UDiplosimUserSettings::SetScreenPercentage(int32 Value)
