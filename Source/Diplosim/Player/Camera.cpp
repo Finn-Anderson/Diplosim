@@ -20,6 +20,7 @@
 #include "Managers/ConstructionManager.h"
 #include "Managers/CitizenManager.h"
 #include "Managers/ResearchManager.h"
+#include "Managers/ConquestManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
@@ -38,14 +39,11 @@ ACamera::ACamera()
 	PrimaryActorTick.bCanEverTick = true;
 
 	MovementComponent = CreateDefaultSubobject<UCameraMovementComponent>(TEXT("CameraMovementComponent"));
-	MovementComponent->SetTickableWhenPaused(true);
 
 	BuildComponent = CreateDefaultSubobject<UBuildComponent>(TEXT("BuildComponent"));
-	BuildComponent->SetTickableWhenPaused(true);
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	SpringArmComponent->SetupAttachment(RootComponent);
-	SpringArmComponent->SetTickableWhenPaused(true);
 	SpringArmComponent->TargetArmLength = MovementComponent->TargetLength;
 	SpringArmComponent->bUsePawnControlRotation = true;
 	SpringArmComponent->bEnableCameraLag = false;
@@ -61,24 +59,22 @@ ACamera::ACamera()
 	InteractAudioComponent->SetupAttachment(CameraComponent);
 	InteractAudioComponent->SetUISound(true);
 	InteractAudioComponent->SetAutoActivate(false);
-	InteractAudioComponent->SetTickableWhenPaused(true);
 
 	MusicAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("MusicAudioComponent"));
 	MusicAudioComponent->SetupAttachment(CameraComponent);
 	MusicAudioComponent->SetVolumeMultiplier(0.0f);
 	MusicAudioComponent->SetUISound(true);
 	MusicAudioComponent->SetAutoActivate(true);
-	MusicAudioComponent->SetTickableWhenPaused(true);
 
 	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
-	ResourceManager->SetTickableWhenPaused(true);
 
 	ConstructionManager = CreateDefaultSubobject<UConstructionManager>(TEXT("ConstructionManager"));
-	ConstructionManager->SetTickableWhenPaused(true);
 
 	CitizenManager = CreateDefaultSubobject<UCitizenManager>(TEXT("CitizenManager"));
 
 	ResearchManager = CreateDefaultSubobject<UResearchManager>(TEXT("ResearchManager"));
+
+	ConquestManager = CreateDefaultSubobject<UConquestManager>(TEXT("ConquestManager"));
 
 	WidgetSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("WidgetSpringArmComponent"));
 	WidgetSpringArmComponent->SetupAttachment(RootComponent);
@@ -278,6 +274,8 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	Grid->MapUIInstance->RemoveFromParent();
 
 	ResourceManager->RandomiseMarket();
+
+	ConquestManager->GenerateWorld();
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 	gamemode->Camera = this;

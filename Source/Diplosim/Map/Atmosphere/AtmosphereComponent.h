@@ -95,6 +95,9 @@ public:
 	UPROPERTY()
 		FRotator WindRotation;
 
+	UPROPERTY()
+		class AGrid* Grid;
+
 	void ChangeWindDirection();
 
 	void SetWindDimensions(int32 Size);

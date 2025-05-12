@@ -14,6 +14,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Universal/DiplosimUserSettings.h"
 
 UAtmosphereComponent::UAtmosphereComponent()
@@ -81,6 +82,8 @@ void UAtmosphereComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	Grid = Cast<AGrid>(GetOwner());
+
 	ChangeWindDirection();
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
@@ -107,7 +110,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (Cast<AGrid>(GetOwner())->Camera->Start)
+	if (Grid->Camera->Start)
 		return;
 
 	Sun->AddLocalRotation(FRotator(-Speed, Speed, 0.0f));
@@ -122,7 +125,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
 		if (settings->GetRenderTorches())
-			for (AActor* Actor : Cast<AGrid>(GetOwner())->Camera->CitizenManager->Citizens)
+			for (AActor* Actor : Grid->Camera->CitizenManager->Citizens)
 				Cast<ACitizen>(Actor)->SetTorch(hour);
 
 		if (hour == 18) {
@@ -142,11 +145,13 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	}
 
 	if (hour != Calendar.Hour) {
-		Cast<AGrid>(GetOwner())->Camera->CitizenManager->CheckWorkStatus(hour);
-		Cast<AGrid>(GetOwner())->Camera->CitizenManager->CheckSleepStatus(hour);
-		Cast<AGrid>(GetOwner())->Camera->CitizenManager->IssuePensions(hour);
+		Grid->Camera->CitizenManager->CheckWorkStatus(hour);
+		Grid->Camera->CitizenManager->CheckSleepStatus(hour);
+		Grid->Camera->CitizenManager->IssuePensions(hour);
 
-		Cast<AGrid>(GetOwner())->Camera->ResourceManager->SetTrendOnHour(hour);
+		Grid->Camera->ResourceManager->SetTrendOnHour(hour);
+
+		Grid->Camera->ConquestManager->GiveResource();
 
 		SetDisplayText(hour);
 	}
@@ -186,12 +191,12 @@ void UAtmosphereComponent::SetDisplayText(int32 Hour)
 		Calendar.NextDay();
 
 	if (period != Calendar.Period) {
-		Cast<AGrid>(GetOwner())->Camera->DisplayEvent("Season", Calendar.Period);
+		Grid->Camera->DisplayEvent("Season", Calendar.Period);
 
-		Cast<AGrid>(GetOwner())->SetSeasonAffect(Calendar.Period, 0.02f);
+		Grid->SetSeasonAffect(Calendar.Period, 0.02f);
 	}
 
-	Cast<AGrid>(GetOwner())->Camera->CitizenManager->ExecuteEvent(Calendar.Period, Calendar.Days[Calendar.Index], Calendar.Hour);
+	Grid->Camera->CitizenManager->ExecuteEvent(Calendar.Period, Calendar.Days[Calendar.Index], Calendar.Hour);
 
-	Cast<AGrid>(GetOwner())->Camera->UpdateDayText();
+	Grid->Camera->UpdateDayText();
 }
