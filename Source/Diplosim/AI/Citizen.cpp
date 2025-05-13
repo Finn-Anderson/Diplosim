@@ -18,6 +18,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ResearchManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/House.h"
@@ -132,11 +133,28 @@ void ACitizen::BeginPlay()
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
 
-	for (FResearchStruct research : Camera->ResearchManager->ResearchStruct)
-		if (research.bResearched)
-			for (auto& element : research.Modifiers)
-				ApplyToMultiplier(element.Key, element.Value);
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
+	FTimerStruct timer;
+
+	timer.CreateTimer("Birthday", this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
+	Camera->CitizenManager->Timers.Add(timer);
+
+	SetName();
+
+	float r = FMath::FRandRange(0.0f, 1.0f);
+	float g = FMath::FRandRange(0.0f, 1.0f);
+	float b = FMath::FRandRange(0.0f, 1.0f);
+
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(Mesh->GetMaterial(0), this);
+	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
+	Mesh->SetMaterial(0, material);
+
+	GenerateGenetics();
+}
+
+void ACitizen::MainIslandSetup()
+{
 	Camera->CitizenManager->Citizens.Add(this);
 	Camera->CitizenManager->Infectible.Add(this);
 
@@ -150,35 +168,54 @@ void ACitizen::BeginPlay()
 	timer.CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
-	timer.CreateTimer("Birthday", this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
-	Camera->CitizenManager->Timers.Add(timer);
-
 	timer.CreateTimer("ChooseIdleBuilding", this, 60, FTimerDelegate::CreateUObject(AIController, &ADiplosimAIController::ChooseIdleBuilding, this), true);
 	Camera->CitizenManager->Timers.Add(timer);
 
-	SetSex();
-	SetName();
-
-	float r = FMath::FRandRange(0.0f, 1.0f);
-	float g = FMath::FRandRange(0.0f, 1.0f);
-	float b = FMath::FRandRange(0.0f, 1.0f);
-
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(Mesh->GetMaterial(0), this);
-	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
-	Mesh->SetMaterial(0, material);
-
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
-
-	AIController->ChooseIdleBuilding(this);
-	AIController->DefaultAction();
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
 	if (settings->GetRenderTorches())
 		SetTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
-	GenerateGenetics();
+	AIController->ChooseIdleBuilding(this);
+	AIController->DefaultAction();
+}
+
+void ACitizen::ColonyIslandSetup()
+{
+	Camera->CitizenManager->Citizens.Remove(this);
+	Camera->CitizenManager->Infectible.Remove(this);
+
+	Camera->CitizenManager->RemoveTimer("Eat", this);
+	Camera->CitizenManager->RemoveTimer("Energy", this);
+	Camera->CitizenManager->RemoveTimer("ChooseIdleBuilding", this);
+
+	if (IsValid(Building.BuildingAt))
+		Building.BuildingAt->Leave(this);
+
+	if (IsValid(Building.Employment))
+		Building.Employment->RemoveCitizen(this);
+	else if (IsValid(Building.School))
+		Building.School->RemoveVisitor(Building.School->GetOccupant(this), this);
+
+	if (IsValid(Building.House))
+		Building.House->RemoveCitizen(this);
+	else if (IsValid(Building.Orphanage))
+		Building.Orphanage->RemoveVisitor(Building.Orphanage->GetOccupant(this), this);
+
+	AIController->StopMovement();
+
+	SetActorLocation(FVector(0.0f, 0.0f, -10000.0f));
+}
+
+void ACitizen::ApplyResearch()
+{
+	for (FResearchStruct research : Camera->ResearchManager->ResearchStruct)
+		if (research.bResearched)
+			for (auto& element : research.Modifiers)
+				ApplyToMultiplier(element.Key, element.Value);
 }
 
 //
@@ -891,6 +928,9 @@ void ACitizen::Birthday()
 	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr && !Camera->Start)
 		FindPartner();
 
+	if (!Camera->CitizenManager->Citizens.Contains(this))
+		return;
+
 	if (BioStruct.Age == 18) {
 		AttackComponent->bCanAttack = true;
 
@@ -929,14 +969,14 @@ void ACitizen::Birthday()
 	}
 }
 
-void ACitizen::SetSex()
+void ACitizen::SetSex(TArray<ACitizen*> Citizens)
 {
 	int32 choice = FMath::RandRange(1, 100);
 
 	float male = 0.0f;
 	float total = 0.0f;
 
-	for (AActor* actor : Camera->CitizenManager->Citizens) {
+	for (AActor* actor : Citizens) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
 		if (citizen == this)
@@ -981,9 +1021,14 @@ void ACitizen::FindPartner()
 	ACitizen* citizen = nullptr;
 	int32 curCount = 1;
 
-	for (AActor* actor : Camera->CitizenManager->Citizens) {
-		ACitizen* c = Cast<ACitizen>(actor);
+	TArray<class ACitizen*> citizens;
 
+	if (Camera->CitizenManager->Citizens.Contains(this))
+		citizens = Camera->CitizenManager->Citizens;
+	else
+		citizens = Camera->ConquestManager->GetColonyContainingCitizen(this)->Citizens;
+
+	for (ACitizen* c : citizens) {
 		if (!IsValid(c) || c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
 			continue;
 
@@ -1086,10 +1131,29 @@ void ACitizen::HaveChild()
 	if (Building.BuildingAt != nullptr)
 		location = Building.EnterLocation;
 
-	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), location, GetActorRotation());
+	FActorSpawnParameters params;
+	params.bNoFail = true;
+
+	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), location, GetActorRotation(), params);
 
 	if (!IsValid(citizen))
 		return;
+
+	if (Camera->CitizenManager->Citizens.Contains(this)) {
+		citizen->SetSex(Camera->CitizenManager->Citizens);
+		citizen->MainIslandSetup();
+	}
+	else {
+		FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(this);
+
+		citizen->SetSex(tile->Citizens);
+		citizen->SetActorHiddenInGame(true);
+
+		if (tile->Owner == Camera->ConquestManager->EmpireName)
+			citizen->ApplyResearch();
+
+		tile->Citizens.Add(citizen);
+	}
 
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Partner;

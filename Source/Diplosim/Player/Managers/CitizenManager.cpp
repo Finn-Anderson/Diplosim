@@ -25,6 +25,7 @@
 #include "Buildings/House.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -354,7 +355,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 void UCitizenManager::Loop(float DeltaTime)
 {
 	for (int32 i = Timers.Num() - 1; i > -1; i--) {
-		if (!IsValid(Timers[i].Actor) || (Timers[i].Actor->IsA<ACitizen>() && (!Citizens.Contains(Timers[i].Actor) || Cast<ACitizen>(Timers[i].Actor)->Rebel)) || (Timers[i].Actor->IsA<ABuilding>() && !Buildings.Contains(Timers[i].Actor))) {
+		if (!IsValid(Timers[i].Actor) || (Timers[i].Actor->IsA<ACitizen>() && ((!Citizens.Contains(Timers[i].Actor) && Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Cast<ACitizen>(Timers[i].Actor)) == nullptr) || Cast<ACitizen>(Timers[i].Actor)->Rebel)) || (Timers[i].Actor->IsA<ABuilding>() && !Buildings.Contains(Timers[i].Actor))) {
 			Timers.RemoveAt(i);
 
 			continue;
@@ -426,7 +427,7 @@ void UCitizenManager::Loop(float DeltaTime)
 				condition.Level++;
 
 				if (condition.Level == condition.DeathLevel)
-					citizen->HealthComponent->TakeHealth(100, citizen);
+					citizen->HealthComponent->TakeHealth(1000, citizen);
 			}
 			
 			citizen->AllocatedBuildings.Empty(); 

@@ -22,6 +22,7 @@
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/ConquestManager.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -162,7 +163,14 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 			citizen->PopupComponent->SetHiddenInGame(true);
 
-			Camera->CitizenManager->ClearCitizen(citizen);
+			if (Camera->CitizenManager->Citizens.Contains(citizen)) {
+				Camera->CitizenManager->ClearCitizen(citizen);
+			}
+			else {
+				FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
+
+				tile->Citizens.Remove(citizen);
+			}
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {

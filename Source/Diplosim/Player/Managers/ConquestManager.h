@@ -22,9 +22,9 @@ struct FWorldTileStruct
 
 	int32 Abundance;
 
-	int32 Males;
+	TArray<class ACitizen*> Citizens;
 
-	int32 Females;
+	TMap<class ACitizen*, FString> Moving;
 
 	FWorldTileStruct() {
 		X = 0;
@@ -33,8 +33,6 @@ struct FWorldTileStruct
 		bCapital = false;
 		Owner = "";
 		Abundance = 1;
-		Males = 0;
-		Females = 0;
 	}
 
 	bool operator==(const FWorldTileStruct& other) const
@@ -79,16 +77,20 @@ struct FColonyEventStruct
 		FString Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
-		int32 ResourceMultiplier;
+		float ResourceMultiplier;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
-		int32 CitizenMultiplier;
+		float CitizenMultiplier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
+		float Citizens;
 
 	FColonyEventStruct()
 	{
 		Name = "";
-		ResourceMultiplier = 1;
-		CitizenMultiplier = 1;
+		ResourceMultiplier = 1.0f;
+		CitizenMultiplier = 0.0f;
+		Citizens = 0.0f;
 	}
 
 	bool operator==(const FColonyEventStruct& other) const
@@ -111,9 +113,35 @@ protected:
 public:	
 	void GenerateWorld();
 
+	void StartConquest();
+
 	void GiveResource();
 
-	TArray<int32> ProduceEvent();
+	void SpawnCitizenAtColony(FWorldTileStruct* Tile);
+
+	void MoveToColony(FWorldTileStruct* Tile, class ACitizen* Citizen);
+
+	void StartTransmissionTimer(class ACitizen* Citizen, int32 Time = 0);
+
+	void AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileStruct* Tile, class ACitizen* Citizen);
+
+	TArray<float> ProduceEvent();
+
+	FWorldTileStruct* GetColonyContainingCitizen(class ACitizen* Citizen);
+
+	void ModifyCitizensEvent(FWorldTileStruct* Tile, int32 Amount, bool bNegative);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
+		FString EmpireName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
+		int32 WorldSize;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
+		int32 PercentageIsland;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizens")
+		TSubclassOf<class ACitizen> CitizenClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource List")
 		TArray<FIslandResourceStruct> ResourceList;

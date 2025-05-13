@@ -23,6 +23,8 @@
 
 UAIMovementComponent::UAIMovementComponent()
 {
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetComponentTickInterval(0.01f);
 	
 	MaxSpeed = 200.0f;
@@ -30,6 +32,13 @@ UAIMovementComponent::UAIMovementComponent()
 	SpeedMultiplier = 1.0f;
 
 	CurrentAnim = nullptr;
+}
+
+void UAIMovementComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	AI = Cast<AAI>(GetOwner());
 }
 
 void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -41,24 +50,24 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	float range = FMath::Min(150.0f * DeltaTime, Cast<AAI>(GetOwner())->Range / 15.0f);
+	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);
 	
-	ADiplosimAIController* aicontroller = Cast<AAI>(GetOwner())->AIController;
+	ADiplosimAIController* aicontroller = AI->AIController;
 	AActor* goal = aicontroller->MoveRequest.GetGoalActor();
 
 	if (IsValid(goal)) {
-		if (Cast<AAI>(GetOwner())->CanReach(goal, range)) {
-			FRotator rotation = (goal->GetActorLocation() - GetOwner()->GetActorLocation()).Rotation();
+		if (AI->CanReach(goal, range)) {
+			FRotator rotation = (goal->GetActorLocation() - AI->GetActorLocation()).Rotation();
 			rotation.Pitch = 0.0f;
 
-			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), rotation, DeltaTime, 10.0f));
+			AI->SetActorRotation(FMath::RInterpTo(AI->GetActorRotation(), rotation, DeltaTime, 10.0f));
 		}
 		else if (Velocity.IsNearlyZero(1e-6f) || goal->IsA<AAI>()) {
 			aicontroller->RecalculateMovement(goal);
 		}
 	}
 
-	if (!Points.IsEmpty() && FVector::DistXY(GetOwner()->GetActorLocation(), Points[0]) < range) {
+	if (!Points.IsEmpty() && FVector::DistXY(AI->GetActorLocation(), Points[0]) < range) {
 		for (auto& element : avoidPoints) {
 			if (!element.Value.Contains(Points[0]))
 				continue;
@@ -88,51 +97,54 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		FHitResult hit;
 
 		FCollisionQueryParams queryParams;
-		queryParams.AddIgnoredActor(GetOwner());
+		queryParams.AddIgnoredActor(AI);
 
 		int32 z = 0;
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation() - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_GameTraceChannel1, queryParams))
+		if (GetWorld()->LineTraceSingleByChannel(hit, AI->GetActorLocation(), AI->GetActorLocation() - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_GameTraceChannel1, queryParams))
 			z = hit.Location.Z;
 
-		FVector location = GetOwner()->GetActorLocation() + deltaV;
-		location.Z = z + Cast<AAI>(GetOwner())->Capsule->GetScaledCapsuleHalfHeight();
+		FVector location = AI->GetActorLocation() + deltaV;
+		location.Z = z + AI->Capsule->GetScaledCapsuleHalfHeight();
 
-		GetOwner()->SetActorLocation(location);
+		AI->SetActorLocation(location);
 
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;
 
-		if (GetOwner()->GetActorRotation() != targetRotation)
-			GetOwner()->SetActorRotation(FMath::RInterpTo(GetOwner()->GetActorRotation(), targetRotation, DeltaTime, 10.0f));
+		if (AI->GetActorRotation() != targetRotation)
+			AI->SetActorRotation(FMath::RInterpTo(AI->GetActorRotation(), targetRotation, DeltaTime, 10.0f));
 
 		if (IsValid(CurrentAnim))
 			return;
 
-		Cast<AAI>(GetOwner())->Mesh->PlayAnimation(MoveAnim, true);
+		AI->Mesh->PlayAnimation(MoveAnim, true);
 
 		CurrentAnim = MoveAnim;
 	}
 	else if (CurrentAnim == MoveAnim) {
-		Cast<AAI>(GetOwner())->Mesh->Play(false);
+		AI->Mesh->Play(false);
 
 		CurrentAnim = nullptr;
+
+		AI->AIController->StopMovement();
 	}
 }
 
 FVector UAIMovementComponent::CalculateVelocity(FVector Vector)
 {
-	return (Vector - GetOwner()->GetActorLocation()).Rotation().Vector() * MaxSpeed;
+	return (Vector - AI->GetActorLocation()).Rotation().Vector() * MaxSpeed;
 }
 
 void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 {
 	Points = VectorPoints;
 
-	if (!Points.IsEmpty())
-		Cast<AAI>(GetOwner())->AIController->StartMovement();
+	if (!Points.IsEmpty()) {
+		AI->AIController->StartMovement();
+	}
 	else if (CurrentAnim == MoveAnim) {
-		Cast<AAI>(GetOwner())->Mesh->Play(false);
+		AI->Mesh->Play(false);
 
 		CurrentAnim = nullptr;
 	}

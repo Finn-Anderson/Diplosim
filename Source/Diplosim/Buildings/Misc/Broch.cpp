@@ -7,6 +7,7 @@
 #include "AI/Citizen.h"
 #include "Universal/HealthComponent.h"
 #include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
 #include "Map/Grid.h"
 #include "Map/Resources/Mineral.h"
 
@@ -48,6 +49,8 @@ void ABroch::SpawnCitizens()
 
 		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, navLoc.Location, GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f), params);
 
+		citizen->SetSex(Camera->CitizenManager->Citizens);
+
 		for (int32 j = 0; j < 2; j++)
 			citizen->GivePersonalityTrait();
 
@@ -56,7 +59,11 @@ void ABroch::SpawnCitizens()
 
 		citizen->HealthComponent->AddHealth(100);
 
+		citizen->ApplyResearch();
+
 		citizen->SetActorLocation(navLoc.Location + FVector(0.0f, 0.0f, citizen->Capsule->GetScaledCapsuleHalfHeight()));
+
+		citizen->MainIslandSetup();
 
 		locations.RemoveAt(index);
 	}

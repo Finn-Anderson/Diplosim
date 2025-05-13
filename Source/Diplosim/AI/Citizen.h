@@ -252,6 +252,12 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	void MainIslandSetup();
+
+	void ColonyIslandSetup();
+
+	void ApplyResearch();
+
 	UFUNCTION(BlueprintImplementableEvent)
 		void SetPopupImageState(FName Command, FName Type);
 
@@ -387,7 +393,7 @@ public:
 	// Bio
 	void Birthday();
 
-	void SetSex();
+	void SetSex(TArray<ACitizen*> Citizens);
 
 	void SetName();
 

@@ -12,6 +12,10 @@ class DIPLOSIM_API UAIMovementComponent : public UPawnMovementComponent
 public:
 	UAIMovementComponent();
 
+protected:
+	virtual void BeginPlay() override;
+
+public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	FVector CalculateVelocity(FVector Vector);
@@ -42,4 +46,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		UAnimSequence* MoveAnim;
+
+	UPROPERTY()
+		class AAI* AI;
 };

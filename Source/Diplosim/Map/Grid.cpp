@@ -17,6 +17,7 @@
 #include "Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -564,6 +565,9 @@ void AGrid::Render()
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(LavaComponent, TEXT("SpawnLocations"), LavaSpawnLocations);
 	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
 	LavaComponent->Activate();
+
+	// Conquest Map
+	Camera->ConquestManager->GenerateWorld();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(true, true);

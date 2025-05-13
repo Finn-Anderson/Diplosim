@@ -275,8 +275,6 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	ResourceManager->RandomiseMarket();
 
-	ConquestManager->GenerateWorld();
-
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 	gamemode->Camera = this;
 	gamemode->Broch = Broch;
@@ -299,6 +297,8 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	CitizenManager->BrochLocation = Broch->GetActorLocation();
 
 	Cast<ABroch>(Broch)->SpawnCitizens();
+
+	ConquestManager->StartConquest();
 
 	Start = false;
 
