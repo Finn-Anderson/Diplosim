@@ -177,6 +177,10 @@ void ACamera::BeginPlay()
 
 	ResearchHoverUIInstance = CreateWidget<UUserWidget>(pcontroller, ResearchHoverUI);
 
+	WorldUIInstance = CreateWidget<UUserWidget>(pcontroller, WorldUI);
+
+	FactionColourUIInstance = CreateWidget<UUserWidget>(pcontroller, FactionColourUI);
+
 	if (GetWorld()->GetMapName() == "Map")
 		Grid->Load();
 }
@@ -272,6 +276,7 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	bBlockPause = true;
 
 	Grid->MapUIInstance->RemoveFromParent();
+	WorldUIInstance->RemoveFromParent();
 
 	ResourceManager->RandomiseMarket();
 
@@ -550,6 +555,9 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 	if (BribeUIInstance->IsInViewport())
 		BribeUIInstance->RemoveFromParent();
 
+	if (WorldUIInstance->IsInViewport())
+		WorldUIInstance->RemoveFromParent();
+
 	if (ResearchHoverUIInstance->IsInViewport())
 		ResearchHoverUIInstance->RemoveFromParent();
 
@@ -558,8 +566,13 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 
 		return;
 	}
+	else if (FactionColourUIInstance->IsInViewport()) {
+		FactionColourUIInstance->RemoveFromParent();
+
+		return;
+	}
 	
-	if (bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || bBulldoze)
+	if (bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || WorldUIInstance->IsInViewport() || bBulldoze)
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {

@@ -568,6 +568,8 @@ void AGrid::Render()
 
 	// Conquest Map
 	Camera->ConquestManager->GenerateWorld();
+	Camera->UpdateWorldMap();
+	Camera->UpdateFactionIcons();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(true, true);

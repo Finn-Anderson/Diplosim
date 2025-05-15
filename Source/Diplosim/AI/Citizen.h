@@ -256,6 +256,8 @@ public:
 
 	void ColonyIslandSetup();
 
+	void ClearCitizen();
+
 	void ApplyResearch();
 
 	UFUNCTION(BlueprintImplementableEvent)

@@ -87,6 +87,18 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateMapSeed(const FString& Seed);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateWorldMap();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateFactionIcons();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateFactionImage();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateIconEmpireName(const FString& Seed);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -237,6 +249,18 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* ResearchHoverUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> WorldUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* WorldUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> FactionColourUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* FactionColourUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class USpringArmComponent* WidgetSpringArmComponent;

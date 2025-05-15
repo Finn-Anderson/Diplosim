@@ -4,34 +4,72 @@
 #include "Components/ActorComponent.h"
 #include "ConquestManager.generated.h"
 
+USTRUCT(BlueprintType)
+struct FFactionStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
+		FString Owner;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
+		UTexture2D* Texture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
+		FLinearColor Colour;
+
+	FFactionStruct()
+	{
+		Owner = "";
+	}
+
+	bool operator==(const FFactionStruct& other) const
+	{
+		return (other.Owner == Owner);
+	}
+};
+
+
+USTRUCT(BlueprintType)
 struct FWorldTileStruct
 {
-	int32 X;
+	GENERATED_USTRUCT_BODY()
 
-	int32 Y;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		int32 X;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		int32 Y;
 	
-	bool bIsland;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		bool bIsland;
 
-	bool bCapital;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		bool bCapital;
 
-	FString Owner;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		FFactionStruct Occupier;
 
-	FString Name;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		FString Name;
 
-	TSubclassOf<class AResource> Resource;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		TSubclassOf<class AResource> Resource;
 
-	int32 Abundance;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		int32 Abundance;
 
-	TArray<class ACitizen*> Citizens;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		TArray<class ACitizen*> Citizens;
 
-	TMap<class ACitizen*, FString> Moving;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		TMap<class ACitizen*, FString> Moving;
 
 	FWorldTileStruct() {
 		X = 0;
 		Y = 0;
 		bIsland = false;
 		bCapital = false;
-		Owner = "";
 		Abundance = 1;
 	}
 
@@ -121,7 +159,7 @@ public:
 
 	void MoveToColony(FWorldTileStruct* Tile, class ACitizen* Citizen);
 
-	void StartTransmissionTimer(class ACitizen* Citizen, int32 Time = 0);
+	void StartTransmissionTimer(class ACitizen* Citizen);
 
 	void AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileStruct* Tile, class ACitizen* Citizen);
 
@@ -131,6 +169,20 @@ public:
 
 	void ModifyCitizensEvent(FWorldTileStruct* Tile, int32 Amount, bool bNegative);
 
+	bool CanTravel(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		FWorldTileStruct GetTileInformation(int32 Index);
+
+	UFUNCTION(BlueprintCallable)
+		TArray<FFactionStruct> GetFactions();
+
+	UFUNCTION(BlueprintCallable)
+		void SetFactionTexture(FFactionStruct Faction, UTexture2D* Texture, FLinearColor Colour);
+
+	UFUNCTION(BlueprintCallable)
+		void SetTerritoryName(FString OldEmpireName);
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
 		FString EmpireName;
 
@@ -139,6 +191,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
 		int32 PercentageIsland;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
+		int32 EnemiesNum;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizens")
 		TSubclassOf<class ACitizen> CitizenClass;
@@ -149,8 +204,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event List")
 		TArray<FColonyEventStruct> EventList;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Occupier Texture List")
+		TArray<FFactionStruct> DefaultOccupierTextureList;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
-	TArray<TArray<FWorldTileStruct>> World;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		TArray<FWorldTileStruct> World;
+
+	UPROPERTY()
+		int32 playerCapitalIndex;
 };

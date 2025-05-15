@@ -192,22 +192,48 @@ void ACitizen::ColonyIslandSetup()
 	Camera->CitizenManager->RemoveTimer("Energy", this);
 	Camera->CitizenManager->RemoveTimer("ChooseIdleBuilding", this);
 
-	if (IsValid(Building.BuildingAt))
-		Building.BuildingAt->Leave(this);
+	ClearCitizen();
 
+	Hunger = 100;
+	Energy = 100;
+
+	AIController->StopMovement();
+
+	SetActorLocation(FVector(0.0f, 0.0f, -10000.0f));
+}
+
+void ACitizen::ClearCitizen()
+{
 	if (IsValid(Building.Employment))
 		Building.Employment->RemoveCitizen(this);
 	else if (IsValid(Building.School))
 		Building.School->RemoveVisitor(Building.School->GetOccupant(this), this);
 
-	if (IsValid(Building.House))
-		Building.House->RemoveCitizen(this);
-	else if (IsValid(Building.Orphanage))
+	if (IsValid(Building.House)) {
+		if (Building.House->GetOccupied().Contains(this)) {
+			if (BioStruct.Partner->IsValidLowLevelFast()) {
+				Building.House->RemoveVisitor(this, Cast<ACitizen>(BioStruct.Partner));
+
+				int32 index = Building.House->GetOccupied().Find(this);
+
+				Building.House->Occupied[index].Occupant = Cast<ACitizen>(BioStruct.Partner);
+			}
+			else {
+				Building.House->RemoveCitizen(this);
+			}
+		}
+		else {
+			Building.House->RemoveVisitor(Building.House->GetOccupant(this), this);
+		}
+	}
+	else if (IsValid(Building.Orphanage)) {
 		Building.Orphanage->RemoveVisitor(Building.Orphanage->GetOccupant(this), this);
+	}
 
-	AIController->StopMovement();
-
-	SetActorLocation(FVector(0.0f, 0.0f, -10000.0f));
+	if (BioStruct.Partner != nullptr) {
+		BioStruct.Partner->BioStruct.Partner = nullptr;
+		BioStruct.Partner = nullptr;
+	}
 }
 
 void ACitizen::ApplyResearch()
@@ -1149,7 +1175,7 @@ void ACitizen::HaveChild()
 		citizen->SetSex(tile->Citizens);
 		citizen->SetActorHiddenInGame(true);
 
-		if (tile->Owner == Camera->ConquestManager->EmpireName)
+		if (tile->Occupier.Owner == Camera->ConquestManager->EmpireName)
 			citizen->ApplyResearch();
 
 		tile->Citizens.Add(citizen);

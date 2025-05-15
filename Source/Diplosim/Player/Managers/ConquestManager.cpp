@@ -5,6 +5,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Map/Grid.h"
 #include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
 #include "Universal/HealthComponent.h"
 
 UConquestManager::UConquestManager()
@@ -12,8 +13,11 @@ UConquestManager::UConquestManager()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	EmpireName = "";
-	WorldSize = 400;
+	WorldSize = 100;
 	PercentageIsland = 10;
+	EnemiesNum = 2;
+
+	playerCapitalIndex = 0;
 }
 
 void UConquestManager::BeginPlay()
@@ -32,17 +36,17 @@ void UConquestManager::GenerateWorld()
 	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)WorldSize));
 	
 	for (int32 x = 0; x < bound; x++) {
-		auto& row = World.Emplace_GetRef();
-
 		for (int32 y = 0; y < bound; y++) {
 			FWorldTileStruct tile;
 			tile.X = x;
 			tile.Y = y;
 
-			row.Add(tile);
-			choosableWorldTiles.Add(&row[y]);
+			World.Add(tile);
 		}
 	}
+
+	for (FWorldTileStruct& tile : World)
+		choosableWorldTiles.Add(&tile);
 
 	if (EmpireName == "")
 		EmpireName = Camera->ColonyName + " Empire";
@@ -62,7 +66,7 @@ void UConquestManager::GenerateWorld()
 	TArray<FString> colonyParsed;
 	colonyNames.ParseIntoArray(colonyParsed, TEXT(","));
 
-	for (int32 i = 0; i < 2; i++) {
+	for (int32 i = 0; i < EnemiesNum; i++) {
 		int32 index = FMath::RandRange(0, emprieParsed.Num() - 1);
 		factions.Add(emprieParsed[index]);
 
@@ -70,55 +74,70 @@ void UConquestManager::GenerateWorld()
 			emprieParsed.RemoveAt(index);
 	}
 
-	int32 islandsNum = choosableWorldTiles.Num() * (PercentageIsland / 100.0f);
+	int32 islandsNum = FMath::RoundHalfFromZero(choosableWorldTiles.Num() * (PercentageIsland / 100.0f));
+
+	TArray<FFactionStruct> factionIcons = DefaultOccupierTextureList;
 
 	for (FString name : factions) {
+		if (islandsNum == 0)
+			return;
+
 		int32 index = Camera->Grid->Stream.RandRange(0, choosableWorldTiles.Num() - 1);
 		FWorldTileStruct* tile = choosableWorldTiles[index];
 
 		tile->bIsland = true;
 		tile->bCapital = true;
-		tile->Owner = name;
+		tile->Occupier.Owner = name;
+
+		int32 tIndex = Camera->Grid->Stream.RandRange(0, factionIcons.Num() - 1);
+
+		tile->Occupier.Texture = factionIcons[tIndex].Texture;
+		tile->Occupier.Colour = factionIcons[tIndex].Colour;
+
+		factionIcons.RemoveAt(tIndex);
 
 		int32 rIndex = Camera->Grid->Stream.RandRange(0, ResourceList.Num() - 1);
 		tile->Resource = ResourceList[rIndex].ResourceClass;
 
-		tile->Abundance = Camera->Grid->Stream.RandRange(0, 3);
+		tile->Abundance = Camera->Grid->Stream.RandRange(1, 5);
 
-		if (name != Camera->ColonyName) {
+		if (name != EmpireName) {
 			int32 cIndex = FMath::RandRange(0, colonyParsed.Num() - 1);
 			tile->Name = colonyParsed[cIndex];
 
 			if (name == "")
-				tile->Owner = tile->Name + "Empire";
+				tile->Occupier.Owner = tile->Name + "Empire";
 
 			colonyParsed.RemoveAt(cIndex);
 		}
 		else {
 			tile->Name = Camera->ColonyName;
+
+			playerCapitalIndex = index;
 		}
 
 		choosableWorldTiles.RemoveAt(index);
 		islandsNum--;
 	}
 
-	while (!choosableWorldTiles.IsEmpty() || islandsNum > 0) {
+	while (islandsNum > 0) {
 		int32 index = Camera->Grid->Stream.RandRange(0, choosableWorldTiles.Num() - 1);
 		FWorldTileStruct* tile = choosableWorldTiles[index];
 
-		int32 chance = Camera->Grid->Stream.RandRange(0, 10);
+		tile->bIsland = true;
 
-		if (chance > 9 && !colonyParsed.IsEmpty()) {
-			tile->bIsland = true;
-
+		if (!colonyParsed.IsEmpty()) {
 			int32 cIndex = FMath::RandRange(0, colonyParsed.Num() - 1);
 			tile->Name = colonyParsed[cIndex];
-
-			int32 rIndex = Camera->Grid->Stream.RandRange(0, ResourceList.Num() - 1);
-			tile->Resource = ResourceList[rIndex].ResourceClass;
-
-			tile->Abundance = Camera->Grid->Stream.RandRange(0, 3);
 		}
+		else {
+			tile->Name = "Unnamed Island";
+		}
+
+		int32 rIndex = Camera->Grid->Stream.RandRange(0, ResourceList.Num() - 1);
+		tile->Resource = ResourceList[rIndex].ResourceClass;
+
+		tile->Abundance = Camera->Grid->Stream.RandRange(1, 5);
 
 		choosableWorldTiles.RemoveAt(index);
 		islandsNum--;
@@ -127,65 +146,61 @@ void UConquestManager::GenerateWorld()
 
 void UConquestManager::StartConquest()
 {
-	for (TArray<FWorldTileStruct>& row : World) {
-		for (FWorldTileStruct& tile : row) {
-			if (tile.Owner == "" || tile.Owner == EmpireName)
-				continue;
+	for (FWorldTileStruct& tile : World) {
+		if (tile.Occupier.Owner == "" || tile.Occupier.Owner == EmpireName)
+			continue;
 
-			for (int32 i = 0; i < FMath::RandRange(25, 50); i++)
-				SpawnCitizenAtColony(&tile);
-		}
+		for (int32 i = 0; i < FMath::RandRange(25, 50); i++)
+			SpawnCitizenAtColony(&tile);
 	}
 }
 
 void UConquestManager::GiveResource()
 {
-	for (TArray<FWorldTileStruct>& row : World) {
-		for (FWorldTileStruct& tile : row) {
-			if (!tile.bIsland)
-				continue;
+	for (FWorldTileStruct& tile : World) {
+		if (!tile.bIsland)
+			continue;
 
-			int32 eventChance = FMath::RandRange(0, 100);
+		int32 eventChance = FMath::RandRange(0, 100);
 
-			TArray<float> multipliers = { 1.0f, 0.0f, 0.0f };
+		TArray<float> multipliers = { 1.0f, 0.0f, 0.0f };
 
-			if (eventChance == 100)
-				multipliers = ProduceEvent();
+		if (eventChance == 100)
+			multipliers = ProduceEvent();
 
-			if (tile.Owner == Camera->ColonyName && !tile.bCapital) {
-				FIslandResourceStruct islandResource;
-				islandResource.ResourceClass = tile.Resource;
+		if (tile.Occupier.Owner == EmpireName && !tile.bCapital) {
+			FIslandResourceStruct islandResource;
+			islandResource.ResourceClass = tile.Resource;
 
-				int32 index = ResourceList.Find(islandResource);
+			int32 index = ResourceList.Find(islandResource);
 
-				float amount = FMath::RandRange(ResourceList[index].Min, ResourceList[index].Max) * multipliers[0];
+			float amount = FMath::RandRange(ResourceList[index].Min, ResourceList[index].Max) * multipliers[0] * tile.Abundance;
 
-				float multiplier = 0.0f;
+			float multiplier = 0.0f;
 
-				for (ACitizen* citizen : tile.Citizens)
-					multiplier += citizen->GetProductivity() + (amount * 0.1f);
+			for (ACitizen* citizen : tile.Citizens)
+				multiplier += citizen->GetProductivity() + (amount * 0.1f);
 
-				Camera->ResourceManager->AddUniversalResource(tile.Resource, amount * (multiplier / tile.Citizens.Num()));
+			Camera->ResourceManager->AddUniversalResource(tile.Resource, amount * (multiplier / tile.Citizens.Num()));
 
-				int32 value = 0;
-				bool bNegative = false;
+			int32 value = 0;
+			bool bNegative = false;
 
-				if (multipliers[1] != 0.0f) {
-					value = FMath::FRandRange(0.0f, FMath::Abs(multipliers[1])) * tile.Citizens.Num();
+			if (multipliers[1] != 0.0f) {
+				value = FMath::FRandRange(0.0f, FMath::Abs(multipliers[1])) * tile.Citizens.Num();
 
-					if (multipliers[1] < 0.0f)
-						bNegative = true;
-				}
-				else if (multipliers[2] != 0.0f) {
-					value = FMath::RandRange(0, FMath::Abs((int32)multipliers[2]));
-
-					if (multipliers[2] < 0.0f)
-						bNegative = true;
-				}
-
-				if (value > 0)
-					ModifyCitizensEvent(&tile, value, bNegative);
+				if (multipliers[1] < 0.0f)
+					bNegative = true;
 			}
+			else if (multipliers[2] != 0.0f) {
+				value = FMath::RandRange(0, FMath::Abs((int32)multipliers[2]));
+
+				if (multipliers[2] < 0.0f)
+					bNegative = true;
+			}
+
+			if (value > 0)
+				ModifyCitizensEvent(&tile, value, bNegative);
 		}
 	}
 }
@@ -216,33 +231,47 @@ void UConquestManager::SpawnCitizenAtColony(FWorldTileStruct* Tile)
 
 void UConquestManager::MoveToColony(FWorldTileStruct* Tile, ACitizen* Citizen)
 {
+	if (!CanTravel(Citizen))
+		return;
+	
 	FWorldTileStruct* tile = GetColonyContainingCitizen(Citizen);
 	tile->Moving.Add(TTuple<ACitizen*, FString>(Citizen, Tile->Name));
 
-	if (tile->bCapital && tile->Owner == EmpireName) {
-		// Move to portal
+	if (tile->bCapital && tile->Occupier.Owner == EmpireName) {
+		// Move to portal.
 	}
 	else {
-		StartTransmissionTimer(Citizen, FMath::RandRange(10, 40));
+		FTimerStruct timer;
+
+		timer.CreateTimer("Transmission", Citizen, FMath::RandRange(10, 40), FTimerDelegate::CreateUObject(this, &UConquestManager::StartTransmissionTimer, Citizen), false);
+		Camera->CitizenManager->Timers.Add(timer);
 	}
 }
 
-void UConquestManager::StartTransmissionTimer(ACitizen* Citizen, int32 Time)
+void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
 {
 	FWorldTileStruct* oldTile = GetColonyContainingCitizen(Citizen);
+
+	if (!CanTravel(Citizen)) {
+		oldTile->Moving.Remove(Citizen);
+
+		if (oldTile->bCapital && oldTile->Occupier.Owner == EmpireName)
+			Citizen->AIController->DefaultAction();
+
+		return;
+	}
+
 	FString islandName = *oldTile->Moving.Find(Citizen);
 
 	FWorldTileStruct* targetTile = nullptr;
 
-	for (TArray<FWorldTileStruct>& row : World) {
-		for (FWorldTileStruct& tile : row) {
-			if (tile.Name != islandName)
-				continue;
+	for (FWorldTileStruct& tile : World) {
+		if (tile.Name != islandName)
+			continue;
 
-			targetTile = &tile;
+		targetTile = &tile;
 
-			break;
-		}
+		break;
 	}
 
 	oldTile->Citizens.Remove(Citizen);
@@ -250,28 +279,28 @@ void UConquestManager::StartTransmissionTimer(ACitizen* Citizen, int32 Time)
 	int32 x = FMath::Abs(oldTile->X - targetTile->X);
 	int32 y = FMath::Abs(oldTile->Y - targetTile->Y);
 
-	int32 time = Time + (x + y) * 10;
+	int32 time = (x + y) * 10;
 
 	FTimerStruct timer;
 
 	timer.CreateTimer("Travel", Citizen, time, FTimerDelegate::CreateUObject(this, &UConquestManager::AddCitizenToColony, oldTile, targetTile, Citizen), false);
 	Camera->CitizenManager->Timers.Add(timer);
+
+	if (oldTile->bCapital && oldTile->Occupier.Owner == EmpireName)
+		Citizen->ColonyIslandSetup();
 }
 
 void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileStruct* Tile, ACitizen* Citizen)
 {
 	OldTile->Moving.Remove(Citizen);
 
-	if (Tile->bCapital && Tile->Owner == EmpireName) {
+	if (Tile->bCapital && Tile->Occupier.Owner == EmpireName) {
 		Citizen->MainIslandSetup();
 
 		// Set actor location at portal
 	}
-	else {
-		Tile->Citizens.Add(Citizen);
 
-		Citizen->ColonyIslandSetup();
-	}
+	Tile->Citizens.Add(Citizen);
 }
 
 TArray<float> UConquestManager::ProduceEvent()
@@ -283,13 +312,11 @@ TArray<float> UConquestManager::ProduceEvent()
 
 FWorldTileStruct* UConquestManager::GetColonyContainingCitizen(ACitizen* Citizen)
 {
-	for (TArray<FWorldTileStruct>& row : World) {
-		for (FWorldTileStruct& tile : row) {
-			if (!tile.bIsland || !tile.Citizens.Contains(Citizen))
-				continue;
+	for (FWorldTileStruct& tile : World) {
+		if (!tile.bIsland || !tile.Citizens.Contains(Citizen))
+			continue;
 
-			return &tile;
-		}
+		return &tile;
 	}
 
 	FWorldTileStruct* nullTile = nullptr;
@@ -309,4 +336,58 @@ void UConquestManager::ModifyCitizensEvent(FWorldTileStruct* Tile, int32 Amount,
 			SpawnCitizenAtColony(Tile);
 		}
 	}
+}
+
+bool UConquestManager::CanTravel(class ACitizen* Citizen)
+{
+	if (Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge) || !Citizen->WillWork())
+		return false;
+
+	return true;
+}
+
+FWorldTileStruct UConquestManager::GetTileInformation(int32 Index)
+{
+	FWorldTileStruct* tile = &World[Index];
+
+	if (tile->bCapital && tile->Occupier.Owner == EmpireName)
+		tile->Citizens = Camera->CitizenManager->Citizens;
+
+	return *tile;
+}
+
+TArray<FFactionStruct> UConquestManager::GetFactions()
+{
+	TArray<FFactionStruct> factions;
+
+	for (FWorldTileStruct& tile : World) {
+		if (tile.Occupier.Owner == "" || factions.Contains(tile.Occupier))
+			continue;
+
+		factions.Add(tile.Occupier);
+	}
+
+	return factions;
+}
+
+void UConquestManager::SetFactionTexture(FFactionStruct Faction, UTexture2D* Texture, FLinearColor Colour)
+{
+	for (FWorldTileStruct& tile : World) {
+		if (tile.Occupier.Owner != Faction.Owner)
+			continue;
+
+		tile.Occupier.Texture = Texture;
+		tile.Occupier.Colour = Colour;
+	}
+
+	Camera->UpdateFactionImage();
+}
+
+void UConquestManager::SetTerritoryName(FString OldEmpireName)
+{
+	FWorldTileStruct* tile = &World[playerCapitalIndex];
+	tile->Name = Camera->ColonyName;
+	tile->Occupier.Owner = EmpireName;
+
+	Camera->UpdateIconEmpireName(OldEmpireName);
 }

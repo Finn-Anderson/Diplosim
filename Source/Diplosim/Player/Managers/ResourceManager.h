@@ -33,6 +33,12 @@ struct FResourceStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TMap<int32, int32> HourlyTrend;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		UTexture2D* Texture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TArray<int32> TextureDimensions;
+
 	FResourceStruct()
 	{
 		Type = nullptr;
@@ -45,6 +51,9 @@ struct FResourceStruct
 
 		for (int32 i = 0; i < 24; i++)
 			HourlyTrend.Add(i, 0);
+
+		Texture = nullptr;
+		TextureDimensions = { 32, 32 };
 	}
 
 	bool operator==(const FResourceStruct& other) const

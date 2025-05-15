@@ -14,6 +14,7 @@
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
@@ -226,34 +227,7 @@ void UHealthComponent::Clear(AActor* Attacker)
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
-		if (IsValid(citizen->Building.Employment))
-			citizen->Building.Employment->RemoveCitizen(citizen);
-
-		if (IsValid(citizen->Building.House)) {
-			if (citizen->Building.House->GetOccupied().Contains(citizen)) {
-				if (citizen->BioStruct.Partner->IsValidLowLevelFast()) {
-					citizen->Building.House->RemoveVisitor(citizen, Cast<ACitizen>(citizen->BioStruct.Partner));
-
-					int32 index = citizen->Building.House->GetOccupied().Find(citizen);
-
-					citizen->Building.House->Occupied[index].Occupant = Cast<ACitizen>(citizen->BioStruct.Partner);
-				}
-				else {
-					citizen->Building.House->RemoveCitizen(citizen);
-				}
-			}
-			else {
-				citizen->Building.House->RemoveVisitor(citizen->Building.House->GetOccupant(citizen), citizen);
-			}
-		}
-		else if (IsValid(citizen->Building.Orphanage)) {
-			citizen->Building.Orphanage->RemoveVisitor(citizen->Building.Orphanage->GetOccupant(citizen), citizen);
-		}
-
-		if (citizen->BioStruct.Partner != nullptr) {
-			citizen->BioStruct.Partner->BioStruct.Partner = nullptr;
-			citizen->BioStruct.Partner = nullptr;
-		}
+		citizen->ClearCitizen();
 
 		if (citizen->BioStruct.Mother->IsValidLowLevelFast())
 			citizen->BioStruct.Mother->BioStruct.Children.Remove(citizen);
