@@ -691,6 +691,18 @@ void ACamera::Menu()
 
 		return;
 	}
+	else if (ResearchUIInstance->IsInViewport()) {
+		ResearchUIInstance->RemoveFromParent();
+
+		ResearchHoverUIInstance->RemoveFromParent();
+
+		return;
+	}
+	else if (WorldUIInstance->IsInViewport()) {
+		WorldUIInstance->RemoveFromParent();
+
+		return;
+	}
 
 	if (bInMenu) {
 		if (SettingsUIInstance->IsInViewport())

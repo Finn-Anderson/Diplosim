@@ -215,4 +215,7 @@ public:
 
 	UPROPERTY()
 		int32 playerCapitalIndex;
+
+	UPROPERTY()
+		class APortal* Portal;
 };

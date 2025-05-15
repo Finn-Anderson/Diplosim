@@ -49,6 +49,7 @@ AGrid::AGrid()
 	HISMLava->SetCastShadow(false);
 	HISMLava->SetEvaluateWorldPositionOffset(false);
 	HISMLava->bWorldPositionOffsetWritesVelocity = false;
+	HISMLava->bAutoRebuildTreeOnInstanceChanges = false;
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetupAttachment(GetRootComponent());
@@ -58,6 +59,7 @@ AGrid::AGrid()
 	HISMGround->SetEvaluateWorldPositionOffset(false);
 	HISMGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMGround->NumCustomDataFloats = 8;
+	HISMGround->bAutoRebuildTreeOnInstanceChanges = false;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
 	HISMFlatGround->SetupAttachment(GetRootComponent());
@@ -68,6 +70,7 @@ AGrid::AGrid()
 	HISMFlatGround->SetEvaluateWorldPositionOffset(false);
 	HISMFlatGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMFlatGround->NumCustomDataFloats = 8;
+	HISMFlatGround->bAutoRebuildTreeOnInstanceChanges = false;
 
 	HISMRampGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRampGround"));
 	HISMRampGround->SetupAttachment(GetRootComponent());
@@ -77,6 +80,7 @@ AGrid::AGrid()
 	HISMRampGround->SetEvaluateWorldPositionOffset(false);
 	HISMRampGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMRampGround->NumCustomDataFloats = 8;
+	HISMRampGround->bAutoRebuildTreeOnInstanceChanges = false;
 
 	HISMRiver = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRiver"));
 	HISMRiver->SetupAttachment(GetRootComponent());
@@ -87,6 +91,7 @@ AGrid::AGrid()
 	HISMRiver->SetWorldPositionOffsetDisableDistance(5000);
 	HISMRiver->bWorldPositionOffsetWritesVelocity = false;
 	HISMRiver->NumCustomDataFloats = 4;
+	HISMRiver->bAutoRebuildTreeOnInstanceChanges = false;
 
 	HISMWall = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWall"));
 	HISMWall->SetupAttachment(GetRootComponent());
@@ -154,16 +159,20 @@ void AGrid::BeginPlay()
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
 		ResourceStruct.Resource->ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
+		ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
 	}
 
 	for (FResourceHISMStruct& ResourceStruct : FlowerStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
 		ResourceStruct.Resource->ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
+		ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
 	}
 
-	for (FResourceHISMStruct& ResourceStruct : MineralStruct)
+	for (FResourceHISMStruct& ResourceStruct : MineralStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
+		ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
+	}
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
@@ -451,7 +460,12 @@ void AGrid::Render()
 		for (FTileStruct& tile : row)
 			CreateEdgeWalls(&tile);
 
-	Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
+	HISMLava->BuildTreeIfOutdated(true, false);
+	HISMGround->BuildTreeIfOutdated(true, false);
+	HISMFlatGround->BuildTreeIfOutdated(true, false);
+	HISMRampGround->BuildTreeIfOutdated(true, false);
+	HISMRiver->BuildTreeIfOutdated(true, false);
+	HISMWall->BuildTreeIfOutdated(true, false);
 
 	// Spawn resources
 	ResourceTiles.Empty();
@@ -492,6 +506,8 @@ void AGrid::Render()
 				for (int32 j = ValidMineralTiles.Num() - 1; j > -1; j--)
 					if (ValidMineralTiles[j].Contains(tile))
 						ValidMineralTiles.RemoveAt(j);
+
+			ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, false);
 		}
 	}
 
@@ -506,9 +522,6 @@ void AGrid::Render()
 			iterations = FMath::Max(1.0f, iterations / 3.0f);
 
 		for (int32 i = 0; i < iterations; i++) {
-			for (FResourceHISMStruct ResourceStruct : element.Value)
-				ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
-
 			int32 chosenNum = Stream.RandRange(0, ResourceTiles.Num() - 1);
 			FTileStruct* chosenTile = ResourceTiles[chosenNum];
 
@@ -536,9 +549,9 @@ void AGrid::Render()
 					ResourceTiles.Remove(tile);
 
 			for (FResourceHISMStruct ResourceStruct : element.Value) {
-				ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = true;
-
 				ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
+
+				ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = true;
 			}
 		}
 	}

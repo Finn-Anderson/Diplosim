@@ -20,6 +20,9 @@ void UConstructionManager::AddBuilding(class ABuilding* Building, EBuildStatus S
 	constructionStruct.Building = Building;
 	constructionStruct.Status = Status;
 
+	if (Construction.Contains(constructionStruct))
+		return;
+
 	Construction.Add(constructionStruct);
 
 	FindBuilder(Building);

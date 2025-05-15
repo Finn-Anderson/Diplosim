@@ -94,8 +94,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 		if (GetOwner()->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(GetOwner());
 
-			UConstructionManager* cm = building->Camera->ConstructionManager;
-			cm->AddBuilding(building, EBuildStatus::Damaged);
+			Camera->ConstructionManager->AddBuilding(building, EBuildStatus::Damaged);
 
 			building->BuildingMesh->SetOverlayMaterial(material);
 		}
@@ -181,7 +180,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 			building->RemoveCitizen(citizen);
 
 		for (AActor* citizen : building->Inside)
-			Cast<ACitizen>(citizen)->HealthComponent->TakeHealth(100, Attacker);
+			Cast<ACitizen>(citizen)->HealthComponent->TakeHealth(1000, Attacker);
 
 		building->BuildingMesh->SetGenerateOverlapEvents(false);
 
@@ -191,6 +190,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		building->Storage.Empty();
 
 		Camera->CitizenManager->Buildings.Remove(building);
+		Camera->ConstructionManager->RemoveBuilding(building);
 
 		FVector dimensions = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 

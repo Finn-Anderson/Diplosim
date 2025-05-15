@@ -606,6 +606,8 @@ void ABuilding::OnBuilt()
 	UConstructionManager* cm = Camera->ConstructionManager;
 	cm->RemoveBuilding(this);
 
+	HealthComponent->Health = HealthComponent->MaxHealth;
+
 	Camera->CitizenManager->Buildings.Add(this);
 
 	if (bConstant && ParticleComponent->GetAsset() != nullptr)
@@ -898,7 +900,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 		}
 		
 		if (deliverTo == nullptr)
-			Citizen->AIController->DefaultAction();
+			return;
 		else if (items.IsEmpty())
 			Citizen->AIController->AIMoveTo(deliverTo);
 		else

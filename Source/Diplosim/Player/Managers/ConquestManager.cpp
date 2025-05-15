@@ -7,6 +7,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Universal/HealthComponent.h"
+#include "Buildings/Misc/Portal.h"
 
 UConquestManager::UConquestManager()
 {
@@ -129,6 +130,8 @@ void UConquestManager::GenerateWorld()
 		if (!colonyParsed.IsEmpty()) {
 			int32 cIndex = FMath::RandRange(0, colonyParsed.Num() - 1);
 			tile->Name = colonyParsed[cIndex];
+
+			colonyParsed.RemoveAt(cIndex);
 		}
 		else {
 			tile->Name = "Unnamed Island";
@@ -238,7 +241,7 @@ void UConquestManager::MoveToColony(FWorldTileStruct* Tile, ACitizen* Citizen)
 	tile->Moving.Add(TTuple<ACitizen*, FString>(Citizen, Tile->Name));
 
 	if (tile->bCapital && tile->Occupier.Owner == EmpireName) {
-		// Move to portal.
+		Citizen->AIController->AIMoveTo(Portal);
 	}
 	else {
 		FTimerStruct timer;
@@ -297,7 +300,7 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 	if (Tile->bCapital && Tile->Occupier.Owner == EmpireName) {
 		Citizen->MainIslandSetup();
 
-		// Set actor location at portal
+		Citizen->SetActorLocation(Portal->GetActorLocation());
 	}
 
 	Tile->Citizens.Add(Citizen);
