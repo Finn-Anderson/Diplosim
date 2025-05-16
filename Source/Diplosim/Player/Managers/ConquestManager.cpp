@@ -161,7 +161,7 @@ void UConquestManager::StartConquest()
 void UConquestManager::GiveResource()
 {
 	for (FWorldTileStruct& tile : World) {
-		if (!tile.bIsland)
+		if (!tile.bIsland || tile.Occupier.Owner != EmpireName || tile.bCapital)
 			continue;
 
 		int32 eventChance = FMath::RandRange(0, 100);
@@ -171,40 +171,38 @@ void UConquestManager::GiveResource()
 		if (eventChance == 100)
 			multipliers = ProduceEvent();
 
-		if (tile.Occupier.Owner == EmpireName && !tile.bCapital) {
-			FIslandResourceStruct islandResource;
-			islandResource.ResourceClass = tile.Resource;
+		FIslandResourceStruct islandResource;
+		islandResource.ResourceClass = tile.Resource;
 
-			int32 index = ResourceList.Find(islandResource);
+		int32 index = ResourceList.Find(islandResource);
 
-			float amount = FMath::RandRange(ResourceList[index].Min, ResourceList[index].Max) * multipliers[0] * tile.Abundance;
+		float amount = FMath::RandRange(ResourceList[index].Min, ResourceList[index].Max) * multipliers[0] * tile.Abundance;
 
-			float multiplier = 0.0f;
+		float multiplier = 0.0f;
 
-			for (ACitizen* citizen : tile.Citizens)
-				multiplier += citizen->GetProductivity() + (amount * 0.1f);
+		for (ACitizen* citizen : tile.Citizens)
+			multiplier += citizen->GetProductivity() + (amount * 0.1f);
 
-			Camera->ResourceManager->AddUniversalResource(tile.Resource, amount * (multiplier / tile.Citizens.Num()));
+		Camera->ResourceManager->AddUniversalResource(tile.Resource, amount * (multiplier / tile.Citizens.Num()));
 
-			int32 value = 0;
-			bool bNegative = false;
+		int32 value = 0;
+		bool bNegative = false;
 
-			if (multipliers[1] != 0.0f) {
-				value = FMath::FRandRange(0.0f, FMath::Abs(multipliers[1])) * tile.Citizens.Num();
+		if (multipliers[1] != 0.0f) {
+			value = FMath::FRandRange(0.0f, FMath::Abs(multipliers[1])) * tile.Citizens.Num();
 
-				if (multipliers[1] < 0.0f)
-					bNegative = true;
-			}
-			else if (multipliers[2] != 0.0f) {
-				value = FMath::RandRange(0, FMath::Abs((int32)multipliers[2]));
-
-				if (multipliers[2] < 0.0f)
-					bNegative = true;
-			}
-
-			if (value > 0)
-				ModifyCitizensEvent(&tile, value, bNegative);
+			if (multipliers[1] < 0.0f)
+				bNegative = true;
 		}
+		else if (multipliers[2] != 0.0f) {
+			value = FMath::RandRange(0, FMath::Abs((int32)multipliers[2]));
+
+			if (multipliers[2] < 0.0f)
+				bNegative = true;
+		}
+
+		if (value > 0)
+			ModifyCitizensEvent(&tile, value, bNegative);
 	}
 }
 
@@ -304,6 +302,11 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 	}
 
 	Tile->Citizens.Add(Citizen);
+
+	FTimerStruct timer;
+
+	timer.CreateTimer("RecentlyMoved", Citizen, 300, FTimerDelegate::CreateUObject(this, &UConquestManager::RemoveFromRecentlyMoved, Citizen), false);
+	Camera->CitizenManager->Timers.Add(timer);
 }
 
 TArray<float> UConquestManager::ProduceEvent()
@@ -343,7 +346,7 @@ void UConquestManager::ModifyCitizensEvent(FWorldTileStruct* Tile, int32 Amount,
 
 bool UConquestManager::CanTravel(class ACitizen* Citizen)
 {
-	if (Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge) || !Citizen->WillWork())
+	if (RecentlyMoved.Contains(Citizen) || Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge) || !Citizen->WillWork())
 		return false;
 
 	return true;
@@ -393,4 +396,9 @@ void UConquestManager::SetTerritoryName(FString OldEmpireName)
 	tile->Occupier.Owner = EmpireName;
 
 	Camera->UpdateIconEmpireName(OldEmpireName);
+}
+
+void UConquestManager::RemoveFromRecentlyMoved(class ACitizen* Citizen)
+{
+	RecentlyMoved.Remove(Citizen);
 }

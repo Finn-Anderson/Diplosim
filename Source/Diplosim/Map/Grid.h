@@ -246,4 +246,8 @@ public:
 	void AlterSeasonAffectGradually(FString Period, float Increment);
 
 	void SetSeasonAffect(TArray<float> Values);
+
+	// Unique Buildings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
+		TSubclassOf<class APortal> PortalClass;
 };

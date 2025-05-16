@@ -182,6 +182,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void SetTerritoryName(FString OldEmpireName);
+
+		void RemoveFromRecentlyMoved(class ACitizen* Citizen);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
 		FString EmpireName;
@@ -212,6 +214,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
 		TArray<FWorldTileStruct> World;
+
+	UPROPERTY()
+		TArray<class ACitizen*> RecentlyMoved;
 
 	UPROPERTY()
 		int32 playerCapitalIndex;

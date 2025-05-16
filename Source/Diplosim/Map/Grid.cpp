@@ -451,10 +451,19 @@ void AGrid::Render()
 		}	
 	}
 
+	ResourceTiles.Empty();
+
 	// Spawn Tiles
-	for (TArray<FTileStruct> &row : Storage)
-		for (FTileStruct &tile : row)
+	for (TArray<FTileStruct>& row : Storage) {
+		for (FTileStruct& tile : row) {
 			GenerateTile(&tile);
+
+			if (tile.Level < 0 || tile.Level > 4 || tile.bRiver || tile.bRamp)
+				continue;
+
+			ResourceTiles.Add(&tile);
+		}
+	}
 
 	for (TArray<FTileStruct>& row : Storage)
 		for (FTileStruct& tile : row)
@@ -468,17 +477,6 @@ void AGrid::Render()
 	HISMWall->BuildTreeIfOutdated(true, false);
 
 	// Spawn resources
-	ResourceTiles.Empty();
-
-	for (TArray<FTileStruct> &row : Storage) {
-		for (FTileStruct &tile : row) {
-			if (tile.Level < 0 || tile.Level > 4 || tile.bRiver || tile.bRamp)
-				continue;
-
-			ResourceTiles.Add(&tile);
-		}
-	}
-
 	int32 num = ResourceTiles.Num() / 2000;
 
 	TArray<TArray<FTileStruct*>> ValidMineralTiles;
@@ -578,6 +576,13 @@ void AGrid::Render()
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(LavaComponent, TEXT("SpawnLocations"), LavaSpawnLocations);
 	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
 	LavaComponent->Activate();
+
+	// Unique Buildings
+	int32 index = Stream.RandRange(0, ResourceTiles.Num() - 1);
+	FVector location = FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f + 100.0f);
+
+	APortal* portal = GetWorld()->SpawnActor<APortal>(PortalClass, location, ResourceTiles[index]->Rotation.Rotator());
+	Camera->ConquestManager->Portal = portal;
 
 	// Conquest Map
 	Camera->ConquestManager->GenerateWorld();
