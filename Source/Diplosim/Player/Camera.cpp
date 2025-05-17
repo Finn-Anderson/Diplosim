@@ -121,6 +121,8 @@ ACamera::ACamera()
 	bInstantEnemies = false;
 
 	ActorAttachedTo = nullptr;
+
+	bWasClosingWindow = false;
 }
 
 void ACamera::BeginPlay()
@@ -552,28 +554,50 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 	if (Grid->LoadUIInstance->IsInViewport())
 		return;
 	
-	if (BribeUIInstance->IsInViewport())
+	if (BribeUIInstance->IsInViewport()) {
 		BribeUIInstance->RemoveFromParent();
 
-	if (WorldUIInstance->IsInViewport())
+		bWasClosingWindow = true;
+
+		return;
+	}
+
+	if (WorldUIInstance->IsInViewport()) {
 		WorldUIInstance->RemoveFromParent();
 
-	if (ResearchHoverUIInstance->IsInViewport())
+		bWasClosingWindow = true;
+
+		return;
+	}
+
+	if (ResearchHoverUIInstance->IsInViewport()) {
 		ResearchHoverUIInstance->RemoveFromParent();
+
+		bWasClosingWindow = true;
+
+		return;
+	}
 
 	if (BuildingColourUIInstance->IsInViewport()) {
 		BuildingColourUIInstance->RemoveFromParent();
+
+		bWasClosingWindow = true;
 
 		return;
 	}
 	else if (FactionColourUIInstance->IsInViewport()) {
 		FactionColourUIInstance->RemoveFromParent();
 
+		bWasClosingWindow = true;
+
 		return;
 	}
 	
-	if (bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || WorldUIInstance->IsInViewport() || bBulldoze)
+	if (bWasClosingWindow || bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || WorldUIInstance->IsInViewport() || bBulldoze) {
+		bWasClosingWindow = false;
+
 		return;
+	}
 
 	if (BuildComponent->IsComponentTickEnabled()) {
 		if ((bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)) {

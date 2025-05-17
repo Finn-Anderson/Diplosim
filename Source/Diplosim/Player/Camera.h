@@ -289,6 +289,9 @@ public:
 	UPROPERTY()
 		AActor* ActorAttachedTo;
 
+	UPROPERTY()
+		bool bWasClosingWindow;
+
 	void SetMouseCapture(bool bCapture);
 
 	UFUNCTION(BlueprintCallable)
