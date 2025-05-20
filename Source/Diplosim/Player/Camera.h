@@ -97,7 +97,10 @@ public:
 		void UpdateFactionImage();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateIconEmpireName(const FString& Seed);
+		void UpdateIconEmpireName(const FString& Name);
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateInteractUI();
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)

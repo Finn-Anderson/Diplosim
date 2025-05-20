@@ -21,6 +21,8 @@ struct FFactionStruct
 	FFactionStruct()
 	{
 		Owner = "";
+		Texture = nullptr;
+		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
 	}
 
 	bool operator==(const FFactionStruct& other) const
@@ -70,6 +72,7 @@ struct FWorldTileStruct
 		Y = 0;
 		bIsland = false;
 		bCapital = false;
+		Name = "";
 		Abundance = 1;
 	}
 

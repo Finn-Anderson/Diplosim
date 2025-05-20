@@ -104,10 +104,7 @@ void UCloudComponent::Clear()
 
 void UCloudComponent::StartCloudTimer()
 {
-	FTimerStruct timer;
-	timer.CreateTimer("Grow", GetOwner(), 90.0f, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), true, true);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Grow", GetOwner(), 90.0f, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), true, true);
 }
 
 void UCloudComponent::ActivateCloud()
@@ -296,8 +293,6 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		return;
 
 	if (Value == 1.0f) {
-		FTimerStruct timer;
-
 		FString id = "Wet";
 
 		if (IsValid(Actor))
@@ -305,15 +300,13 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		else
 			id += FString::FromInt(HISM->GetUniqueID()) + FString::FromInt(Instance);
 
-		timer.CreateTimer(id, GetOwner(), 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false, true);
-
 		if (Camera->CitizenManager->FindTimer(id, GetOwner()) != nullptr) {
 			Camera->CitizenManager->ResetTimer(id, GetOwner());
 
 			return;
 		}
 		else {
-			Camera->CitizenManager->Timers.Add(timer);
+			Camera->CitizenManager->CreateTimer(id, GetOwner(), 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false, true);
 		}
 	}
 

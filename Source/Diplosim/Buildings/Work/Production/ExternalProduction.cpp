@@ -158,9 +158,6 @@ void AExternalProduction::Production(ACitizen* Citizen)
 		Citizen->AIController->AIMoveTo(resource, transform.GetLocation(), instance);
 	}
 	else {
-		FTimerStruct timer;
-		timer.CreateTimer("Production", this, 30, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), false);
-
-		Camera->CitizenManager->Timers.Add(timer);
+		Camera->CitizenManager->CreateTimer("Production", this, 30, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), false);
 	}
 }

@@ -33,12 +33,8 @@ void ATrader::Enter(ACitizen* Citizen)
 	else if (CheckStored(Citizen, Orders[0].SellingItems)) {
 		if (Orders[0].Wait == 0)
 			SubmitOrder(Citizen);
-		else {
-			FTimerStruct timer;
-			timer.CreateTimer("Order", this, Orders[0].Wait, FTimerDelegate::CreateUObject(this, &ATrader::SubmitOrder, Citizen), false);
-
-			Camera->CitizenManager->Timers.Add(timer);
-		}
+		else 
+			Camera->CitizenManager->CreateTimer("Order", this, Orders[0].Wait, FTimerDelegate::CreateUObject(this, &ATrader::SubmitOrder, Citizen), false);
 	}
 }
 

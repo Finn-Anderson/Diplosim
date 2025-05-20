@@ -43,10 +43,7 @@ void AResearch::BeginRotation()
 
 	SetActorTickEnabled(true);
 
-	FTimerStruct timer;
-
-	timer.CreateTimer("Rotate", this, GetTime(FMath::RandRange(60, 120)), FTimerDelegate::CreateUObject(this, &AResearch::BeginRotation), false, true);
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Rotate", this, GetTime(FMath::RandRange(60, 120)), FTimerDelegate::CreateUObject(this, &AResearch::BeginRotation), false, true);
 }
 
 void AResearch::Build(bool bRebuild, bool bUpgrade, int32 Grade)
@@ -126,10 +123,7 @@ float AResearch::GetTime(int32 Time)
 
 void AResearch::SetResearchTimer()
 {
-	FTimerStruct timer;
-	timer.CreateTimer("Research", this, GetTime(TimeLength), FTimerDelegate::CreateUObject(this, &AResearch::Production, GetCitizensAtBuilding()[0]), true);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Research", this, GetTime(TimeLength), FTimerDelegate::CreateUObject(this, &AResearch::Production, GetCitizensAtBuilding()[0]), true);
 }
 
 void AResearch::UpdateResearchTimer()

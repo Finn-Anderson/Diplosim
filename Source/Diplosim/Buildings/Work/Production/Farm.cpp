@@ -25,10 +25,7 @@ void AFarm::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	FTimerStruct timer;
-	timer.CreateTimer("Farm", this, TimeLength / 10.0f / Citizen->GetProductivity(), FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false, true);
-
-	if (!GetOccupied().Contains(Citizen) || Camera->CitizenManager->Timers.Contains(timer))
+	if (!GetOccupied().Contains(Citizen) || Camera->CitizenManager->FindTimer("Farm", this))
 		return;
 
 	if (CropMeshes[0]->GetRelativeScale3D().Z == 1.0f)
@@ -68,10 +65,7 @@ void AFarm::ProductionDone(ACitizen* Citizen)
 
 void AFarm::StartTimer(ACitizen* Citizen)
 {
-	FTimerStruct timer;
-	timer.CreateTimer("Farm", this, TimeLength / 10.0f / Citizen->GetProductivity(), FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false, true);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Farm", this, TimeLength / 10.0f / Citizen->GetProductivity(), FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false, true);
 }
 
 int32 AFarm::GetFertility()

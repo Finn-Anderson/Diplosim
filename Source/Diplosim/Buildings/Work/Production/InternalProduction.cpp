@@ -83,17 +83,14 @@ float AInternalProduction::GetTime()
 	float time = TimeLength / GetCitizensAtBuilding().Num();
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		time -= (time / GetCitizensAtBuilding().Num()) * (FMath::LogX(citizen->MovementComponent->InitialSpeed, citizen->MovementComponent->MaxSpeed) * citizen->GetProductivity() - 1.0f);
+		time -= (time / GetCitizensAtBuilding().Num()) * citizen->GetProductivity() - 1.0f;
 
 	return time;
 }
 
 void AInternalProduction::SetTimer(ACitizen* Citizen)
 {
-	FTimerStruct timer;
-	timer.CreateTimer("Internal", this, GetTime(), FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, Citizen), false);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Internal", this, GetTime(), FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, Citizen), false);
 }
 
 void AInternalProduction::AlterTimer()

@@ -52,10 +52,7 @@ void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 
 		float time = (size.X + size.Y + size.Z) / 500.0f * 0.2f / Citizen->GetProductivity();
 
-		FTimerStruct timer;
-		timer.CreateTimer("Construct", GetOwner(), time, FTimerDelegate::CreateUObject(this, &ABuilder::AddBuildPercentage, Citizen, Building), true, true);
-
-		Camera->CitizenManager->Timers.Add(timer);
+		Camera->CitizenManager->CreateTimer("Construct", GetOwner(), time, FTimerDelegate::CreateUObject(this, &ABuilder::AddBuildPercentage, Citizen, Building), true, true);
 	}
 }
 
@@ -80,10 +77,7 @@ void ABuilder::AddBuildPercentage(ACitizen* Citizen, ABuilding* Building)
 
 void ABuilder::StartRepairTimer(ACitizen* Citizen, ABuilding* Building)
 {
-	FTimerStruct timer;
-	timer.CreateTimer("Repair", GetOwner(), 0.2f, FTimerDelegate::CreateUObject(this, &ABuilder::Repair, Citizen, Building), true, true);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Repair", GetOwner(), 0.2f, FTimerDelegate::CreateUObject(this, &ABuilder::Repair, Citizen, Building), true, true);
 }
 
 void ABuilder::Repair(ACitizen* Citizen, ABuilding* Building)

@@ -60,7 +60,7 @@ void ADiplosimAIController::DefaultAction()
 
 void ADiplosimAIController::Idle(ACitizen* Citizen)
 {
-	if (!Citizen->IsValidLowLevelFast())
+	if (!IsValid(Citizen))
 		return;
 
 	int32 chance = FMath::RandRange(0, 100);
@@ -139,10 +139,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 			}
 		}
 
-		FTimerStruct timer;
-		timer.CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::DefaultAction), false, true);
-
-		Citizen->Camera->CitizenManager->Timers.Add(timer);
+		Citizen->Camera->CitizenManager->CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::DefaultAction), false, true);
 	}
 }
 
@@ -242,12 +239,8 @@ void ADiplosimAIController::GetGatherSite(ACamera* Camera, TSubclassOf<AResource
 
 	if (target != nullptr)
 		AIMoveTo(target);
-	else {
-		FTimerStruct timer;
-		timer.CreateTimer("FindGatherSite", GetOwner(), 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Camera, Resource), false);
-
-		Camera->CitizenManager->Timers.Add(timer);
-	}
+	else
+		Camera->CitizenManager->CreateTimer("FindGatherSite", GetOwner(), 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Camera, Resource), false);
 }
 
 bool ADiplosimAIController::CanMoveTo(FVector Location)

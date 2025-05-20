@@ -28,6 +28,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class USkeletalMeshComponent* Mesh;
 
+	UPROPERTY()
+		class ACamera* Camera;
+
 	// Fighting
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		class UHealthComponent* HealthComponent;

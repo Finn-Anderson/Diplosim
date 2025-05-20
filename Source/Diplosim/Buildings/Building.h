@@ -173,6 +173,7 @@ struct FSeedStruct
 
 	FSeedStruct()
 	{
+		Texture = nullptr;
 		Health = -1;
 		Capacity = -1;
 		bExplosive = false;
@@ -181,6 +182,7 @@ struct FSeedStruct
 		TimeLength = -1;
 		Tier = 1;
 		NiagaraSystem = nullptr;
+		WorkHat = nullptr;
 	}
 };
 

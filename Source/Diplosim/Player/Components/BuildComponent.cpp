@@ -722,7 +722,7 @@ void UBuildComponent::Place(bool bQuick)
 		Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 	}
 
-	if (BuildingToMove->IsValidLowLevelFast()) {
+	if (IsValid(BuildingToMove)) {
 		FVector diff = BuildingToMove->GetActorLocation() - Buildings[0]->GetActorLocation();
 
 		BuildingToMove->SetActorLocation(Buildings[0]->GetActorLocation());

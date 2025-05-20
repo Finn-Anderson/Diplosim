@@ -76,13 +76,14 @@ TArray<FVector> ABroch::GetSpawnLocations(FTileStruct StartingTile, FTileStruct 
 	FTransform startTransform = Camera->Grid->GetTransform(&StartingTile);
 	FTransform transform = Camera->Grid->GetTransform(&Tile);
 
-	if (Tiles.Contains(TTuple<int32, int32>(Tile.X, Tile.Y)) || FMath::RoundHalfFromZero(transform.GetLocation().Z) != FMath::RoundHalfFromZero(startTransform.GetLocation().Z))
-		return locations;
-
 	FHitResult hit(ForceInit);
 
-	if (GetWorld()->LineTraceSingleByChannel(hit, transform.GetLocation(), transform.GetLocation() + FVector(0.0f, 0.0f, 20.0f), ECollisionChannel::ECC_Visibility) && hit.GetActor()->IsA<AMineral>())
+	if (Tiles.Contains(TTuple<int32, int32>(Tile.X, Tile.Y)) || GetWorld()->LineTraceSingleByChannel(hit, transform.GetLocation(), transform.GetLocation() + FVector(0.0f, 0.0f, 20.0f), ECollisionChannel::ECC_Visibility) && hit.GetActor()->IsA<AMineral>())
 		return locations;
+
+	for (FTileStruct* t : Camera->Grid->CalculatePath(&StartingTile, &Tile))
+		if (t->bRiver)
+			return locations;
 	
 	Tiles.Add(TTuple<int32, int32>(Tile.X, Tile.Y));
 

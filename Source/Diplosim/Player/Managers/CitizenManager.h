@@ -5,33 +5,29 @@
 #include "Components/ActorComponent.h"
 #include "CitizenManager.generated.h"
 
-USTRUCT()
 struct FTimerStruct
 {
-	GENERATED_USTRUCT_BODY()
+	FString ID;
 
-	UPROPERTY()
-		FString ID;
+	AActor* Actor;
 
-	UPROPERTY()
-		AActor* Actor;
+	float Timer;
 
-	UPROPERTY()
-		float Timer;
-
-	UPROPERTY()
-		float Target;
+	float Target;
 
 	FTimerDelegate Delegate;
 
-	UPROPERTY()
-		bool bRepeat;
+	bool bRepeat;
 
-	UPROPERTY()
-		bool bOnGameThread;
+	bool bOnGameThread;
 
-	UPROPERTY()
-		bool bPaused;
+	bool bPaused;
+
+	bool bModifying;
+
+	bool bDone;
+
+	double LastUpdateTime;
 
 	FTimerStruct()
 	{
@@ -42,6 +38,9 @@ struct FTimerStruct
 		bRepeat = false;
 		bOnGameThread = false;
 		bPaused = false;
+		bModifying = false;
+		bDone = false;
+		LastUpdateTime = 0.0f;
 	}
 
 	void CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread = false)
@@ -399,9 +398,11 @@ protected:
 public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void Loop(float DeltaTime);
+	void Loop();
 
 	// Timers
+	void CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread = false);
+
 	FTimerStruct* FindTimer(FString ID, AActor* Actor);
 
 	void RemoveTimer(FString ID, AActor* Actor);
@@ -419,11 +420,14 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Citizens")
 		TArray<class ABuilding*> Buildings;
 
-	UPROPERTY()
-		TArray<FTimerStruct> Timers;
+	TDoubleLinkedList<FTimerStruct> Timers;
 
 	UPROPERTY()
 		FVector BrochLocation;
+
+	FCriticalSection TickLock;
+
+	FCriticalSection TimerLock;
 
 	// House
 	UFUNCTION(BlueprintCallable)

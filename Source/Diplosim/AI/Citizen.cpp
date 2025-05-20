@@ -59,16 +59,19 @@ ACitizen::ACitizen()
 	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
 	TorchNiagaraComponent->SetupAttachment(TorchMesh, "ParticleSocket");
 	TorchNiagaraComponent->SetRelativeScale3D(FVector(0.12f, 0.12f, 0.12f));
+	TorchNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	TorchNiagaraComponent->bAutoActivate = false;
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(Mesh);
 	HarvestNiagaraComponent->SetRelativeLocation(FVector(20.0f, 0.0f, 17.0f));
+	HarvestNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	HarvestNiagaraComponent->bAutoActivate = false;
 
 	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
 	DiseaseNiagaraComponent->SetupAttachment(Mesh);
 	DiseaseNiagaraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 6.0f));
+	DiseaseNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	DiseaseNiagaraComponent->bAutoActivate = false;
 
 	PopupComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PopupComponent"));
@@ -130,17 +133,9 @@ void ACitizen::BeginPlay()
 {
 	Super::BeginPlay();
 
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	Camera = PController->GetPawn<ACamera>();
-
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	FTimerStruct timer;
-
-	timer.CreateTimer("Birthday", this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
-	Camera->CitizenManager->Timers.Add(timer);
-
-	SetName();
+	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
 
 	float r = FMath::FRandRange(0.0f, 1.0f);
 	float g = FMath::FRandRange(0.0f, 1.0f);
@@ -160,16 +155,11 @@ void ACitizen::MainIslandSetup()
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	FTimerStruct timer;
+	Camera->CitizenManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true, true);
 
-	timer.CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true, true);
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
 
-	timer.CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
-	Camera->CitizenManager->Timers.Add(timer);
-
-	timer.CreateTimer("ChooseIdleBuilding", this, 60, FTimerDelegate::CreateUObject(AIController, &ADiplosimAIController::ChooseIdleBuilding, this), true);
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("ChooseIdleBuilding", this, 60, FTimerDelegate::CreateUObject(AIController, &ADiplosimAIController::ChooseIdleBuilding, this), true);
 
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
@@ -181,6 +171,9 @@ void ACitizen::MainIslandSetup()
 
 	AIController->ChooseIdleBuilding(this);
 	AIController->DefaultAction();
+
+	SetActorHiddenInGame(false);
+	SetActorTickEnabled(true);
 }
 
 void ACitizen::ColonyIslandSetup()
@@ -191,6 +184,7 @@ void ACitizen::ColonyIslandSetup()
 	Camera->CitizenManager->RemoveTimer("Eat", this);
 	Camera->CitizenManager->RemoveTimer("Energy", this);
 	Camera->CitizenManager->RemoveTimer("ChooseIdleBuilding", this);
+	Camera->CitizenManager->RemoveTimer("Idle", this); 
 
 	ClearCitizen();
 
@@ -200,6 +194,9 @@ void ACitizen::ColonyIslandSetup()
 	AIController->StopMovement();
 
 	SetActorLocation(FVector(0.0f, 0.0f, -10000.0f));
+
+	SetActorHiddenInGame(true);
+	SetActorTickEnabled(false);
 }
 
 void ACitizen::ClearCitizen()
@@ -234,6 +231,10 @@ void ACitizen::ClearCitizen()
 		BioStruct.Partner->BioStruct.Partner = nullptr;
 		BioStruct.Partner = nullptr;
 	}
+
+	for (FEventStruct event : Camera->CitizenManager->OngoingEvents())
+		if (event.Attendees.Contains(this))
+			event.Attendees.Remove(this);
 }
 
 void ACitizen::ApplyResearch()
@@ -614,9 +615,10 @@ bool ACitizen::WillWork()
 
 float ACitizen::GetProductivity()
 {
+	float speed = FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed);
 	float scale = (FMath::Min(BioStruct.Age, 18) * 0.04f) + 0.28f;
 
-	return (ProductivityMultiplier * (1 + BioStruct.EducationLevel * 0.1)) * scale;
+	return (ProductivityMultiplier * (1 + BioStruct.EducationLevel * 0.1)) * scale * speed;
 }
 
 void ACitizen::Heal(ACitizen* Citizen)
@@ -852,10 +854,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 	AttackComponent->MeleeAnim->RateScale = 10.0f / time;
 	Mesh->PlayAnimation(AttackComponent->MeleeAnim, true);
 
-	FTimerStruct timer;
-	timer.CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource), false, true);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource), false, true);
 
 	HarvestVisualTimer = time / 5.0f;
 	HarvestVisualTargetTimer = HarvestVisualTimer;
@@ -968,15 +967,10 @@ void ACitizen::Birthday()
 
 		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("Orphanage", this);
 
-		if (foundTimer != nullptr) {
+		if (foundTimer != nullptr)
 			Camera->CitizenManager->ResetTimer("Orphanage", this);
-		}
-		else {
-			FTimerStruct timer;
-			timer.CreateTimer("Orphanage", this, timeToCompleteDay * 2.0f, FTimerDelegate::CreateUObject(Building.Orphanage, &AOrphanage::Kickout, this), false);
-
-			Camera->CitizenManager->Timers.Add(timer);
-		}
+		else
+			Camera->CitizenManager->CreateTimer("Orphanage", this, timeToCompleteDay * 2.0f, FTimerDelegate::CreateUObject(Building.Orphanage, &AOrphanage::Kickout, this), false);
 	}
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::VoteAge))
@@ -1023,6 +1017,8 @@ void ACitizen::SetSex(TArray<ACitizen*> Citizens)
 		BioStruct.Sex = ESex::Male;
 	else
 		BioStruct.Sex = ESex::Female;
+
+	SetName();
 }
 
 void ACitizen::SetName()
@@ -1255,13 +1251,13 @@ TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
 {
 	TArray<ACitizen*> family;
 
-	if (BioStruct.Mother->IsValidLowLevelFast())
+	if (BioStruct.Mother != nullptr && BioStruct.Mother->IsValidLowLevelFast())
 		family.Add(Cast<ACitizen>(BioStruct.Mother));
 
-	if (BioStruct.Father->IsValidLowLevelFast())
+	if (BioStruct.Father != nullptr && BioStruct.Father->IsValidLowLevelFast())
 		family.Add(Cast<ACitizen>(BioStruct.Father));
 
-	if (BioStruct.Partner->IsValidLowLevelFast())
+	if (BioStruct.Partner != nullptr && BioStruct.Partner->IsValidLowLevelFast())
 		family.Add(Cast<ACitizen>(BioStruct.Partner));
 
 	for (ACitizen* child : BioStruct.Children)
@@ -1472,10 +1468,7 @@ void ACitizen::SetAttendStatus(EAttendStatus Status, bool bMass)
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	FTimerStruct timer;
-	timer.CreateTimer("Mass", this, timeToCompleteDay * 2, FTimerDelegate::CreateUObject(this, &ACitizen::SetAttendStatus, EAttendStatus::Neutral, bMass), false);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Mass", this, timeToCompleteDay * 2, FTimerDelegate::CreateUObject(this, &ACitizen::SetAttendStatus, EAttendStatus::Neutral, bMass), false);
 }
 
 void ACitizen::SetHolliday(bool bStatus)

@@ -1111,10 +1111,7 @@ void ABuilding::AddToBasket(TSubclassOf<AResource> Resource, int32 Amount)
 {
 	FGuid id = FGuid().NewGuid();
 
-	FTimerStruct timer;
-	timer.CreateTimer("Basket", this, 300.0f, FTimerDelegate::CreateUObject(this, &ABuilding::RemoveFromBasket, id), false);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Basket", this, 300.0f, FTimerDelegate::CreateUObject(this, &ABuilding::RemoveFromBasket, id), false);
 
 	FBasketStruct basketStruct;
 	basketStruct.ID = id;

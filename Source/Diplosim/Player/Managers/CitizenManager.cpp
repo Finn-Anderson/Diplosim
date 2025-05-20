@@ -10,6 +10,7 @@
 #include "Kismet/KismetArrayLibrary.h"
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Misc/ScopeTryLock.h"
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
@@ -101,7 +102,7 @@ void UCitizenManager::ReadJSONFile(FString path)
 												lean.Personality = EPersonality(FCString::Atoi(*pv.Value->AsString()));
 											else {
 												for (auto& pev : pv.Value->AsArray()) {
-													int32 value = FCString::Atoi(*pv.Value->AsString());
+													int32 value = FCString::Atoi(*pev->AsString());
 
 													if (pv.Key == "ForRange")
 														lean.ForRange.Add(value);
@@ -127,7 +128,8 @@ void UCitizenManager::ReadJSONFile(FString path)
 					}
 					else if (v.Value->Type == EJson::Array) {
 						for (auto& ev : v.Value->AsArray()) {
-							index = FCString::Atoi(*ev->AsString());
+							if (ev->Type == EJson::String)
+								index = FCString::Atoi(*ev->AsString());
 
 							if (element.Key == "Personalities") {
 								if (v.Key == "Likes")
@@ -205,11 +207,15 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (DeltaTime < 0.01f || DeltaTime > 1.0f)
+	if (DeltaTime < 0.005f || DeltaTime > 1.0f)
 		return;
 
 	Async(EAsyncExecution::Thread, [this, DeltaTime]() {
-		Loop(DeltaTime);
+		FScopeTryLock lock(&TickLock);
+		if (!lock.IsLocked())
+			return;
+
+		Loop();
 
 		if (Citizens.IsEmpty() && Enemies.IsEmpty())
 			return;
@@ -268,16 +274,11 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr) {
 								citizen->CitizenHealing = c;
 
-								FTimerStruct timer;
-								timer.CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
+								CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
 							}
 						}
 					}
-
-					if (ai->IsA<AEnemy>() || Cast<ACitizen>(ai)->Rebel != citizen->Rebel) {
-						if (!*citizen->AttackComponent->ProjectileClass && !citizen->AIController->CanMoveTo(ai->GetActorLocation()))
-							continue;
-
+					else if (*citizen->AttackComponent->ProjectileClass || citizen->AIController->CanMoveTo(ai->GetActorLocation())) {
 						if (!citizen->AttackComponent->OverlappingEnemies.Contains(ai))
 							citizen->AttackComponent->OverlappingEnemies.Add(ai);
 
@@ -352,51 +353,75 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	});
 }
 
-void UCitizenManager::Loop(float DeltaTime)
+void UCitizenManager::Loop()
 {
-	for (int32 i = Timers.Num() - 1; i > -1; i--) {
-		if (!IsValid(Timers[i].Actor) || (Timers[i].Actor->IsA<ACitizen>() && ((!Citizens.Contains(Timers[i].Actor) && Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Cast<ACitizen>(Timers[i].Actor)) == nullptr) || Cast<ACitizen>(Timers[i].Actor)->Rebel)) || (Timers[i].Actor->IsA<ABuilding>() && !Buildings.Contains(Timers[i].Actor))) {
-			Timers.RemoveAt(i);
+	for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
+		FTimerStruct &timer = node->GetValue();
+
+		if (!IsValid(timer.Actor) || (timer.Actor->IsA<ACitizen>() && ((!Citizens.Contains(timer.Actor) && Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Cast<ACitizen>(timer.Actor)) == nullptr) || Cast<ACitizen>(timer.Actor)->Rebel)) || (timer.Actor->IsA<ABuilding>() && !Buildings.Contains(timer.Actor))) {
+			FScopeLock lock(&TimerLock);
+			Timers.RemoveNode(node);
 
 			continue;
 		}
 
-		if (Timers[i].bPaused)
+		if (timer.bPaused)
 			continue;
 
-		Timers[i].Timer += DeltaTime;
+		double currentTime = GetWorld()->GetTimeSeconds();
 
-		if ((Timers[i].ID == "Harvest" || Timers[i].ID == "Internal")) {
+		timer.Timer += (currentTime - timer.LastUpdateTime);
+		timer.LastUpdateTime = currentTime;
+
+		if ((timer.ID == "Harvest" || timer.ID == "Internal")) {
 			TArray<ACitizen*> citizens;
 
-			if (Timers[i].Actor->IsA<ACitizen>())
-				citizens.Add(Cast<ACitizen>(Timers[i].Actor));
+			if (timer.Actor->IsA<ACitizen>())
+				citizens.Add(Cast<ACitizen>(timer.Actor));
 			else
-				citizens = Cast<AWork>(Timers[i].Actor)->GetCitizensAtBuilding();
+				citizens = Cast<AWork>(timer.Actor)->GetCitizensAtBuilding();
 
 			for (ACitizen* citizen : Citizens) {
-				if (citizen->HarvestVisualTimer < Timers[i].Timer || citizen->HarvestVisualResource == nullptr)
+				if (citizen->HarvestVisualTimer < timer.Timer || citizen->HarvestVisualResource == nullptr)
 					continue;
 
 				citizen->HarvestVisualTimer += citizen->HarvestVisualTargetTimer;
 
 				citizen->SetHarvestVisuals(citizen->HarvestVisualResource);
 			}
-			
+
 		}
 
-		if (Timers[i].Timer >= Timers[i].Target) {
-			FTimerDelegate delegate = Timers[i].Delegate;
+		if (timer.Timer >= timer.Target && !timer.bModifying) {
+			if (timer.bOnGameThread) {
+				timer.bModifying = true;
 
-			if (Timers[i].bOnGameThread)
-				AsyncTask(ENamedThreads::GameThread, [this, delegate]() { delegate.ExecuteIfBound(); });
-			else
-				delegate.ExecuteIfBound();
+				AsyncTask(ENamedThreads::GameThread, [this, &timer]() {
+					timer.Delegate.ExecuteIfBound();
+					
+					timer.bDone = true;
+				});
+			}
+			else {
+				timer.bModifying = true;
 
-			if (Timers[i].bRepeat)
-				Timers[i].Timer = 0;
-			else
-				Timers.RemoveAt(i);
+				timer.Delegate.ExecuteIfBound();
+
+				timer.bDone = true;
+			}
+		}
+
+		if (!timer.bDone)
+			continue;
+
+		if (timer.bRepeat) {
+			timer.Timer = 0;
+			timer.bModifying = false;
+			timer.bDone = false;
+		}
+		else {
+			FScopeLock lock(&TimerLock);
+			Timers.RemoveNode(node);
 		}
 	}
 
@@ -446,7 +471,7 @@ void UCitizenManager::Loop(float DeltaTime)
 						citizen->FindHouse(Cast<AHouse>(building), timeToCompleteDay);
 				}
 
-				AsyncTask(ENamedThreads::GameThread, [this, citizen, timeToCompleteDay]() { citizen->SetJobHouseEducation(timeToCompleteDay); });
+				AsyncTask(ENamedThreads::GameThread, [citizen, timeToCompleteDay]() { citizen->SetJobHouseEducation(timeToCompleteDay); });
 			}
 
 			citizen->SetHappiness();
@@ -479,8 +504,21 @@ void UCitizenManager::Loop(float DeltaTime)
 	AsyncTask(ENamedThreads::GameThread, [this]() { Cast<ACamera>(GetOwner())->UpdateUI(); });
 }
 
+void UCitizenManager::CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread)
+{
+	FScopeLock lock(&TimerLock);
+
+	FTimerStruct timer;
+	timer.CreateTimer(Identifier, Caller, Time, TimerDelegate, Repeat, OnGameThread);
+	timer.LastUpdateTime = GetWorld()->GetTimeSeconds();
+
+	Timers.AddTail(timer);
+}
+
 FTimerStruct* UCitizenManager::FindTimer(FString ID, AActor* Actor)
 {
+	FScopeLock lock(&TimerLock);
+
 	if (!IsValid(Actor))
 		return nullptr;
 	
@@ -488,12 +526,12 @@ FTimerStruct* UCitizenManager::FindTimer(FString ID, AActor* Actor)
 	timer.ID = ID;
 	timer.Actor = Actor;
 
-	int32 index = Timers.Find(timer);
+	auto node = Timers.FindNode(timer);
 
-	if (index == INDEX_NONE)
+	if (node == nullptr)
 		return nullptr;
 
-	return &Timers[index];
+	return &node->GetValue();
 }
 
 void UCitizenManager::RemoveTimer(FString ID, AActor* Actor)
@@ -622,10 +660,7 @@ void UCitizenManager::StartDiseaseTimer()
 {
 	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-	FTimerStruct timer;
-	timer.CreateTimer("Disease", GetOwner(), FMath::RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
-
-	Timers.Add(timer);
+	CreateTimer("Disease", GetOwner(), FMath::RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
 }
 
 void UCitizenManager::SpawnDisease()
@@ -648,7 +683,7 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 
 	Citizen->SetActorTickEnabled(true);
 
-	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() { Citizen->SetPopupImageState("Add", "Disease"); });
+	AsyncTask(ENamedThreads::GameThread, [Citizen]() { Citizen->SetPopupImageState("Add", "Disease"); });
 
 	Infected.Add(Citizen);
 
@@ -706,7 +741,7 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 		Citizen->SetActorTickEnabled(false);
 	}
 
-	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() { Citizen->SetPopupImageState("Remove", "Disease"); });
+	AsyncTask(ENamedThreads::GameThread, [Citizen]() { Citizen->SetPopupImageState("Remove", "Disease"); });
 
 	Infected.Remove(Citizen);
 	Injured.Remove(Citizen);
@@ -1151,10 +1186,7 @@ void UCitizenManager::StartElectionTimer()
 	
 	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-	FTimerStruct timer;
-	timer.CreateTimer("Election", GetOwner(), timeToCompleteDay * GetLawValue(EBillType::ElectionTimer), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), false);
-
-	Timers.Add(timer);
+	CreateTimer("Election", GetOwner(), timeToCompleteDay * GetLawValue(EBillType::ElectionTimer), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), false);
 }
 
 void UCitizenManager::Election()
@@ -1325,10 +1357,7 @@ void UCitizenManager::SetupBill()
 		BribeValue.Add(bribe);
 	}
 
-	FTimerStruct timer;
-
-	timer.CreateTimer("Bill", GetOwner(), 60, FTimerDelegate::CreateUObject(this, &UCitizenManager::MotionBill, ProposedBills[0]), false);
-	Timers.Add(timer);
+	CreateTimer("Bill", GetOwner(), 60, FTimerDelegate::CreateUObject(this, &UCitizenManager::MotionBill, ProposedBills[0]), false);
 }
 
 void UCitizenManager::MotionBill(FLawStruct Bill)
@@ -1452,10 +1481,7 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 		if (Laws[index].BillType == EBillType::Abolish) {
 			ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
-			FTimerStruct timer;
-
-			timer.CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(gamemode->Broch->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
-			Timers.Add(timer);
+			CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(gamemode->Broch->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
 		}
 		else if (Laws[index].BillType == EBillType::Election) {
 			Election();
@@ -1622,10 +1648,7 @@ void UCitizenManager::Pray()
 
 	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-	FTimerStruct timer;
-	timer.CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Good"), -1), false);
-
-	Timers.Add(timer);
+	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Good"), -1), false);
 }
 
 void UCitizenManager::IncrementPray(FString Type, int32 Increment)
@@ -1662,18 +1685,13 @@ void UCitizenManager::Sacrifice()
 
 	UNiagaraComponent* component = UNiagaraFunctionLibrary::SpawnSystemAttached(SacrificeSystem, citizen->GetRootComponent(), NAME_None, FVector::Zero(), FRotator(0.0f), EAttachLocation::SnapToTarget, true);
 
-	FTimerStruct timer;
-	timer.CreateTimer("Sacrifice", GetOwner(), 4.0f, FTimerDelegate::CreateUObject(citizen->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
-
-	Timers.Add(timer);
+	CreateTimer("Sacrifice", GetOwner(), 4.0f, FTimerDelegate::CreateUObject(citizen->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
 
 	IncrementPray("Bad", 1);
 
 	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-	timer.CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Bad"), -1), false);
-
-	Timers.Add(timer);
+	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Bad"), -1), false);
 }
 
 //

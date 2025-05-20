@@ -302,9 +302,7 @@ void ADiplosimGameModeBase::SetRaidInformation()
 	if (Camera->bInstantEnemies)
 		time = 5;
 
-	FTimerStruct timer; 
-	timer.CreateTimer("SpawnEnemies", this, time, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAllEnemies, spawnLocations), false, true);
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("SpawnEnemies", this, time, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAllEnemies, spawnLocations), false, true);
 }
 
 void ADiplosimGameModeBase::SpawnAllEnemies(TArray<FVector> SpawnLocations)
@@ -417,9 +415,7 @@ void ADiplosimGameModeBase::SetWaveTimer()
 		}
 	}
 
-	FTimerStruct timer;
-	timer.CreateTimer("WaveTimer", this, 1680, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::StartRaid), true, false);
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("WaveTimer", this, 1680, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::StartRaid), true, false);
 }
 
 void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)

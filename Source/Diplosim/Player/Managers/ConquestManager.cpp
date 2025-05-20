@@ -238,15 +238,10 @@ void UConquestManager::MoveToColony(FWorldTileStruct* Tile, ACitizen* Citizen)
 	FWorldTileStruct* tile = GetColonyContainingCitizen(Citizen);
 	tile->Moving.Add(TTuple<ACitizen*, FString>(Citizen, Tile->Name));
 
-	if (tile->bCapital && tile->Occupier.Owner == EmpireName) {
+	if (tile->bCapital && tile->Occupier.Owner == EmpireName)
 		Citizen->AIController->AIMoveTo(Portal);
-	}
-	else {
-		FTimerStruct timer;
-
-		timer.CreateTimer("Transmission", Citizen, FMath::RandRange(10, 40), FTimerDelegate::CreateUObject(this, &UConquestManager::StartTransmissionTimer, Citizen), false);
-		Camera->CitizenManager->Timers.Add(timer);
-	}
+	else
+		Camera->CitizenManager->CreateTimer("Transmission", Citizen, FMath::RandRange(10, 40), FTimerDelegate::CreateUObject(this, &UConquestManager::StartTransmissionTimer, Citizen), false);
 }
 
 void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
@@ -282,10 +277,7 @@ void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
 
 	int32 time = (x + y) * 10;
 
-	FTimerStruct timer;
-
-	timer.CreateTimer("Travel", Citizen, time, FTimerDelegate::CreateUObject(this, &UConquestManager::AddCitizenToColony, oldTile, targetTile, Citizen), false);
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Travel", Citizen, time, FTimerDelegate::CreateUObject(this, &UConquestManager::AddCitizenToColony, oldTile, targetTile, Citizen), false);
 
 	if (oldTile->bCapital && oldTile->Occupier.Owner == EmpireName)
 		Citizen->ColonyIslandSetup();
@@ -303,10 +295,7 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 
 	Tile->Citizens.Add(Citizen);
 
-	FTimerStruct timer;
-
-	timer.CreateTimer("RecentlyMoved", Citizen, 300, FTimerDelegate::CreateUObject(this, &UConquestManager::RemoveFromRecentlyMoved, Citizen), false);
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("RecentlyMoved", Citizen, 300, FTimerDelegate::CreateUObject(this, &UConquestManager::RemoveFromRecentlyMoved, Citizen), false);
 }
 
 TArray<float> UConquestManager::ProduceEvent()

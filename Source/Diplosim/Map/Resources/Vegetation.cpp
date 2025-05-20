@@ -11,6 +11,7 @@ AVegetation::AVegetation()
 {
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->NumCustomDataFloats = 11;
 
 	TimeLength = 30.0f;
@@ -40,12 +41,8 @@ void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 
 	GrowingInstances.Add(Instance);
 
-	if (Camera->CitizenManager->FindTimer("Grow", this) == nullptr) {
-		FTimerStruct timer;
-		timer.CreateTimer("Grow", this, TimeLength / 100.0f, FTimerDelegate::CreateUObject(this, &AVegetation::Grow), true, true);
-
-		Camera->CitizenManager->Timers.Add(timer);
-	}
+	if (Camera->CitizenManager->FindTimer("Grow", this) == nullptr)
+		Camera->CitizenManager->CreateTimer("Grow", this, TimeLength / 100.0f, FTimerDelegate::CreateUObject(this, &AVegetation::Grow), true, true);
 }
 
 void AVegetation::Grow()

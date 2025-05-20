@@ -217,7 +217,7 @@ void UAttackComponent::Attack()
 	float time = AttackTime;
 
 	if (GetOwner()->IsA<ACitizen>())
-		time /= FMath::LogX(100.0f, FMath::Clamp(Cast<ACitizen>(GetOwner())->Energy, 2, 100));
+		time /= Cast<ACitizen>(GetOwner())->GetProductivity();
 
 	if (*ProjectileClass) {
 		if (RangeAnim->IsValidLowLevelFast()) {

@@ -103,15 +103,10 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 
 		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("RemoveDamageOverlay", GetOwner());
 
-		if (foundTimer == nullptr) {
-			FTimerStruct timer;
-			timer.CreateTimer("RemoveDamageOverlay", GetOwner(), 0.15f, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), false, true);
-
-			Camera->CitizenManager->Timers.Add(timer);
-		}
-		else {
+		if (foundTimer == nullptr)
+			Camera->CitizenManager->CreateTimer("RemoveDamageOverlay", GetOwner(), 0.15f, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), false, true);
+		else
 			Camera->CitizenManager->ResetTimer("RemoveDamageOverlay", GetOwner());
-		}
 
 		FTimerHandle matTimer;
 		GetWorld()->GetTimerManager().SetTimer(matTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), 0.15f, false);
@@ -206,10 +201,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		SetComponentTickEnabled(true);
 	}
 
-	FTimerStruct timer;
-	timer.CreateTimer("Clear", GetOwner(), 10.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), false, true);
-
-	Camera->CitizenManager->Timers.Add(timer);
+	Camera->CitizenManager->CreateTimer("Clear", GetOwner(), 10.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), false, true);
 
 	actor->SetActorTickEnabled(false);
 	GetWorld()->GetTimerManager().ClearAllTimersForObject(actor);

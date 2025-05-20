@@ -62,6 +62,9 @@ void AAI::BeginPlay()
 
 	AIController = GetController<ADiplosimAIController>();
 	AIController->Owner = this;
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Camera = PController->GetPawn<ACamera>();
 }
 
 void AAI::MoveToBroch()
@@ -112,12 +115,9 @@ void AAI::MoveToBroch()
 
 bool AAI::CanReach(AActor* Actor, float Reach)
 {
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
-	
 	FCollisionQueryParams params;
 	params.AddIgnoredActor(this);
-	params.AddIgnoredActor(camera->Grid);
+	params.AddIgnoredActor(Camera->Grid);
 	
 	TArray<FHitResult> hits;
 

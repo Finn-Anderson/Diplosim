@@ -20,6 +20,8 @@ AEggBasket::AEggBasket()
 	BasketMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
 	BasketMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	BasketMesh->SetCanEverAffectNavigation(true);
+
+	RootComponent = BasketMesh;
 }
 
 FRewardStruct AEggBasket::PickReward(ACamera* Camera)

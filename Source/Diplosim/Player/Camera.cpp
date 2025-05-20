@@ -49,6 +49,8 @@ ACamera::ACamera()
 	SpringArmComponent->bEnableCameraLag = false;
 	SpringArmComponent->bDoCollisionTest = true;
 
+	RootComponent = SpringArmComponent;
+
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->AttachToComponent(SpringArmComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	CameraComponent->PrimaryComponentTick.bCanEverTick = false;
@@ -289,16 +291,11 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	gamemode->SetWaveTimer();
 
-	FTimerStruct timer;
+	CitizenManager->CreateTimer("Interest", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::Interest), true, true);
 
-	timer.CreateTimer("Interest", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::Interest), true, true);
-	CitizenManager->Timers.Add(timer);
+	CitizenManager->CreateTimer("TradeValue", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::SetTradeValues), true);
 
-	timer.CreateTimer("TradeValue", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::SetTradeValues), true);
-	CitizenManager->Timers.Add(timer);
-
-	timer.CreateTimer("EggBasket", this, 300, FTimerDelegate::CreateUObject(Grid, &AGrid::SpawnEggBasket), true, true);
-	CitizenManager->Timers.Add(timer);
+	CitizenManager->CreateTimer("EggBasket", this, 300, FTimerDelegate::CreateUObject(Grid, &AGrid::SpawnEggBasket), true, true);
 
 	CitizenManager->StartDiseaseTimer();
 	CitizenManager->BrochLocation = Broch->GetActorLocation();
@@ -489,10 +486,7 @@ void ACamera::Smite(class AAI* AI)
 
 	int32 timeToCompleteDay = 360 / (24 * Grid->AtmosphereComponent->Speed);
 
-	FTimerStruct timer;
-	timer.CreateTimer("Smite", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &ACamera::IncrementSmites, -1), false);
-
-	CitizenManager->Timers.Add(timer);
+	CitizenManager->CreateTimer("Smite", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &ACamera::IncrementSmites, -1), false);
 }
 
 void ACamera::IncrementSmites(int32 Increment)

@@ -47,8 +47,9 @@ struct FBuildingStruct
 	{
 		House = nullptr;
 		Employment = nullptr;
-		BuildingAt = nullptr;
 		School = nullptr;
+		Orphanage = nullptr;
+		BuildingAt = nullptr;
 	}
 };
 
@@ -112,6 +113,7 @@ struct FBioStruct
 		EducationProgress = 0;
 		PaidForEducationLevel = 0;
 		Name = "Citizen";
+		bAdopted = false;
 	}
 };
 
@@ -263,9 +265,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void SetPopupImageState(FName Command, FName Type);
 
-	UPROPERTY()
-		class ACamera* Camera;
-
 	// Find Job, House and Education
 	void FindEducation(class ASchool* Education, int32 TimeToCompleteDay);
 
@@ -285,10 +284,10 @@ public:
 		TArray<float> TimeOfAcquirement;
 
 	UPROPERTY()
-		TArray<ABuilding*> AllocatedBuildings;
+		TArray<class ABuilding*> AllocatedBuildings;
 
 	// On Hit
-	void SetHarvestVisuals(AResource* Resource);
+	void SetHarvestVisuals(class AResource* Resource);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UNiagaraComponent* HarvestNiagaraComponent;

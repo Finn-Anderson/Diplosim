@@ -3,6 +3,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "AI/Citizen.h"
+#include "ConquestManager.h"
 
 UResearchManager::UResearchManager()
 {
@@ -88,14 +89,25 @@ void UResearchManager::Research(float Amount)
 	if (ResearchStruct[CurrentIndex].AmountResearched < ResearchStruct[CurrentIndex].Target)
 		return;
 
+	ACamera* camera = Cast<ACamera>(GetOwner());
+
 	ResearchStruct[CurrentIndex].bResearched = true;
 
-	for (auto& element : ResearchStruct[CurrentIndex].Modifiers)
-		for (ACitizen* citizen : Cast<ACamera>(GetOwner())->CitizenManager->Citizens)
+	for (auto& element : ResearchStruct[CurrentIndex].Modifiers) {
+		for (ACitizen* citizen : camera->CitizenManager->Citizens)
 			citizen->ApplyToMultiplier(element.Key, element.Value);
 
-	Cast<ACamera>(GetOwner())->ResearchComplete(CurrentIndex);
-	Cast<ACamera>(GetOwner())->DisplayEvent(ResearchStruct[CurrentIndex].ResearchName, "Research Complete");
+		for (FWorldTileStruct& tile : camera->ConquestManager->World) {
+			if (!tile.bIsland || tile.Occupier.Owner != camera->ConquestManager->EmpireName || tile.bCapital)
+				continue;
+			
+			for (ACitizen* citizen : tile.Citizens)
+				citizen->ApplyToMultiplier(element.Key, element.Value);
+		}
+	}
+
+	camera->ResearchComplete(CurrentIndex);
+	camera->DisplayEvent(ResearchStruct[CurrentIndex].ResearchName, "Research Complete");
 
 	CurrentIndex = INDEX_NONE;
 }
