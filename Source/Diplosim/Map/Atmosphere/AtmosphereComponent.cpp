@@ -16,6 +16,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "Buildings/Building.h"
 
 UAtmosphereComponent::UAtmosphereComponent()
 {
@@ -125,8 +126,11 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
 		if (settings->GetRenderTorches())
-			for (AActor* Actor : Grid->Camera->CitizenManager->Citizens)
-				Cast<ACitizen>(Actor)->SetTorch(hour);
+			for (ACitizen* citizen : Grid->Camera->CitizenManager->Citizens)
+				citizen->SetTorch(hour);
+
+		for (ABuilding* building : Grid->Camera->CitizenManager->Buildings)
+			building->SetLights(hour);
 
 		if (hour == 18) {
 			Sun->SetCastShadows(false);

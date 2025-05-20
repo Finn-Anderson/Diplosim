@@ -125,6 +125,9 @@ ACamera::ACamera()
 	ActorAttachedTo = nullptr;
 
 	bWasClosingWindow = false;
+
+	GameSpeed = 1.0f;
+	ResetGameSpeedCounter();
 }
 
 void ACamera::BeginPlay()
@@ -354,17 +357,29 @@ void ACamera::SetPause(bool bPause, bool bTickWhenPaused)
 	float timeDilation = 0.0001f;
 
 	if (!bPause) {
-		timeDilation = 1.0f;
+		timeDilation = GameSpeed;
 
 		bTickWhenPaused = bPause;
 	}
 
-	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), timeDilation);
+	SetTimeDilation(timeDilation);
+}
 
-	if (bTickWhenPaused)
-		CustomTimeDilation = 1.0f / timeDilation;
-	else
-		CustomTimeDilation = 1.0f;
+void ACamera::SetGameSpeed(float Speed)
+{
+	GameSpeed = FMath::Clamp(GameSpeed + Speed, 1.0f, 5.0f);
+
+	if (CustomTimeDilation <= 1.0f)
+		SetTimeDilation(GameSpeed);
+
+	UpdateSpeedUI(GameSpeed);
+}
+
+void ACamera::SetTimeDilation(float Dilation)
+{
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), Dilation);
+
+	CustomTimeDilation = 1.0f / Dilation;
 }
 
 void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
@@ -541,6 +556,9 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Input->BindAction(InputPause, ETriggerEvent::Started, this, &ACamera::Pause);
 
 	Input->BindAction(InputMenu, ETriggerEvent::Started, this, &ACamera::Menu);
+
+	Input->BindAction(InputGameSpeed, ETriggerEvent::Triggered, this, &ACamera::IncrementGameSpeed);
+	Input->BindAction(InputGameSpeed, ETriggerEvent::Completed, this, &ACamera::ResetGameSpeedCounter);
 }
 
 void ACamera::Action(const struct FInputActionInstance& Instance)
@@ -624,10 +642,7 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 
 void ACamera::Bulldoze()
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (!bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy)
+	if (Grid->LoadUIInstance->IsInViewport() || !bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy)
 		return;
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
@@ -640,10 +655,7 @@ void ACamera::Bulldoze()
 
 void ACamera::Cancel()
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (Start || bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || Start || bInMenu)
 		return;
 
 	if (bBulldoze)
@@ -654,10 +666,7 @@ void ACamera::Cancel()
 
 void ACamera::NewMap()
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (!Start || bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || !Start || bInMenu)
 		return;
 
 	SetMouseCapture(false);
@@ -670,10 +679,7 @@ void ACamera::NewMap()
 
 void ACamera::Pause()
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (bInMenu || bBlockPause)
+	if (Grid->LoadUIInstance->IsInViewport() || bInMenu || bBlockPause)
 		return;
 
 	if (PauseUIInstance->IsInViewport()) {
@@ -690,10 +696,7 @@ void ACamera::Pause()
 
 void ACamera::Menu()
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (bLost || MainMenuUIInstance->IsInViewport())
+	if (Grid->LoadUIInstance->IsInViewport() || bLost || MainMenuUIInstance->IsInViewport())
 		return;
 
 	if (!WidgetComponent->bHiddenInGame && !BuildComponent->IsComponentTickEnabled()) {
@@ -762,10 +765,7 @@ void ACamera::Menu()
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
 		return;
 
 	BuildComponent->RotateBuilding(Instance.GetValue().Get<bool>());
@@ -773,10 +773,7 @@ void ACamera::Rotate(const struct FInputActionInstance& Instance)
 
 void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (bInMenu && !bMouseCapture)
+	if (Grid->LoadUIInstance->IsInViewport() || (bInMenu && !bMouseCapture))
 		return;
 
 	if (((bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)))
@@ -787,10 +784,7 @@ void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 
 void ACamera::Look(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
 		return;
 
 	MovementComponent->Look(Instance);
@@ -798,10 +792,7 @@ void ACamera::Look(const struct FInputActionInstance& Instance)
 
 void ACamera::Move(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
 		return;
 
 	Detach();
@@ -811,10 +802,7 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 
 void ACamera::Speed(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
 		return;
 
 	MovementComponent->Speed(Instance);
@@ -824,13 +812,27 @@ void ACamera::Speed(const struct FInputActionInstance& Instance)
 
 void ACamera::Scroll(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport())
-		return;
-
-	if (bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
 		return;
 
 	MovementComponent->Scroll(Instance);
+}
+
+void ACamera::IncrementGameSpeed(const struct FInputActionInstance& Instance)
+{	
+	GameSpeedCounter++;
+	
+	if (Start || bInMenu || GameSpeedCounter < 50)
+		return;
+
+	GameSpeedCounter = 0;
+
+	SetGameSpeed(Instance.GetValue().Get<float>());
+}
+
+void ACamera::ResetGameSpeedCounter()
+{
+	GameSpeedCounter = 100;
 }
 
 //

@@ -24,6 +24,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Map/Resources/Vegetation.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Grid.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Defence/Trap.h"
@@ -165,6 +166,18 @@ void ABuilding::BeginPlay()
 	}
 
 	SetSeed(SeedNum);
+
+	SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
+}
+
+void ABuilding::SetLights(int32 Hour)
+{
+	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(BuildingMesh->GetMaterial(0));
+
+	if (Hour >= 18 || Hour < 6)
+		material->SetScalarParameterValue("Lights", 1.0f);
+	else
+		material->SetScalarParameterValue("Lights", 0.0f);
 }
 
 void ABuilding::SetSeed(int32 Seed)

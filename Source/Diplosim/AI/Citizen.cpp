@@ -58,7 +58,6 @@ ACitizen::ACitizen()
 
 	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
 	TorchNiagaraComponent->SetupAttachment(TorchMesh, "ParticleSocket");
-	TorchNiagaraComponent->SetRelativeScale3D(FVector(0.12f, 0.12f, 0.12f));
 	TorchNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	TorchNiagaraComponent->bAutoActivate = false;
 
@@ -1134,13 +1133,15 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 
 void ACitizen::HaveChild()
 {
-	if (!IsValid(Building.House) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue(EBillType::ChildPolicy))
+	if ((!IsValid(Building.House) && Camera->ConquestManager->GetColonyContainingCitizen(this) != nullptr) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue(EBillType::ChildPolicy))
 		return;
 
-	ACitizen* occupant = Building.House->GetOccupant(this);
+	if (IsValid(Building.House)) {
+		ACitizen* occupant = Building.House->GetOccupant(this);
 
-	if (Building.House->GetVisitors(occupant).Num() == Building.House->Space)
-		return;
+		if (Building.House->GetVisitors(occupant).Num() == Building.House->Space)
+			return;
+	}
 	
 	float chance = FMath::FRandRange(0.0f, 100.0f) * BioStruct.Partner->Fertility * Fertility;
 	float passMark = FMath::LogX(60.0f, BioStruct.Age) * 100.0f;

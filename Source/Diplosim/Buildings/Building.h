@@ -319,6 +319,8 @@ public:
 
 	virtual bool CheckInstant();
 
+	void SetLights(int32 Hour);
+
 	// Construct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
 		TArray<FItemStruct> CostList;

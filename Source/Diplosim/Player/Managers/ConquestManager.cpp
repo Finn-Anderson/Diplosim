@@ -391,3 +391,11 @@ void UConquestManager::RemoveFromRecentlyMoved(class ACitizen* Citizen)
 {
 	RecentlyMoved.Remove(Citizen);
 }
+
+TArray<ACitizen*> UConquestManager::GetIslandCitizens(FWorldTileStruct* Tile)
+{
+	if (Tile->bCapital && Tile->Occupier.Owner == EmpireName)
+		return Camera->CitizenManager->Citizens;
+	else
+		return Tile->Citizens;
+}

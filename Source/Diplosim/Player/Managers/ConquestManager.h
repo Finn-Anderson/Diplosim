@@ -187,6 +187,8 @@ public:
 		void SetTerritoryName(FString OldEmpireName);
 
 		void RemoveFromRecentlyMoved(class ACitizen* Citizen);
+
+	TArray<ACitizen*> GetIslandCitizens(FWorldTileStruct* Tile);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
 		FString EmpireName;

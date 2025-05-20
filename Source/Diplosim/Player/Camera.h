@@ -102,6 +102,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateInteractUI();
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateSpeedUI(float Speed);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -293,6 +296,9 @@ public:
 		AActor* ActorAttachedTo;
 
 	UPROPERTY()
+		float GameSpeed;
+
+	UPROPERTY()
 		bool bWasClosingWindow;
 
 	void SetMouseCapture(bool bCapture);
@@ -306,6 +312,11 @@ public:
 		void ShowWarning(FString Warning);
 
 	void SetPause(bool bPause, bool bTickWhenPaused);
+
+	UFUNCTION(BlueprintCallable)
+		void SetGameSpeed(float Speed);
+
+	void SetTimeDilation(float Dilation);
 
 	UFUNCTION(BlueprintCallable)
 		void DisplayInteract(AActor* Actor, int32 Instance = -1);
@@ -373,6 +384,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputMenu;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputGameSpeed;
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -419,6 +433,14 @@ public:
 	void Speed(const struct FInputActionInstance& Instance);
 
 	void Scroll(const struct FInputActionInstance& Instance);
+
+	// Game Speed
+	void IncrementGameSpeed(const struct FInputActionInstance& Instance);
+
+	void ResetGameSpeedCounter();
+
+	UPROPERTY()
+		int32 GameSpeedCounter;
 
 	// Debugging
 	UFUNCTION(Exec)
