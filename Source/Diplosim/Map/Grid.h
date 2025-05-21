@@ -93,9 +93,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
-		class UCloudComponent* CloudComponent;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		class UAtmosphereComponent* AtmosphereComponent;
 

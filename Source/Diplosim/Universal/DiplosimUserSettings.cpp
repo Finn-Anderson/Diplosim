@@ -91,7 +91,7 @@ void UDiplosimUserSettings::OnWindowResize(FViewport* Viewport, uint32 Value)
 	else
 		SetMaximised(false);
 
-	Resolution = res;
+	SetResolution(res, true);
 
 	GConfig->SetString(*Section, TEXT("Resolution"), *GetResolution(), Filename);
 	GConfig->SetBool(*Section, TEXT("bIsMaximised"), GetMaximised(), Filename);
@@ -603,9 +603,15 @@ int32 UDiplosimUserSettings::GetScreenPercentage() const
 	return ScreenPercentage;
 }
 
-void UDiplosimUserSettings::SetResolution(FString Value)
+void UDiplosimUserSettings::SetResolution(FString Value, bool bResizing)
 {
 	Resolution = Value;
+
+	if (Camera)
+		Camera->UpdateResolutionText();
+
+	if (bResizing)
+		return;
 
 	FSlateApplicationBase::Get().GetPlatformCursor()->Lock(nullptr);
 

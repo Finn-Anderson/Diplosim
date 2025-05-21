@@ -225,7 +225,7 @@ public:
 		int32 GetScreenPercentage() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Resolution")
-		void SetResolution(FString Value);
+		void SetResolution(FString Value, bool bResizing = false);
 
 	UFUNCTION(BlueprintPure, Category = "Resolution")
 		FString GetResolution() const;

@@ -314,9 +314,7 @@ FWorldTileStruct* UConquestManager::GetColonyContainingCitizen(ACitizen* Citizen
 		return &tile;
 	}
 
-	FWorldTileStruct* nullTile = nullptr;
-
-	return nullTile;
+	return nullptr;
 }
 
 void UConquestManager::ModifyCitizensEvent(FWorldTileStruct* Tile, int32 Amount, bool bNegative)

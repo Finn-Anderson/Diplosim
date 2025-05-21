@@ -64,6 +64,9 @@ public:
 		void SaveSettings();
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateResolutionText();
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void LawPassed(bool bPassed, int32 For, int32 Against);
 
 	UFUNCTION(BlueprintImplementableEvent)

@@ -17,6 +17,7 @@
 #include "Player/Managers/ConquestManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Buildings/Building.h"
+#include "Clouds.h"
 
 UAtmosphereComponent::UAtmosphereComponent()
 {
@@ -74,6 +75,8 @@ UAtmosphereComponent::UAtmosphereComponent()
 	Fog->SetVolumetricFogExtinctionScale(4.0f);
 	Fog->SetVolumetricFogDistance(20000.0f);
 
+	Clouds = CreateDefaultSubobject<UCloudComponent>(TEXT("Clouds"));
+
 	WindComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WindComponent"));
 	WindComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 2500.0f));
 	WindComponent->bAutoActivate = true;
@@ -110,6 +113,11 @@ void UAtmosphereComponent::BeginPlay()
 void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
+		return;
+
+	Clouds->TickCloud(DeltaTime);
 
 	if (Grid->Camera->Start)
 		return;

@@ -28,6 +28,8 @@
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	GetPathFollowingComponent()->PrimaryComponentTick.bCanEverTick = false;
 }
 
 void ADiplosimAIController::DefaultAction()
@@ -362,6 +364,4 @@ void ADiplosimAIController::StopMovement()
 	MoveRequest.SetGoalActor(nullptr);
 	
 	Cast<AAI>(GetOwner())->MovementComponent->SetPoints({});
-
-	Cast<AAI>(GetOwner())->MovementComponent->SetComponentTickEnabled(false);
 }

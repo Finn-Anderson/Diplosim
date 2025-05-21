@@ -35,8 +35,6 @@
 
 ACitizen::ACitizen()
 {
-	PrimaryActorTick.bCanEverTick = true;
-
 	Capsule->SetCapsuleSize(9.0f, 11.5f);
 	Capsule->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel2);
 
@@ -46,7 +44,6 @@ ACitizen::ACitizen()
 	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));
 	HatMesh->SetWorldScale3D(FVector(0.1f, 0.1f, 0.1f));
 	HatMesh->SetCollisionProfileName("NoCollision", false);
-	HatMesh->SetComponentTickEnabled(false);
 	HatMesh->SetupAttachment(Mesh, "HatSocket");
 	HatMesh->PrimaryComponentTick.bCanEverTick = false;
 
@@ -80,6 +77,7 @@ ACitizen::ACitizen()
 	PopupComponent->SetComponentTickEnabled(false);
 	PopupComponent->SetGenerateOverlapEvents(false);
 	PopupComponent->SetupAttachment(RootComponent);
+	PopupComponent->PrimaryComponentTick.bCanEverTick = false;
 
 	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
 	AmbientAudioComponent->SetupAttachment(RootComponent);
@@ -172,7 +170,6 @@ void ACitizen::MainIslandSetup()
 	AIController->DefaultAction();
 
 	SetActorHiddenInGame(false);
-	SetActorTickEnabled(true);
 }
 
 void ACitizen::ColonyIslandSetup()
@@ -195,7 +192,6 @@ void ACitizen::ColonyIslandSetup()
 	SetActorLocation(FVector(0.0f, 0.0f, -10000.0f));
 
 	SetActorHiddenInGame(true);
-	SetActorTickEnabled(false);
 }
 
 void ACitizen::ClearCitizen()
@@ -1133,11 +1129,13 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 
 void ACitizen::HaveChild()
 {
-	if ((!IsValid(Building.House) && Camera->ConquestManager->GetColonyContainingCitizen(this) != nullptr) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue(EBillType::ChildPolicy))
+	if ((!IsValid(Building.House) && Camera->ConquestManager->GetColonyContainingCitizen(this) == nullptr) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue(EBillType::ChildPolicy))
 		return;
 
+	ACitizen* occupant = nullptr;
+
 	if (IsValid(Building.House)) {
-		ACitizen* occupant = Building.House->GetOccupant(this);
+		occupant = Building.House->GetOccupant(this);
 
 		if (Building.House->GetVisitors(occupant).Num() == Building.House->Space)
 			return;
@@ -1165,6 +1163,8 @@ void ACitizen::HaveChild()
 	if (Camera->CitizenManager->Citizens.Contains(this)) {
 		citizen->SetSex(Camera->CitizenManager->Citizens);
 		citizen->MainIslandSetup();
+
+		citizen->Building.House->AddVisitor(occupant, citizen);
 	}
 	else {
 		FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(this);
@@ -1185,8 +1185,6 @@ void ACitizen::HaveChild()
 		citizen->BioStruct.Siblings.Add(child);
 		child->BioStruct.Siblings.Add(citizen);
 	}
-
-	citizen->Building.House->AddVisitor(occupant, citizen);
 
 	BioStruct.Children.Add(citizen);
 	BioStruct.Partner->BioStruct.Children.Add(citizen);
@@ -1252,21 +1250,21 @@ TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
 {
 	TArray<ACitizen*> family;
 
-	if (BioStruct.Mother != nullptr && BioStruct.Mother->IsValidLowLevelFast())
+	if (BioStruct.Mother != nullptr && BioStruct.Mother->IsValidLowLevelFast() && Camera->CitizenManager->Citizens.Contains(BioStruct.Mother))
 		family.Add(Cast<ACitizen>(BioStruct.Mother));
 
-	if (BioStruct.Father != nullptr && BioStruct.Father->IsValidLowLevelFast())
+	if (BioStruct.Father != nullptr && BioStruct.Father->IsValidLowLevelFast() && Camera->CitizenManager->Citizens.Contains(BioStruct.Father))
 		family.Add(Cast<ACitizen>(BioStruct.Father));
 
-	if (BioStruct.Partner != nullptr && BioStruct.Partner->IsValidLowLevelFast())
+	if (BioStruct.Partner != nullptr && BioStruct.Partner->IsValidLowLevelFast() && Camera->CitizenManager->Citizens.Contains(BioStruct.Partner))
 		family.Add(Cast<ACitizen>(BioStruct.Partner));
 
 	for (ACitizen* child : BioStruct.Children)
-		if (IsValid(child))
+		if (IsValid(child) && Camera->CitizenManager->Citizens.Contains(child))
 			family.Add(child);
 
 	for (ACitizen* sibling : BioStruct.Siblings)
-		if (IsValid(sibling))
+		if (IsValid(sibling) && Camera->CitizenManager->Citizens.Contains(sibling))
 			family.Add(sibling);
 
 	if (bFactorAge && BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))

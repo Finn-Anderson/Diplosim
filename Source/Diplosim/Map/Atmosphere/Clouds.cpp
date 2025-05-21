@@ -16,8 +16,7 @@
 
 UCloudComponent::UCloudComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	SetComponentTickInterval(0.01f);
+	PrimaryComponentTick.bCanEverTick = false;
 
 	CloudMesh = nullptr;
 
@@ -40,17 +39,12 @@ void UCloudComponent::BeginPlay()
 	Settings->Clouds = this;
 }
 
-void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UCloudComponent::TickCloud(float DeltaTime)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
-		return;
-
 	for (int32 i = Clouds.Num() - 1; i > -1; i--) {
 		FCloudStruct cloudStruct = Clouds[i];
 
-		FVector location = cloudStruct.HISMCloud->GetRelativeLocation() + (Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation.Vector());
+		FVector location = cloudStruct.HISMCloud->GetRelativeLocation() + Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation.Vector() * 100.0f * DeltaTime;
 
 		float bobAmount = FMath::Sin(GetWorld()->GetTimeSeconds() / 2.0f) / 10.0f;
 		location.Z += bobAmount;
@@ -67,9 +61,9 @@ void UCloudComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		material->GetScalarParameterValue(info, opacity);
 
 		if (!cloudStruct.bHide && opacity != 1.0f)
-			material->SetScalarParameterValue("Opacity", FMath::Clamp(opacity + 0.005f, 0.0f, 1.0f));
+			material->SetScalarParameterValue("Opacity", FMath::Clamp(opacity + DeltaTime, 0.0f, 1.0f));
 		else if (cloudStruct.bHide)
-			material->SetScalarParameterValue("Opacity", FMath::Clamp(opacity - 0.005f, 0.0f, 1.0f));
+			material->SetScalarParameterValue("Opacity", FMath::Clamp(opacity - DeltaTime, 0.0f, 1.0f));
 
 		double distance = FVector::Dist(location, Cast<AGrid>(GetOwner())->GetActorLocation());
 
@@ -104,7 +98,7 @@ void UCloudComponent::Clear()
 
 void UCloudComponent::StartCloudTimer()
 {
-	Camera->CitizenManager->CreateTimer("Grow", GetOwner(), 90.0f, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), true, true);
+	Camera->CitizenManager->CreateTimer("Cloud", GetOwner(), 90.0f, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), true, true);
 }
 
 void UCloudComponent::ActivateCloud()
@@ -161,6 +155,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	cloud->SetRelativeLocation(Transform.GetLocation());
 	cloud->SetRelativeRotation(Transform.GetRotation());
 	cloud->SetupAttachment(GetOwner()->GetRootComponent());
+	cloud->PrimaryComponentTick.bCanEverTick = false;
 	cloud->RegisterComponent();
 
 	FCloudStruct cloudStruct;
@@ -196,6 +191,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 	precipitation->SetVariableObject(TEXT("Callback"), GetOwner());
 	precipitation->SetVariableVec3(TEXT("CloudLocation"), Transform.GetLocation());
+	precipitation->PrimaryComponentTick.bCanEverTick = false;
 
 	float spawnRate = 0.0f;
 

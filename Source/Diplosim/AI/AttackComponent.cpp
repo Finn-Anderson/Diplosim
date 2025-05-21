@@ -25,8 +25,8 @@ UAttackComponent::UAttackComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.bAllowTickBatching = true;
 	SetComponentTickInterval(0.1f);
-	SetTickableWhenPaused(false);
 
 	Damage = 10;
 
@@ -51,9 +51,6 @@ void UAttackComponent::BeginPlay()
 void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (DeltaTime < 0.0001f)
-		return;
 
 	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
 

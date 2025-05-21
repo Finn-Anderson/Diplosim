@@ -83,6 +83,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		class UExponentialHeightFogComponent* Fog;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
+		class UCloudComponent* Clouds;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* WindComponent;
 

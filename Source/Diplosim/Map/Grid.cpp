@@ -120,8 +120,6 @@ AGrid::AGrid()
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 	AtmosphereComponent->WindComponent->SetupAttachment(RootComponent);
 
-	CloudComponent = CreateDefaultSubobject<UCloudComponent>(TEXT("CloudComponent"));
-
 	CrystalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CrystalMesh"));
 	CrystalMesh->SetCollisionProfileName("NoCollision", false);
 	CrystalMesh->SetComponentTickEnabled(false);
@@ -561,8 +559,8 @@ void AGrid::Render()
 	AtmosphereComponent->SetWindDimensions(bound);
 
 	// Spawn clouds
-	CloudComponent->ActivateCloud();
-	CloudComponent->StartCloudTimer();
+	AtmosphereComponent->Clouds->ActivateCloud();
+	AtmosphereComponent->Clouds->StartCloudTimer();
 
 	// Set Camera Bounds
 	FVector c1 = FVector(bound * 100, bound * 100, 0);
@@ -1313,7 +1311,7 @@ void AGrid::Clear()
 	LavaComponent->Deactivate();
 	LavaSpawnLocations.Empty();
 
-	CloudComponent->Clear();
+	AtmosphereComponent->Clouds->Clear();
 
 	TArray<AActor*> baskets;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEggBasket::StaticClass(), baskets);
@@ -1335,13 +1333,13 @@ void AGrid::Clear()
 void AGrid::SetSeasonAffect(FString Period, float Increment)
 {
 	if (Period == "Winter")
-		CloudComponent->bSnow = true;
+		AtmosphereComponent->Clouds->bSnow = true;
 	else
-		CloudComponent->bSnow = false;
+		AtmosphereComponent->Clouds->bSnow = false;
 
 	AlterSeasonAffectGradually(Period, Increment);
 
-	CloudComponent->UpdateSpawnedClouds();
+	AtmosphereComponent->Clouds->UpdateSpawnedClouds();
 }
 
 void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)

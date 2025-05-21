@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
+#include "Animation/AnimSingleNodeInstance.h"
 
 #include "AI.h"
 #include "Citizen.h"
@@ -18,14 +19,13 @@
 #include "Buildings/Building.h"
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Misc/Festival.h"
-
 #include "Buildings/Work/Work.h"
 
 UAIMovementComponent::UAIMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-	SetComponentTickInterval(0.01f);
+	PrimaryComponentTick.bAllowTickBatching = true;
 	
 	MaxSpeed = 200.0f;
 	InitialSpeed = 200.0f;
@@ -45,7 +45,16 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
+	AI->Mesh->TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	UAnimSingleNodeInstance* animInst = AI->Mesh->GetSingleNodeInstance();
+
+	if (IsValid(animInst) && IsValid(animInst->GetAnimationAsset()) && animInst->IsPlaying())
+		animInst->UpdateAnimation(DeltaTime * AI->Mesh->GlobalAnimRateScale, false);
+	else if (Points.IsEmpty())
+		SetComponentTickEnabled(false);
+
+	if (DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
