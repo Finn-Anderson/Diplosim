@@ -234,7 +234,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		TArray<AActor*> actors;
 
 		for (ACitizen* citizen : Citizens) {
-			if (citizen->HealthComponent->GetHealth() <= 0 || IsValid(citizen->Building.BuildingAt))
+			if (citizen->HealthComponent->GetHealth() <= 0 || IsValid(citizen->Building.BuildingAt) || citizen->IsHidden())
 				continue;
 
 			int32 reach = citizen->Range / 15.0f;
@@ -349,6 +349,13 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 				enemy->AttackComponent->OverlappingEnemies.RemoveAt(i);
 			}
+		}
+
+		for (AAI* ai : AIPendingRemoval) {
+			if (ai->IsA<ACitizen>() && Citizens.Contains(Cast<ACitizen>(ai)))
+				Citizens.Remove(Cast<ACitizen>(ai));
+			else
+				Enemies.Remove(ai);
 		}
 	});
 }
@@ -607,8 +614,6 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	for (FPersonality personality : Personalities)
 		if (personality.Citizens.Contains(Citizen))
 			personality.Citizens.Remove(Citizen);
-
-	Citizens.Remove(Citizen);
 }
 
 //

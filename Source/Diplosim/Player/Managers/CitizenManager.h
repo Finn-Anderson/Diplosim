@@ -414,11 +414,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 		int32 GetElapsedTime(FString ID, AActor* Actor);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Buildings")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Citizens")
 		TArray<class ACitizen*> Citizens;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Citizens")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Buildings")
 		TArray<class ABuilding*> Buildings;
+
+	UPROPERTY()
+		TArray<class AAI*> AIPendingRemoval;
 
 	TDoubleLinkedList<FTimerStruct> Timers;
 

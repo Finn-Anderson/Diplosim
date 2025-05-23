@@ -37,6 +37,8 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		return;
 	}
 
+	AI->Mesh->TickComponent(DeltaTime, TickType, ThisTickFunction);
+
 	UAnimSingleNodeInstance* animInst = AI->Mesh->GetSingleNodeInstance();
 
 	if (IsValid(animInst) && IsValid(animInst->GetAnimationAsset()) && animInst->IsPlaying())

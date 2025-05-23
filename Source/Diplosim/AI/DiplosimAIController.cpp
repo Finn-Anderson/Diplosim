@@ -361,6 +361,9 @@ void ADiplosimAIController::StartMovement()
 
 void ADiplosimAIController::StopMovement()
 {
+	if (!IsValid(GetOwner()))
+		return;
+	
 	MoveRequest.SetGoalActor(nullptr);
 	
 	Cast<AAI>(GetOwner())->MovementComponent->SetPoints({});

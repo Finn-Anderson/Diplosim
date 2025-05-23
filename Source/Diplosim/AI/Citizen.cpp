@@ -174,7 +174,7 @@ void ACitizen::MainIslandSetup()
 
 void ACitizen::ColonyIslandSetup()
 {
-	Camera->CitizenManager->Citizens.Remove(this);
+	Camera->CitizenManager->AIPendingRemoval.Add(this);
 	Camera->CitizenManager->Infectible.Remove(this);
 
 	Camera->CitizenManager->RemoveTimer("Eat", this);

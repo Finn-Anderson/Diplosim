@@ -38,8 +38,9 @@ UAtmosphereComponent::UAtmosphereComponent()
 
 	Sun = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Sun"));
 	Sun->SetRelativeRotation(FRotator(-15.0f, 15.0f, 0.0f));
-	Sun->SetDynamicShadowDistanceMovableLight(20000.0f);
-	Sun->SetCascadeDistributionExponent(1.0f);
+	Sun->SetDynamicShadowDistanceMovableLight(40000.0f);
+	Sun->SetCascadeDistributionExponent(1.5f);
+	Sun->SetCascadeTransitionFraction(0.3f);
 	Sun->SetAtmosphereSunLightIndex(0);
 	Sun->SetShadowSlopeBias(1.0f);
 	Sun->SetShadowBias(1.0f);
@@ -52,8 +53,9 @@ UAtmosphereComponent::UAtmosphereComponent()
 
 	Moon = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Moon"));
 	Moon->SetRelativeRotation(FRotator(15.0f, 195.0f, 0.0f));
-	Moon->SetDynamicShadowDistanceMovableLight(20000.0f);
-	Moon->SetCascadeDistributionExponent(1.0f);
+	Moon->SetDynamicShadowDistanceMovableLight(40000.0f);
+	Moon->SetCascadeDistributionExponent(1.5f);
+	Moon->SetCascadeTransitionFraction(0.3f);
 	Moon->SetAtmosphereSunLightIndex(1);
 	Moon->SetShadowSlopeBias(1.0f);
 	Moon->SetShadowBias(1.0f);

@@ -153,6 +153,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 		Cast<AAI>(actor)->DetachFromControllerPendingDestroy();
 
+		Camera->CitizenManager->AIPendingRemoval.Add(Cast<AAI>(actor));
+
 		if (actor->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(actor);
 
@@ -212,9 +214,6 @@ void UHealthComponent::Clear(AActor* Attacker)
 	AActor* actor = GetOwner();
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-
-	if (actor->IsA<AAI>() && Camera->CitizenManager->Enemies.Contains(Cast<AAI>(actor)))
-		Camera->CitizenManager->Enemies.Remove(Cast<AAI>(actor));
 
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
