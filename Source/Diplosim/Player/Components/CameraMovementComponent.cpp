@@ -5,6 +5,7 @@
 #include "InputAction.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "Player/Camera.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -59,7 +60,10 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		movementSpeed *= 10.0f;
 	}
 
-	SetAttachedMovementLocation(Camera->ActorAttachedTo);
+	FVector movementLoc = SetAttachedMovementLocation(Camera->ActorAttachedTo);
+
+	if (movementLoc != FVector::Zero())
+		MovementLocation = movementLoc;
 
 	if (Camera->SpringArmComponent->TargetArmLength != TargetLength)
 		Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, DeltaTime, armSpeed);
@@ -83,19 +87,22 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 }
 
-void UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor)
+FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, bool bWidget)
 {
 	if (!IsValid(Actor))
-		return;
+		return FVector::Zero();
 
 	FVector height = FVector::Zero();
 
 	if (Actor->IsA<AAI>())
-		height.Z = Cast<AAI>(Actor)->Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z / 2;
+		height.Z = Cast<AAI>(Actor)->Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
 	else if (Actor->IsA<ABuilding>())
-		height.Z = Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2;
+		height.Z = Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
-	MovementLocation = Actor->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f) + height;
+	if (!bWidget || (bWidget && Actor->IsA<AAI>()))
+		height.Z = height.Z / 2.0f + 5.0f;
+
+	return Actor->GetActorLocation() + height;
 }
 
 void UCameraMovementComponent::SetBounds(FVector start, FVector end) {

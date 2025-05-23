@@ -27,6 +27,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		float GetMaximumSpeed();
 
+	void SetAnimation(UAnimSequence* Anim, bool bLooping, bool bSettingsChange = false);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float MaxSpeed;
 

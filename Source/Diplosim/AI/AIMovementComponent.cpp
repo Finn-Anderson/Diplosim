@@ -1,25 +1,11 @@
 #include "AI/AIMovementComponent.h"
 
-#include "Kismet/KismetSystemLibrary.h"
-#include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
 #include "Animation/AnimSingleNodeInstance.h"
 
 #include "AI.h"
-#include "Citizen.h"
-#include "Enemy.h"
-#include "AttackComponent.h"
 #include "DiplosimAIController.h"
-#include "NavigationSystem.h"
-#include "NavigationPath.h"
-#include "Player/Camera.h"
-#include "Map/Grid.h"
-#include "Universal/Resource.h"
-#include "Buildings/Building.h"
-#include "Buildings/Misc/Road.h"
-#include "Buildings/Misc/Festival.h"
-#include "Buildings/Work/Work.h"
+#include "Universal/DiplosimUserSettings.h"
 
 UAIMovementComponent::UAIMovementComponent()
 {
@@ -45,7 +31,11 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	AI->Mesh->TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (!IsValid(AI)) {
+		SetComponentTickEnabled(false);
+
+		return;
+	}
 
 	UAnimSingleNodeInstance* animInst = AI->Mesh->GetSingleNodeInstance();
 
@@ -54,10 +44,8 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	else if (Points.IsEmpty())
 		SetComponentTickEnabled(false);
 
-	if (DeltaTime < 0.001f || DeltaTime > 1.0f)
+	if (DeltaTime < 0.001f || DeltaTime > 1.0f || Points.IsEmpty())
 		return;
-
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
 	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);
 	
@@ -108,7 +96,7 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		FCollisionQueryParams queryParams;
 		queryParams.AddIgnoredActor(AI);
 
-		int32 z = 0;
+		double z = 0;
 
 		if (GetWorld()->LineTraceSingleByChannel(hit, AI->GetActorLocation(), AI->GetActorLocation() - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_GameTraceChannel1, queryParams))
 			z = hit.Location.Z;
@@ -124,17 +112,13 @@ void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		if (AI->GetActorRotation() != targetRotation)
 			AI->SetActorRotation(FMath::RInterpTo(AI->GetActorRotation(), targetRotation, DeltaTime, 10.0f));
 
-		if (IsValid(CurrentAnim))
+		if (CurrentAnim == MoveAnim)
 			return;
 
-		AI->Mesh->PlayAnimation(MoveAnim, true);
-
-		CurrentAnim = MoveAnim;
+		SetAnimation(MoveAnim, true);
 	}
 	else if (CurrentAnim == MoveAnim) {
-		AI->Mesh->Play(false);
-
-		CurrentAnim = nullptr;
+		SetAnimation(nullptr, false);
 
 		AI->AIController->StopMovement();
 	}
@@ -149,14 +133,10 @@ void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 {
 	Points = VectorPoints;
 
-	if (!Points.IsEmpty()) {
+	if (!Points.IsEmpty())
 		AI->AIController->StartMovement();
-	}
-	else if (CurrentAnim == MoveAnim) {
-		AI->Mesh->Play(false);
-
-		CurrentAnim = nullptr;
-	}
+	else if (CurrentAnim == MoveAnim)
+		SetAnimation(nullptr, false);
 }
 
 void UAIMovementComponent::SetMaxSpeed(int32 Energy)
@@ -167,4 +147,24 @@ void UAIMovementComponent::SetMaxSpeed(int32 Energy)
 float UAIMovementComponent::GetMaximumSpeed()
 {
 	return MaxSpeed;
+}
+
+void UAIMovementComponent::SetAnimation(UAnimSequence* Anim, bool bLooping, bool bSettingsChange)
+{
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+
+	if (!settings->GetViewAnimations() && !bSettingsChange)
+		return;
+
+	if (IsValid(Anim)) {
+		AI->Mesh->PlayAnimation(MoveAnim, bLooping);
+
+		if (!IsComponentTickEnabled())
+			SetComponentTickEnabled(true);
+	}
+	else {
+		AI->Mesh->Play(false);
+	}
+
+	CurrentAnim = Anim;
 }

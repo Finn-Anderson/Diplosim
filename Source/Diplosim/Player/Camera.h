@@ -272,9 +272,6 @@ public:
 		class UUserWidget* FactionColourUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-		class USpringArmComponent* WidgetSpringArmComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;
 
 	UPROPERTY()

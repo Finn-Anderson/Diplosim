@@ -216,27 +216,22 @@ void UAttackComponent::Attack()
 	if (GetOwner()->IsA<ACitizen>())
 		time /= Cast<ACitizen>(GetOwner())->GetProductivity();
 
-	if (*ProjectileClass) {
-		if (RangeAnim->IsValidLowLevelFast()) {
-			RangeAnim->RateScale = 0.5f / time;
-			
-			if (GetOwner()->IsA<AAI>()) {
-				Cast<AAI>(GetOwner())->Mesh->PlayAnimation(RangeAnim, false);
+	UAnimSequence* anim = nullptr;
 
-				Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = RangeAnim;
-			}
-		}
+	if (*ProjectileClass) {
+		anim = RangeAnim;
 	}
 	else {
-		if (MeleeAnim->IsValidLowLevelFast()) {
-			MeleeAnim->RateScale = 0.5f / time;
-
-			Cast<AAI>(GetOwner())->Mesh->PlayAnimation(MeleeAnim, false);
-
-			Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = MeleeAnim;
-		}
+		if (IsValid(MeleeAnim))
+			anim = MeleeAnim;
 		else if (GetOwner()->IsA<AEnemy>())
 			Cast<AEnemy>(GetOwner())->Zap(CurrentTarget->GetActorLocation());
+	}
+
+	if (GetOwner()->IsA<AAI>() && IsValid(anim)) {
+		anim->RateScale = 0.5f / time;
+
+		Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(anim, false);
 	}
 
 	AttackTimer = time;

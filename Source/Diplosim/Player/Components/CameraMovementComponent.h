@@ -19,7 +19,7 @@ protected:
 public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
-	void SetAttachedMovementLocation(AActor* Actor);
+	FVector SetAttachedMovementLocation(AActor* Actor, bool bWidget = false);
 
 	UPROPERTY()
 		class ACamera* Camera;

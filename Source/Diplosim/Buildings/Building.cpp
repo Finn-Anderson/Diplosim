@@ -833,12 +833,10 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	if (!IsValid(anim))
 		return;
 
-	Citizen->MovementComponent->CurrentAnim = nullptr;
-
 	if (!IsA<AFestival>())
 		anim->RateScale = 1.0f * Citizen->GetProductivity();
 
-	Citizen->Mesh->PlayAnimation(anim, true);
+	Citizen->MovementComponent->SetAnimation(anim, true);
 
 	if (!IsValid(CitizenSound))
 		return;

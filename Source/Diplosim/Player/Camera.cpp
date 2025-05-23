@@ -78,17 +78,8 @@ ACamera::ACamera()
 
 	ConquestManager = CreateDefaultSubobject<UConquestManager>(TEXT("ConquestManager"));
 
-	WidgetSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("WidgetSpringArmComponent"));
-	WidgetSpringArmComponent->SetupAttachment(RootComponent);
-	WidgetSpringArmComponent->SetTickableWhenPaused(true);
-	WidgetSpringArmComponent->TargetArmLength = 0.0f;
-	WidgetSpringArmComponent->bUsePawnControlRotation = true;
-	WidgetSpringArmComponent->bEnableCameraLag = true;
-	WidgetSpringArmComponent->CameraLagSpeed = 15.0f;
-	WidgetSpringArmComponent->bDoCollisionTest = false;
-
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
-	WidgetComponent->SetupAttachment(WidgetSpringArmComponent);
+	WidgetComponent->SetupAttachment(RootComponent);
 	WidgetComponent->SetTickableWhenPaused(true);
 	WidgetComponent->SetHiddenInGame(true);
 	WidgetComponent->SetDrawSize(FVector2D(0.0f, 0.0f));
@@ -437,10 +428,14 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
 
 	WidgetComponent->SetHiddenInGame(!bStatus);
 
-	if (bStatus)
-		WidgetSpringArmComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, *SocketName);
-	else
-		WidgetSpringArmComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	if (bStatus) {
+		WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform, *SocketName);
+
+		WidgetComponent->SetWorldLocation(MovementComponent->SetAttachedMovementLocation(Actor, true));
+	}
+	else {
+		WidgetComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+	}
 }
 
 void ACamera::Attach(AActor* Actor)
@@ -624,8 +619,8 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 	else if (!(bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)) {
 		FocusedCitizen = nullptr;
 
-		if (WidgetSpringArmComponent->GetAttachParent() != RootComponent && !IsValid(HoveredActor.Actor)) {
-			SetInteractStatus(WidgetSpringArmComponent->GetAttachmentRootActor(), false);
+		if (WidgetComponent->GetAttachParent() != RootComponent && !IsValid(HoveredActor.Actor)) {
+			SetInteractStatus(WidgetComponent->GetAttachmentRootActor(), false);
 
 			return;
 		}
@@ -700,7 +695,7 @@ void ACamera::Menu()
 		return;
 
 	if (!WidgetComponent->bHiddenInGame && !BuildComponent->IsComponentTickEnabled()) {
-		SetInteractStatus(WidgetSpringArmComponent->GetAttachmentRootActor(), false);
+		SetInteractStatus(WidgetComponent->GetAttachmentRootActor(), false);
 
 		return;
 	}
