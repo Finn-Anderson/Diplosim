@@ -684,11 +684,14 @@ void UCitizenManager::SpawnDisease()
 void UCitizenManager::Infect(ACitizen* Citizen)
 {
 	Citizen->DiseaseNiagaraComponent->Activate();
-	Citizen->PopupComponent->SetHiddenInGame(false);
 
 	Citizen->SetActorTickEnabled(true);
 
-	AsyncTask(ENamedThreads::GameThread, [Citizen]() { Citizen->SetPopupImageState("Add", "Disease"); });
+	AsyncTask(ENamedThreads::GameThread, [Citizen]() {
+		Citizen->SetPopupImageState("Add", "Disease");
+
+		Citizen->PopupComponent->SetHiddenInGame(false);
+	});
 
 	Infected.Add(Citizen);
 

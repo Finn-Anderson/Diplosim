@@ -455,10 +455,10 @@ void UDiplosimUserSettings::SetShadowLevel(int32 Value)
 	ShadowLevel = Value;
 
 	if (ShadowLevel == 5) {
-		GEngine->Exec(GetWorld(), TEXT("r.RayTracing.Enable 1"));
+		GEngine->Exec(GetWorld(), TEXT("r.Shadow.Virtual.Enable 1"));
 	}
 	else {
-		GEngine->Exec(GetWorld(), TEXT("r.RayTracing.Enable 0"));
+		GEngine->Exec(GetWorld(), TEXT("r.Shadow.Virtual.Enable 0"));
 
 		FString cmd = "r.Shadow.CSM.MaxCascades " + FString::FromInt(ShadowLevel);
 

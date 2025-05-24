@@ -60,6 +60,7 @@ AGrid::AGrid()
 	HISMGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMGround->NumCustomDataFloats = 8;
 	HISMGround->bAutoRebuildTreeOnInstanceChanges = false;
+	HISMGround->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
 
 	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
 	HISMFlatGround->SetupAttachment(GetRootComponent());
