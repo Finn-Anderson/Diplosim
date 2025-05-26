@@ -5,24 +5,58 @@
 #include "ConquestManager.generated.h"
 
 USTRUCT(BlueprintType)
-struct FFactionStruct
+struct FFactionHappinessStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
+	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
 		FString Owner;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
-		UTexture2D* Texture;
+	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
+		TMap<FString, int32> Modifiers;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
-		FLinearColor Colour;
-
-	FFactionStruct()
+	FFactionHappinessStruct()
 	{
-		Owner = "";
-		Texture = nullptr;
-		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
+		ClearValues();
+	}
+
+	void ClearValues()
+	{
+		Modifiers.Empty();
+	}
+	
+	bool Contains(FString Key)
+	{
+		return Modifiers.Contains(Key);
+	}
+
+	int32 GetValue(FString Key)
+	{
+		return *Modifiers.Find(Key);
+	}
+
+	void SetValue(FString Key, int32 Value)
+	{
+		Modifiers.Add(Key, Value);
+	}
+
+	void RemoveValue(FString Key)
+	{
+		Modifiers.Remove(Key);
+	}
+
+	void Decay(FString Key) {
+		int32 value = GetValue(Key);
+
+		if (value < 0)
+			value++;
+		else
+			value--;
+
+		if (value != 0)
+			SetValue(Key, value);
+		else
+			RemoveValue(Key);
 	}
 
 	bool operator==(const FFactionStruct& other) const
@@ -31,6 +65,45 @@ struct FFactionStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FFactionStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FString Owner;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		UTexture2D* Texture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FLinearColor Colour;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		TArray<FString> AtWar;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		TArray<FString> Allies;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		TArray<FFactionHappinessStruct> Happiness;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		int32 WarFatigue;
+
+	FFactionStruct()
+	{
+		Owner = "";
+		Texture = nullptr;
+		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
+		WarFatigue = 0;
+	}
+
+	bool operator==(const FFactionStruct& other) const
+	{
+		return (other.Owner == Owner);
+	}
+};
 
 USTRUCT(BlueprintType)
 struct FWorldTileStruct
@@ -67,6 +140,14 @@ struct FWorldTileStruct
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
 		TMap<class ACitizen*, FString> Moving;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		FFactionStruct* RaidStarter;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		TMap<class ACitizen*, int32> Raiding;
+
+	int32 HoursColonised;
+
 	FWorldTileStruct() {
 		X = 0;
 		Y = 0;
@@ -74,6 +155,7 @@ struct FWorldTileStruct
 		bCapital = false;
 		Name = "";
 		Abundance = 1;
+		HoursColonised = 0;
 	}
 
 	bool operator==(const FWorldTileStruct& other) const
@@ -160,7 +242,7 @@ public:
 
 	void SpawnCitizenAtColony(FWorldTileStruct* Tile);
 
-	void MoveToColony(FWorldTileStruct* Tile, class ACitizen* Citizen);
+	void MoveToColony(FFactionStruct Faction, FWorldTileStruct* Tile, class ACitizen* Citizen);
 
 	void StartTransmissionTimer(class ACitizen* Citizen);
 
@@ -172,16 +254,23 @@ public:
 
 	void ModifyCitizensEvent(FWorldTileStruct* Tile, int32 Amount, bool bNegative);
 
-	bool CanTravel(class ACitizen* Citizen);
+	UFUNCTION(BlueprintCallable)
+		bool CanTravel(class ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
 		FWorldTileStruct GetTileInformation(int32 Index);
 
 	UFUNCTION(BlueprintCallable)
-		TArray<FFactionStruct> GetFactions();
+		TArray<FFactionStruct*> GetFactions();
+
+	UFUNCTION(BlueprintCallable)
+		FFactionStruct* GetFactionFromOwner(FString Owner);
 
 	UFUNCTION(BlueprintCallable)
 		void SetFactionTexture(FFactionStruct Faction, UTexture2D* Texture, FLinearColor Colour);
+
+	UFUNCTION(BlueprintCallable)
+		void SetColonyName(FWorldTileStruct* Tile, FString NewColonyName);
 
 	UFUNCTION(BlueprintCallable)
 		void SetTerritoryName(FString OldEmpireName);
@@ -228,4 +317,24 @@ public:
 
 	UPROPERTY()
 		class APortal* Portal;
+
+	// Diplomacy
+	FFactionHappinessStruct* GetHappinessWithFaction(FFactionStruct* Faction, FFactionStruct* Target);
+
+	int32 GetHappinessValue(FFactionHappinessStruct* Happiness);
+
+	void SetFactionsHappiness(FFactionStruct* Faction);
+
+	void EvaluateDiplomacy(FFactionStruct* Faction);
+
+	TTuple<bool, bool> IsWarWinnable(FFactionStruct* Faction, FFactionStruct* Target);
+
+	void Peace(FFactionStruct* Faction1, FFactionStruct* Faction2);
+
+	void Ally(FFactionStruct* Faction1, FFactionStruct* Faction2);
+
+	// Raiding
+	bool CanStartRaid(FWorldTileStruct* Tile, FFactionStruct Occupier);
+
+	void EvaluateRaid(FWorldTileStruct* Tile);
 };

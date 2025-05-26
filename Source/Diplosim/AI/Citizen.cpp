@@ -1691,6 +1691,9 @@ void ACitizen::SetHappiness()
 			Happiness.SetValue("Represented", 15);
 	}
 
+	if (Camera->ConquestManager->GetFactionFromOwner(Camera->ConquestManager->EmpireName)->WarFatigue >= 120)
+		Happiness.SetValue("High War Fatigue", -15);
+
 	if (GetHappiness() < 35)
 		SadTimer++;
 	else
