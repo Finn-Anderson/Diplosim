@@ -1172,7 +1172,7 @@ void ACitizen::HaveChild()
 		citizen->SetSex(tile->Citizens);
 		citizen->SetActorHiddenInGame(true);
 
-		if (tile->Occupier.Owner == Camera->ConquestManager->EmpireName)
+		if (tile->Owner == Camera->ConquestManager->EmpireName)
 			citizen->ApplyResearch();
 
 		tile->Citizens.Add(citizen);
@@ -1691,7 +1691,7 @@ void ACitizen::SetHappiness()
 			Happiness.SetValue("Represented", 15);
 	}
 
-	if (Camera->ConquestManager->GetFactionFromOwner(Camera->ConquestManager->EmpireName)->WarFatigue >= 120)
+	if (Camera->ConquestManager->GetFactionFromOwner(Camera->ConquestManager->EmpireName).WarFatigue >= 120)
 		Happiness.SetValue("High War Fatigue", -15);
 
 	if (GetHappiness() < 35)

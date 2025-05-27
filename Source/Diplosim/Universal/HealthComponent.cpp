@@ -31,6 +31,7 @@ UHealthComponent::UHealthComponent()
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetComponentTickInterval(0.01f);
 
+	RebuildLocation = FVector::Zero();
 	CrumbleLocation = FVector::Zero();
 
 	HealthMultiplier = 1.0f;

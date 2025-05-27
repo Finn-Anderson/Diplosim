@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "Components/ActorComponent.h"
 #include "ConquestManager.generated.h"
 
@@ -59,7 +60,7 @@ struct FFactionHappinessStruct
 			RemoveValue(Key);
 	}
 
-	bool operator==(const FFactionStruct& other) const
+	bool operator==(const FFactionHappinessStruct& other) const
 	{
 		return (other.Owner == Owner);
 	}
@@ -71,7 +72,7 @@ struct FFactionStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
-		FString Owner;
+		FString Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
 		UTexture2D* Texture;
@@ -91,17 +92,25 @@ struct FFactionStruct
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
 		int32 WarFatigue;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		EParty PartyInPower;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		EReligion Religion;
+
 	FFactionStruct()
 	{
-		Owner = "";
+		Name = "";
 		Texture = nullptr;
 		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
 		WarFatigue = 0;
+		PartyInPower = EParty::Undecided;
+		Religion = EReligion::Atheist;
 	}
 
 	bool operator==(const FFactionStruct& other) const
 	{
-		return (other.Owner == Owner);
+		return (other.Name == Name);
 	}
 };
 
@@ -123,7 +132,7 @@ struct FWorldTileStruct
 		bool bCapital;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
-		FFactionStruct Occupier;
+		FString Owner;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
 		FString Name;
@@ -141,7 +150,7 @@ struct FWorldTileStruct
 		TMap<class ACitizen*, FString> Moving;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
-		FFactionStruct* RaidStarter;
+		FString RaidStarterName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
 		TMap<class ACitizen*, int32> Raiding;
@@ -240,9 +249,9 @@ public:
 
 	void GiveResource();
 
-	void SpawnCitizenAtColony(FWorldTileStruct* Tile);
+	void SpawnCitizenAtColony(FWorldTileStruct& Tile);
 
-	void MoveToColony(FFactionStruct Faction, FWorldTileStruct* Tile, class ACitizen* Citizen);
+	void MoveToColony(FFactionStruct& Faction, FWorldTileStruct& Tile, class ACitizen* Citizen);
 
 	void StartTransmissionTimer(class ACitizen* Citizen);
 
@@ -252,7 +261,7 @@ public:
 
 	FWorldTileStruct* GetColonyContainingCitizen(class ACitizen* Citizen);
 
-	void ModifyCitizensEvent(FWorldTileStruct* Tile, int32 Amount, bool bNegative);
+	void ModifyCitizensEvent(FWorldTileStruct& Tile, int32 Amount, bool bNegative);
 
 	UFUNCTION(BlueprintCallable)
 		bool CanTravel(class ACitizen* Citizen);
@@ -261,16 +270,13 @@ public:
 		FWorldTileStruct GetTileInformation(int32 Index);
 
 	UFUNCTION(BlueprintCallable)
-		TArray<FFactionStruct*> GetFactions();
+		FFactionStruct& GetFactionFromOwner(FString Owner);
 
 	UFUNCTION(BlueprintCallable)
-		FFactionStruct* GetFactionFromOwner(FString Owner);
+		void SetFactionTexture(FFactionStruct& Faction, UTexture2D* Texture, FLinearColor Colour);
 
 	UFUNCTION(BlueprintCallable)
-		void SetFactionTexture(FFactionStruct Faction, UTexture2D* Texture, FLinearColor Colour);
-
-	UFUNCTION(BlueprintCallable)
-		void SetColonyName(FWorldTileStruct* Tile, FString NewColonyName);
+		void SetColonyName(FWorldTileStruct& Tile, FString NewColonyName);
 
 	UFUNCTION(BlueprintCallable)
 		void SetTerritoryName(FString OldEmpireName);
@@ -278,6 +284,8 @@ public:
 		void RemoveFromRecentlyMoved(class ACitizen* Citizen);
 
 	TArray<ACitizen*> GetIslandCitizens(FWorldTileStruct* Tile);
+
+	FWorldTileStruct* FindCapital(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
 		FString EmpireName;
@@ -309,6 +317,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
 		TArray<FWorldTileStruct> World;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		TArray<FFactionStruct> Factions;
+
 	UPROPERTY()
 		TArray<class ACitizen*> RecentlyMoved;
 
@@ -319,22 +330,28 @@ public:
 		class APortal* Portal;
 
 	// Diplomacy
-	FFactionHappinessStruct* GetHappinessWithFaction(FFactionStruct* Faction, FFactionStruct* Target);
+	void SetFactionCulture(FFactionStruct& Faction);
 
-	int32 GetHappinessValue(FFactionHappinessStruct* Happiness);
+	FFactionHappinessStruct& GetHappinessWithFaction(FFactionStruct& Faction, FFactionStruct& Target);
 
-	void SetFactionsHappiness(FFactionStruct* Faction);
+	int32 GetHappinessValue(FFactionHappinessStruct& Happiness);
 
-	void EvaluateDiplomacy(FFactionStruct* Faction);
+	void SetFactionsHappiness(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 
-	TTuple<bool, bool> IsWarWinnable(FFactionStruct* Faction, FFactionStruct* Target);
+	void EvaluateDiplomacy(FFactionStruct& Faction);
 
-	void Peace(FFactionStruct* Faction1, FFactionStruct* Faction2);
+	TTuple<bool, bool> IsWarWinnable(FFactionStruct& Faction, FFactionStruct& Target);
+
+	void Peace(FFactionStruct& Faction1, FFactionStruct& Faction2);
 
 	void Ally(FFactionStruct* Faction1, FFactionStruct* Faction2);
 
+	void Rebel(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
+
+	void Gift(FFactionStruct& Faction, TSubclassOf<class AResource> Resource, int32 Amount);
+
 	// Raiding
-	bool CanStartRaid(FWorldTileStruct* Tile, FFactionStruct Occupier);
+	bool CanStartRaid(FWorldTileStruct* Tile, FFactionStruct* Occupier);
 
 	void EvaluateRaid(FWorldTileStruct* Tile);
 };

@@ -98,7 +98,7 @@ void UResearchManager::Research(float Amount)
 			citizen->ApplyToMultiplier(element.Key, element.Value);
 
 		for (FWorldTileStruct& tile : camera->ConquestManager->World) {
-			if (!tile.bIsland || tile.Occupier.Owner != camera->ConquestManager->EmpireName || tile.bCapital)
+			if (!tile.bIsland || tile.Owner != camera->ConquestManager->EmpireName || tile.bCapital)
 				continue;
 			
 			for (ACitizen* citizen : tile.Citizens)
