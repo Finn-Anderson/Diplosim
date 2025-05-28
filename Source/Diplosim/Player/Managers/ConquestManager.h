@@ -115,6 +115,31 @@ struct FFactionStruct
 };
 
 USTRUCT(BlueprintType)
+struct FRaidStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Raiding")
+		FString Owner;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Raiding")
+		TMap<class ACitizen*, int32> Raiders;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Raiding")
+		bool bStation;
+
+	FRaidStruct() 
+	{
+		bStation = false;
+	}
+
+	bool operator==(const FRaidStruct& other) const
+	{
+		return (other.Owner == Owner);
+	}
+};
+
+USTRUCT(BlueprintType)
 struct FWorldTileStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -147,13 +172,16 @@ struct FWorldTileStruct
 		TArray<class ACitizen*> Citizens;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
-		TMap<class ACitizen*, FString> Moving;
+		TMap<FString, TArray<class ACitizen*>> Stationed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+		TMap<class ACitizen*, int32> Moving;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
 		FString RaidStarterName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
-		TMap<class ACitizen*, int32> Raiding;
+		TArray<FRaidStruct> RaidParties;
 
 	int32 HoursColonised;
 
@@ -251,7 +279,7 @@ public:
 
 	void SpawnCitizenAtColony(FWorldTileStruct& Tile);
 
-	void MoveToColony(FFactionStruct& Faction, FWorldTileStruct& Tile, class ACitizen* Citizen);
+	void MoveToColony(FFactionStruct& Faction, FWorldTileStruct& Tile, class ACitizen* Citizen, bool bStation = false);
 
 	void StartTransmissionTimer(class ACitizen* Citizen);
 
@@ -350,8 +378,24 @@ public:
 
 	void Gift(FFactionStruct& Faction, TSubclassOf<class AResource> Resource, int32 Amount);
 
+	UFUNCTION(BlueprintCallable)
+		bool CanBuyIsland(FWorldTileStruct Tile);
+
+	int32 GetIslandWorth(FWorldTileStruct Tile);
+
+	void BuyIsland(FWorldTileStruct Tile);
+
 	// Raiding
+	UFUNCTION(BlueprintCallable)
+		bool IsCurrentlyRaiding(FFactionStruct Faction1, FFactionStruct Faction2);
+
+	UFUNCTION(BlueprintCallable)
+		bool CanRaidIsland(FFactionStruct Faction, FWorldTileStruct Tile);
+
 	bool CanStartRaid(FWorldTileStruct* Tile, FFactionStruct* Occupier);
 
 	void EvaluateRaid(FWorldTileStruct* Tile);
+
+	// AI
+	void EvaluateAI(FFactionStruct& Faction);
 };

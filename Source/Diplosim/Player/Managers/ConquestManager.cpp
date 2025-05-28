@@ -257,6 +257,8 @@ void UConquestManager::GiveResource()
 		SetFactionsHappiness(faction, occupiedIslands);
 
 		EvaluateDiplomacy(faction);
+
+		EvaluateAI(faction);
 	}
 
 	for (FFactionStruct faction : factionsToRemove)
@@ -287,18 +289,32 @@ void UConquestManager::SpawnCitizenAtColony(FWorldTileStruct& Tile)
 	Tile.Citizens.Add(citizen);
 }
 
-void UConquestManager::MoveToColony(FFactionStruct& Faction, FWorldTileStruct& Tile, ACitizen* Citizen)
+void UConquestManager::MoveToColony(FFactionStruct& Faction, FWorldTileStruct& Tile, ACitizen* Citizen, bool bStation)
 {
 	if (!CanTravel(Citizen))
 		return;
 
-	if (Tile.Owner == "")
+	if (Tile.Owner == "") {
 		Tile.Owner = Faction.Name;
-	else if (Tile.Owner != Faction.Name && Tile.RaidStarterName == "")
-		Tile.RaidStarterName = Faction.Name;
+	}
+	else if (Tile.Owner != Faction.Name && !Faction.Allies.Contains(Tile.Owner)) {
+		if (Tile.RaidStarterName == "")
+			Tile.RaidStarterName = Faction.Name;
+
+		FRaidStruct raid;
+		raid.Owner = Faction.Name;
+
+		int32 index = Tile.RaidParties.Find(raid);
+
+		if (index == INDEX_NONE) {
+			raid.bStation = bStation;
+
+			Tile.RaidParties.Add(raid);
+		}
+	}
 	
 	FWorldTileStruct* tile = GetColonyContainingCitizen(Citizen);
-	tile->Moving.Add(Citizen, Tile.Name);
+	tile->Moving.Add(Citizen, World.Find(*tile));
 
 	if (tile->bCapital && tile->Owner == EmpireName)
 		Citizen->AIController->AIMoveTo(Portal);
@@ -310,26 +326,22 @@ void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
 {
 	FWorldTileStruct* oldTile = GetColonyContainingCitizen(Citizen);
 
-	if (!CanTravel(Citizen)) {
+	int32 index = *oldTile->Moving.Find(Citizen);
+
+	FWorldTileStruct* targetTile = &World[index];
+
+	FFactionStruct& faction = GetFactionFromOwner(oldTile->Owner);
+
+	FRaidStruct raid;
+	raid.Owner = faction.Name;
+
+	if (!CanTravel(Citizen) || (!faction.Allies.Contains(targetTile->Owner) && !targetTile->RaidParties.Contains(raid))) {
 		oldTile->Moving.Remove(Citizen);
 
 		if (oldTile->bCapital && oldTile->Owner == EmpireName)
 			Citizen->AIController->DefaultAction();
 
 		return;
-	}
-
-	FString islandName = *oldTile->Moving.Find(Citizen);
-
-	FWorldTileStruct* targetTile = nullptr;
-
-	for (FWorldTileStruct& tile : World) {
-		if (tile.Name != islandName)
-			continue;
-
-		targetTile = &tile;
-
-		break;
 	}
 
 	oldTile->Citizens.Remove(Citizen);
@@ -347,15 +359,39 @@ void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
 
 void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileStruct* Tile, ACitizen* Citizen)
 {
-	OldTile->Moving.Remove(Citizen);
-
 	if (Tile->Owner != OldTile->Owner) {
-		int32 index = World.Find(*OldTile);
+		FFactionStruct& faction = GetFactionFromOwner(OldTile->Owner);
 
-		Tile->Raiding.Add(Citizen, index);
+		FRaidStruct raid;
+		raid.Owner = faction.Name;
 
-		if (CanStartRaid(Tile, &GetFactionFromOwner(OldTile->Owner)))
-			Camera->CitizenManager->CreateTimer("ColonyRaid" + Tile->Name, GetOwner(), 1.0f, FTimerDelegate::CreateUObject(this, &UConquestManager::EvaluateRaid, Tile), true);
+		if (!faction.Allies.Contains(Tile->Owner) && !Tile->RaidParties.Contains(raid)) {
+			MoveToColony(faction, *OldTile, Citizen);
+
+			return;
+		}
+		else if (faction.Allies.Contains(Tile->Owner)) {
+			if (Tile->Stationed.Contains(faction.Name)) {
+				TArray<ACitizen*>* stationed = Tile->Stationed.Find(faction.Name);
+				stationed->Add(Citizen);
+			}
+			else {
+				TArray<ACitizen*> stationed;
+				stationed.Add(Citizen);
+
+				Tile->Stationed.Add(faction.Name, stationed);
+			}
+		}
+		else {
+			int32 index = World.Find(*OldTile);
+
+			int32 raidIndex = Tile->RaidParties.Find(raid);
+
+			Tile->RaidParties[raidIndex].Raiders.Add(Citizen, index);
+
+			if (CanStartRaid(Tile, &GetFactionFromOwner(OldTile->Owner)))
+				Camera->CitizenManager->CreateTimer("ColonyRaid" + Tile->Name, GetOwner(), 1.0f, FTimerDelegate::CreateUObject(this, &UConquestManager::EvaluateRaid, Tile), true);
+		}
 	}
 	else if (Tile->bCapital && Tile->Owner == EmpireName) {
 		Citizen->MainIslandSetup();
@@ -365,6 +401,8 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 	else {
 		Tile->Citizens.Add(Citizen);
 	}
+
+	OldTile->Moving.Remove(Citizen);
 
 	Camera->CitizenManager->CreateTimer("RecentlyMoved", Citizen, 300, FTimerDelegate::CreateUObject(this, &UConquestManager::RemoveFromRecentlyMoved, Citizen), false);
 }
@@ -379,7 +417,18 @@ TArray<float> UConquestManager::ProduceEvent()
 FWorldTileStruct* UConquestManager::GetColonyContainingCitizen(ACitizen* Citizen)
 {
 	for (FWorldTileStruct& tile : World) {
-		if (!tile.bIsland || !tile.Citizens.Contains(Citizen))
+		bool bStationed = false;
+
+		for (auto& element: tile.Stationed) {
+			if (!element.Value.Contains(Citizen))
+				continue;
+			
+			bStationed = true;
+
+			break;
+		}
+
+		if (!tile.bIsland || (!tile.Citizens.Contains(Citizen) && !bStationed))
 			continue;
 
 		return &tile;
@@ -720,8 +769,53 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 		if (value < 12 && Faction.AtWar.IsEmpty() && Faction.Allies.Contains(f.Name)) {
 			Faction.Allies.Remove(f.Name);
 			f.Allies.Remove(Faction.Name);
+
+			FWorldTileStruct* factionCapital = nullptr;
+			FWorldTileStruct* fCapital = nullptr;
+
+			TMap<FString, TArray<ACitizen*>> stationed;
+			stationed.Add(Faction.Name, {});
+			stationed.Add(f.Name, {});
+
+			for (FWorldTileStruct& tile : World) {
+				if (!tile.bIsland || (tile.Owner != Faction.Name && tile.Owner != f.Name))
+					continue;
+
+				if (tile.bCapital) {
+					if (Faction.Name == tile.Owner)
+						factionCapital = &tile;
+					else
+						fCapital = &tile;
+				}
+				else {
+					for (auto& element : tile.Stationed) {
+						if (!stationed.Contains(element.Key))
+							continue;
+
+						TArray<ACitizen*>* citizens = stationed.Find(element.Key);
+						citizens->Append(element.Value);
+					}
+				}
+			}
+
+			for (auto& element : stationed) {
+				FFactionStruct* chosenFaction;
+				FWorldTileStruct* chosenCapital;
+
+				if (element.Key == Faction.Name) {
+					chosenFaction = &Faction;
+					chosenCapital = factionCapital;
+				}
+				else {
+					chosenFaction = &f;
+					chosenCapital = fCapital;
+				}
+
+				for (ACitizen* citizen : element.Value)
+					MoveToColony(*chosenFaction, *chosenCapital, citizen);
+			}
 		}
-		else if (Faction.AtWar.Contains(f.Name)) {
+		else if (Faction.AtWar.Contains(f.Name) && !IsCurrentlyRaiding(Faction, f)) {
 			int32 newValue = value;
 			int32 newFValue = fValue;
 
@@ -745,9 +839,9 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 		if (f.Name == EmpireName)
 			fValue = 24;
 
-		if (value < 6 && Faction.AtWar.IsEmpty() && Faction.WarFatigue == 0 && IsWarWinnable(Faction, f).Key)
+		if (value < 6 && Faction.AtWar.IsEmpty() && !Faction.Allies.Contains(f.Name) && Faction.WarFatigue == 0 && IsWarWinnable(Faction, f).Key)
 			potentialEnemies.Add(&f);
-		else if (value >= 24 && fValue >= 24 && !Faction.Allies.Contains(f.Name))
+		else if (value >= 24 && fValue >= 24 && !Faction.Allies.Contains(f.Name) && !Faction.AtWar.Contains(f.Name))
 			potentialAllies.Add(&f);
 	}
 
@@ -890,9 +984,98 @@ void UConquestManager::Gift(FFactionStruct& Faction, TSubclassOf<class AResource
 	
 }
 
+bool UConquestManager::CanBuyIsland(FWorldTileStruct Tile)
+{
+	int32 value = GetIslandWorth(Tile);
+
+	if (value > 1000 || !Tile.RaidParties.IsEmpty())
+		return false;
+
+	return true;
+}
+
+int32 UConquestManager::GetIslandWorth(FWorldTileStruct Tile)
+{
+	return Camera->ResourceManager->GetMarketValue(Tile.Resource) * 100 + Tile.Citizens.Num() * 3;
+}
+
+void UConquestManager::BuyIsland(FWorldTileStruct Tile)
+{
+	if (!Camera->ResourceManager->TakeUniversalResource(Camera->ResourceManager->GetResourceFromCategory("Money"), GetIslandWorth(Tile), 0))
+		return;
+
+	FWorldTileStruct* island = nullptr;
+	int32 index = World.Find(Tile);
+
+	island = &World[index];
+
+	FWorldTileStruct* capital = nullptr;
+
+	FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+
+	for (FWorldTileStruct& tile : World) {
+		if (!tile.bIsland || tile.Owner != island->Owner || !tile.bCapital)
+			continue;
+
+		capital = &tile;
+
+		break;
+	}
+
+	for (ACitizen* citizen : island->Citizens)
+		MoveToColony(GetFactionFromOwner(island->Owner), *capital, citizen);
+
+	for (auto& element : island->Stationed) {
+		if (playerFaction.Allies.Contains(element.Key))
+			continue;
+
+		for (FWorldTileStruct& tile : World) {
+			if (!tile.bIsland || tile.Owner != element.Key || !tile.bCapital)
+				continue;
+
+			capital = &tile;
+
+			break;
+		}
+
+		for (ACitizen* citizen : element.Value)
+			MoveToColony(GetFactionFromOwner(element.Key), *capital, citizen);
+	}
+
+	island->Owner = playerFaction.Name;
+}
+
 //
 // Raiding
 //
+bool UConquestManager::IsCurrentlyRaiding(FFactionStruct Faction1, FFactionStruct Faction2)
+{
+	for (FWorldTileStruct& tile : World) {
+		if (!tile.bIsland || (tile.Owner != Faction1.Name && tile.Owner != Faction2.Name) || tile.RaidParties.IsEmpty())
+			continue;
+
+		FRaidStruct raid;
+
+		if (tile.Owner == Faction1.Name)
+			raid.Owner = Faction2.Name;
+		else
+			raid.Owner = Faction1.Name;
+
+		if (tile.RaidParties.Contains(raid))
+			return true;
+	}
+
+	return false;
+}
+
+bool UConquestManager::CanRaidIsland(FFactionStruct Faction, FWorldTileStruct Tile)
+{
+	if (!Faction.Allies.Contains(Tile.RaidStarterName))
+		return false;
+
+	return true;
+}
+
 bool UConquestManager::CanStartRaid(FWorldTileStruct* Tile, FFactionStruct* Occupier)
 {
 	for (FWorldTileStruct& tile : World) {
@@ -900,7 +1083,7 @@ bool UConquestManager::CanStartRaid(FWorldTileStruct* Tile, FFactionStruct* Occu
 			continue;
 
 		for (auto& element : tile.Moving) {
-			if (element.Value != Tile->Name)
+			if (element.Value != World.Find(*Tile))
 				continue;
 
 			return false;
@@ -912,28 +1095,39 @@ bool UConquestManager::CanStartRaid(FWorldTileStruct* Tile, FFactionStruct* Occu
 
 void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 {
-	int32 defenders = FMath::RandRange(1, FMath::Min(Tile->Citizens.Num() - 1, 20));
-	int32 attackers = FMath::RandRange(1, FMath::Min(Tile->Raiding.Num() - 1, 20));
+	TArray<ACitizen*> allDefenders;
+	allDefenders.Append(Tile->Citizens);
+
+	for (auto& element : Tile->Stationed)
+		allDefenders.Append(element.Value);
+
+	TArray<ACitizen*> allAttackers;
+	for (FRaidStruct& party : Tile->RaidParties) {
+		TArray<ACitizen*> attackers;
+		party.Raiders.GenerateKeyArray(attackers);
+
+		allAttackers.Append(attackers);
+	}
+
+	int32 defenders = FMath::RandRange(1, FMath::Min(allDefenders.Num() - 1, 20));
+	int32 attackers = FMath::RandRange(1, FMath::Min(allAttackers.Num() - 1, 20));
 
 	TArray<ACitizen*> defendList;
 	TArray<ACitizen*> attackList;
 	TArray<ACitizen*> yetToAttackList;
 
 	for (int32 i = 0; i < defenders; i++) {
-		int32 index = FMath::RandRange(0, Tile->Citizens.Num() - 1);
+		int32 index = FMath::RandRange(0, allDefenders.Num() - 1);
 
-		defendList.Add(Tile->Citizens[index]);
-		yetToAttackList.Add(Tile->Citizens[index]);
+		defendList.Add(allDefenders[index]);
+		yetToAttackList.Add(allDefenders[index]);
 	}
 
-	for (int32 i = 0; i < defenders; i++) {
-		TArray<ACitizen*> raiders;
-		Tile->Raiding.GenerateKeyArray(raiders);
+	for (int32 i = 0; i < attackers; i++) {
+		int32 index = FMath::RandRange(0, allAttackers.Num() - 1);
 
-		int32 index = FMath::RandRange(0, raiders.Num() - 1);
-
-		attackList.Add(raiders[index]);
-		yetToAttackList.Add(raiders[index]);
+		attackList.Add(allAttackers[index]);
+		yetToAttackList.Add(allAttackers[index]);
 	}
 
 	float defenderBuff = FMath::Clamp(Tile->HoursColonised / 120.0f, 0.0f, 1.0f) * 0.3f;
@@ -964,11 +1158,31 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 
 		if (defendList.Contains(hitCitizen)) {
 			defendList.Remove(hitCitizen);
-			Tile->Citizens.Remove(hitCitizen);
+
+			if (Tile->Citizens.Contains(hitCitizen)) {
+				Tile->Citizens.Remove(hitCitizen);
+			}
+			else {
+				for (auto& element : Tile->Stationed) {
+					if (!element.Value.Contains(hitCitizen))
+						continue;
+
+					element.Value.Remove(hitCitizen);
+
+					break;
+				}
+			}
 		}
 		else {
 			attackList.Remove(hitCitizen);
-			Tile->Raiding.Remove(hitCitizen);
+			for (FRaidStruct& party : Tile->RaidParties) {
+				if (!party.Raiders.Contains(hitCitizen))
+					continue;
+
+				party.Raiders.Remove(hitCitizen);
+
+				break;
+			}
 		}
 
 		if (yetToAttackList.Contains(hitCitizen))
@@ -976,13 +1190,24 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 	}
 	
 	if (Tile->Citizens.IsEmpty()) {
-		for (auto& element : Tile->Raiding) {
-			FWorldTileStruct& oldTile = World[element.Value];
+		for (FRaidStruct& party : Tile->RaidParties) {
+			if (party.bStation) {
+				TArray<ACitizen*> attackers;
+				party.Raiders.GenerateKeyArray(attackers);
 
-			if (oldTile.Owner == Tile->RaidStarterName)
-				Tile->Citizens.Add(element.Key);
-			else
-				AddCitizenToColony(Tile, &oldTile, element.Key);
+				TArray<ACitizen*>* stationed = Tile->Stationed.Find(party.Owner);
+				stationed->Append(attackers);
+			}
+			else {
+				for (auto& element : party.Raiders) {
+					FWorldTileStruct& oldTile = World[element.Value];
+
+					if (oldTile.Owner == Tile->RaidStarterName)
+						Tile->Citizens.Add(element.Key);
+					else
+						AddCitizenToColony(Tile, &oldTile, element.Key);
+				}
+			}
 		}
 
 		if (Tile->bCapital) {
@@ -1009,10 +1234,23 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 		Tile->Owner = Tile->RaidStarterName;
 		Tile->bCapital = false;
 	}
-	else if (Tile->Raiding.IsEmpty()) {
+	else if (Tile->RaidParties.IsEmpty()) {
 		Tile->RaidStarterName = "";
 	}
 	
-	if (Tile->Citizens.IsEmpty() || Tile->Raiding.IsEmpty())
+	if (Tile->Citizens.IsEmpty() || Tile->RaidParties.IsEmpty())
 		Camera->CitizenManager->RemoveTimer("ColonyRaid" + Tile->Name, GetOwner());
+}
+
+//
+// AI
+//
+void UConquestManager::EvaluateAI(FFactionStruct& Faction)
+{
+	// List of things needed:
+	// - Movement to a colony must make sense. Aim for close colonies that are free without risking captial.
+	// - Capital must have sizably more citizens than a colony.
+	// - Evaluate whether it is possible to win a colony versus another faction without exposing capital.
+	// - When moving to an island, consider taking from multiple islands.
+	// - If a colony is being raided, consider whether to reinforce or not.
 }

@@ -103,6 +103,8 @@ public:
 
 	void UpdateResourceUI(TSubclassOf<class AResource> Resource);
 
+	TSubclassOf<class AResource> GetResourceFromCategory(FString Category);
+
 	// Interest
 	void Interest();
 

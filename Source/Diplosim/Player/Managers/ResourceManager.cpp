@@ -404,6 +404,18 @@ void UResourceManager::UpdateResourceUI(TSubclassOf<AResource> Resource)
 	});
 }
 
+TSubclassOf<AResource> UResourceManager::GetResourceFromCategory(FString Category)
+{
+	for (FResourceStruct resource : ResourceList) {
+		if (resource.Category != Category)
+			continue;
+
+		return resource.Type;
+	}
+
+	return nullptr;
+}
+
 //
 // Interest
 //
