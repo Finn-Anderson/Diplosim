@@ -140,6 +140,19 @@ struct FRaidStruct
 };
 
 USTRUCT(BlueprintType)
+struct FStationedStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
+	TArray<class ACitizen*> Guards;
+
+	FStationedStruct() {
+
+	}
+};
+
+USTRUCT(BlueprintType)
 struct FWorldTileStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -172,7 +185,7 @@ struct FWorldTileStruct
 		TArray<class ACitizen*> Citizens;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
-		TMap<FString, TArray<class ACitizen*>> Stationed;
+		TMap<FString, FStationedStruct> Stationed;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
 		TMap<class ACitizen*, int32> Moving;
@@ -259,6 +272,25 @@ struct FColonyEventStruct
 	}
 };
 
+struct FColoniesStruct
+{
+	FFactionStruct* Faction;
+
+	FWorldTileStruct* Capital;
+
+	TArray<FWorldTileStruct*> Colonies;
+
+	FColoniesStruct()
+	{
+
+	}
+
+	bool operator==(const FColoniesStruct& other) const
+	{
+		return (other.Faction == Faction);
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UConquestManager : public UActorComponent
 {
@@ -279,7 +311,7 @@ public:
 
 	void SpawnCitizenAtColony(FWorldTileStruct& Tile);
 
-	void MoveToColony(FFactionStruct& Faction, FWorldTileStruct& Tile, class ACitizen* Citizen, bool bStation = false);
+	void MoveToColony(FFactionStruct* Faction, FWorldTileStruct* Tile, class ACitizen* Citizen, bool bStation = false);
 
 	void StartTransmissionTimer(class ACitizen* Citizen);
 
@@ -397,5 +429,7 @@ public:
 	void EvaluateRaid(FWorldTileStruct* Tile);
 
 	// AI
-	void EvaluateAI(FFactionStruct& Faction);
+	void EvaluateAI(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
+
+	class ACitizen* GetChosenCitizen(TArray<ACitizen*> Citizens);
 };
