@@ -32,6 +32,7 @@ void UConquestManager::BeginPlay()
 void UConquestManager::GenerateWorld()
 {
 	World.Empty();
+	Factions.Empty();
 	
 	TArray<FWorldTileStruct*> choosableWorldTiles;
 
@@ -481,42 +482,83 @@ FFactionStruct& UConquestManager::GetFactionFromOwner(FString Owner)
 	throw std::runtime_error("Faction not found");
 }
 
-void UConquestManager::SetFactionTexture(FFactionStruct& Faction, UTexture2D* Texture, FLinearColor Colour)
+void UConquestManager::SetFactionTexture(FString Owner, UTexture2D* Texture, FLinearColor Colour)
 {
-	for (FWorldTileStruct& tile : World) {
-		if (tile.Owner != Faction.Name)
-			continue;
+	FFactionStruct& faction = GetFactionFromOwner(Owner);
 
-		Faction.Texture = Texture;
-		Faction.Colour = Colour;
-	}
+	faction.Texture = Texture;
+	faction.Colour = Colour;
 
 	Camera->UpdateFactionImage();
 }
 
-void UConquestManager::SetColonyName(FWorldTileStruct& Tile, FString NewColonyName)
+void UConquestManager::SetColonyName(int32 X, int32 Y, FString NewColonyName)
 {
-	Tile.Name = NewColonyName;
+	if (NewColonyName == Camera->ColonyName)
+		return;
+	
+	if (NewColonyName == "")
+		NewColonyName = "Eggerton";
+	
+	FWorldTileStruct t;
+	t.X = X;
+	t.Y = Y;
+
+	int32 index = World.Find(t);
+
+	FWorldTileStruct* tile = &World[index];
+
+	if (tile->bCapital && EmpireName == Camera->ColonyName + " Empire")
+		SetTerritoryName(EmpireName, NewColonyName + " Empire");
+
+	tile->Name = NewColonyName;
+
+	if (tile->bCapital && tile->Owner == EmpireName)
+		Camera->ColonyName = NewColonyName;
 }
 
-void UConquestManager::SetTerritoryName(FString OldEmpireName)
+void UConquestManager::SetTerritoryName(FString OldEmpireName, FString NewEmpireName)
 {
+	if (NewEmpireName == OldEmpireName)
+		return;
+	
+	if (NewEmpireName == "")
+		NewEmpireName = Camera->ColonyName + " Empire";
+	
 	for (FFactionStruct& factions : Factions) {
-		if (factions.Name != EmpireName)
+		if (factions.Name != NewEmpireName)
 			continue;
-
-		EmpireName = OldEmpireName;
 
 		Camera->ShowWarning("Empire name already exists");
 
 		break;
 	}
-	
-	FWorldTileStruct& tile = World[playerCapitalIndex];
-	tile.Name = Camera->ColonyName;
-	tile.Owner = EmpireName;
 
-	Camera->UpdateIconEmpireName(OldEmpireName); // Might need to update empire name input
+	FString empireNameCheck = NewEmpireName;
+	FString checkIfNameValid = empireNameCheck.Replace(*FString(" "), *FString(""));
+
+	if (checkIfNameValid == "") {
+		Camera->ShowWarning("Invalid empire name");
+
+		return;
+	}
+
+	FFactionStruct faction;
+	faction.Name = OldEmpireName;
+
+	int32 index = Factions.Find(faction);
+	Factions[index].Name = NewEmpireName;
+
+	for (FWorldTileStruct& tile : World) {
+		if (!tile.bIsland || tile.Owner != OldEmpireName)
+			continue;
+
+		tile.Owner = NewEmpireName;
+	}
+
+	EmpireName = NewEmpireName;
+
+	Camera->UpdateIconEmpireName(OldEmpireName);
 }
 
 void UConquestManager::RemoveFromRecentlyMoved(class ACitizen* Citizen)

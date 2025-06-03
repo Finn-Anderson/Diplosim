@@ -3,6 +3,7 @@
 #include "Universal/HealthComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/ConstructionManager.h"
 
 APortal::APortal()
 {
@@ -20,6 +21,9 @@ void APortal::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 void APortal::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
+
+	if (Camera->ConstructionManager->IsRepairJob(this, nullptr))
+		return;
 
 	Camera->ConquestManager->StartTransmissionTimer(Citizen);
 }

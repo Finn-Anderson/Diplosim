@@ -333,13 +333,13 @@ public:
 		FFactionStruct& GetFactionFromOwner(FString Owner);
 
 	UFUNCTION(BlueprintCallable)
-		void SetFactionTexture(FFactionStruct& Faction, UTexture2D* Texture, FLinearColor Colour);
+		void SetFactionTexture(FString Owner, UTexture2D* Texture, FLinearColor Colour);
 
 	UFUNCTION(BlueprintCallable)
-		void SetColonyName(FWorldTileStruct& Tile, FString NewColonyName);
+		void SetColonyName(int32 X, int32 Y, FString NewColonyName);
 
 	UFUNCTION(BlueprintCallable)
-		void SetTerritoryName(FString OldEmpireName);
+		void SetTerritoryName(FString OldEmpireName, FString NewEmpireName);
 
 		void RemoveFromRecentlyMoved(class ACitizen* Citizen);
 
@@ -383,7 +383,7 @@ public:
 	UPROPERTY()
 		TArray<class ACitizen*> RecentlyMoved;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
 		int32 playerCapitalIndex;
 
 	UPROPERTY()

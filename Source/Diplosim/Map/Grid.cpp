@@ -23,6 +23,7 @@
 #include "Universal/DiplosimUserSettings.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "Buildings/Misc/Portal.h"
 
 AGrid::AGrid()
 {
@@ -545,12 +546,12 @@ void AGrid::Render()
 			if (bTree)
 				for (FTileStruct* tile : VegetationTiles)
 					ResourceTiles.Remove(tile);
+		}
 
-			for (FResourceHISMStruct ResourceStruct : element.Value) {
-				ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
+		for (FResourceHISMStruct ResourceStruct : element.Value) {
+			ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
 
-				ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = true;
-			}
+			ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = true;
 		}
 	}
 
@@ -1071,6 +1072,18 @@ void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAx
 	}
 }
 
+void AGrid::SetMineralMultiplier(TSubclassOf<class AMineral> MineralClass, int32 Multiplier)
+{
+	for (FResourceHISMStruct& mineral : MineralStruct) {
+		if (mineral.ResourceClass != MineralClass)
+			continue;
+
+		mineral.Multiplier = Multiplier;
+
+		break;
+	}
+}
+
 void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 {
 	FTransform transform = GetTransform(Tile);
@@ -1326,6 +1339,8 @@ void AGrid::Clear()
 	HISMRampGround->ClearInstances();
 	HISMRiver->ClearInstances();
 	HISMWall->ClearInstances();
+
+	Camera->ConquestManager->Portal->Destroy();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(false, false);

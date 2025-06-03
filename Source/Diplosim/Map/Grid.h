@@ -200,6 +200,9 @@ public:
 	TArray<TArray<FTileStruct>> Storage;
 
 	// Resources
+	UFUNCTION(BlueprintCallable)
+		void SetMineralMultiplier(TSubclassOf<class AMineral> MineralClass, int32 Multiplier);
+
 	void GenerateMinerals(FTileStruct* Tile, AResource* Resource);
 
 	void GetValidSpawnLocations(FTileStruct* Tile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles);
