@@ -167,15 +167,19 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 
 	if (attackComp && attackComp->bCanAttack) {
 		if (*attackComp->ProjectileClass)
-			Favourability.Dmg = attackComp->ProjectileClass->GetDefaultObject<AProjectile>()->Damage;
+			Favourability.Dmg = attackComp->ProjectileClass->GetDefaultObject<AProjectile>()->Damage * attackComp->DamageMultiplier;
 		else
-			Favourability.Dmg = attackComp->Damage;
+			Favourability.Dmg = attackComp->Damage * attackComp->DamageMultiplier;
 	}
 	else if (Actor->IsA<AWall>()) {
-		int32 num = 1;
+		float num = 1.0f;
 
-		if (!Actor->IsA<ATower>())
-			num = Cast<AWall>(Actor)->GetCitizensAtBuilding().Num();
+		if (!Actor->IsA<ATower>()) {
+			num = 0.0f;
+
+			for (ACitizen* citizen : Cast<AWall>(Actor)->GetCitizensAtBuilding())
+				num += 1.0f * citizen->AttackComponent->DamageMultiplier;
+		}
 
 		Favourability.Dmg = Cast<AWall>(Actor)->BuildingProjectileClass->GetDefaultObject<AProjectile>()->Damage * num;
 	}

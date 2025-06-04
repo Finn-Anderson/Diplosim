@@ -145,7 +145,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
 		int32 CitizenNum;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Start")
 		bool Start;
 
 	UPROPERTY()
@@ -402,7 +402,7 @@ public:
 
 	void Cancel();
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
 		bool bQuick;
 
 	// Map

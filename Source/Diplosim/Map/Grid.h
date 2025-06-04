@@ -217,10 +217,6 @@ public:
 
 	FTransform GetTransform(FTileStruct* Tile);
 
-	int32 VegetationLimit;
-
-	int32 VegetationLimitCounter;
-
 	TArray<FTileStruct*> ResourceTiles;
 
 	TArray<FTileStruct*> VegetationTiles;
@@ -233,6 +229,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FResourceHISMStruct> MineralStruct;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 VegetationMinDensity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 VegetationMaxDensity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 VegetationMultiplier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 VegetationSizeMultiplier;
 
 	// Egg Basket
 	void SpawnEggBasket();

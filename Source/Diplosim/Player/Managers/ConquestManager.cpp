@@ -636,7 +636,7 @@ void UConquestManager::SetFactionCulture(FFactionStruct& Faction)
 	}
 }
 
-FFactionHappinessStruct& UConquestManager::GetHappinessWithFaction(FFactionStruct& Faction, FFactionStruct& Target)
+FFactionHappinessStruct& UConquestManager::GetHappinessWithFaction(FFactionStruct Faction, FFactionStruct Target)
 {
 	FFactionHappinessStruct happiness;
 	happiness.Owner = Target.Name;

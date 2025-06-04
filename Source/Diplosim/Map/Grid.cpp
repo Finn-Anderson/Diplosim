@@ -138,6 +138,11 @@ AGrid::AGrid()
 	PercentageGround = 30;
 
 	Seed = "";
+
+	VegetationMinDensity = 1;
+	VegetationMaxDensity = 3;
+	VegetationMultiplier = 1;
+	VegetationSizeMultiplier = 5;
 }
 
 void AGrid::BeginPlay()
@@ -515,16 +520,21 @@ void AGrid::Render()
 	vegetation.Add(5, TreeStruct);
 
 	for (auto& element : vegetation) {
-		int32 iterations = num;
+		int32 iterations = num * VegetationMultiplier;
+		int32 min = VegetationMinDensity;
+		int32 max = VegetationMaxDensity;
 
-		if (element.Key == 2)
+		if (element.Key == 2) {
 			iterations = FMath::Max(1.0f, iterations / 3.0f);
+			min = FMath::Max(1.0f, VegetationMinDensity / 3.0f);
+			max = FMath::Max(1.0f, VegetationMinDensity / 3.0f);
+		}
 
 		for (int32 i = 0; i < iterations; i++) {
 			int32 chosenNum = Stream.RandRange(0, ResourceTiles.Num() - 1);
 			FTileStruct* chosenTile = ResourceTiles[chosenNum];
 
-			int32 amount = Stream.RandRange(element.Key / 2, element.Key);
+			int32 amount = Stream.RandRange(min, max);
 
 			bool bTree = false;
 
@@ -535,9 +545,6 @@ void AGrid::Render()
 
 				scale = 1.1f;
 			}
-
-			VegetationLimitCounter = 0;
-			VegetationLimit = amount * (element.Key * 25);
 
 			VegetationTiles.Empty();
 
@@ -1123,10 +1130,21 @@ void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTil
 
 void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* StartingTile, FTileStruct* Tile, int32 Amount, float Scale, bool bTree)
 {
-	if (FMath::Abs(StartingTile->X - Tile->X) + FMath::Abs(StartingTile->Y - Tile->Y) > 5)
-		Amount = Stream.RandRange(Amount - 1, Amount);
+	int32 distanceFromStart = FMath::Abs(StartingTile->X - Tile->X) + FMath::Abs(StartingTile->Y - Tile->Y);
 
-	if (Amount == 0 || VegetationLimitCounter == VegetationLimit || Tile->Fertility == 0 || !ResourceTiles.Contains(Tile) || VegetationTiles.Contains(Tile) || Tile->bRiver || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
+	int32 dist = 3;
+
+	if (!bTree)
+		dist = 2;
+
+	if (distanceFromStart > dist * VegetationSizeMultiplier) {
+		if (distanceFromStart > dist * 2 * VegetationSizeMultiplier)
+			Amount -= 1;
+		else
+			Amount = Stream.RandRange(Amount - 1, Amount);
+	}
+
+	if (Amount == 0 || Tile->Fertility == 0 || !ResourceTiles.Contains(Tile) || VegetationTiles.Contains(Tile) || Tile->bRiver || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
 		return;
 
 	TArray<int32> usedX;
@@ -1173,8 +1191,6 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 	}
 
 	VegetationTiles.Add(Tile);
-
-	VegetationLimitCounter++;
 
 	for (auto& element : Tile->AdjacentTiles)
 		GenerateVegetation(Vegetation, StartingTile, element.Value, Amount, Scale, bTree);

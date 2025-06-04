@@ -392,7 +392,8 @@ public:
 	// Diplomacy
 	void SetFactionCulture(FFactionStruct& Faction);
 
-	FFactionHappinessStruct& GetHappinessWithFaction(FFactionStruct& Faction, FFactionStruct& Target);
+	UFUNCTION(BlueprintCallable)
+		FFactionHappinessStruct& GetHappinessWithFaction(FFactionStruct Faction, FFactionStruct Target);
 
 	int32 GetHappinessValue(FFactionHappinessStruct& Happiness);
 
