@@ -336,7 +336,7 @@ void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
 	FRaidStruct raid;
 	raid.Owner = faction.Name;
 
-	if (!CanTravel(Citizen) || (!faction.Allies.Contains(targetTile->Owner) && !targetTile->RaidParties.Contains(raid))) {
+	if (!oldTile->Moving.Contains(Citizen) || !CanTravel(Citizen) || (!faction.Allies.Contains(targetTile->Owner) && !targetTile->RaidParties.Contains(raid))) {
 		oldTile->Moving.Remove(Citizen);
 
 		if (oldTile->bCapital && oldTile->Owner == EmpireName)
@@ -561,17 +561,58 @@ void UConquestManager::SetTerritoryName(FString OldEmpireName, FString NewEmpire
 	Camera->UpdateIconEmpireName(OldEmpireName);
 }
 
-void UConquestManager::RemoveFromRecentlyMoved(class ACitizen* Citizen)
+TArray<ACitizen*> UConquestManager::GetIslandCitizens(FWorldTileStruct Tile)
+{
+	if (Tile.bCapital && Tile.Owner == EmpireName)
+		return Camera->CitizenManager->Citizens;
+	else
+		return Tile.Citizens;
+}
+
+void UConquestManager::RemoveFromRecentlyMoved(ACitizen* Citizen)
 {
 	RecentlyMoved.Remove(Citizen);
 }
 
-TArray<ACitizen*> UConquestManager::GetIslandCitizens(FWorldTileStruct* Tile)
+void UConquestManager::CancelMovement(ACitizen* Citizen)
 {
-	if (Tile->bCapital && Tile->Owner == EmpireName)
-		return Camera->CitizenManager->Citizens;
-	else
-		return Tile->Citizens;
+	FWorldTileStruct* tile = GetColonyContainingCitizen(Citizen);
+
+	if (!tile->Moving.Contains(Citizen))
+		return;
+
+	int32 index = *tile->Moving.Find(Citizen);
+	FWorldTileStruct* target = &World[index];
+
+	tile->Moving.Remove(Citizen);
+	
+	if (target->RaidStarterName == EmpireName && CanStartRaid(target, &GetFactionFromOwner(EmpireName))) {
+		bool bEmptyRaid = true;
+
+		for (FRaidStruct raid : target->RaidParties) {
+			if (raid.Raiders.IsEmpty())
+				continue;
+
+			bEmptyRaid = false;
+
+			break;
+		}
+
+		if (bEmptyRaid) {
+			target->RaidStarterName = "";
+			target->RaidParties.Empty();
+		}
+	}
+
+	Camera->CitizenManager->RemoveTimer("Transmission", Citizen);
+}
+
+bool UConquestManager::CanCancelMovement(ACitizen* Citizen)
+{
+	if (Camera->CitizenManager->FindTimer("Travel", Citizen) != nullptr)
+		return false;
+
+	return true;
 }
 
 FWorldTileStruct* UConquestManager::FindCapital(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands)
@@ -646,7 +687,7 @@ FFactionHappinessStruct& UConquestManager::GetHappinessWithFaction(FFactionStruc
 	return Faction.Happiness[index];
 }
 
-int32 UConquestManager::GetHappinessValue(FFactionHappinessStruct& Happiness)
+int32 UConquestManager::GetHappinessValue(FFactionHappinessStruct Happiness)
 {
 	int32 value = 0;
 
@@ -795,8 +836,8 @@ void UConquestManager::SetFactionsHappiness(FFactionStruct& Faction, TArray<FWor
 
 void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 {
-	TArray<FFactionStruct*> potentialEnemies;
-	TArray<FFactionStruct*> potentialAllies;
+	TArray<FFactionStruct> potentialEnemies;
+	TArray<FFactionStruct> potentialAllies;
 	
 	for (FFactionStruct& f : Factions) {
 		if (f.Name == Faction.Name || (f.Name== EmpireName && Portal->HealthComponent->GetHealth() == 0))
@@ -809,53 +850,7 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 		int32 fValue = GetHappinessValue(fHappiness);
 
 		if (value < 12 && Faction.AtWar.IsEmpty() && Faction.Allies.Contains(f.Name)) {
-			Faction.Allies.Remove(f.Name);
-			f.Allies.Remove(Faction.Name);
-
-			FWorldTileStruct* factionCapital = nullptr;
-			FWorldTileStruct* fCapital = nullptr;
-
-			TMap<FString, FStationedStruct> stationed;
-			stationed.Add(Faction.Name, {});
-			stationed.Add(f.Name, {});
-
-			for (FWorldTileStruct& tile : World) {
-				if (!tile.bIsland || (tile.Owner != Faction.Name && tile.Owner != f.Name))
-					continue;
-
-				if (tile.bCapital) {
-					if (Faction.Name == tile.Owner)
-						factionCapital = &tile;
-					else
-						fCapital = &tile;
-				}
-				else {
-					for (auto& element : tile.Stationed) {
-						if (!stationed.Contains(element.Key))
-							continue;
-
-						FStationedStruct* s = stationed.Find(element.Key);
-						s->Guards.Append(element.Value.Guards);
-					}
-				}
-			}
-
-			for (auto& element : stationed) {
-				FFactionStruct* chosenFaction;
-				FWorldTileStruct* chosenCapital;
-
-				if (element.Key == Faction.Name) {
-					chosenFaction = &Faction;
-					chosenCapital = factionCapital;
-				}
-				else {
-					chosenFaction = &f;
-					chosenCapital = fCapital;
-				}
-
-				for (ACitizen* citizen : element.Value.Guards)
-					MoveToColony(chosenFaction, chosenCapital, citizen);
-			}
+			BreakAlliance(Faction, f);
 		}
 		else if (Faction.AtWar.Contains(f.Name) && !IsCurrentlyRaiding(Faction, f)) {
 			int32 newValue = value;
@@ -881,29 +876,39 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 		if (f.Name == EmpireName)
 			fValue = 24;
 
-		if (value < 6 && Faction.AtWar.IsEmpty() && !Faction.Allies.Contains(f.Name) && Faction.WarFatigue == 0 && IsWarWinnable(Faction, f).Key)
-			potentialEnemies.Add(&f);
-		else if (value >= 24 && fValue >= 24 && !Faction.Allies.Contains(f.Name) && !Faction.AtWar.Contains(f.Name))
-			potentialAllies.Add(&f);
+		if (value < 6) {
+			if (Faction.AtWar.IsEmpty() && !Faction.Allies.Contains(f.Name) && Faction.WarFatigue == 0 && IsWarWinnable(Faction, f).Key && !fHappiness.Contains("Recently allies"))
+				potentialEnemies.Add(f);
+			else if (!fHappiness.Contains("Insulted"))
+				Insult(Faction, f);
+		}
+		else if (value >= 24 && fValue >= 24 && !Faction.Allies.Contains(f.Name) && !Faction.AtWar.Contains(f.Name) && !fHappiness.Contains("Recently allies"))
+			potentialAllies.Add(f);
+		else if (value > 6 && !fHappiness.Contains("Praised"))
+			Praise(Faction, f);
+
 	}
 
 	if (!potentialEnemies.IsEmpty()) {
 		int32 index = FMath::RandRange(0, potentialEnemies.Num() - 1);
-		FFactionStruct* f = potentialEnemies[index];
+		FFactionStruct f = potentialEnemies[index];
 
-		Faction.AtWar.Add(f->Name);
-		f->AtWar.Add(Faction.Name);
+		DeclareWar(Faction, f);
+
+		if (f.Name == EmpireName) {
+			// Popup UI
+		}
 	}
 
 	if (!potentialAllies.IsEmpty()) {
 		int32 index = FMath::RandRange(0, potentialAllies.Num() - 1);
-		FFactionStruct* f = potentialAllies[index];
+		FFactionStruct f = potentialAllies[index];
 
-		if (f->Name == EmpireName) {
+		if (f.Name == EmpireName) {
 			// UI proposal that links to Ally()
 		}
 		else
-			Ally(&Faction, f);
+			Ally(Faction, f);
 	}
 }
 
@@ -916,7 +921,7 @@ TTuple<bool, bool> UConquestManager::IsWarWinnable(FFactionStruct& Faction, FFac
 		if (!tile.bIsland || (tile.Owner != Faction.Name && tile.Owner != Target.Name))
 			continue;
 
-		TArray<ACitizen*> citizens = GetIslandCitizens(&tile);
+		TArray<ACitizen*> citizens = GetIslandCitizens(tile);
 
 		if (tile.Owner == Faction.Name)
 			factionCitizens += citizens.Num();
@@ -938,16 +943,85 @@ TTuple<bool, bool> UConquestManager::IsWarWinnable(FFactionStruct& Faction, FFac
 	return TTuple<bool, bool>(bFactionCanWin, bTargetCanWin);
 }
 
-void UConquestManager::Peace(FFactionStruct& Faction1, FFactionStruct& Faction2)
+void UConquestManager::Peace(FFactionStruct Faction1, FFactionStruct Faction2)
 {
-	Faction1.AtWar.Remove(Faction2.Name);
-	Faction2.AtWar.Remove(Faction1.Name);
+	int32 i1 = Factions.Find(Faction1);
+	int32 i2 = Factions.Find(Faction2);
+
+	Factions[i1].AtWar.Remove(Factions[i2].Name);
+	Factions[i2].AtWar.Remove(Factions[i1].Name);
 }
 
-void UConquestManager::Ally(FFactionStruct* Faction1, FFactionStruct* Faction2)
+void UConquestManager::Ally(FFactionStruct Faction1, FFactionStruct Faction2)
 {
-	Faction1->Allies.Add(Faction2->Name);
-	Faction2->Allies.Add(Faction1->Name);
+	int32 i1 = Factions.Find(Faction1);
+	int32 i2 = Factions.Find(Faction2);
+	
+	Factions[i1].Allies.Add(Factions[i2].Name);
+	Factions[i2].Allies.Add(Factions[i1].Name);
+}
+
+void UConquestManager::BreakAlliance(FFactionStruct Faction1, FFactionStruct Faction2)
+{
+	int32 i1 = Factions.Find(Faction1);
+	int32 i2 = Factions.Find(Faction2);
+
+	Factions[i1].Allies.Remove(Factions[i2].Name);
+	Factions[i2].Allies.Remove(Factions[i1].Name);
+
+	FWorldTileStruct* factionCapital = nullptr;
+	FWorldTileStruct* fCapital = nullptr;
+
+	TMap<FString, FStationedStruct> stationed;
+	stationed.Add(Factions[i1].Name, {});
+	stationed.Add(Factions[i2].Name, {});
+
+	for (FWorldTileStruct& tile : World) {
+		if (!tile.bIsland || (tile.Owner != Factions[i1].Name && tile.Owner != Factions[i2].Name))
+			continue;
+
+		if (tile.bCapital) {
+			if (Factions[i1].Name == tile.Owner)
+				factionCapital = &tile;
+			else
+				fCapital = &tile;
+		}
+		else {
+			for (auto& element : tile.Stationed) {
+				if (!stationed.Contains(element.Key))
+					continue;
+
+				FStationedStruct* s = stationed.Find(element.Key);
+				s->Guards.Append(element.Value.Guards);
+			}
+		}
+	}
+
+	for (auto& element : stationed) {
+		FFactionStruct* chosenFaction;
+		FWorldTileStruct* chosenCapital;
+
+		if (element.Key == Factions[i1].Name) {
+			chosenFaction = &Factions[i1];
+			chosenCapital = factionCapital;
+		}
+		else {
+			chosenFaction = &Factions[i2];
+			chosenCapital = fCapital;
+		}
+
+		for (ACitizen* citizen : element.Value.Guards)
+			MoveToColony(chosenFaction, chosenCapital, citizen);
+	}
+}
+
+void UConquestManager::DeclareWar(FFactionStruct Faction1, FFactionStruct Faction2)
+{
+	int32 i1 = Factions.Find(Faction1);
+	int32 i2 = Factions.Find(Faction2);
+
+	Factions[i1].AtWar.Add(Factions[i2].Name);
+	Factions[i2].AtWar.Add(Factions[i1].Name);
 }
 
 void UConquestManager::Rebel(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands)
@@ -958,8 +1032,8 @@ void UConquestManager::Rebel(FFactionStruct& Faction, TArray<FWorldTileStruct*> 
 		if (tile->bCapital || tile->Owner != Faction.Name)
 			continue;
 
-		int32 capitalNum = GetIslandCitizens(capital).Num();
-		int32 tileNum = GetIslandCitizens(tile).Num();
+		int32 capitalNum = GetIslandCitizens(*capital).Num();
+		int32 tileNum = GetIslandCitizens(*tile).Num();
 
 		double chanceToRebel = tileNum / capitalNum;
 
@@ -1007,7 +1081,21 @@ void UConquestManager::Rebel(FFactionStruct& Faction, TArray<FWorldTileStruct*> 
 	}
 }
 
-void UConquestManager::Gift(FFactionStruct& Faction, TSubclassOf<class AResource> Resource, int32 Amount)
+void UConquestManager::Insult(FFactionStruct Faction, FFactionStruct Target)
+{
+	FFactionHappinessStruct& happiness = GetHappinessWithFaction(Target, Faction);
+
+	happiness.SetValue("Insulted", -12);
+}
+
+void UConquestManager::Praise(FFactionStruct Faction, FFactionStruct Target)
+{
+	FFactionHappinessStruct& happiness = GetHappinessWithFaction(Target, Faction);
+
+	happiness.SetValue("Praised", 12);
+}
+
+void UConquestManager::Gift(FFactionStruct Faction, TSubclassOf<class AResource> Resource, int32 Amount)
 {
 	if (!Camera->ResourceManager->TakeUniversalResource(Resource, Amount, 0))
 		return;

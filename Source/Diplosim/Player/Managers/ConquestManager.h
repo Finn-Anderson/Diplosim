@@ -341,9 +341,16 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetTerritoryName(FString OldEmpireName, FString NewEmpireName);
 
-		void RemoveFromRecentlyMoved(class ACitizen* Citizen);
+	UFUNCTION(BlueprintCallable)
+		TArray<ACitizen*> GetIslandCitizens(FWorldTileStruct Tile);
 
-	TArray<ACitizen*> GetIslandCitizens(FWorldTileStruct* Tile);
+	UFUNCTION(BlueprintCallable)
+		void CancelMovement(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		bool CanCancelMovement(class ACitizen* Citizen);
+
+	void RemoveFromRecentlyMoved(class ACitizen* Citizen);
 
 	FWorldTileStruct* FindCapital(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 	
@@ -380,7 +387,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
 		TArray<FFactionStruct> Factions;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 		TArray<class ACitizen*> RecentlyMoved;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World")
@@ -395,7 +402,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		FFactionHappinessStruct& GetHappinessWithFaction(FFactionStruct Faction, FFactionStruct Target);
 
-	int32 GetHappinessValue(FFactionHappinessStruct& Happiness);
+	UFUNCTION(BlueprintCallable)
+		int32 GetHappinessValue(FFactionHappinessStruct Happiness);
 
 	void SetFactionsHappiness(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 
@@ -403,20 +411,37 @@ public:
 
 	TTuple<bool, bool> IsWarWinnable(FFactionStruct& Faction, FFactionStruct& Target);
 
-	void Peace(FFactionStruct& Faction1, FFactionStruct& Faction2);
+	UFUNCTION(BlueprintCallable)
+		void Peace(FFactionStruct Faction1, FFactionStruct Faction2);
 
-	void Ally(FFactionStruct* Faction1, FFactionStruct* Faction2);
+	UFUNCTION(BlueprintCallable)
+		void Ally(FFactionStruct Faction1, FFactionStruct Faction2);
+
+	UFUNCTION(BlueprintCallable)
+		void BreakAlliance(FFactionStruct Faction1, FFactionStruct Faction2);
+
+	UFUNCTION(BlueprintCallable)
+		void DeclareWar(FFactionStruct Faction1, FFactionStruct Faction2);
 
 	void Rebel(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 
-	void Gift(FFactionStruct& Faction, TSubclassOf<class AResource> Resource, int32 Amount);
+	UFUNCTION(BlueprintCallable)
+		void Insult(FFactionStruct Faction, FFactionStruct Target);
+
+	UFUNCTION(BlueprintCallable)
+		void Praise(FFactionStruct Faction, FFactionStruct Target);
+
+	UFUNCTION(BlueprintCallable)
+		void Gift(FFactionStruct Faction, TSubclassOf<class AResource> Resource, int32 Amount);
 
 	UFUNCTION(BlueprintCallable)
 		bool CanBuyIsland(FWorldTileStruct Tile);
 
-	int32 GetIslandWorth(FWorldTileStruct Tile);
+	UFUNCTION(BlueprintCallable)
+		int32 GetIslandWorth(FWorldTileStruct Tile);
 
-	void BuyIsland(FWorldTileStruct Tile);
+	UFUNCTION(BlueprintCallable)
+		void BuyIsland(FWorldTileStruct Tile);
 
 	// Raiding
 	UFUNCTION(BlueprintCallable)
