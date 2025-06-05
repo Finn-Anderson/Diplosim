@@ -108,6 +108,15 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateSpeedUI(float Speed);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateMoveCitizen(class ACitizen* Citizen, const FWorldTileStruct& FromTile, const FWorldTileStruct& ToTile);
+
+		UFUNCTION(BlueprintImplementableEvent)
+		void UpdateAlterCitizen(class ACitizen* Citizen, const FWorldTileStruct& Tile);
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void DisableMoveBtn(class ACitizen* Citizen);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;

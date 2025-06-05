@@ -168,6 +168,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 				FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
 
 				tile->Citizens.Remove(citizen);
+
+				Camera->UpdateAlterCitizen(citizen, *tile);
 			}
 		}
 	} 

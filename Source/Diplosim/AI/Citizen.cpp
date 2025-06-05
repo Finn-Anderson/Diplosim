@@ -1176,6 +1176,8 @@ void ACitizen::HaveChild()
 			citizen->ApplyResearch();
 
 		tile->Citizens.Add(citizen);
+
+		Camera->UpdateAlterCitizen(citizen, *tile);
 	}
 
 	citizen->BioStruct.Mother = this;

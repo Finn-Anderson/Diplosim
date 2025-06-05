@@ -350,6 +350,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool CanCancelMovement(class ACitizen* Citizen);
 
+	UFUNCTION(BlueprintCallable)
+		FFactionStruct& GetCitizenFaction(class ACitizen* Citizen);
+
 	void RemoveFromRecentlyMoved(class ACitizen* Citizen);
 
 	FWorldTileStruct* FindCapital(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);

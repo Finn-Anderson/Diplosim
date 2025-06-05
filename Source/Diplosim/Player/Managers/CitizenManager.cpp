@@ -571,6 +571,16 @@ int32 UCitizenManager::GetElapsedTime(FString ID, AActor* Actor)
 	return timer->Target - timer->Timer;
 }
 
+bool UCitizenManager::DoesTimerExist(FString ID, AActor* Actor)
+{
+	FTimerStruct* timer = FindTimer(ID, Actor);
+
+	if (timer == nullptr)
+		return false;
+
+	return true;
+}
+
 void UCitizenManager::UpdateTimerLength(FString ID, AActor* Actor, int32 NewTarget)
 {
 	FTimerStruct* timer = FindTimer(ID, Actor);

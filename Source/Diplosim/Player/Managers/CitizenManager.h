@@ -414,6 +414,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 		int32 GetElapsedTime(FString ID, AActor* Actor);
 
+	UFUNCTION(BlueprintCallable)
+		bool DoesTimerExist(FString ID, AActor* Actor);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Citizens")
 		TArray<class ACitizen*> Citizens;
 

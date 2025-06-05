@@ -321,6 +321,8 @@ void UConquestManager::MoveToColony(FFactionStruct* Faction, FWorldTileStruct* T
 		Citizen->AIController->AIMoveTo(Portal);
 	else
 		Camera->CitizenManager->CreateTimer("Transmission", Citizen, FMath::RandRange(10, 40), FTimerDelegate::CreateUObject(this, &UConquestManager::StartTransmissionTimer, Citizen), false);
+
+	Camera->UpdateMoveCitizen(Citizen, *tile, *Tile);
 }
 
 void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
@@ -356,6 +358,8 @@ void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
 
 	if (oldTile->bCapital && oldTile->Owner == EmpireName)
 		Citizen->ColonyIslandSetup();
+
+	Camera->DisableMoveBtn(Citizen);
 }
 
 void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileStruct* Tile, ACitizen* Citizen)
@@ -406,6 +410,8 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 	OldTile->Moving.Remove(Citizen);
 
 	Camera->CitizenManager->CreateTimer("RecentlyMoved", Citizen, 300, FTimerDelegate::CreateUObject(this, &UConquestManager::RemoveFromRecentlyMoved, Citizen), false);
+
+	Camera->UpdateMoveCitizen(Citizen, *OldTile, *Tile);
 }
 
 TArray<float> UConquestManager::ProduceEvent()
@@ -613,6 +619,20 @@ bool UConquestManager::CanCancelMovement(ACitizen* Citizen)
 		return false;
 
 	return true;
+}
+
+FFactionStruct& UConquestManager::GetCitizenFaction(ACitizen* Citizen)
+{
+	for (FWorldTileStruct& tile : World) {
+		if (!tile.Citizens.Contains(Citizen) || !tile.Moving.Contains(Citizen))
+			continue;
+
+		FFactionStruct& faction = GetFactionFromOwner(tile.Owner);
+
+		return faction;
+	}
+
+	throw std::runtime_error("Faction not found");
 }
 
 FWorldTileStruct* UConquestManager::FindCapital(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands)
