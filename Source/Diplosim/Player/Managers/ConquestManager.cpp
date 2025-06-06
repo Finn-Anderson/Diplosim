@@ -257,6 +257,8 @@ void UConquestManager::GiveResource()
 
 		SetFactionsHappiness(faction, occupiedIslands);
 
+		Camera->UpdateFactionHappiness();
+
 		EvaluateDiplomacy(faction);
 
 		EvaluateAI(faction, occupiedIslands);
@@ -338,7 +340,7 @@ void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
 	FRaidStruct raid;
 	raid.Owner = faction.Name;
 
-	if (!oldTile->Moving.Contains(Citizen) || !CanTravel(Citizen) || (!faction.Allies.Contains(targetTile->Owner) && !targetTile->RaidParties.Contains(raid))) {
+	if (!CanTravel(Citizen) || (!faction.Allies.Contains(targetTile->Owner) && !targetTile->RaidParties.Contains(raid))) {
 		oldTile->Moving.Remove(Citizen);
 
 		if (oldTile->bCapital && oldTile->Owner == EmpireName)
@@ -647,6 +649,18 @@ FWorldTileStruct* UConquestManager::FindCapital(FFactionStruct& Faction, TArray<
 	return nullptr;
 }
 
+bool UConquestManager::IsCitizenMoving(class ACitizen* Citizen)
+{
+	for (FWorldTileStruct& tile : World) {
+		if (!tile.Moving.Contains(Citizen))
+			continue;
+
+		return true;
+	}
+
+	return false;
+}
+
 //
 // Diplomacy
 //
@@ -726,6 +740,7 @@ void UConquestManager::SetFactionsHappiness(FFactionStruct& Faction, TArray<FWor
 			continue;
 
 		FFactionHappinessStruct& happiness = GetHappinessWithFaction(Faction, f);
+		happiness.ProposalTimer = FMath::Max(happiness.ProposalTimer - 1, 0);
 
 		if (Faction.Religion != f.Religion) {
 			int32 value = -18;
@@ -887,6 +902,8 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 			if (newValue + (Faction.WarFatigue / 3) >= 0) {
 				if (f.Name == EmpireName) {
 					// UI proposal that links to Peace()
+
+					happiness.ProposalTimer = 24;
 				}
 				else if (newFValue + (f.WarFatigue / 3) >= 0)
 					Peace(Faction, f);
@@ -916,7 +933,7 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 		DeclareWar(Faction, f);
 
 		if (f.Name == EmpireName) {
-			// Popup UI
+			// Popup War UI
 		}
 	}
 
@@ -926,6 +943,9 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 
 		if (f.Name == EmpireName) {
 			// UI proposal that links to Ally()
+
+			FFactionHappinessStruct& happiness = GetHappinessWithFaction(Faction, f);
+			happiness.ProposalTimer = 24;
 		}
 		else
 			Ally(Faction, f);
@@ -1386,6 +1406,8 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 
 		Tile->Owner = Tile->RaidStarterName;
 		Tile->bCapital = false;
+
+		Camera->UpdateIslandInfoPostRaid(*Tile);
 	}
 	else if (Tile->RaidParties.IsEmpty()) {
 		Tile->RaidStarterName = "";
@@ -1393,6 +1415,8 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 	
 	if (Tile->Citizens.IsEmpty() || Tile->RaidParties.IsEmpty())
 		Camera->CitizenManager->RemoveTimer("ColonyRaid" + Tile->Name, GetOwner());
+
+	Camera->UpdateRaidHP(*Tile);
 }
 
 //

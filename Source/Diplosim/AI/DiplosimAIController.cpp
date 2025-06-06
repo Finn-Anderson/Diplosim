@@ -18,11 +18,13 @@
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Road.h"
+#include "Buildings/Misc/Portal.h"
 #include "Universal/Resource.h"
 #include "AttackComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "AIMovementComponent.h"
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
@@ -38,6 +40,12 @@ void ADiplosimAIController::DefaultAction()
 
 	if (GetOwner()->IsA<ACitizen>() && !Cast<ACitizen>(GetOwner())->Rebel) {
 		ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+		if (citizen->Camera->ConquestManager->IsCitizenMoving(citizen)) {
+			AIMoveTo(citizen->Camera->ConquestManager->Portal);
+
+			return;
+		}
 
 		if (citizen->Camera->CitizenManager->IsAttendingEvent(citizen))
 			return;

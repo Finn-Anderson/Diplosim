@@ -958,7 +958,7 @@ FEventTimeStruct UCitizenManager::GetOngoingEventTimes(FEventStruct event)
 
 void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 {
-	if (IsAttendingEvent(Citizen) || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->bOpen) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith && Citizen->BioStruct.Age >= 18))
+	if (IsAttendingEvent(Citizen) || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->bOpen) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith && Citizen->BioStruct.Age >= 18) || Citizen->Camera->ConquestManager->IsCitizenMoving(Citizen))
 		return;
 
 	int32 index = Events.Find(Event);

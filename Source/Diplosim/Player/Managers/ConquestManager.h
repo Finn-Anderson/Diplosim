@@ -16,9 +16,12 @@ struct FFactionHappinessStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
 		TMap<FString, int32> Modifiers;
 
+	int32 ProposalTimer;
+
 	FFactionHappinessStruct()
 	{
 		ClearValues();
+		ProposalTimer = 0;
 	}
 
 	void ClearValues()
@@ -356,6 +359,8 @@ public:
 	void RemoveFromRecentlyMoved(class ACitizen* Citizen);
 
 	FWorldTileStruct* FindCapital(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
+
+	bool IsCitizenMoving(class ACitizen* Citizen);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
 		FString EmpireName;
