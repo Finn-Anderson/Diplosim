@@ -275,6 +275,24 @@ struct FColonyEventStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FGiftStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gift")
+		TSubclassOf<class AResource> Resource;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gift")
+		int32 Amount;
+
+	FGiftStruct()
+	{
+		Resource = nullptr;
+		Amount = 0;
+	}
+};
+
 struct FColoniesStruct
 {
 	FFactionStruct* Faction;
@@ -440,7 +458,7 @@ public:
 		void Praise(FFactionStruct Faction, FFactionStruct Target);
 
 	UFUNCTION(BlueprintCallable)
-		void Gift(FFactionStruct Faction, TSubclassOf<class AResource> Resource, int32 Amount);
+		void Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts);
 
 	UFUNCTION(BlueprintCallable)
 		bool CanBuyIsland(FWorldTileStruct Tile);
@@ -466,4 +484,8 @@ public:
 	void EvaluateAI(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 
 	class ACitizen* GetChosenCitizen(TArray<ACitizen*> Citizens);
+
+	// UI
+	UFUNCTION(BlueprintCallable)
+		void DisplayConquestNotification(FString Message, FString Owner, bool bChoice);
 };

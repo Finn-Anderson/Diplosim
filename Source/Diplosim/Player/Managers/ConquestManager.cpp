@@ -301,8 +301,12 @@ void UConquestManager::MoveToColony(FFactionStruct* Faction, FWorldTileStruct* T
 		Tile->Owner = Faction->Name;
 	}
 	else if (Tile->Owner != Faction->Name && !Faction->Allies.Contains(Tile->Owner)) {
-		if (Tile->RaidStarterName == "")
+		if (Tile->RaidStarterName == "") {
 			Tile->RaidStarterName = Faction->Name;
+
+			if (Tile->Owner == EmpireName)
+				DisplayConquestNotification(Faction->Name + " is sending a raid party to " + Tile->Name, Faction->Name, false);
+		}
 
 		FRaidStruct raid;
 		raid.Owner = Faction->Name;
@@ -901,7 +905,7 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 
 			if (newValue + (Faction.WarFatigue / 3) >= 0) {
 				if (f.Name == EmpireName) {
-					// UI proposal that links to Peace()
+					DisplayConquestNotification(Faction.Name + " offers peace", Faction.Name, true);
 
 					happiness.ProposalTimer = 24;
 				}
@@ -932,9 +936,8 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 
 		DeclareWar(Faction, f);
 
-		if (f.Name == EmpireName) {
-			// Popup War UI
-		}
+		if (f.Name == EmpireName)
+			DisplayConquestNotification(Faction.Name + " has declared war on you", Faction.Name, false);
 	}
 
 	if (!potentialAllies.IsEmpty()) {
@@ -942,7 +945,7 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 		FFactionStruct f = potentialAllies[index];
 
 		if (f.Name == EmpireName) {
-			// UI proposal that links to Ally()
+			DisplayConquestNotification(Faction.Name + " wants to be your ally", Faction.Name, true);
 
 			FFactionHappinessStruct& happiness = GetHappinessWithFaction(Faction, f);
 			happiness.ProposalTimer = 24;
@@ -1135,27 +1138,30 @@ void UConquestManager::Praise(FFactionStruct Faction, FFactionStruct Target)
 	happiness.SetValue("Praised", 12);
 }
 
-void UConquestManager::Gift(FFactionStruct Faction, TSubclassOf<class AResource> Resource, int32 Amount)
+void UConquestManager::Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts)
 {
-	if (!Camera->ResourceManager->TakeUniversalResource(Resource, Amount, 0))
-		return;
-	
-	FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+	for (FGiftStruct gift : Gifts) {
+		if (!Camera->ResourceManager->TakeUniversalResource(gift.Resource, gift.Amount, 0))
+			continue;
 
-	FFactionHappinessStruct& happiness = GetHappinessWithFaction(Faction, playerFaction);
+		FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
 
-	int32 value = Camera->ResourceManager->GetMarketValue(Resource) * Amount / 12;
+		FFactionHappinessStruct& happiness = GetHappinessWithFaction(Faction, playerFaction);
 
-	if (happiness.Contains("Received a gift"))
-		happiness.SetValue("Received a gift", happiness.GetValue("Received a gift") + value);
-	else
-		happiness.SetValue("Received a gift", value);
+		int32 value = Camera->ResourceManager->GetMarketValue(gift.Resource) * gift.Amount / 12;
 
-	
+		if (happiness.Contains("Received a gift"))
+			happiness.SetValue("Received a gift", happiness.GetValue("Received a gift") + value);
+		else
+			happiness.SetValue("Received a gift", value);
+	}
 }
 
 bool UConquestManager::CanBuyIsland(FWorldTileStruct Tile)
 {
+	if (Tile.Owner == EmpireName || Tile.Owner == "")
+		return false;
+	
 	int32 value = GetIslandWorth(Tile);
 
 	if (value > 1000 || !Tile.RaidParties.IsEmpty())
@@ -1570,4 +1576,12 @@ ACitizen* UConquestManager::GetChosenCitizen(TArray<ACitizen*> Citizens)
 	}
 
 	return chosenCitizen;
+}
+
+//
+// UI
+//
+void UConquestManager::DisplayConquestNotification(FString Message, FString Owner, bool bChoice)
+{
+	Camera->NotifyConquestEvent(Message, Owner, bChoice);
 }

@@ -179,6 +179,10 @@ void ACamera::BeginPlay()
 
 	FactionColourUIInstance = CreateWidget<UUserWidget>(pcontroller, FactionColourUI);
 
+	GiftUIInstance = CreateWidget<UUserWidget>(pcontroller, GiftUI);
+
+	DiplomacyNotifyUIInstance = CreateWidget<UUserWidget>(pcontroller, DiplomacyNotifyUI);
+
 	if (GetWorld()->GetMapName() == "Map")
 		Grid->Load();
 }
