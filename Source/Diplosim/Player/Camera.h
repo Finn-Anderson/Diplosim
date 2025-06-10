@@ -124,6 +124,9 @@ public:
 		void UpdateRaidHP(const FWorldTileStruct& Tile);
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void SetIslandBeingRaided(const FWorldTileStruct& Tile, bool bRaided);
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateIslandInfoPostRaid(const FWorldTileStruct& Tile);
 
 	UFUNCTION(BlueprintImplementableEvent)

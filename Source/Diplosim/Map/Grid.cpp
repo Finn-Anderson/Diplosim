@@ -260,8 +260,6 @@ void AGrid::Render()
 
 	int32 levelCount = 0;
 
-	float pow = 0.5f;
-
 	// Set tile information based on adjacent tile types until all tile struct choices are set
 	while (true) {
 		// Set current level
@@ -271,7 +269,12 @@ void AGrid::Render()
 			if (level < 0)
 				break;
 
-			float percentage = (1.85f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(level) / (1.85f * FMath::Square(MaxLevel / 2.5f)))));
+			int32 height = level;
+
+			if (Type == EType::Mountain && level != MaxLevel)
+				height = (MaxLevel / FMath::Min(FMath::Max(1, level) * 2.0f, MaxLevel));
+
+			float percentage = (1.85f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(height) / (1.85f * FMath::Square(MaxLevel / 2.5f)))));
 			levelCount = FMath::Clamp(percentage * levelTotal, 0, levelTotal);
 		}
 
@@ -290,32 +293,68 @@ void AGrid::Render()
 			peaksList.Add(chosenTile);
 
 			if (peaksList.Num() == 2 && Type == EType::Mountain) {
-				TArray<FTileStruct*> tiles = CalculatePath(peaksList[0], peaksList[1]);
+				float distance = FVector2D::Distance(FVector2D(peaksList[0]->X, peaksList[0]->Y), FVector2D(peaksList[1]->X, peaksList[1]->Y));
 
-				float distance = FMath::Sqrt((FMath::Square(peaksList[0]->X - peaksList[1]->X) + FMath::Square(peaksList[0]->Y - peaksList[1]->Y)) * 1.0f);
+				FVector2D p0 = FVector2D::Zero();
+				FVector2D p1 = FVector2D::Zero();
+				FVector2D p2 = FVector2D::Zero();
+				FVector2D p3 = FVector2D::Zero();
 
-				pow = FMath::Max(0.5f, FMath::Min(distance / levelCount, 0.7f));
+				if (peaksList[0]->Y > peaksList[1]->Y) {
+					p0 = FVector2D(peaksList[1]->X, peaksList[1]->Y);
+					p3 = FVector2D(peaksList[0]->X, peaksList[0]->Y);
+				}
+				else {
+					p0 = FVector2D(peaksList[0]->X, peaksList[0]->Y);
+					p3 = FVector2D(peaksList[1]->X, peaksList[1]->Y);
+				}
 
-				for (FTileStruct* tile : tiles) {
-					if (tile == peaksList[0] || tile == peaksList[1])
+				FVector2D pHalf = (p0 + p3) / 2.0f;
+
+				float variance = distance * 0.66f;
+
+				p1 = FVector2D(FMath::RandRange(p0.X, pHalf.X) + FMath::RandRange(-variance, variance), FMath::RandRange(p0.Y, pHalf.Y) + FMath::RandRange(-variance, variance));
+				p2 = FVector2D(FMath::RandRange(pHalf.X, p3.X) + FMath::RandRange(-variance, variance), FMath::RandRange(pHalf.Y, p3.Y) + FMath::RandRange(-variance, variance));
+
+				double t = 0.0f;
+
+				while (t <= 1.0f) {
+					FVector2D point = FMath::Pow((1 - t), 3) * p0 + 3 * FMath::Pow((1 - t), 2) * t * p1 + 3 * (1 - t) * FMath::Pow(t, 2) * p2 + FMath::Pow(t, 3) * p3;
+
+					int32 px = point.X + (bound / 2);
+					int32 py = point.Y + (bound / 2);
+
+					FTileStruct* tile = &Storage[px][py];
+
+					if (tile->Level > -1) {
+						t += 0.01f;
+
 						continue;
+					}
 
-					float d0 = FMath::Sqrt((FMath::Square(peaksList[0]->X - tile->X) + FMath::Square(peaksList[0]->Y - tile->Y)) * 1.0f);
-					float d1 = FMath::Sqrt((FMath::Square(peaksList[1]->X - tile->X) + FMath::Square(peaksList[1]->Y - tile->Y)) * 1.0f);
+					for (auto& element : tile->AdjacentTiles) {
+						element.Value->Level = level;
 
-					if (FMath::Abs(d0 - d1) < 1.0f && peaksList.Num() < 3)
-						peaksList.Add(tile);
+						levelCount--;
+
+						chooseableTiles.Remove(element.Value);
+
+						peaksList.Add(element.Value);
+
+						for (auto& e : element.Value->AdjacentTiles)
+							if (!chooseableTiles.Contains(e.Value) && e.Value->Level < 0)
+								chooseableTiles.Add(e.Value);
+					}
 
 					tile->Level = level;
 
-					// Set adjacent tiles to choose from
-					for (auto& element : tile->AdjacentTiles)
-						if (!chooseableTiles.Contains(element.Value) && element.Value->Level < 0)
-							chooseableTiles.Add(element.Value);
+					levelCount--;
 
 					chooseableTiles.Remove(tile);
 
-					levelCount--;
+					peaksList.Add(tile);
+
+					t += 0.01f;
 				}
 			}
 		}
@@ -658,9 +697,6 @@ void AGrid::FillHoles(FTileStruct* Tile)
 	if (bLava && levels.Contains(MaxLevel) && Tile->Level != MaxLevel && result < MaxLevel - 1)
 		result = MaxLevel - 1;
 
-	if (result == Tile->Level)
-		return;
-
 	Tile->Level = result;
 }
 
@@ -878,6 +914,9 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		}
 	}
 	else {
+		if (Tile->Fertility == 0)
+			Tile->Level = MaxLevel - 1;
+
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
 
 		float r = 0.0f;
@@ -930,13 +969,24 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		else {
 			int32 chance = Stream.RandRange(1, 100);
 
-			for (auto& element : Tile->AdjacentTiles) {
-				if (element.Value->Level > Tile->Level && element.Value->Level != MaxLevel && chance > 99) {
-					Tile->bRamp = true;
+			bool canUseRamp = true;
 
-					transform.SetRotation((FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0) - FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, 0)).ToOrientationQuat());
+			if (Tile->AdjacentTiles.Num() < 3)
+				canUseRamp = false;
+			else
+				for (auto& element : Tile->AdjacentTiles)
+					if (element.Value->Level < 0)
+						canUseRamp = true;
 
-					break;
+			if (canUseRamp) {
+				for (auto& element : Tile->AdjacentTiles) {
+					if (element.Value->Level > Tile->Level && element.Value->Level != MaxLevel && chance > 99) {
+						Tile->bRamp = true;
+
+						transform.SetRotation((FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0) - FVector(element.Value->X * 100.0f, element.Value->Y * 100.0f, 0)).ToOrientationQuat());
+
+						break;
+					}
 				}
 			}
 

@@ -304,6 +304,8 @@ void UConquestManager::MoveToColony(FFactionStruct* Faction, FWorldTileStruct* T
 		if (Tile->RaidStarterName == "") {
 			Tile->RaidStarterName = Faction->Name;
 
+			Camera->SetIslandBeingRaided(*Tile, true);
+
 			if (Tile->Owner == EmpireName)
 				DisplayConquestNotification(Faction->Name + " is sending a raid party to " + Tile->Name, Faction->Name, false);
 		}
@@ -1419,8 +1421,11 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 		Tile->RaidStarterName = "";
 	}
 	
-	if (Tile->Citizens.IsEmpty() || Tile->RaidParties.IsEmpty())
+	if (Tile->Citizens.IsEmpty() || Tile->RaidParties.IsEmpty()) {
+		Camera->SetIslandBeingRaided(*Tile, false);
+
 		Camera->CitizenManager->RemoveTimer("ColonyRaid" + Tile->Name, GetOwner());
+	}
 
 	Camera->UpdateRaidHP(*Tile);
 }
