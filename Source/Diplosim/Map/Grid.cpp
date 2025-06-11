@@ -49,6 +49,7 @@ AGrid::AGrid()
 	HISMLava->SetCanEverAffectNavigation(false);
 	HISMLava->SetCastShadow(false);
 	HISMLava->SetEvaluateWorldPositionOffset(false);
+	HISMLava->SetGenerateOverlapEvents(false);
 	HISMLava->bWorldPositionOffsetWritesVelocity = false;
 	HISMLava->bAutoRebuildTreeOnInstanceChanges = false;
 
@@ -58,6 +59,7 @@ AGrid::AGrid()
 	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMGround->SetCollisionResponseToChannels(response);
 	HISMGround->SetEvaluateWorldPositionOffset(false);
+	HISMGround->SetGenerateOverlapEvents(false);
 	HISMGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMGround->NumCustomDataFloats = 8;
 	HISMGround->bAutoRebuildTreeOnInstanceChanges = false;
@@ -70,6 +72,7 @@ AGrid::AGrid()
 	HISMFlatGround->SetCollisionResponseToChannels(response);
 	HISMFlatGround->SetCastShadow(false);
 	HISMFlatGround->SetEvaluateWorldPositionOffset(false);
+	HISMFlatGround->SetGenerateOverlapEvents(false);
 	HISMFlatGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMFlatGround->NumCustomDataFloats = 8;
 	HISMFlatGround->bAutoRebuildTreeOnInstanceChanges = false;
@@ -80,6 +83,7 @@ AGrid::AGrid()
 	HISMRampGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRampGround->SetCollisionResponseToChannels(response);
 	HISMRampGround->SetEvaluateWorldPositionOffset(false);
+	HISMRampGround->SetGenerateOverlapEvents(false);
 	HISMRampGround->bWorldPositionOffsetWritesVelocity = false;
 	HISMRampGround->NumCustomDataFloats = 8;
 	HISMRampGround->bAutoRebuildTreeOnInstanceChanges = false;
@@ -90,6 +94,7 @@ AGrid::AGrid()
 	HISMRiver->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMRiver->SetCollisionResponseToChannels(response);
 	HISMRiver->SetCanEverAffectNavigation(false);
+	HISMRiver->SetGenerateOverlapEvents(false);
 	HISMRiver->SetWorldPositionOffsetDisableDistance(5000);
 	HISMRiver->bWorldPositionOffsetWritesVelocity = false;
 	HISMRiver->NumCustomDataFloats = 4;
@@ -112,6 +117,7 @@ AGrid::AGrid()
 	HISMWall->SetHiddenInGame(true);
 	HISMWall->SetCastShadow(false);
 	HISMWall->SetEvaluateWorldPositionOffset(false);
+	HISMWall->SetGenerateOverlapEvents(false);
 	HISMWall->bWorldPositionOffsetWritesVelocity = false;
 	HISMWall->bAutoRebuildTreeOnInstanceChanges = false;
 

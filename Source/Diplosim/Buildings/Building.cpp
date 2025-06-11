@@ -55,6 +55,7 @@ ABuilding::ABuilding()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Block);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Block);
 	BuildingMesh->SetCanEverAffectNavigation(false);
+	BuildingMesh->SetGenerateOverlapEvents(false);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
 	BuildingMesh->PrimaryComponentTick.bCanEverTick = false;
 
@@ -124,9 +125,6 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
-
-	BuildingMesh->OnComponentBeginOverlap.AddDynamic(this, &ABuilding::OnOverlapBegin);
-	BuildingMesh->OnComponentEndOverlap.AddDynamic(this, &ABuilding::OnOverlapEnd);
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
@@ -441,64 +439,6 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 	}
 }
 
-void ABuilding::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (OtherActor == this || OtherComp->IsA<USphereComponent>())
-		return;
-
-	if (OtherActor->IsA<AVegetation>() && !Camera->ConstructionManager->IsBeingConstructed(this, nullptr)) {
-		FTreeStruct treeStruct;
-		treeStruct.Resource = Cast<AVegetation>(OtherActor);
-		treeStruct.Instance = OtherBodyIndex;
-
-		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 0.0f);
-
-		treeStruct.Resource->ResourceHISM->MarkRenderStateDirty();
-
-		TreeList.Add(treeStruct);
-	}
-	else if (OtherActor->IsA<AResource>() || OtherActor->IsA<ABuilding>() || OtherActor->IsA<AGrid>() || OtherActor->IsA<AEggBasket>()) {
-		FCollisionStruct collision;
-		collision.Actor = OtherActor;
-
-		if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
-			collision.HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
-			collision.Instance = OtherBodyIndex;
-		}
-		
-		Collisions.Add(collision);
-	}
-}
-
-void ABuilding::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	FTreeStruct treeStruct;
-
-	if (OtherActor->IsA<AVegetation>()) {
-		treeStruct.Resource = Cast<AVegetation>(OtherActor);
-		treeStruct.Instance = OtherBodyIndex;
-	}
-
-	if (TreeList.Contains(treeStruct)) {
-		treeStruct.Resource->ResourceHISM->SetCustomDataValue(treeStruct.Instance, 1, 1.0f);
-
-		treeStruct.Resource->ResourceHISM->MarkRenderStateDirty();
-
-		TreeList.Remove(treeStruct);
-	}
-	else {
-		FCollisionStruct collision;
-		collision.Actor = OtherActor;
-
-		if (OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
-			collision.HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp);
-			collision.Instance = OtherBodyIndex;
-		}
-
-		Collisions.Remove(collision);
-	}
-}
-
 void ABuilding::DestroyBuilding(bool bCheckAbove)
 {
 	UResourceManager* rm = Camera->ResourceManager;
@@ -516,10 +456,15 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 			rm->AddUniversalResource(items.Resource, items.Stored / 2.0f);
 	}
 
-	if (IsA(Camera->BuildComponent->FoundationClass))
-		for (FCollisionStruct collision : Collisions)
-			if (collision.HISM == Camera->Grid->HISMRiver)
-				collision.HISM->PerInstanceSMCustomData[collision.Instance * 4] = 1.0f;
+	if (IsA(Camera->BuildComponent->FoundationClass)) {
+		int32 x = GetActorLocation().X / 100.0f;
+		int32 y = GetActorLocation().Y / 100.0f;
+
+		FTileStruct* tile = &Camera->Grid->Storage[x][y];
+
+		if (tile->bRiver)
+			Camera->Grid->HISMRiver->PerInstanceSMCustomData[tile->Instance * 4] = 1.0f;
+	}
 
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 

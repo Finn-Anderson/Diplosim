@@ -53,6 +53,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class USoundBase* PlaceSound;
 
+	TArray<FHitResult> GetBuildingOverlaps(class ABuilding* Building);
+
+	void SetTreeStatus(float Opacity, bool bDestroy = false);
+
 	void SetBuildingsOnPath();
 
 	TArray<FVector> CalculatePath(struct FTileStruct StartTile, struct FTileStruct EndTile);

@@ -57,51 +57,6 @@ struct FBasketStruct
 };
 
 USTRUCT()
-struct FCollisionStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	AActor* Actor;
-
-	class UHierarchicalInstancedStaticMeshComponent* HISM;
-
-	int32 Instance;
-
-	FCollisionStruct()
-	{
-		Actor = nullptr;
-		HISM = nullptr;
-		Instance = -1;
-	}
-
-	bool operator==(const FCollisionStruct& other) const
-	{
-		return (other.Actor == Actor) && (other.HISM == HISM) && (other.Instance == Instance);
-	}
-};
-
-USTRUCT()
-struct FTreeStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	class AVegetation* Resource;
-
-	int32 Instance;
-
-	FTreeStruct()
-	{
-		Resource = nullptr;
-		Instance = -1;
-	}
-
-	bool operator==(const FTreeStruct& other) const
-	{
-		return (other.Resource == Resource) && (other.Instance == Instance);
-	}
-};
-
-USTRUCT()
 struct FSocketStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -266,9 +221,6 @@ public:
 		class ACamera* Camera;
 
 	UPROPERTY()
-		TArray<FCollisionStruct> Collisions;
-
-	UPROPERTY()
 		TArray<FSocketStruct> SocketList;
 
 	UPROPERTY()
@@ -350,9 +302,6 @@ public:
 		bool bCoastal;
 
 	UPROPERTY()
-		TArray<FTreeStruct> TreeList;
-
-	UPROPERTY()
 		UStaticMesh* ActualMesh;
 
 	UFUNCTION(BlueprintCallable)
@@ -370,13 +319,6 @@ public:
 		TSubclassOf<class AResource> Money;
 
 	virtual void UpkeepCost();
-
-	// Building prevent overlaps
-	UFUNCTION()
-		void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	// Citizens
 	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
