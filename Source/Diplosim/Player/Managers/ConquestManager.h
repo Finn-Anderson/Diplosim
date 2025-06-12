@@ -488,4 +488,7 @@ public:
 	// UI
 	UFUNCTION(BlueprintCallable)
 		void DisplayConquestNotification(FString Message, FString Owner, bool bChoice);
+
+	UFUNCTION(BlueprintCallable)
+		void SetConquestStatus(bool bEnable);
 };

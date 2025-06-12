@@ -1,5 +1,7 @@
 #include "Player/Managers/ConquestManager.h"
 
+#include "Components/WidgetComponent.h"
+
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
@@ -160,6 +162,13 @@ void UConquestManager::GenerateWorld()
 
 void UConquestManager::StartConquest()
 {
+	if (Portal->IsHidden()) {
+		Portal->Destroy();
+		Portal = nullptr;
+
+		return;
+	}
+
 	for (FWorldTileStruct& tile : World) {
 		if (tile.Owner == "" || tile.Owner == EmpireName)
 			continue;
@@ -171,6 +180,9 @@ void UConquestManager::StartConquest()
 
 void UConquestManager::GiveResource()
 {
+	if (!IsValid(Portal))
+		return;
+
 	TArray<FWorldTileStruct*> occupiedIslands;
 
 	for (FWorldTileStruct& tile : World) {
@@ -1589,4 +1601,14 @@ ACitizen* UConquestManager::GetChosenCitizen(TArray<ACitizen*> Citizens)
 void UConquestManager::DisplayConquestNotification(FString Message, FString Owner, bool bChoice)
 {
 	Camera->NotifyConquestEvent(Message, Owner, bChoice);
+}
+
+void UConquestManager::SetConquestStatus(bool bEnable)
+{
+	Portal->SetActorHiddenInGame(!bEnable);
+	
+	if (bEnable)
+		Camera->WorldUIInstance->AddToViewport();
+	else
+		Camera->WorldUIInstance->RemoveFromParent();
 }

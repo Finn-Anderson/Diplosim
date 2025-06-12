@@ -268,6 +268,7 @@ void ACamera::StartGame()
 	bInMenu = false;
 
 	Grid->MapUIInstance->AddToViewport();
+	WorldUIInstance->AddToViewport();
 }
 
 void ACamera::OnBrochPlace(ABuilding* Broch)
@@ -278,7 +279,6 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	bBlockPause = true;
 
 	Grid->MapUIInstance->RemoveFromParent();
-	WorldUIInstance->RemoveFromParent();
 
 	ResourceManager->RandomiseMarket();
 
@@ -573,14 +573,6 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 		return;
 	}
 
-	if (WorldUIInstance->IsInViewport()) {
-		WorldUIInstance->RemoveFromParent();
-
-		bWasClosingWindow = true;
-
-		return;
-	}
-
 	if (ResearchHoverUIInstance->IsInViewport()) {
 		ResearchHoverUIInstance->RemoveFromParent();
 
@@ -604,7 +596,7 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 		return;
 	}
 	
-	if (bWasClosingWindow || bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || WorldUIInstance->IsInViewport() || bBulldoze) {
+	if (bWasClosingWindow || bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || bBulldoze) {
 		bWasClosingWindow = false;
 
 		return;
@@ -715,11 +707,6 @@ void ACamera::Menu()
 		ResearchUIInstance->RemoveFromParent();
 
 		ResearchHoverUIInstance->RemoveFromParent();
-
-		return;
-	}
-	else if (WorldUIInstance->IsInViewport()) {
-		WorldUIInstance->RemoveFromParent();
 
 		return;
 	}
