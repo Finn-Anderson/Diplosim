@@ -266,6 +266,19 @@ void AGrid::Render()
 
 	int32 levelCount = 0;
 
+	float totalPercentage = 0.0f;
+
+	for (int32 i = MaxLevel; i > -1; i--) {
+		int32 height = i;
+
+		if (Type == EType::Mountain)
+			height = (MaxLevel / FMath::Min(FMath::Max(1, i) * 2.0f, MaxLevel));
+
+		float percentage = (1.85f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(height) / (1.85f * FMath::Square(MaxLevel / 2.5f)))));
+
+		totalPercentage += percentage;
+	}
+
 	// Set tile information based on adjacent tile types until all tile struct choices are set
 	while (true) {
 		// Set current level
@@ -277,10 +290,10 @@ void AGrid::Render()
 
 			int32 height = level;
 
-			if (Type == EType::Mountain && level != MaxLevel)
+			if (Type == EType::Mountain)
 				height = (MaxLevel / FMath::Min(FMath::Max(1, level) * 2.0f, MaxLevel));
 
-			float percentage = (1.85f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(height) / (1.85f * FMath::Square(MaxLevel / 2.5f)))));
+			float percentage = (1.85f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(height) / (1.85f * FMath::Square(MaxLevel / 2.5f))))) / totalPercentage;
 			levelCount = FMath::Clamp(percentage * levelTotal, 0, levelTotal);
 		}
 
@@ -977,12 +990,12 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 			bool canUseRamp = true;
 
-			if (Tile->AdjacentTiles.Num() < 3)
+			if (Tile->AdjacentTiles.Num() < 4)
 				canUseRamp = false;
 			else
 				for (auto& element : Tile->AdjacentTiles)
 					if (element.Value->Level < 0)
-						canUseRamp = true;
+						canUseRamp = false;
 
 			if (canUseRamp) {
 				for (auto& element : Tile->AdjacentTiles) {

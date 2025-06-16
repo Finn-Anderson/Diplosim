@@ -128,12 +128,9 @@ struct FRaidStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Raiding")
 		TMap<class ACitizen*, int32> Raiders;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Raiding")
-		bool bStation;
-
 	FRaidStruct() 
 	{
-		bStation = false;
+
 	}
 
 	bool operator==(const FRaidStruct& other) const
@@ -332,7 +329,8 @@ public:
 
 	void SpawnCitizenAtColony(FWorldTileStruct& Tile);
 
-	void MoveToColony(FFactionStruct* Faction, FWorldTileStruct* Tile, class ACitizen* Citizen, bool bStation = false);
+	UFUNCTION(BlueprintCallable)
+		void MoveToColony(FFactionStruct Faction, FWorldTileStruct Tile, class ACitizen* Citizen);
 
 	void StartTransmissionTimer(class ACitizen* Citizen);
 
