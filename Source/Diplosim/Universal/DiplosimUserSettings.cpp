@@ -9,6 +9,7 @@
 #include "Engine/UserInterfaceSettings.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "Map/Grid.h"
 #include "Map/Atmosphere/Clouds.h"
@@ -174,6 +175,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetAmbientVolume(FCString::Atof(Value));
 	else if (FString("UIScale").Equals(Key))
 		SetUIScale(FCString::Atof(Value));
+	else if (FString("bShowLog").Equals(Key))
+		SetShowLog(value.ToBool());
 }
 
 void UDiplosimUserSettings::LoadIniSettings()
@@ -232,6 +235,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetFloat(*Section, TEXT("SFXVolume"), GetSFXVolume(), Filename);
 	GConfig->SetFloat(*Section, TEXT("AmbientVolume"), GetAmbientVolume(), Filename);
 	GConfig->SetFloat(*Section, TEXT("UIScale"), GetUIScale(), Filename);
+	GConfig->SetBool(*Section, TEXT("bShowLog"), GetShowLog(), Filename);
 
 	GConfig->Flush(false, Filename);
 }
@@ -740,6 +744,24 @@ void UDiplosimUserSettings::SetUIScale(float Value)
 float UDiplosimUserSettings::GetUIScale() const
 {
 	return UIScale;
+}
+
+void UDiplosimUserSettings::SetShowLog(bool Value)
+{
+	bShowLog = Value;
+
+	if (!IsValid(Camera))
+		return;
+
+	if (bShowLog)
+		Camera->LogUIInstance->AddToViewport();
+	else
+		Camera->LogUIInstance->RemoveFromParent();
+}
+
+bool UDiplosimUserSettings::GetShowLog() const
+{
+	return bShowLog;
 }
 
 void UDiplosimUserSettings::UpdateAmbientVolume()

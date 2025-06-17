@@ -132,6 +132,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void NotifyConquestEvent(const FString& Message, const FString& FactionName, bool bChoice);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void NotifyLog(const FString& Type, const FString& Message, const FString& IslandName);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -306,6 +309,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* DiplomacyNotifyUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> LogUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* LogUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;

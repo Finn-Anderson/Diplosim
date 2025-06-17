@@ -1160,11 +1160,15 @@ void ACitizen::HaveChild()
 	if (!IsValid(citizen))
 		return;
 
+	FString islandName = "";
+
 	if (Camera->CitizenManager->Citizens.Contains(this)) {
 		citizen->SetSex(Camera->CitizenManager->Citizens);
 		citizen->MainIslandSetup();
 
 		citizen->Building.House->AddVisitor(occupant, citizen);
+
+		islandName = Camera->ColonyName;
 	}
 	else {
 		FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(this);
@@ -1178,7 +1182,11 @@ void ACitizen::HaveChild()
 		tile->Citizens.Add(citizen);
 
 		Camera->UpdateAlterCitizen(citizen, *tile);
+
+		islandName = tile->Name;
 	}
+
+	Camera->NotifyLog("Good", citizen->BioStruct.Name + " is born", islandName);
 
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Partner;
@@ -1354,11 +1362,11 @@ void ACitizen::SetPoliticalLeanings()
 
 	int32 index = FMath::RandRange(0, partyList.Num() - 1);
 
+	bool bLog = false;
+
 	if (party != nullptr && party->Party == partyList[index]) {
 		int32 mark = FMath::RandRange(0, 100);
-		int32 pass = 50;
-
-		pass = 80;
+		int32 pass = 75;
 
 		if (sway->GetValue() == ESway::Strong)
 			pass = 95;
@@ -1368,28 +1376,34 @@ void ACitizen::SetPoliticalLeanings()
 				party->Members.Emplace(this, ESway::Radical);
 			else
 				party->Members.Emplace(this, ESway::Strong);
+
+			bLog = true;
 		}
 	}
 	else {
 		if (sway != nullptr && sway->GetValue() == ESway::Strong) {
 			party->Members.Emplace(this, ESway::Moderate);
+		}
+		else {
+			if (party != nullptr)
+				party->Members.Remove(this);
 
-			return;
+			FPartyStruct partyStruct;
+			partyStruct.Party = partyList[index];
+
+			int32 i = Camera->CitizenManager->Parties.Find(partyStruct);
+
+			Camera->CitizenManager->Parties[i].Members.Add(this, ESway::Moderate);
+
+			if (Camera->CitizenManager->Parties[i].Party == EParty::ShellBreakers && Camera->CitizenManager->IsRebellion())
+				Camera->CitizenManager->SetupRebel(this);
 		}
 
-		if (party != nullptr)
-			party->Members.Remove(this);
-
-		FPartyStruct partyStruct;
-		partyStruct.Party = partyList[index];
-
-		int32 i = Camera->CitizenManager->Parties.Find(partyStruct);
-
-		Camera->CitizenManager->Parties[i].Members.Add(this, ESway::Moderate);
-
-		if (Camera->CitizenManager->Parties[i].Party == EParty::ShellBreakers && Camera->CitizenManager->IsRebellion())
-			Camera->CitizenManager->SetupRebel(this);
+		bLog = true;
 	}
+
+	if (bLog)
+		Camera->NotifyLog("Neutral", BioStruct.Name + " is now a " + UEnum::GetValueAsString(sway->GetValue()) + " " + UEnum::GetValueAsString(party->Party), Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
 }
 
 //
@@ -1455,6 +1469,8 @@ void ACitizen::SetReligion()
 	int32 index = FMath::RandRange(0, religionList.Num() - 1);
 
 	Spirituality.Faith = religionList[index];
+
+	Camera->NotifyLog("Neutral", BioStruct.Name + " set their faith as " + UEnum::GetValueAsString(Spirituality.Faith), Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
 }
 
 //
@@ -1696,10 +1712,15 @@ void ACitizen::SetHappiness()
 	if (Camera->ConquestManager->GetFactionFromOwner(Camera->ConquestManager->EmpireName).WarFatigue >= 120)
 		Happiness.SetValue("High War Fatigue", -15);
 
-	if (GetHappiness() < 35)
+	if (GetHappiness() < 35) {
+		if (SadTimer == 0)
+			Camera->NotifyLog("Bad", BioStruct.Name + " is sad", Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
+
 		SadTimer++;
-	else
+	}
+	else {
 		SadTimer = 0;
+	}
 
 	if (SadTimer == 300) {
 		FEventStruct event;

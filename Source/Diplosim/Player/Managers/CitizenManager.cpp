@@ -263,8 +263,11 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 									int32 chance = FMath::RandRange(1, 100);
 
-									if (chance <= condition.Spreadability)
+									if (chance <= condition.Spreadability) {
 										c->HealthIssues.Add(condition);
+
+										Cast<ACamera>(GetOwner())->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + condition.Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
+									}
 								}
 
 								if (!c->HealthIssues.IsEmpty() && !c->DiseaseNiagaraComponent->IsActive())
@@ -729,6 +732,8 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 			Citizen->ApplyToMultiplier("Health", affect.Amount);
 	}
 
+	Cast<ACamera>(GetOwner())->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + Injuries[index].Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
+
 	Injured.Add(Citizen);
 
 	UpdateHealthText(Citizen);
@@ -764,6 +769,8 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 	Infected.Remove(Citizen);
 	Injured.Remove(Citizen);
 	Healing.Remove(Citizen);
+
+	Cast<ACamera>(GetOwner())->NotifyLog("Good", Citizen->BioStruct.Name + " has been healed", Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
 
 	UpdateHealthText(Citizen);
 }

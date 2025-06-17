@@ -171,6 +171,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 				Camera->UpdateAlterCitizen(citizen, *tile);
 			}
+
+			Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", Camera->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {

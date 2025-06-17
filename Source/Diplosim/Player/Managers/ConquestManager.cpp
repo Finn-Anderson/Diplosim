@@ -315,6 +315,16 @@ void UConquestManager::MoveToColony(FFactionStruct Faction, FWorldTileStruct Til
 
 	if (t->Owner == "") {
 		t->Owner = Faction.Name;
+
+		FString type = "Neutral";
+		FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+
+		if (t->Owner == EmpireName || playerFaction.Allies.Contains(t->Owner))
+			type = "Good";
+		else if (playerFaction.AtWar.Contains(t->Owner))
+			type = "Bad";
+
+		Camera->NotifyLog(type, "Founding new colony", t->Name);
 	}
 	else if (t->Owner != Faction.Name && !Faction.Allies.Contains(t->Owner)) {
 		if (t->RaidStarterName == "") {
@@ -415,8 +425,19 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 
 			Tile->RaidParties[raidIndex].Raiders.Add(Citizen, index);
 
-			if (CanStartRaid(Tile, &GetFactionFromOwner(OldTile->Owner)))
+			if (CanStartRaid(Tile, &GetFactionFromOwner(OldTile->Owner))) {
+				FString type = "Neutral";
+				FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+
+				if (Tile->Owner == EmpireName || playerFaction.Allies.Contains(Tile->Owner))
+					type = "Bad";
+				else if (playerFaction.AtWar.Contains(Tile->Owner))
+					type = "Good";
+
+				Camera->NotifyLog(type, OldTile->Owner + " is raiding " + Tile->Owner, Tile->Name);
+
 				Camera->CitizenManager->CreateTimer("ColonyRaid" + Tile->Name, GetOwner(), 1.0f, FTimerDelegate::CreateUObject(this, &UConquestManager::EvaluateRaid, Tile), true);
+			}
 		}
 	}
 	else if (Tile->bCapital && Tile->Owner == EmpireName) {
@@ -1383,6 +1404,8 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 		if (yetToAttackList.Contains(hitCitizen))
 			yetToAttackList.Remove(hitCitizen);
 	}
+
+	FString logText = "";
 	
 	if (Tile->Citizens.IsEmpty()) {
 		for (FRaidStruct& party : Tile->RaidParties) {
@@ -1423,13 +1446,27 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 		Tile->bCapital = false;
 
 		Camera->UpdateIslandInfoPostRaid(*Tile);
+
+		logText = Tile->Owner + " conquered " + Tile->Name;
 	}
 	else if (Tile->RaidParties.IsEmpty()) {
 		Tile->RaidStarterName = "";
+
+		logText = Tile->Owner + " defended " + Tile->Name;
 	}
 	
 	if (Tile->Citizens.IsEmpty() || Tile->RaidParties.IsEmpty()) {
-		Camera->SetIslandBeingRaided(*Tile, false);
+		Camera->SetIslandBeingRaided(*Tile, false); 
+		
+		FString type = "Neutral";
+		FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+
+		if (Tile->Owner == EmpireName || playerFaction.Allies.Contains(Tile->Owner))
+			type = "Good";
+		else if (playerFaction.AtWar.Contains(Tile->Owner))
+			type = "Bad";
+
+		Camera->NotifyLog(type, logText, Tile->Name);
 
 		Camera->CitizenManager->RemoveTimer("ColonyRaid" + Tile->Name, GetOwner());
 	}

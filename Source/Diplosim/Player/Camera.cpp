@@ -183,6 +183,8 @@ void ACamera::BeginPlay()
 
 	DiplomacyNotifyUIInstance = CreateWidget<UUserWidget>(pcontroller, DiplomacyNotifyUI);
 
+	LogUIInstance = CreateWidget<UUserWidget>(pcontroller, LogUI);
+
 	if (GetWorld()->GetMapName() == "Map")
 		Grid->Load();
 }
@@ -339,6 +341,7 @@ void ACamera::DisplayBuildUI()
 {
 	bBlockPause = false;
 
+	LogUIInstance->AddToViewport();
 	BuildUIInstance->AddToViewport();
 }
 

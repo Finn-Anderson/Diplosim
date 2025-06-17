@@ -94,6 +94,9 @@ protected:
 	UPROPERTY(Config)
 		float UIScale;
 
+	UPROPERTY(Config)
+		bool bShowLog;
+
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
@@ -274,6 +277,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Accessibility")
 		float GetUIScale() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Accessibility")
+		void SetShowLog(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Accessibility")
+		bool GetShowLog() const;
 
 	void UpdateAmbientVolume();
 
