@@ -16,11 +16,16 @@ AInternalProduction::AInternalProduction()
 	MaxYield = 5;
 
 	TimeLength = 10;
+
+	bNoTimer = false;
 }
 
 void AInternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
+
+	if (!GetOccupied().Contains(Citizen) || bNoTimer)
+		return;
 
 	for (FItemStruct item : Intake) {
 		if (item.Use > item.Stored) {
@@ -31,7 +36,7 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 	}
 
 	int32 amount = 0;
-	
+
 	for (FItemStruct item : Storage)
 		amount += item.Amount;
 
@@ -41,7 +46,7 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Internal", this);
 
 	if (timer == nullptr)
-		SetTimer(Citizen);
+		SetTimer();
 	else {
 		AlterTimer();
 
@@ -53,6 +58,9 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
+	if (!GetOccupied().Contains(Citizen) || bNoTimer)
+		return;
+
 	if (GetCitizensAtBuilding().IsEmpty())
 		PauseTimer(true);
 	else
@@ -63,14 +71,16 @@ void AInternalProduction::Production(ACitizen* Citizen)
 {
 	Super::Production(Citizen);
 
-	GetCitizensAtBuilding()[0]->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
+	if (!Camera->ResourceManager->GetResources(this).IsEmpty()) {
+		GetCitizensAtBuilding()[0]->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
 
-	StoreResource(Citizen);
+		StoreResource(GetCitizensAtBuilding()[0]);
+	}
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
 		Camera->CitizenManager->Injure(citizen, 99);
 
-	SetTimer(GetCitizensAtBuilding()[0]);
+	SetTimer();
 
 	for (const FItemStruct item : Intake)
 		if (item.Use > item.Stored)
@@ -80,7 +90,7 @@ void AInternalProduction::Production(ACitizen* Citizen)
 
 float AInternalProduction::GetTime()
 {
-	float time = TimeLength / GetCitizensAtBuilding().Num();
+	float time = TimeLength;
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
 		time -= (time / GetCitizensAtBuilding().Num()) * citizen->GetProductivity() - 1.0f;
@@ -88,9 +98,9 @@ float AInternalProduction::GetTime()
 	return time;
 }
 
-void AInternalProduction::SetTimer(ACitizen* Citizen)
+void AInternalProduction::SetTimer()
 {
-	Camera->CitizenManager->CreateTimer("Internal", this, GetTime(), FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, Citizen), false);
+	Camera->CitizenManager->CreateTimer("Internal", this, GetTime(), FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, GetCitizensAtBuilding()[0]), false);
 }
 
 void AInternalProduction::AlterTimer()

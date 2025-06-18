@@ -26,6 +26,7 @@
 #include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
+#include "Buildings/Misc/Special/PowerPlant.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Map/Grid.h"
@@ -613,7 +614,16 @@ float ACitizen::GetProductivity()
 	float speed = FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed);
 	float scale = (FMath::Min(BioStruct.Age, 18) * 0.04f) + 0.28f;
 
-	return (ProductivityMultiplier * (1 + BioStruct.EducationLevel * 0.1)) * scale * speed;
+	float productivity = (ProductivityMultiplier * (1 + BioStruct.EducationLevel * 0.1)) * scale * speed;
+
+	for (ABuilding* building : Camera->CitizenManager->Buildings) {
+		if (!building->IsA<APowerPlant>())
+			continue;
+
+		productivity *= (1.0f + 0.05f * building->GetCitizensAtBuilding().Num());
+	}
+
+	return productivity;
 }
 
 void ACitizen::Heal(ACitizen* Citizen)

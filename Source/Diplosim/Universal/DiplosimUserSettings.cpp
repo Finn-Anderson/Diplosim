@@ -750,7 +750,7 @@ void UDiplosimUserSettings::SetShowLog(bool Value)
 {
 	bShowLog = Value;
 
-	if (!IsValid(Camera))
+	if (!IsValid(Camera) || !Camera->BuildUIInstance->IsInViewport())
 		return;
 
 	if (bShowLog)

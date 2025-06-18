@@ -19,6 +19,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Components/CameraMovementComponent.h"
+#include "Player/Components/BuildComponent.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "AI/Citizen.h"
@@ -149,6 +150,8 @@ AGrid::AGrid()
 	VegetationMaxDensity = 3;
 	VegetationMultiplier = 1;
 	VegetationSizeMultiplier = 5;
+
+	bRandSpecialBuildings = true;
 }
 
 void AGrid::BeginPlay()
@@ -184,6 +187,10 @@ void AGrid::BeginPlay()
 	for (FResourceHISMStruct& ResourceStruct : MineralStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 		ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
+	}
+
+	for (TSubclassOf<ASpecial> specialClass : SpecialBuildingClasses) {
+		SpecialBuildings.Add(GetWorld()->SpawnActor<ASpecial>(specialClass, FVector::Zero(), FRotator(0.0f)));
 	}
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
@@ -649,6 +656,8 @@ void AGrid::Render()
 
 	APortal* portal = GetWorld()->SpawnActor<APortal>(PortalClass, location, ResourceTiles[index]->Rotation.Rotator());
 	Camera->ConquestManager->Portal = portal;
+
+	SetSpecialBuildings();
 
 	// Conquest Map
 	Camera->ConquestManager->GenerateWorld();
@@ -1543,5 +1552,68 @@ void AGrid::SetSeasonAffect(TArray<float> Values)
 		HISMRampGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];
 		HISMRampGround->PerInstanceSMCustomData[inst * 8 + 6] = Values[1];
 		HISMRampGround->PerInstanceSMCustomData[inst * 8 + 7] = Values[2];
+	}
+}
+
+//
+// Special Buildings
+//
+void AGrid::SetSpecialBuildings()
+{
+	for (ASpecial* building : SpecialBuildings) {
+		if (bRandSpecialBuildings) {
+			int32 value = Stream.RandRange(0, 1);
+
+			if (value == 0)
+				building->SetActorHiddenInGame(true);
+			else
+				building->SetActorHiddenInGame(false);
+		}
+
+		float yaw = Stream.RandRange(0, 3) * 90.0f;
+
+		TArray<FVector> validLocations;
+
+		for (TArray<FTileStruct>& row : Storage) {
+			for (FTileStruct& tile : row) {
+				if (tile.Level < 0 || (tile.Level == MaxLevel && bLava) || tile.bRamp || tile.bEdge || tile.bRiver)
+					continue;
+
+				FVector location = GetTransform(&tile).GetLocation();
+
+				building->SetActorLocation(location);
+
+				Camera->BuildComponent->IsValidLocation(building);
+
+				validLocations.Add(location);
+			}
+		}
+
+		int32 chosenLocation = Stream.RandRange(0, validLocations.Num() - 1);
+		building->SetActorLocation(validLocations[chosenLocation]);
+
+		SetSpecialBuildingStatus(building, building->IsHidden());
+	}
+
+	// Update map ui -- for toggles, loop through special buildings array & use names.
+}
+
+void AGrid::SetSpecialBuildingStatus(ASpecial* Building, bool bShow)
+{
+	Building->SetActorHiddenInGame(!bShow);
+
+	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(Building);
+
+	for (FHitResult hit : hits) {
+		if (!hit.GetActor()->IsA<AVegetation>())
+			continue;
+
+		AVegetation* vegetation = Cast<AVegetation>(hit.GetActor());
+		float opacity = 1.0f;
+
+		if (bShow)
+			opacity = 0.0f;
+
+		vegetation->ResourceHISM->SetCustomDataValue(hit.Item, 1, opacity);
 	}
 }

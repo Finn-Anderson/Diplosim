@@ -318,6 +318,42 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			}
 		}
 
+		for (AAI* clone : Clones) {
+			if (clone->HealthComponent->GetHealth() <= 0)
+				continue;
+
+			int32 reach = clone->InitialRange / 15.0f;
+
+			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), clone->GetActorLocation(), clone->Range, objects, nullptr, ignore, actors);
+
+			for (AActor* actor : actors) {
+				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+
+				if (healthComp && healthComp->GetHealth() <= 0)
+					continue;
+
+				if (actor->IsA<AResource>() || actor->GetClass() == clone->GetClass() || clone->IsA<ACitizen>())
+					continue;
+
+				if (!clone->AIController->CanMoveTo(actor->GetActorLocation()))
+					continue;
+
+				clone->AttackComponent->OverlappingEnemies.Add(actor);
+
+				if (clone->AttackComponent->OverlappingEnemies.Num() == 1)
+					clone->AttackComponent->SetComponentTickEnabled(true);
+			}
+
+			for (int32 i = clone->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
+				AActor* actor = clone->AttackComponent->OverlappingEnemies[i];
+
+				if (actors.Contains(actor))
+					continue;
+
+				clone->AttackComponent->OverlappingEnemies.RemoveAt(i);
+			}
+		}
+
 		for (AAI* enemy : Enemies) {
 			if (enemy->HealthComponent->GetHealth() <= 0)
 				continue;

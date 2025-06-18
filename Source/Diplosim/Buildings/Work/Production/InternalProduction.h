@@ -20,7 +20,7 @@ public:
 
 	float GetTime();
 
-	void SetTimer(class ACitizen* Citizen);
+	virtual void SetTimer();
 
 	void AlterTimer();
 
@@ -37,6 +37,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		TArray<FItemStruct> Intake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
+		bool bNoTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap")
 		TSubclassOf<AResource> ResourceToOverlap;

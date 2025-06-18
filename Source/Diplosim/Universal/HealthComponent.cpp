@@ -186,9 +186,6 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 		building->BuildingMesh->SetGenerateOverlapEvents(false);
 
-		UConstructionManager* cm = building->Camera->ConstructionManager;
-		cm->RemoveBuilding(building);
-
 		building->Storage.Empty();
 
 		Camera->CitizenManager->Buildings.Remove(building);

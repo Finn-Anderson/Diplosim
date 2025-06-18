@@ -14,6 +14,7 @@
 
 #include "Map/Grid.h"
 #include "Map/Resources/Mineral.h"
+#include "Map/Resources/Vegetation.h"
 #include "Components/BuildComponent.h"
 #include "Components/CameraMovementComponent.h"
 #include "Managers/ResourceManager.h"
@@ -26,6 +27,7 @@
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Festival.h"
 #include "Buildings/Work/Service/Religion.h"
+#include "Buildings/Misc/Special/Special.h"
 #include "AI/AI.h"
 #include "AI/Citizen.h"
 #include "Universal/DiplosimGameModeBase.h"
@@ -278,6 +280,23 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	if (PauseUIInstance->IsInViewport())
 		Pause();
 
+	for (ASpecial* building :  Grid->SpecialBuildings) {
+		if (building->IsHidden()) {
+			building->Destroy();
+		}
+		else {
+			TArray<FHitResult> hits = BuildComponent->GetBuildingOverlaps(building);
+
+			for (FHitResult hit : hits) {
+				if (!hit.GetActor()->IsA<AVegetation>())
+					continue;
+
+				AVegetation* vegetation = Cast<AVegetation>(hit.GetActor());
+				Grid->RemoveTree(vegetation, hit.Item);
+			}
+		}
+	}
+
 	bBlockPause = true;
 
 	Grid->MapUIInstance->RemoveFromParent();
@@ -341,7 +360,11 @@ void ACamera::DisplayBuildUI()
 {
 	bBlockPause = false;
 
-	LogUIInstance->AddToViewport();
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+
+	if (settings->GetShowLog())
+		LogUIInstance->AddToViewport();
+
 	BuildUIInstance->AddToViewport();
 }
 
@@ -477,6 +500,7 @@ void ACamera::Lose()
 
 	Cancel();
 
+	LogUIInstance->RemoveFromParent();
 	BuildUIInstance->RemoveFromParent();
 	EventUIInstance->RemoveFromParent();
 	LostUIInstance->AddToViewport();

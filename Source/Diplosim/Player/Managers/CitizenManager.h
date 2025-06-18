@@ -573,7 +573,7 @@ public:
 
 	void IssuePensions(int32 Hour);
 
-	// Rebel
+	// Fighting
 	void Overthrow();
 
 	void SetupRebel(class ACitizen* Citizen);
@@ -582,6 +582,9 @@ public:
 
 	UPROPERTY()
 		TArray<class AAI*> Enemies;
+
+	UPROPERTY()
+		TArray<class AAI*> Clones;
 
 	UPROPERTY()
 		int32 CooldownTimer;

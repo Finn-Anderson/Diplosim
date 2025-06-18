@@ -256,6 +256,19 @@ public:
 	void SetSeasonAffect(TArray<float> Values);
 
 	// Unique Buildings
+	void SetSpecialBuildings();
+
+	void SetSpecialBuildingStatus(class ASpecial* Building, bool bShow);
+
+	UPROPERTY()
+	TArray<class ASpecial*> SpecialBuildings;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
+		bool bRandSpecialBuildings;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
+		TArray<TSubclassOf<class ASpecial>> SpecialBuildingClasses;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
 		TSubclassOf<class APortal> PortalClass;
 };
