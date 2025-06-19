@@ -621,6 +621,8 @@ float ACitizen::GetProductivity()
 			continue;
 
 		productivity *= (1.0f + 0.05f * building->GetCitizensAtBuilding().Num());
+
+		break;
 	}
 
 	return productivity;

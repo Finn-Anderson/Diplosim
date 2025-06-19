@@ -91,6 +91,9 @@ public:
 		void UpdateMapSeed(const FString& Seed);
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateMapSpecialBuildings();
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateWorldMap();
 
 	UFUNCTION(BlueprintImplementableEvent)

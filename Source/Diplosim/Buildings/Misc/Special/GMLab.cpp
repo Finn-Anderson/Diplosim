@@ -11,6 +11,8 @@ AGMLab::AGMLab()
 
 void AGMLab::Production(ACitizen* Citizen)
 {
+	Super::Production(Citizen);
+
 	for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
 		for (FGeneticsStruct& genetic : citizen->Genetics) {
 			if (genetic.Grade == EGeneticsGrade::Good)

@@ -11,4 +11,6 @@ class DIPLOSIM_API APowerPlant : public ASpecial
 	
 public:
 	APowerPlant();
+
+	virtual void OnBuilt() override;
 };

@@ -13,6 +13,8 @@ public:
 	ACloneLab();
 
 public:
+	virtual void OnBuilt() override;
+
 	virtual void Production(class ACitizen* Citizen) override;
 
 	virtual void SetTimer() override;

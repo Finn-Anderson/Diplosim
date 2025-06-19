@@ -328,8 +328,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies(TArray<FVector> SpawnLocations)
 
 	for (ABuilding* building : Camera->CitizenManager->Buildings) {
 		if (building->IsA<ACloneLab>()) {
-			if (!building->GetCitizensAtBuilding().IsEmpty())
-				Cast<ACloneLab>(building)->SetTimer();
+			Cast<ACloneLab>(building)->SetTimer();
 
 			break;
 		}

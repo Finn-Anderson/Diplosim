@@ -671,6 +671,7 @@ void AGrid::Render()
 
 void AGrid::OnNavMeshGenerated()
 {
+
 	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();
 }
@@ -1185,6 +1186,8 @@ void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 
 	Resource->ResourceHISM->GetStaticMesh()->AddSocket(socket);
 
+	Tile->bMineral = true;
+
 	ResourceTiles.Remove(Tile);
 }
 
@@ -1579,13 +1582,38 @@ void AGrid::SetSpecialBuildings()
 				if (tile.Level < 0 || (tile.Level == MaxLevel && bLava) || tile.bRamp || tile.bEdge || tile.bRiver)
 					continue;
 
+				bool adjBlocking = false;
+
+				for (auto& element : tile.AdjacentTiles) {
+					for (auto& e : element.Value->AdjacentTiles) {
+						if (e.Value->Level == tile.Level && !e.Value->bRamp && !e.Value->bEdge && !e.Value->bRiver && !e.Value->bMineral)
+							continue;
+
+						adjBlocking = true;
+
+						break;
+					}
+
+					if (adjBlocking)
+						break;
+
+					if (element.Value->Level == tile.Level && !element.Value->bRamp && !element.Value->bEdge && !element.Value->bRiver && !element.Value->bMineral)
+						continue;
+
+					adjBlocking = true;
+
+					break;
+				}
+
+				if (adjBlocking)
+					continue;
+
 				FVector location = GetTransform(&tile).GetLocation();
 
 				building->SetActorLocation(location);
 
-				Camera->BuildComponent->IsValidLocation(building);
-
-				validLocations.Add(location);
+				if (Camera->BuildComponent->IsValidLocation(building))
+					validLocations.Add(location);
 			}
 		}
 
@@ -1595,7 +1623,7 @@ void AGrid::SetSpecialBuildings()
 		SetSpecialBuildingStatus(building, building->IsHidden());
 	}
 
-	// Update map ui -- for toggles, loop through special buildings array & use names.
+	Camera->UpdateMapSpecialBuildings();
 }
 
 void AGrid::SetSpecialBuildingStatus(ASpecial* Building, bool bShow)

@@ -26,6 +26,8 @@ struct FTileStruct
 
 	bool bEdge;
 
+	bool bMineral;
+
 	FTileStruct() {
 		Level = -1;
 
@@ -44,6 +46,8 @@ struct FTileStruct
 		bRiver = false;
 
 		bEdge = false;
+
+		bMineral = false;
 	}
 
 	bool operator==(const FTileStruct& other) const
@@ -258,10 +262,11 @@ public:
 	// Unique Buildings
 	void SetSpecialBuildings();
 
-	void SetSpecialBuildingStatus(class ASpecial* Building, bool bShow);
+	UFUNCTION(BlueprintCallable)
+		void SetSpecialBuildingStatus(class ASpecial* Building, bool bShow);
 
-	UPROPERTY()
-	TArray<class ASpecial*> SpecialBuildings;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
+		TArray<class ASpecial*> SpecialBuildings;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
 		bool bRandSpecialBuildings;

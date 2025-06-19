@@ -9,6 +9,13 @@ ACloneLab::ACloneLab()
 	TimeLength = 30.0f;
 }
 
+void ACloneLab::OnBuilt()
+{
+	Super::OnBuilt();
+
+	SetTimer();
+}
+
 void ACloneLab::Production(ACitizen* Citizen)
 {
 	Super::Production(Citizen);

@@ -459,7 +459,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		if (building->IsA<ARoad>() && hit.GetActor()->IsA<ARoad>())
 			continue;
 
-		if (building->IsA<AInternalProduction>() && Cast<AInternalProduction>(building)->ResourceToOverlap != nullptr && hit.GetActor()->IsA<AResource>()) {
+		if (building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(building)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
 			if (hit.GetActor()->IsA(Cast<AInternalProduction>(building)->ResourceToOverlap))
 				bResource = true;
 
@@ -514,7 +514,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 		}
 	}
 
-	if ((!bCoast && building->bCoastal) || (!bResource && building->IsA<AInternalProduction>()))
+	if ((!bCoast && building->bCoastal) || (!bResource && building->IsA<AInternalProduction>() && !building->IsA<ASpecial>()))
 		return false;
 
 	return true;
