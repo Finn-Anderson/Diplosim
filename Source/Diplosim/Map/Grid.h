@@ -28,6 +28,8 @@ struct FTileStruct
 
 	bool bMineral;
 
+	bool bUnique;
+
 	FTileStruct() {
 		Level = -1;
 
@@ -48,6 +50,8 @@ struct FTileStruct
 		bEdge = false;
 
 		bMineral = false;
+
+		bUnique = false;
 	}
 
 	bool operator==(const FTileStruct& other) const
@@ -260,7 +264,7 @@ public:
 	void SetSeasonAffect(TArray<float> Values);
 
 	// Unique Buildings
-	void SetSpecialBuildings();
+	void SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles);
 
 	UFUNCTION(BlueprintCallable)
 		void SetSpecialBuildingStatus(class ASpecial* Building, bool bShow);

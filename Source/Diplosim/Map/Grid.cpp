@@ -571,10 +571,13 @@ void AGrid::Render()
 
 			GenerateMinerals(chosenTiles[0], ResourceStruct.Resource);
 
-			for (FTileStruct* tile : chosenTiles)
+			for (FTileStruct* tile : chosenTiles) {
+				tile->bMineral = true;
+
 				for (int32 j = ValidMineralTiles.Num() - 1; j > -1; j--)
 					if (ValidMineralTiles[j].Contains(tile))
 						ValidMineralTiles.RemoveAt(j);
+			}
 
 			ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, false);
 		}
@@ -657,7 +660,7 @@ void AGrid::Render()
 	APortal* portal = GetWorld()->SpawnActor<APortal>(PortalClass, location, ResourceTiles[index]->Rotation.Rotator());
 	Camera->ConquestManager->Portal = portal;
 
-	SetSpecialBuildings();
+	SetSpecialBuildings(ValidMineralTiles);
 
 	// Conquest Map
 	Camera->ConquestManager->GenerateWorld();
@@ -1186,8 +1189,6 @@ void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 
 	Resource->ResourceHISM->GetStaticMesh()->AddSocket(socket);
 
-	Tile->bMineral = true;
-
 	ResourceTiles.Remove(Tile);
 }
 
@@ -1196,7 +1197,7 @@ void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTil
 	if (CheckTile->X > SpawnTile->X + Range || CheckTile->X < SpawnTile->X - Range || CheckTile->Y > SpawnTile->Y + Range || CheckTile->Y < SpawnTile->Y - Range)
 		return;
 
-	if (CheckTile->bRamp || CheckTile->bRiver || CheckTile->Level != SpawnTile->Level) {
+	if (CheckTile->bRamp || CheckTile->bRiver || CheckTile->bMineral || CheckTile->bUnique || CheckTile->Level != SpawnTile->Level) {
 		Valid = false;
 
 		return;
@@ -1561,7 +1562,7 @@ void AGrid::SetSeasonAffect(TArray<float> Values)
 //
 // Special Buildings
 //
-void AGrid::SetSpecialBuildings()
+void AGrid::SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles)
 {
 	for (ASpecial* building : SpecialBuildings) {
 		if (bRandSpecialBuildings) {
@@ -1575,50 +1576,39 @@ void AGrid::SetSpecialBuildings()
 
 		float yaw = Stream.RandRange(0, 3) * 90.0f;
 
-		TArray<FVector> validLocations;
+		TArray<FTileStruct*> validLocations;
 
-		for (TArray<FTileStruct>& row : Storage) {
-			for (FTileStruct& tile : row) {
-				if (tile.Level < 0 || (tile.Level == MaxLevel && bLava) || tile.bRamp || tile.bEdge || tile.bRiver)
-					continue;
+		for (TArray<FTileStruct*> tiles : ValidTiles) {
+			FTileStruct* tile = tiles[0];
 
-				bool adjBlocking = false;
+			bool valid = true;
+			TArray<FTileStruct*> ts;
 
-				for (auto& element : tile.AdjacentTiles) {
-					for (auto& e : element.Value->AdjacentTiles) {
-						if (e.Value->Level == tile.Level && !e.Value->bRamp && !e.Value->bEdge && !e.Value->bRiver && !e.Value->bMineral)
-							continue;
+			int32 range = 1;
+			FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 
-						adjBlocking = true;
+			if (size.X > size.Y)
+				range = FMath::CeilToInt32(size.X / 100.0f);
+			else
+				range = FMath::CeilToInt32(size.Y / 100.0f);
 
-						break;
-					}
+			GetValidSpawnLocations(tile, tile, range, valid, ts);
 
-					if (adjBlocking)
-						break;
+			if (!valid)
+				continue;
 
-					if (element.Value->Level == tile.Level && !element.Value->bRamp && !element.Value->bEdge && !element.Value->bRiver && !element.Value->bMineral)
-						continue;
-
-					adjBlocking = true;
-
-					break;
-				}
-
-				if (adjBlocking)
-					continue;
-
-				FVector location = GetTransform(&tile).GetLocation();
-
-				building->SetActorLocation(location);
-
-				if (Camera->BuildComponent->IsValidLocation(building))
-					validLocations.Add(location);
-			}
+			validLocations.Add(tile);
 		}
 
-		int32 chosenLocation = Stream.RandRange(0, validLocations.Num() - 1);
-		building->SetActorLocation(validLocations[chosenLocation]);
+		if (validLocations.IsEmpty()) {
+			building->SetActorHiddenInGame(true);
+		}
+		else {
+			int32 chosenLocation = Stream.RandRange(0, validLocations.Num() - 1);
+			building->SetActorLocation(GetTransform(validLocations[chosenLocation]).GetLocation());
+
+			validLocations[chosenLocation]->bUnique = true;
+		}
 
 		SetSpecialBuildingStatus(building, building->IsHidden());
 	}
