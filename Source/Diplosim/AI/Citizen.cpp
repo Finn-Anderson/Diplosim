@@ -625,6 +625,9 @@ float ACitizen::GetProductivity()
 		break;
 	}
 
+	if (Camera->Grid->AtmosphereComponent->bRedSun)
+		productivity *= 0.5f;
+
 	return productivity;
 }
 

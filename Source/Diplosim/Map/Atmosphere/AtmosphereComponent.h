@@ -90,6 +90,9 @@ public:
 		class UNiagaraComponent* WindComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
+		class UNaturalDisasterComponent* NaturalDisasterComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		float Speed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
@@ -100,6 +103,9 @@ public:
 
 	UPROPERTY()
 		class AGrid* Grid;
+
+	UPROPERTY()
+		bool bRedSun;
 
 	void ChangeWindDirection();
 

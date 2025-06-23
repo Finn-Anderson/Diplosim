@@ -227,7 +227,12 @@ void UConquestManager::GiveResource()
 
 		int32 index = ResourceList.Find(islandResource);
 
-		float amount = FMath::RandRange(ResourceList[index].Min, ResourceList[index].Max) * multipliers[0] * tile.Abundance;
+		if (multipliers[0] < 1.0f)
+			value = FMath::FRandRange(multipliers[0], 1.0f);
+		else
+			value = FMath::FRandRange(1.0f, multipliers[0]);
+
+		float amount = FMath::RandRange(ResourceList[index].Min, ResourceList[index].Max) * value * tile.Abundance;
 
 		float multiplier = 0.0f;
 

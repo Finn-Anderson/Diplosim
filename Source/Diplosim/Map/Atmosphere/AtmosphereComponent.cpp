@@ -18,6 +18,7 @@
 #include "Universal/DiplosimUserSettings.h"
 #include "Buildings/Building.h"
 #include "Clouds.h"
+#include "NaturalDisasterComponent.h"
 
 UAtmosphereComponent::UAtmosphereComponent()
 {
@@ -82,6 +83,11 @@ UAtmosphereComponent::UAtmosphereComponent()
 	WindComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WindComponent"));
 	WindComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 2500.0f));
 	WindComponent->bAutoActivate = true;
+
+	NaturalDisasterComponent = CreateDefaultSubobject<UNaturalDisasterComponent>(TEXT("NaturalDisasterComponent"));
+	NaturalDisasterComponent->Grid = Grid;
+
+	bRedSun = false;
 }
 
 void UAtmosphereComponent::BeginPlay()
@@ -168,6 +174,8 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		Grid->Camera->ConquestManager->GiveResource();
 
 		SetDisplayText(hour);
+
+		NaturalDisasterComponent->IncrementDisasterChance();
 	}
 }
 
