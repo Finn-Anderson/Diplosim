@@ -674,7 +674,6 @@ void AGrid::Render()
 
 void AGrid::OnNavMeshGenerated()
 {
-
 	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();
 }

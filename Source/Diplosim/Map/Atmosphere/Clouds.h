@@ -21,12 +21,20 @@ struct FCloudStruct
 	UPROPERTY()
 		bool bHide;
 
+	UPROPERTY()
+		float lightningTimer;
+
+	UPROPERTY()
+		float lightningFrequency;
+
 	FCloudStruct()
 	{
 		HISMCloud = nullptr;
 		Precipitation = nullptr;
 		Distance = 0.0f;
 		bHide = false;
+		lightningTimer = 0.0f;
+		lightningFrequency = 0.0f;
 	}
 
 	bool operator==(const FCloudStruct& other) const
@@ -122,6 +130,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
 		class UNiagaraSystem* CloudSystem;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lightning")
+		class UNiagaraSystem* LightningSystem;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		float Height;
 
@@ -141,5 +152,8 @@ public:
 		TArray<FWetnessStruct> WetnessStruct;
 
 	UPROPERTY()
-		class ACamera* Camera;
+		class AGrid* Grid;
+
+	UPROPERTY()
+		class UNaturalDisasterComponent* NaturalDisasterComponent;
 };

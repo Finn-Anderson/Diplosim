@@ -4,6 +4,27 @@
 #include "Components/ActorComponent.h"
 #include "NaturalDisasterComponent.generated.h"
 
+USTRUCT()
+struct FEarthquakeStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FVector Point;
+
+	UPROPERTY()
+		TMap<class ABuilding*, float> BuildingsInRange;
+
+	FEarthquakeStruct()
+	{
+		Point = FVector::Zero();
+	}
+
+	bool operator==(const FEarthquakeStruct& other) const
+	{
+		return (other.Point == Point);
+	}
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UNaturalDisasterComponent : public UActorComponent
@@ -22,9 +43,11 @@ public:
 
 	void GenerateEarthquake(float Magnitude);
 
+	void CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStruct, float Range);
+
 	void CancelEarthquake();
 
-	void GenerateMeteor(float Magnitude);
+	void GeneratePurifier(float Magnitude);
 
 	void GenerateRedSun(float Magnitude);
 
@@ -43,4 +66,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Natural Disaster")
 		float Frequency;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Earthquake Shake")
+		TSubclassOf<class UCameraShakeBase> Shake;
 };

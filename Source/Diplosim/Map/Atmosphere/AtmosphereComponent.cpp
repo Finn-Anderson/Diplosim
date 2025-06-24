@@ -96,6 +96,9 @@ void UAtmosphereComponent::BeginPlay()
 
 	Grid = Cast<AGrid>(GetOwner());
 
+	Clouds->Grid = Grid;
+	Clouds->NaturalDisasterComponent = NaturalDisasterComponent;
+
 	ChangeWindDirection();
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();

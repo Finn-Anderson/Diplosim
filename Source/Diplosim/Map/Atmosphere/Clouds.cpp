@@ -4,9 +4,12 @@
 #include "NiagaraComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "AtmosphereComponent.h"
+#include "NaturalDisasterComponent.h"
 #include "Map/Grid.h"
+#include "Map/Resources/Vegetation.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Buildings/Building.h"
 #include "Player/Camera.h"
@@ -32,9 +35,6 @@ void UCloudComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	Camera = PController->GetPawn<ACamera>();
-
 	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	Settings->Clouds = this;
 }
@@ -44,7 +44,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 	for (int32 i = Clouds.Num() - 1; i > -1; i--) {
 		FCloudStruct cloudStruct = Clouds[i];
 
-		FVector location = cloudStruct.HISMCloud->GetRelativeLocation() + Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation.Vector() * 100.0f * DeltaTime;
+		FVector location = cloudStruct.HISMCloud->GetRelativeLocation() + Grid->AtmosphereComponent->WindRotation.Vector() * 100.0f * DeltaTime;
 
 		float bobAmount = FMath::Sin(GetWorld()->GetTimeSeconds() / 2.0f) / 10.0f;
 		location.Z += bobAmount;
@@ -65,7 +65,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 		else if (cloudStruct.bHide)
 			material->SetScalarParameterValue("Opacity", FMath::Clamp(opacity - DeltaTime, 0.0f, 1.0f));
 
-		double distance = FVector::Dist(location, Cast<AGrid>(GetOwner())->GetActorLocation());
+		double distance = FVector::Dist(location, Grid->GetActorLocation());
 
 		if (distance > cloudStruct.Distance) {
 			if (cloudStruct.Precipitation != nullptr)
@@ -77,6 +77,49 @@ void UCloudComponent::TickCloud(float DeltaTime)
 				cloudStruct.HISMCloud->DestroyComponent();
 
 				Clouds.Remove(cloudStruct);
+			}
+		}
+		else if (cloudStruct.lightningFrequency != 0.0f) {
+			cloudStruct.lightningTimer += DeltaTime;
+
+			if (cloudStruct.lightningTimer > cloudStruct.lightningFrequency) {
+				int32 inst = Grid->Stream.RandRange(0, cloudStruct.HISMCloud->GetInstanceCount() - 1);
+				
+				FTransform transform;
+				cloudStruct.HISMCloud->GetInstanceTransform(inst, transform);
+
+				auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Grid->Size));
+
+				int32 x = FMath::RandRange(-3, 3) + transform.GetLocation().X / 100.0f + bound / 2;
+				int32 y = FMath::RandRange(-3, 3) + transform.GetLocation().X / 100.0f + bound / 2;
+
+				FVector endLocation = FVector(transform.GetLocation().X + FMath::RandRange(-300.0f, 300.0f), transform.GetLocation().Y + FMath::RandRange(-300.0f, 300.0f), 0.0f);
+
+				if (x < bound && y < bound)
+					endLocation = Grid->GetTransform(&Grid->Storage[x][y]).GetLocation() + FVector(FMath::RandRange(-50.0f, 50.0f), FMath::RandRange(-50.0f, 50.0f), 0.0f);
+
+				UNiagaraComponent* lightning = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LightningSystem, transform.GetLocation(), FRotator(0.0f), FVector(1.0f), true, false);
+				lightning->SetVariableVec3(TEXT("StartLocation"), cloudStruct.HISMCloud->GetRelativeLocation() + transform.GetLocation());
+				lightning->SetVariableVec3(TEXT("EndLocation"), endLocation);
+				lightning->Activate();
+
+				TArray<FHitResult> hits;
+
+				FCollisionQueryParams params;
+				params.AddIgnoredActor(Grid);
+
+				if (GetWorld()->SweepMultiByChannel(hits, endLocation, endLocation + FVector(0.0f, 0.0f, 300.0f), FQuat(0.0f), ECC_Visibility, FCollisionShape::MakeBox(FVector(50.0f, 50.0f, 100.0f)), params)) {
+					for (FHitResult hit : hits) {
+						if (hit.GetActor()->IsA<AVegetation>()) {
+							// Fire for 5 seconds then destroy tree & initiated regrow.
+						}
+						else if (hit.GetActor()->IsA<ABuilding>()) {
+							// Strike, take base health + fire for total 100 HP.
+						}
+					}
+				}
+
+				cloudStruct.lightningTimer = 0.0f;
 			}
 		}
 	}
@@ -93,12 +136,12 @@ void UCloudComponent::Clear()
 
 	Clouds.Empty();
 
-	Camera->CitizenManager->RemoveTimer("Cloud", GetOwner());
+	Grid->Camera->CitizenManager->RemoveTimer("Cloud", Grid);
 }
 
 void UCloudComponent::StartCloudTimer()
 {
-	Camera->CitizenManager->CreateTimer("Cloud", GetOwner(), 90.0f, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), true, true);
+	Grid->Camera->CitizenManager->CreateTimer("Cloud", Grid, 90.0f, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), true, true);
 }
 
 void UCloudComponent::ActivateCloud()
@@ -113,7 +156,7 @@ void UCloudComponent::ActivateCloud()
 	float z = FMath::FRandRange(1.0f, 4.0f);
 	transform.SetScale3D(FVector(x, y, z));
 
-	transform.SetRotation((Cast<AGrid>(GetOwner())->AtmosphereComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
+	transform.SetRotation((Grid->AtmosphereComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
 
 	FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f;
 	spawnLoc.Z = Height + FMath::FRandRange(-200.0f, 200.0f);
@@ -132,7 +175,7 @@ void UCloudComponent::ActivateCloud()
 		chance = 1;
 
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);
-	cloudStruct.Distance = FVector::Dist(spawnLoc, Cast<AGrid>(GetOwner())->GetActorLocation());
+	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
 
 	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(cloudStruct.HISMCloud->GetMaterial(0), this);
 	material->SetScalarParameterValue("Opacity", 0.0f);
@@ -154,7 +197,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	cloud->SetAffectDistanceFieldLighting(false);
 	cloud->SetRelativeLocation(Transform.GetLocation());
 	cloud->SetRelativeRotation(Transform.GetRotation());
-	cloud->SetupAttachment(GetOwner()->GetRootComponent());
+	cloud->SetupAttachment(Grid->GetRootComponent());
 	cloud->PrimaryComponentTick.bCanEverTick = false;
 	cloud->RegisterComponent();
 
@@ -189,7 +232,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 		return cloudStruct;
 
 	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
-	precipitation->SetVariableObject(TEXT("Callback"), GetOwner());
+	precipitation->SetVariableObject(TEXT("Callback"), Grid);
 	precipitation->SetVariableVec3(TEXT("CloudLocation"), Transform.GetLocation());
 	precipitation->PrimaryComponentTick.bCanEverTick = false;
 
@@ -220,6 +263,14 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	precipitation->Activate();
 
 	cloudStruct.Precipitation = precipitation;
+
+	UNaturalDisasterComponent* NDComp = Grid->AtmosphereComponent->NaturalDisasterComponent;
+
+	if (NDComp->ShouldCreateDisaster()) {
+		cloudStruct.lightningFrequency = Grid->Stream.FRandRange(0.5f, 10.0f) / NDComp->Intensity;
+
+		NDComp->ResetDisasterChance();
+	}
 
 	return cloudStruct;
 }
@@ -268,11 +319,11 @@ void UCloudComponent::RainCollisionHandler(FVector CollisionLocation)
 {
 	FHitResult hit(ForceInit);
 
-	if (GetWorld()->SweepSingleByChannel(hit, CollisionLocation, FVector::Zero(), GetOwner()->GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(FVector(15.0f, 15.0f, 15.0f))))
+	if (GetWorld()->SweepSingleByChannel(hit, CollisionLocation, FVector::Zero(), Grid->GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(FVector(15.0f, 15.0f, 15.0f))))
 	{
 		if (hit.GetActor()->IsA<ABuilding>() || hit.GetActor()->IsA<AAI>() || hit.GetActor()->IsA<AEggBasket>())
 			SetRainMaterialEffect(1.0f, hit.GetActor());
-		else if (hit.Component != nullptr && hit.Component->IsA<UHierarchicalInstancedStaticMeshComponent>() && hit.Component != Cast<AGrid>(GetOwner())->HISMRiver)
+		else if (hit.Component != nullptr && hit.Component->IsA<UHierarchicalInstancedStaticMeshComponent>() && hit.Component != Grid->HISMRiver)
 			SetRainMaterialEffect(1.0f, nullptr, Cast<UHierarchicalInstancedStaticMeshComponent>(hit.Component), hit.Item);
 	}
 }
@@ -296,13 +347,13 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		else
 			id += FString::FromInt(HISM->GetUniqueID()) + FString::FromInt(Instance);
 
-		if (Camera->CitizenManager->FindTimer(id, GetOwner()) != nullptr) {
-			Camera->CitizenManager->ResetTimer(id, GetOwner());
+		if (Grid->Camera->CitizenManager->FindTimer(id, Grid) != nullptr) {
+			Grid->Camera->CitizenManager->ResetTimer(id, Grid);
 
 			return;
 		}
 		else {
-			Camera->CitizenManager->CreateTimer(id, GetOwner(), 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false, true);
+			Grid->Camera->CitizenManager->CreateTimer(id, Grid, 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false, true);
 		}
 	}
 
