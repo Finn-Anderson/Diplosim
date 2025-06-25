@@ -28,9 +28,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		class UNiagaraSystem* ExplosionSystem;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
-		class USphereComponent* ExplosionComponent;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
 
@@ -38,16 +35,13 @@ public:
 		int32 Damage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+		int32 Radius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		bool bExplode;
 
-	UPROPERTY()
-		TArray<AActor*> OverlappingActors;
-
-	UFUNCTION()
-		void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+		bool bDamageFallOff;
 
 	UFUNCTION()
 		void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);

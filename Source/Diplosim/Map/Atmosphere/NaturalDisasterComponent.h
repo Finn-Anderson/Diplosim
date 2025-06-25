@@ -43,7 +43,7 @@ public:
 
 	void GenerateEarthquake(float Magnitude);
 
-	void CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStruct, float Range);
+	void CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStruct, float Range, float Magnitude);
 
 	void CancelEarthquake();
 
@@ -69,4 +69,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Earthquake Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Purifier")
+		TSubclassOf<class AProjectile> PurifierClass;
 };

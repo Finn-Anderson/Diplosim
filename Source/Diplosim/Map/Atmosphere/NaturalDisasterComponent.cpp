@@ -10,6 +10,7 @@
 #include "Buildings/Building.h"
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
+#include "AI/Projectile.h"
 
 UNaturalDisasterComponent::UNaturalDisasterComponent()
 {
@@ -159,19 +160,16 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 		EarthquakeStructs.Add(estruct);
 	}
 
-	Grid->Camera->CitizenManager->CreateTimer("Earthquake", Grid, 4.0f * Magnitude, FTimerDelegate::CreateUObject(this, &UNaturalDisasterComponent::CalculateEarthquakeDamage, EarthquakeStructs, range), true);
+	Grid->Camera->CitizenManager->CreateTimer("Earthquake", Grid, 4.0f * Magnitude, FTimerDelegate::CreateUObject(this, &UNaturalDisasterComponent::CalculateEarthquakeDamage, EarthquakeStructs, range, Magnitude), true);
 }
 
-void UNaturalDisasterComponent::CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStructs, float Range)
+void UNaturalDisasterComponent::CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStructs, float Range, float Magnitude)
 {
 	for (FEarthquakeStruct estruct : EarthquakeStructs) {
 		for (auto& element : estruct.BuildingsInRange) {
-			float damageChance = element.Value / Range;
+			int32 damage = FMath::Max(1.0f, element.Value / Range / 10.0f * Magnitude);
 
-			int32 chance = FMath::RandRange(0, 100);
-
-			if (damageChance > chance)
-				element.Key->HealthComponent->TakeHealth(25.0f, Grid);
+			element.Key->HealthComponent->TakeHealth(damage, Grid);
 		}
 
 		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, estruct.Point, 0.0f, Range, 1.0f);
@@ -185,7 +183,18 @@ void UNaturalDisasterComponent::CancelEarthquake()
 
 void UNaturalDisasterComponent::GeneratePurifier(float Magnitude)
 {
+	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Grid->Size));
 
+	int32 x = Grid->Stream.RandRange(0, bound - 1);
+	int32 y = Grid->Stream.RandRange(0, bound - 1);
+
+	FRotator rotation;
+	rotation.Yaw = Grid->Stream.RandRange(0, 359);
+	rotation.Pitch = Grid->Stream.RandRange(-90, -30);
+
+	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(PurifierClass, Grid->GetTransform(&Grid->Storage[x][y]).GetLocation(), rotation);
+	projectile->SpawnNiagaraSystems(GetOwner());
+	projectile->Radius *= Magnitude;
 }
 
 void UNaturalDisasterComponent::GenerateRedSun(float Magnitude)

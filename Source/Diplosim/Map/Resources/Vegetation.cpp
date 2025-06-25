@@ -93,3 +93,8 @@ bool AVegetation::IsHarvestable(int32 Instance, FVector Scale)
 
 	return true;
 }
+
+void AVegetation::OnFire(int32 Instance)
+{
+	Camera->CitizenManager->CreateTimer("OnFire", this, 5.0f, FTimerDelegate::CreateUObject(this, &AVegetation::YieldStatus, Instance, 0), false);
+}

@@ -10,6 +10,9 @@
 #include "Enemy.h"
 #include "Buildings/Work/Defence/Tower.h"
 #include "AttackComponent.h"
+#include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
+#include "Map/Grid.h"
 
 AProjectile::AProjectile()
 {
@@ -30,26 +33,16 @@ AProjectile::AProjectile()
 	ProjectileMovementComponent->InitialSpeed = 600.0f;
     ProjectileMovementComponent->MaxSpeed = 600.0f;
 
-	ExplosionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
-	ExplosionComponent->SetCollisionProfileName("Spectator", true);
-	ExplosionComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	ExplosionComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	ExplosionComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
-	ExplosionComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	ExplosionComponent->SetupAttachment(ProjectileMesh);
-	ExplosionComponent->SetSphereRadius(150.0f);
-
 	Damage = 10;
+	Radius = 150.0f;
 
 	bExplode = false;
+	bDamageFallOff = true;
 }
 
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-
-	ExplosionComponent->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::OnOverlapBegin);
-	ExplosionComponent->OnComponentEndOverlap.AddDynamic(this, &AProjectile::OnOverlapEnd);
 	
 	ProjectileMesh->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
 }
@@ -75,43 +68,68 @@ void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
 	}
 }
 
-void AProjectile::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (OtherActor->IsA<AEnemy>())
-		OverlappingActors.Add(OtherActor);
-}
-
-void AProjectile::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OverlappingActors.Contains(OtherActor))
-		OverlappingActors.Remove(OtherActor);
-}
-
 void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) 
 {
 	if (OtherActor == GetOwner())
 		return;
 
-	int32 multiplier = Cast<AAI>(GetOwner())->AttackComponent->DamageMultiplier;
+	int32 multiplier = 1.0f; 
+	
+	if (GetOwner()->IsA<AAI>())
+		multiplier = Cast<AAI>(GetOwner())->AttackComponent->DamageMultiplier;
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
+
+	TArray<AActor*> ignore;
+	ignore.Add(camera->Grid);
+
+	for (FResourceHISMStruct resourceStruct : camera->Grid->MineralStruct)
+		ignore.Add(resourceStruct.Resource);
+
+	for (FResourceHISMStruct resourceStruct : camera->Grid->FlowerStruct)
+		ignore.Add(resourceStruct.Resource);
+
+	ignore.Append(camera->CitizenManager->Buildings);
+
+	TArray<AActor*> actors;
+
+	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), Radius, objects, nullptr, ignore, actors);
+
+	UHealthComponent* healthComp = nullptr;
 
 	if (bExplode) {
-		for (AActor* actor : OverlappingActors) {
-			UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+		for (AActor* actor : actors) {
+			if (actor->IsA<ABuilding>())
+				continue;
 
-			float distance = FVector::Dist(GetActorLocation(), actor->GetActorLocation());
+			healthComp = actor->GetComponentByClass<UHealthComponent>();
 
-			int32 dmg = Damage * multiplier / FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
+			if (!healthComp || healthComp->GetHealth() == 0)
+				continue;
+
+			int32 dmg = Damage * multiplier;
+
+			if (bDamageFallOff) {
+				float distance = FVector::Dist(GetActorLocation(), actor->GetActorLocation());
+
+				dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
+			}
 
 			healthComp->TakeHealth(dmg, this);
 		}
 
 		UNiagaraComponent* explosion = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionSystem, GetActorLocation());
-		explosion->SetVariableLinearColor(TEXT("Colour"), Cast<ATower>(GetOwner())->Colour);
 
-		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, 1000.0f, 1.0f);
+		if (GetOwner()->IsA<ATower>())
+			explosion->SetVariableLinearColor(TEXT("Colour"), Cast<ATower>(GetOwner())->Colour);
+
+		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, Radius * 6, 1.0f);
 	}
 	else {
-		UHealthComponent* healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
+		healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
 
 		if (healthComp)
 			healthComp->TakeHealth(Damage * multiplier, this);

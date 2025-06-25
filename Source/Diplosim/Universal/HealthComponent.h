@@ -45,7 +45,6 @@ public:
 
 	int32 GetHealth();
 
-
 	// Death
 	void Death(AActor* Attacker, int32 Force);
 
@@ -59,4 +58,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
+
+	// Fire
+	void OnFire(int32 Counter = 0);
 };

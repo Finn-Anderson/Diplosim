@@ -306,3 +306,16 @@ int32 UHealthComponent::GetHealth()
 {
 	return Health;
 }
+
+void UHealthComponent::OnFire(int32 Counter)
+{
+	int32 amount = 50;
+
+	if (Counter > 0)
+		amount = 10;
+
+	TakeHealth(amount, GetOwner());
+
+	if (Counter < 5)
+		Camera->CitizenManager->CreateTimer("OnFire", GetOwner(), 1.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::OnFire, Counter++), false);
+}

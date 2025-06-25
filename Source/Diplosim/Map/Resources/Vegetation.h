@@ -22,6 +22,8 @@ public:
 
 	bool IsHarvestable(int32 Instance, FVector Scale);
 
+	void OnFire(int32 Instance);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
 		int32 TimeLength;
 
