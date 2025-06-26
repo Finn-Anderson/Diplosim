@@ -184,13 +184,13 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 void UAtmosphereComponent::ChangeWindDirection()
 {
-	float yaw = FMath::FRandRange(0.0f, 360.0f);
+	float yaw = Grid->Stream.FRandRange(0.0f, 360.0f);
 
 	WindRotation = FRotator(0.0f, yaw, 0.0f);
 
 	WindComponent->SetRelativeRotation(WindRotation + FRotator(0.0f, 180.0f, 0.0f));
 
-	int32 time = FMath::RandRange(180.0f, 600.0f);
+	int32 time = Grid->Stream.RandRange(180.0f, 600.0f);
 
 	FLatentActionInfo info;
 	info.Linkage = 0;

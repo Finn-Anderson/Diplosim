@@ -72,7 +72,7 @@ void UConquestManager::GenerateWorld()
 	colonyNames.ParseIntoArray(colonyParsed, TEXT(","));
 
 	for (int32 i = 0; i < EnemiesNum; i++) {
-		int32 index = FMath::RandRange(0, empireParsed.Num() - 1);
+		int32 index = Camera->Grid->Stream.RandRange(0, empireParsed.Num() - 1);
 		factions.Add(empireParsed[index]);
 
 		if (empireParsed[index] != "")
@@ -111,7 +111,7 @@ void UConquestManager::GenerateWorld()
 		tile->Abundance = Camera->Grid->Stream.RandRange(1, 5);
 
 		if (name != EmpireName) {
-			int32 cIndex = FMath::RandRange(0, colonyParsed.Num() - 1);
+			int32 cIndex = Camera->Grid->Stream.RandRange(0, colonyParsed.Num() - 1);
 			tile->Name = colonyParsed[cIndex];
 
 			if (name == "") {
@@ -141,7 +141,7 @@ void UConquestManager::GenerateWorld()
 		tile->bIsland = true;
 
 		if (!colonyParsed.IsEmpty()) {
-			int32 cIndex = FMath::RandRange(0, colonyParsed.Num() - 1);
+			int32 cIndex = Camera->Grid->Stream.RandRange(0, colonyParsed.Num() - 1);
 			tile->Name = colonyParsed[cIndex];
 
 			colonyParsed.RemoveAt(cIndex);
@@ -173,7 +173,7 @@ void UConquestManager::StartConquest()
 		if (tile.Owner == "" || tile.Owner == EmpireName)
 			continue;
 
-		for (int32 i = 0; i < FMath::RandRange(25, 50); i++)
+		for (int32 i = 0; i < Camera->Grid->Stream.RandRange(25, 50); i++)
 			SpawnCitizenAtColony(tile);
 	}
 }
@@ -191,7 +191,7 @@ void UConquestManager::GiveResource()
 
 		occupiedIslands.Add(&tile);
 
-		int32 eventChance = FMath::RandRange(0, 100);
+		int32 eventChance = Camera->Grid->Stream.RandRange(0, 100);
 
 		TArray<float> multipliers = { 1.0f, 0.0f, 0.0f };
 
@@ -202,13 +202,13 @@ void UConquestManager::GiveResource()
 		bool bNegative = false;
 
 		if (multipliers[1] != 0.0f) {
-			value = FMath::FRandRange(0.0f, FMath::Abs(multipliers[1])) * tile.Citizens.Num();
+			value = Camera->Grid->Stream.FRandRange(0.0f, FMath::Abs(multipliers[1])) * tile.Citizens.Num();
 
 			if (multipliers[1] < 0.0f)
 				bNegative = true;
 		}
 		else if (multipliers[2] != 0.0f) {
-			value = FMath::RandRange(0, FMath::Abs((int32)multipliers[2]));
+			value = Camera->Grid->Stream.RandRange(0, FMath::Abs((int32)multipliers[2]));
 
 			if (multipliers[2] < 0.0f)
 				bNegative = true;
@@ -228,11 +228,11 @@ void UConquestManager::GiveResource()
 		int32 index = ResourceList.Find(islandResource);
 
 		if (multipliers[0] < 1.0f)
-			value = FMath::FRandRange(multipliers[0], 1.0f);
+			value = Camera->Grid->Stream.FRandRange(multipliers[0], 1.0f);
 		else
-			value = FMath::FRandRange(1.0f, multipliers[0]);
+			value = Camera->Grid->Stream.FRandRange(1.0f, multipliers[0]);
 
-		float amount = FMath::RandRange(ResourceList[index].Min, ResourceList[index].Max) * value * tile.Abundance;
+		float amount = Camera->Grid->Stream.RandRange(ResourceList[index].Min, ResourceList[index].Max) * value * tile.Abundance;
 
 		float multiplier = 0.0f;
 
@@ -356,7 +356,7 @@ void UConquestManager::MoveToColony(FFactionStruct Faction, FWorldTileStruct Til
 	if (tile->bCapital && tile->Owner == EmpireName)
 		Citizen->AIController->AIMoveTo(Portal);
 	else
-		Camera->CitizenManager->CreateTimer("Transmission", Citizen, FMath::RandRange(10, 40), FTimerDelegate::CreateUObject(this, &UConquestManager::StartTransmissionTimer, Citizen), false);
+		Camera->CitizenManager->CreateTimer("Transmission", Citizen, Camera->Grid->Stream.RandRange(10, 40), FTimerDelegate::CreateUObject(this, &UConquestManager::StartTransmissionTimer, Citizen), false);
 
 	Camera->UpdateMoveCitizen(Citizen, *tile, *t);
 }
@@ -463,7 +463,7 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 
 TArray<float> UConquestManager::ProduceEvent()
 {
-	int32 index = FMath::RandRange(0, EventList.Num() - 1);
+	int32 index = Camera->Grid->Stream.RandRange(0, EventList.Num() - 1);
 
 	return { EventList[index].ResourceMultiplier, EventList[index].CitizenMultiplier, EventList[index].Citizens };
 }
@@ -495,7 +495,7 @@ void UConquestManager::ModifyCitizensEvent(FWorldTileStruct& Tile, int32 Amount,
 {
 	for (int32 i = 0; i < Amount; i++) {
 		if (bNegative) {
-			int32 index = FMath::RandRange(0, Tile.Citizens.Num() - 1);
+			int32 index = Camera->Grid->Stream.RandRange(0, Tile.Citizens.Num() - 1);
 
 			Tile.Citizens[index]->HealthComponent->TakeHealth(1000, Tile.Citizens[index]);
 		}
@@ -747,9 +747,9 @@ void UConquestManager::SetFactionCulture(FFactionStruct& Faction)
 		Faction.PartyInPower = biggestParty.Party;
 		Faction.Religion = biggestReligion.Key;
 	}
-	else if (Faction.PartyInPower == EParty::Undecided || FMath::RandRange(0, 480) == 480) {
-		int32 partyIndex = FMath::RandRange(0, (int32)StaticEnum<EParty>()->GetMaxEnumValue());
-		int32 religionIndex = FMath::RandRange(0, (int32)StaticEnum<EReligion>()->GetMaxEnumValue());
+	else if (Faction.PartyInPower == EParty::Undecided || Camera->Grid->Stream.RandRange(0, 480) == 480) {
+		int32 partyIndex = Camera->Grid->Stream.RandRange(0, (int32)StaticEnum<EParty>()->GetMaxEnumValue());
+		int32 religionIndex = Camera->Grid->Stream.RandRange(0, (int32)StaticEnum<EReligion>()->GetMaxEnumValue());
 
 		Faction.PartyInPower = EParty(partyIndex);
 		Faction.Religion = EReligion(religionIndex);
@@ -972,7 +972,7 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 	}
 
 	if (!potentialEnemies.IsEmpty()) {
-		int32 index = FMath::RandRange(0, potentialEnemies.Num() - 1);
+		int32 index = Camera->Grid->Stream.RandRange(0, potentialEnemies.Num() - 1);
 		FFactionStruct f = potentialEnemies[index];
 
 		DeclareWar(Faction, f);
@@ -982,7 +982,7 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct& Faction)
 	}
 
 	if (!potentialAllies.IsEmpty()) {
-		int32 index = FMath::RandRange(0, potentialAllies.Num() - 1);
+		int32 index = Camera->Grid->Stream.RandRange(0, potentialAllies.Num() - 1);
 		FFactionStruct f = potentialAllies[index];
 
 		if (f.Name == EmpireName) {
@@ -1141,7 +1141,7 @@ void UConquestManager::Rebel(FFactionStruct& Faction, TArray<FWorldTileStruct*> 
 				}
 			}
 
-			int32 nameIndex = FMath::RandRange(0, empireParsed.Num() - 1);
+			int32 nameIndex = Camera->Grid->Stream.RandRange(0, empireParsed.Num() - 1);
 
 			FFactionStruct f;
 			f.Name = empireParsed[nameIndex];
@@ -1149,7 +1149,7 @@ void UConquestManager::Rebel(FFactionStruct& Faction, TArray<FWorldTileStruct*> 
 			if (f.Name == "")
 				f.Name = tile->Name + "Empire";
 
-			int32 iconIndex = FMath::RandRange(0, factionIcons.Num() - 1);
+			int32 iconIndex = Camera->Grid->Stream.RandRange(0, factionIcons.Num() - 1);
 
 			f.Texture = factionIcons[iconIndex].Texture;
 			f.Colour = factionIcons[iconIndex].Colour;
@@ -1326,22 +1326,22 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 		allAttackers.Append(attackers);
 	}
 
-	int32 defenders = FMath::RandRange(1, FMath::Min(allDefenders.Num() - 1, 20));
-	int32 attackers = FMath::RandRange(1, FMath::Min(allAttackers.Num() - 1, 20));
+	int32 defenders = Camera->Grid->Stream.RandRange(1, FMath::Min(allDefenders.Num() - 1, 20));
+	int32 attackers = Camera->Grid->Stream.RandRange(1, FMath::Min(allAttackers.Num() - 1, 20));
 
 	TArray<ACitizen*> defendList;
 	TArray<ACitizen*> attackList;
 	TArray<ACitizen*> yetToAttackList;
 
 	for (int32 i = 0; i < defenders; i++) {
-		int32 index = FMath::RandRange(0, allDefenders.Num() - 1);
+		int32 index = Camera->Grid->Stream.RandRange(0, allDefenders.Num() - 1);
 
 		defendList.Add(allDefenders[index]);
 		yetToAttackList.Add(allDefenders[index]);
 	}
 
 	for (int32 i = 0; i < attackers; i++) {
-		int32 index = FMath::RandRange(0, allAttackers.Num() - 1);
+		int32 index = Camera->Grid->Stream.RandRange(0, allAttackers.Num() - 1);
 
 		attackList.Add(allAttackers[index]);
 		yetToAttackList.Add(allAttackers[index]);
@@ -1353,18 +1353,18 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 		defenderBuff += 0.2f;
 
 	while (!yetToAttackList.IsEmpty() && !defendList.IsEmpty() && !attackList.IsEmpty()) {
-		int32 index = FMath::RandRange(0, yetToAttackList.Num() - 1);
+		int32 index = Camera->Grid->Stream.RandRange(0, yetToAttackList.Num() - 1);
 
 		ACitizen* citizen = yetToAttackList[index];
 		ACitizen* hitCitizen = nullptr;
 
 		if (defendList.Contains(citizen)) {
-			int32 i = FMath::RandRange(0, attackList.Num() - 1);
+			int32 i = Camera->Grid->Stream.RandRange(0, attackList.Num() - 1);
 
 			hitCitizen = attackList[index];
 		}
 		else {
-			int32 i = FMath::RandRange(0, defendList.Num() - 1);
+			int32 i = Camera->Grid->Stream.RandRange(0, defendList.Num() - 1);
 
 			hitCitizen = defendList[index];
 		}
@@ -1621,11 +1621,11 @@ ACitizen* UConquestManager::GetChosenCitizen(TArray<ACitizen*> Citizens)
 	ACitizen* chosenCitizen = nullptr;
 
 	if (males.Num() > females.Num()) {
-		int32 citizenIndex = FMath::RandRange(0, males.Num() - 1);
+		int32 citizenIndex = Camera->Grid->Stream.RandRange(0, males.Num() - 1);
 		chosenCitizen = males[citizenIndex];
 	}
 	else {
-		int32 citizenIndex = FMath::RandRange(0, females.Num() - 1);
+		int32 citizenIndex = Camera->Grid->Stream.RandRange(0, females.Num() - 1);
 		chosenCitizen = females[citizenIndex];
 	}
 

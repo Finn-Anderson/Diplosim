@@ -261,7 +261,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 									if (c->HealthIssues.Contains(condition))
 										continue;
 
-									int32 chance = FMath::RandRange(1, 100);
+									int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 100);
 
 									if (chance <= condition.Spreadability) {
 										c->HealthIssues.Add(condition);
@@ -530,7 +530,7 @@ void UCitizenManager::Loop()
 			CooldownTimer--;
 
 			if (CooldownTimer < 1) {
-				auto value = Async(EAsyncExecution::TaskGraphMainThread, [this]() { return FMath::RandRange(1, 3); });
+				auto value = Async(EAsyncExecution::TaskGraphMainThread, [this]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 3); });
 
 				if (value.Get() == 3) {
 					Overthrow();
@@ -714,15 +714,15 @@ void UCitizenManager::StartDiseaseTimer()
 {
 	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-	CreateTimer("Disease", GetOwner(), FMath::RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
+	CreateTimer("Disease", GetOwner(), Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
 }
 
 void UCitizenManager::SpawnDisease()
 {
-	int32 index = FMath::RandRange(0, Infectible.Num() - 1);
+	int32 index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Infectible.Num() - 1);
 	ACitizen* citizen = Infectible[index];
 
-	index = FMath::RandRange(0, Diseases.Num() - 1);
+	index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Diseases.Num() - 1);
 	citizen->HealthIssues.Add(Diseases[index]);
 
 	Infect(citizen);
@@ -751,12 +751,12 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 
 void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 {
-	int32 index = FMath::RandRange(1, 100);
+	int32 index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 100);
 
 	if (index < Odds)
 		return;
 
-	index = FMath::RandRange(0, Injuries.Num() - 1);
+	index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Injuries.Num() - 1);
 	Citizen->HealthIssues.Add(Injuries[index]);
 
 	for (FAffectStruct affect : Injuries[index].Affects) {
@@ -1010,7 +1010,7 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 		Citizen->SetHolliday(true);
 	}
 	else if (Event.Type == EEventType::Protest) {
-		ABuilding* building = Buildings[FMath::RandRange(0, Buildings.Num() - 1)];
+		ABuilding* building = Buildings[Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Buildings.Num() - 1)];
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
@@ -1231,7 +1231,7 @@ void UCitizenManager::SelectNewLeader(EParty Party)
 	if (candidates.IsEmpty())
 		return;
 
-	auto value = Async(EAsyncExecution::TaskGraph, [candidates]() { return FMath::RandRange(0, candidates.Num() - 1); });
+	auto value = Async(EAsyncExecution::TaskGraph, [this, candidates]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, candidates.Num() - 1); });
 
 	ACitizen* chosen = candidates[value.Get()];
 
@@ -1294,7 +1294,7 @@ void UCitizenManager::Election()
 			if (pair.Value.IsEmpty())
 				continue;
 
-			auto value = Async(EAsyncExecution::TaskGraph, [pair]() { return FMath::RandRange(0, pair.Value.Num() - 1); });
+			auto value = Async(EAsyncExecution::TaskGraph, [this, pair]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, pair.Value.Num() - 1); });
 
 			ACitizen* citizen = pair.Value[value.Get()];
 
@@ -1408,7 +1408,7 @@ void UCitizenManager::SetupBill()
 		GetVerdict(citizen, ProposedBills[0], true, false);
 
 	for (ACitizen* citizen : Representatives) {
-		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return FMath::RandRange(2, 20); }).Get();
+		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(2, 20); }).Get();
 
 		if (Votes.For.Contains(citizen) || Votes.Against.Contains(citizen))
 			bribe *= 4;
@@ -1514,7 +1514,7 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 
-	auto value = Async(EAsyncExecution::TaskGraph, [verdict]() { return FMath::RandRange(0, verdict.Num() - 1); });
+	auto value = Async(EAsyncExecution::TaskGraph, [this, verdict]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, verdict.Num() - 1); });
 
 	FString result = verdict[value.Get()];
 
@@ -1738,7 +1738,7 @@ void UCitizenManager::Sacrifice()
 		return;
 	}
 
-	int32 index = FMath::RandRange(0, Citizens.Num() - 1);
+	int32 index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Citizens.Num() - 1);
 	ACitizen* citizen = Citizens[index];
 
 	citizen->AIController->StopMovement();

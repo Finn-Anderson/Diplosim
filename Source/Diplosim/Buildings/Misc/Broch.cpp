@@ -39,7 +39,7 @@ void ABroch::SpawnCitizens()
 		if (locations.IsEmpty())
 			return;
 
-		int32 index = FMath::RandRange(0, locations.Num() - 1);
+		int32 index = Camera->Grid->Stream.RandRange(0, locations.Num() - 1);
 
 		FNavLocation navLoc;
 		nav->ProjectPointToNavigation(locations[index], navLoc);

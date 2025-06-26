@@ -101,7 +101,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 	int32 amount = FMath::Min(Citizen->Building.House->Space - Citizen->Building.House->GetVisitors(Citizen->Building.House->GetOccupant(Citizen)).Num(), money / (maxF * cost));
 
 	for (int32 i = 0; i < amount; i++) {
-		int32 index = FMath::RandRange(0, favourites.Num() - 1);
+		int32 index = Camera->Grid->Stream.RandRange(0, favourites.Num() - 1);
 
 		ACitizen* child = favourites[index];
 

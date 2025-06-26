@@ -26,6 +26,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "AIMovementComponent.h"
+#include "Map/Grid.h"
 
 ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
@@ -73,7 +74,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 	if (!IsValid(Citizen))
 		return;
 
-	int32 chance = FMath::RandRange(0, 100);
+	int32 chance = Citizen->Camera->Grid->Stream.RandRange(0, 100);
 
 	int32 hoursLeft = Citizen->HoursSleptToday.Num();
 
@@ -97,7 +98,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 		}
 
 		if (!familyHouses.IsEmpty()) {
-			int32 index = FMath::RandRange(0, familyHouses.Num() - 1);
+			int32 index = Citizen->Camera->Grid->Stream.RandRange(0, familyHouses.Num() - 1);
 
 			house = familyHouses[index];
 
@@ -110,7 +111,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
 		AIMoveTo(house);
 	else {
-		int32 time = FMath::RandRange(3, 10);
+		int32 time = Citizen->Camera->Grid->Stream.RandRange(3, 10);
 
 		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66) {
 			AIMoveTo(ChosenBuilding);
@@ -170,7 +171,7 @@ void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 		return;
 	}
 
-	int32 index = FMath::RandRange(0, buildings.Num() - 1);
+	int32 index = Citizen->Camera->Grid->Stream.RandRange(0, buildings.Num() - 1);
 
 	ChosenBuilding = buildings[index];
 }

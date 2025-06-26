@@ -7,6 +7,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "AI/AIMovementComponent.h"
+#include "Map/Grid.h"
 
 AInternalProduction::AInternalProduction()
 {
@@ -72,7 +73,7 @@ void AInternalProduction::Production(ACitizen* Citizen)
 	Super::Production(Citizen);
 
 	if (!Camera->ResourceManager->GetResources(this).IsEmpty()) {
-		GetCitizensAtBuilding()[0]->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), FMath::RandRange(MinYield, MaxYield), this);
+		GetCitizensAtBuilding()[0]->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), Camera->Grid->Stream.RandRange(MinYield, MaxYield), this);
 
 		StoreResource(GetCitizensAtBuilding()[0]);
 	}

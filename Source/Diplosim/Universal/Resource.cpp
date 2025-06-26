@@ -1,6 +1,10 @@
 #include "Resource.h"
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
+
+#include "Player/Camera.h"
+#include "Map/Grid.h"
 
 AResource::AResource()
 {
@@ -27,6 +31,14 @@ AResource::AResource()
 	MaxWorkers = 1;
 }
 
+void AResource::BeginPlay()
+{
+	Super::BeginPlay();
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Camera = PController->GetPawn<ACamera>();
+}
+
 int32 AResource::GetYield(ACitizen* Citizen, int32 Instance)
 {
 	int32 yield = GenerateYield();
@@ -40,7 +52,7 @@ int32 AResource::GetYield(ACitizen* Citizen, int32 Instance)
 
 int32 AResource::GenerateYield()
 {
-	int32 yield = FMath::RandRange(MinYield, MaxYield);
+	int32 yield = Camera->Grid->Stream.RandRange(MinYield, MaxYield);
 
 	return yield;
 }
@@ -74,7 +86,7 @@ void AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
 
 AResource* AResource::GetHarvestedResource()
 {
-	int32 chance = FMath::RandRange(1, 100);
+	int32 chance = Camera->Grid->Stream.RandRange(1, 100);
 
 	if (SpecialResource != nullptr && chance > 99)
 		return Cast<AResource>(SpecialResource->GetDefaultObject());

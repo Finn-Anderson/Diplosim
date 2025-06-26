@@ -4,6 +4,7 @@
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "AI/Citizen.h"
+#include "Map/Grid.h"
 
 AResearch::AResearch()
 {
@@ -38,12 +39,12 @@ void AResearch::Tick(float DeltaTime)
 
 void AResearch::BeginRotation()
 {
-	TurretTargetRotation = FRotator(0.0f, FMath::RandRange(0, 359), 0.0f);
-	TelescopeTargetRotation = FRotator(0.0f, 0.0f, FMath::RandRange(-15, 15));
+	TurretTargetRotation = FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 359), 0.0f);
+	TelescopeTargetRotation = FRotator(0.0f, 0.0f, Camera->Grid->Stream.RandRange(-15, 15));
 
 	SetActorTickEnabled(true);
 
-	Camera->CitizenManager->CreateTimer("Rotate", this, GetTime(FMath::RandRange(60, 120)), FTimerDelegate::CreateUObject(this, &AResearch::BeginRotation), false, true);
+	Camera->CitizenManager->CreateTimer("Rotate", this, GetTime(Camera->Grid->Stream.RandRange(60, 120)), FTimerDelegate::CreateUObject(this, &AResearch::BeginRotation), false, true);
 }
 
 void AResearch::Build(bool bRebuild, bool bUpgrade, int32 Grade)

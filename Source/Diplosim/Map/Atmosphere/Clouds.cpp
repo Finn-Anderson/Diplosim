@@ -91,13 +91,13 @@ void UCloudComponent::TickCloud(float DeltaTime)
 
 				auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Grid->Size));
 
-				int32 x = FMath::RandRange(-3, 3) + transform.GetLocation().X / 100.0f + bound / 2;
-				int32 y = FMath::RandRange(-3, 3) + transform.GetLocation().X / 100.0f + bound / 2;
+				int32 x = Grid->Stream.RandRange(-3, 3) + transform.GetLocation().X / 100.0f + bound / 2;
+				int32 y = Grid->Stream.RandRange(-3, 3) + transform.GetLocation().X / 100.0f + bound / 2;
 
-				FVector endLocation = FVector(transform.GetLocation().X + FMath::RandRange(-300.0f, 300.0f), transform.GetLocation().Y + FMath::RandRange(-300.0f, 300.0f), 0.0f);
+				FVector endLocation = FVector(transform.GetLocation().X + Grid->Stream.RandRange(-300.0f, 300.0f), transform.GetLocation().Y + Grid->Stream.RandRange(-300.0f, 300.0f), 0.0f);
 
 				if (x < bound && y < bound)
-					endLocation = Grid->GetTransform(&Grid->Storage[x][y]).GetLocation() + FVector(FMath::RandRange(-50.0f, 50.0f), FMath::RandRange(-50.0f, 50.0f), 0.0f);
+					endLocation = Grid->GetTransform(&Grid->Storage[x][y]).GetLocation() + FVector(Grid->Stream.RandRange(-50.0f, 50.0f), Grid->Stream.RandRange(-50.0f, 50.0f), 0.0f);
 
 				UNiagaraComponent* lightning = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LightningSystem, transform.GetLocation(), FRotator(0.0f), FVector(1.0f), true, false);
 				lightning->SetVariableVec3(TEXT("StartLocation"), cloudStruct.HISMCloud->GetRelativeLocation() + transform.GetLocation());
@@ -143,6 +143,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 
 						if (IsValid(fire)) {
 							UNiagaraFunctionLibrary::OverrideSystemUserVariableStaticMesh(fire, "Static Mesh", mesh);
+							fire->SetVariableStaticMesh("Fire Mesh", mesh);
 
 							fire->Activate();
 						}
@@ -181,25 +182,25 @@ void UCloudComponent::ActivateCloud()
 
 	FTransform transform;
 
-	float x = FMath::FRandRange(1.0f, 10.0f);
-	float y = FMath::FRandRange(1.0f, 10.0f);
-	float z = FMath::FRandRange(1.0f, 4.0f);
+	float x = Grid->Stream.FRandRange(1.0f, 10.0f);
+	float y = Grid->Stream.FRandRange(1.0f, 10.0f);
+	float z = Grid->Stream.FRandRange(1.0f, 4.0f);
 	transform.SetScale3D(FVector(x, y, z));
 
 	transform.SetRotation((Grid->AtmosphereComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
 
 	FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f;
-	spawnLoc.Z = Height + FMath::FRandRange(-200.0f, 200.0f);
+	spawnLoc.Z = Height + Grid->Stream.FRandRange(-200.0f, 200.0f);
 
 	FVector limit = (transform.GetRotation().Rotator() + FRotator(0.0f, 90.0f, 0.0f)).Vector();
-	float vary = FMath::FRandRange(-20000.0f, 20000.0f);
+	float vary = Grid->Stream.FRandRange(-20000.0f, 20000.0f);
 	limit *= vary;
 
 	spawnLoc += limit;
 
 	transform.SetLocation(spawnLoc);
 
-	int32 chance = FMath::RandRange(1, 100);
+	int32 chance = Grid->Stream.RandRange(1, 100);
 
 	if (!Settings->GetRain())
 		chance = 1;
@@ -239,12 +240,12 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	for (int32 i = 0; i < 200; i++) {
 		FTransform t = Transform;
 
-		float x = FMath::FRandRange(-800.0f, 800.0f) * t.GetScale3D().X;
-		float y = FMath::FRandRange(-800.0f, 800.0f) * t.GetScale3D().Y;
-		float z = FMath::FRandRange(-256.0f, 256.0f) * t.GetScale3D().Z;
+		float x = Grid->Stream.FRandRange(-800.0f, 800.0f) * t.GetScale3D().X;
+		float y = Grid->Stream.FRandRange(-800.0f, 800.0f) * t.GetScale3D().Y;
+		float z = Grid->Stream.FRandRange(-256.0f, 256.0f) * t.GetScale3D().Z;
 		t.SetLocation(FVector(x, y, z));
 
-		float diff = FMath::FRandRange(20.0f, 40.0f);
+		float diff = Grid->Stream.FRandRange(20.0f, 40.0f);
 		t.SetScale3D(t.GetScale3D() * diff);
 
 		int32 inst = cloud->AddInstance(t);
@@ -273,7 +274,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 
 	if (Chance > 75) {
 		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(precipitation, TEXT("SpawnLocations"), locations);
-		spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y * FMath::FRandRange(0.5f, 1.5f);
+		spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y * Grid->Stream.FRandRange(0.5f, 1.5f);
 	}
 
 	if (bSnow) {

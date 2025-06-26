@@ -135,9 +135,9 @@ void ACitizen::BeginPlay()
 
 	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
 
-	float r = FMath::FRandRange(0.0f, 1.0f);
-	float g = FMath::FRandRange(0.0f, 1.0f);
-	float b = FMath::FRandRange(0.0f, 1.0f);
+	float r = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
+	float g = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
+	float b = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
 
 	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(Mesh->GetMaterial(0), this);
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
@@ -457,7 +457,7 @@ void ACitizen::SetHarvestVisuals(AResource* Resource)
 	FLinearColor colour;
 
 	if (Resource->IsA<AMineral>()) {
-		sound = Mines[FMath::RandRange(0, Mines.Num() - 1)];
+		sound = Mines[Camera->Grid->Stream.RandRange(0, Mines.Num() - 1)];
 
 		FResourceStruct resourceStruct;
 		resourceStruct.Type = Resource->GetClass();
@@ -475,7 +475,7 @@ void ACitizen::SetHarvestVisuals(AResource* Resource)
 			colour = FLinearColor(1.0f, 0.672443f, 0.0f);
 	}
 	else {
-		sound = Chops[FMath::RandRange(0, Chops.Num() - 1)];
+		sound = Chops[Camera->Grid->Stream.RandRange(0, Chops.Num() - 1)];
 
 		colour = FLinearColor(0.270498f, 0.158961f, 0.07036f);
 	}
@@ -558,7 +558,7 @@ void ACitizen::PayForEducationLevels()
 
 	for (int32 i = 0; i < cost; i++) {
 		if (GetLeftoverMoney() <= 0 && !wallet.IsEmpty()) {
-			int32 index = FMath::RandRange(0, wallet.Num() - 1);
+			int32 index = Camera->Grid->Stream.RandRange(0, wallet.Num() - 1);
 
 			TArray<ACitizen*> family;
 			wallet.GenerateKeyArray(family);
@@ -734,7 +734,7 @@ void ACitizen::Eat()
 	}
 
 	for (int32 i = 0; i < quantity; i++) {
-		int32 selected = FMath::RandRange(0, totalAmount - 1);
+		int32 selected = Camera->Grid->Stream.RandRange(0, totalAmount - 1);
 
 		for (int32 j = 0; j < foodAmounts.Num(); j++) {
 			if (foodAmounts[j] <= selected) {
@@ -749,7 +749,7 @@ void ACitizen::Eat()
 				if (cost > 0 && !IsValid(Building.Orphanage)) {
 					for (int32 k = 0; k < cost; k++) {
 						if (Balance <= 0 && !wallet.IsEmpty()) {
-							int32 index = FMath::RandRange(0, wallet.Num() - 1);
+							int32 index = Camera->Grid->Stream.RandRange(0, wallet.Num() - 1);
 
 							TArray<ACitizen*> family;
 							wallet.GenerateKeyArray(family);
@@ -858,7 +858,7 @@ void ACitizen::GainEnergy()
 //
 void ACitizen::StartHarvestTimer(AResource* Resource)
 {
-	float time = FMath::RandRange(6.0f, 10.0f);
+	float time = Camera->Grid->Stream.RandRange(6.0f, 10.0f);
 	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * GetProductivity());
 
 	AttackComponent->MeleeAnim->RateScale = 10.0f / time;
@@ -940,7 +940,7 @@ void ACitizen::Birthday()
 
 		MovementComponent->InitialSpeed = SpeedBeforeOld / (ratio * 2.0f);
 
-		int32 chance = FMath::RandRange(1, 100);
+		int32 chance = Camera->Grid->Stream.RandRange(1, 100);
 
 		if (chance < odds)
 			HealthComponent->TakeHealth(HealthComponent->MaxHealth, this);
@@ -1001,7 +1001,7 @@ void ACitizen::Birthday()
 
 void ACitizen::SetSex(TArray<ACitizen*> Citizens)
 {
-	int32 choice = FMath::RandRange(1, 100);
+	int32 choice = Camera->Grid->Stream.RandRange(1, 100);
 
 	float male = 0.0f;
 	float total = 0.0f;
@@ -1043,7 +1043,7 @@ void ACitizen::SetName()
 	TArray<FString> parsed;
 	names.ParseIntoArray(parsed, TEXT(","));
 
-	int32 index = FMath::RandRange(0, parsed.Num() - 1);
+	int32 index = Camera->Grid->Stream.RandRange(0, parsed.Num() - 1);
 
 	BioStruct.Name = parsed[index];
 }
@@ -1156,7 +1156,7 @@ void ACitizen::HaveChild()
 			return;
 	}
 	
-	float chance = FMath::FRandRange(0.0f, 100.0f) * BioStruct.Partner->Fertility * Fertility;
+	float chance = Camera->Grid->Stream.FRandRange(0.0f, 100.0f) * BioStruct.Partner->Fertility * Fertility;
 	float passMark = FMath::LogX(60.0f, BioStruct.Age) * 100.0f;
 
 	if (chance < passMark)
@@ -1375,12 +1375,12 @@ void ACitizen::SetPoliticalLeanings()
 	if (partyList.IsEmpty())
 		return;
 
-	int32 index = FMath::RandRange(0, partyList.Num() - 1);
+	int32 index = Camera->Grid->Stream.RandRange(0, partyList.Num() - 1);
 
 	bool bLog = false;
 
 	if (party != nullptr && party->Party == partyList[index]) {
-		int32 mark = FMath::RandRange(0, 100);
+		int32 mark = Camera->Grid->Stream.RandRange(0, 100);
 		int32 pass = 75;
 
 		if (sway->GetValue() == ESway::Strong)
@@ -1481,7 +1481,7 @@ void ACitizen::SetReligion()
 				religionList.Add(religion.Faith);
 	}
 
-	int32 index = FMath::RandRange(0, religionList.Num() - 1);
+	int32 index = Camera->Grid->Stream.RandRange(0, religionList.Num() - 1);
 
 	Spirituality.Faith = religionList[index];
 
@@ -1744,7 +1744,7 @@ void ACitizen::SetHappiness()
 		int32 index = Camera->CitizenManager->Events.Find(event);
 		
 		if (Camera->CitizenManager->Events[index].Times.IsEmpty())
-			Camera->CitizenManager->CreateEvent(EEventType::Protest, nullptr, "", 0, FMath::RandRange(6, 9), FMath::RandRange(12, 18), false);
+			Camera->CitizenManager->CreateEvent(EEventType::Protest, nullptr, "", 0, Camera->Grid->Stream.RandRange(6, 9), Camera->Grid->Stream.RandRange(12, 18), false);
 	}
 }
 
@@ -1774,11 +1774,11 @@ void ACitizen::GenerateGenetics()
 			grades.Add(EGeneticsGrade::Good);
 		}
 
-		int32 choice = FMath::RandRange(0, grades.Num() - 1);
+		int32 choice = Camera->Grid->Stream.RandRange(0, grades.Num() - 1);
 
 		genetic.Grade = grades[choice];
 
-		int32 mutate = FMath::RandRange(1, 100);
+		int32 mutate = Camera->Grid->Stream.RandRange(1, 100);
 
 		int32 chance = 100 - (Camera->CitizenManager->PrayStruct.Bad * 5) - (Camera->CitizenManager->PrayStruct.Good * 5);
 
@@ -1797,7 +1797,7 @@ void ACitizen::GenerateGenetics()
 
 		grades.Remove(genetic.Grade);
 
-		choice = FMath::RandRange(0, grades.Num() - 1);
+		choice = Camera->Grid->Stream.RandRange(0, grades.Num() - 1);
 
 		genetic.Grade = grades[choice];
 	}
@@ -1859,7 +1859,7 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 	TArray<FPersonality*> parentsPersonalities = Camera->CitizenManager->GetCitizensPersonalities(Parent);
 	TArray<FPersonality> personalities;
 
-	int32 chance = FMath::RandRange(0, 100);
+	int32 chance = Camera->Grid->Stream.RandRange(0, 100);
 
 	if (chance >= 45 * parentsPersonalities.Num())
 		personalities = Camera->CitizenManager->Personalities;
@@ -1884,7 +1884,7 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 		personalities.RemoveAt(i);
 	}
 
-	auto index = Async(EAsyncExecution::TaskGraph, [personalities]() { return FMath::RandRange(0, personalities.Num() - 1); });
+	auto index = Async(EAsyncExecution::TaskGraph, [this, personalities]() { return Camera->Grid->Stream.RandRange(0, personalities.Num() - 1); });
 
 	int32 i = Camera->CitizenManager->Personalities.Find(personalities[index.Get()]);
 

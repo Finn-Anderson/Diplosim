@@ -82,6 +82,9 @@ void UHealthComponent::AddHealth(int32 Amount)
 
 void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 {
+	if (GetHealth() == 0)
+		return;
+
 	AsyncTask(ENamedThreads::GameThread, [this, Amount, Attacker]() {
 		int32 force = FMath::Max(FMath::Abs(Health - Amount), 1);
 

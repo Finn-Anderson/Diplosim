@@ -130,14 +130,14 @@ void ABuilding::BeginPlay()
 	Camera = PController->GetPawn<ACamera>();
 
 	if (!Colours.IsEmpty()) {
-		int32 index = FMath::RandRange(0, Colours.Num() - 1);
+		int32 index = Camera->Grid->Stream.RandRange(0, Colours.Num() - 1);
 
 		ChosenColour = Colours[index];
 	}
 	else {
-		float r = FMath::FRandRange(0.0f, 1.0f);
-		float g = FMath::FRandRange(0.0f, 1.0f);
-		float b = FMath::FRandRange(0.0f, 1.0f);
+		float r = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
+		float g = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
+		float b = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
 
 		ChosenColour = FLinearColor(r, g, b);
 	}
@@ -236,7 +236,7 @@ void ABuilding::SetSeed(int32 Seed)
 				continue;
 
 			int32 num = 0;
-			int32 angle = FMath::RandRange(0, 3);
+			int32 angle = Camera->Grid->Stream.RandRange(0, 3);
 
 			if (IsA<AInternalProduction>())
 				angle = 0;

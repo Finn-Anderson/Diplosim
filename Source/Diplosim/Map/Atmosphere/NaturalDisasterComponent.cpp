@@ -64,8 +64,8 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 	int32 distance = Magnitude * 5;
 	float range = 500.0f * Magnitude;
 
-	int32 iX = FMath::RandRange(0, bounds);
-	int32 iY = FMath::RandRange(0, bounds);
+	int32 iX = Grid->Stream.RandRange(0, bounds);
+	int32 iY = Grid->Stream.RandRange(0, bounds);
 
 	FTileStruct start = Grid->Storage[iX][iY];
 
@@ -80,7 +80,7 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 		}
 	}
 
-	int32 chosenEnd = FMath::RandRange(0, endLocations.Num() - 1);
+	int32 chosenEnd = Grid->Stream.RandRange(0, endLocations.Num() - 1);
 
 	FTileStruct end = endLocations[chosenEnd];
 
@@ -108,8 +108,8 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 
 	float variance = dist * 0.66f;
 
-	p1 = FVector2D(FMath::RandRange(p0.X, pHalf.X) + FMath::RandRange(-variance, variance), FMath::RandRange(p0.Y, pHalf.Y) + FMath::RandRange(-variance, variance));
-	p2 = FVector2D(FMath::RandRange(pHalf.X, p3.X) + FMath::RandRange(-variance, variance), FMath::RandRange(pHalf.Y, p3.Y) + FMath::RandRange(-variance, variance));
+	p1 = FVector2D(Grid->Stream.RandRange(p0.X, pHalf.X) + Grid->Stream.RandRange(-variance, variance), Grid->Stream.RandRange(p0.Y, pHalf.Y) + Grid->Stream.RandRange(-variance, variance));
+	p2 = FVector2D(Grid->Stream.RandRange(pHalf.X, p3.X) + Grid->Stream.RandRange(-variance, variance), Grid->Stream.RandRange(pHalf.Y, p3.Y) + Grid->Stream.RandRange(-variance, variance));
 
 	double t = 0.0f;
 

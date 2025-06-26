@@ -106,7 +106,7 @@ void ADiplosimGameModeBase::EvaluateThreats()
 
 		WavesData.Last().Threats.Add(threatStruct);
 
-		int32 chance = FMath::RandRange(1, 30);
+		int32 chance = Camera->Grid->Stream.RandRange(1, 30);
 		chance -= threat.Kills;
 
 		if (chance > 15 || Cast<AWall>(threat.Actor)->GetOccupied().IsEmpty())
@@ -197,7 +197,7 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	TArray<FVector> spawnLocations;
 
-	auto index = Async(EAsyncExecution::TaskGraph, [validTiles]() { return FMath::RandRange(0, validTiles.Num() - 1); });
+	auto index = Async(EAsyncExecution::TaskGraph, [this, validTiles]() { return Camera->Grid->Stream.RandRange(0, validTiles.Num() - 1); });
 
 	spawnLocations.Add(validTiles[index.Get()]);
 
@@ -339,7 +339,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies(TArray<FVector> SpawnLocations)
 
 void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour)
 {
-	int32 index = FMath::RandRange(0, spawnLocations.Num() - 1);
+	int32 index = Camera->Grid->Stream.RandRange(0, spawnLocations.Num() - 1);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();

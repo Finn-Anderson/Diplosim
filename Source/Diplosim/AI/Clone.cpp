@@ -1,6 +1,8 @@
 #include "AI/Clone.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Player/Camera.h"
+#include "Map/Grid.h"
 
 AClone::AClone()
 {
@@ -16,9 +18,9 @@ void AClone::BeginPlay()
 {
 	Super::BeginPlay();
 
-	float r = FMath::FRandRange(0.0f, 1.0f);
-	float g = FMath::FRandRange(0.0f, 1.0f);
-	float b = FMath::FRandRange(0.0f, 1.0f);
+	float r = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
+	float g = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
+	float b = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
 
 	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(Mesh->GetMaterial(0), this);
 	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));

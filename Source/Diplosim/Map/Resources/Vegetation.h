@@ -12,9 +12,6 @@ class DIPLOSIM_API AVegetation : public AResource
 public:
 	AVegetation();
 
-private:
-	virtual void BeginPlay() override;
-
 public:
 	virtual void YieldStatus(int32 Instance, int32 Yield) override;
 
@@ -26,9 +23,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
 		int32 TimeLength;
-
-	UPROPERTY()
-		class ACamera* Camera;
 
 	UPROPERTY()
 		TArray<int32> GrowingInstances;

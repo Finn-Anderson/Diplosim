@@ -1,7 +1,6 @@
 #include "Vegetation.h"
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "Kismet/GameplayStatics.h"
 
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
@@ -16,14 +15,6 @@ AVegetation::AVegetation()
 	ResourceHISM->NumCustomDataFloats = 11;
 
 	TimeLength = 30.0f;
-}
-
-void AVegetation::BeginPlay()
-{
-	Super::BeginPlay();
-
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	Camera = PController->GetPawn<ACamera>();
 }
 
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)

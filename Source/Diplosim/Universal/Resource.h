@@ -34,6 +34,9 @@ class DIPLOSIM_API AResource : public AActor
 public:	
 	AResource();
 
+protected:
+	virtual void BeginPlay() override;
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UHierarchicalInstancedStaticMeshComponent* ResourceHISM;
@@ -58,6 +61,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Workers")
 		TArray<FWorkerStruct> WorkerStruct;
+
+	UPROPERTY()
+		class ACamera* Camera;
 
 	int32 GenerateYield();
 

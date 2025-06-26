@@ -44,7 +44,7 @@ FRewardStruct AEggBasket::PickReward(ACamera* Camera)
 		}
 	}
 
-	int32 index = FMath::RandRange(0, chosenRewards.Num() - 1);
+	int32 index = Camera->Grid->Stream.RandRange(0, chosenRewards.Num() - 1);
 
 	return chosenRewards[index];
 }
@@ -56,7 +56,7 @@ void AEggBasket::RedeemReward()
 
 	FRewardStruct reward = PickReward(camera);
 
-	int32 amount = FMath::RandRange(reward.Min, reward.Max);
+	int32 amount = camera->Grid->Stream.RandRange(reward.Min, reward.Max);
 
 	camera->ResourceManager->AddUniversalResource(reward.Resource, amount);
 	

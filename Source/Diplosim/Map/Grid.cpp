@@ -339,8 +339,8 @@ void AGrid::Render()
 
 				float variance = distance * 0.66f;
 
-				p1 = FVector2D(FMath::RandRange(p0.X, pHalf.X) + FMath::RandRange(-variance, variance), FMath::RandRange(p0.Y, pHalf.Y) + FMath::RandRange(-variance, variance));
-				p2 = FVector2D(FMath::RandRange(pHalf.X, p3.X) + FMath::RandRange(-variance, variance), FMath::RandRange(pHalf.Y, p3.Y) + FMath::RandRange(-variance, variance));
+				p1 = FVector2D(Stream.RandRange(p0.X, pHalf.X) + Stream.RandRange(-variance, variance), Stream.RandRange(p0.Y, pHalf.Y) + Stream.RandRange(-variance, variance));
+				p2 = FVector2D(Stream.RandRange(pHalf.X, p3.X) + Stream.RandRange(-variance, variance), Stream.RandRange(pHalf.Y, p3.Y) + Stream.RandRange(-variance, variance));
 
 				double t = 0.0f;
 

@@ -191,14 +191,14 @@ void AWork::Production(ACitizen* Citizen)
 				}
 			}
 
-			int32 chance = FMath::RandRange(0, 100) + count * 15;
+			int32 chance = Camera->Grid->Stream.RandRange(0, 100) + count * 15;
 
 			if (chance >= 0)
 				continue;
 
-			Camera->CitizenManager->Injure(citizen, FMath::RandRange(0, 100));
+			Camera->CitizenManager->Injure(citizen, Camera->Grid->Stream.RandRange(0, 100));
 
-			Camera->CitizenManager->Injure(c, FMath::RandRange(0, 100));
+			Camera->CitizenManager->Injure(c, Camera->Grid->Stream.RandRange(0, 100));
 
 			break;
 		}
