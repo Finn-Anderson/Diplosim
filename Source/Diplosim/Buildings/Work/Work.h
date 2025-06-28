@@ -71,4 +71,8 @@ public:
 
 	UPROPERTY()
 		TArray<class ABooster*> Boosters;
+
+	// Forcefield
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Forcefield")
+		int32 ForcefieldRange;
 };

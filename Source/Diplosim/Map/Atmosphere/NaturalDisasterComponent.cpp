@@ -8,6 +8,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Buildings/Building.h"
+#include "Buildings/Work/Work.h"
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
 #include "AI/Projectile.h"
@@ -149,7 +150,7 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), estruct.Point, range, objects, nullptr, ignore, actors);
 
 		for (AActor* actor : actors) {
-			if (!actor->IsA<ABuilding>())
+			if (!actor->IsA<ABuilding>() || IsProtected(actor->GetActorLocation()))
 				continue;
 
 			float d = FVector::Dist(estruct.Point, actor->GetActorLocation());
@@ -228,4 +229,19 @@ void UNaturalDisasterComponent::CancelRedSun()
 	Grid->AtmosphereComponent->bRedSun = false;
 
 	AlterSunGradually(1.0f, 0.02f);
+}
+
+bool UNaturalDisasterComponent::IsProtected(FVector Location)
+{
+	for (ABuilding* building : Grid->Camera->CitizenManager->Buildings) {
+		if (!building->IsA<AWork>() || Cast<AWork>(building)->ForcefieldRange == 0 || building->GetCitizensAtBuilding().IsEmpty())
+			continue;
+
+		double distance = FVector::Dist(building->GetActorLocation(), Location);
+
+		if (distance <= Cast<AWork>(building)->ForcefieldRange)
+			return true;
+	}
+
+	return false;
 }

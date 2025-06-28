@@ -13,6 +13,8 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
 
 AProjectile::AProjectile()
 {
@@ -117,6 +119,8 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 
 				dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
 			}
+			else if (GetOwner()->IsA<UNaturalDisasterComponent>() && camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(actor->GetActorLocation()))
+				continue;
 
 			healthComp->TakeHealth(dmg, this);
 		}

@@ -31,6 +31,7 @@
 #include "Universal/DiplosimGameModeBase.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "AIMovementComponent.h"
 #include "Map/Resources/Mineral.h"
 
@@ -625,7 +626,7 @@ float ACitizen::GetProductivity()
 		break;
 	}
 
-	if (Camera->Grid->AtmosphereComponent->bRedSun)
+	if (Camera->Grid->AtmosphereComponent->bRedSun && !Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(GetActorLocation()))
 		productivity *= 0.5f;
 
 	return productivity;

@@ -111,6 +111,9 @@ void UCloudComponent::TickCloud(float DeltaTime)
 
 				if (GetWorld()->SweepMultiByChannel(hits, endLocation, endLocation + FVector(0.0f, 0.0f, 300.0f), FQuat(0.0f), ECC_Visibility, FCollisionShape::MakeBox(FVector(50.0f, 50.0f, 100.0f)), params)) {
 					for (FHitResult hit : hits) {
+						if (Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(hit.GetActor()->GetActorLocation()))
+							continue;
+
 						UNiagaraComponent* fire = nullptr;
 						UStaticMesh* mesh = nullptr;
 

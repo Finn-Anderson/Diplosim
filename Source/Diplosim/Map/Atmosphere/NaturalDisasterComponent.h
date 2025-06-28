@@ -55,6 +55,8 @@ public:
 
 	void CancelRedSun();
 
+	bool IsProtected(FVector Location);
+
 	UPROPERTY()
 		class AGrid* Grid;
 		

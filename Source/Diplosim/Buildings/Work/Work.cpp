@@ -40,6 +40,8 @@ AWork::AWork()
 	bCanAttendEvents = true;
 
 	bOpen = false;
+
+	ForcefieldRange = 0;
 }
 
 void AWork::BeginPlay()
