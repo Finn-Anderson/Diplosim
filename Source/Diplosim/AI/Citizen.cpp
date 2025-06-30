@@ -60,6 +60,13 @@ ACitizen::ACitizen()
 	TorchNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	TorchNiagaraComponent->bAutoActivate = false;
 
+	GlassesMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GlassesMesh"));
+	GlassesMesh->SetWorldScale3D(FVector(0.2f, 0.2f, 0.2f));
+	GlassesMesh->SetCollisionProfileName("NoCollision", false);
+	GlassesMesh->SetupAttachment(Mesh, "GlassesSocket");
+	GlassesMesh->SetHiddenInGame(true);
+	GlassesMesh->PrimaryComponentTick.bCanEverTick = false;
+
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(Mesh);
 	HarvestNiagaraComponent->SetRelativeLocation(FVector(20.0f, 0.0f, 17.0f));
@@ -1830,8 +1837,11 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 	else if (Genetic.Type == EGeneticsType::Awareness) {
 		if (Genetic.Grade == EGeneticsGrade::Good)
 			ApplyToMultiplier("Awareness", 1.25f);
-		else if (Genetic.Grade == EGeneticsGrade::Bad)
+		else if (Genetic.Grade == EGeneticsGrade::Bad) {
 			ApplyToMultiplier("Awareness", 0.75f);
+
+			GlassesMesh->SetHiddenInGame(false);
+		}
 	}
 	else if (Genetic.Type == EGeneticsType::Productivity) {
 		if (Genetic.Grade == EGeneticsGrade::Good)

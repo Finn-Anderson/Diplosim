@@ -324,6 +324,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UNiagaraComponent* TorchNiagaraComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
+		class UStaticMeshComponent* GlassesMesh;
+
 	// Education
 	bool CanAffordEducationLevel();
 
