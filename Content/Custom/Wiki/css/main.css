@@ -1,0 +1,72 @@
+*, html {
+	scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+	width: 10px;
+}
+
+::-webkit-scrollbar-track {
+	background: rgba(21, 21, 21, 0.2);
+	border-radius: 16px;
+	margin: 4px 0px 12px 0px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: #FDAA74;
+	border-radius: 16px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: #FB7C3C;
+}
+
+::-webkit-scrollbar-thumb:active {
+	background: #FB7C3C;
+}
+
+body {
+	display: grid;
+	grid-template-columns: [line1] auto [line2] auto [line3];
+	grid-template-rows: [row1] auto [row2];
+	margin: 0px;
+}
+
+nav {
+	grid-column: line1 / line2;
+	grid-row: row1 / span row2;
+	padding-right: 8px;
+	border-right: 2px solid #FEDBAA;
+}
+
+nav h1 {
+	margin: 4px;
+}
+
+nav h1:not:first-child {
+	margin-top: 12px;
+}
+
+nav a {
+	padding-left: 8px;
+}
+
+main {
+	grid-column: line2 / span line3;
+	grid-row: row1 / span row2;
+	margin: 8px;
+}
+
+p, h1, a {
+	font-family: "Roboto";
+}
+
+h1, #active {
+	color: #FEDBAA;
+}
+
+p, a {
+	color: #FFF5ED;
+	text-decoration: none;
+	margin: 0px;
+}

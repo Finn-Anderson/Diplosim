@@ -121,6 +121,8 @@ ACamera::ACamera()
 
 	GameSpeed = 1.0f;
 	ResetGameSpeedCounter();
+
+	WikiURL = FPaths::ProjectDir() + "/Content/Custom/Wiki/index.html";
 }
 
 void ACamera::BeginPlay()
