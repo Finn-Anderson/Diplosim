@@ -1,7 +1,7 @@
 {
 	"Laws": [
 		{
-			"BillType": 0,
+			"BillType": "Work Age",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -14,54 +14,54 @@
 				"Value": 18,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 0, 12 ],
 						"AgainstRange": [ 24, 100 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 12 ]
 					},
 					{
-						"Party": 3,
+						"Party": "The Scrambled Coalition",
 						"ForRange": [],
 						"AgainstRange": [ 0, 6 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 12 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 2,
+						"Personality": "Diligent",
 						"ForRange": [ 0, 12 ],
 						"AgainstRange": [ 24, 100 ]
 					},
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 12 ]
 					},
 					{
-						"Personality": 4,
+						"Personality": "Outgoing",
 						"ForRange": [ 0, 12 ],
 						"AgainstRange": [ 24, 100 ]
 					},
 					{
-						"Personality": 13,
+						"Personality": "Lethargic",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 12 ]
 					},
 					{
-						"Personality": 14,
+						"Personality": "Workaholic",
 						"ForRange": [ 0, 12 ],
 						"AgainstRange": [ 24, 100 ]
 					},
 					{
-						"Personality": 15,
+						"Personality": "Idler",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 12 ]
 					}
@@ -69,7 +69,7 @@
 			}
 		},
 		{
-			"BillType": 1,
+			"BillType": "Vote Age",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -82,44 +82,44 @@
 				"Value": 18,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 21, 100 ],
 						"AgainstRange": [ 0, 16 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [],
 						"AgainstRange": [ 0, 9 ]
 					},
 					{
-						"Party": 3,
+						"Party": "The Scrambled Coalition",
 						"ForRange": [],
 						"AgainstRange": [ 0, 9 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [ 0, 16 ],
 						"AgainstRange": [ 21, 100 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 0,
+						"Personality": "Brave",
 						"ForRange": [ 0, 16 ],
 						"AgainstRange": [ 21, 100 ]
 					},
 					{
-						"Personality": 1,
+						"Personality": "Craven",
 						"ForRange": [ 21, 100 ],
 						"AgainstRange": [ 0, 16 ]
 					},
 					{
-						"Personality": 4,
+						"Personality": "Outgoing",
 						"ForRange": [ 0, 16 ],
 						"AgainstRange": [ 21, 100 ]
 					},
 					{
-						"Personality": 5,
+						"Personality": "Reserved",
 						"ForRange": [ 21, 100 ],
 						"AgainstRange": [ 0, 16 ]
 					}
@@ -127,7 +127,7 @@
 			}
 		},
 		{
-			"BillType": 2,
+			"BillType": "Representatives",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -140,109 +140,109 @@
 				"Value": 10,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [],
 						"AgainstRange": [ 25, 10 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [ 60, 100 ],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Party": 3,
+						"Party": "The Scrambled Coalition",
 						"ForRange": [],
 						"AgainstRange": [ 40, 10 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [ 40, 100 ],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [ 0, 10 ],
 						"AgainstRange": []
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 0,
+						"Personality": "Brave",
 						"ForRange": [],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 1,
+						"Personality": "Craven",
 						"ForRange": [],
 						"AgainstRange": [ 25, 10 ]
 					},
 					{
-						"Personality": 2,
+						"Personality": "Diligent",
 						"ForRange": [],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 4,
+						"Personality": "Outgoing",
 						"ForRange": [ 40, 100 ],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 5,
+						"Personality": "Reserved",
 						"ForRange": [],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 6,
+						"Personality": "Kind",
 						"ForRange": [ 25, 100 ],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 7,
+						"Personality": "Cruel",
 						"ForRange": [ 0, 1 ],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 8,
+						"Personality": "Talented",
 						"ForRange": [],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 9,
+						"Personality": "Inept",
 						"ForRange": [ 0, 10 ],
 						"AgainstRange": [ 10, 100 ]
 					},
 					{
-						"Personality": 10,
+						"Personality": "Conscientious",
 						"ForRange": [ 40, 100 ],
 						"AgainstRange": [ 40, 10 ]
 					},
 					{
-						"Personality": 11,
+						"Personality": "Careless",
 						"ForRange": [],
 						"AgainstRange": []
 					},
 					{
-						"Personality": 12,
+						"Personality": "Energetic",
 						"ForRange": [],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 13,
+						"Personality": "Lethargic",
 						"ForRange": [],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 14,
+						"Personality": "Workaholic",
 						"ForRange": [],
 						"AgainstRange": [ 0, 10 ]
 					},
 					{
-						"Personality": 15,
+						"Personality": "Idler",
 						"ForRange": [ 0, 10 ],
 						"AgainstRange": []
 					}
@@ -250,7 +250,7 @@
 			}
 		},
 		{
-			"BillType": 3,
+			"BillType": "Representative Type",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -273,89 +273,89 @@
 				"Value": 0,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 1, 2 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [ 0, 1 ],
 						"AgainstRange": [ 2, 2 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 2 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 1,
+						"Personality": "Craven",
 						"ForRange": [],
 						"AgainstRange": [ 2, 2 ]
 					},
 					{
-						"Personality": 2,
+						"Personality": "Diligent",
 						"ForRange": [ 1, 2 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [],
 						"AgainstRange": [ 1, 1 ]
 					},
 					{
-						"Personality": 4,
+						"Personality": "Outgoing",
 						"ForRange": [ 0, 1 ],
 						"AgainstRange": []
 					},
 					{
-						"Personality": 6,
+						"Personality": "Kind",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 2, 2 ]
 					},
 					{
-						"Personality": 7,
+						"Personality": "Cruel",
 						"ForRange": [ 2, 2 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Personality": 8,
+						"Personality": "Talented",
 						"ForRange": [],
 						"AgainstRange": [ 2, 2 ]
 					},
 					{
-						"Personality": 9,
+						"Personality": "Inept",
 						"ForRange": [ 2, 2 ],
 						"AgainstRange": []
 					},
 					{
-						"Personality": 10,
+						"Personality": "Conscientious",
 						"ForRange": [],
 						"AgainstRange": [ 2, 2 ]
 					},
 					{
-						"Personality": 11,
+						"Personality": "Careless",
 						"ForRange": [ 2, 2 ],
 						"AgainstRange": []
 					},
 					{
-						"Personality": 12,
+						"Personality": "Energetic",
 						"ForRange": [ 0, 1 ],
 						"AgainstRange": []
 					},
 					{
-						"Personality": 13,
+						"Personality": "Lethargic",
 						"ForRange": [],
 						"AgainstRange": [ 1, 1 ]
 					},
 					{
-						"Personality": 14,
+						"Personality": "Workaholic",
 						"ForRange": [ 0, 1 ],
 						"AgainstRange": [ 2, 2 ]
 					},
 					{
-						"Personality": 15,
+						"Personality": "Idler",
 						"ForRange": [],
 						"AgainstRange": [ 0, 2 ]
 					}
@@ -363,7 +363,7 @@
 			}
 		},
 		{
-			"BillType": 4,
+			"BillType": "Election Timer",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -376,69 +376,69 @@
 				"Value": 12,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 18, 100 ],
 						"AgainstRange": [ 0, 9 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [ 6, 12 ],
 						"AgainstRange": [ 15, 3 ]
 					},
 					{
-						"Party": 3,
+						"Party": "The Scrambled Coalition",
 						"ForRange": [ 18, 100 ],
 						"AgainstRange": [ 0, 9 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [ 6, 12 ],
 						"AgainstRange": [ 15, 3 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [ 0, 6 ],
 						"AgainstRange": [ 9, 100 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 1,
+						"Personality": "Craven",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 9 ]
 					},
 					{
-						"Personality": 2,
+						"Personality": "Diligent",
 						"ForRange": [],
 						"AgainstRange": [ 24, 100 ]
 					},
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 9 ]
 					},
 					{
-						"Personality": 4,
+						"Personality": "Outgoing",
 						"ForRange": [ 0, 9 ],
 						"AgainstRange": [ 24, 100 ]
 					},
 					{
-						"Personality": 5,
+						"Personality": "Reserved",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 9 ]
 					},
 					{
-						"Personality": 10,
+						"Personality": "Conscientious",
 						"ForRange": [ 6, 12 ],
 						"AgainstRange": [ 24, 100 ]
 					},
 					{
-						"Personality": 12,
+						"Personality": "Energetic",
 						"ForRange": [ 0, 9 ],
 						"AgainstRange": [ 24, 100 ]
 					},
 					{
-						"Personality": 13,
+						"Personality": "Lethargic",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 9 ]
 					}
@@ -446,7 +446,7 @@
 			}
 		},
 		{
-			"BillType": 5,
+			"BillType": "Food Cost",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -459,44 +459,44 @@
 				"Value": 0,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 2,
+						"Personality": "Diligent",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					},
 					{
-						"Personality": 6,
+						"Personality": "Kind",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					},
 					{
-						"Personality": 7,
+						"Personality": "Cruel",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Personality": 11,
+						"Personality": "Careless",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					}
@@ -504,7 +504,7 @@
 			}
 		},
 		{
-			"BillType": 6,
+			"BillType": "Pension",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -517,49 +517,49 @@
 				"Value": 2,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 2,
+						"Personality": "Diligent",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					},
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Personality": 6,
+						"Personality": "Kind",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Personality": 7,
+						"Personality": "Cruel",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					},
 					{
-						"Personality": 11,
+						"Personality": "Careless",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					}
@@ -567,7 +567,7 @@
 			}
 		},
 		{
-			"BillType": 7,
+			"BillType": "Pension Age",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -580,59 +580,59 @@
 				"Value": 65,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 75, 100 ],
 						"AgainstRange": [ 0, 65 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [ 0, 50 ],
 						"AgainstRange": [ 65, 100 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [ 60, 70 ],
 						"AgainstRange": [ 75, 50 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [ 0, 50 ],
 						"AgainstRange": [ 65, 100 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [ 0, 50 ],
 						"AgainstRange": [ 65, 100 ]
 					},
 					{
-						"Personality": 6,
+						"Personality": "Kind",
 						"ForRange": [ 50, 70 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Personality": 7,
+						"Personality": "Cruel",
 						"ForRange": [ 90, 100 ],
 						"AgainstRange": [ 0, 80 ]
 					},
 					{
-						"Personality": 12,
+						"Personality": "Energetic",
 						"ForRange": [ 70, 80 ],
 						"AgainstRange": [ 0, 60 ]
 					},
 					{
-						"Personality": 13,
+						"Personality": "Lethargic",
 						"ForRange": [ 0, 50 ],
 						"AgainstRange": [ 65, 100 ]
 					},
 					{
-						"Personality": 14,
+						"Personality": "Workaholic",
 						"ForRange": [ 70, 80 ],
 						"AgainstRange": [ 0, 60 ]
 					},
 					{
-						"Personality": 15,
+						"Personality": "Idler",
 						"ForRange": [ 0, 50 ],
 						"AgainstRange": [ 65, 100 ]
 					}
@@ -640,7 +640,7 @@
 			}
 		},
 		{
-			"BillType": 8,
+			"BillType": "Education Cost",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -653,44 +653,44 @@
 				"Value": 0,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 2,
+						"Personality": "Diligent",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					},
 					{
-						"Personality": 6,
+						"Personality": "Kind",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					},
 					{
-						"Personality": 7,
+						"Personality": "Cruel",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					},
 					{
-						"Personality": 11,
+						"Personality": "Careless",
 						"ForRange": [ 1, 100 ],
 						"AgainstRange": [ 0, 0 ]
 					}
@@ -698,7 +698,7 @@
 			}
 		},
 		{
-			"BillType": 9,
+			"BillType": "Education Age",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -711,59 +711,59 @@
 				"Value": 3,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 0, 3 ],
 						"AgainstRange": [ 4, 100 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [ 5, 100 ],
 						"AgainstRange": [ 0, 4 ]
 					},
 					{
-						"Party": 3,
+						"Party": "The Scrambled Coalition",
 						"ForRange": [ 3, 5 ],
 						"AgainstRange": [ 7, 100 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [],
 						"AgainstRange": [ 0, 100 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [ 5, 7 ],
 						"AgainstRange": [ 0, 4 ]
 					},
 					{
-						"Personality": 4,
+						"Personality": "Outgoing",
 						"ForRange": [ 0, 5 ],
 						"AgainstRange": [ 6, 100 ]
 					},
 					{
-						"Personality": 6,
+						"Personality": "Kind",
 						"ForRange": [ 3, 100 ],
 						"AgainstRange": [ 0, 3 ]
 					},
 					{
-						"Personality": 7,
+						"Personality": "Cruel",
 						"ForRange": [],
 						"AgainstRange": [ 0, 100 ]
 					},
 					{
-						"Personality": 13,
+						"Personality": "Lethargic",
 						"ForRange": [ 5, 7 ],
 						"AgainstRange": [ 0, 4 ]
 					},
 					{
-						"Personality": 14,
+						"Personality": "Workaholic",
 						"ForRange": [ 0, 3 ],
 						"AgainstRange": [ 4, 100 ]
 					},
 					{
-						"Personality": 15,
+						"Personality": "Idler",
 						"ForRange": [ 5, 7 ],
 						"AgainstRange": [ 0, 4 ]
 					}
@@ -771,7 +771,7 @@
 			}
 		},
 		{
-			"BillType": 10,
+			"BillType": "Child Policy",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -784,27 +784,27 @@
 				"Value": 100,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [ 1, 3 ],
 						"AgainstRange": [ 0, 100 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [ 4, 100 ],
 						"AgainstRange": [ 0, 3 ]
 					},
 					{
-						"Party": 3,
+						"Party": "The Scrambled Coalition",
 						"ForRange": [ 1, 2 ],
 						"AgainstRange": [ 0, 100 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [ 3, 9 ],
 						"AgainstRange": [ 0, 100 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [ 10, 100 ],
 						"AgainstRange": [ 0, 9 ]
 					}
@@ -813,7 +813,7 @@
 			}
 		},
 		{
-			"BillType": 11,
+			"BillType": "Election",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -829,7 +829,7 @@
 			}
 		},
 		{
-			"BillType": 12,
+			"BillType": "Abolish",
 			"Bills": {
 				"Descriptions": [
 					{
@@ -842,109 +842,109 @@
 				"Value": -1,
 				"Parties": [
 					{
-						"Party": 1,
+						"Party": "Chicken Winged",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Party": 2,
+						"Party": "Free Range",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Party": 3,
+						"Party": "The Scrambled Coalition",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Party": 4,
+						"Party": "Golden Yolk",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Party": 5,
+						"Party": "Shell Breakers",
 						"ForRange": [ -1, -1 ],
 						"AgainstRange": []
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": 0,
+						"Personality": "Brave",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 1,
+						"Personality": "Craven",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 2,
+						"Personality": "Diligent",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 3,
+						"Personality": "Lazy",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 4,
+						"Personality": "Outgoing",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 5,
+						"Personality": "Reserved",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 6,
+						"Personality": "Kind",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 7,
+						"Personality": "Cruel",
 						"ForRange": [ -1, -1 ],
 						"AgainstRange": []
 					},
 					{
-						"Personality": 8,
+						"Personality": "Talented",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 9,
+						"Personality": "Inept",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 10,
+						"Personality": "Conscientious",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 11,
+						"Personality": "Careless",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 12,
+						"Personality": "Energetic",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 13,
+						"Personality": "Lethargic",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 14,
+						"Personality": "Workaholic",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					},
 					{
-						"Personality": 15,
+						"Personality": "Idler",
 						"ForRange": [],
 						"AgainstRange": [ -1, -1 ]
 					}

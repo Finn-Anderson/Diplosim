@@ -96,10 +96,10 @@ struct FFactionStruct
 		int32 WarFatigue;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
-		EParty PartyInPower;
+		FString PartyInPower;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
-		EReligion Religion;
+		FString Religion;
 
 	FFactionStruct()
 	{
@@ -107,8 +107,8 @@ struct FFactionStruct
 		Texture = nullptr;
 		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
 		WarFatigue = 0;
-		PartyInPower = EParty::Undecided;
-		Religion = EReligion::Atheist;
+		PartyInPower = "Undecided";
+		Religion = "Atheist";
 	}
 
 	bool operator==(const FFactionStruct& other) const

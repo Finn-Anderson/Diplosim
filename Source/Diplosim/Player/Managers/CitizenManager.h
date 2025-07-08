@@ -155,10 +155,10 @@ struct FPartyStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		EParty Party;
+		FString Party;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<EPersonality> Agreeable;
+		TArray<FString> Agreeable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 		TMap<class ACitizen*, TEnumAsByte<ESway>> Members;
@@ -168,7 +168,7 @@ struct FPartyStruct
 
 	FPartyStruct()
 	{
-		Party = EParty::Undecided;
+		Party = "";
 		Leader = nullptr;
 	}
 
@@ -184,10 +184,10 @@ struct FLeanStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		EParty Party;
+		FString Party;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		EPersonality Personality;
+		FString Personality;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<int32> ForRange;
@@ -197,8 +197,8 @@ struct FLeanStruct
 
 	FLeanStruct()
 	{
-		Party = EParty::Undecided;
-		Personality = EPersonality::Brave;
+		Party = "";
+		Personality = "";
 	}
 
 	bool operator==(const FLeanStruct& other) const
@@ -229,31 +229,13 @@ struct FDescriptionStruct
 	}
 };
 
-UENUM()
-enum class EBillType : uint8
-{
-	WorkAge,
-	VoteAge,
-	Representatives,
-	RepresentativeType,
-	ElectionTimer,
-	FoodCost,
-	Pension,
-	PensionAge,
-	EducationCost,
-	EducationAge,
-	ChildPolicy,
-	Election,
-	Abolish
-};
-
 USTRUCT(BlueprintType)
 struct FLawStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		EBillType BillType;
+		FString BillType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FDescriptionStruct> Description;
@@ -272,13 +254,13 @@ struct FLawStruct
 
 	FLawStruct()
 	{
-		BillType = EBillType::WorkAge;
+		BillType = "";
 		Warning = "";
 		Value = 0.0f;
 		Cooldown = 0;
 	}
 
-	int32 GetLeanIndex(EParty Party = EParty::Undecided, EPersonality Personality = EPersonality::Brave)
+	int32 GetLeanIndex(FString Party = "", FString Personality = "")
 	{
 		FLeanStruct lean;
 		lean.Party = Party;
@@ -324,14 +306,14 @@ struct FReligionStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
-		EReligion Faith;
+		FString Faith;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
-		TArray<EPersonality> Agreeable;
+		TArray<FString> Agreeable;
 
 	FReligionStruct()
 	{
-		Faith = EReligion::Atheist;
+		Faith = "";
 	}
 
 	bool operator==(const FReligionStruct& other) const
@@ -362,20 +344,27 @@ struct FPersonality
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
-		EPersonality Trait;
+		FString Trait;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
-		TArray<EPersonality> Likes;
+		TArray<FString> Likes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
-		TArray<EPersonality> Dislikes;
+		TArray<FString> Dislikes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		TMap<FString, float> Affects;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		float Aggressiveness;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
 		TArray<class ACitizen*> Citizens;
 
 	FPersonality()
 	{
-		Trait = EPersonality::Brave;
+		Trait = "";
+		Aggressiveness = 1.0f;
 	}
 
 	bool operator==(const FPersonality& other) const
@@ -532,9 +521,9 @@ public:
 	FPartyStruct* GetMembersParty(ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
-		EParty GetCitizenParty(ACitizen* Citizen);
+		FString GetCitizenParty(ACitizen* Citizen);
 
-	void SelectNewLeader(EParty Party);
+	void SelectNewLeader(FString Party);
 
 	void StartElectionTimer();
 
@@ -559,7 +548,7 @@ public:
 	void TallyVotes(FLawStruct Bill);
 
 	UFUNCTION(BlueprintCallable)
-		int32 GetLawValue(EBillType BillType);
+		int32 GetLawValue(FString BillType);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetCooldownTimer(FLawStruct Law);

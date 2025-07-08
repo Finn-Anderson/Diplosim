@@ -507,7 +507,7 @@ void UConquestManager::ModifyCitizensEvent(FWorldTileStruct& Tile, int32 Amount,
 
 bool UConquestManager::CanTravel(class ACitizen* Citizen)
 {
-	if (RecentlyMoved.Contains(Citizen) || Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge) || !Citizen->WillWork())
+	if (RecentlyMoved.Contains(Citizen) || Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue("Work Age") || !Citizen->WillWork())
 		return false;
 
 	return true;
@@ -712,10 +712,10 @@ bool UConquestManager::IsCitizenMoving(class ACitizen* Citizen)
 void UConquestManager::SetFactionCulture(FFactionStruct& Faction)
 {
 	if (Faction.Name == EmpireName) {
-		TMap<EReligion, int32> religionCount;
+		TMap<FString, int32> religionCount;
 
 		for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
-			EReligion faith = citizen->Spirituality.Faith;
+			FString faith = citizen->Spirituality.Faith;
 
 			if (religionCount.Contains(faith)) {
 				int32* count = religionCount.Find(faith);
@@ -735,7 +735,7 @@ void UConquestManager::SetFactionCulture(FFactionStruct& Faction)
 			biggestParty = party;
 		}
 
-		TTuple<EReligion, int32> biggestReligion;
+		TTuple<FString, int32> biggestReligion;
 
 		for (auto& element : religionCount) {
 			if (biggestReligion.Value >= element.Value)
@@ -747,12 +747,12 @@ void UConquestManager::SetFactionCulture(FFactionStruct& Faction)
 		Faction.PartyInPower = biggestParty.Party;
 		Faction.Religion = biggestReligion.Key;
 	}
-	else if (Faction.PartyInPower == EParty::Undecided || Camera->Grid->Stream.RandRange(0, 480) == 480) {
-		int32 partyIndex = Camera->Grid->Stream.RandRange(0, (int32)StaticEnum<EParty>()->GetMaxEnumValue());
-		int32 religionIndex = Camera->Grid->Stream.RandRange(0, (int32)StaticEnum<EReligion>()->GetMaxEnumValue());
+	else if (Faction.PartyInPower == "Undecided" || Camera->Grid->Stream.RandRange(0, 480) == 480) {
+		int32 partyIndex = Camera->Grid->Stream.RandRange(0, Camera->CitizenManager->Parties.Num() - 1);
+		int32 religionIndex = Camera->Grid->Stream.RandRange(0, Camera->CitizenManager->Religions.Num() - 1);
 
-		Faction.PartyInPower = EParty(partyIndex);
-		Faction.Religion = EReligion(religionIndex);
+		Faction.PartyInPower = Camera->CitizenManager->Parties[partyIndex].Party;
+		Faction.Religion = Camera->CitizenManager->Religions[religionIndex].Faith;
 	}
 }
 
@@ -790,7 +790,7 @@ void UConquestManager::SetFactionsHappiness(FFactionStruct& Faction, TArray<FWor
 		if (Faction.Religion != f.Religion) {
 			int32 value = -18;
 
-			if ((Faction.Religion == EReligion::Egg || Faction.Religion == EReligion::Chicken) && (f.Religion == EReligion::Egg || f.Religion == EReligion::Chicken))
+			if ((Faction.Religion == "Egg" || Faction.Religion == "Chicken") && (f.Religion == "Egg" || f.Religion == "Chicken"))
 				value = -6;
 
 			if (happiness.Contains("Same religion"))

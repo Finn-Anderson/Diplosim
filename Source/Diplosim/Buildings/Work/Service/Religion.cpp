@@ -19,8 +19,8 @@ ABroadcast::ABroadcast()
 
 	DecalComponent->SetVisibility(true);
 
-	Belief = EReligion::Atheist;
-	Allegiance = EParty::Undecided;
+	Belief = "Atheist";
+	Allegiance = "Undecided";
 	bIsPark = false;
 	bHolyPlace = false;
 }
@@ -41,7 +41,7 @@ void ABroadcast::Leave(ACitizen* Citizen)
 		Citizen->bWorshipping = false;
 }
 
-void ABroadcast::SetBroadcastType(EParty Party, EReligion Religion)
+void ABroadcast::SetBroadcastType(FString Party, FString Religion)
 {
 	Belief = Religion;
 	Allegiance = Party;

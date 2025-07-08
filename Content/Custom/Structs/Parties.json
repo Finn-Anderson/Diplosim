@@ -1,24 +1,24 @@
 {
   "Parties": [
     {
-      "Party": 1,
-      "Agreeable": [ 2, 5, 10 ]
+      "Party": "Chicken Winged",
+      "Agreeable": [ "Diligent", "Reserved", "Conscientious" ]
     },
     {
-      "Party": 2,
-      "Agreeable": [ 3, 11 ]
+      "Party": "Free Range",
+      "Agreeable": [ "Lazy", "Careless" ]
     },
     {
-      "Party": 3,
-      "Agreeable": [ 9, 13, 15 ]
+      "Party": "The Scrambled Coalition",
+      "Agreeable": [ "Inept", "Lethargic", "Idler" ]
     },
     {
-      "Party": 4,
-      "Agreeable": [ 4, 12, 14 ]
+      "Party": "Golden Yolk",
+      "Agreeable": [ "Outgoing", "Energetic", "Workaholic" ]
     },
     {
-      "Party": 5,
-      "Agreeable": [ 7 ]
+      "Party": "Shell Breakers",
+      "Agreeable": [ "Cruel" ]
     }
   ]
 }

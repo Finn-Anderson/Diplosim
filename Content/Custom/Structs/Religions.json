@@ -1,20 +1,20 @@
 {
   "Religions": [
     {
-      "Religion": 0,
-      "Agreeable": [ 3, 5, 13, 15 ]
+      "Religion": "Atheist",
+      "Agreeable": [ "Lazy", "Reserve", "Lethargic", "Idler" ]
     },
     {
-      "Religion": 1,
-      "Agreeable": [ 0, 4, 12, 14 ]
+      "Religion": "Egg",
+      "Agreeable": [ "Brave", "Outgoing", "Energetic", "Workaholic" ]
     },
     {
-      "Religion": 2,
-      "Agreeable": [ 2, 8, 10 ]
+      "Religion": "Chicken",
+      "Agreeable": [ "Diligent", "Talented", "Conscientious" ]
     },
     {
-      "Religion": 3,
-      "Agreeable": [ 1, 7, 9, 11 ]
+      "Religion": "Fox",
+      "Agreeable": [ "Craven", "Cruel", "Inept", "Careless" ]
     }
   ]
 }

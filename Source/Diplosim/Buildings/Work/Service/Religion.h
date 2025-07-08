@@ -21,7 +21,7 @@ public:
 	virtual void OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
 	UFUNCTION(BlueprintCallable)
-		void SetBroadcastType(EParty Party = EParty::Undecided, EReligion Religion = EReligion::Atheist);
+		void SetBroadcastType(FString Party = "Undecided", FString Religion = "Atheist");
 
 	void RemoveInfluencedMaterial(class AHouse* House);
 
@@ -33,10 +33,10 @@ public:
 
 	// Influences
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Influence")
-		EReligion Belief;
+		FString Belief;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Influence")
-		EParty Allegiance;
+		FString Allegiance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Influence")
 		bool bHolyPlace;

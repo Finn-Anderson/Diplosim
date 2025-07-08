@@ -97,9 +97,9 @@ void UCitizenManager::ReadJSONFile(FString path)
 
 										for (auto& pv : bev->AsObject()->Values) {
 											if (pv.Key == "Party")
-												lean.Party = EParty(FCString::Atoi(*pv.Value->AsString()));
+												lean.Party = pv.Value->AsString();
 											else if (pv.Key == "Personality")
-												lean.Personality = EPersonality(FCString::Atoi(*pv.Value->AsString()));
+												lean.Personality = pv.Value->AsString();
 											else {
 												for (auto& pev : pv.Value->AsArray()) {
 													int32 value = FCString::Atoi(*pev->AsString());
@@ -128,29 +128,37 @@ void UCitizenManager::ReadJSONFile(FString path)
 					}
 					else if (v.Value->Type == EJson::Array) {
 						for (auto& ev : v.Value->AsArray()) {
-							if (ev->Type == EJson::String)
-								index = FCString::Atoi(*ev->AsString());
-
 							if (element.Key == "Personalities") {
 								if (v.Key == "Likes")
-									personality.Likes.Add(EPersonality(index));
-								else
-									personality.Dislikes.Add(EPersonality(index));
+									personality.Likes.Add(ev->AsString());
+								else if (v.Key == "Dislikes")
+									personality.Dislikes.Add(ev->AsString());
+								else {
+									FString key = "";
+									float value = 1.0f;
+
+									for (auto& bv : ev->AsObject()->Values) {
+										if (bv.Key == "Affect")
+											key = bv.Value->AsString();
+										else
+											value = bv.Value->AsNumber();
+									}
+
+									personality.Affects.Add(key, value);
+								}
 							}
 							else if (element.Key == "Parties") {
-								party.Agreeable.Add(EPersonality(index));
+								party.Agreeable.Add(ev->AsString());
 							}
 							else if (element.Key == "Religions") {
-								religion.Agreeable.Add(EPersonality(index));
+								religion.Agreeable.Add(ev->AsString());
 							}
 							else {
 								FAffectStruct affect;
 
 								for (auto& bv : ev->AsObject()->Values) {
-									index = FCString::Atoi(*bv.Value->AsString());
-
 									if (bv.Key == "Affect")
-										affect.Affect = EAffect(index);
+										affect.Affect = EAffect(FCString::Atoi(*bv.Value->AsString()));
 									else
 										affect.Amount = bv.Value->AsNumber();
 								}
@@ -160,29 +168,32 @@ void UCitizenManager::ReadJSONFile(FString path)
 						}
 					}
 					else if (v.Value->Type == EJson::String) {
-						condition.Name = v.Value->AsString();
+						FString value = v.Value->AsString();
+
+						if (element.Key == "Personalities")
+							personality.Trait = value;
+						else if (element.Key == "Parties")
+							party.Party = value;
+						else if (element.Key == "Religions")
+							religion.Faith = value;
+						else if (element.Key == "Laws")
+							law.BillType = value;
+						else
+							condition.Name = value;
 					}
 					else {
 						index = FCString::Atoi(*v.Value->AsString());
 
-						if (element.Key == "Personalities")
-							personality.Trait = EPersonality(index);
-						else if (element.Key == "Parties")
-							party.Party = EParty(index);
-						else if (element.Key == "Religions")
-							religion.Faith = EReligion(index);
-						else if (element.Key == "Laws")
-							law.BillType = EBillType(index);
-						else {
-							if (v.Key == "Grade")
-								condition.Grade = EGrade(index);
-							else if (v.Key == "Spreadability")
-								condition.Spreadability = index;
-							else if (v.Key == "Level")
-								condition.Level = index;
-							else
-								condition.DeathLevel = index;
-						}
+						if (v.Key == "Aggressiveness")
+							personality.Aggressiveness = v.Value->AsNumber();
+						else if (v.Key == "Grade")
+							condition.Grade = EGrade(index);
+						else if (v.Key == "Spreadability")
+							condition.Spreadability = index;
+						else if (v.Key == "Level")
+							condition.Level = index;
+						else
+							condition.DeathLevel = index;
 					}
 				}
 
@@ -522,7 +533,7 @@ void UCitizenManager::Loop()
 
 			citizen->SetHappiness();
 
-			if (GetMembersParty(citizen) != nullptr && GetMembersParty(citizen)->Party == EParty::ShellBreakers)
+			if (GetMembersParty(citizen) != nullptr && GetMembersParty(citizen)->Party == "Shell Breakers")
 				rebelCount++;
 		}
 
@@ -537,7 +548,7 @@ void UCitizenManager::Loop()
 				}
 				else {
 					FLawStruct lawStruct;
-					lawStruct.BillType = EBillType::Abolish;
+					lawStruct.BillType = "Abolish";
 
 					int32 index = Laws.Find(lawStruct);
 
@@ -1186,17 +1197,17 @@ FPartyStruct* UCitizenManager::GetMembersParty(ACitizen* Citizen)
 	return partyStruct;
 }
 
-EParty UCitizenManager::GetCitizenParty(ACitizen* Citizen)
+FString UCitizenManager::GetCitizenParty(ACitizen* Citizen)
 {
 	FPartyStruct* partyStruct = GetMembersParty(Citizen);
 
 	if (partyStruct == nullptr)
-		return EParty::Undecided;
+		return "Undecided";
 
 	return partyStruct->Party;
 }
 
-void UCitizenManager::SelectNewLeader(EParty Party)
+void UCitizenManager::SelectNewLeader(FString Party)
 {
 	TArray<ACitizen*> candidates;
 
@@ -1247,16 +1258,16 @@ void UCitizenManager::StartElectionTimer()
 	
 	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
-	CreateTimer("Election", GetOwner(), timeToCompleteDay * GetLawValue(EBillType::ElectionTimer), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), false);
+	CreateTimer("Election", GetOwner(), timeToCompleteDay * GetLawValue("Election Timer"), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), false);
 }
 
 void UCitizenManager::Election()
 {
 	Representatives.Empty();
 
-	TMap<EParty, TArray<ACitizen*>> tally;
+	TMap<FString, TArray<ACitizen*>> tally;
 
-	int32 representativeType = GetLawValue(EBillType::RepresentativeType);
+	int32 representativeType = GetLawValue("Representative Type");
 
 	for (FPartyStruct party : Parties) {
 		TArray<ACitizen*> citizens;
@@ -1271,10 +1282,10 @@ void UCitizenManager::Election()
 		tally.Add(party.Party, citizens);
 	}
 
-	for (TPair<EParty, TArray<ACitizen*>>& pair : tally) {
-		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)Citizens.Num() * 100.0f / GetLawValue(EBillType::Representatives));
+	for (TPair<FString, TArray<ACitizen*>>& pair : tally) {
+		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)Citizens.Num() * 100.0f / GetLawValue("Representatives"));
 
-		if (number == 0 || Representatives.Num() == GetLawValue(EBillType::Representatives))
+		if (number == 0 || Representatives.Num() == GetLawValue("Representatives"))
 			continue;
 
 		number -= 1;
@@ -1302,7 +1313,7 @@ void UCitizenManager::Election()
 
 			pair.Value.Remove(citizen);
 
-			if (Representatives.Num() == GetLawValue(EBillType::Representatives))
+			if (Representatives.Num() == GetLawValue("Representatives"))
 				break;
 		}
 	}
@@ -1368,7 +1379,7 @@ void UCitizenManager::ProposeBill(FLawStruct Bill)
 
 void UCitizenManager::SetElectionBillLeans(FLawStruct* Bill)
 {
-	if (Bill->BillType != EBillType::Election)
+	if (Bill->BillType != "Election")
 		return;
 
 	for (FPartyStruct party : Parties) {
@@ -1483,7 +1494,9 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 
-	if (Bill.BillType == EBillType::EducationCost || Bill.BillType == EBillType::FoodCost) {
+	;
+
+	if (Bill.BillType.Contains("Cost")) {
 		int32 leftoverMoney = 0;
 
 		if (IsValid(Representative->Building.Employment))
@@ -1495,7 +1508,7 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 		if (leftoverMoney < Bill.Value)
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
-	else if (Bill.BillType == EBillType::PensionAge) {
+	else if (Bill.BillType.Contains("Age")) {
 		index = Laws.Find(Bill);
 
 		if (Laws[index].Value <= Representative->BioStruct.Age) {
@@ -1507,7 +1520,7 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 		else if (Bill.Value <= Representative->BioStruct.Age)
 			verdict.Append({ "Agreeing", "Agreeing", "Agreeing" });
 	}
-	else if (Bill.BillType == EBillType::RepresentativeType) {
+	else if (Bill.BillType == "Representative Type") {
 		if (Bill.Value == 1 && !IsValid(Representative->Building.Employment))
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 		else if (Bill.Value = 2 && Representative->Balance < 15)
@@ -1539,28 +1552,25 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 	if (Votes.For.Num() > Votes.Against.Num()) {
 		int32 index = Laws.Find(Bill);
 
-		if (Laws[index].BillType == EBillType::Abolish) {
+		if (Laws[index].BillType == "Abolish") {
 			ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
 			CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(gamemode->Broch->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
 		}
-		else if (Laws[index].BillType == EBillType::Election) {
+		else if (Laws[index].BillType == "Election") {
 			Election();
 		}
 		else {
 			Laws[index].Value = Bill.Value;
 
-			if (Laws[index].BillType == EBillType::WorkAge || Laws[index].BillType == EBillType::EducationAge) {
+			if (Laws[index].BillType.Contains("Age")) {
 				for (ACitizen* citizen : Citizens) {
 					if (IsValid(citizen->Building.Employment) && !citizen->CanWork(citizen->Building.Employment))
 						citizen->Building.Employment->RemoveCitizen(citizen);
 
-					if (IsValid(citizen->Building.School) && (citizen->BioStruct.Age >= GetLawValue(EBillType::WorkAge) || citizen->BioStruct.Age < GetLawValue(EBillType::EducationAge)))
+					if (IsValid(citizen->Building.School) && (citizen->BioStruct.Age >= GetLawValue("Work Age") || citizen->BioStruct.Age < GetLawValue("Education Age")))
 						citizen->Building.School->RemoveVisitor(citizen->Building.School->GetOccupant(citizen), citizen);
-				}
-			}
-			else if (Laws[index].BillType == EBillType::VoteAge) {
-				for (ACitizen* citizen : Citizens) {
+
 					if (citizen->BioStruct.Age >= Laws[index].Value)
 						continue;
 
@@ -1574,7 +1584,7 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 			}
 		}
 
-		if (Laws[index].BillType == EBillType::Representatives && Cast<ACamera>(GetOwner())->ParliamentUIInstance->IsInViewport())
+		if (Laws[index].BillType == "Representatives" && Cast<ACamera>(GetOwner())->ParliamentUIInstance->IsInViewport())
 			Cast<ACamera>(GetOwner())->RefreshRepresentatives();
 
 		bPassed = true;
@@ -1621,7 +1631,7 @@ FString UCitizenManager::GetBillPassChance(FLawStruct Bill)
 		return "Random";
 }
 
-int32 UCitizenManager::GetLawValue(EBillType BillType)
+int32 UCitizenManager::GetLawValue(FString BillType)
 {
 	FLawStruct lawStruct;
 	lawStruct.BillType = BillType;
@@ -1647,8 +1657,8 @@ void UCitizenManager::IssuePensions(int32 Hour)
 		return;
 
 	for (ACitizen* citizen : Citizens)
-		if (citizen->BioStruct.Age >= GetLawValue(EBillType::PensionAge))
-			citizen->Balance += GetLawValue(EBillType::Pension);
+		if (citizen->BioStruct.Age >= GetLawValue("Pension Age"))
+			citizen->Balance += GetLawValue("Pension");
 }
 
 //
@@ -1659,7 +1669,7 @@ void UCitizenManager::Overthrow()
 	CooldownTimer = 1500;
 
 	for (ACitizen* citizen : Citizens) {
-		if (GetMembersParty(citizen) == nullptr || GetMembersParty(citizen)->Party != EParty::ShellBreakers)
+		if (GetMembersParty(citizen) == nullptr || GetMembersParty(citizen)->Party != "Shell Breakers")
 			return;
 
 		if (Representatives.Contains(citizen))

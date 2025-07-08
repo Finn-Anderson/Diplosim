@@ -1,84 +1,200 @@
 {
 	"Personalities": [
 		{
-			"Trait": 0,
-			"Likes": [ 4, 6 ],
-			"Dislikes": [ 1, 5, 7 ]
+			"Trait": "Brave",
+			"Likes": [ "Outgoing", "Kind", "Energetic" ],
+			"Dislikes": [ "Craven", "Reserved", "Cruel", "Lethargic" ],
+			"Affects": [
+				{
+					"Affect": "Damage",
+					"Amount": 1.50
+				}
+			],
+			"Aggressiveness": 1.5
 		},
 		{
-			"Trait": 1,
-			"Likes": [ 5, 6 ],
-			"Dislikes": [ 0, 4, 7 ]
+			"Trait": "Craven",
+			"Likes": [ "Reserved", "Kind", "Inept", "Lethargic" ],
+			"Dislikes": [ "Brave", "Outgoing", "Cruel", "Energetic" ],
+			"Affects": [
+				{
+					"Affect": "Damage",
+					"Amount": 0.50
+				}
+			],
+			"Aggressiveness": 0.5
 		},
 		{
-			"Trait": 2,
-			"Likes": [ 6, 8, 10, 14 ],
-			"Dislikes": [ 3, 7, 9, 11, 15 ]
+			"Trait": "Diligent",
+			"Likes": [ "Kind", "Talented", "Conscientious", "Workaholic" ],
+			"Dislikes": [ "Lazy", "Cruel", "Inept", "Careless", "Idler" ],
+			"Affects": [
+				{
+					"Affect": "Productivity",
+					"Amount": 1.15
+				}
+			],
+			"Aggressiveness": 1.0
 		},
 		{
-			"Trait": 3,
-			"Likes": [ 5, 6, 9, 11, 15 ],
-			"Dislikes": [ 2, 7, 8, 10, 14 ]
+			"Trait": "Lazy",
+			"Likes": [ "Reserved", "Kind", "Inept", "Careless", "Idler" ],
+			"Dislikes": [ "Diligent", "Cruel", "Talented", "Conscientious", "Workaholic" ],
+			"Affects": [
+				{
+					"Affect": "Productivity",
+					"Amount": 0.85
+				},
+				{
+					"Affect": "Ideal Horus Slept",
+					"Amount": 10
+				}
+			],
+			"Aggressiveness": 0.75
 		},
 		{
-			"Trait": 4,
-			"Likes": [ 0, 6, 12, 14 ],
-			"Dislikes": [ 1, 5, 7, 13, 15 ]
+			"Trait": "Outgoing",
+			"Likes": [ "Brave", "Kind", "Energetic", "Workaholic" ],
+			"Dislikes": [ "Craven", "Reserved", "Cruel", "Lethargic", "Idler" ],
+			"Affects": [
+				{
+					"Affect": "Fertility",
+					"Amount": 1.15
+				},
+				{
+					"Affect": "Ideal Horus Slept",
+					"Amount": 6
+				}
+			],
+			"Aggressiveness": 1.0
 		},
 		{
-			"Trait": 5,
-			"Likes": [ 1, 3, 6, 13, 15 ],
-			"Dislikes": [ 0, 4, 7, 12, 14 ]
+			"Trait": "Reserved",
+			"Likes": [ "Craven", "Lazy", "Kind", "Lethargic", "Idler" ],
+			"Dislikes": [ "Brave", "Outgoing", "Cruel", "Energetic", "Workaholic" ],
+			"Affects": [
+				{
+					"Affect": "Fertility",
+					"Amount": 0.85
+				}
+			],
+			"Aggressiveness": 1.0
 		},
 		{
-			"Trait": 6,
-			"Likes": [ 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15 ],
-			"Dislikes": [ 7 ]
+			"Trait": "Kind",
+			"Likes": [ "Brave", "Craven", "Diligent", "Lazy", "Outgoing", "Reserved", "Talented", "Inept", "Conscientious", "Careless", "Energetic", "Lethargic", "Workaholic", "Idler" ],
+			"Dislikes": [ "Cruel" ],
+			"Aggressiveness": 0.25
 		},
 		{
-			"Trait": 7,
+			"Trait": "Cruel",
 			"Likes": [],
-			"Dislikes": [ 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15 ]
+			"Dislikes": [ "Brave", "Craven", "Diligent", "Lazy", "Outgoing", "Reserved", "Kind", "Talented", "Inept", "Conscientious", "Careless", "Energetic", "Lethargic", "Workaholic", "Idler" ],
+			"Aggressiveness": 2.0
 		},
 		{
-			"Trait": 8,
-			"Likes": [ 6, 14 ],
-			"Dislikes": [ 7, 9, 15 ]
+			"Trait": "Talented",
+			"Likes": [ "Kind", "Workaholic" ],
+			"Dislikes": [ "Cruel", "Inept", "Idler" ],
+			"Affects": [
+				{
+					"Affect": "Productivity",
+					"Amount": 1.25
+				}
+			],
+			"Aggressiveness": 1.0
 		},
 		{
-			"Trait": 9,
-			"Likes": [ 6, 14 ],
-			"Dislikes": [ 7, 8, 15 ]
+			"Trait": "Inept",
+			"Likes": [ "Kind", "Workaholic" ],
+			"Dislikes": [ "Cruel", "Talented", "Idler" ],
+			"Affects": [
+				{
+					"Affect": "Productivity",
+					"Amount": 0.75
+				},
+				{
+					"Affect": "Damage",
+					"Amount": 1.3
+				}
+			],
+			"Aggressiveness": 1.25
 		},
 		{
-			"Trait": 10,
-			"Likes": [ 2, 6, 8 ],
-			"Dislikes": [ 3, 7, 9, 11 ]
+			"Trait": "Conscientious",
+			"Likes": [ "Diligent", "Kind", "Talented" ],
+			"Dislikes": [ "Lazy", "Cruel", "Inept", "Careless" ],
+			"Aggressiveness": 0.8
 		},
 		{
-			"Trait": 11,
-			"Likes": [ 3, 5, 6, 13 ],
-			"Dislikes": [ 2, 7, 10 ]
+			"Trait": "Careless",
+			"Likes": [ "Lazy", "Reserved", "Kind", "Lethargic" ],
+			"Dislikes": [ "Diligent", "Cruel", "Conscientious" ],
+			"Aggressiveness": 1.2
 		},
 		{
-			"Trait": 12,
-			"Likes": [ 0, 4, 6 ],
-			"Dislikes": [ 1, 5, 7 ]
+			"Trait": "Energetic",
+			"Likes": [ "Brave", "Outgoing", "Kind" ],
+			"Dislikes": [ "Craven", "Reserved", "Cruel", "Lethargic" ],
+			"Affects": [
+				{
+					"Affect": "Speed",
+					"Amount": 1.15
+				},
+				{
+					"Affect": "Ideal Hours Slept",
+					"Amount": 6
+				}
+			],
+			"Aggressiveness": 1.0
 		},
 		{
-			"Trait": 13,
-			"Likes": [ 1, 5, 6, 11 ],
-			"Dislikes": [ 4, 7, 12 ]
+			"Trait": "Lethargic",
+			"Likes": [ "Craven", "Reserved", "Kind", "Careless" ],
+			"Dislikes": [ "Outgoing", "Cruel", "Energetic" ],
+			"Affects": [
+				{
+					"Affect": "Speed",
+					"Amount": 0.85
+				},
+				{
+					"Affect": "Ideal Hours Slept",
+					"Amount": 10
+				}
+			],
+			"Aggressiveness": 0.8
 		},
 		{
-			"Trait": 14,
-			"Likes": [ 2, 4, 6, 8 ],
-			"Dislikes": [ 3, 5, 7, 9, 15 ]
+			"Trait": "Workaholic",
+			"Likes": [ "Diligent", "Outgoing", "Kind", "Talented" ],
+			"Dislikes": [ "Lazy", "Reserved", "Cruel", "Inept", "Idler" ],
+			"Affects": [
+				{
+					"Affect": "Ideal Work Hours",
+					"Amount": 8
+				},
+				{
+					"Affect": "Ideal Hours Slept",
+					"Amount": 6
+				}
+			],
+			"Aggressiveness": 1.0
 		},
 		{
-			"Trait": 15,
-			"Likes": [ 3, 5, 7, 9 ],
-			"Dislikes": [ 2, 4, 6, 8, 14 ]
+			"Trait": "Idler",
+			"Likes": [ "Lazy", "Reserved", "Kind", "Inept" ],
+			"Dislikes": [ "Diligent", "Outgoing", "Cruel", "Talented", "Workaholic" ],
+			"Affects": [
+				{
+					"Affect": "Ideal Work Hours",
+					"Amount": 0
+				},
+				{
+					"Affect": "Ideal Hours Slept",
+					"Amount": 10
+				}
+			],
+			"Aggressiveness": 1.0
 		}
 	]
 }

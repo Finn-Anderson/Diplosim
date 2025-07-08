@@ -257,7 +257,7 @@ void ACitizen::FindEducation(class ASchool* Education, int32 TimeToCompleteDay)
 	if (!IsValid(AllocatedBuildings[0]))
 		SetAcquiredTime(0, -1000.0f);
 	
-	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(0) + TimeToCompleteDay || BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge) || BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::EducationAge) || BioStruct.EducationLevel == 5 || !CanAffordEducationLevel() || Education->GetOccupied().IsEmpty())
+	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(0) + TimeToCompleteDay || BioStruct.Age >= Camera->CitizenManager->GetLawValue("Work Age") || BioStruct.Age < Camera->CitizenManager->GetLawValue("Education Age") || BioStruct.EducationLevel == 5 || !CanAffordEducationLevel() || Education->GetOccupied().IsEmpty())
 		return;
 
 	ABuilding* chosenSchool = AllocatedBuildings[0];
@@ -532,7 +532,7 @@ bool ACitizen::CanAffordEducationLevel()
 		money += leftover;
 	}
 
-	if (money < Camera->CitizenManager->GetLawValue(EBillType::EducationCost))
+	if (money < Camera->CitizenManager->GetLawValue("Education Cost"))
 		return false;
 
 	if (IsValid(Building.School))
@@ -547,7 +547,7 @@ void ACitizen::PayForEducationLevels()
 		return;
 
 	TMap<ACitizen*, int32> wallet;
-	int32 cost = Camera->CitizenManager->GetLawValue(EBillType::EducationCost);
+	int32 cost = Camera->CitizenManager->GetLawValue("Education Cost");
 
 	int32 leftoverMoney = GetLeftoverMoney();
 
@@ -593,10 +593,10 @@ void ACitizen::PayForEducationLevels()
 //
 bool ACitizen::CanWork(ABuilding* WorkBuilding)
 {
-	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
+	if (BioStruct.Age < Camera->CitizenManager->GetLawValue("Work Age"))
 		return false;
 
-	if (WorkBuilding->IsA<ABroadcast>() && (Cast<ABroadcast>(WorkBuilding)->Belief != Spirituality.Faith || (Cast<ABroadcast>(WorkBuilding)->Allegiance != EParty::Undecided && Cast<ABroadcast>(WorkBuilding)->Allegiance != Camera->CitizenManager->GetCitizenParty(this))))
+	if (WorkBuilding->IsA<ABroadcast>() && (Cast<ABroadcast>(WorkBuilding)->Belief != Spirituality.Faith || (Cast<ABroadcast>(WorkBuilding)->Allegiance != "Undecided" && Cast<ABroadcast>(WorkBuilding)->Allegiance != Camera->CitizenManager->GetCitizenParty(this))))
 		return false;
 
 	return true;
@@ -604,12 +604,12 @@ bool ACitizen::CanWork(ABuilding* WorkBuilding)
 
 bool ACitizen::WillWork()
 {
-	int32 pensionAge = Camera->CitizenManager->GetLawValue(EBillType::PensionAge);
+	int32 pensionAge = Camera->CitizenManager->GetLawValue("Pension Age");
 
 	if (BioStruct.Age < pensionAge)
 		return true;
 
-	int32 pension = Camera->CitizenManager->GetLawValue(EBillType::Pension);
+	int32 pension = Camera->CitizenManager->GetLawValue("Pension");
 
 	if (IsValid(AllocatedBuildings[2]) && pension >= Cast<AHouse>(AllocatedBuildings[2])->Rent)
 		return false;
@@ -656,7 +656,7 @@ int32 ACitizen::GetLeftoverMoney()
 
 	for (ACitizen* child : BioStruct.Children) {
 		int32 maxF = FMath::CeilToInt((100 - child->Hunger) / (25.0f * child->FoodMultiplier));
-		int32 cost = Camera->CitizenManager->GetLawValue(EBillType::FoodCost);
+		int32 cost = Camera->CitizenManager->GetLawValue("Food Cost");
 
 		int32 modifier = 1;
 
@@ -667,7 +667,7 @@ int32 ACitizen::GetLeftoverMoney()
 	}
 
 	int32 maxF = FMath::CeilToInt((100 - Hunger) / (25.0f * FoodMultiplier));
-	int32 cost = Camera->CitizenManager->GetLawValue(EBillType::FoodCost);
+	int32 cost = Camera->CitizenManager->GetLawValue("Food Cost");
 
 	money -= cost * maxF;
 
@@ -696,7 +696,7 @@ void ACitizen::Eat()
 		totalAmount += curAmount;
 	}
 
-	int32 cost = Camera->CitizenManager->GetLawValue(EBillType::FoodCost);
+	int32 cost = Camera->CitizenManager->GetLawValue("Food Cost");
 
 	int32 maxF = FMath::CeilToInt((100 - Hunger) / (25.0f * FoodMultiplier));
 	int32 quantity = FMath::Clamp(totalAmount, 0, maxF);
@@ -980,7 +980,7 @@ void ACitizen::Birthday()
 		SetReligion();
 	}
 
-	if (BioStruct.Age == Camera->CitizenManager->GetLawValue(EBillType::WorkAge) && IsValid(Building.Orphanage)) {
+	if (BioStruct.Age == Camera->CitizenManager->GetLawValue("Work Age") && IsValid(Building.Orphanage)) {
 		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
 		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("Orphanage", this);
@@ -991,10 +991,10 @@ void ACitizen::Birthday()
 			Camera->CitizenManager->CreateTimer("Orphanage", this, timeToCompleteDay * 2.0f, FTimerDelegate::CreateUObject(Building.Orphanage, &AOrphanage::Kickout, this), false);
 	}
 
-	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::VoteAge))
+	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue("Vote Age"))
 		SetPoliticalLeanings();
 
-	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue("Work Age")) {
 		if (IsValid(Building.House)) {
 			ACitizen* occupant = Building.House->GetOccupant(this);
 
@@ -1152,7 +1152,7 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 
 void ACitizen::HaveChild()
 {
-	if ((!IsValid(Building.House) && Camera->ConquestManager->GetColonyContainingCitizen(this) == nullptr) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue(EBillType::ChildPolicy))
+	if ((!IsValid(Building.House) && Camera->ConquestManager->GetColonyContainingCitizen(this) == nullptr) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue("Child Policy"))
 		return;
 
 	ACitizen* occupant = nullptr;
@@ -1242,7 +1242,7 @@ void ACitizen::RemoveFromHouse()
 		return;
 	}
 
-	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+	if (BioStruct.Age < Camera->CitizenManager->GetLawValue("Work Age")) {
 		for (ABuilding* building : Camera->CitizenManager->Buildings) {
 			if (!building->IsA<AOrphanage>())
 				continue;
@@ -1300,7 +1300,7 @@ TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
 		if (IsValid(sibling) && Camera->CitizenManager->Citizens.Contains(sibling))
 			family.Add(sibling);
 
-	if (bFactorAge && BioStruct.Age < Camera->CitizenManager->GetLawValue(EBillType::WorkAge))
+	if (bFactorAge&& BioStruct.Age < Camera->CitizenManager->GetLawValue("Work Age"))
 		return family;
 
 	for (int32 i = (family.Num() - 1); i > -1; i--) {
@@ -1330,7 +1330,7 @@ TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
 //
 void ACitizen::SetPoliticalLeanings()
 {
-	TArray<EParty> partyList;
+	TArray<FString> partyList;
 
 	TEnumAsByte<ESway>* sway = nullptr;
 
@@ -1348,7 +1348,7 @@ void ACitizen::SetPoliticalLeanings()
 
 	if (IsValid(Building.House)) {
 		for (ABroadcast* broadcaster : Building.House->Influencers) {
-			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance == EParty::Undecided)
+			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance == "Undecided")
 				continue;
 
 			partyList.Add(broadcaster->Allegiance);
@@ -1359,13 +1359,13 @@ void ACitizen::SetPoliticalLeanings()
 
 	if (itterate < 0)
 		for (int32 i = 0; i < FMath::Abs(itterate); i++)
-			partyList.Add(EParty::ShellBreakers);
+			partyList.Add("Shell Breakers");
 
 	for (FPartyStruct p : Camera->CitizenManager->Parties) {
 		int32 count = 0;
 
 		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
-			for (EPersonality trait : p.Agreeable) {
+			for (FString trait : p.Agreeable) {
 				if (personality->Trait == trait)
 					count += 2;
 				else if (personality->Likes.Contains(trait))
@@ -1418,7 +1418,7 @@ void ACitizen::SetPoliticalLeanings()
 
 			Camera->CitizenManager->Parties[i].Members.Add(this, ESway::Moderate);
 
-			if (Camera->CitizenManager->Parties[i].Party == EParty::ShellBreakers && Camera->CitizenManager->IsRebellion())
+			if (Camera->CitizenManager->Parties[i].Party == "Shell Breakers" && Camera->CitizenManager->IsRebellion())
 				Camera->CitizenManager->SetupRebel(this);
 		}
 
@@ -1426,7 +1426,7 @@ void ACitizen::SetPoliticalLeanings()
 	}
 
 	if (bLog)
-		Camera->NotifyLog("Neutral", BioStruct.Name + " is now a " + UEnum::GetValueAsString(sway->GetValue()) + " " + UEnum::GetValueAsString(party->Party), Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
+		Camera->NotifyLog("Neutral", BioStruct.Name + " is now a " + UEnum::GetValueAsString(sway->GetValue()) + " " + party->Party, Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
 }
 
 //
@@ -1434,7 +1434,7 @@ void ACitizen::SetPoliticalLeanings()
 //
 void ACitizen::SetReligion()
 {
-	TArray<EReligion> religionList;
+	TArray<FString> religionList;
 
 	if (BioStruct.Father->IsValidLowLevelFast()) {
 		Spirituality.FathersFaith = BioStruct.Father->Spirituality.Faith;
@@ -1442,7 +1442,7 @@ void ACitizen::SetReligion()
 		religionList.Add(Spirituality.FathersFaith); 
 
 		for (ABroadcast* broadcaster : BioStruct.Father->Building.House->Influencers) {
-			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance != EParty::Undecided)
+			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance != "Undecided")
 				continue;
 
 			religionList.Add(broadcaster->Belief);
@@ -1455,7 +1455,7 @@ void ACitizen::SetReligion()
 		religionList.Add(Spirituality.MothersFaith);
 
 		for (ABroadcast* broadcaster : BioStruct.Mother->Building.House->Influencers) {
-			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance != EParty::Undecided)
+			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance != "Undecided")
 				continue;
 
 			religionList.Add(broadcaster->Belief);
@@ -1467,14 +1467,14 @@ void ACitizen::SetReligion()
 
 	religionList.Add(Spirituality.Faith);
 
-	if (Building.Employment->IsValidLowLevelFast() && Building.Employment->IsA<ABroadcast>() && !Cast<ABroadcast>(Building.Employment)->GetOccupied().IsEmpty() && Cast<ABroadcast>(Building.Employment)->Allegiance == EParty::Undecided)
+	if (Building.Employment->IsValidLowLevelFast() && Building.Employment->IsA<ABroadcast>() && !Cast<ABroadcast>(Building.Employment)->GetOccupied().IsEmpty() && Cast<ABroadcast>(Building.Employment)->Allegiance == "Undecided")
 		religionList.Add(Cast<ABroadcast>(Building.Employment)->Belief);
 
 	for (FReligionStruct religion : Camera->CitizenManager->Religions) {
 		int32 count = 0;
 
 		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
-			for (EPersonality trait : religion.Agreeable) {
+			for (FString trait : religion.Agreeable) {
 				if (personality->Trait == trait)
 					count += 2;
 				else if (personality->Likes.Contains(trait))
@@ -1493,7 +1493,7 @@ void ACitizen::SetReligion()
 
 	Spirituality.Faith = religionList[index];
 
-	Camera->NotifyLog("Neutral", BioStruct.Name + " set their faith as " + UEnum::GetValueAsString(Spirituality.Faith), Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
+	Camera->NotifyLog("Neutral", BioStruct.Name + " set their faith as " + Spirituality.Faith, Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
 }
 
 //
@@ -1553,7 +1553,7 @@ void ACitizen::SetHappiness()
 
 		Happiness.SetValue(message, quality);
 
-		if (Spirituality.Faith != EReligion::Atheist) {
+		if (Spirituality.Faith != "Atheist") {
 			bool bNearbyFaith = false;
 
 			for (ABroadcast* broadcaster : Building.House->Influencers) {
@@ -1572,7 +1572,7 @@ void ACitizen::SetHappiness()
 		bool bIsEvil = false;
 
 		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this))
-			if (personality->Trait == EPersonality::Cruel)
+			if (personality->Trait == "Cruel")
 				bIsEvil = true;
 
 		bool bIsPark = false;
@@ -1614,7 +1614,7 @@ void ACitizen::SetHappiness()
 			Happiness.SetValue("Nearby eggtastic tower", 15);
 	}
 
-	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(EBillType::WorkAge)) {
+	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue("Work Age")) {
 		if (Building.Employment == nullptr)
 			Happiness.SetValue("Unemployed", -10);
 		else
@@ -1683,11 +1683,11 @@ void ACitizen::SetHappiness()
 	if (bHolliday)
 		Happiness.SetValue("Holliday", 10);
 
-	if (Camera->CitizenManager->GetCitizenParty(this) != EParty::Undecided) {
+	if (Camera->CitizenManager->GetCitizenParty(this) != "Undecided") {
 		int32 lawTally = 0;
 
 		for (FLawStruct law : Camera->CitizenManager->Laws) {
-			if (law.BillType == EBillType::Abolish)
+			if (law.BillType == "Abolish")
 				continue;
 
 			int32 count = 0;
@@ -1901,44 +1901,13 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 
 	Camera->CitizenManager->Personalities[i].Citizens.Add(this);
 
-	ApplyTraitAffect(Camera->CitizenManager->Personalities[i].Trait);
+	ApplyTraitAffect(Camera->CitizenManager->Personalities[i].Affects);
 }
 
-void ACitizen::ApplyTraitAffect(EPersonality Trait)
+void ACitizen::ApplyTraitAffect(TMap<FString, float> Affects)
 {
-	if (Trait == EPersonality::Outgoing)
-		ApplyToMultiplier("Fertility", 1.15f);
-	else if (Trait == EPersonality::Reserved)
-		ApplyToMultiplier("Fertility", 0.85f);
-
-	if (Trait == EPersonality::Talented || Trait == EPersonality::Diligent)
-		ApplyToMultiplier("Productivity", 1.15f);
-	else if (Trait == EPersonality::Inept || Trait == EPersonality::Lazy)
-		ApplyToMultiplier("Productivity", 0.85f);
-
-	if (Trait == EPersonality::Energetic)
-		ApplyToMultiplier("Speed", 1.15f);
-	else if (Trait == EPersonality::Lethargic)
-		ApplyToMultiplier("Speed", 0.85f);
-
-	if (Trait == EPersonality::Brave || Trait == EPersonality::Inept)
-		ApplyToMultiplier("Damage", 1.5f);
-	else if (Trait == EPersonality::Craven)
-		ApplyToMultiplier("Damage", 0.5f);
-
-	if (Trait == EPersonality::Outgoing || Trait == EPersonality::Lethargic || Trait == EPersonality::Workaholic)
-		IdealHoursSlept = 6;
-	else if (Trait == EPersonality::Lazy || Trait == EPersonality::Energetic || Trait == EPersonality::Idler)
-		IdealHoursSlept = 10;
-
-	if (Trait == EPersonality::Workaholic) {
-		IdealHoursWorkedMin = 8;
-		IdealHoursWorkedMax = 16;
-	}
-	else if (Trait == EPersonality::Idler) {
-		IdealHoursWorkedMin = 0;
-		IdealHoursWorkedMax = 8;
-	}
+	for (auto& element : Affects)
+		ApplyToMultiplier(element.Key, element.Value);
 }
 
 void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
@@ -1990,5 +1959,12 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 
 		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 		Camera->CitizenManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier);
+	}
+	else if (Affect == "Ideal Hours Slept") {
+		IdealHoursSlept = Amount;
+	}
+	else if (Affect == "Ideal Work Hours") {
+		IdealHoursWorkedMin = Amount;
+		IdealHoursWorkedMax = Amount + 8;
 	}
 }

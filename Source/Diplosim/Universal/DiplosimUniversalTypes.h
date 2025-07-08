@@ -4,31 +4,8 @@
 #include "DiplosimUniversalTypes.generated.h"
 
 //
-// Religion
-//
-UENUM(BlueprintType, meta = (ScriptName = "EReligion"))
-enum class EReligion : uint8
-{
-	Atheist,
-	Egg,
-	Chicken,
-	Fox
-};
-
-//
 // Politics
 //
-UENUM(BlueprintType, meta = (ScriptName = "EParty"))
-enum class EParty : uint8
-{
-	Undecided,
-	ChickenWinged,
-	FreeRange,
-	TheScrambledCoalition,
-	GoldenYolk,
-	ShellBreakers
-};
-
 UENUM()
 enum ESway : uint8
 {
@@ -111,30 +88,6 @@ struct FConditionStruct
 	{
 		return (other.Name == Name);
 	}
-};
-
-//
-// Personality
-//
-UENUM(BlueprintType, meta = (ScriptName = "EPersonality"))
-enum class EPersonality : uint8
-{
-	Brave,
-	Craven,
-	Diligent,
-	Lazy,
-	Outgoing,
-	Reserved,
-	Kind,
-	Cruel,
-	Talented,
-	Inept,
-	Conscientious,
-	Careless,
-	Energetic,
-	Lethargic,
-	Workaholic,
-	Idler
 };
 
 class DIPLOSIM_API DiplosimUniversalTypes

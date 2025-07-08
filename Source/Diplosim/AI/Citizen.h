@@ -131,17 +131,17 @@ struct FSpiritualStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")
-		EReligion Faith;
+		FString Faith;
 
-	EReligion FathersFaith;
+	FString FathersFaith;
 
-	EReligion MothersFaith;
+	FString MothersFaith;
 
 	FSpiritualStruct()
 	{
-		Faith = EReligion::Atheist;
-		FathersFaith = EReligion::Atheist;
-		MothersFaith = EReligion::Atheist;
+		Faith = "Atheist";
+		FathersFaith = "Atheist";
+		MothersFaith = "Atheist";
 	}
 
 	bool operator==(const FSpiritualStruct& other) const
@@ -486,7 +486,7 @@ public:
 	// Personality
 	void GivePersonalityTrait(ACitizen* Parent = nullptr);
 
-	void ApplyTraitAffect(EPersonality Trait);
+	void ApplyTraitAffect(TMap<FString, float> Affects);
 
 	// Sleep
 	UPROPERTY(BlueprintReadOnly, Category = "Sleep")
