@@ -434,8 +434,10 @@ public:
 	// Work
 	void CheckWorkStatus(int32 Hour);
 
-	// Sleep
-	void CheckSleepStatus(int32 Hour);
+	// Citizen
+	void CheckCitizenStatus(int32 Hour);
+
+	void Interact(class ACitizen* Citizen1, class ACitizen* Citizen2);
 		
 	// Disease
 	void StartDiseaseTimer();

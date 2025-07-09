@@ -441,7 +441,15 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 
 				Camera->NotifyLog(type, OldTile->Owner + " is raiding " + Tile->Owner, Tile->Name);
 
-				Camera->CitizenManager->CreateTimer("ColonyRaid" + Tile->Name, GetOwner(), 1.0f, FTimerDelegate::CreateUObject(this, &UConquestManager::EvaluateRaid, Tile), true);
+				if (Tile->bCapital && Tile->Owner == EmpireName) {
+					for (auto& element : Tile->RaidParties[raidIndex].Raiders) {
+						element.Key->MainIslandSetup();
+
+						Camera->CitizenManager->SetupRebel(element.Key);
+					}
+				}
+				else
+					Camera->CitizenManager->CreateTimer("ColonyRaid" + Tile->Name, GetOwner(), 1.0f, FTimerDelegate::CreateUObject(this, &UConquestManager::EvaluateRaid, Tile), true);
 			}
 		}
 	}

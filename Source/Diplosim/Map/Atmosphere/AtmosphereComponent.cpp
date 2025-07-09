@@ -169,7 +169,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	if (hour != Calendar.Hour) {
 		Grid->Camera->CitizenManager->CheckWorkStatus(hour);
-		Grid->Camera->CitizenManager->CheckSleepStatus(hour);
+		Grid->Camera->CitizenManager->CheckCitizenStatus(hour);
 		Grid->Camera->CitizenManager->IssuePensions(hour);
 
 		Grid->Camera->ResourceManager->SetTrendOnHour(hour);

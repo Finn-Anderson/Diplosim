@@ -302,6 +302,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		TArray<USoundBase*> Mines;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		TMap<USoundBase*, USoundBase*> Conversations;
+
 	UPROPERTY()
 		float HarvestVisualTimer;
 
@@ -466,9 +469,19 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Festival")
 		EAttendStatus FestivalStatus;
 
+	UPROPERTY()
+		bool bConversing;
+
+	UPROPERTY()
+		int32 ConversationHappiness;
+
 	void SetAttendStatus(EAttendStatus Status, bool bMass);
 
 	void SetHolliday(bool bStatus);
+
+	void SetConverstationHappiness(int32 Amount);
+
+	void DecayConverstationHappiness();
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetHappiness();

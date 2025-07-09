@@ -264,31 +264,62 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 					AAI* ai = Cast<AAI>(actor);
 
 					if (ai->Capsule->GetCollisionObjectType() == citizen->Capsule->GetCollisionObjectType()) {
-						if (citizen->CanReach(ai, reach) && !Infected.IsEmpty()) {
+						if (citizen->CanReach(ai, reach)) {
 							ACitizen* c = Cast<ACitizen>(ai);
 
-							if (!IsValid(c->Building.Employment) || !c->Building.Employment->IsA<AClinic>()) {
-								for (FConditionStruct condition : citizen->HealthIssues) {
-									if (c->HealthIssues.Contains(condition))
-										continue;
+							if (!Infected.IsEmpty()) {
+								if (!IsValid(c->Building.Employment) || !c->Building.Employment->IsA<AClinic>()) {
+									for (FConditionStruct condition : citizen->HealthIssues) {
+										if (c->HealthIssues.Contains(condition))
+											continue;
 
-									int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 100);
+										int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 100);
 
-									if (chance <= condition.Spreadability) {
-										c->HealthIssues.Add(condition);
+										if (chance <= condition.Spreadability) {
+											c->HealthIssues.Add(condition);
 
-										Cast<ACamera>(GetOwner())->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + condition.Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
+											Cast<ACamera>(GetOwner())->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + condition.Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
+										}
 									}
+
+									if (!c->HealthIssues.IsEmpty() && !c->DiseaseNiagaraComponent->IsActive())
+										Infect(c);
 								}
 
-								if (!c->HealthIssues.IsEmpty() && !c->DiseaseNiagaraComponent->IsActive())
-									Infect(c);
+								if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr) {
+									citizen->CitizenHealing = c;
+
+									CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
+								}
 							}
+							
+							if (Enemies.IsEmpty() && !citizen->bConversing && !citizen->bSleep && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && !c->bConversing && !c->bSleep && c->AttackComponent->OverlappingEnemies.IsEmpty()) {
+								int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 100);
 
-							if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr) {
-								citizen->CitizenHealing = c;
+								if (chance < 100)
+									continue;
 
-								CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
+								citizen->SetActorRotation((citizen->GetActorLocation() - c->GetActorLocation()).Rotation());
+								c->SetActorRotation((c->GetActorLocation() - citizen->GetActorLocation()).Rotation());
+
+								citizen->AIController->StopMovement();
+								c->AIController->StopMovement();
+
+								citizen->bConversing = true;
+								c->bConversing = true;
+
+								int32 conversationIndex = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, citizen->Conversations.Num() - 1);
+
+								TArray<USoundBase*> keys;
+								citizen->Conversations.GenerateKeyArray(keys);
+
+								TArray<USoundBase*> values;
+								citizen->Conversations.GenerateValueArray(values);
+
+								Cast<ACamera>(GetOwner())->PlayAmbientSound(citizen->AmbientAudioComponent, keys[conversationIndex]);
+								Cast<ACamera>(GetOwner())->PlayAmbientSound(c->AmbientAudioComponent, values[conversationIndex]);
+
+								CreateTimer("Interact", citizen, 6.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::Interact, citizen, c), false);
 							}
 						}
 					}
@@ -700,9 +731,9 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 }
 
 //
-// Sleep
+// Citizen
 //
-void UCitizenManager::CheckSleepStatus(int32 Hour)
+void UCitizenManager::CheckCitizenStatus(int32 Hour)
 {
 	for (ACitizen* citizen : Citizens) {
 		if (citizen->HoursSleptToday.Contains(Hour))
@@ -715,6 +746,75 @@ void UCitizenManager::CheckSleepStatus(int32 Hour)
 			citizen->bSleep = true;
 		else if (citizen->bSleep)
 			citizen->bSleep = false;
+
+		citizen->DecayConverstationHappiness();
+	}
+}
+
+void UCitizenManager::Interact(class ACitizen* Citizen1, class ACitizen* Citizen2)
+{
+	Citizen1->bConversing = false;
+	Citizen2->bConversing = false;
+
+	int32 count = 0;
+
+	int32 citizenAggressiveness = 0;
+	int32 cAggressiveness = 0;
+
+	TArray<FPersonality*> citizenPersonalities = GetCitizensPersonalities(Citizen1);
+	TArray<FPersonality*> cPersonalities = GetCitizensPersonalities(Citizen2);
+
+	for (FPersonality* personality : citizenPersonalities) {
+		citizenAggressiveness += personality->Aggressiveness / citizenPersonalities.Num();
+
+		for (FPersonality* p : cPersonalities) {
+			cAggressiveness += p->Aggressiveness / cPersonalities.Num();
+
+			if (personality->Trait == p->Trait)
+				count += 2;
+			else if (personality->Likes.Contains(p->Trait))
+				count++;
+			else if (personality->Dislikes.Contains(p->Trait))
+				count--;
+		}
+	}
+
+	int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 100);
+	int32 positiveConversationLikelihood = 50 + count * 25;
+
+	if (chance > positiveConversationLikelihood) {
+		Citizen1->SetConverstationHappiness(-12);
+		Citizen2->SetConverstationHappiness(-12);
+
+		float distance = 1000;
+
+		// make police class building and check for closest one / 100. Also, make closest police that is not dealing with a situation react (have situation list and add reacting like healers - check for damage reactions - in citizen manager).
+
+		chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 100);
+		int32 fightChance = 25 * citizenAggressiveness * cAggressiveness - FMath::RoundHalfFromZero(300 / distance);
+
+		if (fightChance > chance) {
+			if (!Citizen1->AttackComponent->OverlappingEnemies.Contains(Citizen2))
+				Citizen1->AttackComponent->OverlappingEnemies.Add(Citizen2);
+
+			if (!Citizen2->AttackComponent->OverlappingEnemies.Contains(Citizen1))
+				Citizen2->AttackComponent->OverlappingEnemies.Add(Citizen1);
+
+			if (Citizen1->AttackComponent->OverlappingEnemies.Num() == 1)
+				Citizen1->AttackComponent->SetComponentTickEnabled(true);
+
+			if (Citizen2->AttackComponent->OverlappingEnemies.Num() == 1)
+				Citizen2->AttackComponent->SetComponentTickEnabled(true);
+
+			if (fightChance < 66) {
+				Citizen1->AttackComponent->bShowMercy = true;
+				Citizen2->AttackComponent->bShowMercy = true;
+			}
+		}
+	}
+	else {
+		Citizen1->SetConverstationHappiness(12);
+		Citizen2->SetConverstationHappiness(12);
 	}
 }
 

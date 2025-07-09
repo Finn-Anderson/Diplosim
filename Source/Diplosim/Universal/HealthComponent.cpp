@@ -24,6 +24,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Map/Grid.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -112,11 +113,10 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 		else
 			Camera->CitizenManager->ResetTimer("RemoveDamageOverlay", GetOwner());
 
-		FTimerHandle matTimer;
-		GetWorld()->GetTimerManager().SetTimer(matTimer, FTimerDelegate::CreateUObject(this, &UHealthComponent::RemoveDamageOverlay), 0.15f, false);
-
 		if (Health == 0)
 			Death(Attacker, force);
+		else if (Camera->CitizenManager->Citizens.Contains(GetOwner()))
+			Camera->CitizenManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Grid->Stream.RandRange(0, 100));
 	});
 }
 

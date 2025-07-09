@@ -92,8 +92,6 @@ ACitizen::ACitizen()
 	AmbientAudioComponent->SetupAttachment(RootComponent);
 	AmbientAudioComponent->SetVolumeMultiplier(0.0f);
 	AmbientAudioComponent->bCanPlayMultipleInstances = true;
-	AmbientAudioComponent->PitchModulationMin = 0.9f;
-	AmbientAudioComponent->PitchModulationMax = 1.1f;
 
 	Balance = 20;
 
@@ -133,6 +131,9 @@ ACitizen::ACitizen()
 
 	HarvestVisualTargetTimer = 0.0f;
 	HarvestVisualResource = nullptr;
+
+	bConversing = false;
+	ConversationHappiness = 0;
 }
 
 void ACitizen::BeginPlay()
@@ -974,11 +975,8 @@ void ACitizen::Birthday()
 	if (!Camera->CitizenManager->Citizens.Contains(this))
 		return;
 
-	if (BioStruct.Age == 18) {
-		AttackComponent->bCanAttack = true;
-
+	if (BioStruct.Age == 18)
 		SetReligion();
-	}
 
 	if (BioStruct.Age == Camera->CitizenManager->GetLawValue("Work Age") && IsValid(Building.Orphanage)) {
 		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
@@ -1516,6 +1514,19 @@ void ACitizen::SetHolliday(bool bStatus)
 	bHolliday = bStatus;
 }
 
+void ACitizen::SetConverstationHappiness(int32 Amount)
+{
+	ConversationHappiness = FMath::Clamp(ConversationHappiness + Amount, -24, 24);
+}
+
+void ACitizen::DecayConverstationHappiness()
+{
+	if (ConversationHappiness < 0)
+		ConversationHappiness++;
+	else if (ConversationHappiness > 0)
+		ConversationHappiness--;
+}
+
 int32 ACitizen::GetHappiness()
 {
 	int32 value = 50;
@@ -1682,6 +1693,11 @@ void ACitizen::SetHappiness()
 
 	if (bHolliday)
 		Happiness.SetValue("Holliday", 10);
+
+	if (ConversationHappiness < 0)
+		Happiness.SetValue("Recent arguments", ConversationHappiness);
+	else if (ConversationHappiness > 0)
+		Happiness.SetValue("Recent conversations", ConversationHappiness);
 
 	if (Camera->CitizenManager->GetCitizenParty(this) != "Undecided") {
 		int32 lawTally = 0;

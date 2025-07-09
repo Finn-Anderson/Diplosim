@@ -31,9 +31,6 @@ class DIPLOSIM_API UAttackComponent : public UActorComponent
 public:	
 	UAttackComponent();
 
-protected:
-	virtual void BeginPlay() override;
-
 public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
@@ -67,7 +64,10 @@ public:
 		float AttackTimer;
 
 	UPROPERTY()
-		bool bCanAttack;
+		bool bAttackedRecently;
+
+	UPROPERTY()
+		bool bShowMercy;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		UAnimSequence* MeleeAnim;

@@ -342,6 +342,7 @@ void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Soun
 		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
 		AudioComponent->SetSound(Sound);
+		AudioComponent->SetPitchMultiplier(Grid->Stream.FRandRange(0.8f, 1.2f));
 		AudioComponent->SetVolumeMultiplier(settings->GetAmbientVolume() * settings->GetMasterVolume());
 		AudioComponent->Play();
 	});

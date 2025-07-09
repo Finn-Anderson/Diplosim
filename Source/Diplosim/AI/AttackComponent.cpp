@@ -35,17 +35,10 @@ UAttackComponent::UAttackComponent()
 
 	CurrentTarget = nullptr;
 
-	bCanAttack = true;
-
 	DamageMultiplier = 1.0f;
-}
 
-void UAttackComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->BioStruct.Age < 18)
-		bCanAttack = false;
+	bAttackedRecently = false;
+	bShowMercy = false;
 }
 
 void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -70,9 +63,6 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 
 void UAttackComponent::PickTarget()
 {
-	if (!bCanAttack)
-		return;
-
 	AActor* favoured = nullptr;
 
 	for (int32 i = OverlappingEnemies.Num() - 1; i > -1; i--) {
@@ -138,6 +128,8 @@ void UAttackComponent::PickTarget()
 			if (IsValid(ai))
 				ai->AIController->DefaultAction();
 
+			bShowMercy = false;
+
 			return;
 		}
 
@@ -165,7 +157,7 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 
 	Favourability.Hp = healthComp->Health;
 
-	if (attackComp && attackComp->bCanAttack) {
+	if (attackComp) {
 		if (*attackComp->ProjectileClass)
 			Favourability.Dmg = attackComp->ProjectileClass->GetDefaultObject<AProjectile>()->Damage * attackComp->DamageMultiplier;
 		else
@@ -194,19 +186,6 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 
 void UAttackComponent::Attack()
 {
-	if (AttackTimer > 0.0f) {
-		AttackTimer -= 0.1f;
-
-		if (AttackTimer <= 0.0f) {
-			if (*ProjectileClass)
-				Throw();
-			else
-				Melee();
-		}
-
-		return;
-	}
-
 	if (!IsValid(CurrentTarget))
 		return;
 
@@ -219,6 +198,28 @@ void UAttackComponent::Attack()
 
 	if (GetOwner()->IsA<ACitizen>())
 		time /= Cast<ACitizen>(GetOwner())->GetProductivity();
+
+	if (AttackTimer > 0.0f) {
+		AttackTimer -= 0.1f;
+
+		if (AttackTimer <= (time / 2)) {
+			if (*ProjectileClass)
+				Throw();
+			else
+				Melee();
+
+			bAttackedRecently = true;
+		}
+
+		return;
+	}
+
+	if (bShowMercy) {
+		UAttackComponent* attackComp = CurrentTarget->GetComponentByClass<UAttackComponent>();
+
+		attackComp->OverlappingEnemies.Remove(GetOwner());
+		OverlappingEnemies.Remove(CurrentTarget);
+	}
 
 	UAnimSequence* anim = nullptr;
 
@@ -239,11 +240,12 @@ void UAttackComponent::Attack()
 	}
 
 	AttackTimer = time;
+	bAttackedRecently = false;
 }
 
 void UAttackComponent::Throw()
 {
-	if (!bCanAttack || CurrentTarget == nullptr)
+	if (CurrentTarget == nullptr)
 		return;
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
@@ -305,19 +307,22 @@ void UAttackComponent::Throw()
 
 void UAttackComponent::Melee()
 {
-	if (!bCanAttack || CurrentTarget == nullptr)
+	if (CurrentTarget == nullptr)
 		return;
 
 	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
+	
+	int32 dmg = Damage;
+	
+	if (GetOwner()->IsA<ACitizen>())
+		dmg *= 1 / (18 / FMath::Clamp(Cast<ACitizen>(GetOwner())->BioStruct.Age, 0, 18));
 
-	healthComp->TakeHealth(Damage * DamageMultiplier, GetOwner());
+	healthComp->TakeHealth(dmg * DamageMultiplier, GetOwner());
 }
 
 void UAttackComponent::ClearAttacks()
 {
 	OverlappingEnemies.Empty();
-
-	bCanAttack = false;
 
 	AttackTimer = 0.0f;
 }

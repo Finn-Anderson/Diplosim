@@ -15,6 +15,7 @@
 #include "Buildings/Work/Service/School.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Universal/HealthComponent.h"
 
 AWork::AWork()
 {
@@ -176,33 +177,11 @@ void AWork::Production(ACitizen* Citizen)
 	TArray<ACitizen*> citizens = GetCitizensAtBuilding();
 
 	for (ACitizen* citizen : citizens) {
-		for (ACitizen* c : citizens) {
-			if (c == citizen)
-				continue;
+		int32 chance = Camera->Grid->Stream.RandRange(1, 100);
 
-			int32 count = 0;
+		if (chance > 98)
+			continue;
 
-			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
-				for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(c)) {
-					if (personality->Trait == p->Trait)
-						count += 2;
-					else if (personality->Likes.Contains(p->Trait))
-						count++;
-					else if (personality->Dislikes.Contains(p->Trait))
-						count--;
-				}
-			}
-
-			int32 chance = Camera->Grid->Stream.RandRange(0, 100) + count * 15;
-
-			if (chance >= 0)
-				continue;
-
-			Camera->CitizenManager->Injure(citizen, Camera->Grid->Stream.RandRange(0, 100));
-
-			Camera->CitizenManager->Injure(c, Camera->Grid->Stream.RandRange(0, 100));
-
-			break;
-		}
+		citizen->HealthComponent->TakeHealth(5, this);
 	}
 }
