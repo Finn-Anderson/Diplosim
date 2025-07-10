@@ -264,9 +264,9 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 					AAI* ai = Cast<AAI>(actor);
 
 					if (ai->Capsule->GetCollisionObjectType() == citizen->Capsule->GetCollisionObjectType()) {
-						if (citizen->CanReach(ai, reach)) {
-							ACitizen* c = Cast<ACitizen>(ai);
+						ACitizen* c = Cast<ACitizen>(ai);
 
+						if (citizen->CanReach(c, reach)) {
 							if (!Infected.IsEmpty()) {
 								if (!IsValid(c->Building.Employment) || !c->Building.Employment->IsA<AClinic>()) {
 									for (FConditionStruct condition : citizen->HealthIssues) {
@@ -320,6 +320,85 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 								Cast<ACamera>(GetOwner())->PlayAmbientSound(c->AmbientAudioComponent, values[conversationIndex]);
 
 								CreateTimer("Interact", citizen, 6.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::Interact, citizen, c), false);
+							}
+						}
+
+						if (Enemies.IsEmpty() && c->AttackComponent->IsComponentTickEnabled()) {
+							FCollisionQueryParams params;
+							params.AddIgnoredActor(citizen);
+
+							if (IsValid(citizen->Building.BuildingAt))
+								params.AddIgnoredActor(citizen->Building.BuildingAt);
+
+							FHitResult hit(ForceInit);
+
+							if (GetWorld()->LineTraceSingleByChannel(hit, citizen->GetActorLocation(), c->GetActorLocation(), ECollisionChannel::ECC_Visibility, params) && (hit.GetActor() == c || c->AttackComponent->OverlappingEnemies.Contains(hit.GetActor()))) {
+								ACitizen* c2 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[0]);
+
+								int32 count1 = 0;
+								int32 count2 = 0;
+
+								float citizenAggressiveness = 0;
+								float c1Aggressiveness = 0;
+								float c2Aggressiveness = 0;
+
+								PersonalityComparison(citizen, c, count1, citizenAggressiveness, c1Aggressiveness);
+								PersonalityComparison(citizen, c2, count2, citizenAggressiveness, c2Aggressiveness);
+
+								ACitizen* citizenToAttack = nullptr;
+
+								if (citizenAggressiveness >= 1.0f) {
+									if (count1 > 1 && count2 < 1)
+										citizenToAttack = c2;
+									else if (count1 < 1 && count2 > 1)
+										citizenToAttack = c;
+								}
+
+								if (IsValid(citizenToAttack)) {
+									if (!citizen->AttackComponent->OverlappingEnemies.Contains(citizenToAttack))
+										citizen->AttackComponent->OverlappingEnemies.Add(citizenToAttack);
+
+									if (!citizenToAttack->AttackComponent->OverlappingEnemies.Contains(citizen))
+										citizenToAttack->AttackComponent->OverlappingEnemies.Add(citizen);
+
+									if (citizen->AttackComponent->OverlappingEnemies.Num() == 1)
+										citizen->AttackComponent->SetComponentTickEnabled(true);
+
+									citizen->AttackComponent->bShowMercy = citizenToAttack->AttackComponent->bShowMercy;
+								}
+								else if (!IsCarelessWitness(citizen)) {
+									int32 index = INDEX_NONE;
+
+									for (int32 i = 0; i < PoliceReports.Num(); i++) {
+										if (!PoliceReports[i].Citizens.Contains(c))
+											continue;
+
+										index = i;
+
+										break;
+									}
+
+									if (index == INDEX_NONE) {
+										FPoliceReport report;
+										report.Citizens.Add(c);
+										report.Citizens.Add(Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[0]));
+
+										PoliceReports.Add(report);
+
+										index = PoliceReports.Num() - 1; 
+									}
+
+									float distance = FVector::Dist(citizen->GetActorLocation(), hit.Location);
+									float dist = 1000000000;
+
+									if (PoliceReports[index].Witnesses.Contains(citizen))
+										dist = *PoliceReports[index].Witnesses.Find(citizen);
+									else
+										GetCloserToFight(citizen, c, (c->GetActorLocation() + c->AttackComponent->OverlappingEnemies[0]->GetActorLocation()) / 2);
+
+									if (distance < dist)
+										PoliceReports[index].Witnesses.Add(citizen, distance);
+								}
 							}
 						}
 					}
@@ -568,6 +647,37 @@ void UCitizenManager::Loop()
 				rebelCount++;
 		}
 
+		if (!PoliceReports.IsEmpty()) {
+			for (int32 i = PoliceReports.Num() - 1; i > -1; i--) {
+				FPoliceReport report = PoliceReports[i];
+
+				if (IsValid(report.RespondingOfficer))
+					continue;
+
+				FVector midPoint = (report.Citizens[0]->GetActorLocation() + report.Citizens[1]->GetActorLocation()) / 2;
+				float distance = 1000;
+				ACitizen* officer = nullptr;
+
+				for (ABuilding* building : Buildings) {
+					if (!building->IsA(PoliceStationClass) || building->GetCitizensAtBuilding().IsEmpty())
+						continue;
+
+					float dist = FVector::Dist(midPoint, building->GetActorLocation());
+
+					if (distance > dist) {
+						distance = dist;
+
+						officer = building->GetCitizensAtBuilding()[Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, building->GetCitizensAtBuilding().Num() - 1)];
+					}
+				}
+
+				if (IsValid(officer))
+					officer->AIController->AIMoveTo(report.Citizens[0], midPoint);
+			}
+		}
+
+		
+
 		if (!Citizens.IsEmpty() && (rebelCount / Citizens.Num()) * 100 > 33 && !IsRebellion()) {
 			CooldownTimer--;
 
@@ -751,33 +861,38 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 	}
 }
 
-void UCitizenManager::Interact(class ACitizen* Citizen1, class ACitizen* Citizen2)
+void UCitizenManager::PersonalityComparison(ACitizen* Citizen1, ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness)
+{
+	TArray<FPersonality*> citizen1Personalities = GetCitizensPersonalities(Citizen1);
+	TArray<FPersonality*> citizen2Personalities = GetCitizensPersonalities(Citizen2);
+
+	for (FPersonality* personality : citizen1Personalities) {
+		Citizen1Aggressiveness += personality->Aggressiveness / citizen1Personalities.Num();
+
+		for (FPersonality* p : citizen2Personalities) {
+			Citizen2Aggressiveness += p->Aggressiveness / citizen2Personalities.Num();
+
+			if (personality->Trait == p->Trait)
+				Likeness += 2;
+			else if (personality->Likes.Contains(p->Trait))
+				Likeness++;
+			else if (personality->Dislikes.Contains(p->Trait))
+				Likeness--;
+		}
+	}
+}
+
+void UCitizenManager::Interact(ACitizen* Citizen1, ACitizen* Citizen2)
 {
 	Citizen1->bConversing = false;
 	Citizen2->bConversing = false;
 
 	int32 count = 0;
 
-	int32 citizenAggressiveness = 0;
-	int32 cAggressiveness = 0;
+	float citizen1Aggressiveness = 0;
+	float citizen2Aggressiveness = 0;
 
-	TArray<FPersonality*> citizenPersonalities = GetCitizensPersonalities(Citizen1);
-	TArray<FPersonality*> cPersonalities = GetCitizensPersonalities(Citizen2);
-
-	for (FPersonality* personality : citizenPersonalities) {
-		citizenAggressiveness += personality->Aggressiveness / citizenPersonalities.Num();
-
-		for (FPersonality* p : cPersonalities) {
-			cAggressiveness += p->Aggressiveness / cPersonalities.Num();
-
-			if (personality->Trait == p->Trait)
-				count += 2;
-			else if (personality->Likes.Contains(p->Trait))
-				count++;
-			else if (personality->Dislikes.Contains(p->Trait))
-				count--;
-		}
-	}
+	PersonalityComparison(Citizen1, Citizen2, count, citizen1Aggressiveness, citizen2Aggressiveness);
 
 	int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 100);
 	int32 positiveConversationLikelihood = 50 + count * 25;
@@ -786,12 +901,43 @@ void UCitizenManager::Interact(class ACitizen* Citizen1, class ACitizen* Citizen
 		Citizen1->SetConverstationHappiness(-12);
 		Citizen2->SetConverstationHappiness(-12);
 
+		FVector midPoint = (Citizen1->GetActorLocation() + Citizen2->GetActorLocation()) / 2;
 		float distance = 1000;
 
-		// make police class building and check for closest one / 100. Also, make closest police that is not dealing with a situation react (have situation list and add reacting like healers - check for damage reactions - in citizen manager).
+		for (ABuilding* building : Buildings) {
+			if (!building->IsA(PoliceStationClass) || building->GetCitizensAtBuilding().IsEmpty())
+				continue;
+
+			float dist = FVector::Dist(midPoint, building->GetActorLocation());
+
+			if (distance > dist)
+				distance = dist;
+		}
+
+		TArray<TEnumAsByte<EObjectTypeQuery>> objects;
+
+		TArray<AActor*> ignore;
+		ignore.Add(Cast<ACamera>(GetOwner())->Grid);
+
+		for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->MineralStruct)
+			ignore.Add(resourceStruct.Resource);
+
+		for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->FlowerStruct)
+			ignore.Add(resourceStruct.Resource);
+
+		ignore.Append(Buildings);
+
+		TArray<AActor*> actors;
+
+		ACitizen* aggressor = Citizen1;
+
+		if (citizen1Aggressiveness < citizen2Aggressiveness)
+			aggressor = Citizen2;
+
+		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), aggressor->GetActorLocation(), aggressor->Range, objects, nullptr, ignore, actors);
 
 		chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 100);
-		int32 fightChance = 25 * citizenAggressiveness * cAggressiveness - FMath::RoundHalfFromZero(300 / distance);
+		int32 fightChance = 25 * citizen1Aggressiveness * citizen2Aggressiveness - FMath::RoundHalfFromZero(300 / distance) - (10 * actors.Num());
 
 		if (fightChance > chance) {
 			if (!Citizen1->AttackComponent->OverlappingEnemies.Contains(Citizen2))
@@ -815,6 +961,49 @@ void UCitizenManager::Interact(class ACitizen* Citizen1, class ACitizen* Citizen
 	else {
 		Citizen1->SetConverstationHappiness(12);
 		Citizen2->SetConverstationHappiness(12);
+	}
+
+	if (!Citizen1->AttackComponent->IsComponentTickEnabled()) {
+		Citizen1->AIController->DefaultAction();
+		Citizen2->AIController->DefaultAction();
+	}
+}
+
+bool UCitizenManager::IsCarelessWitness(ACitizen* Citizen)
+{
+	for (FPersonality* personality : GetCitizensPersonalities(Citizen))
+		if (personality->Trait == "Careless")
+			return true;
+
+	return false;
+}
+
+bool UCitizenManager::IsInAPoliceReport(ACitizen* Citizen)
+{
+	for (FPoliceReport report : PoliceReports) {
+		if (!report.Witnesses.Contains(Citizen) || report.RespondingOfficer != Citizen)
+			continue;
+
+		return true;
+	}
+
+	return false;
+}
+
+void UCitizenManager::GetCloserToFight(ACitizen* Citizen, ACitizen* Target, FVector MidPoint)
+{
+	while (true) {
+		FNavLocation location;
+
+		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+		nav->GetRandomReachablePointInRadius(MidPoint, 600.0f, location);
+
+		if (FVector::Dist(location.Location, MidPoint) < 400.0f)
+			continue;
+
+		Citizen->AIController->AIMoveTo(Target, location.Location);
+
+		return;
 	}
 }
 

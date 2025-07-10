@@ -37,10 +37,11 @@ ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectIni
 
 void ADiplosimAIController::DefaultAction()
 {
-	MoveRequest.SetGoalActor(nullptr);
-
 	if (GetOwner()->IsA<ACitizen>() && !Cast<ACitizen>(GetOwner())->Rebel) {
 		ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+		if (citizen->bConversing || citizen->Camera->CitizenManager->IsInAPoliceReport(citizen) || (citizen->AttackComponent->IsComponentTickEnabled() && citizen->Camera->CitizenManager->Enemies.IsEmpty()))
+			return;
 
 		if (citizen->Camera->ConquestManager->IsCitizenMoving(citizen)) {
 			AIMoveTo(citizen->Camera->ConquestManager->Portal);
@@ -58,8 +59,12 @@ void ADiplosimAIController::DefaultAction()
 				return;
 		}
 
-		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bOpen)
-			AIMoveTo(citizen->Building.Employment);
+		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bOpen) {
+			if (MoveRequest.GetGoalActor()->IsA<AResource>())
+				StartMovement();
+			else
+				AIMoveTo(citizen->Building.Employment);
+		}
 		else if (citizen->Building.School != nullptr && citizen->Building.School->bOpen)
 			AIMoveTo(citizen->Building.School);
 		else
@@ -73,6 +78,8 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 {
 	if (!IsValid(Citizen))
 		return;
+
+	MoveRequest.SetGoalActor(nullptr);
 
 	int32 chance = Citizen->Camera->Grid->Stream.RandRange(0, 100);
 

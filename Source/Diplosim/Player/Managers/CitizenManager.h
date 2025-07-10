@@ -373,6 +373,24 @@ struct FPersonality
 	}
 };
 
+USTRUCT()
+struct FPoliceReport
+{
+	UPROPERTY()
+		TArray<class ACitizen*> Citizens;
+
+	UPROPERTY()
+		TMap<class ACitizen*, float> Witnesses;
+
+	UPROPERTY()
+		class ACitizen* RespondingOfficer;
+
+	FPoliceReport()
+	{
+		RespondingOfficer = nullptr;
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UCitizenManager : public UActorComponent
 {
@@ -437,9 +455,24 @@ public:
 	// Citizen
 	void CheckCitizenStatus(int32 Hour);
 
+	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness);
+
 	void Interact(class ACitizen* Citizen1, class ACitizen* Citizen2);
+
+	bool IsCarelessWitness(class ACitizen* Citizen);
+
+	bool IsInAPoliceReport(class ACitizen* Citizen);
+
+	void GetCloserToFight(class ACitizen* Citizen, class ACitizen* Target, FVector MidPoint);
+
+	// Police
+	UPROPERTY()
+		TArray<FPoliceReport> PoliceReports;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Police")
+		TSubclassOf<class AWork> PoliceStationClass;
 		
-	// Disease
+	// Disease & Injuries
 	void StartDiseaseTimer();
 
 	void SpawnDisease();
