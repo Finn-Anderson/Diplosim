@@ -314,6 +314,9 @@ public:
 	UPROPERTY()
 		class AResource* HarvestVisualResource;
 
+	UPROPERTY()
+		float VoicePitch;
+
 	// Cosmetics
 	UFUNCTION(BlueprintCallable)
 		void SetTorch(int32 Hour);

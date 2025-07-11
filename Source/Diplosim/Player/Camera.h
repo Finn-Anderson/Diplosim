@@ -192,7 +192,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* MusicAudioComponent;
 
-	void PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound);
+	void PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch = -1.0f);
 
 	void SetInteractAudioSound(USoundBase* Sound, float Volume);
 

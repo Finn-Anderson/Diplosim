@@ -374,10 +374,56 @@ struct FPersonality
 };
 
 USTRUCT()
+struct FFightTeam
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		class ACitizen* Instigator;
+
+	UPROPERTY()
+		TArray<class ACitizen*> Assistors;
+
+	FFightTeam()
+	{
+		Instigator = nullptr;
+	}
+
+	TArray<class ACitizen*> GetTeam()
+	{
+		TArray<class ACitizen*> team = Assistors;
+		team.Add(Instigator);
+
+		return team;
+	}
+
+	bool HasCitizen(class ACitizen* Citizen)
+	{
+		if (Instigator == Citizen || Assistors.Contains(Citizen))
+			return true;
+
+		return false;
+	}
+
+	bool operator==(const FFightTeam& other) const
+	{
+		return (other.Instigator == Instigator);
+	}
+};
+
+USTRUCT()
 struct FPoliceReport
 {
+	GENERATED_USTRUCT_BODY()
+
 	UPROPERTY()
-		TArray<class ACitizen*> Citizens;
+		FVector Location;
+
+	UPROPERTY()
+		FFightTeam Team1;
+
+	UPROPERTY()
+		FFightTeam Team2;
 
 	UPROPERTY()
 		TMap<class ACitizen*, float> Witnesses;
@@ -385,9 +431,32 @@ struct FPoliceReport
 	UPROPERTY()
 		class ACitizen* RespondingOfficer;
 
+	UPROPERTY()
+		TArray<class ACitizen*> AcussesTeam1;
+
+	UPROPERTY()
+		TArray<class ACitizen*> Impartial;
+
+	UPROPERTY()
+		TArray<class ACitizen*> AcussesTeam2;
+
 	FPoliceReport()
 	{
+		Location = FVector::Zero();
 		RespondingOfficer = nullptr;
+	}
+
+	bool Contains(class ACitizen* Citizen)
+	{
+		if (Team1.Instigator == Citizen || Team1.Assistors.Contains(Citizen) || Team2.Instigator == Citizen || Team2.Assistors.Contains(Citizen))
+			return true;
+
+		return false;
+	}
+
+	bool operator==(const FPoliceReport& other) const
+	{
+		return (other.Team1 == Team1 && other.Team2 == Team2);
 	}
 };
 
@@ -455,7 +524,11 @@ public:
 	// Citizen
 	void CheckCitizenStatus(int32 Hour);
 
+	float GetAggressiveness(class ACitizen* Citizen);
+
 	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness);
+
+	void StartConversation(class ACitizen* Citizen1, class ACitizen* Citizen2);
 
 	void Interact(class ACitizen* Citizen1, class ACitizen* Citizen2);
 
@@ -465,12 +538,32 @@ public:
 
 	void GetCloserToFight(class ACitizen* Citizen, class ACitizen* Target, FVector MidPoint);
 
-	// Police
+	void StopFighting(class ACitizen* Citizen);
+
+	void InterrogateWitnesses(class ACitizen* Officer, class ACitizen* Citizen);
+
+	void GotoClosestWantedMan(class ACitizen* Officer);
+
+	void Arrest(class ACitizen* Officer, class ACitizen* Citizen);
+
+	void SetInNearestJail(class ACitizen* Officer, class ACitizen* Citizen);
+
+	void ItterateThroughSentences();
+
 	UPROPERTY()
 		TArray<FPoliceReport> PoliceReports;
 
+	UPROPERTY()
+		TMap<ACitizen*, int32> Arrested;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Police")
 		TSubclassOf<class AWork> PoliceStationClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Police")
+		TSubclassOf<class AWork> JailClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Police")
+		class UNiagaraSystem* ArrestSystem;
 		
 	// Disease & Injuries
 	void StartDiseaseTimer();

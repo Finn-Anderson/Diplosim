@@ -20,6 +20,8 @@
 #include "Buildings/Building.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "AIMovementComponent.h"
+#include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -214,12 +216,8 @@ void UAttackComponent::Attack()
 		return;
 	}
 
-	if (bShowMercy) {
-		UAttackComponent* attackComp = CurrentTarget->GetComponentByClass<UAttackComponent>();
-
-		attackComp->OverlappingEnemies.Remove(GetOwner());
-		OverlappingEnemies.Remove(CurrentTarget);
-	}
+	if (bShowMercy)
+		Cast<ACitizen>(GetOwner())->Camera->CitizenManager->StopFighting(Cast<ACitizen>(GetOwner()));
 
 	UAnimSequence* anim = nullptr;
 

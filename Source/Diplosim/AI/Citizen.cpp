@@ -134,6 +134,8 @@ ACitizen::ACitizen()
 
 	bConversing = false;
 	ConversationHappiness = 0;
+
+	VoicePitch = 1.0f;
 }
 
 void ACitizen::BeginPlay()
@@ -153,6 +155,25 @@ void ACitizen::BeginPlay()
 	Mesh->SetMaterial(0, material);
 
 	GenerateGenetics();
+
+	float minPitch = 0.8f;
+	float maxPitch = 1.2f;
+
+	for (FGeneticsStruct genetic : Genetics) {
+		if (genetic.Type != EGeneticsType::Reach)
+			continue;
+
+		if (genetic.Grade == EGeneticsGrade::Good) {
+			minPitch = 0.6f;
+			maxPitch = 1.0f;
+		}
+		else if (genetic.Grade == EGeneticsGrade::Bad) {
+			minPitch = 1.0f;
+			maxPitch = 1.4f;
+		}
+	}
+
+	VoicePitch = Camera->Grid->Stream.FRandRange(minPitch, maxPitch);
 }
 
 void ACitizen::MainIslandSetup()
@@ -446,7 +467,7 @@ void ACitizen::SetAcquiredTime(int32 Index, float Time)
 
 bool ACitizen::CanFindAnything(int32 TimeToCompleteDay)
 {
-	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(0) + TimeToCompleteDay && GetWorld()->GetTimeSeconds() < GetAcquiredTime(1) + TimeToCompleteDay && GetWorld()->GetTimeSeconds() < GetAcquiredTime(2) + TimeToCompleteDay)
+	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(0) + TimeToCompleteDay && GetWorld()->GetTimeSeconds() < GetAcquiredTime(1) + TimeToCompleteDay && GetWorld()->GetTimeSeconds() < GetAcquiredTime(2) + TimeToCompleteDay || Camera->CitizenManager->DoesTimerExist("Arrested", this))
 		return false;
 
 	return true;
@@ -704,7 +725,7 @@ void ACitizen::Eat()
 
 	TMap<ACitizen*, int32> wallet;
 
-	if (cost > 0 && !IsValid(Building.Orphanage)) {
+	if (cost > 0 && !IsValid(Building.Orphanage) && !Camera->CitizenManager->Arrested.Contains(this)) {
 		if (FMath::Floor(Balance / cost) < quantity) {
 			for (ACitizen* citizen : GetLikedFamily(true)) {
 				if (citizen->Balance <= 0)
@@ -755,7 +776,7 @@ void ACitizen::Eat()
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
 
-				if (cost > 0 && !IsValid(Building.Orphanage)) {
+				if (cost > 0 && !IsValid(Building.Orphanage) && !Camera->CitizenManager->Arrested.Contains(this)) {
 					for (int32 k = 0; k < cost; k++) {
 						if (Balance <= 0 && !wallet.IsEmpty()) {
 							int32 index = Camera->Grid->Stream.RandRange(0, wallet.Num() - 1);
@@ -1328,6 +1349,9 @@ TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
 //
 void ACitizen::SetPoliticalLeanings()
 {
+	if (Camera->CitizenManager->Arrested.Contains(this))
+		return;
+
 	TArray<FString> partyList;
 
 	TEnumAsByte<ESway>* sway = nullptr;
@@ -1751,7 +1775,7 @@ void ACitizen::SetHappiness()
 	if (Camera->ConquestManager->GetFactionFromOwner(Camera->ConquestManager->EmpireName).WarFatigue >= 120)
 		Happiness.SetValue("High War Fatigue", -15);
 
-	if (GetHappiness() < 35) {
+	if (GetHappiness() < 35 && !Camera->CitizenManager->Arrested.Contains(this)) {
 		if (SadTimer == 0)
 			Camera->NotifyLog("Bad", BioStruct.Name + " is sad", Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
 

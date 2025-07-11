@@ -120,7 +120,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 	else {
 		int32 time = Citizen->Camera->Grid->Stream.RandRange(3, 10);
 
-		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66) {
+		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66 && !Citizen->Camera->CitizenManager->Arrested.Contains(Citizen)) {
 			AIMoveTo(ChosenBuilding);
 
 			time = 60.0f;
@@ -163,6 +163,9 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 
 void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 {
+	if (Citizen->Camera->CitizenManager->Arrested.Contains(Citizen))
+		return;
+
 	TArray<ABuilding*> buildings;
 
 	for (ABuilding* building : Citizen->Camera->CitizenManager->Buildings) {

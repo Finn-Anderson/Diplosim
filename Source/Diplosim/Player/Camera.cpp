@@ -333,16 +333,21 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	GetWorld()->GetTimerManager().SetTimer(displayBuildUITimer, this, &ACamera::DisplayBuildUI, 2.7f, false);
 }
 
-void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound)
+void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch)
 {
 	if (MainMenuUIInstance->IsInViewport() || Grid->Storage.IsEmpty())
 		return;
 
-	AsyncTask(ENamedThreads::GameThread, [this, AudioComponent, Sound]() {
+	AsyncTask(ENamedThreads::GameThread, [this, AudioComponent, Sound, Pitch]() {
 		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
+		float pitch = Pitch;
+
+		if (pitch == -1.0f)
+			pitch = Grid->Stream.FRandRange(0.8f, 1.2f);
+
 		AudioComponent->SetSound(Sound);
-		AudioComponent->SetPitchMultiplier(Grid->Stream.FRandRange(0.8f, 1.2f));
+		AudioComponent->SetPitchMultiplier(pitch);
 		AudioComponent->SetVolumeMultiplier(settings->GetAmbientVolume() * settings->GetMasterVolume());
 		AudioComponent->Play();
 	});
