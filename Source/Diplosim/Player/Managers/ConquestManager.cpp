@@ -447,6 +447,8 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 
 						Camera->CitizenManager->SetupRebel(element.Key);
 					}
+
+					Camera->CitizenManager->CeaseAllInternalFighting();
 				}
 				else
 					Camera->CitizenManager->CreateTimer("ColonyRaid" + Tile->Name, GetOwner(), 1.0f, FTimerDelegate::CreateUObject(this, &UConquestManager::EvaluateRaid, Tile), true);

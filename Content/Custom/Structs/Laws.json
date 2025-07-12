@@ -813,6 +813,208 @@
 			}
 		},
 		{
+			"BillType": "Fighting Length",
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set fighting jail lentgh to X hours",
+						"Min": 0,
+						"Max": 600
+					}
+				],
+				"Warning": "",
+				"Value": 12,
+				"Parties": [
+					{
+						"Party": "Chicken Winged",
+						"ForRange": [ 12, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Free Range",
+						"ForRange": [ 0, 100 ],
+						"AgainstRange": [  ]
+					},
+					{
+						"Party": "The Scrambled Coalition",
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Golden Yolk",
+						"ForRange": [ 6, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Shell Breakers",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": "Evil",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": "Murder Length",
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set murder jail lentgh to X hours",
+						"Min": 0,
+						"Max": 600
+					}
+				],
+				"Warning": "",
+				"Value": 48,
+				"Parties": [
+					{
+						"Party": "Chicken Winged",
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Free Range",
+						"ForRange": [ 0, 100 ],
+						"AgainstRange": [ ]
+					},
+					{
+						"Party": "The Scrambled Coalition",
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Golden Yolk",
+						"ForRange": [ 12, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Shell Breakers",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": "Evil",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": "Vandalism Length",
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set vandalism jail lentgh to X hours",
+						"Min": 0,
+						"Max": 600
+					}
+				],
+				"Warning": "",
+				"Value": 24,
+				"Parties": [
+					{
+						"Party": "Chicken Winged",
+						"ForRange": [ 12, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Free Range",
+						"ForRange": [ 0, 100 ],
+						"AgainstRange": [  ]
+					},
+					{
+						"Party": "The Scrambled Coalition",
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Golden Yolk",
+						"ForRange": [ 24, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Shell Breakers",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": "Evil",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": "Education Cost",
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set education cost to X",
+						"Min": 0,
+						"Max": 100
+					}
+				],
+				"Warning": "Cost per education level",
+				"Value": 0,
+				"Parties": [
+					{
+						"Party": "Chicken Winged",
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Free Range",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Party": "Shell Breakers",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": "Diligent",
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": "Lazy",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Personality": "Kind",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Personality": "Cruel",
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": "Careless",
+						"ForRange": [ 1, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					}
+				]
+			}
+		},
+		{
 			"BillType": "Election",
 			"Bills": {
 				"Descriptions": [

@@ -240,6 +240,8 @@ void ADiplosimGameModeBase::ShowRaidCrystal(bool bShow, FVector Location)
 		TargetOpacity = 0.0f;
 
 		Camera->bInstantEnemies = false;
+
+		Camera->CitizenManager->CeaseAllInternalFighting();
 	}
 
 	Camera->Grid->CrystalMesh->SetRelativeLocation(Location);

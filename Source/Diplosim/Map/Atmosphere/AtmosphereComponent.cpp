@@ -7,15 +7,20 @@
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SkyAtmosphereComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "NiagaraDataInterfaceArrayFunctionLibrary.h"
+#include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
 #include "Map/Grid.h"
+#include "Map/Resources/Vegetation.h"
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "Universal/HealthComponent.h"
 #include "Buildings/Building.h"
 #include "Clouds.h"
 #include "NaturalDisasterComponent.h"
@@ -171,6 +176,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		Grid->Camera->CitizenManager->CheckWorkStatus(hour);
 		Grid->Camera->CitizenManager->CheckCitizenStatus(hour);
 		Grid->Camera->CitizenManager->IssuePensions(hour);
+		Grid->Camera->CitizenManager->ItterateThroughSentences();
 
 		Grid->Camera->ResourceManager->SetTrendOnHour(hour);
 
@@ -224,4 +230,44 @@ void UAtmosphereComponent::SetDisplayText(int32 Hour)
 	Grid->Camera->CitizenManager->ExecuteEvent(Calendar.Period, Calendar.Days[Calendar.Index], Calendar.Hour);
 
 	Grid->Camera->UpdateDayText();
+}
+
+void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Index)
+{
+	UNiagaraComponent* fire = nullptr;
+	UStaticMesh* mesh = nullptr;
+
+	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
+
+	if (Actor->IsA<AVegetation>()) {
+		AVegetation* vegetation = Cast<AVegetation>(Actor);
+
+		FTransform t;
+		vegetation->ResourceHISM->GetInstanceTransform(Index, t);
+
+		fire = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), FireSystem, t.GetLocation(), t.GetRotation().Rotator(), FVector(1.0f), true, false);
+
+		mesh = vegetation->ResourceHISM->GetStaticMesh();
+
+		vegetation->OnFire(Index);
+	}
+	else if (healthComp) {
+		if (Actor->IsA<AAI>()) {
+			healthComp->TakeHealth(1000, GetOwner());
+		}
+		else {
+			fire = UNiagaraFunctionLibrary::SpawnSystemAttached(FireSystem, Actor->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
+
+			mesh = Actor->GetComponentByClass<UStaticMeshComponent>()->GetStaticMesh();
+
+			healthComp->OnFire();
+		}
+	}
+
+	if (IsValid(fire)) {
+		UNiagaraFunctionLibrary::OverrideSystemUserVariableStaticMesh(fire, "Static Mesh", mesh);
+		fire->SetVariableStaticMesh("Fire Mesh", mesh);
+
+		fire->Activate();
+	}
 }

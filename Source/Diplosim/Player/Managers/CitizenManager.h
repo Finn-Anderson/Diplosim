@@ -411,10 +411,21 @@ struct FFightTeam
 	}
 };
 
+UENUM()
+enum class EReportType : uint8
+{
+	Fighting,
+	Murder,
+	Vandalism,
+};
+
 USTRUCT()
 struct FPoliceReport
 {
 	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		EReportType Type;
 
 	UPROPERTY()
 		FVector Location;
@@ -442,6 +453,7 @@ struct FPoliceReport
 
 	FPoliceReport()
 	{
+		Type = EReportType::Fighting;
 		Location = FVector::Zero();
 		RespondingOfficer = nullptr;
 	}
@@ -536,6 +548,8 @@ public:
 
 	bool IsInAPoliceReport(class ACitizen* Citizen);
 
+	void ChangeReportToMurder(class ACitizen* Citizen);
+
 	void GetCloserToFight(class ACitizen* Citizen, class ACitizen* Target, FVector MidPoint);
 
 	void StopFighting(class ACitizen* Citizen);
@@ -549,6 +563,12 @@ public:
 	void SetInNearestJail(class ACitizen* Officer, class ACitizen* Citizen);
 
 	void ItterateThroughSentences();
+
+	void ToggleOfficerLights(class ACitizen* Officer, float Value);
+
+	void CeaseAllInternalFighting();
+
+	int32 GetPoliceReportIndex(class ACitizen* Citizen);
 
 	UPROPERTY()
 		TArray<FPoliceReport> PoliceReports;

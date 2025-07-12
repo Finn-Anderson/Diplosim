@@ -10,6 +10,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/CitizenManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Builder.h"
@@ -786,6 +787,15 @@ void UBuildComponent::Place(bool bQuick)
 
 			if (builder != nullptr && !builder->GetOccupied().IsEmpty())
 				builder->GetOccupied()[0]->AIController->RecalculateMovement(BuildingToMove);
+		}
+
+		if (BuildingToMove->IsA(Camera->CitizenManager->PoliceStationClass)) {
+			for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
+				if (citizen->Building.BuildingAt != BuildingToMove || BuildingToMove->GetOccupied().Contains(citizen) || !Camera->CitizenManager->Arrested.Contains(citizen))
+					continue;
+
+				Camera->CitizenManager->SetInNearestJail(nullptr, citizen);
+			}
 		}
 
 		BuildingToMove = nullptr;

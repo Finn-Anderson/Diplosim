@@ -98,6 +98,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		FCalendarStruct Calendar;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fire")
+		class UNiagaraSystem* FireSystem;
+
 	UPROPERTY()
 		FRotator WindRotation;
 
@@ -112,4 +115,6 @@ public:
 	void SetWindDimensions(int32 Size);
 
 	void SetDisplayText(int32 Hour);
+
+	void SetOnFire(AActor* Actor, int32 Index = -1);
 };

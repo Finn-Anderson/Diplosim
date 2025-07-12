@@ -9,14 +9,12 @@
 #include "AtmosphereComponent.h"
 #include "NaturalDisasterComponent.h"
 #include "Map/Grid.h"
-#include "Map/Resources/Vegetation.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Buildings/Building.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "AI/Citizen.h"
 #include "Universal/EggBasket.h"
-#include "Universal/HealthComponent.h"
 
 UCloudComponent::UCloudComponent()
 {
@@ -114,42 +112,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 						if (Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(hit.GetActor()->GetActorLocation()))
 							continue;
 
-						UNiagaraComponent* fire = nullptr;
-						UStaticMesh* mesh = nullptr;
-
-						UHealthComponent* healthComp = hit.GetActor()->GetComponentByClass<UHealthComponent>();
-
-						if (hit.GetActor()->IsA<AVegetation>()) {
-							AVegetation* vegetation = Cast<AVegetation>(hit.GetActor());
-
-							FTransform t;
-							vegetation->ResourceHISM->GetInstanceTransform(hit.Item, t);
-
-							fire = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), FireSystem, t.GetLocation(), t.GetRotation().Rotator(), FVector(1.0f), true, false);
-
-							mesh = vegetation->ResourceHISM->GetStaticMesh();
-
-							vegetation->OnFire(hit.Item);
-						}
-						else if (healthComp) {
-							if (hit.GetActor()->IsA<AAI>()) {
-								healthComp->TakeHealth(1000, GetOwner());
-							}
-							else {
-								fire = UNiagaraFunctionLibrary::SpawnSystemAttached(FireSystem, hit.GetActor()->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
-
-								mesh = hit.GetActor()->GetComponentByClass<UStaticMeshComponent>()->GetStaticMesh();
-
-								healthComp->OnFire();
-							}
-						}
-
-						if (IsValid(fire)) {
-							UNiagaraFunctionLibrary::OverrideSystemUserVariableStaticMesh(fire, "Static Mesh", mesh);
-							fire->SetVariableStaticMesh("Fire Mesh", mesh);
-
-							fire->Activate();
-						}
+						Grid->AtmosphereComponent->SetOnFire(hit.GetActor(), hit.Item);
 					}
 				}
 

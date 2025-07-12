@@ -133,9 +133,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lightning")
 		class UNiagaraSystem* LightningSystem;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lightning")
-		class UNiagaraSystem* FireSystem;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		float Height;
 

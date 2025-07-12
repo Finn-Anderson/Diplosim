@@ -362,16 +362,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 										citizenToAttack = c;
 								}
 
-								int32 index = INDEX_NONE;
-
-								for (int32 i = 0; i < PoliceReports.Num(); i++) {
-									if (!PoliceReports[i].Contains(c))
-										continue;
-
-									index = i;
-
-									break;
-								}
+								int32 index = GetPoliceReportIndex(c);
 
 								if (IsValid(citizenToAttack)) {
 									if (!citizen->AttackComponent->OverlappingEnemies.Contains(citizenToAttack))
@@ -395,6 +386,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 								else if (!IsCarelessWitness(citizen)) {
 									if (index == INDEX_NONE) {
 										FPoliceReport report;
+										report.Type = EReportType::Fighting;
 
 										for (int32 i = 0; i < c->AttackComponent->OverlappingEnemies.Num(); i++) {
 											ACitizen* fighter1 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[i]);
@@ -428,8 +420,8 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 									if (PoliceReports[index].Witnesses.Contains(citizen))
 										dist = *PoliceReports[index].Witnesses.Find(citizen);
-									else
-										GetCloserToFight(citizen, c, (c->GetActorLocation() + c->AttackComponent->OverlappingEnemies[0]->GetActorLocation()) / 2);
+
+									GetCloserToFight(citizen, c, PoliceReports[index].Location);
 
 									if (distance < dist)
 										PoliceReports[index].Witnesses.Add(citizen, distance);
@@ -460,6 +452,45 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 						citizen->AIController->StopMovement();
 					});
+				}
+				else if (GetMembersParty(citizen)->Party == "Shell Breakers" && actor->IsA<ABuilding>() && citizen->CanReach(actor, reach) && !IsValid(citizen->Building.BuildingAt)) {
+					int32 max = 1000 + (citizen->GetHappiness() - 50) * 16;
+
+					if (Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, max) != max)
+						continue;
+
+					Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->SetOnFire(actor);
+
+					for (AActor* a : actors) {
+						if (!Citizens.Contains(a))
+							continue;
+
+						ACitizen* witness = Cast<ACitizen>(a);
+
+						FCollisionQueryParams params;
+						params.AddIgnoredActor(witness);
+
+						FHitResult hit(ForceInit);
+
+						if (GetWorld()->LineTraceSingleByChannel(hit, witness->GetActorLocation(), citizen->GetActorLocation(), ECollisionChannel::ECC_Visibility, params) && hit.GetActor() == citizen) {
+							int32 index = GetPoliceReportIndex(citizen);
+
+							float distance = FVector::Dist(witness->GetActorLocation(), hit.Location);
+
+							if (index == INDEX_NONE) {
+								FPoliceReport report;
+								report.Type = EReportType::Vandalism;
+
+								report.Team1.Instigator = citizen;
+
+								PoliceReports.Add(report);
+
+								index = PoliceReports.Num() - 1;
+							}
+
+							PoliceReports[index].Witnesses.Add(witness, distance);
+						}
+					}
 				}
 			}
 
@@ -721,8 +752,13 @@ void UCitizenManager::Loop()
 				TArray<ACitizen*> witnesses;
 				report.Witnesses.GenerateKeyArray(witnesses);
 
-				if (IsValid(officer))
+				if (IsValid(officer)) {
+					PoliceReports[i].RespondingOfficer = officer;
+
+					ToggleOfficerLights(officer, 1.0f);
+
 					officer->AIController->AIMoveTo(witnesses[0]);
+				}
 			}
 		}
 
@@ -1062,9 +1098,18 @@ bool UCitizenManager::IsCarelessWitness(ACitizen* Citizen)
 
 bool UCitizenManager::IsInAPoliceReport(ACitizen* Citizen)
 {
-	for (FPoliceReport report : PoliceReports) {
-		if (!report.Witnesses.Contains(Citizen) || report.RespondingOfficer != Citizen)
+	for (FPoliceReport& report : PoliceReports) {
+		if (!report.Witnesses.Contains(Citizen))
 			continue;
+
+		if (report.RespondingOfficer != Citizen) {
+			if (Citizen->Building.Employment->IsA(PoliceStationClass))
+				continue;
+
+			report.RespondingOfficer = nullptr;
+
+			return false;
+		}
 
 		if (report.Witnesses.Contains(Citizen) && (report.Impartial.Contains(Citizen) || report.AcussesTeam1.Contains(Citizen) || report.AcussesTeam2.Contains(Citizen)))
 			return false;
@@ -1073,6 +1118,16 @@ bool UCitizenManager::IsInAPoliceReport(ACitizen* Citizen)
 	}
 
 	return false;
+}
+
+void UCitizenManager::ChangeReportToMurder(ACitizen* Citizen)
+{
+	for (FPoliceReport& report : PoliceReports) {
+		if (!report.Team1.GetTeam().Contains(Citizen) && !report.Team2.GetTeam().Contains(Citizen))
+			continue;
+
+		report.Type = EReportType::Murder;
+	}
 }
 
 void UCitizenManager::GetCloserToFight(ACitizen* Citizen, ACitizen* Target, FVector MidPoint)
@@ -1129,10 +1184,13 @@ void UCitizenManager::InterrogateWitnesses(class ACitizen* Officer, class ACitiz
 		float accuseTeam2 = 0.0f;
 
 		for (ACitizen* accused : report.Team1.GetTeam())
-			accuseTeam1 += 50 * GetAggressiveness(accused);
+			accuseTeam1 += 50.0f * GetAggressiveness(accused);
 
 		for (ACitizen* accused : report.Team1.GetTeam())
-			accuseTeam2 += 50 * GetAggressiveness(accused);
+			accuseTeam2 += 50.0f * GetAggressiveness(accused);
+
+		if (report.Type == EReportType::Vandalism)
+			accuseTeam1 += 100.0f;
 
 		float tally = impartial + accuseTeam1 + accuseTeam2;
 
@@ -1203,6 +1261,8 @@ void UCitizenManager::GotoClosestWantedMan(class ACitizen* Officer)
 		else {
 			PoliceReports.Remove(report);
 
+			ToggleOfficerLights(Officer, 0.0f);
+
 			Officer->AIController->DefaultAction();
 		}
 	}
@@ -1254,7 +1314,7 @@ void UCitizenManager::SetInNearestJail(class ACitizen* Officer, class ACitizen* 
 			continue;
 		}
 
-		double magnitude = Officer->AIController->GetClosestActor(Officer->Range, Officer->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation());
+		double magnitude = Citizen->AIController->GetClosestActor(20.0f, Citizen->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation());
 
 		if (magnitude < 0.0f)
 			continue;
@@ -1280,8 +1340,25 @@ void UCitizenManager::SetInNearestJail(class ACitizen* Officer, class ACitizen* 
 
 	if (Representatives.Contains(Citizen))
 		Representatives.Remove(Citizen);
-	
-	Arrested.Add(Citizen, GetLawValue("Jail Length"));
+
+	if (!IsValid(Officer))
+		return;
+
+	for (FPoliceReport report : PoliceReports) {
+		if (report.RespondingOfficer != Officer)
+			continue;
+
+		FString law = "Fighting Length";
+
+		if (report.Type == EReportType::Murder)
+			law = "Murder Length";
+		else if (report.Type == EReportType::Vandalism)
+			law = "Vandalism Length";
+
+		Arrested.Add(Citizen, GetLawValue(law));
+
+		break;
+	}
 
 	GotoClosestWantedMan(Officer);
 }
@@ -1304,6 +1381,47 @@ void UCitizenManager::ItterateThroughSentences()
 
 		citizen->SetActorLocation(citizen->Building.BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 	}
+}
+
+void UCitizenManager::ToggleOfficerLights(class ACitizen* Officer, float Value)
+{
+	UStaticMesh* mesh = Officer->HatMesh->GetStaticMesh();
+
+	if (mesh->GetMaterial(1)->IsA<UMaterialInstanceDynamic>()) {
+		Cast<UMaterialInstanceDynamic>(mesh->GetMaterial(1))->SetScalarParameterValue("Toggle Lights", Value);
+	}
+	else {
+		UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(mesh->GetMaterial(1), this);
+		material->SetScalarParameterValue("Toggle Lights", Value);
+		mesh->SetMaterial(1, material);
+	}
+}
+
+void UCitizenManager::CeaseAllInternalFighting()
+{
+	for (ACitizen* citizen : Citizens) {
+		if (citizen->AttackComponent->OverlappingEnemies.IsEmpty())
+			continue;
+
+		for (int32 i = citizen->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
+			AActor* actor = citizen->AttackComponent->OverlappingEnemies[i];
+
+			if (actor->IsA<ACitizen>() && Cast<ACitizen>(actor)->Capsule->GetCollisionObjectType() == citizen->Capsule->GetCollisionObjectType())
+				citizen->AttackComponent->OverlappingEnemies.RemoveAt(i);
+		}
+	}
+}
+
+int32 UCitizenManager::GetPoliceReportIndex(ACitizen* Citizen)
+{
+	for (int32 i = 0; i < PoliceReports.Num(); i++) {
+		if (!PoliceReports[i].Contains(Citizen))
+			continue;
+
+		return i;
+	}
+
+	return INDEX_NONE;
 }
 
 //

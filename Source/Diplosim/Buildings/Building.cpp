@@ -530,6 +530,15 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 	if (Camera->CitizenManager->Buildings.Contains(this))
 		Camera->CitizenManager->Buildings.Remove(this);
 
+	if (IsA(Camera->CitizenManager->PoliceStationClass)) {
+		for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
+			if (citizen->Building.BuildingAt != this || GetOccupied().Contains(citizen) || !Camera->CitizenManager->Arrested.Contains(citizen))
+				continue;
+
+			Camera->CitizenManager->SetInNearestJail(nullptr, citizen);
+		}
+	}
+
 	Destroy();
 }
 

@@ -216,8 +216,10 @@ void UAttackComponent::Attack()
 		return;
 	}
 
-	if (bShowMercy)
+	if (bShowMercy && healthComp->Health < 25)
 		Cast<ACitizen>(GetOwner())->Camera->CitizenManager->StopFighting(Cast<ACitizen>(GetOwner()));
+	else if (CurrentTarget->IsA<ACitizen>() && GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(CurrentTarget)->Capsule->GetCollisionObjectType() == Cast<ACitizen>(GetOwner())->Capsule->GetCollisionObjectType() && healthComp->Health == 0)
+		Cast<ACitizen>(GetOwner())->Camera->CitizenManager->ChangeReportToMurder(Cast<ACitizen>(GetOwner()));
 
 	UAnimSequence* anim = nullptr;
 
