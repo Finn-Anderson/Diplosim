@@ -916,7 +916,7 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 			if (citizen->HoursWorked.Contains(Hour))
 				citizen->HoursWorked.Remove(Hour);
 
-			if (work->bOpen)
+			if (work->IsWorking(citizen, Hour))
 				citizen->HoursWorked.Add(Hour);
 		}
 
@@ -936,7 +936,7 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 		if (citizen->bSleep)
 			citizen->HoursSleptToday.Add(Hour);
 
-		if (citizen->HoursSleptToday.Num() < citizen->IdealHoursSlept && !citizen->bSleep && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->bOpen) && IsValid(citizen->Building.House) && citizen->Building.BuildingAt == citizen->Building.House)
+		if (citizen->HoursSleptToday.Num() < citizen->IdealHoursSlept && !citizen->bSleep && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->IsWorking(citizen)) && IsValid(citizen->Building.House) && citizen->Building.BuildingAt == citizen->Building.House)
 			citizen->bSleep = true;
 		else if (citizen->bSleep)
 			citizen->bSleep = false;
@@ -1549,12 +1549,6 @@ void UCitizenManager::GetClosestHealer(class ACitizen* Citizen)
 		for (AActor* actor : clinics) {
 			AClinic* clinic = Cast<AClinic>(actor);
 
-			if (!clinic->bOpen) {
-				clinic->Open();
-
-				continue;
-			}
-
 			for (ACitizen* h : clinic->GetCitizensAtBuilding()) {
 				if (!h->AIController->CanMoveTo(Citizen->GetActorLocation()) || h->AIController->MoveRequest.GetGoalActor() != nullptr)
 					continue;
@@ -1718,7 +1712,7 @@ FEventTimeStruct UCitizenManager::GetOngoingEventTimes(FEventStruct event)
 
 void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 {
-	if (IsAttendingEvent(Citizen) || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->bOpen) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith && Citizen->BioStruct.Age >= 18) || Citizen->Camera->ConquestManager->IsCitizenMoving(Citizen))
+	if (IsAttendingEvent(Citizen) || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->IsWorking(Citizen)) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith && Citizen->BioStruct.Age >= 18) || Citizen->Camera->ConquestManager->IsCitizenMoving(Citizen))
 		return;
 
 	int32 index = Events.Find(Event);

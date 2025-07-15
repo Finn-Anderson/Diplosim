@@ -527,16 +527,13 @@ int32 UResourceManager::GetCategoryTrend(FString Category)
 				continue;
 
 			AFarm* farm = Cast<AFarm>(building);
-			int32 timeLength = farm->TimeLength / farm->GetOccupied()[0]->GetProductivity();
+			ACitizen* citizen = farm->GetOccupied()[0];
+
+			int32 timeLength = farm->TimeLength / citizen->GetProductivity();
 
 			int32 timePerHour = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed) / 24;
 
-			int32 hours = farm->WorkEnd - farm->WorkStart;
-
-			if (farm->WorkEnd == farm->WorkStart)
-				hours = 24;
-			else if (farm->WorkEnd < farm->WorkStart)
-				hours = 24 - farm->WorkStart + farm->WorkEnd;
+			int32 hours = farm->GetHoursInADay(citizen);
 
 			int32 workdayTime = hours * timePerHour;
 			int32 amount = workdayTime / timeLength;

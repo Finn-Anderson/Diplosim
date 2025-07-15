@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/DecalComponent.h"
 #include "Components/SphereComponent.h"
+#include "Blueprint/UserWidget.h"
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
@@ -33,14 +34,7 @@ AWork::AWork()
 
 	Wage = 0;
 
-	WorkStart = 6;
-	WorkEnd = 18;
-
-	bCanRest = true;
-
 	bCanAttendEvents = true;
-
-	bOpen = false;
 
 	ForcefieldRange = 0;
 }
@@ -48,6 +42,23 @@ AWork::AWork()
 void AWork::BeginPlay()
 {
 	Super::BeginPlay();
+
+	WorkHours.Empty();
+
+	for (int32 i = 0; i < MaxCapacity; i++) {
+		FWorkHoursStruct hours;
+
+		for (int32 j = 0; j < 24; j++) {
+			EWorkType type = EWorkType::Freetime;
+
+			if (j >= 6 && j < 18)
+				type = EWorkType::Work;
+
+			hours.WorkHours.Add(j, type);
+		}
+
+		WorkHours.Add(hours);
+	}
 
 	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
@@ -67,10 +78,18 @@ void AWork::OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class 
 
 void AWork::UpkeepCost()
 {
-	for (ACitizen* citizen : GetOccupied())
+	int32 numPaid = 0;
+
+	for (ACitizen* citizen : GetOccupied()) {
+		if (!IsWorking(citizen))
+			continue;
+
 		citizen->Balance += Wage;
 
-	int32 upkeep = Wage * GetOccupied().Num();
+		numPaid++;
+	}
+
+	int32 upkeep = Wage * numPaid;
 	Camera->ResourceManager->TakeUniversalResource(Money, upkeep, -100000);
 }
 
@@ -83,7 +102,9 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 
 	Citizen->Building.Employment = this;
 
-	if (bOpen) {
+	AddToWorkHours(Citizen, true);
+
+	if (IsWorking(Citizen)) {
 		if (bCanAttendEvents && Citizen->AIController->MoveRequest.Actor != nullptr && Citizen->AIController->MoveRequest.Actor->IsA<ABroadcast>() && Cast<ABroadcast>(Citizen->AIController->MoveRequest.Actor)->bHolyPlace)
 			return true;
 
@@ -102,6 +123,8 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 
 	Citizen->Building.Employment = nullptr;
 
+	AddToWorkHours(Citizen, false);
+
 	Citizen->HatMesh->SetStaticMesh(nullptr);
 
 	Citizen->AIController->DefaultAction();
@@ -113,44 +136,36 @@ void AWork::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!bOpen && GetOccupied().Contains(Citizen))
+	if (!IsWorking(Citizen) && GetOccupied().Contains(Citizen))
 		Citizen->AIController->DefaultAction();
 
 	if (GetOccupied().Contains(Citizen) && Citizen->HatMesh->GetStaticMesh() != WorkHat)
 		Citizen->HatMesh->SetStaticMesh(WorkHat);
 }
 
-void AWork::Open()
+void AWork::AddToWorkHours(ACitizen* Citizen, bool bAdd)
 {
-	if (bOpen)
-		return;
-	
-	bOpen = true;
+	for (int32 i = 0; i < WorkHours.Num(); i++) {
+		if (IsValid(WorkHours[i].Citizen))
+			continue;
 
-	for (ACitizen* citizen : GetOccupied())
-		citizen->AIController->DefaultAction();
-}
+		if (bAdd)
+			WorkHours[i].Citizen = Citizen;
+		else
+			WorkHours[i].Citizen = nullptr;
 
-void AWork::Close()
-{
-	if (!bOpen)
-		return;
-	
-	bOpen = false;
+		if (Camera->HoursUIInstance->IsInViewport())
+			Camera->UpdateWorkHours(this, i);
 
-	for (ACitizen* citizen : GetOccupied()) {
-		Leave(citizen);
-
-		citizen->AIController->DefaultAction();
+		break;
 	}
 }
 
 void AWork::CheckWorkStatus(int32 Hour)
 {
-	if (Hour == WorkEnd && bOpen)
-		UpkeepCost();
+	UpkeepCost();
 
-	if (IsA<ASchool>() && bOpen && !GetCitizensAtBuilding().IsEmpty())
+	if (IsA<ASchool>() && !GetCitizensAtBuilding().IsEmpty())
 		Cast<ASchool>(this)->AddProgress();
 
 	FEventStruct event;
@@ -158,18 +173,57 @@ void AWork::CheckWorkStatus(int32 Hour)
 	if (Camera->CitizenManager->OngoingEvents().Contains(event) || (IsA<AClinic>() && (!Camera->CitizenManager->Infected.IsEmpty() || !Camera->CitizenManager->Injuries.IsEmpty())))
 		return;
 
-	if (WorkStart >= WorkEnd) {
-		if ((Hour >= WorkStart || Hour < WorkEnd))
-			Open();
-		else
-			Close();
+	for (ACitizen* citizen : GetOccupied()) {
+		int32 prevHour = Hour - 1;
+
+		if (prevHour == -1)
+			prevHour = 23;
+
+		bool wasWorking = IsWorking(citizen, prevHour);
+		bool isWorkingNow = IsWorking(citizen, Hour);
+
+		if (isWorkingNow != wasWorking)
+			citizen->AIController->DefaultAction();
 	}
-	else {
-		if (Hour >= WorkStart && Hour < WorkEnd)
-			Open();
-		else
-			Close();
+}
+
+bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
+{
+	if (Hour == -1)
+		Hour = Camera->Grid->AtmosphereComponent->Calendar.Hour;
+
+	FWorkHoursStruct hours;
+	hours.Citizen = Citizen;
+
+	int32 index = WorkHours.Find(hours);
+
+	EWorkType type = *hours.WorkHours.Find(Hour);
+
+	if (type == EWorkType::Work)
+		return true;
+
+	return false;
+}
+
+int32 AWork::GetHoursInADay(class ACitizen* Citizen)
+{
+	int32 hours = 0;
+
+	for (FWorkHoursStruct hoursStruct : WorkHours) {
+		if (hoursStruct.Citizen != Citizen)
+			continue;
+
+		for (auto& element : hoursStruct.WorkHours)
+			if (element.Value == EWorkType::Work)
+				hours++;
 	}
+
+	return hours;
+}
+
+void AWork::SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours)
+{
+	WorkHours[Index].WorkHours = NewWorkHours.WorkHours;
 }
 
 void AWork::Production(ACitizen* Citizen)

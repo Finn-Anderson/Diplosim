@@ -183,6 +183,8 @@ void ACamera::BeginPlay()
 
 	FactionColourUIInstance = CreateWidget<UUserWidget>(pcontroller, FactionColourUI);
 
+	HoursUIInstance = CreateWidget<UUserWidget>(pcontroller, HoursUI);
+
 	GiftUIInstance = CreateWidget<UUserWidget>(pcontroller, GiftUI);
 
 	DiplomacyNotifyUIInstance = CreateWidget<UUserWidget>(pcontroller, DiplomacyNotifyUI);
@@ -625,6 +627,13 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 	}
 	else if (FactionColourUIInstance->IsInViewport()) {
 		FactionColourUIInstance->RemoveFromParent();
+
+		bWasClosingWindow = true;
+
+		return;
+	}
+	else if (HoursUIInstance->IsInViewport()) {
+		HoursUIInstance->RemoveFromParent();
 
 		bWasClosingWindow = true;
 

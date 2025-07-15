@@ -836,7 +836,7 @@ void ACitizen::LoseEnergy()
 
 	MovementComponent->SetMaxSpeed(Energy);
 
-	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || (!Building.Employment->bCanRest && Building.Employment->bOpen) || bWorshipping || (Building.Employment->IsA<AClinic>() && Camera->CitizenManager->Healing.Contains(AIController->MoveRequest.GetGoalActor())))
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || Building.Employment->IsWorking(this) || bWorshipping || (Building.Employment->IsA<AClinic>() && Camera->CitizenManager->Healing.Contains(AIController->MoveRequest.GetGoalActor())))
 		return;
 
 	if (IsValid(Building.House) || IsValid(Building.Orphanage)) {

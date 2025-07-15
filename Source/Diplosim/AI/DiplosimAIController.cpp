@@ -59,13 +59,13 @@ void ADiplosimAIController::DefaultAction()
 				return;
 		}
 
-		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bOpen) {
+		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->IsWorking(citizen)) {
 			if (MoveRequest.GetGoalActor()->IsA<AResource>())
 				StartMovement();
 			else
 				AIMoveTo(citizen->Building.Employment);
 		}
-		else if (citizen->Building.School != nullptr && citizen->Building.School->bOpen)
+		else if (citizen->Building.School != nullptr && citizen->Building.School->IsWorking(citizen))
 			AIMoveTo(citizen->Building.School);
 		else
 			Idle(citizen);
@@ -84,13 +84,6 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 	int32 chance = Citizen->Camera->Grid->Stream.RandRange(0, 100);
 
 	int32 hoursLeft = Citizen->HoursSleptToday.Num();
-
-	if (IsValid(Citizen->Building.Employment)) {
-		if (Citizen->Building.Employment->WorkEnd > Citizen->Building.Employment->WorkStart)
-			hoursLeft = (24 - Citizen->Building.Employment->WorkEnd) + Citizen->Building.Employment->WorkStart;
-		else
-			hoursLeft = Citizen->Building.Employment->WorkStart - Citizen->Building.Employment->WorkEnd;
-	}
 
 	AHouse* house = Citizen->Building.House;
 
@@ -154,6 +147,9 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 				UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), navLoc.Location, Citizen, Citizen->NavQueryFilter);
 
 				Citizen->MovementComponent->SetPoints(path->PathPoints);
+
+				if (IsValid(Citizen->Building.BuildingAt))
+					Citizen->Building.BuildingAt->Leave(Citizen);
 			}
 		}
 

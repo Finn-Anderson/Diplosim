@@ -138,6 +138,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void NotifyLog(const FString& Type, const FString& Message, const FString& IslandName);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateWorkHours(class ABuilding* Building, int32 Index);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -300,6 +303,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* FactionColourUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> HoursUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* HoursUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> GiftUI;

@@ -4,6 +4,35 @@
 #include "Buildings/Building.h"
 #include "Work.generated.h"
 
+UENUM()
+enum class EWorkType : uint8
+{
+	Freetime,
+	Work
+};
+
+USTRUCT(BlueprintType)
+struct FWorkHoursStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Work")
+		class ACitizen* Citizen;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Work")
+		TMap<int32, EWorkType> WorkHours;
+
+	FWorkHoursStruct()
+	{
+		Citizen = nullptr;
+	}
+
+	bool operator==(const FWorkHoursStruct& other) const
+	{
+		return (other.Citizen == Citizen);
+	}
+};
+
 UCLASS()
 class DIPLOSIM_API AWork : public ABuilding
 {
@@ -40,19 +69,10 @@ public:
 		class UStaticMesh* WorkHat;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hours")
-		int32 WorkStart;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hours")
-		int32 WorkEnd;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rest")
-		bool bCanRest;
+		TArray<FWorkHoursStruct> WorkHours;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		bool bCanAttendEvents;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-		bool bOpen;
 
 	virtual bool AddCitizen(class ACitizen* Citizen) override;
 
@@ -60,11 +80,16 @@ public:
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
-	void Open();
-
-	void Close();
+	void AddToWorkHours(class ACitizen* Citizen, bool bAdd);
 
 	void CheckWorkStatus(int32 Hour);
+
+	bool IsWorking(class ACitizen* Citizen, int32 Hour = -1);
+
+	int32 GetHoursInADay(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		void SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours);
 
 	// Resources
 	virtual void Production(class ACitizen* Citizen);
