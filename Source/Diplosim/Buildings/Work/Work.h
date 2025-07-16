@@ -74,6 +74,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		bool bCanAttendEvents;
 
+	UPROPERTY()
+		bool bEmergency;
+
 	virtual bool AddCitizen(class ACitizen* Citizen) override;
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
@@ -90,6 +93,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours);
+
+	void SetEmergency(bool bStatus);
 
 	// Resources
 	virtual void Production(class ACitizen* Citizen);

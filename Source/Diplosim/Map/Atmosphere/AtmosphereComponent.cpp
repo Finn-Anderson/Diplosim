@@ -90,7 +90,6 @@ UAtmosphereComponent::UAtmosphereComponent()
 	WindComponent->bAutoActivate = true;
 
 	NaturalDisasterComponent = CreateDefaultSubobject<UNaturalDisasterComponent>(TEXT("NaturalDisasterComponent"));
-	NaturalDisasterComponent->Grid = Grid;
 
 	bRedSun = false;
 }
@@ -103,6 +102,8 @@ void UAtmosphereComponent::BeginPlay()
 
 	Clouds->Grid = Grid;
 	Clouds->NaturalDisasterComponent = NaturalDisasterComponent;
+
+	NaturalDisasterComponent->Grid = Grid;
 
 	ChangeWindDirection();
 

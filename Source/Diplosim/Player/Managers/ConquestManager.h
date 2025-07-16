@@ -10,10 +10,10 @@ struct FFactionHappinessStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Happiness")
 		FString Owner;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Happiness")
 		TMap<FString, int32> Modifiers;
 
 	int32 ProposalTimer;
@@ -292,7 +292,7 @@ struct FGiftStruct
 
 struct FColoniesStruct
 {
-	FFactionStruct* Faction;
+	FFactionStruct Faction;
 
 	FWorldTileStruct* Capital;
 
@@ -327,7 +327,7 @@ public:
 
 	void GiveResource();
 
-	void SpawnCitizenAtColony(FWorldTileStruct& Tile);
+	void SpawnCitizenAtColony(FWorldTileStruct& Tile, bool bAdult = false);
 
 	UFUNCTION(BlueprintCallable)
 		void MoveToColony(FFactionStruct Faction, FWorldTileStruct Tile, class ACitizen* Citizen);
@@ -420,20 +420,22 @@ public:
 	UPROPERTY()
 		class APortal* Portal;
 
+	FCriticalSection ConquestLock;
+
 	// Diplomacy
-	void SetFactionCulture(FFactionStruct& Faction);
+	void SetFactionCulture(FFactionStruct Faction);
 
 	UFUNCTION(BlueprintCallable)
-		FFactionHappinessStruct& GetHappinessWithFaction(FFactionStruct Faction, FFactionStruct Target);
+		int32 GetHappinessWithFaction(FFactionStruct Faction, FFactionStruct Target);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetHappinessValue(FFactionHappinessStruct Happiness);
 
-	void SetFactionsHappiness(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
+	void SetFactionsHappiness(FFactionStruct Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 
-	void EvaluateDiplomacy(FFactionStruct& Faction);
+	void EvaluateDiplomacy(FFactionStruct Faction);
 
-	TTuple<bool, bool> IsWarWinnable(FFactionStruct& Faction, FFactionStruct& Target);
+	TTuple<bool, bool> IsWarWinnable(FFactionStruct Faction, FFactionStruct& Target);
 
 	UFUNCTION(BlueprintCallable)
 		void Peace(FFactionStruct Faction1, FFactionStruct Faction2);
@@ -447,7 +449,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void DeclareWar(FFactionStruct Faction1, FFactionStruct Faction2);
 
-	void Rebel(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
+	void Rebel(FFactionStruct Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 
 	UFUNCTION(BlueprintCallable)
 		void Insult(FFactionStruct Faction, FFactionStruct Target);
@@ -479,7 +481,7 @@ public:
 	void EvaluateRaid(FWorldTileStruct* Tile);
 
 	// AI
-	void EvaluateAI(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
+	void EvaluateAI(FFactionStruct Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 
 	class ACitizen* GetChosenCitizen(TArray<ACitizen*> Citizens);
 

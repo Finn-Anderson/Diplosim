@@ -211,7 +211,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetMineralMultiplier(TSubclassOf<class AMineral> MineralClass, int32 Multiplier);
 
-	void GenerateMinerals(FTileStruct* Tile, AResource* Resource);
+	void GenerateMinerals(FTileStruct* Tile, class AResource* Resource);
 
 	void GetValidSpawnLocations(FTileStruct* Tile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles);
 
@@ -221,7 +221,7 @@ public:
 
 	void GenerateFlower(FTileStruct* Tile, class AVegetation* Resource, int32 Instance);
 
-	void RemoveTree(AResource* Resource, int32 Instance);
+	void RemoveTree(class AResource* Resource, int32 Instance);
 
 	FTransform GetTransform(FTileStruct* Tile);
 

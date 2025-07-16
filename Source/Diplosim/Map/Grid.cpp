@@ -665,7 +665,7 @@ void AGrid::Render()
 	// Conquest Map
 	Camera->ConquestManager->GenerateWorld();
 	Camera->UpdateWorldMap();
-	Camera->UpdateInteractUI();
+	Camera->UpdateInteractUI(true);
 	Camera->UpdateFactionIcons();
 
 	if (Camera->PauseUIInstance->IsInViewport())

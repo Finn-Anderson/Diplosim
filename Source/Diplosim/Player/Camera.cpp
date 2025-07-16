@@ -326,6 +326,7 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	Cast<ABroch>(Broch)->SpawnCitizens();
 
 	ConquestManager->StartConquest();
+	UpdateInteractUI(false);
 
 	Start = false;
 
@@ -381,6 +382,11 @@ void ACamera::DisplayBuildUI()
 void ACamera::ShowWarning(FString Warning)
 {
 	DisplayWarning(Warning);
+}
+
+void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
+{
+	AsyncTask(ENamedThreads::GameThread, [this, Type, Message, IslandName]() { DisplayNotifyLog(Type, Message, IslandName); });
 }
 
 void ACamera::SetPause(bool bPause, bool bTickWhenPaused)

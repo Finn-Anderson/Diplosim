@@ -1440,6 +1440,9 @@ void ACitizen::SetPoliticalLeanings()
 
 			Camera->CitizenManager->Parties[i].Members.Add(this, ESway::Moderate);
 
+			party = Camera->CitizenManager->GetMembersParty(this);
+			sway = party->Members.Find(this);
+
 			if (Camera->CitizenManager->Parties[i].Party == "Shell Breakers" && Camera->CitizenManager->IsRebellion())
 				Camera->CitizenManager->SetupRebel(this);
 		}
@@ -1923,7 +1926,7 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 			continue;
 
 		for (int32 j = personalities.Num() - 1; j > -1; j--) {
-			if (!personalities[i].Dislikes.Contains(personalities[j].Trait))
+			if (!personalities[i].Dislikes.Contains(personalities[j].Trait) || (personalities[i].Trait == "Cruel" && personalities[j].Trait != "Kind"))
 				continue;
 
 			if (j < i)
@@ -1935,9 +1938,11 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 		personalities.RemoveAt(i);
 	}
 
-	auto index = Async(EAsyncExecution::TaskGraph, [this, personalities]() { return Camera->Grid->Stream.RandRange(0, personalities.Num() - 1); });
+	//auto index = Async(EAsyncExecution::TaskGraph, [this, personalities]() { return  });
 
-	int32 i = Camera->CitizenManager->Personalities.Find(personalities[index.Get()]);
+	int32 index = Camera->Grid->Stream.RandRange(0, personalities.Num() - 1);
+
+	int32 i = Camera->CitizenManager->Personalities.Find(personalities[index]);
 
 	Camera->CitizenManager->Personalities[i].Citizens.Add(this);
 

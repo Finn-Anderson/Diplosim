@@ -35,6 +35,7 @@ AWork::AWork()
 	Wage = 0;
 
 	bCanAttendEvents = true;
+	bEmergency = false;
 
 	ForcefieldRange = 0;
 }
@@ -199,7 +200,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 	EWorkType type = *hours.WorkHours.Find(Hour);
 
-	if (type == EWorkType::Work)
+	if (type == EWorkType::Work || bEmergency)
 		return true;
 
 	return false;
@@ -224,6 +225,16 @@ int32 AWork::GetHoursInADay(class ACitizen* Citizen)
 void AWork::SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours)
 {
 	WorkHours[Index].WorkHours = NewWorkHours.WorkHours;
+}
+
+void AWork::SetEmergency(bool bStatus)
+{
+	if (bStatus == bEmergency)
+		return;
+
+	bEmergency = bStatus;
+
+	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 }
 
 void AWork::Production(ACitizen* Citizen)

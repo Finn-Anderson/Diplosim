@@ -231,17 +231,14 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 	precipitation->SetVariableObject(TEXT("Callback"), Grid);
 	precipitation->SetVariableVec3(TEXT("CloudLocation"), Transform.GetLocation());
-	precipitation->PrimaryComponentTick.bCanEverTick = false;
 
 	float spawnRate = 0.0f;
 
 	float gravity = -980.0f;
 	float lifetime = (cloud->GetRelativeLocation().Z - Height + 200.0f) / 800.0f + 3.0f;
 
-	if (Chance > 75) {
-		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(precipitation, TEXT("SpawnLocations"), locations);
-		spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y * Grid->Stream.FRandRange(0.5f, 1.5f);
-	}
+	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(precipitation, TEXT("SpawnLocations"), locations);
+	spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y * Grid->Stream.FRandRange(0.5f, 1.5f);
 
 	if (bSnow) {
 		precipitation->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
@@ -261,12 +258,10 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 
 	cloudStruct.Precipitation = precipitation;
 
-	UNaturalDisasterComponent* NDComp = Grid->AtmosphereComponent->NaturalDisasterComponent;
+	if (NaturalDisasterComponent->ShouldCreateDisaster()) {
+		cloudStruct.lightningFrequency = Grid->Stream.FRandRange(0.5f, 10.0f) / NaturalDisasterComponent->Intensity;
 
-	if (NDComp->ShouldCreateDisaster()) {
-		cloudStruct.lightningFrequency = Grid->Stream.FRandRange(0.5f, 10.0f) / NDComp->Intensity;
-
-		NDComp->ResetDisasterChance();
+		NaturalDisasterComponent->ResetDisasterChance();
 	}
 
 	return cloudStruct;

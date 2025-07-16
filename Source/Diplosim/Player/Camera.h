@@ -106,7 +106,7 @@ public:
 		void UpdateIconEmpireName(const FString& Name);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateInteractUI();
+		void UpdateInteractUI(bool bWorldCreation);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateSpeedUI(float Speed);
@@ -136,7 +136,7 @@ public:
 		void NotifyConquestEvent(const FString& Message, const FString& FactionName, bool bChoice);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void NotifyLog(const FString& Type, const FString& Message, const FString& IslandName);
+		void DisplayNotifyLog(const FString& Type, const FString& Message, const FString& IslandName);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateWorkHours(class ABuilding* Building, int32 Index);
@@ -370,6 +370,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void ShowWarning(FString Warning);
+
+	UFUNCTION(BlueprintCallable)
+		void NotifyLog(FString Type, FString Message, FString IslandName);
 
 	void SetPause(bool bPause, bool bTickWhenPaused);
 
