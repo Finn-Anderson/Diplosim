@@ -120,6 +120,8 @@ ABuilding::ABuilding()
 	SeedNum = 0;
 
 	Tier = 1;
+
+	bOperate = true;
 }
 
 void ABuilding::BeginPlay()
@@ -583,14 +585,20 @@ void ABuilding::OnBuilt()
 		ParticleComponent->Activate();
 }
 
-void ABuilding::UpkeepCost()
+void ABuilding::AlterOperate()
 {
-	
+	bOperate = !bOperate;
+
+	if (bOperate)
+		return;
+
+	for (ACitizen* citizen : GetOccupied())
+		RemoveCitizen(citizen);
 }
 
 bool ABuilding::AddCitizen(ACitizen* Citizen)
 {
-	if (GetCapacity() <= Occupied.Num())
+	if (GetCapacity() <= Occupied.Num() || !bOperate)
 		return false;
 
 	FOccupantStruct occupant;

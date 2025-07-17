@@ -175,7 +175,7 @@ void UConquestManager::StartConquest()
 			continue;
 
 		for (int32 i = 0; i < Camera->Grid->Stream.RandRange(25, 50); i++)
-			SpawnCitizenAtColony(tile, true);
+			SpawnCitizenAtColony(&tile, true);
 	}
 }
 
@@ -220,7 +220,7 @@ void UConquestManager::GiveResource()
 		}
 
 		if (value > 0)
-			ModifyCitizensEvent(tile, value, bNegative);
+			ModifyCitizensEvent(&tile, value, bNegative);
 
 		tile.HoursColonised++;
 
@@ -300,16 +300,16 @@ void UConquestManager::GiveResource()
 	}
 }
 
-void UConquestManager::SpawnCitizenAtColony(FWorldTileStruct& Tile, bool bAdult)
+void UConquestManager::SpawnCitizenAtColony(FWorldTileStruct* Tile, bool bAdult)
 {
 	FActorSpawnParameters params;
 	params.bNoFail = true;
 
 	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, FVector(0.0f, 0.0f, -10000.0f), FRotator::ZeroRotator, params);
 
-	citizen->SetSex(Tile.Citizens);
+	citizen->SetSex(Tile->Citizens);
 
-	Tile.Citizens.Add(citizen);
+	Tile->Citizens.Add(citizen);
 
 	for (int32 j = 0; j < 2; j++)
 		citizen->GivePersonalityTrait();
@@ -339,7 +339,7 @@ void UConquestManager::MoveToColony(FFactionStruct Faction, FWorldTileStruct Til
 		t->Owner = Faction.Name;
 
 		FString type = "Neutral";
-		FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+		FFactionStruct playerFaction = GetFactionFromOwner(EmpireName);
 
 		if (t->Owner == EmpireName || playerFaction.Allies.Contains(t->Owner))
 			type = "Good";
@@ -386,7 +386,7 @@ void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
 
 	FWorldTileStruct* targetTile = &World[index];
 
-	FFactionStruct& faction = GetFactionFromOwner(oldTile->Owner);
+	FFactionStruct faction = GetFactionFromOwner(oldTile->Owner);
 
 	FRaidStruct raid;
 	raid.Owner = faction.Name;
@@ -418,7 +418,7 @@ void UConquestManager::StartTransmissionTimer(ACitizen* Citizen)
 void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileStruct* Tile, ACitizen* Citizen)
 {
 	if (Tile->Owner != OldTile->Owner) {
-		FFactionStruct& faction = GetFactionFromOwner(OldTile->Owner);
+		FFactionStruct faction = GetFactionFromOwner(OldTile->Owner);
 
 		FRaidStruct raid;
 		raid.Owner = faction.Name;
@@ -447,9 +447,9 @@ void UConquestManager::AddCitizenToColony(FWorldTileStruct* OldTile, FWorldTileS
 
 			Tile->RaidParties[raidIndex].Raiders.Add(Citizen, index);
 
-			if (CanStartRaid(Tile, &GetFactionFromOwner(OldTile->Owner))) {
+			if (CanStartRaid(Tile, GetFactionFromOwner(OldTile->Owner))) {
 				FString type = "Neutral";
-				FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+				FFactionStruct playerFaction = GetFactionFromOwner(EmpireName);
 
 				if (Tile->Owner == EmpireName || playerFaction.Allies.Contains(Tile->Owner))
 					type = "Bad";
@@ -518,13 +518,13 @@ FWorldTileStruct* UConquestManager::GetColonyContainingCitizen(ACitizen* Citizen
 	return nullptr;
 }
 
-void UConquestManager::ModifyCitizensEvent(FWorldTileStruct& Tile, int32 Amount, bool bNegative)
+void UConquestManager::ModifyCitizensEvent(FWorldTileStruct* Tile, int32 Amount, bool bNegative)
 {
 	for (int32 i = 0; i < Amount; i++) {
 		if (bNegative) {
-			int32 index = Camera->Grid->Stream.RandRange(0, Tile.Citizens.Num() - 1);
+			int32 index = Camera->Grid->Stream.RandRange(0, Tile->Citizens.Num() - 1);
 
-			Tile.Citizens[index]->HealthComponent->TakeHealth(1000, Tile.Citizens[index]);
+			Tile->Citizens[index]->HealthComponent->TakeHealth(1000, Tile->Citizens[index]);
 		}
 		else {
 			SpawnCitizenAtColony(Tile);
@@ -550,26 +550,29 @@ FWorldTileStruct UConquestManager::GetTileInformation(int32 Index)
 	return tile;
 }
 
-FFactionStruct& UConquestManager::GetFactionFromOwner(FString Owner)
+int32 UConquestManager::GetFactionIndexFromOwner(FString Owner)
 {
-	for (FFactionStruct& faction : Factions) {
-		if (faction.Name != Owner)
+	for (int32 i = 0; i < Factions.Num(); i++) {
+		if (Factions[i].Name != Owner)
 			continue;
 
-		return faction;
+		return i;
 	}
 
-	UE_LOG(LogTemp, Fatal, TEXT("Faction not found"));
+	UE_LOGFMT(LogTemp, Fatal, "Faction not found");
+}
 
-	throw;
+FFactionStruct UConquestManager::GetFactionFromOwner(FString Owner)
+{
+	return Factions[GetFactionIndexFromOwner(Owner)];
 }
 
 void UConquestManager::SetFactionTexture(FString Owner, UTexture2D* Texture, FLinearColor Colour)
 {
-	FFactionStruct& faction = GetFactionFromOwner(Owner);
+	int32 i = GetFactionIndexFromOwner(Owner);
 
-	faction.Texture = Texture;
-	faction.Colour = Colour;
+	Factions[i].Texture = Texture;
+	Factions[i].Colour = Colour;
 
 	Camera->UpdateFactionImage();
 }
@@ -668,7 +671,7 @@ void UConquestManager::CancelMovement(ACitizen* Citizen)
 
 	tile->Moving.Remove(Citizen);
 	
-	if (target->RaidStarterName == EmpireName && CanStartRaid(target, &GetFactionFromOwner(EmpireName))) {
+	if (target->RaidStarterName == EmpireName && CanStartRaid(target, GetFactionFromOwner(EmpireName))) {
 		bool bEmptyRaid = true;
 
 		for (FRaidStruct raid : target->RaidParties) {
@@ -697,23 +700,23 @@ bool UConquestManager::CanCancelMovement(ACitizen* Citizen)
 	return true;
 }
 
-FFactionStruct& UConquestManager::GetCitizenFaction(ACitizen* Citizen)
+FFactionStruct UConquestManager::GetCitizenFaction(ACitizen* Citizen)
 {
+	FFactionStruct faction;
+
 	for (FWorldTileStruct& tile : World) {
 		if (!tile.Citizens.Contains(Citizen) || !tile.Moving.Contains(Citizen))
 			continue;
 
-		FFactionStruct& faction = GetFactionFromOwner(tile.Owner);
+		faction = GetFactionFromOwner(tile.Owner);
 
-		return faction;
+		break;
 	}
 
-	UE_LOG(LogTemp, Fatal, TEXT("Faction not found"));
-
-	throw;
+	return faction;
 }
 
-FWorldTileStruct* UConquestManager::FindCapital(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands)
+FWorldTileStruct* UConquestManager::FindCapital(FFactionStruct Faction, TArray<FWorldTileStruct*> OccupiedIslands)
 {
 	for (FWorldTileStruct* island : OccupiedIslands) {
 		if (!island->bCapital || island->Owner != Faction.Name)
@@ -1198,10 +1201,10 @@ void UConquestManager::Rebel(FFactionStruct Faction, TArray<FWorldTileStruct*> O
 			f.Texture = factionIcons[iconIndex].Texture;
 			f.Colour = factionIcons[iconIndex].Colour;
 
-			FFactionStruct& faction = GetFactionFromOwner(tile->Owner);
+			int32 i = GetFactionIndexFromOwner(tile->Owner);
 
-			f.AtWar.Add(faction.Name);
-			faction.AtWar.Add(f.Name);
+			f.AtWar.Add(Factions[i].Name);
+			Factions[i].AtWar.Add(f.Name);
 
 			tile->Owner = f.Name;
 			Factions.Add(f);
@@ -1233,7 +1236,7 @@ void UConquestManager::Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts)
 
 		int32 i = Factions.Find(Faction);
 
-		FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+		FFactionStruct playerFaction = GetFactionFromOwner(EmpireName);
 
 		int32 index = GetHappinessWithFaction(Faction, playerFaction);
 
@@ -1266,7 +1269,7 @@ int32 UConquestManager::GetIslandWorth(FWorldTileStruct Tile)
 
 void UConquestManager::BuyIsland(FWorldTileStruct Tile)
 {
-	if (!Camera->ResourceManager->TakeUniversalResource(Camera->ResourceManager->GetResourceFromCategory("Money"), GetIslandWorth(Tile), 0))
+	if (!Camera->ResourceManager->TakeUniversalResource(Camera->ResourceManager->GetResourcesFromCategory("Money")[0], GetIslandWorth(Tile), 0))
 		return;
 
 	FWorldTileStruct* island = nullptr;
@@ -1276,7 +1279,7 @@ void UConquestManager::BuyIsland(FWorldTileStruct Tile)
 
 	FWorldTileStruct capital;
 
-	FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+	FFactionStruct playerFaction = GetFactionFromOwner(EmpireName);
 
 	for (FWorldTileStruct& tile : World) {
 		if (!tile.bIsland || tile.Owner != island->Owner || !tile.bCapital)
@@ -1341,10 +1344,10 @@ bool UConquestManager::CanRaidIsland(FFactionStruct Faction, FWorldTileStruct Ti
 	return true;
 }
 
-bool UConquestManager::CanStartRaid(FWorldTileStruct* Tile, FFactionStruct* Occupier)
+bool UConquestManager::CanStartRaid(FWorldTileStruct* Tile, FFactionStruct Occupier)
 {
 	for (FWorldTileStruct& tile : World) {
-		if (!tile.bIsland || (tile.Owner != Occupier->Name && !Occupier->Allies.Contains(tile.Owner)))
+		if (!tile.bIsland || (tile.Owner != Occupier.Name && !Occupier.Allies.Contains(tile.Owner)))
 			continue;
 
 		for (auto& element : tile.Moving) {
@@ -1512,7 +1515,7 @@ void UConquestManager::EvaluateRaid(FWorldTileStruct* Tile)
 		Camera->SetIslandBeingRaided(*Tile, false); 
 		
 		FString type = "Neutral";
-		FFactionStruct& playerFaction = GetFactionFromOwner(EmpireName);
+		FFactionStruct playerFaction = GetFactionFromOwner(EmpireName);
 
 		if (Tile->Owner == EmpireName || playerFaction.Allies.Contains(Tile->Owner))
 			type = "Good";

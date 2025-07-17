@@ -923,11 +923,25 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 		AWork* work = Cast<AWork>(building);
 
 		for (ACitizen* citizen : work->GetOccupied()) {
-			if (citizen->HoursWorked.Contains(Hour))
-				citizen->HoursWorked.Remove(Hour);
+			if (!work->IsWorking(citizen))
+				continue;
 
-			if (work->IsWorking(citizen, Hour))
-				citizen->HoursWorked.Add(Hour);
+			FWorkHours workHours;
+			workHours.Work = work;
+
+			int32 index = citizen->HoursWorked.Find(workHours);
+
+			if (index == INDEX_NONE) {
+				workHours.Hours.Add(Hour);
+
+				citizen->HoursWorked.Add(workHours);
+			}
+			else {
+				if (citizen->HoursWorked[index].Hours.Contains(Hour))
+					citizen->HoursWorked[index].Hours.Remove(Hour);
+
+				citizen->HoursWorked[index].Hours.Add(Hour);
+			}
 		}
 
 		work->CheckWorkStatus(Hour);
@@ -937,6 +951,22 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 //
 // Citizen
 //
+void UCitizenManager::CheckUpkeepCosts()
+{
+	for (ACitizen* citizen : Citizens) {
+		int32 amount = 0;
+
+		for (FWorkHours workHours : citizen->HoursWorked)
+			amount += FMath::RoundHalfFromZero(workHours.Work->WagePerHour * workHours.Hours.Num());
+
+		citizen->Balance += amount;
+		citizen->Camera->ResourceManager->TakeUniversalResource(Money, amount, -100000);
+
+		if (IsValid(citizen->Building.House))
+			citizen->Building.House->GetRent(citizen);
+	}
+}
+
 void UCitizenManager::CheckCitizenStatus(int32 Hour)
 {
 	for (ACitizen* citizen : Citizens) {
@@ -2217,7 +2247,7 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 		int32 leftoverMoney = 0;
 
 		if (IsValid(Representative->Building.Employment))
-			leftoverMoney += Representative->Building.Employment->Wage;
+			leftoverMoney += Representative->Building.Employment->GetWage(Representative);
 
 		if (IsValid(Representative->Building.House))
 			leftoverMoney -= Representative->Building.House->Rent;
@@ -2240,7 +2270,7 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 	else if (Bill.BillType == "Representative Type") {
 		if (Bill.Value == 1 && !IsValid(Representative->Building.Employment))
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
-		else if (Bill.Value = 2 && Representative->Balance < 15)
+		else if (Bill.Value == 2 && Representative->Balance < 15)
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 

@@ -534,6 +534,8 @@ public:
 	void CheckWorkStatus(int32 Hour);
 
 	// Citizen
+	void CheckUpkeepCosts();
+
 	void CheckCitizenStatus(int32 Hour);
 
 	float GetAggressiveness(class ACitizen* Citizen);

@@ -122,8 +122,6 @@ public:
 
 	void SetGradualWetness();
 
-	void SetMaterialWetness(UMaterialInterface* MaterialInterface, float Value, UStaticMeshComponent* StaticMesh, USkeletalMeshComponent* SkeletalMesh);
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		UStaticMesh* CloudMesh;
 
@@ -156,4 +154,9 @@ public:
 
 	UPROPERTY()
 		class UNaturalDisasterComponent* NaturalDisasterComponent;
+
+	UPROPERTY()
+		TArray<FWetnessStruct> ProcessRainEffect;
+
+	FCriticalSection RainLock;
 };

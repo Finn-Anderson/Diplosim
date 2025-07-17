@@ -315,10 +315,14 @@ public:
 	virtual void OnBuilt();
 
 	// Upkeep
+	UPROPERTY()
+		bool bOperate;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		TSubclassOf<class AResource> Money;
 
-	virtual void UpkeepCost();
+	UFUNCTION(BlueprintCallable)
+		void AlterOperate();
 
 	// Citizens
 	UPROPERTY(BlueprintReadOnly, Category = "Capacity")

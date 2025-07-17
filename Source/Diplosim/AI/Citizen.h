@@ -242,6 +242,29 @@ struct FGeneticsStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FWorkHours
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		class AWork* Work;
+
+	UPROPERTY()
+		TArray<int32> Hours;
+
+	FWorkHours()
+	{
+		Work = nullptr;
+	}
+
+	bool operator==(const FWorkHours& other) const
+	{
+		return (other.Work == Work);
+	}
+};
+
+
 UCLASS()
 class DIPLOSIM_API ACitizen : public AAI
 {
@@ -359,7 +382,7 @@ public:
 		int32 IdealHoursWorkedMax;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Hours")
-		TArray<int32> HoursWorked;
+		TArray<FWorkHours> HoursWorked;
 
 	UPROPERTY()
 		ACitizen* CitizenHealing;
@@ -380,9 +403,6 @@ public:
 
 	// Food
 	void Eat();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Food")
-		TArray<TSubclassOf<class AResource>> Food;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Food")
 		int32 Hunger;

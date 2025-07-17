@@ -179,6 +179,9 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		Grid->Camera->CitizenManager->IssuePensions(hour);
 		Grid->Camera->CitizenManager->ItterateThroughSentences();
 
+		if (hour == 6)
+			Grid->Camera->CitizenManager->CheckUpkeepCosts();
+
 		Grid->Camera->ResourceManager->SetTrendOnHour(hour);
 
 		Grid->Camera->ConquestManager->GiveResource();

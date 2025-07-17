@@ -404,16 +404,18 @@ void UResourceManager::UpdateResourceUI(TSubclassOf<AResource> Resource)
 	});
 }
 
-TSubclassOf<AResource> UResourceManager::GetResourceFromCategory(FString Category)
+TArray<TSubclassOf<AResource>> UResourceManager::GetResourcesFromCategory(FString Category)
 {
+	TArray<TSubclassOf<AResource>> resources;
+
 	for (FResourceStruct resource : ResourceList) {
 		if (resource.Category != Category)
 			continue;
 
-		return resource.Type;
+		resources.Add(resource.Type);
 	}
 
-	return nullptr;
+	return resources;
 }
 
 //
@@ -514,7 +516,8 @@ int32 UResourceManager::GetCategoryTrend(FString Category)
 				continue;
 
 			if (building->IsA<AWork>())
-				overallTrend -= Cast<AWork>(building)->Wage * building->GetOccupied().Num();
+				for (ACitizen* citizen : Cast<AWork>(building)->GetOccupied())
+					overallTrend -= Cast<AWork>(building)->GetWage(citizen);
 			else if (building->IsA<AHouse>())
 				overallTrend += Cast<AHouse>(building)->Rent * building->GetOccupied().Num();
 		}

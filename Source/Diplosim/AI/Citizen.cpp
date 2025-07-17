@@ -144,7 +144,7 @@ void ACitizen::BeginPlay()
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
+	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
 
 	float r = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
 	float g = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
@@ -316,7 +316,7 @@ void ACitizen::FindJob(class AWork* Job, int32 TimeToCompleteDay)
 		AllocatedBuildings[1] = Job;
 	}
 	else {
-		int32 diff = Job->Wage - chosenWorkplace->Wage;
+		int32 diff = Job->GetAverageWage() - chosenWorkplace->GetWage(this);
 
 		int32* happiness = Happiness.Modifiers.Find("Work Happiness");
 
@@ -350,7 +350,7 @@ void ACitizen::FindHouse(class AHouse* House, int32 TimeToCompleteDay)
 	if (!IsValid(AllocatedBuildings[2]))
 		SetAcquiredTime(2, -1000.0f);
 
-	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(2) + TimeToCompleteDay || House->GetCapacity() == House->GetOccupied().Num() || Balance < House->Rent && (!IsValid(Building.Employment) || Building.Employment->Wage < House->Rent))
+	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(2) + TimeToCompleteDay || House->GetCapacity() == House->GetOccupied().Num() || Balance < House->Rent && (!IsValid(Building.Employment) || Building.Employment->GetWage(this) < House->Rent))
 		return;
 
 	AHouse* chosenHouse = Cast<AHouse>(AllocatedBuildings[2]);
@@ -362,7 +362,7 @@ void ACitizen::FindHouse(class AHouse* House, int32 TimeToCompleteDay)
 		int32 curLeftoverMoney = 0;
 
 		if (IsValid(Building.Employment))
-			curLeftoverMoney = Building.Employment->Wage;
+			curLeftoverMoney = Building.Employment->GetWage(this);
 		else
 			curLeftoverMoney = Balance;
 
@@ -711,8 +711,10 @@ void ACitizen::Eat()
 	TArray<int32> foodAmounts;
 	int32 totalAmount = 0;
 
-	for (int32 i = 0; i < Food.Num(); i++) {
-		int32 curAmount = Camera->ResourceManager->GetResourceAmount(Food[i]);
+	TArray<TSubclassOf<AResource>> foods = Camera->ResourceManager->GetResourcesFromCategory("Food");
+
+	for (TSubclassOf<AResource> food : foods) {
+		int32 curAmount = Camera->ResourceManager->GetResourceAmount(food);
 
 		foodAmounts.Add(curAmount);
 		totalAmount += curAmount;
@@ -771,7 +773,7 @@ void ACitizen::Eat()
 				selected -= foodAmounts[j];
 			}
 			else {
-				Camera->ResourceManager->TakeUniversalResource(Food[j], 1, 0);
+				Camera->ResourceManager->TakeUniversalResource(foods[j], 1, 0);
 
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
@@ -1658,7 +1660,16 @@ void ACitizen::SetHappiness()
 		else
 			Happiness.SetValue("Employed", 5);
 
-		if (HoursWorked.Num() < IdealHoursWorkedMin || HoursWorked.Num() > IdealHoursWorkedMax)
+		int32 hours = 0;
+
+		for (int32 i = HoursWorked.Num() - 1; i > -1; i--) {
+			if (Building.Employment != HoursWorked[i].Work && HoursWorked[i].Hours.IsEmpty())
+				HoursWorked.RemoveAt(i);
+			else
+				hours += HoursWorked[i].Hours.Num();
+		}
+
+		if (hours < IdealHoursWorkedMin || hours > IdealHoursWorkedMax)
 			Happiness.SetValue("Inadequate Hours Worked", -15);
 		else
 			Happiness.SetValue("Ideal Hours Worked", 10);

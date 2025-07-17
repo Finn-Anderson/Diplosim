@@ -32,7 +32,7 @@ AWork::AWork()
 	SphereComponent->SetupAttachment(RootComponent);
 	SphereComponent->SetSphereRadius(1500.0f);
 
-	Wage = 0;
+	WagePerHour = 0.0f;
 
 	bCanAttendEvents = true;
 	bEmergency = false;
@@ -75,23 +75,6 @@ void AWork::OnRadialOverlapBegin(class UPrimitiveComponent* OverlappedComp, clas
 void AWork::OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 
-}
-
-void AWork::UpkeepCost()
-{
-	int32 numPaid = 0;
-
-	for (ACitizen* citizen : GetOccupied()) {
-		if (!IsWorking(citizen))
-			continue;
-
-		citizen->Balance += Wage;
-
-		numPaid++;
-	}
-
-	int32 upkeep = Wage * numPaid;
-	Camera->ResourceManager->TakeUniversalResource(Money, upkeep, -100000);
 }
 
 bool AWork::AddCitizen(ACitizen* Citizen)
@@ -164,8 +147,6 @@ void AWork::AddToWorkHours(ACitizen* Citizen, bool bAdd)
 
 void AWork::CheckWorkStatus(int32 Hour)
 {
-	UpkeepCost();
-
 	if (IsA<ASchool>() && !GetCitizensAtBuilding().IsEmpty())
 		Cast<ASchool>(this)->AddProgress();
 
@@ -206,7 +187,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 	return false;
 }
 
-int32 AWork::GetHoursInADay(class ACitizen* Citizen)
+int32 AWork::GetHoursInADay(ACitizen* Citizen)
 {
 	int32 hours = 0;
 
@@ -220,6 +201,25 @@ int32 AWork::GetHoursInADay(class ACitizen* Citizen)
 	}
 
 	return hours;
+}
+
+int32 AWork::GetWage(ACitizen* Citizen)
+{
+	return WagePerHour * GetHoursInADay(Citizen);
+}
+
+int32 AWork::GetAverageWage()
+{
+	int32 averageHours = 0;
+
+	for (FWorkHoursStruct hoursStruct : WorkHours)
+		for (auto& element : hoursStruct.WorkHours)
+			if (element.Value == EWorkType::Work)
+				averageHours++;
+
+	averageHours /= Capacity;
+
+	return WagePerHour * averageHours;
 }
 
 void AWork::SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours)

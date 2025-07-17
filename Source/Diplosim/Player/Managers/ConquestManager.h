@@ -327,7 +327,7 @@ public:
 
 	void GiveResource();
 
-	void SpawnCitizenAtColony(FWorldTileStruct& Tile, bool bAdult = false);
+	void SpawnCitizenAtColony(FWorldTileStruct* Tile, bool bAdult = false);
 
 	UFUNCTION(BlueprintCallable)
 		void MoveToColony(FFactionStruct Faction, FWorldTileStruct Tile, class ACitizen* Citizen);
@@ -340,7 +340,9 @@ public:
 
 	FWorldTileStruct* GetColonyContainingCitizen(class ACitizen* Citizen);
 
-	void ModifyCitizensEvent(FWorldTileStruct& Tile, int32 Amount, bool bNegative);
+	void ModifyCitizensEvent(FWorldTileStruct* Tile, int32 Amount, bool bNegative);
+
+	int32 GetFactionIndexFromOwner(FString Owner);
 
 	UFUNCTION(BlueprintCallable)
 		bool CanTravel(class ACitizen* Citizen);
@@ -349,7 +351,7 @@ public:
 		FWorldTileStruct GetTileInformation(int32 Index);
 
 	UFUNCTION(BlueprintCallable)
-		FFactionStruct& GetFactionFromOwner(FString Owner);
+		FFactionStruct GetFactionFromOwner(FString Owner);
 
 	UFUNCTION(BlueprintCallable)
 		void SetFactionTexture(FString Owner, UTexture2D* Texture, FLinearColor Colour);
@@ -370,11 +372,11 @@ public:
 		bool CanCancelMovement(class ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
-		FFactionStruct& GetCitizenFaction(class ACitizen* Citizen);
+		FFactionStruct GetCitizenFaction(class ACitizen* Citizen);
 
 	void RemoveFromRecentlyMoved(class ACitizen* Citizen);
 
-	FWorldTileStruct* FindCapital(FFactionStruct& Faction, TArray<FWorldTileStruct*> OccupiedIslands);
+	FWorldTileStruct* FindCapital(FFactionStruct Faction, TArray<FWorldTileStruct*> OccupiedIslands);
 
 	bool IsCitizenMoving(class ACitizen* Citizen);
 	
@@ -476,7 +478,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool CanRaidIsland(FFactionStruct Faction, FWorldTileStruct Tile);
 
-	bool CanStartRaid(FWorldTileStruct* Tile, FFactionStruct* Occupier);
+	bool CanStartRaid(FWorldTileStruct* Tile, FFactionStruct Occupier);
 
 	void EvaluateRaid(FWorldTileStruct* Tile);
 

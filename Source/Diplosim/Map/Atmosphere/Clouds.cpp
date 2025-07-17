@@ -5,6 +5,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/ScopeTryLock.h"
 
 #include "AtmosphereComponent.h"
 #include "NaturalDisasterComponent.h"
@@ -120,6 +121,20 @@ void UCloudComponent::TickCloud(float DeltaTime)
 			}
 		}
 	}
+
+	Async(EAsyncExecution::Thread, [this, DeltaTime]() {
+		FScopeTryLock lock(&RainLock);
+		if (!lock.IsLocked())
+			return;
+
+		for (int32 i = ProcessRainEffect.Num() - 1; i > -1; i--) {
+			SetRainMaterialEffect(ProcessRainEffect[i].Value, ProcessRainEffect[i].Actor, ProcessRainEffect[i].HISM, ProcessRainEffect[i].Instance);
+
+			ProcessRainEffect.RemoveAt(i);
+		}
+
+		SetGradualWetness();
+	});
 }
 
 void UCloudComponent::Clear()
@@ -170,6 +185,8 @@ void UCloudComponent::ActivateCloud()
 
 	if (!Settings->GetRain())
 		chance = 1;
+
+	chance = 100;
 
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);
 	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
@@ -309,26 +326,31 @@ void UCloudComponent::UpdateSpawnedClouds()
 
 void UCloudComponent::RainCollisionHandler(FVector CollisionLocation)
 {
+	if (CollisionLocation.Z < 0.0f)
+		return;
+	
 	FHitResult hit(ForceInit);
 
-	if (GetWorld()->SweepSingleByChannel(hit, CollisionLocation, FVector::Zero(), Grid->GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(FVector(15.0f, 15.0f, 15.0f))))
+	if (GetWorld()->LineTraceSingleByChannel(hit, CollisionLocation, CollisionLocation - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Visibility))
 	{
-		if (hit.GetActor()->IsA<ABuilding>() || hit.GetActor()->IsA<AAI>() || hit.GetActor()->IsA<AEggBasket>())
-			SetRainMaterialEffect(1.0f, hit.GetActor());
-		else if (hit.Component != nullptr && hit.Component->IsA<UHierarchicalInstancedStaticMeshComponent>() && hit.Component != Grid->HISMRiver)
-			SetRainMaterialEffect(1.0f, nullptr, Cast<UHierarchicalInstancedStaticMeshComponent>(hit.Component), hit.Item);
+		FWetnessStruct rainDrop;
+		rainDrop.Value = 1.0f;
+
+		if (hit.GetActor()->IsA<ABuilding>() || hit.GetActor()->IsA<AAI>() || hit.GetActor()->IsA<AEggBasket>()) {
+			rainDrop.Actor = hit.GetActor();
+		}
+		else if (hit.Component != nullptr && hit.Component->IsA<UHierarchicalInstancedStaticMeshComponent>() && hit.Component != Grid->HISMRiver) {
+			rainDrop.HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.Component);
+			rainDrop.Instance = hit.Item;
+		}
+
+		ProcessRainEffect.Add(rainDrop);
 	}
 }
 
 void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
 {
-	if (!IsValid(Actor) && !IsValid(HISM))
-		return;
-	
-	FTransform transform;
-	HISM->GetInstanceTransform(Instance, transform);
-
-	if (transform.GetLocation().Z < 0.0f)
+	if ((!IsValid(Actor) && !IsValid(HISM)))
 		return;
 
 	if (Value == 1.0f) {
@@ -360,9 +382,6 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 	wetness.Create(Value, Actor, HISM, Instance, increment);
 
 	WetnessStruct.Add(wetness);
-
-	if (!GetWorld()->GetTimerManager().IsTimerActive(WetnessTimer))
-		GetWorld()->GetTimerManager().SetTimer(WetnessTimer, this, &UCloudComponent::SetGradualWetness, 0.02f, true, 0.0f);
 }
 
 void UCloudComponent::SetGradualWetness()
@@ -372,10 +391,10 @@ void UCloudComponent::SetGradualWetness()
 
 		if (WetnessStruct[i].Actor != nullptr) {
 			if (WetnessStruct[i].Actor->IsA<AAI>()) {
-				SetMaterialWetness(Cast<AAI>(WetnessStruct[i].Actor)->Mesh->GetMaterial(0), WetnessStruct[i].Value, nullptr, Cast<AAI>(WetnessStruct[i].Actor)->Mesh);
+				Cast<AAI>(WetnessStruct[i].Actor)->Mesh->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
 
-				if (WetnessStruct[i].Actor->IsA<ACitizen>())
-					SetMaterialWetness(Cast<ACitizen>(WetnessStruct[i].Actor)->HatMesh->GetMaterial(0), WetnessStruct[i].Value, Cast<ACitizen>(WetnessStruct[i].Actor)->HatMesh, nullptr);
+				if (WetnessStruct[i].Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(WetnessStruct[i].Actor)->HatMesh))
+					Cast<ACitizen>(WetnessStruct[i].Actor)->HatMesh->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
 			}
 			else {
 				UStaticMeshComponent* meshComp = nullptr;
@@ -385,7 +404,7 @@ void UCloudComponent::SetGradualWetness()
 				else
 					meshComp = Cast<AEggBasket>(WetnessStruct[i].Actor)->BasketMesh;
 
-				SetMaterialWetness(meshComp->GetMaterial(0), WetnessStruct[i].Value, meshComp, nullptr);
+				meshComp->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
 			}
 		}
 		else {
@@ -394,30 +413,5 @@ void UCloudComponent::SetGradualWetness()
 
 		if (WetnessStruct[i].Value <= 0.0f || WetnessStruct[i].Value >= 1.0f)
 			WetnessStruct.RemoveAt(i);
-	}
-
-	if (WetnessStruct.IsEmpty())
-		GetWorld()->GetTimerManager().ClearTimer(WetnessTimer);
-}
-
-void UCloudComponent::SetMaterialWetness(UMaterialInterface* MaterialInterface, float Value, UStaticMeshComponent* StaticMesh, USkeletalMeshComponent* SkeletalMesh)
-{
-	if (!IsValid(MaterialInterface))
-		return;
-	
-	UMaterialInstanceDynamic* material = nullptr;
-
-	if (MaterialInterface->IsA<UMaterialInstanceDynamic>())
-		material = Cast<UMaterialInstanceDynamic>(MaterialInterface);
-	else
-		material = UMaterialInstanceDynamic::Create(MaterialInterface, this);
-
-	material->SetScalarParameterValue("WetAlpha", Value);
-
-	if (!MaterialInterface->IsA<UMaterialInstanceDynamic>()) {
-		if (StaticMesh != nullptr)
-			StaticMesh->SetMaterial(0, material);
-		else
-			SkeletalMesh->SetMaterial(0, material);
 	}
 }

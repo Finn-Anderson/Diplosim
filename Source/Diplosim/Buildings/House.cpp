@@ -22,56 +22,53 @@ int32 AHouse::GetQuality()
 	return FMath::Clamp(Rent * 12, 0, QualityCap);
 }
 
-void AHouse::UpkeepCost()
+void AHouse::GetRent(ACitizen* Citizen)
 {
-	for (ACitizen* citizen : GetOccupied()) {
-		TArray<ACitizen*> family;
-		int32 total = citizen->Balance;
+	TArray<ACitizen*> family;
+	int32 total = Citizen->Balance;
 
-		FOccupantStruct occupant;
-		occupant.Occupant = citizen;
+	FOccupantStruct occupant;
+	occupant.Occupant = Citizen;
 
-		int32 index = Occupied.Find(occupant);
+	int32 index = Occupied.Find(occupant);
 
-		for (ACitizen* c : Occupied[index].Visitors) {
+	for (ACitizen* c : Occupied[index].Visitors) {
+		family.Add(c);
+
+		total += c->Balance;
+	}
+
+	if (total < Rent) {
+		for (ACitizen* c : Citizen->GetLikedFamily(false)) {
+			if (!IsValid(c->Building.House) || c->Balance - c->Building.House->Rent - Rent <= 0 || family.Contains(c))
+				continue;
+
 			family.Add(c);
 
 			total += c->Balance;
 		}
-
-		if (total < Rent) {
-			for (ACitizen* c : citizen->GetLikedFamily(false)) {
-				if (c->Balance < Rent || family.Contains(c))
-					continue;
-
-				family.Add(c);
-
-				total += c->Balance;
-			}
-		}
-
-		if (total < Rent) {
-			RemoveCitizen(citizen);
-		}
-		else {
-			for (int32 i = 0; i < Rent; i++) {
-				if (citizen->Balance == 0) {
-					index = Camera->Grid->Stream.RandRange(0, family.Num() - 1);
-
-					family[index]->Balance -= 1;
-
-					if (family[index]->Balance == 0)
-						family.RemoveAt(index);
-				}
-				else {
-					citizen->Balance -= 1;
-				}
-			}
-		}
 	}
 
-	int32 total = Rent * Occupied.Num();
-	Camera->ResourceManager->AddUniversalResource(Money, total);
+	if (total < Rent) {
+		RemoveCitizen(Citizen);
+	}
+	else {
+		for (int32 i = 0; i < Rent; i++) {
+			if (Citizen->Balance == 0) {
+				index = Camera->Grid->Stream.RandRange(0, family.Num() - 1);
+
+				family[index]->Balance -= 1;
+
+				if (family[index]->Balance == 0)
+					family.RemoveAt(index);
+			}
+			else {
+				Citizen->Balance -= 1;
+			}
+		}
+
+		Camera->ResourceManager->AddUniversalResource(Money, Rent);
+	}
 }
 
 void AHouse::Enter(ACitizen* Citizen)

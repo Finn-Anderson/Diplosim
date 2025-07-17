@@ -23,7 +23,7 @@ public:
 
 	int32 GetQuality();
 
-	virtual void UpkeepCost() override;
+	void GetRent(ACitizen* Citizen);
 
 	virtual void Enter(class ACitizen* Citizen) override;
 

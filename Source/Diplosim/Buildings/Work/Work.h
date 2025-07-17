@@ -60,9 +60,7 @@ public:
 
 	// Cost
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
-		int32 Wage;
-
-	virtual void UpkeepCost() override;
+		float WagePerHour;
 
 	// Citizens
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
@@ -90,6 +88,10 @@ public:
 	bool IsWorking(class ACitizen* Citizen, int32 Hour = -1);
 
 	int32 GetHoursInADay(class ACitizen* Citizen);
+
+	int32 GetWage(class ACitizen* Citizen);
+
+	int32 GetAverageWage();
 
 	UFUNCTION(BlueprintCallable)
 		void SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours);
