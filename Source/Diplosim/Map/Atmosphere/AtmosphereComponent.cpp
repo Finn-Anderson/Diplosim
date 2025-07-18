@@ -105,8 +105,6 @@ void UAtmosphereComponent::BeginPlay()
 
 	NaturalDisasterComponent->Grid = Grid;
 
-	ChangeWindDirection();
-
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	settings->Atmosphere = this;
 
@@ -202,12 +200,7 @@ void UAtmosphereComponent::ChangeWindDirection()
 
 	int32 time = Grid->Stream.RandRange(180.0f, 600.0f);
 
-	FLatentActionInfo info;
-	info.Linkage = 0;
-	info.CallbackTarget = this;
-	info.ExecutionFunction = "ChangeWindDirection";
-	info.UUID = GetUniqueID();
-	UKismetSystemLibrary::Delay(GetWorld(), time, info);
+	Grid->Camera->CitizenManager->CreateTimer("Wind", Grid, time, FTimerDelegate::CreateUObject(this, &UAtmosphereComponent::ChangeWindDirection), false);
 }
 
 void UAtmosphereComponent::SetWindDimensions(int32 Bound)

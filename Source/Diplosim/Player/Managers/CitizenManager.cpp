@@ -1432,16 +1432,7 @@ void UCitizenManager::ItterateThroughSentences()
 
 void UCitizenManager::ToggleOfficerLights(ACitizen* Officer, float Value)
 {
-	UStaticMesh* mesh = Officer->HatMesh->GetStaticMesh();
-
-	if (mesh->GetMaterial(1)->IsA<UMaterialInstanceDynamic>()) {
-		Cast<UMaterialInstanceDynamic>(mesh->GetMaterial(1))->SetScalarParameterValue("Toggle Lights", Value);
-	}
-	else {
-		UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(mesh->GetMaterial(1), this);
-		material->SetScalarParameterValue("Toggle Lights", Value);
-		mesh->SetMaterial(1, material);
-	}
+	Officer->HatMesh->SetCustomPrimitiveDataFloat(1, Value);
 }
 
 void UCitizenManager::CeaseAllInternalFighting()

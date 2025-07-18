@@ -61,9 +61,9 @@ void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
 	if (Launcher->IsA<ATower>()) {
 		FLinearColor colour = Cast<ATower>(Launcher)->Colour;
 
-		UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(ProjectileMesh->GetMaterial(0), this);
-		material->SetVectorParameterValue("Colour", colour);
-		ProjectileMesh->SetMaterial(0, material);
+		ProjectileMesh->SetCustomPrimitiveDataFloat(0, colour.R);
+		ProjectileMesh->SetCustomPrimitiveDataFloat(1, colour.G);
+		ProjectileMesh->SetCustomPrimitiveDataFloat(2, colour.B);
 
 		if (TrailSystem)
 			trail->SetVariableLinearColor(TEXT("Colour"), colour);

@@ -54,16 +54,16 @@ void UCloudComponent::TickCloud(float DeltaTime)
 		if (cloudStruct.Precipitation != nullptr)
 			cloudStruct.Precipitation->SetVariableVec3(TEXT("CloudLocation"), cloudStruct.HISMCloud->GetRelativeLocation());
 
-		UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(cloudStruct.HISMCloud->GetMaterial(0));
-		float opacity = 0.0f;
-		FHashedMaterialParameterInfo info;
-		info.Name = FScriptName("Opacity");
-		material->GetScalarParameterValue(info, opacity);
+		float oldOpacity = cloudStruct.HISMCloud->GetCustomPrimitiveData().Data[0];
+		float increment = DeltaTime;
 
-		if (!cloudStruct.bHide && opacity != 1.0f)
-			material->SetScalarParameterValue("Opacity", FMath::Clamp(opacity + DeltaTime, 0.0f, 1.0f));
-		else if (cloudStruct.bHide)
-			material->SetScalarParameterValue("Opacity", FMath::Clamp(opacity - DeltaTime, 0.0f, 1.0f));
+		if (cloudStruct.bHide)
+			increment *= -1.0f;
+
+		float newOpacity = FMath::Clamp(oldOpacity + increment, 0.0f, 1.0f);
+
+		if (oldOpacity != newOpacity)
+			cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(0, newOpacity);
 
 		double distance = FVector::Dist(location, Grid->GetActorLocation());
 
@@ -73,7 +73,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 
 			Clouds[i].bHide = true;
 
-			if (opacity == 0.0f) {
+			if (newOpacity == 0.0f) {
 				cloudStruct.HISMCloud->DestroyComponent();
 
 				Clouds.Remove(cloudStruct);
@@ -122,19 +122,13 @@ void UCloudComponent::TickCloud(float DeltaTime)
 		}
 	}
 
-	Async(EAsyncExecution::Thread, [this, DeltaTime]() {
-		FScopeTryLock lock(&RainLock);
-		if (!lock.IsLocked())
-			return;
+	for (int32 i = ProcessRainEffect.Num() - 1; i > -1; i--) {
+		SetRainMaterialEffect(ProcessRainEffect[i].Value, ProcessRainEffect[i].Actor, ProcessRainEffect[i].HISM, ProcessRainEffect[i].Instance);
 
-		for (int32 i = ProcessRainEffect.Num() - 1; i > -1; i--) {
-			SetRainMaterialEffect(ProcessRainEffect[i].Value, ProcessRainEffect[i].Actor, ProcessRainEffect[i].HISM, ProcessRainEffect[i].Instance);
+		ProcessRainEffect.RemoveAt(i);
+	}
 
-			ProcessRainEffect.RemoveAt(i);
-		}
-
-		SetGradualWetness();
-	});
+	SetGradualWetness();
 }
 
 void UCloudComponent::Clear()
@@ -149,11 +143,6 @@ void UCloudComponent::Clear()
 	Clouds.Empty();
 
 	Grid->Camera->CitizenManager->RemoveTimer("Cloud", Grid);
-}
-
-void UCloudComponent::StartCloudTimer()
-{
-	Grid->Camera->CitizenManager->CreateTimer("Cloud", Grid, 90.0f, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), true, true);
 }
 
 void UCloudComponent::ActivateCloud()
@@ -186,20 +175,25 @@ void UCloudComponent::ActivateCloud()
 	if (!Settings->GetRain())
 		chance = 1;
 
-	chance = 100;
-
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);
 	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(cloudStruct.HISMCloud->GetMaterial(0), this);
-	material->SetScalarParameterValue("Opacity", 0.0f);
+	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(0, 0.0f);
 
+	float colour = 0.95f;
 	if (chance > 75)
-		material->SetVectorParameterValue("Colour", FLinearColor(0.1f, 0.1f, 0.1f, 0.9f));
+		colour = 0.1f;
 
-	cloudStruct.HISMCloud->SetMaterial(0, material);
+	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(1, colour);
+	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(2, colour);
+	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(3, colour);
+	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(4, 0.9f);
 
-	Clouds.Add(cloudStruct); 
+	Clouds.Add(cloudStruct);
+
+	int32 time = Grid->Stream.RandRange(45.0f, 360.0f);
+
+	Grid->Camera->CitizenManager->CreateTimer("Cloud", Grid, time, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), false, true);
 }
 
 FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)

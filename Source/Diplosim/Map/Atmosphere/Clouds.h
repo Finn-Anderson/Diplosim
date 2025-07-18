@@ -103,8 +103,6 @@ public:
 
 	void Clear();
 
-	void StartCloudTimer();
-
 	UFUNCTION()
 		void ActivateCloud();
 
@@ -142,9 +140,6 @@ public:
 
 	UPROPERTY()
 		bool bSnow;
-
-	UPROPERTY()
-		FTimerHandle WetnessTimer;
 
 	UPROPERTY()
 		TArray<FWetnessStruct> WetnessStruct;

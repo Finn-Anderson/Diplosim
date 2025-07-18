@@ -50,22 +50,18 @@ void ADiplosimGameModeBase::Tick(float DeltaTime)
 
 	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
 		return;
-	
-	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(Camera->Grid->CrystalMesh->GetMaterial(0));
 
-	float opacity = 0.0f;
-	FHashedMaterialParameterInfo info;
-	info.Name = FScriptName("Opacity");
-	material->GetScalarParameterValue(info, opacity);
+	float oldOpacity = Camera->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0];
+	float increment = 0.005f;
 
-	if (TargetOpacity == 1.0f)
-		opacity = FMath::Clamp(opacity + 0.005f, 0.0f, 1.0f);
+	if (TargetOpacity != 1.0f)
+		increment *= -1.0f;
+
+	float newOpacity = FMath::Clamp(oldOpacity + increment, -0.01f, 1.0f);
+
+	if (oldOpacity != newOpacity)
+		Camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, newOpacity);
 	else
-		opacity = FMath::Clamp(opacity - 0.005f, -0.01f, 1.0f);
-
-	material->SetScalarParameterValue("Opacity", opacity);
-
-	if (opacity == -0.01f || opacity == 1.0f)
 		SetActorTickEnabled(false);
 }
 
@@ -269,12 +265,11 @@ void ADiplosimGameModeBase::ShowRaidCrystal(bool bShow, FVector Location)
 	g /= count;
 	b /= count;
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(Camera->Grid->CrystalMesh->GetMaterial(0), this);
-	material->SetScalarParameterValue("Opacity", 0.0f);
-	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
-	material->SetScalarParameterValue("Emissiveness", count / 10.0f);
-
-	Camera->Grid->CrystalMesh->SetMaterial(0, material);
+	Camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, 0.0f);
+	Camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(1, r);
+	Camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(2, g);
+	Camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(3, b);
+	Camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(5, count / 10.0f);
 
 	Camera->DisplayEvent("Upcoming", "Raid");
 }
@@ -354,9 +349,9 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations,
 
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, navLocation.Location, FRotator(0.0f), params);
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(enemy->Mesh->GetMaterial(0), enemy);
-	material->SetVectorParameterValue("Colour", Colour);
-	enemy->Mesh->SetMaterial(0, material);
+	enemy->Mesh->SetCustomPrimitiveDataFloat(1, Colour.R);
+	enemy->Mesh->SetCustomPrimitiveDataFloat(2, Colour.G);
+	enemy->Mesh->SetCustomPrimitiveDataFloat(3, Colour.B);
 
 	enemy->Colour = Colour;
 

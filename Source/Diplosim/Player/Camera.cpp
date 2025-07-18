@@ -137,6 +137,7 @@ void ACamera::BeginPlay()
 	ResourceManager->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	pcontroller->bEnableClickEvents = true;
 
 	SetMouseCapture(false);
 
@@ -206,6 +207,12 @@ void ACamera::Tick(float DeltaTime)
 
 	if (bMouseCapture)
 		pcontroller->SetMouseLocation(MousePosition.X, MousePosition.Y);
+
+	FSlateApplication& slate = FSlateApplication::Get();
+	TSet<FKey> keys = slate.GetPressedMouseButtons();
+
+	if (keys.Contains("LeftMouseButton"))
+		ClearPopUI();
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
@@ -387,6 +394,45 @@ void ACamera::ShowWarning(FString Warning)
 void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
 {
 	AsyncTask(ENamedThreads::GameThread, [this, Type, Message, IslandName]() { DisplayNotifyLog(Type, Message, IslandName); });
+}
+
+void ACamera::ClearPopUI()
+{
+	if (BribeUIInstance->IsInViewport()) {
+		BribeUIInstance->RemoveFromParent();
+
+		bWasClosingWindow = true;
+
+		return;
+	}
+	else if (ResearchHoverUIInstance->IsInViewport()) {
+		ResearchHoverUIInstance->RemoveFromParent();
+
+		bWasClosingWindow = true;
+
+		return;
+	}
+	else if (BuildingColourUIInstance->IsInViewport()) {
+		BuildingColourUIInstance->RemoveFromParent();
+
+		bWasClosingWindow = true;
+
+		return;
+	}
+	else if (FactionColourUIInstance->IsInViewport()) {
+		FactionColourUIInstance->RemoveFromParent();
+
+		bWasClosingWindow = true;
+
+		return;
+	}
+	else if (HoursUIInstance->IsInViewport()) {
+		HoursUIInstance->RemoveFromParent();
+
+		bWasClosingWindow = true;
+
+		return;
+	}
 }
 
 void ACamera::SetPause(bool bPause, bool bTickWhenPaused)
@@ -607,44 +653,6 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 {
 	if (Grid->LoadUIInstance->IsInViewport())
 		return;
-	
-	if (BribeUIInstance->IsInViewport()) {
-		BribeUIInstance->RemoveFromParent();
-
-		bWasClosingWindow = true;
-
-		return;
-	}
-
-	if (ResearchHoverUIInstance->IsInViewport()) {
-		ResearchHoverUIInstance->RemoveFromParent();
-
-		bWasClosingWindow = true;
-
-		return;
-	}
-
-	if (BuildingColourUIInstance->IsInViewport()) {
-		BuildingColourUIInstance->RemoveFromParent();
-
-		bWasClosingWindow = true;
-
-		return;
-	}
-	else if (FactionColourUIInstance->IsInViewport()) {
-		FactionColourUIInstance->RemoveFromParent();
-
-		bWasClosingWindow = true;
-
-		return;
-	}
-	else if (HoursUIInstance->IsInViewport()) {
-		HoursUIInstance->RemoveFromParent();
-
-		bWasClosingWindow = true;
-
-		return;
-	}
 	
 	if (bWasClosingWindow || bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || bBulldoze) {
 		bWasClosingWindow = false;

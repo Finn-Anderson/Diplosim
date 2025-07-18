@@ -144,14 +144,17 @@ void ABuilding::BeginPlay()
 		ChosenColour = FLinearColor(r, g, b);
 	}
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(BuildingMesh->GetMaterial(0), this);
-	material->SetVectorParameterValue("Colour", ChosenColour);
-	material->SetScalarParameterValue("Emissiveness", Emissiveness);
+	BuildingMesh->SetCustomPrimitiveDataFloat(1, ChosenColour.R);
+	BuildingMesh->SetCustomPrimitiveDataFloat(2, ChosenColour.G);
+	BuildingMesh->SetCustomPrimitiveDataFloat(3, ChosenColour.B);
 
+	BuildingMesh->SetCustomPrimitiveDataFloat(5, Emissiveness);
+
+	float blink = 0.0f;
 	if (bBlink)
-		material->SetScalarParameterValue("Blink", 1.0f);
+		blink = 1.0f;
 
-	BuildingMesh->SetMaterial(0, material);
+	BuildingMesh->SetCustomPrimitiveDataFloat(6, blink);
 
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 
@@ -172,12 +175,17 @@ void ABuilding::BeginPlay()
 
 void ABuilding::SetLights(int32 Hour)
 {
-	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(BuildingMesh->GetMaterial(0));
+	float oldLights = 0.0f;
+	if (BuildingMesh->GetCustomPrimitiveData().Data.Num() > 7)
+		oldLights = BuildingMesh->GetCustomPrimitiveData().Data[7];
+
+	float newLights = 0.0f;
 
 	if (Hour >= 18 || Hour < 6)
-		material->SetScalarParameterValue("Lights", 1.0f);
-	else
-		material->SetScalarParameterValue("Lights", 0.0f);
+		newLights = 1.0f;
+
+	if (oldLights != newLights)
+		BuildingMesh->SetCustomPrimitiveDataFloat(7, newLights);
 }
 
 void ABuilding::SetSeed(int32 Seed)
@@ -257,9 +265,9 @@ void ABuilding::SetSeed(int32 Seed)
 			meshComp->SetRelativeRotation(FRotator(0.0f, 90.0f * angle, 0.0f));
 			meshComp->RegisterComponent();
 
-			UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(meshComp->GetMaterial(0), this);
-			material->SetVectorParameterValue("Colour", ChosenColour);
-			meshComp->SetMaterial(0, material);
+			meshComp->SetCustomPrimitiveDataFloat(1, ChosenColour.R);
+			meshComp->SetCustomPrimitiveDataFloat(2, ChosenColour.G);
+			meshComp->SetCustomPrimitiveDataFloat(3, ChosenColour.B);
 
 			if (IsA<AFarm>()) {
 				meshComp->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
@@ -339,13 +347,15 @@ void ABuilding::SetTier(int32 Value)
 
 void ABuilding::SetBuildingColour(float R, float G, float B)
 {
-	FLinearColor chosenColour = FLinearColor(R, G, B);
+	BuildingMesh->SetCustomPrimitiveDataFloat(1, ChosenColour.R);
+	BuildingMesh->SetCustomPrimitiveDataFloat(2, ChosenColour.G);
+	BuildingMesh->SetCustomPrimitiveDataFloat(3, ChosenColour.B);
 
-	UMaterialInstanceDynamic* material = Cast<UMaterialInstanceDynamic>(BuildingMesh->GetMaterial(0));
-	material->SetVectorParameterValue("Colour", chosenColour);
-
-	if (IsA<ARoad>())
-		Cast<ARoad>(this)->HISMRoad->SetMaterial(0, material);
+	if (IsA<ARoad>()) {
+		Cast<ARoad>(this)->HISMRoad->SetCustomPrimitiveDataFloat(1, ChosenColour.R);
+		Cast<ARoad>(this)->HISMRoad->SetCustomPrimitiveDataFloat(2, ChosenColour.G);
+		Cast<ARoad>(this)->HISMRoad->SetCustomPrimitiveDataFloat(3, ChosenColour.B);
+	}
 }
 
 TArray<FItemStruct> ABuilding::GetRebuildCost()

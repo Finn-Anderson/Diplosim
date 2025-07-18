@@ -167,6 +167,8 @@ void AGrid::BeginPlay()
 
 	Camera->Grid = this;
 
+	AtmosphereComponent->ChangeWindDirection();
+
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	HISMRiver->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
 
@@ -217,17 +219,19 @@ void AGrid::Load()
 
 	Seed = "";
 
+	Camera->UpdateLoadingText("Initialising Map");
+
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::Render, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupMap, 0.001, false);
 }
 
-void AGrid::Render()
+void AGrid::SetupMap()
 {
 	// Set map limtis
 	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
 
 	for (int32 x = 0; x < bound; x++) {
-		auto &row = Storage.Emplace_GetRef();
+		auto& row = Storage.Emplace_GetRef();
 
 		for (int32 y = 0; y < bound; y++) {
 			FTileStruct tile;
@@ -263,7 +267,7 @@ void AGrid::Render()
 		}
 	}
 
-	TArray<FTileStruct*> peaksList;
+	PeaksList.Empty();
 
 	TArray<FTileStruct*> chooseableTiles = {};
 
@@ -307,7 +311,7 @@ void AGrid::Render()
 		// Get Tile and adjacent tiles
 		FTileStruct* chosenTile = nullptr;
 
-		if (peaksList.Num() < Peaks) {
+		if (PeaksList.Num() < Peaks) {
 			int32 x = Storage.Num();
 			int32 y = Storage[0].Num();
 
@@ -316,23 +320,23 @@ void AGrid::Render()
 
 			chosenTile = &Storage[chosenX][chosenY];
 
-			peaksList.Add(chosenTile);
+			PeaksList.Add(chosenTile);
 
-			if (peaksList.Num() == 2 && Type == EType::Mountain) {
-				float distance = FVector2D::Distance(FVector2D(peaksList[0]->X, peaksList[0]->Y), FVector2D(peaksList[1]->X, peaksList[1]->Y));
+			if (PeaksList.Num() == 2 && Type == EType::Mountain) {
+				float distance = FVector2D::Distance(FVector2D(PeaksList[0]->X, PeaksList[0]->Y), FVector2D(PeaksList[1]->X, PeaksList[1]->Y));
 
 				FVector2D p0 = FVector2D::Zero();
 				FVector2D p1 = FVector2D::Zero();
 				FVector2D p2 = FVector2D::Zero();
 				FVector2D p3 = FVector2D::Zero();
 
-				if (peaksList[0]->Y > peaksList[1]->Y) {
-					p0 = FVector2D(peaksList[1]->X, peaksList[1]->Y);
-					p3 = FVector2D(peaksList[0]->X, peaksList[0]->Y);
+				if (PeaksList[0]->Y > PeaksList[1]->Y) {
+					p0 = FVector2D(PeaksList[1]->X, PeaksList[1]->Y);
+					p3 = FVector2D(PeaksList[0]->X, PeaksList[0]->Y);
 				}
 				else {
-					p0 = FVector2D(peaksList[0]->X, peaksList[0]->Y);
-					p3 = FVector2D(peaksList[1]->X, peaksList[1]->Y);
+					p0 = FVector2D(PeaksList[0]->X, PeaksList[0]->Y);
+					p3 = FVector2D(PeaksList[1]->X, PeaksList[1]->Y);
 				}
 
 				FVector2D pHalf = (p0 + p3) / 2.0f;
@@ -365,7 +369,7 @@ void AGrid::Render()
 
 						chooseableTiles.Remove(element.Value);
 
-						peaksList.Add(element.Value);
+						PeaksList.Add(element.Value);
 
 						for (auto& e : element.Value->AdjacentTiles)
 							if (!chooseableTiles.Contains(e.Value) && e.Value->Level < 0)
@@ -378,7 +382,7 @@ void AGrid::Render()
 
 					chooseableTiles.Remove(tile);
 
-					peaksList.Add(tile);
+					PeaksList.Add(tile);
 
 					t += 0.01f;
 				}
@@ -394,7 +398,7 @@ void AGrid::Render()
 			for (FTileStruct* tile : chooseableTiles) {
 				int32 distance = 1000000000;
 
-				for (FTileStruct* peak : peaksList) {
+				for (FTileStruct* peak : PeaksList) {
 					int32 d = FVector2D::Distance(FVector2D(peak->X, peak->Y), FVector2D(tile->X, tile->Y));
 
 					if (distance > d)
@@ -403,7 +407,7 @@ void AGrid::Render()
 
 				int32 chosenDistance = 1000000000;
 
-				for (FTileStruct* peak : peaksList) {
+				for (FTileStruct* peak : PeaksList) {
 					int32 d = FVector2D::Distance(FVector2D(peak->X, peak->Y), FVector2D(chosenTile->X, chosenTile->Y));
 
 					if (chosenDistance > d)
@@ -428,10 +432,26 @@ void AGrid::Render()
 		levelCount--;
 	}
 
-	for (TArray<FTileStruct> &row : Storage)
-		for (FTileStruct &tile : row)
+	Camera->UpdateLoadingText("Cleaning Up Holes");
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::CleanupHoles, 0.001, false);
+}
+
+void AGrid::CleanupHoles()
+{
+	for (TArray<FTileStruct>& row : Storage)
+		for (FTileStruct& tile : row)
 			FillHoles(&tile);
 
+	Camera->UpdateLoadingText("Removing Pocket Seas");
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::RemovePocketSeas, 0.001, false);
+}
+
+void AGrid::RemovePocketSeas()
+{
 	for (TArray<FTileStruct>& row : Storage) {
 		for (FTileStruct& tile : row) {
 			SeaTiles.Empty();
@@ -446,11 +466,26 @@ void AGrid::Render()
 		}
 	}
 
+	Camera->UpdateLoadingText("Populating Tile Information");
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupTileInformation, 0.001, false);
+}
+
+void AGrid::SetupTileInformation()
+{
 	for (TArray<FTileStruct>& row : Storage)
 		for (FTileStruct& tile : row)
 			SetTileDetails(&tile);
 
-	// Spawn Rivers
+	Camera->UpdateLoadingText("Paving Rivers");
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::PaveRivers, 0.001, false);
+}
+
+void AGrid::PaveRivers()
+{
 	TArray<FTileStruct*> riverStartTiles;
 
 	for (TArray<FTileStruct>& row : Storage) {
@@ -491,7 +526,7 @@ void AGrid::Render()
 
 		FTileStruct* closestPeak = nullptr;
 
-		for (FTileStruct* peak : peaksList) {
+		for (FTileStruct* peak : PeaksList) {
 			if (closestPeak == nullptr) {
 				closestPeak = peak;
 
@@ -519,12 +554,19 @@ void AGrid::Render()
 
 				t->bEdge = true;
 			}
-		}	
+		}
 	}
 
+	Camera->UpdateLoadingText("Spawning Tiles");
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnTiles, 0.001, false);
+}
+
+void AGrid::SpawnTiles()
+{
 	ResourceTiles.Empty();
 
-	// Spawn Tiles
 	for (TArray<FTileStruct>& row : Storage) {
 		for (FTileStruct& tile : row) {
 			GenerateTile(&tile);
@@ -547,10 +589,17 @@ void AGrid::Render()
 	HISMRiver->BuildTreeIfOutdated(true, false);
 	HISMWall->BuildTreeIfOutdated(true, false);
 
-	// Spawn resources
+	Camera->UpdateLoadingText("Spawning Minerals");
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnMinerals, 0.001, false);
+}
+
+void AGrid::SpawnMinerals()
+{
 	int32 num = ResourceTiles.Num() / 2000;
 
-	TArray<TArray<FTileStruct*>> ValidMineralTiles;
+	ValidMineralTiles.Empty();
 
 	for (FTileStruct* tile : ResourceTiles) {
 		bool valid = true;
@@ -564,7 +613,7 @@ void AGrid::Render()
 		ValidMineralTiles.Add(tiles);
 	}
 
-	for (FResourceHISMStruct &ResourceStruct : MineralStruct) {
+	for (FResourceHISMStruct& ResourceStruct : MineralStruct) {
 		for (int32 i = 0; i < (num * ResourceStruct.Multiplier); i++) {
 			int32 chosenNum = Stream.RandRange(0, ValidMineralTiles.Num() - 1);
 			TArray<FTileStruct*> chosenTiles = ValidMineralTiles[chosenNum];
@@ -582,6 +631,16 @@ void AGrid::Render()
 			ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, false);
 		}
 	}
+
+	Camera->UpdateLoadingText("Spawning Vegetation");
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnVegetation, 0.001, false);
+}
+
+void AGrid::SpawnVegetation()
+{
+	int32 num = ResourceTiles.Num() / 2000;
 
 	TMap<int32, TArray<FResourceHISMStruct>> vegetation;
 	vegetation.Add(2, FlowerStruct);
@@ -630,6 +689,16 @@ void AGrid::Render()
 		}
 	}
 
+	Camera->UpdateLoadingText("Setting Up Environment");
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupEnvironment, 0.001, false);
+}
+
+void AGrid::SetupEnvironment()
+{
+	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
+
 	// Set Atmosphere Affects
 	SetSeasonAffect(AtmosphereComponent->Calendar.Period, 1.0f);
 
@@ -637,7 +706,6 @@ void AGrid::Render()
 
 	// Spawn clouds
 	AtmosphereComponent->Clouds->ActivateCloud();
-	AtmosphereComponent->Clouds->StartCloudTimer();
 
 	// Set Camera Bounds
 	FVector c1 = FVector(bound * 100, bound * 100, 0);
@@ -841,7 +909,9 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 	if (Tile->AdjacentTiles.Num() < 4) {
 		FTransform t = transform;
-		t.SetLocation(t.GetLocation() + FVector(0.0f, 0.0f, -200.0f));
+
+		if (t.GetLocation().Z != -200.0f)
+			t.SetLocation(t.GetLocation() + FVector(0.0f, 0.0f, -200.0f));
 
 		if (!Tile->AdjacentTiles.Find("Left")) {
 			t.SetLocation(t.GetLocation() + FVector(-100.0f, 0.0f, 0.0f));

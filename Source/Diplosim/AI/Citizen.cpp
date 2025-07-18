@@ -150,9 +150,9 @@ void ACitizen::BeginPlay()
 	float g = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
 	float b = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
 
-	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(Mesh->GetMaterial(0), this);
-	material->SetVectorParameterValue("Colour", FLinearColor(r, g, b));
-	Mesh->SetMaterial(0, material);
+	Mesh->SetCustomPrimitiveDataFloat(1, r);
+	Mesh->SetCustomPrimitiveDataFloat(2, g);
+	Mesh->SetCustomPrimitiveDataFloat(3, b);
 
 	GenerateGenetics();
 

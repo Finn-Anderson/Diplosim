@@ -171,7 +171,23 @@ public:
 	// Map
 	void Load();
 
-	void Render();
+	void SetupMap();
+
+	void CleanupHoles();
+
+	void RemovePocketSeas();
+
+	void SetupTileInformation();
+
+	void PaveRivers();
+
+	void SpawnTiles();
+
+	void SpawnMinerals();
+
+	void SpawnVegetation();
+
+	void SetupEnvironment();
 
 	UFUNCTION()
 		void OnNavMeshGenerated();
@@ -202,6 +218,10 @@ public:
 
 	UPROPERTY();
 		FRandomStream Stream;
+
+	TArray<FTileStruct*> PeaksList;
+
+	TArray<TArray<FTileStruct*>> ValidMineralTiles;
 
 	TArray<FTileStruct*> SeaTiles;
 

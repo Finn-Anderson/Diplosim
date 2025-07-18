@@ -93,18 +93,18 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 
 		float opacity = (MaxHealth - Health) / float(MaxHealth);
 
-		UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(OnHitEffect, GetOwner());
-		material->SetScalarParameterValue("Opacity", opacity);
-
 		if (GetOwner()->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(GetOwner());
 
 			Camera->ConstructionManager->AddBuilding(building, EBuildStatus::Damaged);
 
-			building->BuildingMesh->SetOverlayMaterial(material);
+			building->BuildingMesh->SetOverlayMaterial(OnHitEffect);
+			building->BuildingMesh->SetCustomPrimitiveDataFloat(6, opacity);
 		}
-		else
-			Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(material);
+		else {
+			Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(OnHitEffect);
+			Cast<AAI>(GetOwner())->Mesh->SetCustomPrimitiveDataFloat(8, opacity);
+		}
 
 		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("RemoveDamageOverlay", GetOwner());
 

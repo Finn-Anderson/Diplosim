@@ -141,6 +141,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateWorkHours(class ABuilding* Building, int32 Index);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateLoadingText(const FString& Message);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -373,6 +376,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void NotifyLog(FString Type, FString Message, FString IslandName);
+
+	void ClearPopUI();
 
 	void SetPause(bool bPause, bool bTickWhenPaused);
 
