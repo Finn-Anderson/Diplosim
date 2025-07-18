@@ -566,10 +566,11 @@ void AGrid::PaveRivers()
 void AGrid::SpawnTiles()
 {
 	ResourceTiles.Empty();
+	CalculatedTiles.Empty();
 
 	for (TArray<FTileStruct>& row : Storage) {
 		for (FTileStruct& tile : row) {
-			GenerateTile(&tile);
+			CalculateTile(&tile);
 
 			if (tile.Level < 0 || tile.Level > 4 || tile.bRiver || tile.bRamp)
 				continue;
@@ -577,6 +578,8 @@ void AGrid::SpawnTiles()
 			ResourceTiles.Add(&tile);
 		}
 	}
+
+	GenerateTiles();
 
 	for (TArray<FTileStruct>& row : Storage)
 		for (FTileStruct& tile : row)
@@ -898,14 +901,12 @@ TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
 	return tiles;
 }
 
-void AGrid::GenerateTile(FTileStruct* Tile)
+void AGrid::CalculateTile(FTileStruct* Tile)
 {
 	FTransform transform;
 	FVector loc = FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0.0f);
 	transform.SetLocation(loc);
 	transform.SetRotation(Tile->Rotation);
-
-	int32 inst;
 
 	if (Tile->AdjacentTiles.Num() < 4) {
 		FTransform t = transform;
@@ -915,34 +916,35 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 		if (!Tile->AdjacentTiles.Find("Left")) {
 			t.SetLocation(t.GetLocation() + FVector(-100.0f, 0.0f, 0.0f));
-			HISMFlatGround->AddInstance(t);
+			AddCalculatedTile(HISMFlatGround, t);
 		}
 
 		if (!Tile->AdjacentTiles.Find("Right")) {
 			t.SetLocation(t.GetLocation() + FVector(100.0f, 0.0f, 0.0f));
-			HISMFlatGround->AddInstance(t);
+			AddCalculatedTile(HISMFlatGround, t);
 		}
 
 		if (!Tile->AdjacentTiles.Find("Below")) {
 			t.SetLocation(t.GetLocation() + FVector(0.0f, -100.0f, 0.0f));
-			HISMFlatGround->AddInstance(t);
+			AddCalculatedTile(HISMFlatGround, t);
 		}
 
 		if (!Tile->AdjacentTiles.Find("Above")) {
 			t.SetLocation(t.GetLocation() + FVector(0.0f, 100.0f, 0.0f));
-			HISMFlatGround->AddInstance(t);
+			AddCalculatedTile(HISMFlatGround, t);
 		}
+
 	}
 
 	if (Tile->Level < 0) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, -200.0f));
 
-		inst = HISMFlatGround->AddInstance(transform);
+		AddCalculatedTile(HISMFlatGround, transform);
 	}
 	else if (bLava && Tile->Level == MaxLevel) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * (MaxLevel - 2)));
 
-		inst = HISMLava->AddInstance(transform);
+		AddCalculatedTile(HISMLava, transform);
 
 		LavaSpawnLocations.Add(transform.GetLocation());
 	}
@@ -950,19 +952,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 		transform.SetRotation(FRotator(0.0f).Quaternion());
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
 
-		float r = 0.0f + (76.0f / 5.0f * (5.0f - Tile->Level));
-		float g = 99.0f + (80.0f / 5.0f * (5.0f - Tile->Level));
-		float b = 255.0f;
-
-		r /= 255.0f;
-		g /= 255.0f;
-		b /= 255.0f;
-
-		inst = HISMRiver->AddInstance(transform);
-		HISMRiver->SetCustomDataValue(inst, 0, 1.0f);
-		HISMRiver->SetCustomDataValue(inst, 1, r);
-		HISMRiver->SetCustomDataValue(inst, 2, g);
-		HISMRiver->SetCustomDataValue(inst, 3, b);
+		AddCalculatedTile(HISMRiver, transform);
 
 		FTransform tf;
 		int32 num = Tile->Level - -1;
@@ -991,7 +981,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 				if (direction == "Left" || direction == "Right")
 					bOnYAxis = false;
 
-				CreateWaterfall(transform.GetLocation(), num, sign, bOnYAxis, r, g, b);
+				CreateWaterfall(transform.GetLocation(), num, sign, bOnYAxis);
 			}
 		}
 
@@ -1011,7 +1001,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 			if (t->Y == Tile->Y)
 				bOnYAxis = false;
 
-			CreateWaterfall(transform.GetLocation(), num, sign, bOnYAxis, r, g, b);
+			CreateWaterfall(transform.GetLocation(), num, sign, bOnYAxis);
 		}
 	}
 	else {
@@ -1020,52 +1010,8 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
 
-		float r = 0.0f;
-		float g = 0.0f;
-		float b = 0.0f;
-
-		if (Tile->Fertility == 0) {
-			r = 30.0f;
-			g = 20.0f;
-			b = 13.0f;
-		}
-		else if (Tile->Fertility == 1) {
-			r = 255.0f;
-			g = 225.0f;
-			b = 45.0f;
-		} 
-		else if (Tile->Fertility == 2) {
-			r = 152.0f;
-			g = 191.0f;
-			b = 100.0f;
-		}
-		else if (Tile->Fertility == 3) {
-			r = 86.0f;
-			g = 228.0f;
-			b = 68.0f;
-		}
-		else if (Tile->Fertility == 4) {
-			r = 52.0f;
-			g = 213.0f;
-			b = 31.0f;
-		}
-		else {
-			r = 36.0f;
-			g = 146.0f;
-			b = 21.0f;
-		}
-
-		r /= 255.0f;
-		g /= 255.0f;
-		b /= 255.0f;
-
 		if (Tile->bEdge) {
-			inst = HISMGround->AddInstance(transform);
-			HISMGround->SetCustomDataValue(inst, 0, 0.0f);
-			HISMGround->SetCustomDataValue(inst, 1, 1.0f);
-			HISMGround->SetCustomDataValue(inst, 2, r);
-			HISMGround->SetCustomDataValue(inst, 3, g);
-			HISMGround->SetCustomDataValue(inst, 4, b);
+			AddCalculatedTile(HISMGround, transform);
 		}
 		else {
 			int32 chance = Stream.RandRange(1, 100);
@@ -1092,14 +1038,7 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 			}
 
 			if (Tile->bRamp) {
-				transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
-
-				inst = HISMRampGround->AddInstance(transform);
-				HISMRampGround->SetCustomDataValue(inst, 0, 0.0f);
-				HISMRampGround->SetCustomDataValue(inst, 1, 1.0f);
-				HISMRampGround->SetCustomDataValue(inst, 2, r);
-				HISMRampGround->SetCustomDataValue(inst, 3, g);
-				HISMRampGround->SetCustomDataValue(inst, 4, b);
+				AddCalculatedTile(HISMRampGround, transform);
 			}
 			else {
 				bool bFlat = true;
@@ -1112,20 +1051,10 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 							bFlat = false;
 
 				if (bFlat) {
-					inst = HISMFlatGround->AddInstance(transform);
-					HISMFlatGround->SetCustomDataValue(inst, 0, 0.0f);
-					HISMFlatGround->SetCustomDataValue(inst, 1, 1.0f);
-					HISMFlatGround->SetCustomDataValue(inst, 2, r);
-					HISMFlatGround->SetCustomDataValue(inst, 3, g);
-					HISMFlatGround->SetCustomDataValue(inst, 4, b);
+					AddCalculatedTile(HISMFlatGround, transform);
 				}
 				else {
-					inst = HISMGround->AddInstance(transform);
-					HISMGround->SetCustomDataValue(inst, 0, 0.0f);
-					HISMGround->SetCustomDataValue(inst, 1, 1.0f);
-					HISMGround->SetCustomDataValue(inst, 2, r);
-					HISMGround->SetCustomDataValue(inst, 3, g);
-					HISMGround->SetCustomDataValue(inst, 4, b);
+					AddCalculatedTile(HISMGround, transform);
 
 					Tile->bEdge = true;
 				}
@@ -1134,7 +1063,108 @@ void AGrid::GenerateTile(FTileStruct* Tile)
 	}
 
 	Tile->Rotation = transform.GetRotation();
-	Tile->Instance = inst;
+}
+
+void AGrid::AddCalculatedTile(UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform)
+{
+	if (CalculatedTiles.Contains(HISM)) {
+		TArray<FTransform>* t = CalculatedTiles.Find(HISM);
+
+		t->Add(Transform);
+	}
+	else {
+		CalculatedTiles.Add(HISM, { Transform });
+	}
+}
+
+void AGrid::GenerateTiles()
+{
+	for (auto& element : CalculatedTiles) {
+		TArray<int32> instances = element.Key->AddInstances(element.Value, true);
+
+		for (int32 inst : instances) {
+			FTransform transform;
+			element.Key->GetInstanceTransform(inst, transform);
+
+			if (element.Key == HISMRiver) {
+				int32 level = FMath::RoundHalfFromZero(transform.GetLocation().Z / 75.0f);
+
+				float r = 0.0f + (76.0f / 5.0f * (5.0f - level));
+				float g = 99.0f + (80.0f / 5.0f * (5.0f - level));
+				float b = 255.0f;
+
+				r /= 255.0f;
+				g /= 255.0f;
+				b /= 255.0f;
+
+				HISMRiver->SetCustomDataValue(inst, 0, 1.0f);
+				HISMRiver->SetCustomDataValue(inst, 1, r);
+				HISMRiver->SetCustomDataValue(inst, 2, g);
+				HISMRiver->SetCustomDataValue(inst, 3, b);
+			}
+
+			if ((int32)transform.GetLocation().X % 100 != 0 || (int32)transform.GetLocation().Y % 100 != 0)
+				continue;
+
+			auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
+
+			int32 x = FMath::RoundHalfFromZero(transform.GetLocation().X / 100.0f) + (bound / 2);
+			int32 y = FMath::RoundHalfFromZero(transform.GetLocation().Y / 100.0f) + (bound / 2);
+
+			if (x >= bound || x < 0 || y >= bound || y < 0)
+				continue;
+
+			if (transform.GetLocation().Z >= 0.0f && (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround)) {
+				float r = 0.0f;
+				float g = 0.0f;
+				float b = 0.0f;
+
+				if (Storage[x][y].Fertility == 0) {
+					r = 30.0f;
+					g = 20.0f;
+					b = 13.0f;
+				}
+				else if (Storage[x][y].Fertility == 1) {
+					r = 255.0f;
+					g = 225.0f;
+					b = 45.0f;
+				}
+				else if (Storage[x][y].Fertility == 2) {
+					r = 152.0f;
+					g = 191.0f;
+					b = 100.0f;
+				}
+				else if (Storage[x][y].Fertility == 3) {
+					r = 86.0f;
+					g = 228.0f;
+					b = 68.0f;
+				}
+				else if (Storage[x][y].Fertility == 4) {
+					r = 52.0f;
+					g = 213.0f;
+					b = 31.0f;
+				}
+				else {
+					r = 36.0f;
+					g = 146.0f;
+					b = 21.0f;
+				}
+
+				r /= 255.0f;
+				g /= 255.0f;
+				b /= 255.0f;
+
+				inst = element.Key->AddInstance(transform);
+				element.Key->SetCustomDataValue(inst, 0, 0.0f);
+				element.Key->SetCustomDataValue(inst, 1, 1.0f);
+				element.Key->SetCustomDataValue(inst, 2, r);
+				element.Key->SetCustomDataValue(inst, 3, g);
+				element.Key->SetCustomDataValue(inst, 4, b);
+			}
+
+			Storage[x][y].Instance = inst;
+		}
+	}
 }
 
 void AGrid::CreateEdgeWalls(FTileStruct* Tile)
@@ -1208,7 +1238,7 @@ void AGrid::CreateEdgeWalls(FTileStruct* Tile)
 	}
 }
 
-void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis, float R, float G, float B)
+void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis)
 {
 	for (int32 i = 0; i < Num; i++) {
 		FTransform transform;
@@ -1222,11 +1252,7 @@ void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAx
 			transform.SetLocation(Location + FVector(30.0f * Sign, 0.0f, 30.0f - (100.0f * i)));
 		}
 
-		int32 wfInst = HISMRiver->AddInstance(transform);
-		HISMRiver->SetCustomDataValue(wfInst, 0, 1.0f);
-		HISMRiver->SetCustomDataValue(wfInst, 1, R);
-		HISMRiver->SetCustomDataValue(wfInst, 2, G);
-		HISMRiver->SetCustomDataValue(wfInst, 3, B);
+		AddCalculatedTile(HISMRiver, transform);
 	}
 }
 

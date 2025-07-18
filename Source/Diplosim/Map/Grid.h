@@ -202,11 +202,15 @@ public:
 
 	TArray<FTileStruct*> GenerateRiver(FTileStruct* Tile, FTileStruct* Peak);
 
-	void GenerateTile(FTileStruct* Tile);
+	void CalculateTile(FTileStruct* Tile);
+
+	void AddCalculatedTile(UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
+
+	void GenerateTiles();
 
 	void CreateEdgeWalls(FTileStruct* Tile);
 
-	void CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis, float R, float G, float B);
+	void CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis);
 
 	void Clear();
 
@@ -218,6 +222,8 @@ public:
 
 	UPROPERTY();
 		FRandomStream Stream;
+
+	TMap<UHierarchicalInstancedStaticMeshComponent*, TArray<FTransform>> CalculatedTiles;
 
 	TArray<FTileStruct*> PeaksList;
 
