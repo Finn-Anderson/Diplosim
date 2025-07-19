@@ -1038,6 +1038,8 @@ void AGrid::CalculateTile(FTileStruct* Tile)
 			}
 
 			if (Tile->bRamp) {
+				transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
+
 				AddCalculatedTile(HISMRampGround, transform);
 			}
 			else {

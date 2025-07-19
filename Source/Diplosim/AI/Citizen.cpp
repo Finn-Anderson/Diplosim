@@ -1321,7 +1321,7 @@ TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
 		if (IsValid(sibling) && Camera->CitizenManager->Citizens.Contains(sibling))
 			family.Add(sibling);
 
-	if (bFactorAge&& BioStruct.Age < Camera->CitizenManager->GetLawValue("Work Age"))
+	if (bFactorAge && BioStruct.Age < Camera->CitizenManager->GetLawValue("Work Age"))
 		return family;
 
 	for (int32 i = (family.Num() - 1); i > -1; i--) {
@@ -1543,17 +1543,23 @@ void ACitizen::SetHolliday(bool bStatus)
 	bHolliday = bStatus;
 }
 
-void ACitizen::SetConverstationHappiness(int32 Amount)
+void ACitizen::SetDecayHappiness(int32* HappinessToDecay, int32 Amount, int32 Min, int32 Max)
 {
-	ConversationHappiness = FMath::Clamp(ConversationHappiness + Amount, -24, 24);
+	int32 value = FMath::Clamp(*HappinessToDecay + Amount, Min, Max);
+
+	HappinessToDecay = &value;
 }
 
-void ACitizen::DecayConverstationHappiness()
+void ACitizen::DecayHappiness()
 {
-	if (ConversationHappiness < 0)
-		ConversationHappiness++;
-	else if (ConversationHappiness > 0)
-		ConversationHappiness--;
+	TArray<int32*> happinessToDecay = {&ConversationHappiness, &FamilyDeathHappiness, &WitnessedDeathHappiness};
+
+	for (int32* happiness : happinessToDecay) {
+		if (*happiness < 0)
+			happiness++;
+		else if (*happiness > 0)
+			happiness--;
+	}
 }
 
 int32 ACitizen::GetHappiness()
@@ -1609,11 +1615,11 @@ void ACitizen::SetHappiness()
 				Happiness.SetValue("Holy Place Nearby", 15);
 		}
 
-		bool bIsEvil = false;
+		bool bIsCruel = false;
 
 		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this))
 			if (personality->Trait == "Cruel")
-				bIsEvil = true;
+				bIsCruel = true;
 
 		bool bIsPark = false;
 
@@ -1627,7 +1633,7 @@ void ACitizen::SetHappiness()
 		}
 
 		if (bIsPark) {
-			if (bIsEvil)
+			if (bIsCruel)
 				Happiness.SetValue("Park Nearby", -5);
 			else
 				Happiness.SetValue("Park Nearby", 5);
@@ -1785,6 +1791,12 @@ void ACitizen::SetHappiness()
 		else if (lawTally > 1)
 			Happiness.SetValue("Represented", 15);
 	}
+
+	if (FamilyDeathHappiness != 0)
+		Happiness.SetValue("Recent family death", FamilyDeathHappiness);
+
+	if (WitnessedDeathHappiness != 0)
+		Happiness.SetValue("Witnessed death", WitnessedDeathHappiness);
 
 	if (Camera->ConquestManager->GetFactionFromOwner(Camera->ConquestManager->EmpireName).WarFatigue >= 120)
 		Happiness.SetValue("High War Fatigue", -15);

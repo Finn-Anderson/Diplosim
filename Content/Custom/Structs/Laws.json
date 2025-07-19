@@ -853,7 +853,7 @@
 				],
 				"Personalities": [
 					{
-						"Personality": "Evil",
+						"Personality": "Cruel",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					}
@@ -901,7 +901,7 @@
 				],
 				"Personalities": [
 					{
-						"Personality": "Evil",
+						"Personality": "Cruel",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					}
@@ -949,7 +949,7 @@
 				],
 				"Personalities": [
 					{
-						"Personality": "Evil",
+						"Personality": "Cruel",
 						"ForRange": [ 0, 0 ],
 						"AgainstRange": [ 1, 100 ]
 					}

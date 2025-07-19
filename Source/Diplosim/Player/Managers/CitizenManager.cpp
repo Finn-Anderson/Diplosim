@@ -906,9 +906,47 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		break;
 	}
 
-	for (FPersonality personality : Personalities)
-		if (personality.Citizens.Contains(Citizen))
-			personality.Citizens.Remove(Citizen);
+	for (ACitizen* citizen : Citizen->GetLikedFamily(false))
+		citizen->SetDecayHappiness(&citizen->FamilyDeathHappiness, -12);
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
+
+	TArray<AActor*> ignore;
+	ignore.Add(Cast<ACamera>(GetOwner())->Grid);
+
+	for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->MineralStruct)
+		ignore.Add(resourceStruct.Resource);
+
+	for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->FlowerStruct)
+		ignore.Add(resourceStruct.Resource);
+
+	TArray<AActor*> actors;
+
+	int32 reach = Citizen->Range / 15.0f;
+	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Citizen->GetActorLocation(), Citizen->Range, objects, nullptr, ignore, actors);
+
+	for (AActor* actor : actors) {
+		if (!actor->IsA<ACitizen>())
+			continue;
+
+		ACitizen* citizen = Cast<ACitizen>(actor);
+
+		if (citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden())
+			continue;
+
+		bool bIsCruel = false;
+
+		for (FPersonality* personality : GetCitizensPersonalities(citizen))
+			if (personality->Trait == "Cruel")
+				bIsCruel = true;
+
+		int32 happinessValue = -6;
+
+		if (bIsCruel)
+			happinessValue = 6;
+
+		citizen->SetDecayHappiness(&citizen->WitnessedDeathHappiness, happinessValue);
+	}
 }
 
 //
@@ -981,7 +1019,7 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 		else if (citizen->bSleep)
 			citizen->bSleep = false;
 
-		citizen->DecayConverstationHappiness();
+		citizen->DecayHappiness();
 	}
 }
 
@@ -1062,9 +1100,10 @@ void UCitizenManager::Interact(ACitizen* Citizen1, ACitizen* Citizen2)
 	int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 100);
 	int32 positiveConversationLikelihood = 50 + count * 25;
 
+	int32 happinessValue = 12;
+
 	if (chance > positiveConversationLikelihood) {
-		Citizen1->SetConverstationHappiness(-12);
-		Citizen2->SetConverstationHappiness(-12);
+		happinessValue = -12;
 
 		FVector midPoint = (Citizen1->GetActorLocation() + Citizen2->GetActorLocation()) / 2;
 		float distance = 1000;
@@ -1123,10 +1162,9 @@ void UCitizenManager::Interact(ACitizen* Citizen1, ACitizen* Citizen2)
 			}
 		}
 	}
-	else {
-		Citizen1->SetConverstationHappiness(12);
-		Citizen2->SetConverstationHappiness(12);
-	}
+
+	Citizen1->SetDecayHappiness(&Citizen1->ConversationHappiness, happinessValue);
+	Citizen2->SetDecayHappiness(&Citizen2->ConversationHappiness, happinessValue);
 
 	if (!Citizen1->AttackComponent->IsComponentTickEnabled()) {
 		Citizen1->AIController->DefaultAction();

@@ -273,6 +273,10 @@ void UHealthComponent::Clear(AActor* Attacker)
 			else {
 				Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, citizen->Balance);
 			}
+
+			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
+				if (personality->Citizens.Contains(citizen))
+					personality->Citizens.Remove(citizen);
 		}
 	}
 	else if (actor->IsA<AEnemy>()) {

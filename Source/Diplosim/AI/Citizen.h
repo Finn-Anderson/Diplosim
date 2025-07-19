@@ -498,13 +498,19 @@ public:
 	UPROPERTY()
 		int32 ConversationHappiness;
 
+	UPROPERTY()
+		int32 FamilyDeathHappiness;
+
+	UPROPERTY()
+		int32 WitnessedDeathHappiness;
+
 	void SetAttendStatus(EAttendStatus Status, bool bMass);
 
 	void SetHolliday(bool bStatus);
 
-	void SetConverstationHappiness(int32 Amount);
+	void SetDecayHappiness(int32* HappinessToDecay, int32 Amount, int32 Min = -24, int32 Max = 24);
 
-	void DecayConverstationHappiness();
+	void DecayHappiness();
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetHappiness();
