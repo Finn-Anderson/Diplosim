@@ -961,7 +961,7 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 		AWork* work = Cast<AWork>(building);
 
 		for (ACitizen* citizen : work->GetOccupied()) {
-			if (!work->IsWorking(citizen))
+			if (!work->IsWorking(citizen, Hour))
 				continue;
 
 			FWorkHours workHours;
@@ -984,6 +984,16 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 
 		work->CheckWorkStatus(Hour);
 	}
+}
+
+ERaidPolicy UCitizenManager::GetRaidPolicyStatus()
+{
+	ERaidPolicy policy = ERaidPolicy::Default;
+
+	if (!Enemies.IsEmpty())
+		policy = ERaidPolicy(GetLawValue("Raid Policy"));
+
+	return policy;
 }
 
 //
@@ -1476,8 +1486,11 @@ void UCitizenManager::ToggleOfficerLights(ACitizen* Officer, float Value)
 void UCitizenManager::CeaseAllInternalFighting()
 {
 	for (ACitizen* citizen : Citizens) {
-		if (citizen->AttackComponent->OverlappingEnemies.IsEmpty())
+		if (citizen->AttackComponent->OverlappingEnemies.IsEmpty()) {
+			citizen->AIController->DefaultAction();
+
 			continue;
+		}
 
 		for (int32 i = citizen->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
 			AActor* actor = citizen->AttackComponent->OverlappingEnemies[i];
@@ -2443,6 +2456,8 @@ void UCitizenManager::IssuePensions(int32 Hour)
 void UCitizenManager::Overthrow()
 {
 	CooldownTimer = 1500;
+
+	CeaseAllInternalFighting();
 
 	for (ACitizen* citizen : Citizens) {
 		if (GetMembersParty(citizen) == nullptr || GetMembersParty(citizen)->Party != "Shell Breakers")

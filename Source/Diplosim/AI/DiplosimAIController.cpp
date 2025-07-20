@@ -19,6 +19,7 @@
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Misc/Portal.h"
+#include "Universal/DiplosimGameModeBase.h"
 #include "Universal/Resource.h"
 #include "AttackComponent.h"
 #include "Player/Camera.h"
@@ -39,6 +40,20 @@ void ADiplosimAIController::DefaultAction()
 {
 	if (GetOwner()->IsA<ACitizen>() && !Cast<ACitizen>(GetOwner())->Rebel) {
 		ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bEmergency) {
+			AIMoveTo(citizen->Building.Employment);
+		}
+		else if (citizen->Camera->CitizenManager->GetRaidPolicyStatus() != ERaidPolicy::Default) {
+			ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+
+			if (citizen->Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Home)
+				AIMoveTo(citizen->Building.House);
+			else
+				AIMoveTo(gamemode->Broch);
+
+			return;
+		}
 
 		if (citizen->bConversing || citizen->Camera->CitizenManager->IsInAPoliceReport(citizen) || (citizen->AttackComponent->IsComponentTickEnabled() && citizen->Camera->CitizenManager->Enemies.IsEmpty()))
 			return;
@@ -65,7 +80,7 @@ void ADiplosimAIController::DefaultAction()
 			else
 				AIMoveTo(citizen->Building.Employment);
 		}
-		else if (citizen->Building.School != nullptr && citizen->Building.School->IsWorking(citizen))
+		else if (citizen->Building.School != nullptr && citizen->Building.School->IsWorking(citizen->Building.School->GetOccupant(citizen)))
 			AIMoveTo(citizen->Building.School);
 		else
 			Idle(citizen);

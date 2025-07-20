@@ -14,6 +14,7 @@
 #include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/School.h"
+#include "Buildings/Work/Production/ExternalProduction.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Universal/HealthComponent.h"
@@ -156,15 +157,9 @@ void AWork::CheckWorkStatus(int32 Hour)
 		return;
 
 	for (ACitizen* citizen : GetOccupied()) {
-		int32 prevHour = Hour - 1;
-
-		if (prevHour == -1)
-			prevHour = 23;
-
-		bool wasWorking = IsWorking(citizen, prevHour);
 		bool isWorkingNow = IsWorking(citizen, Hour);
 
-		if (isWorkingNow != wasWorking)
+		if ((isWorkingNow && !IsAtWork(citizen)) || (!isWorkingNow && IsAtWork(citizen)))
 			citizen->AIController->DefaultAction();
 	}
 }
@@ -181,8 +176,28 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 	EWorkType type = *hours.WorkHours.Find(Hour);
 
-	if (type == EWorkType::Work || bEmergency)
+	if ((type == EWorkType::Work && Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Default) || bEmergency)
 		return true;
+
+	return false;
+}
+
+bool AWork::IsAtWork(ACitizen* Citizen)
+{
+	if (Citizen->Building.BuildingAt == this)
+		return true;
+	else if (IsA<AExternalProduction>()) {
+		AExternalProduction* externalProduction = Cast<AExternalProduction>(this);
+
+		for (FValidResourceStruct validResource : externalProduction->Resources) {
+			for (FWorkerStruct workerStruct : validResource.Resource->WorkerStruct) {
+				if (!workerStruct.Citizens.Contains(Citizen))
+					continue;
+
+				return true;
+			}
+		}
+	}
 
 	return false;
 }

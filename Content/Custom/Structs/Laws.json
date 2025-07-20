@@ -1015,143 +1015,215 @@
 			}
 		},
 		{
-			"BillType": "Election",
+			"BillType": "Raid Policy",
 			"Bills": {
 				"Descriptions": [
 					{
-						"Description": "Call an election",
-						"Min": -1,
-						"Max": -1
-					}
-				],
-				"Warning": "",
-				"Value": -1,
-				"Parties": [],
-				"Personalities": []
-			}
-		},
-		{
-			"BillType": "Abolish",
-			"Bills": {
-				"Descriptions": [
+						"Description": "Act normal during raids",
+						"Min": 0,
+						"Max": 0
+					},
 					{
-						"Description": "Abolish the Egg Timer",
-						"Min": -1,
-						"Max": -1
+						"Description": "Go home during raids",
+						"Min": 1,
+						"Max": 1
+					},
+					{
+						"Description": "Protect the Egg Timer",
+						"Min": 2,
+						"Max": 2
 					}
 				],
-				"Warning": "THIS WILL END THE GAME",
-				"Value": -1,
+				"Warning": "These actions will exclude soliders and, if there is a plague, clinics",
+				"Value": 0,
 				"Parties": [
 					{
 						"Party": "Chicken Winged",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
+						"ForRange": [ 1, 2 ],
+						"AgainstRange": [ 0, 0 ]
 					},
 					{
 						"Party": "Free Range",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 2 ]
 					},
 					{
 						"Party": "The Scrambled Coalition",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 2 ]
 					},
 					{
 						"Party": "Golden Yolk",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 2 ]
 					},
 					{
 						"Party": "Shell Breakers",
-						"ForRange": [ -1, -1 ],
-						"AgainstRange": []
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 2 ]
 					}
 				],
 				"Personalities": [
 					{
-						"Personality": "Brave",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
 						"Personality": "Craven",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Diligent",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Lazy",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Outgoing",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Reserved",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Kind",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Cruel",
-						"ForRange": [ -1, -1 ],
-						"AgainstRange": []
-					},
-					{
-						"Personality": "Talented",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Inept",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 2 ]
 					},
 					{
 						"Personality": "Conscientious",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Careless",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Energetic",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
-					},
-					{
-						"Personality": "Lethargic",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
+						"ForRange": [ 1, 2 ],
+						"AgainstRange": [ 0, 0 ]
 					},
 					{
 						"Personality": "Workaholic",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 2 ]
 					},
 					{
 						"Personality": "Idler",
-						"ForRange": [],
-						"AgainstRange": [ -1, -1 ]
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 2 ]
 					}
 				]
+			},
+			{
+				"BillType": "Election",
+				"Bills": {
+					"Descriptions": [
+						{
+							"Description": "Call an election",
+							"Min": -1,
+							"Max": -1
+						}
+					],
+					"Warning": "",
+					"Value": -1,
+					"Parties": [],
+					"Personalities": []
+				}
+			},
+			{
+				"BillType": "Abolish",
+				"Bills": {
+					"Descriptions": [
+						{
+							"Description": "Abolish the Egg Timer",
+							"Min": -1,
+							"Max": -1
+						}
+					],
+					"Warning": "THIS WILL END THE GAME",
+					"Value": -1,
+					"Parties": [
+						{
+							"Party": "Chicken Winged",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Party": "Free Range",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Party": "The Scrambled Coalition",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Party": "Golden Yolk",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Party": "Shell Breakers",
+							"ForRange": [ -1, -1 ],
+							"AgainstRange": []
+						}
+					],
+					"Personalities": [
+						{
+							"Personality": "Brave",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Craven",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Diligent",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Lazy",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Outgoing",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Reserved",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Kind",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Cruel",
+							"ForRange": [ -1, -1 ],
+							"AgainstRange": []
+						},
+						{
+							"Personality": "Talented",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Inept",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Conscientious",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Careless",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Energetic",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Lethargic",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Workaholic",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						},
+						{
+							"Personality": "Idler",
+							"ForRange": [],
+							"AgainstRange": [ -1, -1 ]
+						}
+					]
+				}
 			}
-		}
 	]
 }

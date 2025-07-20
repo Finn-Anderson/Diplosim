@@ -87,6 +87,8 @@ public:
 
 	bool IsWorking(class ACitizen* Citizen, int32 Hour = -1);
 
+	bool IsAtWork(class ACitizen* Citizen);
+
 	int32 GetHoursInADay(class ACitizen* Citizen);
 
 	int32 GetWage(class ACitizen* Citizen);

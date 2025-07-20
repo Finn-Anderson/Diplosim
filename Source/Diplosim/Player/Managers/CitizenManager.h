@@ -472,6 +472,14 @@ struct FPoliceReport
 	}
 };
 
+UENUM()
+enum class ERaidPolicy : uint8
+{
+	Default,
+	Home,
+	EggTimer
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UCitizenManager : public UActorComponent
 {
@@ -532,6 +540,8 @@ public:
 
 	// Work
 	void CheckWorkStatus(int32 Hour);
+
+	ERaidPolicy GetRaidPolicyStatus();
 
 	// Citizen
 	void CheckUpkeepCosts();
