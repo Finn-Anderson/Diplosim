@@ -151,11 +151,6 @@ void AWork::CheckWorkStatus(int32 Hour)
 	if (IsA<ASchool>() && !GetCitizensAtBuilding().IsEmpty())
 		Cast<ASchool>(this)->AddProgress();
 
-	FEventStruct event;
-
-	if (Camera->CitizenManager->OngoingEvents().Contains(event) || (IsA<AClinic>() && (!Camera->CitizenManager->Infected.IsEmpty() || !Camera->CitizenManager->Injuries.IsEmpty())))
-		return;
-
 	for (ACitizen* citizen : GetOccupied()) {
 		bool isWorkingNow = IsWorking(citizen, Hour);
 
@@ -176,7 +171,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 	EWorkType type = *hours.WorkHours.Find(Hour);
 
-	if ((type == EWorkType::Work && Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Default) || bEmergency)
+	if ((type == EWorkType::Work && Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Default && !Camera->CitizenManager->IsAttendingEvent(Citizen)) || bEmergency || !Citizen->bHolliday)
 		return true;
 
 	return false;

@@ -986,7 +986,11 @@ void ACamera::SetEvent(FString Type, FString Period, int32 Day, int32 StartHour,
 	else
 		type = EEventType::Protest;
 
-	CitizenManager->CreateEvent(type, building, Period, Day, StartHour, EndHour, bRecurring, bFireFestival);
+	TArray<int32> hours;
+	for (int32 i = StartHour; i < EndHour; i++)
+		hours.Add(i);
+
+	CitizenManager->CreateEvent(type, building, nullptr, Period, Day, hours, bRecurring, {}, bFireFestival);
 }
 
 void ACamera::DamageActor(int32 Amount)

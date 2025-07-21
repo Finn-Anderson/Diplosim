@@ -76,6 +76,12 @@ struct FBioStruct
 		TWeakObjectPtr<class ACitizen> Partner;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		int32 HoursTogetherWithPartner;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		bool bMarried;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		ESex Sex;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
@@ -430,6 +436,8 @@ public:
 	void FindPartner();
 
 	void SetPartner(ACitizen* Citizen);
+
+	void IncrementHoursTogetherWithPartner();
 
 	void HaveChild();
 

@@ -113,9 +113,7 @@ void AFestival::OnBuilt()
 		if (event.Type != EEventType::Festival)
 			continue;
 
-		FEventTimeStruct time = Camera->CitizenManager->GetOngoingEventTimes(event);
-
-		StartFestival(time.bFireFestival);
+		StartFestival(event.bFireFestival);
 	}
 }
 

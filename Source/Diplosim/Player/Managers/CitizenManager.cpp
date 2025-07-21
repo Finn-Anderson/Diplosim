@@ -456,7 +456,13 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 					if (partyStruct == nullptr || partyStruct->Party != "Shell Breakers")
 						continue;
 
-					int32 max = 1000 + (citizen->GetHappiness() - 50) * 16;
+					int32 aggressiveness = 0;
+					TArray<FPersonality*> personalities = GetCitizensPersonalities(citizen);
+
+					for (FPersonality* personality : personalities)
+						aggressiveness += personality->Aggressiveness / personalities.Num();
+
+					int32 max = (1000 + (citizen->GetHappiness() - 50) * 16) / aggressiveness;
 
 					if (Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, max) != max)
 						continue;
@@ -1030,6 +1036,146 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 			citizen->bSleep = false;
 
 		citizen->DecayHappiness();
+		citizen->IncrementHoursTogetherWithPartner();
+	}
+
+	CheckForWeddings(Hour);
+}
+
+void UCitizenManager::CheckForWeddings(int32 Hour)
+{
+	TArray<ACitizen*> citizens = Citizens;
+
+	for (int32 i = citizens.Num() - 1; i > -1; i--) {
+		ACitizen* citizen = citizens[i];
+
+		if (citizen->BioStruct.Partner == nullptr || citizen->BioStruct.bMarried)
+			continue;
+
+		ACitizen* partner = Cast<ACitizen>(citizen->BioStruct.Partner);
+
+		citizens.Remove(partner);
+		citizens.RemoveAt(i);
+
+		i--;
+
+		if (IsAttendingEvent(citizen) || IsAttendingEvent(partner))
+			continue;
+
+		TArray<FPersonality*> personalities = GetCitizensPersonalities(citizen);
+		personalities.Append(GetCitizensPersonalities(partner));
+
+		int32 likelihood = 0;
+
+		for (FPersonality* personality : personalities)
+			if (personality->Affects.Contains("Marriage"))
+				likelihood += *personality->Affects.Find("Marriage");
+
+		int32 chance = citizen->Camera->Grid->Stream.RandRange(80, 150);
+		int32 likelihoodChance = likelihood * 10 + citizen->BioStruct.HoursTogetherWithPartner * 5;
+
+		if (likelihoodChance < chance)
+			continue;
+
+		TArray<FString> faiths;
+
+		if (citizen->Spirituality.Faith != "Atheist")
+			faiths.Add(citizen->Spirituality.Faith);
+
+		if (partner->Spirituality.Faith != "Atheist")
+			faiths.Add(partner->Spirituality.Faith);
+
+		int32 index = citizen->Camera->Grid->Stream.RandRange(0, faiths.Num() - 1);
+		FString chosenFaith = faiths[index];
+
+		ABroadcast* chosenChurch = nullptr;
+		ACitizen* priest = nullptr;
+
+		TArray<int32> weddingHours = { Hour };
+		for (int32 j = 0; j < 2; j++) {
+			int32 hour = Hour + j;
+
+			if (hour > 23)
+				hour -= 24;
+
+			weddingHours.Add(hour);
+		}
+
+		for (ABuilding* building : Buildings) {
+			if (!building->IsA<ABroadcast>())
+				continue;
+
+			ABroadcast* church = Cast<ABroadcast>(building);
+
+			if (!church->bHolyPlace || church->Belief != chosenFaith || church->GetOccupied().IsEmpty())
+				continue;
+
+			bool bAvailable = false;
+
+			for (ACitizen* p : church->GetOccupied()) {
+				if (IsAttendingEvent(p))
+					continue;
+
+				bool bWithinHours = true;
+				for (int32 hour : weddingHours)
+					if (!church->IsWorking(p, hour))
+						bWithinHours = false;
+
+				if (!bWithinHours)
+					continue;
+
+				bAvailable = true;
+				priest = p;
+
+				break;
+			}
+
+			if (!bAvailable)
+				continue;
+
+			if (chosenChurch == nullptr) {
+				chosenChurch = church;
+
+				continue;
+			}
+
+			double magnitude = citizen->AIController->GetClosestActor(400.0f, citizen->GetActorLocation(), chosenChurch->GetActorLocation(), church->GetActorLocation());
+
+			if (magnitude <= 0.0f)
+				continue;
+
+			chosenChurch = church;
+		}
+
+		if (!IsValid(chosenChurch))
+			continue;
+
+		for (FEventStruct event : Events) {
+			bool bContainsWeddingHour = false;
+
+			for (int32 hour : weddingHours) {
+				if (!event.Hours.Contains(hour))
+					continue;
+
+				bContainsWeddingHour = true;
+
+				break;
+			}
+
+			if (!bContainsWeddingHour)
+				continue;
+
+			if (chosenChurch->IsA(event.Building))
+				return;
+		}
+
+		TArray<ACitizen*> whitelist = { citizen, partner, priest };
+		whitelist.Append(citizen->GetLikedFamily(false));
+		whitelist.Append(partner->GetLikedFamily(false));
+
+		FCalendarStruct calendar = citizen->Camera->Grid->AtmosphereComponent->Calendar;
+
+		CreateEvent(EEventType::Marriage, nullptr, chosenChurch, "", calendar.Days[calendar.Index], weddingHours, false, whitelist);
 	}
 }
 
@@ -1307,7 +1453,7 @@ void UCitizenManager::InterrogateWitnesses(ACitizen* Officer, ACitizen* Citizen)
 			return;
 		}
 
-		if ((report.Impartial.Num() < report.AcussesTeam1.Num() || report.Impartial.Num() < report.AcussesTeam2.Num()) && (report.AcussesTeam1.Num() > report.AcussesTeam2.Num() + 1 || report.AcussesTeam2.Num() > report.AcussesTeam1.Num() + 1))
+		if (report.Type == EReportType::Protest || ((report.Impartial.Num() < report.AcussesTeam1.Num() || report.Impartial.Num() < report.AcussesTeam2.Num()) && (report.AcussesTeam1.Num() > report.AcussesTeam2.Num() + 1 || report.AcussesTeam2.Num() > report.AcussesTeam1.Num() + 1)))
 			GotoClosestWantedMan(Officer);
 
 		for (auto& element : report.Witnesses)
@@ -1325,7 +1471,7 @@ void UCitizenManager::GotoClosestWantedMan(ACitizen* Officer)
 
 		TArray<ACitizen*> wanted;
 
-		if (report.AcussesTeam1.Num() > report.AcussesTeam2.Num())
+		if (report.AcussesTeam1.Num() >= report.AcussesTeam2.Num())
 			wanted = report.Team1.GetTeam();
 		else
 			wanted = report.Team2.GetTeam();
@@ -1390,6 +1536,29 @@ void UCitizenManager::Arrest(ACitizen* Officer, ACitizen* Citizen)
 	Officer->AIController->StopMovement();
 	Citizen->AIController->StopMovement();
 
+	for (FPoliceReport report : PoliceReports) {
+		if (report.RespondingOfficer != Officer)
+			continue;
+
+		FString law = "Fighting Length";
+
+		if (report.Type == EReportType::Murder)
+			law = "Murder Length";
+		else if (report.Type == EReportType::Vandalism)
+			law = "Vandalism Length";
+		else if (report.Type == EReportType::Protest)
+			law = "Protest Length";
+
+		if (GetLawValue(law) == 0) {
+			PoliceReports.Remove(report);
+
+			Officer->AIController->DefaultAction();
+			Citizen->AIController->DefaultAction();
+
+			return;
+		}
+	}
+
 	UNiagaraFunctionLibrary::SpawnSystemAttached(ArrestSystem, Citizen->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 
 	CreateTimer("Arrest", Citizen, 2.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::SetInNearestJail, Officer, Citizen), false);
@@ -1449,6 +1618,8 @@ void UCitizenManager::SetInNearestJail(ACitizen* Officer, ACitizen* Citizen)
 			law = "Murder Length";
 		else if (report.Type == EReportType::Vandalism)
 			law = "Vandalism Length";
+		else if (report.Type == EReportType::Protest)
+			law = "Protest Length";
 
 		Arrested.Add(Citizen, GetLawValue(law));
 
@@ -1695,62 +1866,56 @@ void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
 //
 // Event
 //
-void UCitizenManager::CreateEvent(EEventType Type, TSubclassOf<class ABuilding> Building, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring, bool bFireFestival)
+void UCitizenManager::CreateEvent(EEventType Type, TSubclassOf<class ABuilding> Building, class ABuilding* Venue, FString Period, int32 Day, TArray<int32> Hours, bool bRecurring, TArray<ACitizen*> Whitelist, bool bFireFestival)
 {
 	FEventStruct event;
 	event.Type = Type;
-
-	int32 index = Events.Find(event);
-
-	FEventTimeStruct times;
-	times.Period = Period;
-	times.Day = Day;
-	times.StartHour = StartHour;
-	times.EndHour = EndHour;
-	times.bRecurring = bRecurring;
-	times.bFireFestival = bFireFestival;
-	
-	if (index != INDEX_NONE) {
-		Events[index].Times.Add(times);
-
-		return;
-	}
-
-	event.Times.Add(times);
+	event.Venue = Venue;
+	event.Period = Period;
+	event.Day = Day;
+	event.Hours = Hours;
+	event.bRecurring = bRecurring;
+	event.bFireFestival = bFireFestival;
 	event.Building = Building;
+	event.Whitelist = Whitelist;
+
+	if (event.Type == EEventType::Protest) {
+		ABuilding* building = Buildings[Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Buildings.Num() - 1)];
+
+		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+
+		FNavLocation location;
+		nav->GetRandomPointInNavigableRadius(building->GetActorLocation(), 400, location);
+
+		event.Location = location;
+	}
 
 	Events.Add(event);
 }
 
 void UCitizenManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 {
-	for (FEventStruct event : Events) {
+	for (FEventStruct& event : Events) {
 		FString command = "";
-		FEventTimeStruct time;
 
-		for (FEventTimeStruct times : event.Times) {
-			if (times.Period != "" && times.Day != 0 && times.Period != Period && times.Day != Day)
-				continue;
+		if (event.Period != "" && event.Day != 0 && event.Period != Period && event.Day != Day)
+			continue;
 
-			if (times.StartHour == Hour && !times.bStarted)
-				command = "start";
-			else if (times.EndHour == Hour && times.bStarted)
-				command = "end";
+		if (event.Hours.Contains(Hour) && !event.bStarted)
+			command = "start";
+		else if (event.Hours.Contains(Hour) && event.bStarted)
+			command = "end";
 
-			if (command != "") {
-				time = times;
-
-				break;
-			}
-		}
+		event.Hours.Remove(Hour);
 
 		if (command == "")
 			continue;
 
 		if (command == "start")
-			StartEvent(event, time);
+			StartEvent(event, Hour);
 		else
-			EndEvent(event, time);
+			EndEvent(event, Hour);
 	}
 }
 
@@ -1770,38 +1935,18 @@ TArray<FEventStruct> UCitizenManager::OngoingEvents()
 	for (FEventStruct event : Events) {
 		UAtmosphereComponent* atmosphere = Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent;
 
-		for (FEventTimeStruct times : event.Times) {
-			if (!times.bStarted)
-				continue;
+		if (!event.bStarted)
+			continue;
 
-			events.Add(event);
-		}
+		events.Add(event);
 	}
 
 	return events;
 }
 
-FEventTimeStruct UCitizenManager::GetOngoingEventTimes(FEventStruct event)
-{
-	UAtmosphereComponent* atmosphere = Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent;
-
-	FEventTimeStruct time;
-
-	for (FEventTimeStruct times : event.Times) {
-		if (!times.bStarted)
-			continue;
-
-		time = times;
-
-		break;
-	}
-
-	return time;
-}
-
 void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 {
-	if (IsAttendingEvent(Citizen) || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->IsWorking(Citizen)) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith && Citizen->BioStruct.Age >= 18) || Citizen->Camera->ConquestManager->IsCitizenMoving(Citizen))
+	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->IsWorking(Citizen)) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith && Citizen->BioStruct.Age >= 18) || Citizen->Camera->ConquestManager->IsCitizenMoving(Citizen))
 		return;
 
 	int32 index = Events.Find(Event);
@@ -1810,34 +1955,37 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 		Citizen->SetHolliday(true);
 	}
 	else if (Event.Type == EEventType::Protest) {
-		ABuilding* building = Buildings[Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Buildings.Num() - 1)];
+		if (Citizen->GetHappiness() >= 35)
+			return;
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-		FNavLocation location;
-		nav->GetRandomPointInNavigableRadius(building->GetActorLocation(), 400, location);
-
-		double length;
-		nav->GetPathLength(Citizen->GetActorLocation(), location, length);
-
-		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), location, Citizen, Citizen->NavQueryFilter);
+		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), Event.Location, Citizen, Citizen->NavQueryFilter);
 
 		Citizen->MovementComponent->SetPoints(path->PathPoints);
 
 		return;
 	}
-	else if (Event.Type == EEventType::Mass && Citizen->BioStruct.Age < 18) {
-		bool validReligion = false;
+	else if (Event.Type == EEventType::Mass) {
+		if (!IsValid(Citizen->Building.Employment) || !IsValid(Citizen->Building.BuildingAt) || Citizen->Building.Employment->IsA(Event.Building)) {
+			Citizen->AIController->AIMoveTo(Citizen->Building.Employment);
 
-		if (Citizen->BioStruct.Mother->IsValidLowLevelFast() && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->BioStruct.Mother->Spirituality.Faith || Citizen->BioStruct.Father->IsValidLowLevelFast() && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->BioStruct.Father->Spirituality.Faith)
+			Events[index].Attendees.Add(Citizen);
+
+			return;
+		}
+
+		bool validReligion = (Citizen->Spirituality.Faith == Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief);
+
+		if (Citizen->BioStruct.Age < 18 && (Citizen->BioStruct.Mother->IsValidLowLevelFast() && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->BioStruct.Mother->Spirituality.Faith || Citizen->BioStruct.Father->IsValidLowLevelFast() && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->BioStruct.Father->Spirituality.Faith))
 			validReligion = true;
 
 		if (!validReligion)
 			return;
 	}
 
-	AsyncTask(ENamedThreads::GameThread, [this, Citizen, Event]() {
+	AsyncTask(ENamedThreads::GameThread, [this, Citizen, Event, index]() {
 		ABuilding* chosenBuilding = nullptr;
 		ACitizen* chosenOccupant = nullptr;
 
@@ -1845,6 +1993,8 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 
 		if (IsValid(Event.Building))
 			UGameplayStatics::GetAllActorsOfClass(GetWorld(), Event.Building, actors);
+		else if (IsValid(Event.Venue))
+			actors.Add(Event.Venue);
 
 		for (AActor* actor : actors) {
 			ABuilding* building = Cast<ABuilding>(actor);
@@ -1853,22 +2003,20 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 			if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || (Event.Type == EEventType::Mass && building->GetOccupied().IsEmpty()) || (Event.Type == EEventType::Festival && !Cast<AFestival>(building)->bCanHostFestival))
 				continue;
 
-			if (Event.Type == EEventType::Festival || Event.Type == EEventType::Mass) {
-				bool bSpace = false;
+			bool bSpace = false;
 
-				for (ACitizen* occpnt : building->GetOccupied()) {
-					if (building->GetVisitors(occpnt).Num() == building->Space)
-						continue;
-
-					occupant = occpnt;
-					bSpace = true;
-
-					break;
-				}
-
-				if (!bSpace)
+			for (ACitizen* occpnt : building->GetOccupied()) {
+				if (building->GetVisitors(occpnt).Num() == building->Space)
 					continue;
+
+				occupant = occpnt;
+				bSpace = true;
+
+				break;
 			}
+
+			if (!bSpace)
+				continue;
 
 			if (chosenBuilding == nullptr) {
 				chosenBuilding = building;
@@ -1887,7 +2035,6 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 		}
 
 		if (chosenBuilding != nullptr) {
-			int32 index = Events.Find(Event);
 			Events[index].Attendees.Add(Citizen);
 
 			chosenBuilding->AddVisitor(chosenOccupant, Citizen);
@@ -1897,43 +2044,50 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 	});
 }
 
-void UCitizenManager::StartEvent(FEventStruct Event, FEventTimeStruct Time)
+void UCitizenManager::StartEvent(FEventStruct Event, int32 Hour)
 {
 	int32 index = Events.Find(Event);
-	int32 i = Events[index].Times.Find(Time);
 
-	Events[index].Times[i].bStarted = true;
+	Events[index].bStarted = true;
 	
-	if (Event.Type == EEventType::Holliday || Event.Type == EEventType::Festival) {
+	if (Event.Type != EEventType::Protest) {
 		for (ABuilding* building : Buildings) {
 			if (building->IsA<AWork>())
-				Cast<AWork>(building)->CheckWorkStatus(Time.StartHour);
+				Cast<AWork>(building)->CheckWorkStatus(Hour);
 			else if (building->IsA<AFestival>() && Event.Type == EEventType::Festival)
-				Cast<AFestival>(building)->StartFestival(Time.bFireFestival);
+				Cast<AFestival>(building)->StartFestival(Event.bFireFestival);
 		}
 	}
+
+	TArray<ACitizen*> citizens = Citizens;
+	if (!Event.Whitelist.IsEmpty())
+		citizens = Event.Whitelist;
 	
-	for (ACitizen* citizen : Citizens)
+	for (ACitizen* citizen : citizens)
 		GotoEvent(citizen, Event);
+
+	if (Event.Type == EEventType::Protest && GetLawValue("Protest Length") > 0) {
+		FPoliceReport report;
+		report.Type = EReportType::Protest;
+		report.Team1.Instigator = Events[index].Attendees[0];
+		report.Team1.Assistors = Events[index].Attendees;
+		report.Team1.Assistors.RemoveAt(0);
+
+		PoliceReports.Add(report);
+	}
 
 	Cast<ACamera>(GetOwner())->DisplayEvent("Event", EnumToString<EEventType>(Event.Type));
 }
 
-void UCitizenManager::EndEvent(FEventStruct Event, FEventTimeStruct Time)
+void UCitizenManager::EndEvent(FEventStruct Event, int32 Hour)
 {
-	int32 index = Events.Find(Event);
-	int32 i = Events[index].Times.Find(Time);
-	
 	Event.Attendees.Empty();
-	Events[index].Times[i].bStarted = false;
-
-	if (!Time.bRecurring)
-		Events[index].Times.RemoveAt(i);
+	Event.bStarted = false;
 
 	if (Event.Type == EEventType::Holliday || Event.Type == EEventType::Festival) {
 		for (ABuilding* building : Buildings) {
 			if (building->IsA<AWork>())
-				Cast<AWork>(building)->CheckWorkStatus(Time.EndHour);
+				Cast<AWork>(building)->CheckWorkStatus(Hour);
 			else if (building->IsA<AFestival>() && Event.Type == EEventType::Festival)
 				Cast<AFestival>(building)->StopFestival();
 		}
@@ -1963,6 +2117,23 @@ void UCitizenManager::EndEvent(FEventStruct Event, FEventTimeStruct Time)
 		if (!IsValid(Event.Building))
 			citizen->AIController->DefaultAction();
 	}
+
+	int32 index = Events.Find(Event);
+
+	if (!Event.bRecurring && Event.Hours.IsEmpty())
+		Events.RemoveAt(index);
+}
+
+bool UCitizenManager::UpcomingProtest()
+{
+	for (FEventStruct event : Events) {
+		if (event.Type != EEventType::Protest)
+			continue;
+
+		return true;
+	}
+
+	return false;
 }
 
 //

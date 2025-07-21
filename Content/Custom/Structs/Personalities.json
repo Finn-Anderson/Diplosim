@@ -8,6 +8,10 @@
 				{
 					"Affect": "Damage",
 					"Amount": 1.50
+				},
+				{
+					"Affect": "Marriage",
+					"Amount": 1
 				}
 			],
 			"Aggressiveness": 1.5
@@ -20,6 +24,10 @@
 				{
 					"Affect": "Damage",
 					"Amount": 0.50
+				},
+				{
+					"Affect": "Marriage",
+					"Amount": -1
 				}
 			],
 			"Aggressiveness": 0.5
@@ -48,6 +56,10 @@
 				{
 					"Affect": "Ideal Horus Slept",
 					"Amount": 10
+				},
+				{
+					"Affect": "Marriage",
+					"Amount": -2
 				}
 			],
 			"Aggressiveness": 0.75
@@ -64,6 +76,10 @@
 				{
 					"Affect": "Ideal Horus Slept",
 					"Amount": 6
+				},
+				{
+					"Affect": "Marriage",
+					"Amount": 2
 				}
 			],
 			"Aggressiveness": 1.0
@@ -124,12 +140,24 @@
 			"Trait": "Conscientious",
 			"Likes": [ "Diligent", "Kind", "Talented" ],
 			"Dislikes": [ "Lazy", "Cruel", "Inept", "Careless" ],
+			"Affects": [
+				{
+					"Affect": "Marriage",
+					"Amount": -2
+				}
+			],
 			"Aggressiveness": 0.8
 		},
 		{
 			"Trait": "Careless",
 			"Likes": [ "Lazy", "Reserved", "Kind", "Lethargic" ],
 			"Dislikes": [ "Diligent", "Cruel", "Conscientious" ],
+			"Affects": [
+				{
+					"Affect": "Marriage",
+					"Amount": 2
+				}
+			],
 			"Aggressiveness": 1.2
 		},
 		{

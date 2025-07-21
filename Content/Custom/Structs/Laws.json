@@ -833,7 +833,7 @@
 					{
 						"Party": "Free Range",
 						"ForRange": [ 0, 100 ],
-						"AgainstRange": [  ]
+						"AgainstRange": []
 					},
 					{
 						"Party": "The Scrambled Coalition",
@@ -881,7 +881,7 @@
 					{
 						"Party": "Free Range",
 						"ForRange": [ 0, 100 ],
-						"AgainstRange": [ ]
+						"AgainstRange": []
 					},
 					{
 						"Party": "The Scrambled Coalition",
@@ -929,7 +929,7 @@
 					{
 						"Party": "Free Range",
 						"ForRange": [ 0, 100 ],
-						"AgainstRange": [  ]
+						"AgainstRange": []
 					},
 					{
 						"Party": "The Scrambled Coalition",
@@ -940,6 +940,54 @@
 						"Party": "Golden Yolk",
 						"ForRange": [ 24, 100 ],
 						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Shell Breakers",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": "Cruel",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					}
+				]
+			}
+		},
+		{
+			"BillType": "Protest Length",
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Set protesting jail lentgh to X hours",
+						"Min": 0,
+						"Max": 600
+					}
+				],
+				"Warning": "",
+				"Value": 0,
+				"Parties": [
+					{
+						"Party": "Chicken Winged",
+						"ForRange": [ 3, 100 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Free Range",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
+					},
+					{
+						"Party": "The Scrambled Coalition",
+						"ForRange": [ 1, 5 ],
+						"AgainstRange": [ 0, 100 ]
+					},
+					{
+						"Party": "Golden Yolk",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 100 ]
 					},
 					{
 						"Party": "Shell Breakers",

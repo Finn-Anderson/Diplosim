@@ -992,7 +992,7 @@ void ACitizen::Birthday()
 	else if (BioStruct.Partner != nullptr && BioStruct.Sex == ESex::Female)
 		AsyncTask(ENamedThreads::GameThread, [this]() { HaveChild(); });
 
-	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr && !Camera->Start)
+	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
 		FindPartner();
 
 	if (!Camera->CitizenManager->Citizens.Contains(this))
@@ -1169,6 +1169,15 @@ void ACitizen::FindPartner()
 void ACitizen::SetPartner(ACitizen* Citizen)
 {
 	BioStruct.Partner = Citizen;
+	BioStruct.HoursTogetherWithPartner = 0;
+}
+
+void ACitizen::IncrementHoursTogetherWithPartner()
+{
+	if (BioStruct.Partner == nullptr)
+		return;
+
+	BioStruct.HoursTogetherWithPartner++;
 }
 
 void ACitizen::HaveChild()
@@ -1811,14 +1820,15 @@ void ACitizen::SetHappiness()
 		SadTimer = 0;
 	}
 
-	if (SadTimer == 300) {
-		FEventStruct event;
-		event.Type = EEventType::Protest;
+	if (SadTimer == 300 && !Camera->CitizenManager->UpcomingProtest()) {
+		int32 startHour = Camera->Grid->Stream.RandRange(6, 9);
+		int32 endHour = Camera->Grid->Stream.RandRange(12, 18);
 
-		int32 index = Camera->CitizenManager->Events.Find(event);
-		
-		if (Camera->CitizenManager->Events[index].Times.IsEmpty())
-			Camera->CitizenManager->CreateEvent(EEventType::Protest, nullptr, "", 0, Camera->Grid->Stream.RandRange(6, 9), Camera->Grid->Stream.RandRange(12, 18), false);
+		TArray<int32> hours;
+		for (int32 i = startHour; i < endHour; i++)
+			hours.Add(i);
+
+		Camera->CitizenManager->CreateEvent(EEventType::Protest, nullptr, nullptr, "", 0, hours, false, {});
 	}
 }
 
@@ -1960,8 +1970,6 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 
 		personalities.RemoveAt(i);
 	}
-
-	//auto index = Async(EAsyncExecution::TaskGraph, [this, personalities]() { return  });
 
 	int32 index = Camera->Grid->Stream.RandRange(0, personalities.Num() - 1);
 
