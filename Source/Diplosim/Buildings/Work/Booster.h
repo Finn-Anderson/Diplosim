@@ -12,10 +12,23 @@ class DIPLOSIM_API ABooster : public AWork
 public:
 	ABooster();
 
-	virtual void OnRadialOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
+	TArray<ABuilding*> GetAffectedBuildings();
 
-	virtual void OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
+	bool DoesPromoteFavouringValues(class ACitizen* Citizen);
+
+	virtual void Enter(class ACitizen* Citizen) override;
+
+	virtual void Leave(class ACitizen* Citizen) override;
+
+	UFUNCTION(BlueprintCallable)
+		void SetBroadcastType(FString Type);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boost")
-		TArray<TSubclassOf<AWork>> WorkplacesToBoost;
+		TMap<TSubclassOf<ABuilding>, FString> BuildingsToBoost;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boost")
+		int32 Range;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Influence")
+		bool bHolyPlace;
 };

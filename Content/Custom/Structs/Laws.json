@@ -1082,7 +1082,7 @@
 						"Max": 2
 					}
 				],
-				"Warning": "These actions will exclude soliders and, if there is a plague, clinics",
+				"Warning": "This policy will exclude soliders during raids and clinics during plagues",
 				"Value": 0,
 				"Parties": [
 					{

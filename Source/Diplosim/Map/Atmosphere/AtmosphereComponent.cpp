@@ -172,6 +172,8 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	}
 
 	if (hour != Calendar.Hour) {
+		SetDisplayText(hour);
+
 		Grid->Camera->CitizenManager->CheckWorkStatus(hour);
 		Grid->Camera->CitizenManager->CheckCitizenStatus(hour);
 		Grid->Camera->CitizenManager->IssuePensions(hour);
@@ -183,8 +185,6 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		Grid->Camera->ResourceManager->SetTrendOnHour(hour);
 
 		Grid->Camera->ConquestManager->GiveResource();
-
-		SetDisplayText(hour);
 
 		NaturalDisasterComponent->IncrementDisasterChance();
 	}

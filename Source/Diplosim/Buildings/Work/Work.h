@@ -48,15 +48,6 @@ public:
 	// Range
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		class UDecalComponent* DecalComponent;
-		
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
-		class USphereComponent* SphereComponent;
-
-	UFUNCTION()
-		virtual void OnRadialOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-		virtual void OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	// Cost
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
@@ -104,7 +95,7 @@ public:
 	virtual void Production(class ACitizen* Citizen);
 
 	UPROPERTY()
-		TArray<class ABooster*> Boosters;
+		int32 Boosters;
 
 	// Forcefield
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Forcefield")

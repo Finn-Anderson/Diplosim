@@ -45,6 +45,8 @@ void AFarm::Production(ACitizen* Citizen)
 		if (workers.IsEmpty())
 			return;
 
+		Super::Production(Citizen);
+
 		ProductionDone(workers[0]);
 	}
 	else
@@ -53,7 +55,7 @@ void AFarm::Production(ACitizen* Citizen)
 
 void AFarm::ProductionDone(ACitizen* Citizen)
 {
-	Citizen->Carry(Crop->GetDefaultObject<AResource>(), GetYield(), this);
+	Citizen->Carry(Crop->GetDefaultObject<AResource>(), GetYield() * FMath::Max(Boosters * 2, 1), this);
 
 	StoreResource(Citizen);
 

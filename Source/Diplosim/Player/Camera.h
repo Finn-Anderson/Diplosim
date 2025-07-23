@@ -203,7 +203,7 @@ public:
 
 	void PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch = -1.0f);
 
-	void SetInteractAudioSound(USoundBase* Sound, float Volume);
+	void SetInteractAudioSound(USoundBase* Sound, float Volume, float Pitch = 1.0f);
 
 	void PlayInteractSound();
 

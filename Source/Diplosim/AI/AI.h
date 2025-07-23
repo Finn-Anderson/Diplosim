@@ -18,7 +18,7 @@ protected:
 public:
 	void MoveToBroch();
 
-	bool CanReach(AActor* Actor, float Reach);
+	bool CanReach(AActor* Actor, float Reach, int32 Instance = -1);
 
 	void EnableCollisions(bool bEnable);
 

@@ -22,8 +22,8 @@
 #include "Player/Components/BuildComponent.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/House.h"
+#include "Buildings/Work/Booster.h"
 #include "Buildings/Work/Service/Clinic.h"
-#include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/Misc/Special/PowerPlant.h"
@@ -618,7 +618,7 @@ bool ACitizen::CanWork(ABuilding* WorkBuilding)
 	if (BioStruct.Age < Camera->CitizenManager->GetLawValue("Work Age"))
 		return false;
 
-	if (WorkBuilding->IsA<ABroadcast>() && (Cast<ABroadcast>(WorkBuilding)->Belief != Spirituality.Faith || (Cast<ABroadcast>(WorkBuilding)->Allegiance != "Undecided" && Cast<ABroadcast>(WorkBuilding)->Allegiance != Camera->CitizenManager->GetCitizenParty(this))))
+	if (WorkBuilding->IsA<ABooster>() && !Cast<ABooster>(WorkBuilding)->DoesPromoteFavouringValues(this))
 		return false;
 
 	return true;
@@ -850,8 +850,8 @@ void ACitizen::LoseEnergy()
 		if (!IsValid(Building.Employment) || !Building.Employment->IsA<AExternalProduction>())
 			return;
 
-		for (FValidResourceStruct validResource : Cast<AExternalProduction>(Building.Employment)->Resources) {
-			for (FWorkerStruct workerStruct : validResource.Resource->WorkerStruct) {
+		for (auto& element : Cast<AExternalProduction>(Building.Employment)->GetValidResources()) {
+			for (FWorkerStruct workerStruct : element.Key->WorkerStruct) {
 				if (!workerStruct.Citizens.Contains(this))
 					continue;
 
@@ -1381,11 +1381,22 @@ void ACitizen::SetPoliticalLeanings()
 			partyList.Add(party->Party);
 
 	if (IsValid(Building.House)) {
-		for (ABroadcast* broadcaster : Building.House->Influencers) {
-			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance == "Undecided")
+		for (ABuilding* building : Camera->CitizenManager->Buildings) {
+			if (!building->IsA<ABooster>())
 				continue;
 
-			partyList.Add(broadcaster->Allegiance);
+			ABooster* booster = Cast<ABooster>(building);
+
+			if (!booster->GetAffectedBuildings().Contains(Building.House))
+				continue;
+
+			for (auto& element : booster->BuildingsToBoost) {
+				FPartyStruct p;
+				p.Party = element.Value;
+
+				if (Camera->CitizenManager->Parties.Contains(p))
+					partyList.Add(element.Value);
+			}
 		}
 	}
 
@@ -1476,27 +1487,13 @@ void ACitizen::SetReligion()
 	if (BioStruct.Father->IsValidLowLevelFast()) {
 		Spirituality.FathersFaith = BioStruct.Father->Spirituality.Faith;
 
-		religionList.Add(Spirituality.FathersFaith); 
-
-		for (ABroadcast* broadcaster : BioStruct.Father->Building.House->Influencers) {
-			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance != "Undecided")
-				continue;
-
-			religionList.Add(broadcaster->Belief);
-		}
+		religionList.Add(Spirituality.FathersFaith);
 	}
 
 	if (BioStruct.Mother->IsValidLowLevelFast()) {
 		Spirituality.MothersFaith = BioStruct.Mother->Spirituality.Faith;
 
 		religionList.Add(Spirituality.MothersFaith);
-
-		for (ABroadcast* broadcaster : BioStruct.Mother->Building.House->Influencers) {
-			if (broadcaster->GetOccupied().IsEmpty() || broadcaster->Allegiance != "Undecided")
-				continue;
-
-			religionList.Add(broadcaster->Belief);
-		}
 	}
 
 	if (BioStruct.Partner->IsValidLowLevelFast())
@@ -1504,8 +1501,25 @@ void ACitizen::SetReligion()
 
 	religionList.Add(Spirituality.Faith);
 
-	if (Building.Employment->IsValidLowLevelFast() && Building.Employment->IsA<ABroadcast>() && !Cast<ABroadcast>(Building.Employment)->GetOccupied().IsEmpty() && Cast<ABroadcast>(Building.Employment)->Allegiance == "Undecided")
-		religionList.Add(Cast<ABroadcast>(Building.Employment)->Belief);
+	if (IsValid(Building.House)) {
+		for (ABuilding* building : Camera->CitizenManager->Buildings) {
+			if (!building->IsA<ABooster>())
+				continue;
+
+			ABooster* booster = Cast<ABooster>(building);
+
+			if (!booster->GetAffectedBuildings().Contains(Building.House) && Building.Employment != booster)
+				continue;
+
+			for (auto& element : booster->BuildingsToBoost) {
+				FReligionStruct religion;
+				religion.Faith = element.Value;
+
+				if (Camera->CitizenManager->Religions.Contains(religion))
+					religionList.Add(element.Value);
+			}
+		}
+	}
 
 	for (FReligionStruct religion : Camera->CitizenManager->Religions) {
 		int32 count = 0;
@@ -1609,37 +1623,46 @@ void ACitizen::SetHappiness()
 
 		Happiness.SetValue(message, quality);
 
-		if (Spirituality.Faith != "Atheist") {
-			bool bNearbyFaith = false;
-
-			for (ABroadcast* broadcaster : Building.House->Influencers) {
-				if (broadcaster->GetOccupied().IsEmpty() || !broadcaster->bHolyPlace && broadcaster->Belief != Spirituality.Faith)
-					continue;
-
-				bNearbyFaith = true;
-			}
-
-			if (!bNearbyFaith)
-				Happiness.SetValue("No Working Holy Place Nearby", -25);
-			else
-				Happiness.SetValue("Holy Place Nearby", 15);
-		}
-
 		bool bIsCruel = false;
 
 		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this))
 			if (personality->Trait == "Cruel")
 				bIsCruel = true;
 
+		bool isThereAnyBoosters = false;
+		bool bNearbyFaith = false;
+		bool bPropaganda = true;
 		bool bIsPark = false;
-
-		for (ABroadcast* broadcaster : Building.House->Influencers) {
-			if (!broadcaster->bIsPark)
+		
+		for (ABuilding* building : Camera->CitizenManager->Buildings) {
+			if (!building->IsA<ABooster>())
 				continue;
 
-			bIsPark = true;
+			ABooster* booster = Cast<ABooster>(building);
 
-			break;
+			if (!booster->GetAffectedBuildings().Contains(Building.House))
+				continue;
+
+			isThereAnyBoosters = true;
+
+			if (booster->DoesPromoteFavouringValues(this))
+				bPropaganda = false;
+
+			for (auto& element : booster->BuildingsToBoost) {
+
+				if (element.Value == Spirituality.Faith && booster->bHolyPlace)
+					bNearbyFaith = true;
+
+				if (element.Value == "Happiness")
+					bIsPark = true;
+			}
+		}
+
+		if (Spirituality.Faith != "Atheist") {
+			if (!bNearbyFaith)
+				Happiness.SetValue("No Working Holy Place Nearby", -25);
+			else
+				Happiness.SetValue("Holy Place Nearby", 15);
 		}
 
 		if (bIsPark) {
@@ -1648,26 +1671,15 @@ void ACitizen::SetHappiness()
 			else
 				Happiness.SetValue("Park Nearby", 5);
 		}
-		else
+		else if (!bIsCruel)
 			Happiness.SetValue("No Nearby Park", -10);
 
-		bool bPropaganda = true;
-
-		for (ABroadcast* broadcaster : Building.House->Influencers) {
-			if (broadcaster->bIsPark || broadcaster->bHolyPlace)
-				continue;
-
-			if (broadcaster->Allegiance == Camera->CitizenManager->GetCitizenParty(this) || broadcaster->Belief == Spirituality.Faith)
-				bPropaganda = false;
+		if (isThereAnyBoosters) {
+			if (bPropaganda)
+				Happiness.SetValue("Nearby propaganda tower", -25);
+			else
+				Happiness.SetValue("Nearby eggtastic tower", 15);
 		}
-
-		if (Building.House->Influencers.IsEmpty())
-			bPropaganda = false;
-
-		if (bPropaganda)
-			Happiness.SetValue("Nearby propaganda tower", -25);
-		else
-			Happiness.SetValue("Nearby eggtastic tower", 15);
 	}
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue("Work Age")) {

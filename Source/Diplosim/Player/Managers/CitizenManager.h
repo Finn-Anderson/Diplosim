@@ -127,6 +127,7 @@ struct FEventStruct
 		bFireFestival = false;
 		Building = nullptr;
 		Venue = nullptr;
+		Location = FVector::Zero();
 	}
 
 	bool operator==(const FEventStruct& other) const
@@ -625,6 +626,8 @@ public:
 	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
 
 	bool IsAttendingEvent(class ACitizen* Citizen);
+
+	void RemoveFromEvent(class ACitizen* Citizen);
 
 	TArray<FEventStruct> OngoingEvents();
 

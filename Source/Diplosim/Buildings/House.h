@@ -18,9 +18,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "House")
 		int32 QualityCap;
 
-	UPROPERTY()
-		TArray<class ABroadcast*> Influencers;
-
 	int32 GetQuality();
 
 	void GetRent(ACitizen* Citizen);

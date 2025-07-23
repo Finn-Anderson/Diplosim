@@ -26,7 +26,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Festival.h"
-#include "Buildings/Work/Service/Religion.h"
+#include "Buildings/Work/Booster.h"
 #include "Buildings/Misc/Special/Special.h"
 #include "AI/AI.h"
 #include "AI/Citizen.h"
@@ -373,10 +373,11 @@ void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Soun
 	});
 }
 
-void ACamera::SetInteractAudioSound(USoundBase* Sound, float Volume)
+void ACamera::SetInteractAudioSound(USoundBase* Sound, float Volume, float Pitch)
 {
 	InteractAudioComponent->SetSound(Sound);
 	InteractAudioComponent->SetVolumeMultiplier(Volume);
+	InteractAudioComponent->SetPitchMultiplier(Pitch);
 }
 
 void ACamera::PlayInteractSound()
@@ -492,16 +493,7 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
 		if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr)) {
 			decalComponents[1]->SetVisibility(bStatus);
 
-			if (Actor->IsA<ABroadcast>()) {
-				ABroadcast* broadcaster = Cast<ABroadcast>(Actor);
-
-				if (bStatus)
-					for (AHouse* house : broadcaster->Houses)
-						house->BuildingMesh->SetOverlayMaterial(broadcaster->InfluencedMaterial);
-				else
-					for (AHouse* house : broadcaster->Houses)
-						broadcaster->RemoveInfluencedMaterial(house);
-			}
+			BuildComponent->DisplayInfluencedBuildings(bStatus);
 		}
 	}
 
@@ -739,6 +731,12 @@ void ACamera::Menu()
 
 	if (!WidgetComponent->bHiddenInGame && !BuildComponent->IsComponentTickEnabled()) {
 		SetInteractStatus(WidgetComponent->GetAttachmentRootActor(), false);
+
+		BuildingColourUIInstance->RemoveFromParent();
+		HoursUIInstance->RemoveFromParent();
+
+		if (HoveredWidget == BuildingColourUIInstance || HoveredWidget == HoursUIInstance)
+			SetMouseCapture(bMouseCapture, false, true);
 
 		return;
 	}

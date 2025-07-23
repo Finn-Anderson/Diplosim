@@ -32,7 +32,7 @@
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
 #include "Buildings/Work/Service/Stockpile.h"
-#include "Buildings/Work/Service/Religion.h"
+#include "Buildings/Work/Booster.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Production/InternalProduction.h"
@@ -394,10 +394,6 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 
 	BuildingMesh->bReceivesDecals = true;
 
-	if (IsA<ABroadcast>())
-		for (AHouse* house : Cast<ABroadcast>(this)->Houses)
-			house->BuildingMesh->SetOverlayMaterial(nullptr);
-
 	UResourceManager* rm = Camera->ResourceManager;
 	UConstructionManager* cm = Camera->ConstructionManager;
 
@@ -493,10 +489,6 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 
 		citizen->AIController->DefaultAction();
 	}
-
-	if (IsA<ABroadcast>())
-		for (AHouse* house : Cast<ABroadcast>(this)->Houses)
-			Cast<ABroadcast>(this)->RemoveInfluencedMaterial(house);
 
 	if (!Camera->BuildComponent->Buildings.Contains(this) && (IsA(Camera->BuildComponent->FoundationClass) || IsA(Camera->BuildComponent->RampClass) || IsA<ARoad>())) {
 		if (IsA(Camera->BuildComponent->FoundationClass)) {
@@ -858,7 +850,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 		else
 			builder->CheckCosts(Citizen, this);
 	}
-	else if (!IsA<AHouse>() && !IsA<ABroadcast>() && !GetOccupied().Contains(Citizen) && IsValid(Citizen->Building.Employment)) {
+	else if (!IsA<AHouse>() && !IsA<ABooster>() && !GetOccupied().Contains(Citizen) && IsValid(Citizen->Building.Employment)) {
 		TArray<FItemStruct> items;
 		ABuilding* deliverTo = nullptr;
 
@@ -1052,8 +1044,8 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			if (Citizen->Carrying.Type->IsA(r))
 				resource = r;
 
-		if (IsA<AWork>() && !Cast<AWork>(this)->Boosters.IsEmpty())
-			Citizen->Carrying.Amount *= (1.50f * Cast<AWork>(this)->Boosters.Num());
+		if (IsA<AWork>() && Cast<AWork>(this)->Boosters != 0)
+			Citizen->Carrying.Amount *= (1.50f * Cast<AWork>(this)->Boosters);
 
 		int32 extra = Camera->ResourceManager->AddLocalResource(resource, this, Citizen->Carrying.Amount);
 

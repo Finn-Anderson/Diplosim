@@ -20,9 +20,9 @@
 #include "Universal/HealthComponent.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Service/Clinic.h"
-#include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
+#include "Buildings/Work/Booster.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Festival.h"
 #include "Buildings/House.h"
@@ -434,7 +434,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							citizen->AttackComponent->SetComponentTickEnabled(true);
 					}
 				}
-				else if (citizen->AIController->MoveRequest.GetGoalActor() == actor && citizen->CanReach(actor, reach)) {
+				else if (citizen->AIController->MoveRequest.GetGoalActor() == actor && citizen->CanReach(actor, reach) && citizen->AIController->MoveRequest.GetGoalInstance()) {
 					AsyncTask(ENamedThreads::GameThread, [this, citizen, actor]() {
 						if (actor->IsA<AResource>() && FindTimer("Harvest", citizen) == nullptr) {
 							AResource* r = Cast<AResource>(actor);
@@ -953,6 +953,8 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 
 		citizen->SetDecayHappiness(&citizen->WitnessedDeathHappiness, happinessValue);
 	}
+
+	Citizens.Remove(Citizen);
 }
 
 //
@@ -1087,7 +1089,7 @@ void UCitizenManager::CheckForWeddings(int32 Hour)
 		int32 index = citizen->Camera->Grid->Stream.RandRange(0, faiths.Num() - 1);
 		FString chosenFaith = faiths[index];
 
-		ABroadcast* chosenChurch = nullptr;
+		ABooster* chosenChurch = nullptr;
 		ACitizen* priest = nullptr;
 
 		TArray<int32> weddingHours = { Hour };
@@ -1101,12 +1103,14 @@ void UCitizenManager::CheckForWeddings(int32 Hour)
 		}
 
 		for (ABuilding* building : Buildings) {
-			if (!building->IsA<ABroadcast>())
+			if (!building->IsA<ABooster>())
 				continue;
 
-			ABroadcast* church = Cast<ABroadcast>(building);
+			ABooster* church = Cast<ABooster>(building);
 
-			if (!church->bHolyPlace || church->Belief != chosenFaith || church->GetOccupied().IsEmpty())
+			church->BuildingsToBoost.GenerateValueArray(faiths);
+
+			if (!church->bHolyPlace || faiths[0] != chosenFaith || church->GetOccupied().IsEmpty())
 				continue;
 
 			bool bAvailable = false;
@@ -1927,6 +1931,20 @@ bool UCitizenManager::IsAttendingEvent(ACitizen* Citizen)
 	return false;
 }
 
+void UCitizenManager::RemoveFromEvent(ACitizen* Citizen)
+{
+	for (FEventStruct event : OngoingEvents()) {
+		if (!event.Attendees.Contains(Citizen))
+			continue;
+
+		int32 index = Events.Find(event);
+
+		Events[index].Attendees.Remove(Citizen);
+
+		return;
+	}
+}
+
 TArray<FEventStruct> UCitizenManager::OngoingEvents()
 {
 	TArray<FEventStruct> events;
@@ -1945,7 +1963,7 @@ TArray<FEventStruct> UCitizenManager::OngoingEvents()
 
 void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 {
-	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->IsWorking(Citizen)) || (Event.Type == EEventType::Mass && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->Spirituality.Faith && Citizen->BioStruct.Age >= 18) || Citizen->Camera->ConquestManager->IsCitizenMoving(Citizen))
+	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->IsWorking(Citizen)) || (Event.Type == EEventType::Mass && Cast<ABooster>(Event.Building->GetDefaultObject())->DoesPromoteFavouringValues(Citizen) && Citizen->BioStruct.Age >= 18) || Citizen->Camera->ConquestManager->IsCitizenMoving(Citizen))
 		return;
 
 	int32 index = Events.Find(Event);
@@ -1975,9 +1993,14 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 			return;
 		}
 
-		bool validReligion = (Citizen->Spirituality.Faith == Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief);
+		ABooster* church = Cast<ABooster>(Event.Building->GetDefaultObject());
 
-		if (Citizen->BioStruct.Age < 18 && (Citizen->BioStruct.Mother->IsValidLowLevelFast() && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->BioStruct.Mother->Spirituality.Faith || Citizen->BioStruct.Father->IsValidLowLevelFast() && Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != Citizen->BioStruct.Father->Spirituality.Faith))
+		TArray<FString> faiths;
+		church->BuildingsToBoost.GenerateValueArray(faiths);
+
+		bool validReligion = (Citizen->Spirituality.Faith == faiths[0]);
+
+		if (Citizen->BioStruct.Age < 18 && (Citizen->BioStruct.Mother->IsValidLowLevelFast() && faiths[0] != Citizen->BioStruct.Mother->Spirituality.Faith || Citizen->BioStruct.Father->IsValidLowLevelFast() && faiths[0] != Citizen->BioStruct.Father->Spirituality.Faith))
 			validReligion = true;
 
 		if (!validReligion)
@@ -2104,7 +2127,12 @@ void UCitizenManager::EndEvent(FEventStruct Event, int32 Hour)
 			}
 		}
 		else if (Event.Type == EEventType::Mass) {
-			if (Cast<ABroadcast>(Event.Building->GetDefaultObject())->Belief != citizen->Spirituality.Faith)
+			ABooster* church = Cast<ABooster>(Event.Building->GetDefaultObject());
+
+			TArray<FString> faiths;
+			church->BuildingsToBoost.GenerateValueArray(faiths);
+
+			if (faiths[0] != citizen->Spirituality.Faith)
 				continue;
 
 			if (citizen->bWorshipping)

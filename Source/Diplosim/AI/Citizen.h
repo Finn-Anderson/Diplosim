@@ -113,6 +113,8 @@ struct FBioStruct
 		Mother = nullptr;
 		Father = nullptr;
 		Partner = nullptr;
+		HoursTogetherWithPartner = 0;
+		bMarried = false;
 		Sex = ESex::NaN;
 		Age = 0;
 		EducationLevel = 0;

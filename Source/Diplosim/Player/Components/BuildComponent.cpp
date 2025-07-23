@@ -16,6 +16,7 @@
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Stockpile.h"
 #include "Buildings/Work/Service/Research.h"
+#include "Buildings/Work/Booster.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Map/Grid.h"
 #include "Map/Resources/Vegetation.h"
@@ -162,6 +163,8 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				station->TelescopeMesh->SetOverlayMaterial(BlockedMaterial);
 			}
 
+			DisplayInfluencedBuildings(false);
+
 			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
 				decalComp->SetVisibility(false);
 		}
@@ -177,6 +180,8 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				station->TurretMesh->SetOverlayMaterial(BlueprintMaterial);
 				station->TelescopeMesh->SetOverlayMaterial(BlueprintMaterial);
 			}
+
+			DisplayInfluencedBuildings(true);
 
 			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
 				decalComp->SetVisibility(true);
@@ -211,6 +216,28 @@ void UBuildComponent::SetTreeStatus(float Opacity, bool bDestroy)
 				Camera->Grid->RemoveTree(vegetation, hit.Item);
 			else
 				vegetation->ResourceHISM->SetCustomDataValue(hit.Item, 1, Opacity);
+		}
+	}
+}
+
+void UBuildComponent::DisplayInfluencedBuildings(bool bShow)
+{
+	if (Buildings.IsEmpty() || !Buildings[0]->IsA<ABooster>())
+		return;
+
+	for (ABuilding* building : Buildings) {
+		if (building->IsHidden())
+			continue;
+
+		ABooster* booster = Cast<ABooster>(building);
+
+		TArray<ABuilding*> influencedBuildings = booster->GetAffectedBuildings();
+
+		for (ABuilding* b : Camera->CitizenManager->Buildings) {
+			if (bShow && influencedBuildings.Contains(b))
+				b->BuildingMesh->SetOverlayMaterial(InfluencedMaterial);
+			else
+				b->BuildingMesh->SetOverlayMaterial(nullptr);
 		}
 	}
 }
@@ -682,7 +709,11 @@ void UBuildComponent::Place(bool bQuick)
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
-	Camera->SetInteractAudioSound(PlaceSound, settings->GetMasterVolume() * settings->GetSFXVolume());
+	FVector dimensions = Buildings[0]->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 100.0f;
+	float size = FMath::Sqrt(FMath::Sqrt((dimensions.X * dimensions.Y * dimensions.Z) / 10.0f));
+	float pitch = 1.0f / size;
+
+	Camera->SetInteractAudioSound(PlaceSound, settings->GetMasterVolume() * settings->GetSFXVolume(), pitch);
 	Camera->PlayInteractSound();
 
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
@@ -714,7 +745,9 @@ void UBuildComponent::Place(bool bQuick)
 		Buildings.RemoveAt(0);
 	}
 
-	SetTreeStatus(0.0f, true);
+	SetTreeStatus(0.0f, true); 
+
+	DisplayInfluencedBuildings(false);
 
 	if (!Buildings.IsEmpty() && (Buildings[0]->IsA(FoundationClass) || Buildings[0]->IsA(RampClass) || Buildings[0]->IsA<ARoad>())) {
 		for (ABuilding* building : Buildings)

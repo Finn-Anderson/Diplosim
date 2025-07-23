@@ -11,10 +11,10 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Buildings/House.h"
-#include "Buildings/Work/Service/Religion.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
+#include "Buildings/Work/Booster.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Universal/HealthComponent.h"
@@ -27,18 +27,13 @@ AWork::AWork()
 	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
 	DecalComponent->SetVisibility(false);
 
-	SphereComponent = CreateDefaultSubobject<USphereComponent>("SphereComponent");
-	SphereComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	SphereComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
-	SphereComponent->SetupAttachment(RootComponent);
-	SphereComponent->SetSphereRadius(1500.0f);
-
 	WagePerHour = 0.0f;
 
 	bCanAttendEvents = true;
 	bEmergency = false;
 
 	ForcefieldRange = 0;
+	Boosters = 0;
 }
 
 void AWork::BeginPlay()
@@ -63,19 +58,6 @@ void AWork::BeginPlay()
 	}
 
 	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
-
-	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AWork::OnRadialOverlapBegin);
-	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AWork::OnRadialOverlapEnd);
-}
-
-void AWork::OnRadialOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	
-}
-
-void AWork::OnRadialOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-
 }
 
 bool AWork::AddCitizen(ACitizen* Citizen)
@@ -90,8 +72,12 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 	AddToWorkHours(Citizen, true);
 
 	if (IsWorking(Citizen)) {
-		if (bCanAttendEvents && Citizen->AIController->MoveRequest.Actor != nullptr && Citizen->AIController->MoveRequest.Actor->IsA<ABroadcast>() && Cast<ABroadcast>(Citizen->AIController->MoveRequest.Actor)->bHolyPlace)
+		bool bAttendingEvent = Camera->CitizenManager->IsAttendingEvent(Citizen);
+
+		if (bCanAttendEvents && bAttendingEvent)
 			return true;
+		else if (bAttendingEvent)
+			Camera->CitizenManager->RemoveFromEvent(Citizen);
 
 		Citizen->AIController->DefaultAction();
 	}
@@ -171,7 +157,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 	EWorkType type = *WorkHours[index].WorkHours.Find(Hour);
 
-	if ((type == EWorkType::Work && Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Default && !Camera->CitizenManager->IsAttendingEvent(Citizen)) || bEmergency || !Citizen->bHolliday)
+	if ((type == EWorkType::Work && Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Default && !Camera->CitizenManager->IsAttendingEvent(Citizen) && !Citizen->bHolliday) || bEmergency)
 		return true;
 
 	return false;
@@ -184,8 +170,8 @@ bool AWork::IsAtWork(ACitizen* Citizen)
 	else if (IsA<AExternalProduction>()) {
 		AExternalProduction* externalProduction = Cast<AExternalProduction>(this);
 
-		for (FValidResourceStruct validResource : externalProduction->Resources) {
-			for (FWorkerStruct workerStruct : validResource.Resource->WorkerStruct) {
+		for (auto& element : externalProduction->GetValidResources()) {
+			for (FWorkerStruct workerStruct : element.Key->WorkerStruct) {
 				if (!workerStruct.Citizens.Contains(Citizen))
 					continue;
 
@@ -258,5 +244,13 @@ void AWork::Production(ACitizen* Citizen)
 			continue;
 
 		citizen->HealthComponent->TakeHealth(5, this);
+	}
+
+	for (ABuilding* building : Camera->CitizenManager->Buildings) {
+		if (!building->IsA<ABooster>())
+			continue;
+
+		if (Cast<ABooster>(building)->GetAffectedBuildings().Contains(this))
+			Boosters++;
 	}
 }

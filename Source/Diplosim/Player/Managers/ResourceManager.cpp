@@ -272,6 +272,9 @@ int32 UResourceManager::GetResourceAmount(TSubclassOf<AResource> Resource)
 
 					int32 index = building->Storage.Find(itemStruct);
 
+					if (index == INDEX_NONE)
+						continue;
+
 					amount += building->Storage[index].Amount;
 				}
 			}

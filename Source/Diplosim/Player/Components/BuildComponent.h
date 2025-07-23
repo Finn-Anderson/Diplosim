@@ -38,6 +38,9 @@ public:
 	UPROPERTY(EditAnywhere)
 		class UMaterial* BlockedMaterial;
 
+	UPROPERTY(EditAnywhere)
+		class UMaterial* InfluencedMaterial;
+
 	UPROPERTY()
 		FRotator Rotation;
 
@@ -56,6 +59,8 @@ public:
 	TArray<FHitResult> GetBuildingOverlaps(class ABuilding* Building);
 
 	void SetTreeStatus(float Opacity, bool bDestroy = false);
+
+	void DisplayInfluencedBuildings(bool bShow);
 
 	void SetBuildingsOnPath();
 

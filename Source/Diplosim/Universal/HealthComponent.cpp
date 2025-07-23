@@ -155,6 +155,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		const FVector direction = (actor->GetActorLocation() - Attacker->GetActorLocation()).Rotation().Vector() * 50 * Force;
 		mesh->SetPhysicsLinearVelocity(direction, false);
 
+		Cast<AAI>(actor)->AIController->StopMovement();
 		Cast<AAI>(actor)->DetachFromControllerPendingDestroy();
 
 		Camera->CitizenManager->AIPendingRemoval.Add(Cast<AAI>(actor));
@@ -166,14 +167,12 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 			FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
 
-			if (Camera->CitizenManager->Citizens.Contains(citizen)) {
+			if (Camera->CitizenManager->Citizens.Contains(citizen))
 				Camera->CitizenManager->ClearCitizen(citizen);
-			}
-			else {
-				tile->Citizens.Remove(citizen);
-
+			else
 				Camera->UpdateAlterCitizen(citizen, *tile);
-			}
+
+			tile->Citizens.Remove(citizen);
 
 			Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", tile->Name);
 		}

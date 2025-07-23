@@ -11,10 +11,14 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Map/Grid.h"
+#include "Map/Resources/Vegetation.h"
 
 AExternalProduction::AExternalProduction()
 {
 	DecalComponent->SetVisibility(true);
+
+	Range = 1000;
 }
 
 void AExternalProduction::Enter(ACitizen* Citizen)
@@ -33,58 +37,6 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 		Production(Citizen);
 }
 
-void AExternalProduction::OnRadialOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	TSubclassOf<AResource> resource = Camera->ResourceManager->GetResources(this)[0];
-
-	TArray<TSubclassOf<AResource>> resources;
-	
-	if (!resource->GetDefaultObject<AResource>()->ParentResource.IsEmpty())
-		resources = resource->GetDefaultObject<AResource>()->ParentResource;
-
-	if (OtherActor->IsA(resource) || resources.Contains(OtherActor->GetClass())) {
-		FValidResourceStruct validResource;
-		validResource.Resource = Cast<AResource>(OtherActor);
-
-		int32 index = INDEX_NONE;
-		Resources.Find(validResource, index);
-
-		if (index == INDEX_NONE) {
-			Resources.Add(validResource);
-
-			index = Resources.Num() - 1;
-		}
-
-		if (!Resources[index].Instances.Contains(OtherBodyIndex))
-			Resources[index].Instances.Add(OtherBodyIndex);
-	}
-
-	Super::OnRadialOverlapBegin(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
-}
-
-void AExternalProduction::OnRadialOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	TSubclassOf<AResource> resource = Camera->ResourceManager->GetResources(this)[0];
-
-	TArray<TSubclassOf<AResource>> resources;
-
-	if (!resource->GetDefaultObject<AResource>()->ParentResource.IsEmpty())
-		resources = resource->GetDefaultObject<AResource>()->ParentResource;
-
-	if (OtherActor->IsA(resource) || resources.Contains(OtherActor->GetClass())) {
-		FValidResourceStruct validResource;
-		validResource.Resource = Cast<AResource>(OtherActor);
-
-		int32 index = INDEX_NONE;
-		Resources.Find(validResource, index);
-
-		if (index != INDEX_NONE && Resources[index].Instances.Contains(OtherBodyIndex))
-			Resources[index].Instances.Remove(OtherBodyIndex);
-	} 
-
-	Super::OnRadialOverlapEnd(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex);
-}
-
 bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 {
 	bool bCheck = Super::RemoveCitizen(Citizen);
@@ -92,8 +44,8 @@ bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	for (FValidResourceStruct validResource : Resources) {
-		for (FWorkerStruct workerStruct : validResource.Resource->WorkerStruct) {
+	for (auto& element : GetValidResources()) {
+		for (FWorkerStruct workerStruct : element.Key->WorkerStruct) {
 			if (!workerStruct.Citizens.Contains(Citizen))
 				continue;
 
@@ -113,24 +65,24 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	if (Citizen->Building.BuildingAt != this)
 		return;
 
-	int32 instance = -1;
 	AResource* resource = nullptr;
+	int32 instance = -1;
 
-	for (FValidResourceStruct validResource : Resources) {
-		for (int32 inst : validResource.Instances) {
+	for (auto& element : GetValidResources()) {
+		for (int32 inst : element.Value) {
 			FTransform transform;
-			validResource.Resource->ResourceHISM->GetInstanceTransform(inst, transform);
+			element.Key->ResourceHISM->GetInstanceTransform(inst, transform);
 
 			FWorkerStruct workerStruct;
 			workerStruct.Instance = inst;
 
-			int32 index = validResource.Resource->WorkerStruct.Find(workerStruct);
+			int32 index = element.Key->WorkerStruct.Find(workerStruct);
 
-			if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < validResource.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] || (index > -1 && validResource.Resource->WorkerStruct[index].Citizens.Num() == validResource.Resource->MaxWorkers))
+			if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < element.Key->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] || (index > -1 && element.Key->WorkerStruct[index].Citizens.Num() == element.Key->MaxWorkers))
 				continue;
 
 			if (instance == -1) {
-				resource = validResource.Resource;
+				resource = element.Key;
 				instance = inst;
 
 				continue;
@@ -144,7 +96,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 			if (magnitude <= 0.0f)
 				continue;
 
-			resource = validResource.Resource;
+			resource = element.Key;
 			instance = inst;
 		}
 	}
@@ -160,4 +112,30 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	else {
 		Camera->CitizenManager->CreateTimer("Production", this, 30, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), false);
 	}
+}
+
+TMap<AResource*, TArray<int32>> AExternalProduction::GetValidResources()
+{
+	TSubclassOf<AResource> resourceClass = Camera->ResourceManager->GetResources(this)[0];
+	TArray<TSubclassOf<AResource>> resources;
+
+	if (!resourceClass->GetDefaultObject<AResource>()->ParentResource.IsEmpty())
+		resources = resourceClass->GetDefaultObject<AResource>()->ParentResource;
+
+	TArray<FResourceHISMStruct> resourceStructs;
+	resourceStructs.Append(Camera->Grid->MineralStruct);
+	resourceStructs.Append(Camera->Grid->TreeStruct);
+
+	TMap<AResource*, TArray<int32>> validResources;
+
+	for (FResourceHISMStruct resourceStruct : Camera->Grid->TreeStruct) {
+		if (!resources.Contains(resourceStruct.ResourceClass))
+			continue;
+
+		TArray<int32> instances = resourceStruct.Resource->ResourceHISM->GetInstancesOverlappingSphere(GetActorLocation(), Range);
+
+		validResources.Add(resourceStruct.Resource, instances);
+	}
+
+	return validResources;
 }

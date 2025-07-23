@@ -114,7 +114,7 @@ void AAI::MoveToBroch()
 	AIController->AIMoveTo(target);
 }
 
-bool AAI::CanReach(AActor* Actor, float Reach)
+bool AAI::CanReach(AActor* Actor, float Reach, int32 Instance)
 {
 	FCollisionQueryParams params;
 	params.AddIgnoredActor(this);
@@ -122,16 +122,9 @@ bool AAI::CanReach(AActor* Actor, float Reach)
 	
 	TArray<FHitResult> hits;
 
-	FVector extent = Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize() / 2.0f;
-	extent.X += Reach;
-	extent.Y += Reach;
-	extent.Z += Reach;
-
-	FVector startRange = FVector(0.0f, 0.0f, extent.Z);
-
-	if (GetWorld()->SweepMultiByChannel(hits, GetActorLocation() + startRange, GetActorLocation() - startRange, GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeBox(extent), params)) {
+	if (GetWorld()->SweepMultiByChannel(hits, GetActorLocation(), GetActorLocation(), GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeSphere(Reach), params)) {
 		for (FHitResult hit : hits) {
-			if (hit.GetActor() != Actor)
+			if (hit.GetActor() != Actor || (Instance > 0 && hit.Item != Instance) || (!hit.GetComponent()->IsA<UStaticMeshComponent>() && !hit.GetComponent()->IsA<USkeletalMeshComponent>() && !hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>()))
 				continue;
 
 			return true;

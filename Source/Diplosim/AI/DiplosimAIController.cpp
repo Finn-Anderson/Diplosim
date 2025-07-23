@@ -44,7 +44,7 @@ void ADiplosimAIController::DefaultAction()
 		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bEmergency) {
 			AIMoveTo(citizen->Building.Employment);
 		}
-		else if (citizen->Camera->CitizenManager->GetRaidPolicyStatus() != ERaidPolicy::Default) {
+		else if (!citizen->Camera->CitizenManager->Enemies.IsEmpty() && citizen->Camera->CitizenManager->GetRaidPolicyStatus() != ERaidPolicy::Default) {
 			ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
 			if (citizen->Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Home)
