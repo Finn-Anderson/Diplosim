@@ -22,6 +22,4 @@ public:
 	TArray<TTuple<int32, int32>> Tiles;
 
 	void SpawnCitizens();
-
-	TArray<FVector> GetSpawnLocations(struct FTileStruct StartingTile, struct FTileStruct Tile, int32 Radius, int32 Count = 0);
 };

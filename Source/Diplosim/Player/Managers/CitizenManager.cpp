@@ -319,9 +319,9 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 								}
 							}
 							else if (!IsInAPoliceReport(citizen) && Enemies.IsEmpty() && !citizen->bConversing && !citizen->bSleep && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && !c->bConversing && !c->bSleep && c->AttackComponent->OverlappingEnemies.IsEmpty()) {
-								int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 100);
+								int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 1000);
 
-								if (chance < 100)
+								if (chance < 1000)
 									continue;
 
 								StartConversation(citizen, c, false);
@@ -1045,19 +1045,18 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 void UCitizenManager::CheckForWeddings(int32 Hour)
 {
 	TArray<ACitizen*> citizens = Citizens;
+	TArray<ACitizen*> checked;
 
 	for (int32 i = citizens.Num() - 1; i > -1; i--) {
 		ACitizen* citizen = citizens[i];
 
-		if (citizen->BioStruct.Partner == nullptr || citizen->BioStruct.bMarried)
+		if (citizen->BioStruct.Partner == nullptr || citizen->BioStruct.bMarried || checked.Contains(citizen))
 			continue;
 
 		ACitizen* partner = Cast<ACitizen>(citizen->BioStruct.Partner);
 
-		citizens.Remove(partner);
-		citizens.RemoveAt(i);
-
-		i--;
+		checked.Add(citizen);
+		checked.Add(partner);
 
 		if (IsAttendingEvent(citizen) || IsAttendingEvent(partner))
 			continue;

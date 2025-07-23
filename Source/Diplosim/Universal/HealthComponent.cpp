@@ -164,18 +164,18 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 			citizen->PopupComponent->SetHiddenInGame(true);
 
+			FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
+
 			if (Camera->CitizenManager->Citizens.Contains(citizen)) {
 				Camera->CitizenManager->ClearCitizen(citizen);
 			}
 			else {
-				FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
-
 				tile->Citizens.Remove(citizen);
 
 				Camera->UpdateAlterCitizen(citizen, *tile);
 			}
 
-			Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", Camera->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
+			Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", tile->Name);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {

@@ -75,7 +75,7 @@ void ADiplosimAIController::DefaultAction()
 		}
 
 		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->IsWorking(citizen)) {
-			if (MoveRequest.GetGoalActor()->IsA<AResource>())
+			if (IsValid(MoveRequest.GetGoalActor()) && MoveRequest.GetGoalActor()->IsA<AResource>())
 				StartMovement();
 			else
 				AIMoveTo(citizen->Building.Employment);

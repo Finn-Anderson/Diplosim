@@ -80,7 +80,10 @@ void UAttackComponent::PickTarget()
 		FThreatsStruct threatStruct;
 		threatStruct.Actor = target;
 
-		TArray<FThreatsStruct> threats = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats;
+		TArray<FThreatsStruct> threats;
+
+		if (GetOwner()->IsA<AEnemy>())
+			threats = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats;
 
 		if (!threats.IsEmpty() && threats.Contains(threatStruct)) {
 			if (threatStruct.Actor->IsA<AWall>() && Cast<AWall>(threatStruct.Actor)->RangeComponent->CanEverAffectNavigation() == true)

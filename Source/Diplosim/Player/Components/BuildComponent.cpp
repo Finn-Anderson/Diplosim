@@ -423,7 +423,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 	bool bResource = false;
 
 	for (FHitResult hit : hits) {
-		if (hit.GetActor()->IsHidden() || hit.GetComponent() == Camera->Grid->HISMWall || hit.GetActor()->IsA<AVegetation>())
+		if (hit.GetActor()->IsHidden() || hit.GetComponent() == Camera->Grid->HISMWall || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
 
 		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !(building->IsA(FoundationClass) || building->IsA(RampClass))))
@@ -493,7 +493,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 			params.AddIgnoredActor(hit.GetActor());
 			params.AddIgnoredActor(Camera->Grid);
 
-			FVector extent;
+			FVector extent = FVector(0.0f, 0.0f, 0.0f);
 			FVector offset = FVector(0.0f, 0.0f, 200.0f);
 			
 			if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
@@ -648,6 +648,8 @@ void UBuildComponent::EndPathPlace()
 
 		Buildings.RemoveAt(i);
 	}
+
+	SetTreeStatus(0.0f);
 
 	Camera->DisplayInteract(Buildings[0]);
 }

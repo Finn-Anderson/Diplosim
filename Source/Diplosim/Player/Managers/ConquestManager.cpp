@@ -509,8 +509,11 @@ FWorldTileStruct* UConquestManager::GetColonyContainingCitizen(ACitizen* Citizen
 			break;
 		}
 
+		if (tile.bCapital && tile.Owner == EmpireName)
+			tile.Citizens = Camera->CitizenManager->Citizens;
+
 		if (!tile.bIsland || (!tile.Citizens.Contains(Citizen) && !bStationed))
-			continue;
+			continue; 
 
 		return &tile;
 	}

@@ -169,7 +169,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 	int32 index = WorkHours.Find(hours);
 
-	EWorkType type = *hours.WorkHours.Find(Hour);
+	EWorkType type = *WorkHours[index].WorkHours.Find(Hour);
 
 	if ((type == EWorkType::Work && Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Default && !Camera->CitizenManager->IsAttendingEvent(Citizen)) || bEmergency || !Citizen->bHolliday)
 		return true;

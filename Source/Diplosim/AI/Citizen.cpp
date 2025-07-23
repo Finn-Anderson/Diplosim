@@ -1213,13 +1213,17 @@ void ACitizen::HaveChild()
 	if (!IsValid(citizen))
 		return;
 
+	citizen->BioStruct.Mother = this;
+	citizen->BioStruct.Father = BioStruct.Partner;
+
 	FString islandName = "";
 
 	if (Camera->CitizenManager->Citizens.Contains(this)) {
 		citizen->SetSex(Camera->CitizenManager->Citizens);
 		citizen->MainIslandSetup();
 
-		citizen->Building.House->AddVisitor(occupant, citizen);
+		if (IsValid(occupant))
+			citizen->Building.House->AddVisitor(occupant, citizen);
 
 		islandName = Camera->ColonyName;
 	}
@@ -1240,9 +1244,6 @@ void ACitizen::HaveChild()
 	}
 
 	Camera->NotifyLog("Good", citizen->BioStruct.Name + " is born", islandName);
-
-	citizen->BioStruct.Mother = this;
-	citizen->BioStruct.Father = BioStruct.Partner;
 
 	for (ACitizen* child : BioStruct.Children) {
 		citizen->BioStruct.Siblings.Add(child);

@@ -123,6 +123,9 @@ ACamera::ACamera()
 	ResetGameSpeedCounter();
 
 	WikiURL = FPaths::ProjectDir() + "/Content/Custom/Wiki/index.html";
+	HoveredWidget = nullptr;
+
+	PController = nullptr;
 }
 
 void ACamera::BeginPlay()
@@ -136,61 +139,60 @@ void ACamera::BeginPlay()
 
 	ResourceManager->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
-	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	pcontroller->bEnableClickEvents = true;
+	PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	PController->bEnableClickEvents = true;
 
 	SetMouseCapture(false);
 
 	GetWorld()->bIsCameraMoveableWhenPaused = false;
 
-	UEnhancedInputLocalPlayerSubsystem* InputSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(pcontroller->GetLocalPlayer());
+	UEnhancedInputLocalPlayerSubsystem* inputSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PController->GetLocalPlayer());
+	inputSystem->AddMappingContext(MouseInputMapping, 0);
+	inputSystem->AddMappingContext(MovementInputMapping, 1);
 
-	if (InputSystem && InputMapping)
-		InputSystem->AddMappingContext(InputMapping, 0);
-
-	MainMenuUIInstance = CreateWidget<UUserWidget>(pcontroller, MainMenuUI);
+	MainMenuUIInstance = CreateWidget<UUserWidget>(PController, MainMenuUI);
 	MainMenuUIInstance->AddToViewport();
 
-	BuildUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildUI);
+	BuildUIInstance = CreateWidget<UUserWidget>(PController, BuildUI);
 
-	PauseUIInstance = CreateWidget<UUserWidget>(pcontroller, PauseUI);
+	PauseUIInstance = CreateWidget<UUserWidget>(PController, PauseUI);
 
-	MenuUIInstance = CreateWidget<UUserWidget>(pcontroller, MenuUI);
+	MenuUIInstance = CreateWidget<UUserWidget>(PController, MenuUI);
 
-	LostUIInstance = CreateWidget<UUserWidget>(pcontroller, LostUI);
+	LostUIInstance = CreateWidget<UUserWidget>(PController, LostUI);
 
-	SettingsUIInstance = CreateWidget<UUserWidget>(pcontroller, SettingsUI);
-	WikiUIInstance = CreateWidget<UUserWidget>(pcontroller, WikiUI);
+	SettingsUIInstance = CreateWidget<UUserWidget>(PController, SettingsUI);
+	WikiUIInstance = CreateWidget<UUserWidget>(PController, WikiUI);
 
-	EventUIInstance = CreateWidget<UUserWidget>(pcontroller, EventUI);
+	EventUIInstance = CreateWidget<UUserWidget>(PController, EventUI);
 	EventUIInstance->AddToViewport();
 
-	WarningUIInstance = CreateWidget<UUserWidget>(pcontroller, WarningUI);
+	WarningUIInstance = CreateWidget<UUserWidget>(PController, WarningUI);
 	WarningUIInstance->AddToViewport(1000);
 
-	ParliamentUIInstance = CreateWidget<UUserWidget>(pcontroller, ParliamentUI);
+	ParliamentUIInstance = CreateWidget<UUserWidget>(PController, ParliamentUI);
 
-	LawPassedUIInstance = CreateWidget<UUserWidget>(pcontroller, LawPassedUI);
+	LawPassedUIInstance = CreateWidget<UUserWidget>(PController, LawPassedUI);
 
-	BribeUIInstance = CreateWidget<UUserWidget>(pcontroller, BribeUI);
+	BribeUIInstance = CreateWidget<UUserWidget>(PController, BribeUI);
 
-	BuildingColourUIInstance = CreateWidget<UUserWidget>(pcontroller, BuildingColourUI);
+	BuildingColourUIInstance = CreateWidget<UUserWidget>(PController, BuildingColourUI);
 
-	ResearchUIInstance = CreateWidget<UUserWidget>(pcontroller, ResearchUI);
+	ResearchUIInstance = CreateWidget<UUserWidget>(PController, ResearchUI);
 
-	ResearchHoverUIInstance = CreateWidget<UUserWidget>(pcontroller, ResearchHoverUI);
+	ResearchHoverUIInstance = CreateWidget<UUserWidget>(PController, ResearchHoverUI);
 
-	WorldUIInstance = CreateWidget<UUserWidget>(pcontroller, WorldUI);
+	WorldUIInstance = CreateWidget<UUserWidget>(PController, WorldUI);
 
-	FactionColourUIInstance = CreateWidget<UUserWidget>(pcontroller, FactionColourUI);
+	FactionColourUIInstance = CreateWidget<UUserWidget>(PController, FactionColourUI);
 
-	HoursUIInstance = CreateWidget<UUserWidget>(pcontroller, HoursUI);
+	HoursUIInstance = CreateWidget<UUserWidget>(PController, HoursUI);
 
-	GiftUIInstance = CreateWidget<UUserWidget>(pcontroller, GiftUI);
+	GiftUIInstance = CreateWidget<UUserWidget>(PController, GiftUI);
 
-	DiplomacyNotifyUIInstance = CreateWidget<UUserWidget>(pcontroller, DiplomacyNotifyUI);
+	DiplomacyNotifyUIInstance = CreateWidget<UUserWidget>(PController, DiplomacyNotifyUI);
 
-	LogUIInstance = CreateWidget<UUserWidget>(pcontroller, LogUI);
+	LogUIInstance = CreateWidget<UUserWidget>(PController, LogUI);
 
 	if (GetWorld()->GetMapName() == "Map")
 		Grid->Load();
@@ -203,16 +205,8 @@ void ACamera::Tick(float DeltaTime)
 	if (DeltaTime > 1.0f)
 		return;
 
-	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-
 	if (bMouseCapture)
-		pcontroller->SetMouseLocation(MousePosition.X, MousePosition.Y);
-
-	FSlateApplication& slate = FSlateApplication::Get();
-	TSet<FKey> keys = slate.GetPressedMouseButtons();
-
-	if (keys.Contains("LeftMouseButton"))
-		ClearPopUI();
+		PController->SetMouseLocation(MousePosition.X, MousePosition.Y);
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
@@ -224,12 +218,12 @@ void ACamera::Tick(float DeltaTime)
 	HoveredActor.Reset();
 
 	if (bBulldoze)
-		pcontroller->CurrentMouseCursor = EMouseCursor::CardinalCross;
+		PController->CurrentMouseCursor = EMouseCursor::CardinalCross;
 	else
-		pcontroller->CurrentMouseCursor = EMouseCursor::Default;
+		PController->CurrentMouseCursor = EMouseCursor::Default;
 
 	FVector mouseLoc, mouseDirection;
-	pcontroller->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
+	PController->DeprojectMousePositionToWorld(mouseLoc, mouseDirection);
 
 	FVector endTrace = mouseLoc + (mouseDirection * 30000);
 
@@ -247,31 +241,47 @@ void ACamera::Tick(float DeltaTime)
 			HoveredActor.Instance = hit.Item;
 
 		if (!bBulldoze)
-			pcontroller->CurrentMouseCursor = EMouseCursor::Hand;
+			PController->CurrentMouseCursor = EMouseCursor::Hand;
 	}
 }
 
-void ACamera::SetMouseCapture(bool bCapture)
+void ACamera::SetMouseCapture(bool bCapture, bool bUI, bool bOverwrite)
 {
-	if (bMouseCapture == bCapture)
+	UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport(); 
+	UEnhancedInputLocalPlayerSubsystem* inputSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PController->GetLocalPlayer());
+
+	if (bUI) {
+		FInputModeGameAndUI inputMode;
+		inputMode.SetHideCursorDuringCapture(false);
+		PController->SetInputMode(inputMode);
+
+		GameViewportClient->SetMouseCaptureMode(EMouseCaptureMode::NoCapture);
+		inputSystem->RemoveMappingContext(MouseInputMapping);
+
+		PController->FlushPressedKeys();
+
+		bCapture = false;
+	}
+	else if (!inputSystem->HasMappingContext(MouseInputMapping))
+		inputSystem->AddMappingContext(MouseInputMapping, 0);
+
+	if (bMouseCapture == bCapture && !bOverwrite)
 		return;
 
 	bMouseCapture = bCapture;
-
-	APlayerController* pcontroller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	pcontroller->SetShowMouseCursor(!bCapture);
+	PController->SetShowMouseCursor(!bCapture);
 
 	if (bCapture) {
 		FInputModeGameOnly inputMode;
 		inputMode.SetConsumeCaptureMouseDown(bCapture);
-		pcontroller->SetInputMode(inputMode);
+		PController->SetInputMode(inputMode);
 
 		GetWorld()->GetGameViewport()->GetMousePosition(MousePosition);
 	}
 	else {
 		FInputModeGameAndUI inputMode;
 		inputMode.SetHideCursorDuringCapture(bCapture);
-		pcontroller->SetInputMode(inputMode);
+		PController->SetInputMode(inputMode);
 	}
 }
 
@@ -396,42 +406,19 @@ void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
 	AsyncTask(ENamedThreads::GameThread, [this, Type, Message, IslandName]() { DisplayNotifyLog(Type, Message, IslandName); });
 }
 
-void ACamera::ClearPopUI()
+void ACamera::ClearPopupUI()
 {
-	if (BribeUIInstance->IsInViewport()) {
-		BribeUIInstance->RemoveFromParent();
+	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, ResearchUIInstance, ResearchHoverUIInstance, BuildingColourUIInstance, HoursUIInstance, FactionColourUIInstance };
 
-		bWasClosingWindow = true;
+	if (widgets.Contains(HoveredWidget))
+		widgets.Remove(HoveredWidget);
 
-		return;
-	}
-	else if (ResearchHoverUIInstance->IsInViewport()) {
-		ResearchHoverUIInstance->RemoveFromParent();
+	for (UUserWidget* widget : widgets) {
+		if (widget->IsInViewport()) {
+			widget->RemoveFromParent();
 
-		bWasClosingWindow = true;
-
-		return;
-	}
-	else if (BuildingColourUIInstance->IsInViewport()) {
-		BuildingColourUIInstance->RemoveFromParent();
-
-		bWasClosingWindow = true;
-
-		return;
-	}
-	else if (FactionColourUIInstance->IsInViewport()) {
-		FactionColourUIInstance->RemoveFromParent();
-
-		bWasClosingWindow = true;
-
-		return;
-	}
-	else if (HoursUIInstance->IsInViewport()) {
-		HoursUIInstance->RemoveFromParent();
-
-		bWasClosingWindow = true;
-
-		return;
+			bWasClosingWindow = true;
+		}
 	}
 }
 
@@ -653,6 +640,8 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 {
 	if (Grid->LoadUIInstance->IsInViewport())
 		return;
+
+	ClearPopupUI();
 	
 	if (bWasClosingWindow || bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || bBulldoze) {
 		bWasClosingWindow = false;
@@ -828,7 +817,7 @@ void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 
 void ACamera::Look(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || bInMenu || !bMouseCapture)
 		return;
 
 	MovementComponent->Look(Instance);

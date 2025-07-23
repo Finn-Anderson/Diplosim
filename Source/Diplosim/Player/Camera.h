@@ -187,6 +187,9 @@ public:
 	UPROPERTY()
 		bool bStartMenu;
 
+	UPROPERTY()
+		APlayerController* PController;
+
 	void Tick(float DeltaTime) override;
 
 	void OnBrochPlace(class ABuilding* Broch);
@@ -337,6 +340,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		FString WikiURL;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		class UUserWidget* HoveredWidget;
+
 	UPROPERTY()
 		bool bInMenu;
 
@@ -346,7 +352,7 @@ public:
 	UPROPERTY()
 		class ACitizen* FocusedCitizen;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		bool bMouseCapture;
 
 	UPROPERTY()
@@ -364,7 +370,8 @@ public:
 	UPROPERTY()
 		bool bWasClosingWindow;
 
-	void SetMouseCapture(bool bCapture);
+	UFUNCTION(BlueprintCallable)
+		void SetMouseCapture(bool bCapture, bool bUI = false, bool bOverwrite = false);
 
 	UFUNCTION(BlueprintCallable)
 		void StartGame();
@@ -377,7 +384,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void NotifyLog(FString Type, FString Message, FString IslandName);
 
-	void ClearPopUI();
+	UFUNCTION(BlueprintCallable)
+		void ClearPopupUI();
 
 	void SetPause(bool bPause, bool bTickWhenPaused);
 
@@ -417,7 +425,10 @@ public:
 
 	// Inputs
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-		class UInputMappingContext* InputMapping;
+		class UInputMappingContext* MouseInputMapping;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputMappingContext* MovementInputMapping;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputLook;
