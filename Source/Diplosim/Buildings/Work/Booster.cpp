@@ -45,6 +45,7 @@ TArray<ABuilding*> ABooster::GetAffectedBuildings()
 	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
 
 	TArray<AActor*> ignore;
+	ignore.Add(this);
 	ignore.Add(Camera->Grid);
 
 	for (FResourceHISMStruct resourceStruct : Camera->Grid->MineralStruct)
@@ -66,7 +67,21 @@ TArray<ABuilding*> ABooster::GetAffectedBuildings()
 	TArray<ABuilding*> buildings;
 
 	for (AActor* actor : actors) {
-		if (!BuildingsToBoost.Contains(actor->GetClass()))
+		TArray<TSubclassOf<ABuilding>> buildingClasses;
+		BuildingsToBoost.GenerateKeyArray(buildingClasses);
+
+		bool bContainsBuilding = false;
+
+		for (TSubclassOf<ABuilding> buildingClass : buildingClasses) {
+			if (actor->FindNearestCommonBaseClass(buildingClasses[0]) != buildingClass)
+				continue;
+
+			bContainsBuilding = true;
+
+			break;
+		}
+
+		if (!bContainsBuilding)
 			continue;
 
 		buildings.Add(Cast<ABuilding>(actor));

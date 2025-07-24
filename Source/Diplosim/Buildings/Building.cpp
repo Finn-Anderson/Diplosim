@@ -678,7 +678,8 @@ void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 
 	int32 index = Occupied.Find(occupant);
 
-	Occupied[index].Visitors.Remove(Visitor);
+	if (index != INDEX_NONE)
+		Occupied[index].Visitors.Remove(Visitor);
 
 	if (Visitor->Building.BuildingAt == this)
 		Leave(Visitor);

@@ -134,6 +134,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			SetTreeStatus(1.0f);
 
 			Buildings[0]->SetActorLocation(location);
+			Buildings[0]->SetActorRotation(Rotation);
+
+			if (Buildings[0]->IsA<AWall>())
+				Cast<AWall>(Buildings[0])->SetRotationMesh(Rotation.Yaw);
 
 			if (StartLocation != FVector::Zero())
 				SetBuildingsOnPath();
@@ -163,7 +167,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				station->TelescopeMesh->SetOverlayMaterial(BlockedMaterial);
 			}
 
-			DisplayInfluencedBuildings(false);
+			DisplayInfluencedBuildings(building, false);
 
 			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
 				decalComp->SetVisibility(false);
@@ -181,7 +185,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				station->TelescopeMesh->SetOverlayMaterial(BlueprintMaterial);
 			}
 
-			DisplayInfluencedBuildings(true);
+			DisplayInfluencedBuildings(building, true);
 
 			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
 				decalComp->SetVisibility(true);
@@ -189,14 +193,23 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 }
 
-TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building)
+TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, float Extent)
 {
 	TArray<FHitResult> hits;
 
 	FCollisionQueryParams params;
 	params.AddIgnoredActor(Building);
 
-	GetWorld()->SweepMultiByChannel(hits, Building->GetActorLocation(), Building->GetActorLocation() + FVector(0.0f, 0.0f, -300.0f), Building->GetActorQuat(), ECC_Visibility, FCollisionShape::MakeBox(Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2), params);
+	FVector size = FVector::Zero();
+	FVector location = FVector::Zero();
+	Building->GetActorBounds(true, location, size);
+
+	FQuat quat = Building->GetActorRotation().Quaternion();
+
+	size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2;
+	size.Z += 300.0f;
+
+	GetWorld()->SweepMultiByChannel(hits, location, location, quat, ECC_Visibility, FCollisionShape::MakeBox(size * Extent), params);
 
 	return hits;
 }
@@ -220,25 +233,20 @@ void UBuildComponent::SetTreeStatus(float Opacity, bool bDestroy)
 	}
 }
 
-void UBuildComponent::DisplayInfluencedBuildings(bool bShow)
+void UBuildComponent::DisplayInfluencedBuildings(class ABuilding* Building, bool bShow)
 {
-	if (Buildings.IsEmpty() || !Buildings[0]->IsA<ABooster>())
+	if (!Building->IsA<ABooster>() || Building->IsHidden())
 		return;
 
-	for (ABuilding* building : Buildings) {
-		if (building->IsHidden())
-			continue;
+	ABooster* booster = Cast<ABooster>(Building);
 
-		ABooster* booster = Cast<ABooster>(building);
+	TArray<ABuilding*> influencedBuildings = booster->GetAffectedBuildings();
 
-		TArray<ABuilding*> influencedBuildings = booster->GetAffectedBuildings();
-
-		for (ABuilding* b : Camera->CitizenManager->Buildings) {
-			if (bShow && influencedBuildings.Contains(b))
-				b->BuildingMesh->SetOverlayMaterial(InfluencedMaterial);
-			else
-				b->BuildingMesh->SetOverlayMaterial(nullptr);
-		}
+	for (ABuilding* b : Camera->CitizenManager->Buildings) {
+		if (bShow && influencedBuildings.Contains(b))
+			b->BuildingMesh->SetOverlayMaterial(InfluencedMaterial);
+		else
+			b->BuildingMesh->SetOverlayMaterial(nullptr);
 	}
 }
 
@@ -441,7 +449,8 @@ bool UBuildComponent::CheckBuildCosts()
 
 bool UBuildComponent::IsValidLocation(ABuilding* building)
 {
-	TArray<FHitResult> hits = GetBuildingOverlaps(building);
+	TArray<FHitResult> hits = GetBuildingOverlaps(building, 0.9f);
+	TArray<FHitResult> hits2 = GetBuildingOverlaps(building, 0.8f);
 
 	if (hits.IsEmpty())
 		return false;
@@ -514,30 +523,22 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 					continue;
 			}
 
+			bool bInHits2 = false;
+
+			for (FHitResult h : hits2) {
+				if (h.Location != hit.Location)
+					continue;
+
+				bInHits2 = true;
+
+				break;
+			}
+
 			FRotator rotation = (building->GetActorLocation() - transform.GetLocation()).Rotation();
-
-			FCollisionQueryParams params;
-			params.AddIgnoredActor(hit.GetActor());
-			params.AddIgnoredActor(Camera->Grid);
-
-			FVector extent = FVector(0.0f, 0.0f, 0.0f);
-			FVector offset = FVector(0.0f, 0.0f, 200.0f);
-			
-			if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
-				extent = (Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent())->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f);
-				extent *= 0.7f;
-			}
-			else {
-				UStaticMeshComponent* mesh = hit.GetActor()->FindComponentByClass<UStaticMeshComponent>();
-
-				extent = (mesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f) * 0.8f;
-			}
-
-			FHitResult hit2;
 
 			if (building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
 				bCoast = true;
-			else if (GetWorld()->SweepSingleByChannel(hit2, transform.GetLocation() + offset, transform.GetLocation() - offset, FQuat(0.0f), ECollisionChannel::ECC_PhysicsBody, FCollisionShape::MakeBox(extent), params) && !hit2.GetActor()->IsHidden() && hit2.GetActor() == building)
+			else if (!hit.GetActor()->IsHidden() && (!bInHits2 || transform.GetLocation().Z < FMath::Floor(building->GetActorLocation().Z) - 100.0f))
 				return false;
 		}
 	}
@@ -607,6 +608,8 @@ void UBuildComponent::RemoveBuilding()
 		int32 x = FMath::FloorToInt(building->GetActorLocation().X / 100.0f + bound / 2);
 		int32 y = FMath::FloorToInt(building->GetActorLocation().Y / 100.0f + bound / 2);
 
+		DisplayInfluencedBuildings(building, false);
+
 		building->DestroyBuilding();
 	}
 
@@ -630,13 +633,6 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 		bCanRotate = false;
 
 		Rotation.Yaw = yaw;
-
-		for (ABuilding* building : Buildings) {
-			building->SetActorRotation(Rotation);
-
-			if (building->IsA<AWall>())
-				Cast<AWall>(building)->SetRotationMesh(yaw);
-		}
 	}
 	else if (!Rotate) {
 		bCanRotate = true;
@@ -747,7 +743,8 @@ void UBuildComponent::Place(bool bQuick)
 
 	SetTreeStatus(0.0f, true); 
 
-	DisplayInfluencedBuildings(false);
+	for (ABuilding* building : Buildings)
+		DisplayInfluencedBuildings(building, false);
 
 	if (!Buildings.IsEmpty() && (Buildings[0]->IsA(FoundationClass) || Buildings[0]->IsA(RampClass) || Buildings[0]->IsA<ARoad>())) {
 		for (ABuilding* building : Buildings)

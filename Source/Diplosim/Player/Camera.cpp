@@ -493,7 +493,18 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
 		if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr)) {
 			decalComponents[1]->SetVisibility(bStatus);
 
-			BuildComponent->DisplayInfluencedBuildings(bStatus);
+			BuildComponent->DisplayInfluencedBuildings(Cast<ABuilding>(Actor), bStatus);
+		}
+	}
+
+	if (IsValid(WidgetComponent->GetAttachParentActor())) {
+		TArray<UDecalComponent*> decalComponents;
+		WidgetComponent->GetAttachParentActor()->GetComponents<UDecalComponent>(decalComponents);
+
+		if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(WidgetComponent->GetAttachParentActor()), nullptr)) {
+			decalComponents[1]->SetVisibility(false);
+
+			BuildComponent->DisplayInfluencedBuildings(Cast<ABuilding>(WidgetComponent->GetAttachParentActor()), false);
 		}
 	}
 

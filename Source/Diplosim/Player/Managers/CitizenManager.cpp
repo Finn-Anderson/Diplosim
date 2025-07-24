@@ -450,7 +450,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 						citizen->AIController->StopMovement();
 					});
 				}
-				else if (actor->IsA<ABuilding>() && citizen->CanReach(actor, reach) && !IsValid(citizen->Building.BuildingAt)) {
+				else if (actor->IsA<ABuilding>() && !actor->IsA<ABroch>() && citizen->CanReach(actor, reach) && !IsValid(citizen->Building.BuildingAt)) {
 					FPartyStruct* partyStruct = GetMembersParty(citizen);
 
 					if (partyStruct == nullptr || partyStruct->Party != "Shell Breakers")
@@ -1085,6 +1085,9 @@ void UCitizenManager::CheckForWeddings(int32 Hour)
 
 		if (partner->Spirituality.Faith != "Atheist")
 			faiths.Add(partner->Spirituality.Faith);
+
+		if (faiths.IsEmpty())
+			faiths.Append({ "Chicken", "Egg" });
 
 		int32 index = citizen->Camera->Grid->Stream.RandRange(0, faiths.Num() - 1);
 		FString chosenFaith = faiths[index];
