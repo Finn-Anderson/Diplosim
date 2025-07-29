@@ -139,9 +139,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMWall;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* HISMSea;
+
 	// Dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Size;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
+		int32 Chunks;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")
 		int32 Peaks;
@@ -169,6 +175,8 @@ public:
 		TArray<FVector> LavaSpawnLocations;
 
 	// Map
+	int32 GetMapBounds();
+
 	void Load();
 
 	void SetupMap();
@@ -213,6 +221,8 @@ public:
 	void CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis);
 
 	void Clear();
+
+	FTileStruct* GetTileFromLocation(FVector WorldLocation);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crystal")
 		class UStaticMeshComponent* CrystalMesh;

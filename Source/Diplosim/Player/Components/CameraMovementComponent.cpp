@@ -167,9 +167,9 @@ void UCameraMovementComponent::Move(const struct FInputActionInstance& Instance)
 void UCameraMovementComponent::Speed(const struct FInputActionInstance& Instance)
 {
 	if (CameraSpeed == 10.0f)
-		CameraSpeed *= 2;
+		CameraSpeed *= 3;
 	else
-		CameraSpeed /= 2;
+		CameraSpeed /= 3;
 }
 
 void UCameraMovementComponent::Scroll(const struct FInputActionInstance& Instance)

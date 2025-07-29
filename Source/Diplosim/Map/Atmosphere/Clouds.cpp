@@ -88,15 +88,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 				FTransform transform;
 				cloudStruct.HISMCloud->GetInstanceTransform(inst, transform);
 
-				auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Grid->Size));
-
-				int32 x = Grid->Stream.RandRange(-3, 3) + transform.GetLocation().X / 100.0f + bound / 2;
-				int32 y = Grid->Stream.RandRange(-3, 3) + transform.GetLocation().X / 100.0f + bound / 2;
-
-				FVector endLocation = FVector(transform.GetLocation().X + Grid->Stream.RandRange(-300.0f, 300.0f), transform.GetLocation().Y + Grid->Stream.RandRange(-300.0f, 300.0f), 0.0f);
-
-				if (x < bound && y < bound)
-					endLocation = Grid->GetTransform(&Grid->Storage[x][y]).GetLocation() + FVector(Grid->Stream.RandRange(-50.0f, 50.0f), Grid->Stream.RandRange(-50.0f, 50.0f), 0.0f);
+				FVector endLocation = FVector(transform.GetLocation().X + Grid->Stream.RandRange(-300.0f, 300.0f), transform.GetLocation().Y + Grid->Stream.RandRange(-300.0f, 300.0f), 0.0f); 
 
 				UNiagaraComponent* lightning = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LightningSystem, transform.GetLocation(), FRotator(0.0f), FVector(1.0f), true, false);
 				lightning->SetVariableVec3(TEXT("StartLocation"), cloudStruct.HISMCloud->GetRelativeLocation() + transform.GetLocation());

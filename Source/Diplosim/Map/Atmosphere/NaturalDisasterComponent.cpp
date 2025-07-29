@@ -87,7 +87,7 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 
 	TArray<FTileStruct> points;
 
-	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Grid->Size));
+	auto bound = Grid->GetMapBounds();
 
 	float dist = FVector2D::Distance(FVector2D(start.X, start.Y), FVector2D(end.X, end.Y));
 
@@ -184,16 +184,16 @@ void UNaturalDisasterComponent::CancelEarthquake()
 
 void UNaturalDisasterComponent::GeneratePurifier(float Magnitude)
 {
-	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Grid->Size));
+	auto bound = Grid->GetMapBounds();
 
-	int32 x = Grid->Stream.RandRange(0, bound - 1);
-	int32 y = Grid->Stream.RandRange(0, bound - 1);
+	int32 x = Grid->Stream.RandRange(0, bound);
+	int32 y = Grid->Stream.RandRange(0, bound);
 
 	FRotator rotation;
 	rotation.Yaw = Grid->Stream.RandRange(0, 359);
 	rotation.Pitch = Grid->Stream.RandRange(-90, -30);
 
-	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(PurifierClass, Grid->GetTransform(&Grid->Storage[x][y]).GetLocation(), rotation);
+	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(PurifierClass, Grid->GetTransform(&Grid->Storage[x][y]).GetLocation() - (rotation.Vector() * 1000.0f), rotation);
 	projectile->SpawnNiagaraSystems(GetOwner());
 	projectile->Radius *= Magnitude;
 }

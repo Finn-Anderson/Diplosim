@@ -80,16 +80,15 @@ void ARoad::OnRoadOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AA
 void ARoad::RegenerateMesh()
 {
 	HISMRoad->ClearInstances();
-	
-	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
-	FTileStruct tile = Camera->Grid->Storage[GetActorLocation().X / 100.0f + bound / 2][GetActorLocation().Y / 100.0f + bound / 2];
 
-	if (tile.bRiver) {
-		FTileStruct* left = *tile.AdjacentTiles.Find("Left");
-		FTileStruct* right = *tile.AdjacentTiles.Find("Right");
+	FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorLocation());
 
-		FTileStruct* below = *tile.AdjacentTiles.Find("Below");
-		FTileStruct* above = *tile.AdjacentTiles.Find("Above");
+	if (tile->bRiver) {
+		FTileStruct* left = *tile->AdjacentTiles.Find("Left");
+		FTileStruct* right = *tile->AdjacentTiles.Find("Right");
+
+		FTileStruct* below = *tile->AdjacentTiles.Find("Below");
+		FTileStruct* above = *tile->AdjacentTiles.Find("Above");
 
 		FTileStruct* chosen = nullptr;
 
@@ -105,7 +104,7 @@ void ARoad::RegenerateMesh()
 
 			BuildingMesh->SetRelativeRotation(rotation);
 
-			if (tile.Level != chosen->Level)
+			if (tile->Level != chosen->Level)
 				SetActorLocation(GetActorLocation() + FVector(0.0f, 0.0f, 75.0f));
 
 			if (GetTier() == 1)
@@ -159,16 +158,16 @@ void ARoad::RegenerateMesh()
 		if (IsValid(actor) && !actor->IsHidden() && actor != this && GetActorLocation() != location && (Camera->BuildComponent->Buildings.IsEmpty() || Camera->BuildComponent->Buildings[0] != actor)) {
 			transform.SetRotation(FRotator(0.0f, 90.0f + (GetActorLocation() - location).Rotation().Yaw, 0.0f).Quaternion());
 
-			FTileStruct t = Camera->Grid->Storage[location.X / 100.0f + bound / 2][location.Y / 100.0f + bound / 2];
+			FTileStruct* t = Camera->Grid->GetTileFromLocation(location);
 
-			if (t.Level != tile.Level)
+			if (t->Level != tile->Level)
 				continue;
 
-			if (t.bRiver) {
+			if (t->bRiver) {
 				bool bValid = false;
 
-				for (auto& element : t.AdjacentTiles)
-					if (element.Value->X == tile.X && element.Value->Y == tile.Y)
+				for (auto& element : t->AdjacentTiles)
+					if (element.Value->X == tile->X && element.Value->Y == tile->Y)
 						bValid = true;
 
 				if (!bValid)
@@ -181,9 +180,7 @@ void ARoad::RegenerateMesh()
 		}
 	}
 
-	for (FTransform transform : transforms)
-		HISMRoad->AddInstance(transform);
-
+	HISMRoad->AddInstances(transforms, false);
 	HISMRoad->BuildTreeIfOutdated(true, true);
 }
 

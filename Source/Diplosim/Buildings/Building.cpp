@@ -465,10 +465,7 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 	}
 
 	if (IsA(Camera->BuildComponent->FoundationClass)) {
-		int32 x = GetActorLocation().X / 100.0f;
-		int32 y = GetActorLocation().Y / 100.0f;
-
-		FTileStruct* tile = &Camera->Grid->Storage[x][y];
+		FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorLocation());
 
 		if (tile->bRiver)
 			Camera->Grid->HISMRiver->PerInstanceSMCustomData[tile->Instance * 4] = 1.0f;
@@ -508,15 +505,7 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 
 		Camera->BuildComponent->RemoveWalls(this);
 
-		int32 buildingX = FMath::RoundHalfFromZero(GetActorLocation().X);
-		int32 buildingY = FMath::RoundHalfFromZero(GetActorLocation().Y);
-
-		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
-
-		int32 x = buildingX / 100.0f + (bound / 2);
-		int32 y = buildingY / 100.0f + (bound / 2);
-
-		FTileStruct* tile = &Camera->Grid->Storage[x][y];
+		FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorLocation());
 
 		if (IsA(Camera->BuildComponent->FoundationClass))
 			tile->Level--;

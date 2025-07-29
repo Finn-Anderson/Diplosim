@@ -47,6 +47,7 @@ ACitizen::ACitizen()
 	HatMesh->SetWorldScale3D(FVector(0.1f, 0.1f, 0.1f));
 	HatMesh->SetCollisionProfileName("NoCollision", false);
 	HatMesh->SetupAttachment(Mesh, "HatSocket");
+	HatMesh->SetCanEverAffectNavigation(false);
 	HatMesh->PrimaryComponentTick.bCanEverTick = false;
 
 	TorchMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TorchMesh"));
@@ -64,6 +65,7 @@ ACitizen::ACitizen()
 	GlassesMesh->SetWorldScale3D(FVector(0.2f, 0.2f, 0.2f));
 	GlassesMesh->SetCollisionProfileName("NoCollision", false);
 	GlassesMesh->SetupAttachment(Mesh, "GlassesSocket");
+	GlassesMesh->SetCanEverAffectNavigation(false);
 	GlassesMesh->SetHiddenInGame(true);
 	GlassesMesh->PrimaryComponentTick.bCanEverTick = false;
 
@@ -85,6 +87,7 @@ ACitizen::ACitizen()
 	PopupComponent->SetHiddenInGame(true);
 	PopupComponent->SetComponentTickEnabled(false);
 	PopupComponent->SetGenerateOverlapEvents(false);
+	PopupComponent->SetCanEverAffectNavigation(false);
 	PopupComponent->SetupAttachment(RootComponent);
 	PopupComponent->PrimaryComponentTick.bCanEverTick = false;
 

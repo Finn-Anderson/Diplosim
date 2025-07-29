@@ -54,6 +54,17 @@ AGrid::AGrid()
 	HISMLava->bWorldPositionOffsetWritesVelocity = false;
 	HISMLava->bAutoRebuildTreeOnInstanceChanges = false;
 
+	HISMSea = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMSea"));
+	HISMSea->SetupAttachment(GetRootComponent());
+	HISMSea->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	HISMSea->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	HISMSea->SetCollisionResponseToChannels(response);
+	HISMSea->SetCanEverAffectNavigation(false);
+	HISMSea->SetEvaluateWorldPositionOffset(false);
+	HISMSea->SetGenerateOverlapEvents(false);
+	HISMSea->bWorldPositionOffsetWritesVelocity = false;
+	HISMSea->bAutoRebuildTreeOnInstanceChanges = false;
+
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
 	HISMGround->SetupAttachment(GetRootComponent());
 	HISMGround->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -136,6 +147,7 @@ AGrid::AGrid()
 	CrystalMesh->SetupAttachment(RootComponent);
 
 	Size = 22500;
+	Chunks = 1;
 	Peaks = 2;
 	Rivers = 2;
 	Type = EType::Round;
@@ -203,6 +215,11 @@ void AGrid::BeginPlay()
 	nav->OnNavigationGenerationFinishedDelegate.Add(delegate);
 }
 
+int32 AGrid::GetMapBounds()
+{
+	return FMath::FloorToInt32(FMath::Sqrt((double)Size)) * Chunks;
+}
+
 void AGrid::Load()
 {
 	// Add loading screen
@@ -227,8 +244,15 @@ void AGrid::Load()
 
 void AGrid::SetupMap()
 {
-	// Set map limtis
-	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
+	TArray<FTransform> seaTransforms;
+
+	// Set map limts
+	FTransform seaTransform;
+	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
+	seaTransforms.Add(seaTransform);
+	HISMSea->AddInstances(seaTransforms, false);
+
+	auto bound = GetMapBounds();
 
 	for (int32 x = 0; x < bound; x++) {
 		auto& row = Storage.Emplace_GetRef();
@@ -271,7 +295,7 @@ void AGrid::SetupMap()
 
 	TArray<FTileStruct*> chooseableTiles = {};
 
-	int32 levelTotal = Size * (PercentageGround / 100.0f);
+	int32 levelTotal = Size * (PercentageGround / 100.0f) * Chunks;
 
 	int32 level = MaxLevel + 1;
 
@@ -311,12 +335,11 @@ void AGrid::SetupMap()
 		// Get Tile and adjacent tiles
 		FTileStruct* chosenTile = nullptr;
 
-		if (PeaksList.Num() < Peaks) {
-			int32 x = Storage.Num();
-			int32 y = Storage[0].Num();
+		if (PeaksList.Num() < Peaks * Chunks) {
+			int32 range = bound / 4;
 
-			int32 chosenX = Stream.RandRange(bound / 4, x - bound / 4 - 1);
-			int32 chosenY = Stream.RandRange(bound / 4, y - bound / 4 - 1);
+			int32 chosenX = Stream.RandRange(range, bound - 1 - range);
+			int32 chosenY = Stream.RandRange(range, bound - 1 - range);
 
 			chosenTile = &Storage[chosenX][chosenY];
 
@@ -586,6 +609,7 @@ void AGrid::SpawnTiles()
 			CreateEdgeWalls(&tile);
 
 	HISMLava->BuildTreeIfOutdated(true, false);
+	HISMSea->BuildTreeIfOutdated(true, false);
 	HISMGround->BuildTreeIfOutdated(true, false);
 	HISMFlatGround->BuildTreeIfOutdated(true, false);
 	HISMRampGround->BuildTreeIfOutdated(true, false);
@@ -700,7 +724,7 @@ void AGrid::SpawnVegetation()
 
 void AGrid::SetupEnvironment()
 {
-	auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
+	auto bound = GetMapBounds();
 
 	// Set Atmosphere Affects
 	SetSeasonAffect(AtmosphereComponent->Calendar.Period, 1.0f);
@@ -711,8 +735,8 @@ void AGrid::SetupEnvironment()
 	AtmosphereComponent->Clouds->ActivateCloud();
 
 	// Set Camera Bounds
-	FVector c1 = FVector(bound * 100, bound * 100, 0);
-	FVector c2 = FVector(-bound * 100, -bound * 100, 0);
+	FVector c1 = FVector(bound * 100.0f, bound * 100.0f, 0);
+	FVector c2 = FVector(-bound * 100.0f, -bound * 100.0f, 0);
 
 	Camera->MovementComponent->SetBounds(c1, c2);
 
@@ -903,12 +927,15 @@ TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
 
 void AGrid::CalculateTile(FTileStruct* Tile)
 {
+	if (Tile->Level < 0)
+		return;
+
 	FTransform transform;
 	FVector loc = FVector(Tile->X * 100.0f, Tile->Y * 100.0f, 0.0f);
 	transform.SetLocation(loc);
 	transform.SetRotation(Tile->Rotation);
 
-	if (Tile->AdjacentTiles.Num() < 4) {
+	/*if (Tile->AdjacentTiles.Num() < 4) {
 		FTransform t = transform;
 
 		if (t.GetLocation().Z != -200.0f)
@@ -940,8 +967,8 @@ void AGrid::CalculateTile(FTileStruct* Tile)
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, -200.0f));
 
 		AddCalculatedTile(HISMFlatGround, transform);
-	}
-	else if (bLava && Tile->Level == MaxLevel) {
+	}*/
+	if (bLava && Tile->Level == MaxLevel) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * (MaxLevel - 2)));
 
 		AddCalculatedTile(HISMLava, transform);
@@ -1108,12 +1135,9 @@ void AGrid::GenerateTiles()
 			if ((int32)transform.GetLocation().X % 100 != 0 || (int32)transform.GetLocation().Y % 100 != 0)
 				continue;
 
-			auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
+			FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
 
-			int32 x = FMath::RoundHalfFromZero(transform.GetLocation().X / 100.0f) + (bound / 2);
-			int32 y = FMath::RoundHalfFromZero(transform.GetLocation().Y / 100.0f) + (bound / 2);
-
-			if (x >= bound || x < 0 || y >= bound || y < 0)
+			if (tile == nullptr)
 				continue;
 
 			if (transform.GetLocation().Z >= 0.0f && (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround)) {
@@ -1121,27 +1145,27 @@ void AGrid::GenerateTiles()
 				float g = 0.0f;
 				float b = 0.0f;
 
-				if (Storage[x][y].Fertility == 0) {
+				if (tile->Fertility == 0) {
 					r = 30.0f;
 					g = 20.0f;
 					b = 13.0f;
 				}
-				else if (Storage[x][y].Fertility == 1) {
+				else if (tile->Fertility == 1) {
 					r = 255.0f;
 					g = 225.0f;
 					b = 45.0f;
 				}
-				else if (Storage[x][y].Fertility == 2) {
+				else if (tile->Fertility == 2) {
 					r = 152.0f;
 					g = 191.0f;
 					b = 100.0f;
 				}
-				else if (Storage[x][y].Fertility == 3) {
+				else if (tile->Fertility == 3) {
 					r = 86.0f;
 					g = 228.0f;
 					b = 68.0f;
 				}
-				else if (Storage[x][y].Fertility == 4) {
+				else if (tile->Fertility == 4) {
 					r = 52.0f;
 					g = 213.0f;
 					b = 31.0f;
@@ -1164,7 +1188,7 @@ void AGrid::GenerateTiles()
 				element.Key->SetCustomDataValue(inst, 4, b);
 			}
 
-			Storage[x][y].Instance = inst;
+			tile->Instance = inst;
 		}
 	}
 }
@@ -1291,7 +1315,7 @@ void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 
 void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles)
 {
-	if (CheckTile->X > SpawnTile->X + Range || CheckTile->X < SpawnTile->X - Range || CheckTile->Y > SpawnTile->Y + Range || CheckTile->Y < SpawnTile->Y - Range)
+	if (CheckTile->X > SpawnTile->X + Range || CheckTile->X < SpawnTile->X - Range || CheckTile->Y > SpawnTile->Y + Range || CheckTile->Y < SpawnTile->Y - Range || CheckTile->Level < 0)
 		return;
 
 	if (CheckTile->bRamp || CheckTile->bRiver || CheckTile->bMineral || CheckTile->bUnique || CheckTile->Level != SpawnTile->Level) {
@@ -1529,6 +1553,7 @@ void AGrid::Clear()
 		actor->Destroy();
 
 	HISMLava->ClearInstances();
+	HISMSea->ClearInstances();
 	HISMGround->ClearInstances();
 	HISMFlatGround->ClearInstances();
 	HISMRampGround->ClearInstances();
@@ -1539,6 +1564,19 @@ void AGrid::Clear()
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(false, false);
+}
+
+FTileStruct* AGrid::GetTileFromLocation(FVector WorldLocation)
+{
+	auto bound = GetMapBounds();
+
+	int32 x = FMath::RoundHalfFromZero(WorldLocation.X / 100.0f) + (bound / 2);
+	int32 y = FMath::RoundHalfFromZero(WorldLocation.Y / 100.0f) + (bound / 2);
+
+	if (x >= bound || x < 0 || y >= bound || y < 0)
+		return nullptr;
+
+	return &Storage[x][y];
 }
 
 void AGrid::SetSeasonAffect(FString Period, float Increment)
@@ -1619,12 +1657,9 @@ void AGrid::SetSeasonAffect(TArray<float> Values)
 		FTransform transform;
 		HISMGround->GetInstanceTransform(inst, transform);
 
-		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
+		FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
 
-		int32 x = transform.GetLocation().X / 100.0f + (bound / 2);
-		int32 y = transform.GetLocation().Y / 100.0f + (bound / 2);
-
-		if (Storage[x][y].Fertility == 0.0f)
+		if (tile == nullptr || tile->Fertility == 0.0f)
 			continue;
 
 		HISMGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];
@@ -1636,12 +1671,9 @@ void AGrid::SetSeasonAffect(TArray<float> Values)
 		FTransform transform;
 		HISMFlatGround->GetInstanceTransform(inst, transform);
 
-		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Size));
+		FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
 
-		int32 x = transform.GetLocation().X / 100.0f + (bound / 2);
-		int32 y = transform.GetLocation().Y / 100.0f + (bound / 2);
-
-		if (x < 0 || x > (bound - 1) || y < 0 || y > (bound - 1) || Storage[x][y].Fertility == 0.0f)
+		if (tile == nullptr || tile->Fertility == 0.0f)
 			continue;
 
 		HISMFlatGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];

@@ -438,12 +438,10 @@ void ACamera::SetPause(bool bPause, bool bTickWhenPaused)
 
 void ACamera::SetGameSpeed(float Speed)
 {
-	GameSpeed = FMath::Clamp(GameSpeed + Speed, 1.0f, 5.0f);
+	GameSpeed = Speed;
 
 	if (CustomTimeDilation <= 1.0f)
 		SetTimeDilation(GameSpeed);
-
-	UpdateSpeedUI(GameSpeed);
 }
 
 void ACamera::SetTimeDilation(float Dilation)
@@ -869,7 +867,7 @@ void ACamera::IncrementGameSpeed(const struct FInputActionInstance& Instance)
 
 	GameSpeedCounter = 0;
 
-	SetGameSpeed(Instance.GetValue().Get<float>());
+	SetGameSpeed(GameSpeed + Instance.GetValue().Get<float>());
 }
 
 void ACamera::ResetGameSpeedCounter()

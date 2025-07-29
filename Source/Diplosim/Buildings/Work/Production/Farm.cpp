@@ -75,12 +75,9 @@ int32 AFarm::GetFertility()
 	int32 fertility = 5;
 	
 	if (bAffectedByFerility) {
-		auto bound = FMath::FloorToInt32(FMath::Sqrt((double)Camera->Grid->Size));
+		FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorLocation());
 
-		int32 x = GetActorLocation().X / 100.0f + bound / 2;
-		int32 y = GetActorLocation().Y / 100.0f + bound / 2;
-
-		fertility = Camera->Grid->Storage[x][y].Fertility;
+		fertility = tile->Fertility;
 	}
 
 	return fertility;

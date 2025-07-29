@@ -161,6 +161,7 @@ TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints()
 
 			validTiles.Add(loc);
 		}
+			
 	}
 
 	return validTiles;
@@ -194,15 +195,14 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 	TArray<FVector> spawnLocations;
 
 	auto index = Async(EAsyncExecution::TaskGraph, [this, validTiles]() { return Camera->Grid->Stream.RandRange(0, validTiles.Num() - 1); });
+	FVector startLocation = validTiles[index.Get()];
 
-	spawnLocations.Add(validTiles[index.Get()]);
+	spawnLocations.Add(startLocation);
 
-	FTileStruct* chosenTile = &Grid->Storage[validTiles[index.Get()].X / 100 + Grid->Storage.Num() / 2][validTiles[index.Get()].Y / 100 + Grid->Storage.Num() / 2];
-
-	TArray<int32> instances = Grid->HISMFlatGround->GetInstancesOverlappingSphere(Grid->GetTransform(chosenTile).GetLocation(), 1000);
+	TArray<int32> instances = Grid->HISMFlatGround->GetInstancesOverlappingSphere(startLocation, 1000);
 	spawnLocations.Append(GetValidLocations(Grid->HISMFlatGround, instances, validTiles));
 
-	instances = Grid->HISMGround->GetInstancesOverlappingSphere(Grid->GetTransform(chosenTile).GetLocation(), 1000);
+	instances = Grid->HISMGround->GetInstancesOverlappingSphere(startLocation, 1000);
 	spawnLocations.Append(GetValidLocations(Grid->HISMGround, instances, validTiles));
 
 	return spawnLocations;
