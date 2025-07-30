@@ -48,8 +48,9 @@ void ABroch::SpawnCitizens()
 
 		citizen->BioStruct.Age = 17;
 		citizen->Birthday();
-
-		citizen->HealthComponent->AddHealth(100);
+		
+		citizen->HealthComponent->MaxHealth = 100 * citizen->HealthComponent->HealthMultiplier;
+		citizen->HealthComponent->AddHealth(100 * citizen->HealthComponent->HealthMultiplier);
 
 		citizen->ApplyResearch();
 

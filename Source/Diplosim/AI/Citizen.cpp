@@ -841,7 +841,7 @@ void ACitizen::LoseEnergy()
 
 	MovementComponent->SetMaxSpeed(Energy);
 
-	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || Building.Employment->IsWorking(this) || bWorshipping || (Building.Employment->IsA<AClinic>() && Camera->CitizenManager->Healing.Contains(AIController->MoveRequest.GetGoalActor())))
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && (Building.Employment->IsWorking(this) || (Building.Employment->IsA<AClinic>() && Camera->CitizenManager->Healing.Contains(AIController->MoveRequest.GetGoalActor())))))
 		return;
 
 	if (IsValid(Building.House) || IsValid(Building.Orphanage)) {
@@ -2015,9 +2015,10 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 	else if (Affect == "Health") {
 		HealthComponent->HealthMultiplier += Amount;
 
-		float percHealth = HealthComponent->Health / HealthComponent->MaxHealth;
 		HealthComponent->MaxHealth = FMath::Clamp(10 + (5 * BioStruct.Age), 0, 100) * HealthComponent->HealthMultiplier;
-		HealthComponent->Health = HealthComponent->MaxHealth * percHealth;
+
+		if (HealthComponent->Health > HealthComponent->MaxHealth)
+			HealthComponent->Health = HealthComponent->MaxHealth;
 	}
 	else if (Affect == "Fertility") {
 		Fertility += Amount;

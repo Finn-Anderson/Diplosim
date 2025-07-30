@@ -4,6 +4,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
@@ -53,26 +54,39 @@ void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
 		return;
 
-	ABuilding* building = Cast<ABuilding>(GetOwner());
+	if (GetOwner()->IsA<ABuilding>()) {
+		ABuilding* building = Cast<ABuilding>(GetOwner());
 
-	float height = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+		float height = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
-	FVector location = FMath::VInterpTo(building->GetActorLocation(), building->GetActorLocation() - FVector(0.0f, 0.0f, height + 1.0f), DeltaTime, 0.15f);
+		FVector location = FMath::VInterpTo(building->GetActorLocation(), building->GetActorLocation() - FVector(0.0f, 0.0f, height + 1.0f), DeltaTime, 0.15f);
 
-	FVector difference = building->GetActorLocation() - location;
+		FVector difference = building->GetActorLocation() - location;
 
-	building->SetActorLocation(location);
+		building->SetActorLocation(location);
 
-	building->DestructionComponent->SetRelativeLocation(building->DestructionComponent->GetRelativeLocation() + difference);
-	building->GroundDecalComponent->SetRelativeLocation(building->GroundDecalComponent->GetRelativeLocation() + difference);
+		building->DestructionComponent->SetRelativeLocation(building->DestructionComponent->GetRelativeLocation() + difference);
+		building->GroundDecalComponent->SetRelativeLocation(building->GroundDecalComponent->GetRelativeLocation() + difference);
 
-	if (CrumbleLocation.Z <= building->GetActorLocation().Z) {
-		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
+		if (CrumbleLocation.Z <= building->GetActorLocation().Z) {
+			UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
+		}
+		else {
+			building->DestructionComponent->Deactivate();
+
+			SetComponentTickEnabled(false);
+		}
 	}
 	else {
-		building->DestructionComponent->Deactivate();
+		AAI* ai = Cast<AAI>(GetOwner());
 
-		SetComponentTickEnabled(false);
+		FRotator rotation = ai->Mesh->GetRelativeRotation();
+		rotation.Pitch++;
+
+		ai->Mesh->SetRelativeRotation(rotation);
+
+		if (rotation.Pitch >= 90.0f)
+			SetComponentTickEnabled(false);
 	}
 }
 
@@ -83,15 +97,15 @@ void UHealthComponent::AddHealth(int32 Amount)
 
 void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 {
-	if (GetHealth() == 0)
-		return;
-
 	AsyncTask(ENamedThreads::GameThread, [this, Amount, Attacker]() {
+		if (GetHealth() == 0)
+			return;
+
 		int32 force = FMath::Max(FMath::Abs(Health - Amount), 1);
 
 		Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
 
-		float opacity = (MaxHealth - Health) / float(MaxHealth);
+		float opacity = (MaxHealth - Health) / (float)MaxHealth;
 
 		if (GetOwner()->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(GetOwner());
@@ -144,16 +158,9 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		Camera->Lose();
 
 	if (actor->IsA<AAI>()) {
-		USkeletalMeshComponent* mesh = actor->GetComponentByClass<USkeletalMeshComponent>();
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
 
 		attackComp->ClearAttacks();
-
-		mesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-		mesh->SetSimulatePhysics(true);
-
-		const FVector direction = (actor->GetActorLocation() - Attacker->GetActorLocation()).Rotation().Vector() * 50 * Force;
-		mesh->SetPhysicsLinearVelocity(direction, false);
 
 		Cast<AAI>(actor)->AIController->StopMovement();
 		Cast<AAI>(actor)->DetachFromControllerPendingDestroy();
@@ -165,16 +172,11 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 			citizen->PopupComponent->SetHiddenInGame(true);
 
-			FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
+			//FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
 
-			if (Camera->CitizenManager->Citizens.Contains(citizen))
-				Camera->CitizenManager->ClearCitizen(citizen);
-			else
-				Camera->UpdateAlterCitizen(citizen, *tile);
+			Camera->CitizenManager->ClearCitizen(citizen);
 
-			tile->Citizens.Remove(citizen);
-
-			Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", tile->Name);
+			//Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", tile->Name);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {
@@ -203,14 +205,11 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		building->DestructionComponent->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
 
 		building->DestructionComponent->Activate();
-
-		SetComponentTickEnabled(true);
 	}
 
-	Camera->CitizenManager->CreateTimer("Clear", GetOwner(), 10.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), false, true);
+	SetComponentTickEnabled(true);
 
-	actor->SetActorTickEnabled(false);
-	GetWorld()->GetTimerManager().ClearAllTimersForObject(actor);
+	Camera->CitizenManager->CreateTimer("Clear Death", GetOwner(), 10.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), false, true);
 }
 
 void UHealthComponent::Clear(AActor* Attacker)
@@ -221,8 +220,6 @@ void UHealthComponent::Clear(AActor* Attacker)
 
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
-
-		citizen->ClearCitizen();
 
 		if (citizen->BioStruct.Mother->IsValidLowLevelFast())
 			citizen->BioStruct.Mother->BioStruct.Children.Remove(citizen);
@@ -272,10 +269,6 @@ void UHealthComponent::Clear(AActor* Attacker)
 			else {
 				Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, citizen->Balance);
 			}
-
-			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
-				if (personality->Citizens.Contains(citizen))
-					personality->Citizens.Remove(citizen);
 		}
 	}
 	else if (actor->IsA<AEnemy>()) {

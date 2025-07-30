@@ -163,7 +163,7 @@ void UConquestManager::GenerateWorld()
 
 void UConquestManager::StartConquest()
 {
-	if (Portal->IsHidden()) {
+	/*if (Portal->IsHidden()) {
 		Portal->Destroy();
 		Portal = nullptr;
 
@@ -176,12 +176,12 @@ void UConquestManager::StartConquest()
 
 		for (int32 i = 0; i < Camera->Grid->Stream.RandRange(25, 50); i++)
 			SpawnCitizenAtColony(&tile, true);
-	}
+	}*/
 }
 
 void UConquestManager::GiveResource()
 {
-	if (!IsValid(Portal))
+	/*if (!IsValid(Portal))
 		return;
 
 	FScopeTryLock lock(&ConquestLock);
@@ -297,7 +297,7 @@ void UConquestManager::GiveResource()
 		}
 
 		Factions.Remove(faction);
-	}
+	}*/
 }
 
 void UConquestManager::SpawnCitizenAtColony(FWorldTileStruct* Tile, bool bAdult)

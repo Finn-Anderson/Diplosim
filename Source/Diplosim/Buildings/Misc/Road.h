@@ -22,14 +22,11 @@ public:
 	UFUNCTION()
 		void OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	UFUNCTION()
-		void OnRoadOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	virtual void Build(bool bRebuild = false, bool bUpgrade = false, int32 Grade = 0) override;
 
-	UFUNCTION()
-		void OnRoadOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	virtual void SetBuildingColour(float R, float G, float B) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
-		class UBoxComponent* BoxCollision;
+	virtual void DestroyBuilding(bool bCheckAbove = true) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Navigation")
 		class UBoxComponent* BoxAreaAffect;

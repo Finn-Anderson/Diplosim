@@ -347,15 +347,11 @@ void ABuilding::SetTier(int32 Value)
 
 void ABuilding::SetBuildingColour(float R, float G, float B)
 {
-	BuildingMesh->SetCustomPrimitiveDataFloat(1, ChosenColour.R);
-	BuildingMesh->SetCustomPrimitiveDataFloat(2, ChosenColour.G);
-	BuildingMesh->SetCustomPrimitiveDataFloat(3, ChosenColour.B);
+	BuildingMesh->SetCustomPrimitiveDataFloat(1, R);
+	BuildingMesh->SetCustomPrimitiveDataFloat(2, G);
+	BuildingMesh->SetCustomPrimitiveDataFloat(3, B);
 
-	if (IsA<ARoad>()) {
-		Cast<ARoad>(this)->HISMRoad->SetCustomPrimitiveDataFloat(1, ChosenColour.R);
-		Cast<ARoad>(this)->HISMRoad->SetCustomPrimitiveDataFloat(2, ChosenColour.G);
-		Cast<ARoad>(this)->HISMRoad->SetCustomPrimitiveDataFloat(3, ChosenColour.B);
-	}
+	ChosenColour = FLinearColor(R, G, B);
 }
 
 TArray<FItemStruct> ABuilding::GetRebuildCost()

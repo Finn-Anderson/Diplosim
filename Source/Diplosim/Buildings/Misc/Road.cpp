@@ -19,12 +19,10 @@ ARoad::ARoad()
 
 	HISMRoad = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRoad"));
 	HISMRoad->SetupAttachment(RootComponent);
+	HISMRoad->SetGenerateOverlapEvents(false);
+	HISMRoad->NumCustomDataFloats = 1;
 	HISMRoad->bAutoRebuildTreeOnInstanceChanges = false;
-
-	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
-	BoxCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
-	BoxCollision->SetBoxExtent(FVector(99.0f, 99.0f, 20.0f));
-	BoxCollision->SetupAttachment(RootComponent);
+	HISMRoad->PrimaryComponentTick.bCanEverTick = false;
 
 	BoxAreaAffect = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxAreaAffect"));
 	BoxAreaAffect->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
@@ -38,11 +36,10 @@ void ARoad::BeginPlay()
 {
 	Super::BeginPlay();
 
+	HISMRoad->BuildTreeIfOutdated(true, false);
+
 	BoxAreaAffect->OnComponentBeginOverlap.AddDynamic(this, &ARoad::OnCitizenOverlapBegin);
 	BoxAreaAffect->OnComponentEndOverlap.AddDynamic(this, &ARoad::OnCitizenOverlapEnd);
-
-	BoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ARoad::OnRoadOverlapBegin);
-	BoxCollision->OnComponentEndOverlap.AddDynamic(this, &ARoad::OnRoadOverlapEnd);
 }
 
 void ARoad::OnCitizenOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -61,25 +58,87 @@ void ARoad::OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class
 	Cast<AAI>(OtherActor)->MovementComponent->SpeedMultiplier -= (0.15f * Tier);
 }
 
-void ARoad::OnRoadOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ARoad::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 {
-	if (!(OtherActor->IsA<ARoad>() || OtherActor->IsA<AFestival>()) || OtherActor->IsHidden() || OtherActor == this || GetActorLocation() == OtherActor->GetActorLocation() || OtherComp->IsA<UHierarchicalInstancedStaticMeshComponent>() || !OtherComp->IsA<UStaticMeshComponent>())
-		return;
+	Super::Build(bRebuild, bUpgrade, Grade);
 
-	RegenerateMesh();
+	HISMRoad->SetOverlayMaterial(nullptr);
 }
 
-void ARoad::OnRoadOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void ARoad::SetBuildingColour(float R, float G, float B)
 {
-	if (!(OtherActor->IsA<ARoad>() || OtherActor->IsA<AFestival>()) || OtherActor->IsHidden() || OtherActor == this || GetActorLocation() == OtherActor->GetActorLocation())
-		return;
+	Super::SetBuildingColour(R, G, B);
 
-	RegenerateMesh();
+	HISMRoad->SetCustomPrimitiveDataFloat(1, R);
+	HISMRoad->SetCustomPrimitiveDataFloat(2, G);
+	HISMRoad->SetCustomPrimitiveDataFloat(3, B);
+}
+
+void ARoad::DestroyBuilding(bool bCheckAbove)
+{
+	Super::DestroyBuilding(bCheckAbove);
+
+	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(this, 6.0f);
+
+	for (FHitResult hit : hits) {
+		if (!IsValid(hit.GetActor()) || hit.GetActor()->IsPendingKillPending() || !hit.GetActor()->IsA<ARoad>())
+			continue;
+
+		Cast<ARoad>(hit.GetActor())->RegenerateMesh();
+	}
 }
 
 void ARoad::RegenerateMesh()
 {
-	HISMRoad->ClearInstances();
+	if (BuildingMesh->GetStaticMesh() != RoadMeshes[0])
+		return;
+
+	for (int32 i = 0; i < HISMRoad->GetInstanceCount(); i++)
+		HISMRoad->SetCustomDataValue(i, 0, 0.0f);
+
+	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(this, 3.0f);
+
+	for (FHitResult hit : hits) {
+		AActor* actor = hit.GetActor();
+
+		if ((!actor->IsA<ARoad>() && !actor->IsA<AFestival>()) || actor->IsHidden())
+			continue;
+
+		FRotator rotation = (GetActorLocation() - actor->GetActorLocation()).Rotation();
+
+		if (rotation.Yaw < 0.0f)
+			rotation.Yaw += 360;
+
+		int32 instance = rotation.Yaw / 45.0f;
+
+		bool bShow = true;
+		bool bUpdate = false;
+
+		FTransform transform;
+		HISMRoad->GetInstanceTransform(instance, transform);
+		transform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
+
+		if ((actor->IsA<ARoad>() && Cast<ARoad>(actor)->BuildingMesh->GetStaticMesh() != RoadMeshes[0])) {
+			if ((int32)rotation.Yaw % 90 != 0)
+				bShow = false;
+			else
+				transform.SetScale3D(FVector(1.0f, 0.4f, 1.0f));
+
+			bUpdate = true;
+		}
+
+		if (bShow) {
+			if (bUpdate)
+				HISMRoad->UpdateInstanceTransform(instance, transform, false);
+
+			HISMRoad->SetCustomDataValue(instance, 0, 1.0f);
+		}
+	}
+}
+
+void ARoad::SetTier(int32 Value)
+{
+	Super::SetTier(Value);
 
 	FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorLocation());
 
@@ -112,6 +171,9 @@ void ARoad::RegenerateMesh()
 			else
 				BuildingMesh->SetStaticMesh(RoadMeshes[2]);
 
+			for (int32 i = 0; i < HISMRoad->GetInstanceCount(); i++)
+				HISMRoad->SetCustomDataValue(i, 0, 0.0f);
+
 			return;
 		}
 	}
@@ -119,74 +181,14 @@ void ARoad::RegenerateMesh()
 	BuildingMesh->SetRelativeRotation(FRotator(0.0f));
 	BuildingMesh->SetStaticMesh(RoadMeshes[0]);
 
-	TArray<FTransform> transforms;
-
-	TArray<AActor*> connectedRoads;
-	BoxCollision->GetOverlappingActors(connectedRoads);
-
-	for (AActor* actor : connectedRoads) {
-		if ((!actor->IsA<ARoad>() && !actor->IsA<AFestival>()) || (!Camera->BuildComponent->Buildings.IsEmpty() && Camera->BuildComponent->Buildings[0] == actor))
-			continue;
-
-		FVector location = actor->GetActorLocation();
-
-		if (actor->IsA<AFestival>()) {
-			FVector dist = GetActorLocation() - location;
-
-			float x = FMath::RoundHalfFromZero(FMath::Abs(dist.X));
-			float y = FMath::RoundHalfFromZero(FMath::Abs(dist.Y));
-
-			int32 xSign = 1;
-			int32 ySign = 1;
-
-			if (dist.X > 0)
-				xSign = -1;
-
-			if (dist.Y > 0)
-				ySign = -1;
-
-			if (x > y)
-				ySign = 0;
-			else if (y > x)
-				xSign = 0;
-
-			location = GetActorLocation() + FVector(100.0f * xSign, 100.0f * ySign, 0.0f);
-		}
-
-		FTransform transform;
-
-		if (IsValid(actor) && !actor->IsHidden() && actor != this && GetActorLocation() != location && (Camera->BuildComponent->Buildings.IsEmpty() || Camera->BuildComponent->Buildings[0] != actor)) {
-			transform.SetRotation(FRotator(0.0f, 90.0f + (GetActorLocation() - location).Rotation().Yaw, 0.0f).Quaternion());
-
-			FTileStruct* t = Camera->Grid->GetTileFromLocation(location);
-
-			if (t->Level != tile->Level)
-				continue;
-
-			if (t->bRiver) {
-				bool bValid = false;
-
-				for (auto& element : t->AdjacentTiles)
-					if (element.Value->X == tile->X && element.Value->Y == tile->Y)
-						bValid = true;
-
-				if (!bValid)
-					continue;
-
-				transform.SetScale3D(FVector(1.0f, 0.4f, 1.0f));
-			}
-
-			transforms.Add(transform);
-		}
-	}
-
-	HISMRoad->AddInstances(transforms, false);
-	HISMRoad->BuildTreeIfOutdated(true, true);
-}
-
-void ARoad::SetTier(int32 Value)
-{
-	Super::SetTier(Value);
+	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(this, 6.0f);
 
 	RegenerateMesh();
+
+	for (FHitResult hit : hits) {
+		if (!hit.GetActor()->IsA<ARoad>() || Camera->BuildComponent->Buildings.Contains(hit.GetActor()))
+			continue;
+
+		Cast<ARoad>(hit.GetActor())->RegenerateMesh();
+	}
 }

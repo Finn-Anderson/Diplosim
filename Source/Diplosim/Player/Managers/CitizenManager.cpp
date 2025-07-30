@@ -586,11 +586,16 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		}
 
 		for (AAI* ai : AIPendingRemoval) {
+			if (!IsValid(ai))
+				continue;
+
 			if (ai->IsA<ACitizen>() && Citizens.Contains(Cast<ACitizen>(ai)))
 				Citizens.Remove(Cast<ACitizen>(ai));
 			else
 				Enemies.Remove(ai);
 		}
+
+		AIPendingRemoval.Empty();
 	});
 }
 
@@ -599,7 +604,7 @@ void UCitizenManager::Loop()
 	for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
 		FTimerStruct &timer = node->GetValue();
 
-		if (!IsValid(timer.Actor) || (timer.Actor->IsA<ACitizen>() && ((!Citizens.Contains(timer.Actor) && Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Cast<ACitizen>(timer.Actor)) == nullptr) || Cast<ACitizen>(timer.Actor)->Rebel)) || (timer.Actor->IsA<ABuilding>() && !Buildings.Contains(timer.Actor))) {
+		if (!IsValid(timer.Actor) || (timer.Actor->IsA<ACitizen>() && Cast<ACitizen>(timer.Actor)->Rebel)) {
 			FScopeLock lock(&TimerLock);
 			Timers.RemoveNode(node);
 
@@ -701,7 +706,7 @@ void UCitizenManager::Loop()
 
 			if (citizen->CanFindAnything(timeToCompleteDay)) {
 				for (ABuilding* building : Buildings) {
-					if (!IsValid(building) || !citizen->AIController->CanMoveTo(building->GetActorLocation()) || citizen->AllocatedBuildings.Contains(building))
+					if (!IsValid(building) || !citizen->AIController->CanMoveTo(building->GetActorLocation()) || citizen->AllocatedBuildings.Contains(building) || building->HealthComponent->GetHealth() == 0)
 						continue;
 
 					if (building->IsA<ASchool>())
@@ -954,7 +959,11 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		citizen->SetDecayHappiness(&citizen->WitnessedDeathHappiness, happinessValue);
 	}
 
-	Citizens.Remove(Citizen);
+	for (FPersonality* personality : GetCitizensPersonalities(Citizen))
+		if (personality->Citizens.Contains(Citizen))
+			personality->Citizens.Remove(Citizen);
+
+	AIPendingRemoval.Add(Citizen);
 }
 
 //
@@ -1715,34 +1724,39 @@ void UCitizenManager::SpawnDisease()
 
 void UCitizenManager::Infect(ACitizen* Citizen)
 {
-	Citizen->DiseaseNiagaraComponent->Activate();
+	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
+		Citizen->DiseaseNiagaraComponent->Activate();
 
-	Citizen->SetActorTickEnabled(true);
+		Citizen->SetActorTickEnabled(true);
 
-	AsyncTask(ENamedThreads::GameThread, [Citizen]() {
 		Citizen->SetPopupImageState("Add", "Disease");
 
 		Citizen->PopupComponent->SetHiddenInGame(false);
+
+		Infected.Add(Citizen);
+
+		UpdateHealthText(Citizen);
+
+		GetClosestHealer(Citizen);
 	});
-
-	Infected.Add(Citizen);
-
-	UpdateHealthText(Citizen);
-
-	GetClosestHealer(Citizen);
 }
 
 void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 {
-	int32 index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 100);
+	int32 index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 10);
 
 	if (index < Odds)
 		return;
 
-	index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Injuries.Num() - 1);
-	Citizen->HealthIssues.Add(Injuries[index]);
+	TArray<FConditionStruct> conditions = Injuries;
 
-	for (FAffectStruct affect : Injuries[index].Affects) {
+	for (FConditionStruct condition : Citizen->HealthIssues)
+		conditions.Remove(condition);
+
+	index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, conditions.Num() - 1);
+	Citizen->HealthIssues.Add(conditions[index]);
+
+	for (FAffectStruct affect : conditions[index].Affects) {
 		if (affect.Affect == EAffect::Movement)
 			Citizen->ApplyToMultiplier("Speed", affect.Amount);
 		else if (affect.Affect == EAffect::Damage)
@@ -1751,7 +1765,7 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 			Citizen->ApplyToMultiplier("Health", affect.Amount);
 	}
 
-	Cast<ACamera>(GetOwner())->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + Injuries[index].Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
+	Cast<ACamera>(GetOwner())->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + conditions[index].Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
 
 	Injured.Add(Citizen);
 

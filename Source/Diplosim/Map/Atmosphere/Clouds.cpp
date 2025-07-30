@@ -12,6 +12,7 @@
 #include "Map/Grid.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Buildings/Building.h"
+#include "Buildings/Misc/Road.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "AI/Citizen.h"
@@ -391,6 +392,9 @@ void UCloudComponent::SetGradualWetness()
 					meshComp = Cast<AEggBasket>(WetnessStruct[i].Actor)->BasketMesh;
 
 				meshComp->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
+
+				if (WetnessStruct[i].Actor->IsA<ARoad>())
+					Cast<ARoad>(WetnessStruct[i].Actor)->HISMRoad->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
 			}
 		}
 		else {

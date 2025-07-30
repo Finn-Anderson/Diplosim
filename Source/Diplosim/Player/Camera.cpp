@@ -423,14 +423,26 @@ void ACamera::ClearPopupUI()
 	}
 }
 
-void ACamera::SetPause(bool bPause, bool bTickWhenPaused)
+void ACamera::SetPause(bool bPause, bool bAlterViewport)
 {
 	float timeDilation = 0.0001f;
 
-	if (!bPause) {
-		timeDilation = GameSpeed;
+	if (bPause) {
+		if (bAlterViewport)
+			PauseUIInstance->AddToViewport();
 
-		bTickWhenPaused = bPause;
+		UpdateSpeedUI(0.0f);
+	}
+	else {
+		if (bAlterViewport)
+			PauseUIInstance->RemoveFromParent();
+
+		if (GameSpeed == 0.0f)
+			GameSpeed = 1.0f;
+
+		UpdateSpeedUI(GameSpeed);
+
+		timeDilation = GameSpeed;
 	}
 
 	SetTimeDilation(timeDilation);
@@ -438,10 +450,17 @@ void ACamera::SetPause(bool bPause, bool bTickWhenPaused)
 
 void ACamera::SetGameSpeed(float Speed)
 {
-	GameSpeed = Speed;
+	GameSpeed = FMath::Clamp(Speed, 0.0f, 5.0f);
 
-	if (CustomTimeDilation <= 1.0f)
-		SetTimeDilation(GameSpeed);
+	if (GameSpeed == 0.0f) {
+		SetPause(true);
+	}
+	else {
+		if (PauseUIInstance->IsInViewport())
+			SetPause(false);
+		else if (CustomTimeDilation <= 1.0f)
+			SetTimeDilation(GameSpeed);
+	}
 }
 
 void ACamera::SetTimeDilation(float Dilation)
@@ -721,16 +740,10 @@ void ACamera::Pause()
 	if (Grid->LoadUIInstance->IsInViewport() || bInMenu || bBlockPause)
 		return;
 
-	if (PauseUIInstance->IsInViewport()) {
-		PauseUIInstance->RemoveFromParent();
-
-		SetPause(false, false);
-	}
-	else {
-		PauseUIInstance->AddToViewport();
-
-		SetPause(true, true);
-	}
+	if (PauseUIInstance->IsInViewport())
+		SetPause(false);
+	else
+		SetPause(true);
 }
 
 void ACamera::Menu()
@@ -787,10 +800,10 @@ void ACamera::Menu()
 
 		bInMenu = false;
 
-		SetPause(false, false);
+		SetPause(false);
 
 		if (PauseUIInstance->IsInViewport())
-			SetPause(true, true);
+			SetPause(true);
 	}
 	else {
 		MenuUIInstance->AddToViewport();
@@ -799,7 +812,7 @@ void ACamera::Menu()
 
 		bInMenu = true;
 
-		SetPause(true, false);
+		SetPause(true);
 	}
 }
 
@@ -868,6 +881,8 @@ void ACamera::IncrementGameSpeed(const struct FInputActionInstance& Instance)
 	GameSpeedCounter = 0;
 
 	SetGameSpeed(GameSpeed + Instance.GetValue().Get<float>());
+
+	UpdateSpeedUI(GameSpeed);
 }
 
 void ACamera::ResetGameSpeedCounter()

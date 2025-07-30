@@ -109,6 +109,9 @@ public:
 		void UpdateInteractUI(bool bWorldCreation);
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateSpeedUI(float Speed);
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateMoveCitizen(class ACitizen* Citizen, const FWorldTileStruct& FromTile, const FWorldTileStruct& ToTile);
 
 	UFUNCTION(BlueprintImplementableEvent)
@@ -384,7 +387,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void ClearPopupUI();
 
-	void SetPause(bool bPause, bool bTickWhenPaused);
+	UFUNCTION(BlueprintCallable)
+		void SetPause(bool bPause, bool bAlterViewport = true);
 
 	UFUNCTION(BlueprintCallable)
 		void SetGameSpeed(float Speed);

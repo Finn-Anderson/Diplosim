@@ -226,7 +226,7 @@ public:
 	UPROPERTY()
 		int32 SeedNum;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Colour")
 		FLinearColor ChosenColour;
 
 	UPROPERTY()
@@ -240,14 +240,15 @@ public:
 
 	virtual void SetTier(int32 Value);
 
-	void SetBuildingColour(float R, float G, float B);
+	UFUNCTION(BlueprintCallable)
+		virtual void SetBuildingColour(float R, float G, float B);
 
 	void StoreSocketLocations();
 
 	void SetSocketLocation(class ACitizen* Citizen);
 	
 	UFUNCTION(BlueprintCallable)
-		void DestroyBuilding(bool bCheckAbove = true);
+		virtual void DestroyBuilding(bool bCheckAbove = true);
 
 	TArray<FItemStruct> GetGradeCost(int32 Grade);
 

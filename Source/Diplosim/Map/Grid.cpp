@@ -60,9 +60,7 @@ AGrid::AGrid()
 	HISMSea->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	HISMSea->SetCollisionResponseToChannels(response);
 	HISMSea->SetCanEverAffectNavigation(false);
-	HISMSea->SetEvaluateWorldPositionOffset(false);
 	HISMSea->SetGenerateOverlapEvents(false);
-	HISMSea->bWorldPositionOffsetWritesVelocity = false;
 	HISMSea->bAutoRebuildTreeOnInstanceChanges = false;
 
 	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
@@ -764,7 +762,7 @@ void AGrid::SetupEnvironment()
 	Camera->UpdateFactionIcons();
 
 	if (Camera->PauseUIInstance->IsInViewport())
-		Camera->SetPause(true, true);
+		Camera->SetPause(true, false);
 }
 
 void AGrid::OnNavMeshGenerated()
@@ -1315,10 +1313,10 @@ void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 
 void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles)
 {
-	if (CheckTile->X > SpawnTile->X + Range || CheckTile->X < SpawnTile->X - Range || CheckTile->Y > SpawnTile->Y + Range || CheckTile->Y < SpawnTile->Y - Range || CheckTile->Level < 0)
+	if (CheckTile->X > SpawnTile->X + Range || CheckTile->X < SpawnTile->X - Range || CheckTile->Y > SpawnTile->Y + Range || CheckTile->Y < SpawnTile->Y - Range)
 		return;
 
-	if (CheckTile->bRamp || CheckTile->bRiver || CheckTile->bMineral || CheckTile->bUnique || CheckTile->Level != SpawnTile->Level) {
+	if (CheckTile->bRamp || CheckTile->bRiver || CheckTile->bMineral || CheckTile->bUnique || CheckTile->Level != SpawnTile->Level || CheckTile->AdjacentTiles.Num() < 4 || CheckTile->Level < 0) {
 		Valid = false;
 
 		return;
@@ -1705,25 +1703,16 @@ void AGrid::SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles)
 
 		float yaw = Stream.RandRange(0, 3) * 90.0f;
 
+		building->SetActorRotation(building->GetActorRotation() + FRotator(0.0f, yaw, 0.0f));
+
 		TArray<FTileStruct*> validLocations;
 
 		for (TArray<FTileStruct*> tiles : ValidTiles) {
 			FTileStruct* tile = tiles[0];
 
-			bool valid = true;
-			TArray<FTileStruct*> ts;
+			building->SetActorLocation(GetTransform(tile).GetLocation());
 
-			int32 range = 1;
-			FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
-
-			if (size.X > size.Y)
-				range = FMath::CeilToInt32(size.X / 100.0f);
-			else
-				range = FMath::CeilToInt32(size.Y / 100.0f);
-
-			GetValidSpawnLocations(tile, tile, range, valid, ts);
-
-			if (!valid)
+			if (!Camera->BuildComponent->IsValidLocation(building))
 				continue;
 
 			validLocations.Add(tile);
