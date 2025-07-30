@@ -24,7 +24,7 @@
 #include "Universal/DiplosimUserSettings.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
-#include "Buildings/Misc/Portal.h"
+#include "Buildings/Misc/Special/Special.h"
 
 AGrid::AGrid()
 {
@@ -747,12 +747,6 @@ void AGrid::SetupEnvironment()
 	LavaComponent->Activate();
 
 	// Unique Buildings
-	int32 index = Stream.RandRange(0, ResourceTiles.Num() - 1);
-	FVector location = FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f + 100.0f);
-
-	APortal* portal = GetWorld()->SpawnActor<APortal>(PortalClass, location, ResourceTiles[index]->Rotation.Rotator());
-	Camera->ConquestManager->Portal = portal;
-
 	SetSpecialBuildings(ValidMineralTiles);
 
 	// Conquest Map
@@ -1557,8 +1551,6 @@ void AGrid::Clear()
 	HISMRampGround->ClearInstances();
 	HISMRiver->ClearInstances();
 	HISMWall->ClearInstances();
-
-	Camera->ConquestManager->Portal->Destroy();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(false, false);

@@ -69,6 +69,27 @@ ACitizen::ACitizen()
 	GlassesMesh->SetHiddenInGame(true);
 	GlassesMesh->PrimaryComponentTick.bCanEverTick = false;
 
+	IllnessMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("IllnessMesh"));
+	IllnessMesh->SetupAttachment(Mesh);
+	IllnessMesh->SetRelativeLocation(FVector(0.0f, 10.0f, 30.0f));
+	IllnessMesh->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+	IllnessMesh->SetCollisionProfileName("NoCollision", false);
+	IllnessMesh->SetCanEverAffectNavigation(false);
+	IllnessMesh->SetHiddenInGame(true);
+	IllnessMesh->SetCustomPrimitiveDataFloat(1, 3.0f);
+	IllnessMesh->PrimaryComponentTick.bCanEverTick = false;
+
+	HungerMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HungerMesh"));
+	HungerMesh->SetupAttachment(Mesh);
+	HungerMesh->SetRelativeLocation(FVector(-2.5f, -10.0f, 30.0f));
+	HungerMesh->SetRelativeRotation(FRotator(45.0f, 90.0f, -90.0f));
+	HungerMesh->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+	HungerMesh->SetCollisionProfileName("NoCollision", false);
+	HungerMesh->SetCanEverAffectNavigation(false);
+	HungerMesh->SetHiddenInGame(true);
+	HungerMesh->SetCustomPrimitiveDataFloat(1, 3.0f);
+	HungerMesh->PrimaryComponentTick.bCanEverTick = false;
+
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(Mesh);
 	HarvestNiagaraComponent->SetRelativeLocation(FVector(20.0f, 0.0f, 17.0f));
@@ -80,16 +101,6 @@ ACitizen::ACitizen()
 	DiseaseNiagaraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 6.0f));
 	DiseaseNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	DiseaseNiagaraComponent->bAutoActivate = false;
-
-	PopupComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PopupComponent"));
-	PopupComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	PopupComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
-	PopupComponent->SetHiddenInGame(true);
-	PopupComponent->SetComponentTickEnabled(false);
-	PopupComponent->SetGenerateOverlapEvents(false);
-	PopupComponent->SetCanEverAffectNavigation(false);
-	PopupComponent->SetupAttachment(RootComponent);
-	PopupComponent->PrimaryComponentTick.bCanEverTick = false;
 
 	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
 	AmbientAudioComponent->SetupAttachment(RootComponent);
@@ -758,16 +769,6 @@ void ACitizen::Eat()
 		quantity = FMath::Min(quantity, FMath::Floor(total / cost));
 	}
 
-	if (quantity == 0) {
-		PopupComponent->SetHiddenInGame(false);
-
-		SetActorTickEnabled(true);
-
-		SetPopupImageState("Add", "Hunger");
-
-		return;
-	}
-
 	for (int32 i = 0; i < quantity; i++) {
 		int32 selected = Camera->Grid->Stream.RandRange(0, totalAmount - 1);
 
@@ -813,15 +814,10 @@ void ACitizen::Eat()
 		Hunger = FMath::Clamp(Hunger + 25, 0, 100);
 	}
 
-	if (!PopupComponent->bHiddenInGame) {
-		if (HealthIssues.IsEmpty()) {
-			PopupComponent->SetHiddenInGame(true);
-
-			SetActorTickEnabled(false);
-		}
-
-		SetPopupImageState("Remove", "Hunger");
-	}
+	if (Hunger > 25)
+		HungerMesh->SetHiddenInGame(true);
+	else
+		HungerMesh->SetHiddenInGame(false);
 }
 
 //

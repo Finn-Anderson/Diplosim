@@ -1717,6 +1717,8 @@ void UCitizenManager::SpawnDisease()
 	index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Diseases.Num() - 1);
 	citizen->HealthIssues.Add(Diseases[index]);
 
+	Cast<ACamera>(GetOwner())->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + Diseases[index].Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
+
 	Infect(citizen);
 
 	StartDiseaseTimer();
@@ -1727,11 +1729,7 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
 		Citizen->DiseaseNiagaraComponent->Activate();
 
-		Citizen->SetActorTickEnabled(true);
-
-		Citizen->SetPopupImageState("Add", "Disease");
-
-		Citizen->PopupComponent->SetHiddenInGame(false);
+		Citizen->IllnessMesh->SetHiddenInGame(false);
 
 		Infected.Add(Citizen);
 
@@ -1767,6 +1765,8 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 
 	Cast<ACamera>(GetOwner())->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + conditions[index].Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
 
+	Citizen->IllnessMesh->SetHiddenInGame(false);
+
 	Injured.Add(Citizen);
 
 	UpdateHealthText(Citizen);
@@ -1791,13 +1791,7 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 
 	Citizen->DiseaseNiagaraComponent->Deactivate();
 
-	if (Citizen->Hunger > 25) {
-		Citizen->PopupComponent->SetHiddenInGame(true);
-
-		Citizen->SetActorTickEnabled(false);
-	}
-
-	AsyncTask(ENamedThreads::GameThread, [Citizen]() { Citizen->SetPopupImageState("Remove", "Disease"); });
+	Citizen->IllnessMesh->SetHiddenInGame(true);
 
 	Infected.Remove(Citizen);
 	Injured.Remove(Citizen);

@@ -293,9 +293,6 @@ public:
 
 	void ApplyResearch();
 
-	UFUNCTION(BlueprintImplementableEvent)
-		void SetPopupImageState(FName Command, FName Type);
-
 	// Find Job, House and Education
 	void FindEducation(class ASchool* Education, int32 TimeToCompleteDay);
 
@@ -473,14 +470,17 @@ public:
 
 	void SetReligion();
 
-	// Disease
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+	// Status
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 		class UNiagaraComponent* DiseaseNiagaraComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		class UWidgetComponent* PopupComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+		class UStaticMeshComponent* IllnessMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+		class UStaticMeshComponent* HungerMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 		TArray<FConditionStruct> HealthIssues;
 
 	// Happiness

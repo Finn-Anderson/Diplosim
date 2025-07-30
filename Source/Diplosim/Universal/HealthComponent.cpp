@@ -170,7 +170,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		if (actor->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(actor);
 
-			citizen->PopupComponent->SetHiddenInGame(true);
+			citizen->HungerMesh->SetHiddenInGame(true);
+			citizen->IllnessMesh->SetHiddenInGame(true);
 
 			//FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
 

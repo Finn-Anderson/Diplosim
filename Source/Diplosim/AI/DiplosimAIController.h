@@ -12,6 +12,10 @@ struct FMoveStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 		AActor* Actor;
 
+	AActor* LinkedPortal;
+
+	AActor* UltimateGoal;
+
 	int32 Instance;
 
 	FVector Location;
@@ -19,6 +23,8 @@ struct FMoveStruct
 	FMoveStruct()
 	{
 		Actor = nullptr;
+		LinkedPortal = nullptr;
+		UltimateGoal = nullptr;
 		Instance = -1;
 		Location = FVector::Zero();
 	}
@@ -28,9 +34,11 @@ struct FMoveStruct
 		Location = FVector::Zero();
 	}
 
-	void SetGoalActor(AActor* actor)
+	void SetGoalActor(AActor* actor, AActor* linkedPortal = nullptr, AActor* ultimateGoal = nullptr)
 	{
 		Actor = actor;
+		LinkedPortal = linkedPortal;
+		UltimateGoal = ultimateGoal;
 	}
 
 	void SetGoalInstance(int32 instance)
@@ -46,6 +54,16 @@ struct FMoveStruct
 	AActor* GetGoalActor()
 	{
 		return Actor;
+	}
+
+	AActor* GetUltimateGoalActor()
+	{
+		return UltimateGoal;
+	}
+
+	AActor* GetLinkedPortal()
+	{
+		return LinkedPortal;
 	}
 
 	int32 GetGoalInstance()
@@ -77,7 +95,7 @@ public:
 
 	void GetGatherSite(class ACamera* Camera, TSubclassOf<class AResource> Resource);
 
-	bool CanMoveTo(FVector Location);
+	bool CanMoveTo(FVector Location, AActor* Target = nullptr, bool bCheckForPortals = true);
 
 	TArray<FVector> GetPathPoints(FVector StartLocation, FVector EndLocation);
 

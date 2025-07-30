@@ -313,7 +313,4 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
 		TArray<TSubclassOf<class ASpecial>> SpecialBuildingClasses;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
-		TSubclassOf<class APortal> PortalClass;
 };

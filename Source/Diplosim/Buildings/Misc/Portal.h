@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Buildings/Misc/Special/Special.h"
+#include "Buildings/Building.h"
 #include "Portal.generated.h"
 
 UCLASS()
-class DIPLOSIM_API APortal : public ASpecial
+class DIPLOSIM_API APortal : public ABuilding
 {
 	GENERATED_BODY()
 	
