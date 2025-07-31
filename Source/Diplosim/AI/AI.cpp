@@ -42,9 +42,6 @@ AAI::AAI()
 
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 
-	MovementComponent = CreateDefaultSubobject<UAIMovementComponent>(TEXT("MovementComponent"));
-	MovementComponent->SetUpdatedComponent(RootComponent);
-
 	bUseControllerRotationYaw = false;
 
 	AIControllerClass = ADiplosimAIController::StaticClass();

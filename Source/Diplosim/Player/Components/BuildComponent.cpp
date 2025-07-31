@@ -6,6 +6,7 @@
 #include "Components/DecalComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Misc/ScopeTryLock.h"
 
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
@@ -50,9 +51,10 @@ void UBuildComponent::BeginPlay()
 
 void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (DeltaTime > 1.0f || Buildings.IsEmpty() || Camera->bInMenu || Camera->bMouseCapture)
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction); 
+	
+	FScopeTryLock lock(&BuildLock);
+	if (!lock.IsLocked() || DeltaTime > 1.0f || Buildings.IsEmpty() || Camera->bInMenu || Camera->bMouseCapture)
 		return;
 
 	FVector mouseLoc, mouseDirection;
@@ -69,12 +71,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		location.X = FMath::RoundHalfFromZero(location.X / 100.0f) * 100.0f;
 		location.Y = FMath::RoundHalfFromZero(location.Y / 100.0f) * 100.0f;
 
-		UHierarchicalInstancedStaticMeshComponent* comp = nullptr; 
-		int32 instance = hit.Item;
-
-		if (hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>())
-			comp = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent());
-
 		if (Buildings[0]->GetActorLocation().X == location.X && Buildings[0]->GetActorLocation().Y == location.Y && Buildings[0]->GetActorRotation() == Rotation)
 			return;
 
@@ -88,7 +84,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 		FHitResult hit2(ForceInit);
 
-		if (GetWorld()->LineTraceSingleByChannel(hit2, FVector(location.X, location.Y, 1000.0f), FVector(location.X, location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1))
+		FCollisionQueryParams params;
+		params.AddIgnoredActor(Buildings[0]);
+
+		if (GetWorld()->LineTraceSingleByChannel(hit2, location, FVector(location.X, location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
 			location.Z = FMath::RoundHalfFromZero(hit2.Location.Z);
 
 		if (IsValid(hit2.GetComponent()) && Buildings[0]->IsA(FoundationClass)) {
@@ -102,8 +101,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		else if (hit2.GetComponent() == Camera->Grid->HISMRiver && Buildings[0]->IsA<ARoad>())
 			location.Z += 20.0f;
 
-		SetTreeStatus(1.0f);
-
 		Buildings[0]->SetActorLocation(location);
 		Buildings[0]->SetActorRotation(Rotation);
 
@@ -113,11 +110,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (StartLocation != FVector::Zero())
 			SetBuildingsOnPath();
 
-		if (Buildings[0]->IsA<ARoad>())
-			for (ABuilding* building : Buildings)
-				Cast<ARoad>(building)->SetTier(Cast<ARoad>(building)->Tier);
+		if (Buildings[0]->IsA<ARoad>() && !Buildings[0]->IsHidden())
+			Cast<ARoad>(Buildings[0])->SetTier(Cast<ARoad>(Buildings[0])->Tier);
 
-		SetTreeStatus(0.0f);
+		SetTreeStatus(Buildings[0], false);
 	}
 
 	for (ABuilding* building : Buildings) {
@@ -126,7 +122,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 		UDecalComponent* decalComp = building->FindComponentByClass<UDecalComponent>();
 
-		if (!IsValidLocation(building) || !CheckBuildCosts()) {
+		if ((StartLocation == FVector::Zero() && !IsValidLocation(building)) || !CheckBuildCosts()) {
 			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
 			if (building->IsA<AResearch>()) {
@@ -162,14 +158,16 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, float Extent)
 {
 	TArray<FHitResult> hits;
-	TArray<FHitResult> hits2;
 
 	FCollisionQueryParams params;
 	params.AddIgnoredActor(Building);
 
+	if (!Buildings.IsEmpty())
+		params.AddIgnoredActor(Buildings[0]);
+
 	FVector location = Building->BuildingMesh->GetComponentLocation();
 
-	FQuat quat = Building->GetActorRotation().Quaternion();
+	FRotator rotation = Building->GetActorRotation();
 
 	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 
@@ -182,8 +180,6 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 			extremities.Add(size * Extent * FVector(x, y, 0.0f));
 
 	for (FVector point : extremities) {
-		FRotator rotation = Building->GetActorRotation();
-
 		FVector newPoint = rotation.RotateVector(point);
 		newPoint += location;
 
@@ -198,28 +194,34 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 	for (FVector point : points) {
 		FHitResult hit(ForceInit);
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, FVector(point.X, point.Y, 1000.0f), FVector(point.X, point.Y, 0.0f), ECC_Visibility, params))
+		if (GetWorld()->LineTraceSingleByChannel(hit, FVector(point.X, point.Y, 1000.0f), FVector(point.X, point.Y, 0.0f), ECC_Vehicle, params))
 			hits.Add(hit);
 	}
 
 	return hits;
 }
 
-void UBuildComponent::SetTreeStatus(float Opacity, bool bDestroy)
+void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy)
 {
-	for (ABuilding* building : Buildings) {
-		TArray<FHitResult> hits = GetBuildingOverlaps(building);
+	TArray<FResourceHISMStruct> vegetation;
+	vegetation.Append(Camera->Grid->TreeStruct);
+	vegetation.Append(Camera->Grid->FlowerStruct);
 
-		for (FHitResult hit : hits) {
-			if (!hit.GetActor()->IsA<AVegetation>())
-				continue;
+	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 
-			AVegetation* vegetation = Cast<AVegetation>(hit.GetActor());
-				
-			if (bDestroy)
-				Camera->Grid->RemoveTree(vegetation, hit.Item);
-			else
-				vegetation->ResourceHISM->SetCustomDataValue(hit.Item, 1, Opacity);
+	for (FResourceHISMStruct resource : vegetation) {
+		TArray<int32> instances = resource.Resource->ResourceHISM->GetInstancesOverlappingSphere(Building->GetActorLocation(), FMath::Sqrt(FMath::Square(size.X) + FMath::Square(size.Y)) + 50.0f);
+
+		for (int32 i = instances.Num() - 1; i > -1; i--) {
+			FTransform transform;
+			resource.Resource->ResourceHISM->GetInstanceTransform(instances[i], transform);
+
+			if (FMath::Abs(transform.GetLocation().X - Building->GetActorLocation().X) > size.X + 25.0f || FMath::Abs(transform.GetLocation().Y - Building->GetActorLocation().Y) > size.Y + 25.0f)
+				resource.Resource->ResourceHISM->SetCustomDataValue(instances[i], 1, 1.0f);
+			else if (bDestroy)
+				Camera->Grid->RemoveTree(resource.Resource, instances[i]);
+			else 
+				resource.Resource->ResourceHISM->SetCustomDataValue(instances[i], 1, 0.0f);
 		}
 	}
 }
@@ -243,8 +245,10 @@ void UBuildComponent::DisplayInfluencedBuildings(class ABuilding* Building, bool
 
 void UBuildComponent::SetBuildingsOnPath()
 {
+	FVector endLocation = Buildings[0]->GetActorLocation();
+
 	FTileStruct* startTile = Camera->Grid->GetTileFromLocation(StartLocation);
-	FTileStruct* endTile = Camera->Grid->GetTileFromLocation(Buildings[0]->GetActorLocation());
+	FTileStruct* endTile = Camera->Grid->GetTileFromLocation(endLocation);
 
 	TArray<FVector> locations = CalculatePath(startTile, endTile);
 
@@ -258,26 +262,23 @@ void UBuildComponent::SetBuildingsOnPath()
 	}
 
 	for (FVector location : locations) {
-		if (IsValidLocation(Buildings.Last()) || Buildings.Num() == 1) {
+		Buildings[0]->SetActorLocation(location);
+
+		if (IsValidLocation(Buildings[0])) {
 			SpawnBuilding(Buildings[0]->GetClass(), location);
 
 			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
 
 			if (Buildings[0]->IsA<AWall>())
-				Cast<AWall>(Buildings.Last())->SetRotationMesh(Rotation.Yaw);
+				Cast<AWall>(Buildings.Last())->SetRotationMesh(Rotation.Yaw); 
+			else if (Buildings[0]->IsA<ARoad>())
+				Cast<ARoad>(Buildings.Last())->SetTier(Cast<ARoad>(Buildings.Last())->Tier);
+
+			SetTreeStatus(Buildings.Last(), false);
 		}
-		else
-			Buildings.Last()->SetActorLocation(location);
 	}
 
-	if (Buildings.Num() == 1)
-		return;
-
-	if (!IsValidLocation(Buildings.Last())) {
-		Buildings.Last()->DestroyBuilding();
-
-		Buildings.RemoveAt(Buildings.Num() - 1);
-	}
+	Buildings[0]->SetActorLocation(endLocation);
 
 	Camera->DisplayInteract(Buildings[0]);
 }
@@ -348,40 +349,30 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 
 	int32 count = 0;
 
-	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
-		ABuilding* building = Buildings[i];
+	for (ABuilding* building : Buildings) {
+		if (StartLocation != FVector::Zero() && building == Buildings[0])
+			continue;
 
-		TArray<FHitResult> hits = GetBuildingOverlaps(building);
+		TArray<FItemStruct> cost = building->CostList;
 
-		for (FHitResult hit : hits) {
-			if (building->GetClass() != hit.GetActor()->GetClass() || building->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum || building->GetActorLocation() != hit.GetActor()->GetActorLocation())
+		for (ABuilding* b : Camera->CitizenManager->Buildings) {
+			if (!b->IsA(building->GetClass()) || b->GetActorLocation() != building->GetActorLocation())
 				continue;
 
-			ABuilding* b = Cast<ABuilding>(hit.GetActor());
-			TArray<FItemStruct> cost = b->GetGradeCost(building->SeedNum);
+			cost = b->GetGradeCost(building->SeedNum);
 
-			for (FItemStruct item : cost) {
-				int32 index = items.Find(item);
+			break;
+		}
 
-				if (index == INDEX_NONE)
-					items.Add(item);
-				else
-					items[index].Amount += item.Amount;
-			}
+		for (FItemStruct item : cost) {
+			int32 index = items.Find(item);
 
-			count++;
+			if (index == INDEX_NONE)
+				items.Add(item);
+			else
+				items[index].Amount += item.Amount;
 		}
 	}
-	
-	items = Buildings[0]->CostList;
-
-	int32 modifier = 0;
-
-	if (StartLocation != FVector::Zero())
-		modifier = 1;
-
-	for (int32 i = 0; i < items.Num(); i++)
-		items[i].Amount *= (Buildings.Num() - count - modifier);
 
 	return items;
 }
@@ -535,10 +526,10 @@ void UBuildComponent::RemoveBuilding()
 	if (Buildings.IsEmpty())
 		return;
 
-	SetTreeStatus(1.0f);
-
 	for (ABuilding* building : Buildings) {
 		DisplayInfluencedBuildings(building, false);
+
+		SetTreeStatus(building, false);
 
 		building->DestroyBuilding();
 	}
@@ -589,15 +580,13 @@ void UBuildComponent::EndPathPlace()
 	Buildings[0]->SetActorHiddenInGame(false);
 	Buildings[0]->BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
-	SetTreeStatus(1.0f);
-
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
+		SetTreeStatus(Buildings[i], false);
+
 		Buildings[i]->DestroyBuilding();
 
 		Buildings.RemoveAt(i);
 	}
-
-	SetTreeStatus(0.0f);
 
 	Camera->DisplayInteract(Buildings[0]);
 }
@@ -666,10 +655,11 @@ void UBuildComponent::Place(bool bQuick)
 		Buildings.RemoveAt(0);
 	}
 
-	SetTreeStatus(0.0f, true); 
-
-	for (ABuilding* building : Buildings)
+	for (ABuilding* building : Buildings) {
 		DisplayInfluencedBuildings(building, false);
+
+		SetTreeStatus(building, true);
+	}
 
 	if (!Buildings.IsEmpty() && (Buildings[0]->IsA(FoundationClass) || Buildings[0]->IsA(RampClass) || Buildings[0]->IsA<ARoad>())) {
 		for (ABuilding* building : Buildings)

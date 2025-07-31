@@ -31,6 +31,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<ABuilding> RampClass;
 
+	FCriticalSection BuildLock;
+
 	// Building
 	UPROPERTY(EditAnywhere)
 		class UMaterial* BlueprintMaterial;
@@ -58,7 +60,7 @@ public:
 
 	TArray<FHitResult> GetBuildingOverlaps(class ABuilding* Building, float Extent = 1.0f);
 
-	void SetTreeStatus(float Opacity, bool bDestroy = false);
+	void SetTreeStatus(ABuilding* Building, bool bDestroy);
 
 	void DisplayInfluencedBuildings(class ABuilding* Building, bool bShow);
 

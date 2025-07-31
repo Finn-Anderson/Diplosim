@@ -59,6 +59,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Death")
+		class UNiagaraSystem* DeathSystem;
+
 	// Fire
 	void OnFire(int32 Counter = 0);
 };

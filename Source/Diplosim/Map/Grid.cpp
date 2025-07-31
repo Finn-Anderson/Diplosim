@@ -36,7 +36,7 @@ AGrid::AGrid()
 	response.WorldDynamic = ECR_Overlap;
 	response.Pawn = ECR_Ignore;
 	response.PhysicsBody = ECR_Ignore;
-	response.Vehicle = ECR_Overlap;
+	response.Vehicle = ECR_Block;
 	response.Destructible = ECR_Ignore;
 	response.GameTraceChannel2 = ECR_Ignore;
 	response.GameTraceChannel3 = ECR_Ignore;
@@ -119,6 +119,7 @@ AGrid::AGrid()
 	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
 	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Vehicle, ECollisionResponse::ECR_Ignore);
 	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Block);
 	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Block);
 	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Block);

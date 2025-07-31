@@ -101,7 +101,7 @@ void ARoad::RegenerateMesh()
 	for (FHitResult hit : hits) {
 		AActor* actor = hit.GetActor();
 
-		if ((!actor->IsA<ARoad>() && !actor->IsA<AFestival>()) || actor->IsHidden())
+		if ((!actor->IsA<ARoad>() && !actor->IsA<AFestival>()) || actor->IsHidden() || actor->GetActorLocation().Z != GetActorLocation().Z)
 			continue;
 
 		FRotator rotation = (GetActorLocation() - actor->GetActorLocation()).Rotation();
@@ -186,7 +186,7 @@ void ARoad::SetTier(int32 Value)
 	RegenerateMesh();
 
 	for (FHitResult hit : hits) {
-		if (!hit.GetActor()->IsA<ARoad>() || Camera->BuildComponent->Buildings.Contains(hit.GetActor()))
+		if (!hit.GetActor()->IsA<ARoad>())
 			continue;
 
 		Cast<ARoad>(hit.GetActor())->RegenerateMesh();

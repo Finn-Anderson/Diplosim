@@ -5,6 +5,7 @@
 #include "Components/WidgetComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
@@ -208,7 +209,20 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		building->DestructionComponent->Activate();
 	}
 
-	SetComponentTickEnabled(true);
+	if (DeathSystem != nullptr) {
+		actor->SetActorHiddenInGame(true);
+
+		FVector origin;
+		FVector extent;
+		actor->GetActorBounds(false, origin, extent);
+
+		UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DeathSystem, origin + (extent / 2));
+
+		if (actor->IsA<AEnemy>())
+			deathComp->SetColorParameter("Colour", Cast<AEnemy>(actor)->Colour);
+	}
+	else
+		SetComponentTickEnabled(true);
 
 	Camera->CitizenManager->CreateTimer("Clear Death", GetOwner(), 10.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), false, true);
 }
