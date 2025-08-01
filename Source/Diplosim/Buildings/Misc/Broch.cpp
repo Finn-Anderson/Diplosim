@@ -37,7 +37,7 @@ void ABroch::SpawnCitizens()
 		FActorSpawnParameters params;
 		params.bNoFail = true;
 
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, navLoc.Location, GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f), params);
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, navLoc.Location - FVector(0.0f, 0.0f, 2.0f), GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f), params);
 
 		citizen->SetSex(Camera->CitizenManager->Citizens);
 

@@ -16,7 +16,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	void ComputeMovement(float DeltaTime);
 
 	FVector CalculateVelocity(FVector Vector);
 

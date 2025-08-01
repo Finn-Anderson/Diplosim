@@ -9,9 +9,7 @@
 
 UAIMovementComponent::UAIMovementComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
-	PrimaryComponentTick.bAllowTickBatching = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	
 	MaxSpeed = 200.0f;
 	InitialSpeed = 200.0f;
@@ -27,27 +25,18 @@ void UAIMovementComponent::BeginPlay()
 	AI = Cast<AAI>(GetOwner());
 }
 
-void UAIMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UAIMovementComponent::ComputeMovement(float DeltaTime)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (!IsValid(AI)) {
-		SetComponentTickEnabled(false);
-
+	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f || Points.IsEmpty())
 		return;
-	}
-
-	AI->Mesh->TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	UAnimSingleNodeInstance* animInst = AI->Mesh->GetSingleNodeInstance();
 
-	if (IsValid(animInst) && IsValid(animInst->GetAnimationAsset()) && animInst->IsPlaying())
+	if (IsValid(animInst) && IsValid(animInst->GetAnimationAsset()) && animInst->IsPlaying()) {
 		animInst->UpdateAnimation(DeltaTime * AI->Mesh->GlobalAnimRateScale, false);
-	else if (Points.IsEmpty())
-		SetComponentTickEnabled(false);
 
-	if (DeltaTime < 0.001f || DeltaTime > 1.0f || Points.IsEmpty())
-		return;
+		AI->Mesh->RefreshBoneTransforms();
+	}
 
 	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);
 	
@@ -158,15 +147,10 @@ void UAIMovementComponent::SetAnimation(UAnimSequence* Anim, bool bLooping, bool
 	if (!settings->GetViewAnimations() && !bSettingsChange)
 		return;
 
-	if (IsValid(Anim)) {
+	if (IsValid(Anim))
 		AI->Mesh->PlayAnimation(MoveAnim, bLooping);
-
-		if (!IsComponentTickEnabled())
-			SetComponentTickEnabled(true);
-	}
-	else {
+	else
 		AI->Mesh->Play(false);
-	}
 
 	CurrentAnim = Anim;
 }

@@ -30,6 +30,7 @@
 #include "Buildings/Misc/Special/Special.h"
 #include "AI/AI.h"
 #include "AI/Citizen.h"
+#include "AI/AIMovementComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -204,6 +205,13 @@ void ACamera::Tick(float DeltaTime)
 
 	if (DeltaTime > 1.0f)
 		return;
+
+	TArray<AAI*> ais;
+	ais.Append(CitizenManager->Citizens);
+	ais.Append(CitizenManager->Enemies);
+
+	for (AAI* ai : ais)
+		ai->MovementComponent->ComputeMovement(DeltaTime * CustomTimeDilation);
 
 	if (bMouseCapture)
 		PController->SetMouseLocation(MousePosition.X, MousePosition.Y);

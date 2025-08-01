@@ -446,12 +446,10 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 
 void ADiplosimAIController::StartMovement()
 {
-	if (Cast<AAI>(GetOwner())->MovementComponent->IsComponentTickEnabled())
+	if (!Cast<AAI>(GetOwner())->MovementComponent->Points.IsEmpty())
 		return;
 	
 	Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = nullptr;
-
-	Cast<AAI>(GetOwner())->MovementComponent->SetComponentTickEnabled(true);
 }
 
 void ADiplosimAIController::StopMovement()
