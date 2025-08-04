@@ -867,6 +867,16 @@ int32 UCitizenManager::GetElapsedTime(FString ID, AActor* Actor)
 	return timer->Target - timer->Timer;
 }
 
+float UCitizenManager::GetElapsedPercentage(FString ID, AActor* Actor)
+{
+	FTimerStruct* timer = FindTimer(ID, Actor);
+
+	if (timer == nullptr)
+		return 0.0f;
+
+	return (timer->Target - timer->Timer) / timer->Target;
+}
+
 bool UCitizenManager::DoesTimerExist(FString ID, AActor* Actor)
 {
 	FTimerStruct* timer = FindTimer(ID, Actor);
