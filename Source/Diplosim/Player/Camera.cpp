@@ -433,6 +433,9 @@ void ACamera::ClearPopupUI()
 
 void ACamera::SetPause(bool bPause, bool bAlterViewport)
 {
+	if (bInMenu && PauseUIInstance->IsInViewport())
+		return;
+	
 	float timeDilation = 0.0001f;
 
 	if (bPause) {
@@ -806,9 +809,9 @@ void ACamera::Menu()
 
 		MenuUIInstance->RemoveFromParent();
 
-		bInMenu = false;
+		SetPause(false, false);
 
-		SetPause(false);
+		bInMenu = false;
 
 		if (PauseUIInstance->IsInViewport())
 			SetPause(true);
@@ -820,7 +823,7 @@ void ACamera::Menu()
 
 		bInMenu = true;
 
-		SetPause(true);
+		SetPause(true, false);
 	}
 }
 

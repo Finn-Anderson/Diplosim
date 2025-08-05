@@ -369,6 +369,18 @@ TArray<FItemStruct> ABuilding::GetRebuildCost()
 
 void ABuilding::Rebuild()
 {
+	if (!Camera->bInstantBuildCheat) {
+		for (FItemStruct item : GetRebuildCost()) {
+			int32 amount = Camera->ResourceManager->GetResourceAmount(item.Resource);
+
+			if (amount < item.Amount) {
+				Camera->ShowWarning("Cannot afford building");
+
+				return;
+			}
+		}
+	}
+
 	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
 	Build(true);

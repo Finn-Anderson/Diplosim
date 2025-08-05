@@ -13,7 +13,6 @@
 #include "AI/AttackComponent.h"
 #include "Map/Grid.h"
 #include "Buildings/Misc/Broch.h"
-#include "Buildings/Misc/Special/CloneLab.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
@@ -322,14 +321,6 @@ void ADiplosimGameModeBase::SpawnAllEnemies(TArray<FVector> SpawnLocations)
 
 	FTimerHandle crystalTimer;
 	GetWorld()->GetTimerManager().SetTimer(crystalTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::ShowRaidCrystal, false, FVector(0.0f, 0.0f, -1000.0f)), 0.1f * count, false);
-
-	for (ABuilding* building : Camera->CitizenManager->Buildings) {
-		if (building->IsA<ACloneLab>()) {
-			Cast<ACloneLab>(building)->SetTimer();
-
-			break;
-		}
-	}
 
 	Camera->DisplayEvent("Event", "Raid");
 }

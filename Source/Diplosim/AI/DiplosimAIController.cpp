@@ -164,7 +164,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 				Citizen->MovementComponent->SetPoints(path->PathPoints);
 
 				if (IsValid(Citizen->Building.BuildingAt))
-					Citizen->Building.BuildingAt->Leave(Citizen);
+					AsyncTask(ENamedThreads::GameThread, [Citizen]() { Citizen->Building.BuildingAt->Leave(Citizen); });
 			}
 		}
 

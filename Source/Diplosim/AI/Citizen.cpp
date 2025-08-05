@@ -280,7 +280,7 @@ void ACitizen::ClearCitizen()
 void ACitizen::ApplyResearch()
 {
 	for (FResearchStruct research : Camera->ResearchManager->ResearchStruct)
-		if (research.bResearched)
+		for (int32 i = 0; i < research.Level; i++)
 			for (auto& element : research.Modifiers)
 				ApplyToMultiplier(element.Key, element.Value);
 }

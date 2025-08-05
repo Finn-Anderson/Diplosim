@@ -13,7 +13,10 @@ struct FResearchStruct
 		FString ResearchName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-		bool bResearched;
+		int32 Level;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
+		int32 MaxLevel;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
 		float AmountResearched;
@@ -24,13 +27,11 @@ struct FResearchStruct
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
 		TMap<FString, float> Modifiers;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-		TArray<FString> Dependants;
-
 	FResearchStruct()
 	{
 		ResearchName = "";
-		bResearched = false;
+		Level = 0;
+		MaxLevel = 20;
 		AmountResearched = 0;
 		Target = 0;
 	}
@@ -59,9 +60,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Research")
 		int32 CurrentIndex;
-
-	UFUNCTION(BlueprintCallable)
-		bool CanResearch(FResearchStruct Research);
 
 	UFUNCTION(BlueprintCallable)
 		bool IsReseached(FString Name);

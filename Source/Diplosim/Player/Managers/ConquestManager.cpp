@@ -8,6 +8,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Map/Grid.h"
 #include "AI/Citizen.h"
+#include "AI/Clone.h"
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "Universal/HealthComponent.h"

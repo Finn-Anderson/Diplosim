@@ -5,60 +5,66 @@
       "Target": 120,
       "Modifiers": [
         {
-          "Food": "1.4"
+          "Food": "1.1"
         }
       ],
-      "Dependants": []
+      "Dependants": [],
+      "Max Level": 20
     },
     {
       "Name": "Increase damage",
       "Target": 120,
       "Modifiers": [
         {
-          "Damage": "1.5"
+          "Damage": "1.1"
         }
       ],
-      "Dependants": []
+      "Dependants": [],
+      "Max Level": 20
     },
     {
       "Name": "Increase reach",
       "Target": 240,
       "Modifiers": [
         {
-          "Reach": "1.25"
+          "Reach": "1.1"
         }
       ],
-      "Dependants": [ "Satiate more hunger per food", "Increase fertility", "Extend hunger time" ]
+      "Dependants": [ "Satiate more hunger per food", "Increase fertility", "Extend hunger time" ],
+      "Max Level": 20
     },
     {
       "Name": "Increase health",
       "Target": 240,
       "Modifiers": [
         {
-          "Health": "1.2"
+          "Health": "1.1"
         }
       ],
-      "Dependants": [ "Increase damage", "Increase Awareness", "Extend energy time" ]
+      "Dependants": [ "Increase damage", "Increase Awareness", "Extend energy time" ],
+      "Max Level": 20
     },
     {
       "Name": "Increase fertility",
       "Target": 240,
       "Modifiers": [
         {
-          "Fertility": "1.15"
+          "Fertility": "1.1"
         }
       ],
-      "Dependants": [ "Satiate more hunger per food", "Increase reach", "Increase Awareness", "Unlock ancient buildings" ]
+      "Dependants": [ "Satiate more hunger per food", "Increase reach", "Increase Awareness", "Unlock ancient buildings" ],
+      "Max Level": 20
     },
     {
       "Name": "Increase Awareness",
       "Target": 240,
       "Modifiers": [
         {
-          "Awareness": "1.25"
+          "Awareness": "1.1"
         }
       ],
-      "Dependants": [ "Increase damage", "Increase health", "Increase fertility", "Unlock ancient buildings" ]
+      "Dependants": [ "Increase damage", "Increase health", "Increase fertility", "Unlock ancient buildings" ],
+      "Max Level": 20
     },
     {
       "Name": "Unlock ancient buildings",
@@ -68,47 +74,52 @@
 
         }
       ],
-      "Dependants": [ "Increase Awareness", "Increase fertility", "Increase Speed" ]
+      "Dependants": [ "Increase Awareness", "Increase fertility", "Increase Speed" ],
+      "Max Level": 1
     },
     {
       "Name": "Extend hunger time",
       "Target": 480,
       "Modifiers": [
         {
-          "Hunger": "1.5"
+          "Hunger": "1.1"
         }
       ],
-      "Dependants": [ "Increase reach", "Increase Speed", "Increase Productivity" ]
+      "Dependants": [ "Increase reach", "Increase Speed", "Increase Productivity" ],
+      "Max Level": 20
     },
     {
       "Name": "Extend energy time",
       "Target": 480,
       "Modifiers": [
         {
-          "Energy": "1.5"
+          "Energy": "1.1"
         }
       ],
-      "Dependants": [ "Increase health", "Increase Speed", "Increase Productivity" ]
+      "Dependants": [ "Increase health", "Increase Speed", "Increase Productivity" ],
+      "Max Level": 20
     },
     {
       "Name": "Increase Speed",
       "Target": 480,
       "Modifiers": [
         {
-          "Speed": "1.5"
+          "Speed": "1.1"
         }
       ],
-      "Dependants": [ "Unlock ancient buildings", "Increase reach", "Increase health", "Increase Productivity" ]
+      "Dependants": [ "Unlock ancient buildings", "Increase reach", "Increase health", "Increase Productivity" ],
+      "Max Level": 20
     },
     {
       "Name": "Increase Productivity",
       "Target": 960,
       "Modifiers": [
         {
-          "Productivity": "1.5"
+          "Productivity": "1.1"
         }
       ],
-      "Dependants": [ "Extend hunger time", "Extend energy time", "Increase Speed" ]
+      "Dependants": [ "Extend hunger time", "Extend energy time", "Increase Speed" ],
+      "Max Level": 20
     }
   ]
 }

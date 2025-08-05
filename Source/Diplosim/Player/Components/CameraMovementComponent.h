@@ -75,4 +75,7 @@ public:
 
 	UPROPERTY()
 		bool bShake;
+
+	UPROPERTY()
+	double LastScrollTime;
 };

@@ -17,6 +17,7 @@ UCameraMovementComponent::UCameraMovementComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	TargetLength = 3000.0f;
+	LastScrollTime = 0.0f;
 
 	CameraSpeed = 10.0f;
 
@@ -174,7 +175,9 @@ void UCameraMovementComponent::Speed(const struct FInputActionInstance& Instance
 
 void UCameraMovementComponent::Scroll(const struct FInputActionInstance& Instance)
 {
-	float target = (FMath::Abs(TargetLength - Camera->SpringArmComponent->TargetArmLength) + 100.0f) * Instance.GetValue().Get<float>();
+	float target = (100.0f / FMath::Min(GetWorld()->GetRealTimeSeconds() - LastScrollTime, 1.0f)) * Instance.GetValue().Get<float>();
 
 	TargetLength = FMath::Clamp(TargetLength + target, 100.0f, 20000.0f);
+
+	LastScrollTime = GetWorld()->GetRealTimeSeconds();
 }

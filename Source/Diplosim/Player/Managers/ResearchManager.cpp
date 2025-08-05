@@ -30,19 +30,20 @@ void UResearchManager::ReadJSONFile(FString Path)
 				for (auto& v : e->AsObject()->Values) {
 					uint8 index = 0;
 
-					if (v.Value->Type == EJson::Array) {
-						for (auto& ev : v.Value->AsArray()) {
-							if (v.Key == "Dependants")
-								research.Dependants.Add(ev->AsString());
-							else
-								for (auto& bev : ev->AsObject()->Values)
+					if (v.Value->Type == EJson::Array)
+						for (auto& ev : v.Value->AsArray())
+							for (auto& bev : ev->AsObject()->Values)
 									research.Modifiers.Add(bev.Key, FCString::Atof(*bev.Value->AsString()));
-						}
-					}
 					else if (v.Value->Type == EJson::String)
 						research.ResearchName = v.Value->AsString();
-					else
-						research.Target = FCString::Atoi(*v.Value->AsString());
+					else {
+						int32 value = FCString::Atoi(*v.Value->AsString());
+
+						if (v.Key == "Target")
+							research.Target = value;
+						else
+							research.MaxLevel = value;
+					}
 				}
 
 				ResearchStruct.Add(research);
@@ -52,23 +53,6 @@ void UResearchManager::ReadJSONFile(FString Path)
 
 }
 
-bool UResearchManager::CanResearch(FResearchStruct Research)
-{
-	for (FString name : Research.Dependants) {
-		FResearchStruct r;
-		r.ResearchName = name;
-
-		int32 index = ResearchStruct.Find(r);
-
-		if (!ResearchStruct[index].bResearched)
-			continue;
-
-		return true;
-	}
-
-	return false;
-}
-
 bool UResearchManager::IsReseached(FString Name)
 {
 	FResearchStruct r;
@@ -76,7 +60,7 @@ bool UResearchManager::IsReseached(FString Name)
 	
 	int32 index = ResearchStruct.Find(r);
 
-	return ResearchStruct[index].bResearched;
+	return ResearchStruct[index].Level == ResearchStruct[index].MaxLevel;
 }
 
 void UResearchManager::Research(float Amount)
@@ -91,7 +75,12 @@ void UResearchManager::Research(float Amount)
 
 	ACamera* camera = Cast<ACamera>(GetOwner());
 
-	ResearchStruct[CurrentIndex].bResearched = true;
+	ResearchStruct[CurrentIndex].Level++;
+
+	if (ResearchStruct[CurrentIndex].Level != ResearchStruct[CurrentIndex].MaxLevel)
+		ResearchStruct[CurrentIndex].Target *= 1.25f;
+	else
+		camera->ResearchComplete(CurrentIndex);
 
 	for (auto& element : ResearchStruct[CurrentIndex].Modifiers) {
 		for (ACitizen* citizen : camera->CitizenManager->Citizens)
@@ -106,7 +95,6 @@ void UResearchManager::Research(float Amount)
 		}
 	}
 
-	camera->ResearchComplete(CurrentIndex);
 	camera->DisplayEvent(ResearchStruct[CurrentIndex].ResearchName, "Research Complete");
 
 	CurrentIndex = INDEX_NONE;

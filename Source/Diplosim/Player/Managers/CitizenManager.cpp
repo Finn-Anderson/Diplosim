@@ -18,6 +18,7 @@
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
 #include "Universal/HealthComponent.h"
+#include "Buildings/Misc/Special/CloneLab.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/School.h"
@@ -591,11 +592,25 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 			if (ai->IsA<ACitizen>() && Citizens.Contains(Cast<ACitizen>(ai)))
 				Citizens.Remove(Cast<ACitizen>(ai));
+			else if (ai->IsA<AClone>())
+				Clones.Remove(ai);
 			else
 				Enemies.Remove(ai);
 		}
 
 		AIPendingRemoval.Empty();
+
+		if (!Enemies.IsEmpty()) {
+			for (ABuilding* building : Buildings) {
+				if (!building->IsA<ACloneLab>())
+					continue;
+
+				if (!DoesTimerExist("Internal", Cast<ACloneLab>(building)) && Enemies[0]->AIController->CanMoveTo(building->GetActorLocation()))
+					Cast<ACloneLab>(building)->SetTimer();
+
+				break;
+			}
+		}
 	});
 }
 
@@ -972,8 +987,6 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen))
 		if (personality->Citizens.Contains(Citizen))
 			personality->Citizens.Remove(Citizen);
-
-	AIPendingRemoval.Add(Citizen);
 }
 
 //

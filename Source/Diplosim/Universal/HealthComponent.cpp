@@ -155,8 +155,15 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 {
 	AActor* actor = GetOwner();
 
-	if (actor->IsA<ABroch>())
+	if (actor->IsA<ABroch>()) {
 		Camera->Lose();
+
+		for (ACitizen* citizen : Camera->CitizenManager->Citizens)
+			citizen->HealthComponent->TakeHealth(1000, Camera);
+
+		for (ABuilding* building : Camera->CitizenManager->Buildings)
+			building->HealthComponent->TakeHealth(1000, Camera);
+	}
 
 	if (actor->IsA<AAI>()) {
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
