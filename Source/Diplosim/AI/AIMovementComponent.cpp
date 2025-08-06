@@ -16,6 +16,8 @@ UAIMovementComponent::UAIMovementComponent()
 	SpeedMultiplier = 1.0f;
 
 	CurrentAnim = nullptr;
+
+	Delta = 0.0f;
 }
 
 void UAIMovementComponent::BeginPlay()
@@ -27,8 +29,13 @@ void UAIMovementComponent::BeginPlay()
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime)
 {
-	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f || Points.IsEmpty())
+	Delta += DeltaTime;
+
+	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f || Delta < 1.0f/60.0f)
 		return;
+
+	DeltaTime = Delta;
+	Delta = 0.0f;
 
 	UAnimSingleNodeInstance* animInst = AI->Mesh->GetSingleNodeInstance();
 
@@ -37,6 +44,9 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 		AI->Mesh->RefreshBoneTransforms();
 	}
+
+	if (Points.IsEmpty())
+		return;
 
 	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);
 	
@@ -84,24 +94,17 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	{
 		FHitResult hit;
 
-		FCollisionQueryParams queryParams;
-		queryParams.AddIgnoredActor(AI);
-
 		double z = 0;
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, AI->GetActorLocation(), AI->GetActorLocation() - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_GameTraceChannel1, queryParams))
-			z = hit.Location.Z;
-
-		FVector location = AI->GetActorLocation() + deltaV;
-		location.Z = z + AI->Capsule->GetScaledCapsuleHalfHeight();
-
-		AI->SetActorLocation(location);
+		if (GetWorld()->LineTraceSingleByChannel(hit, AI->GetActorLocation() + deltaV, AI->GetActorLocation() + deltaV - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_GameTraceChannel1))
+			z = hit.Location.Z - GetActorLocation().Z;
+		
+		deltaV.Z = z + AI->Capsule->GetScaledCapsuleHalfHeight();
 
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;
 
-		if (AI->GetActorRotation() != targetRotation)
-			AI->SetActorRotation(FMath::RInterpTo(AI->GetActorRotation(), targetRotation, DeltaTime, 10.0f));
+		AI->GetRootComponent()->MoveComponent(deltaV, FMath::RInterpTo(AI->GetActorRotation(), targetRotation, DeltaTime, 10.0f), false);
 
 		if (CurrentAnim == MoveAnim)
 			return;

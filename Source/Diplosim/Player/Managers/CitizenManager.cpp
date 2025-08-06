@@ -706,7 +706,7 @@ void UCitizenManager::Loop()
 		int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
 
 		for (ACitizen* citizen : Citizens) {
-			if (citizen->Rebel)
+			if (!IsValid(citizen) || citizen->Rebel)
 				continue;
 
 			for (FConditionStruct& condition : citizen->HealthIssues) {
@@ -1752,8 +1752,6 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
 		Citizen->DiseaseNiagaraComponent->Activate();
 
-		Citizen->IllnessMesh->SetHiddenInGame(false);
-
 		Infected.Add(Citizen);
 
 		UpdateHealthText(Citizen);
@@ -1788,7 +1786,7 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 
 	Cast<ACamera>(GetOwner())->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + conditions[index].Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
 
-	Citizen->IllnessMesh->SetHiddenInGame(false);
+	Citizen->Mesh->SetCustomPrimitiveDataFloat(6, 1.0f);
 
 	Injured.Add(Citizen);
 
@@ -1813,8 +1811,7 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 	Citizen->HealthIssues.Empty();
 
 	Citizen->DiseaseNiagaraComponent->Deactivate();
-
-	Citizen->IllnessMesh->SetHiddenInGame(true);
+	Citizen->Mesh->SetCustomPrimitiveDataFloat(6, 0.0f);
 
 	Infected.Remove(Citizen);
 	Injured.Remove(Citizen);

@@ -36,6 +36,7 @@ AAI::AAI()
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh->SetGenerateOverlapEvents(false);
 	Mesh->SetupAttachment(RootComponent);
+	Mesh->SetAllowClothActors(false);
 	Mesh->PrimaryComponentTick.bCanEverTick = false;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));

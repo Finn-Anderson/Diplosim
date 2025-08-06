@@ -206,12 +206,14 @@ void ACamera::Tick(float DeltaTime)
 	if (DeltaTime > 1.0f)
 		return;
 
-	TArray<AAI*> ais;
-	ais.Append(CitizenManager->Citizens);
-	ais.Append(CitizenManager->Enemies);
+	if (GameSpeed != 0) {
+		TArray<AAI*> ais;
+		ais.Append(CitizenManager->Citizens);
+		ais.Append(CitizenManager->Enemies);
 
-	for (AAI* ai : ais)
-		ai->MovementComponent->ComputeMovement(DeltaTime * CustomTimeDilation);
+		for (AAI* ai : ais)
+			ai->MovementComponent->ComputeMovement(DeltaTime * GameSpeed);
+	}
 
 	if (bMouseCapture)
 		PController->SetMouseLocation(MousePosition.X, MousePosition.Y);
@@ -812,9 +814,6 @@ void ACamera::Menu()
 		SetPause(false, false);
 
 		bInMenu = false;
-
-		if (PauseUIInstance->IsInViewport())
-			SetPause(true);
 	}
 	else {
 		MenuUIInstance->AddToViewport();

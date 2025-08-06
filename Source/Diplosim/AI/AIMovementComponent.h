@@ -51,4 +51,7 @@ public:
 
 	UPROPERTY()
 		class AAI* AI;
+
+	UPROPERTY()
+		double Delta;
 };

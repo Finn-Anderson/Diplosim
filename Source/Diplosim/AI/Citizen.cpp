@@ -50,45 +50,10 @@ ACitizen::ACitizen()
 	HatMesh->SetCanEverAffectNavigation(false);
 	HatMesh->PrimaryComponentTick.bCanEverTick = false;
 
-	TorchMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TorchMesh"));
-	TorchMesh->SetCollisionProfileName("NoCollision", false);
-	TorchMesh->SetupAttachment(Mesh, "TorchSocket");
-	TorchMesh->SetHiddenInGame(true);
-	TorchMesh->PrimaryComponentTick.bCanEverTick = false;
-
 	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
-	TorchNiagaraComponent->SetupAttachment(TorchMesh, "ParticleSocket");
+	TorchNiagaraComponent->SetupAttachment(Mesh, "TorchSocket");
 	TorchNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	TorchNiagaraComponent->bAutoActivate = false;
-
-	GlassesMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GlassesMesh"));
-	GlassesMesh->SetWorldScale3D(FVector(0.2f, 0.2f, 0.2f));
-	GlassesMesh->SetCollisionProfileName("NoCollision", false);
-	GlassesMesh->SetupAttachment(Mesh, "GlassesSocket");
-	GlassesMesh->SetCanEverAffectNavigation(false);
-	GlassesMesh->SetHiddenInGame(true);
-	GlassesMesh->PrimaryComponentTick.bCanEverTick = false;
-
-	IllnessMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("IllnessMesh"));
-	IllnessMesh->SetupAttachment(Mesh);
-	IllnessMesh->SetRelativeLocation(FVector(0.0f, 10.0f, 30.0f));
-	IllnessMesh->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
-	IllnessMesh->SetCollisionProfileName("NoCollision", false);
-	IllnessMesh->SetCanEverAffectNavigation(false);
-	IllnessMesh->SetHiddenInGame(true);
-	IllnessMesh->SetCustomPrimitiveDataFloat(1, 3.0f);
-	IllnessMesh->PrimaryComponentTick.bCanEverTick = false;
-
-	HungerMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HungerMesh"));
-	HungerMesh->SetupAttachment(Mesh);
-	HungerMesh->SetRelativeLocation(FVector(-2.5f, -10.0f, 30.0f));
-	HungerMesh->SetRelativeRotation(FRotator(45.0f, 90.0f, -90.0f));
-	HungerMesh->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
-	HungerMesh->SetCollisionProfileName("NoCollision", false);
-	HungerMesh->SetCanEverAffectNavigation(false);
-	HungerMesh->SetHiddenInGame(true);
-	HungerMesh->SetCustomPrimitiveDataFloat(1, 3.0f);
-	HungerMesh->PrimaryComponentTick.bCanEverTick = false;
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(Mesh);
@@ -536,11 +501,11 @@ void ACitizen::SetHarvestVisuals(AResource* Resource)
 void ACitizen::SetTorch(int32 Hour)
 {
 	if (Hour >= 18 || Hour < 6) {
-		TorchMesh->SetHiddenInGame(false);
+		Mesh->SetCustomPrimitiveDataFloat(8, 1.0f);
 		TorchNiagaraComponent->Activate();
 	}
 	else {
-		TorchMesh->SetHiddenInGame(true);
+		Mesh->SetCustomPrimitiveDataFloat(8, 0.0f);
 		TorchNiagaraComponent->Deactivate();
 	}
 }
@@ -815,9 +780,9 @@ void ACitizen::Eat()
 	}
 
 	if (Hunger > 25)
-		HungerMesh->SetHiddenInGame(true);
-	else
-		HungerMesh->SetHiddenInGame(false);
+		Mesh->SetRelativeScale3D(Mesh->GetRelativeScale3D() / FVector(0.5f, 0.5f, 1.0f));
+	else if (Hunger == 25)
+		Mesh->SetRelativeScale3D(Mesh->GetRelativeScale3D() * FVector(0.5f, 0.5f, 1.0f));
 }
 
 //
@@ -985,8 +950,12 @@ void ACitizen::Birthday()
 		HealthComponent->MaxHealth += 5 * HealthComponent->HealthMultiplier;
 		HealthComponent->AddHealth(5 * HealthComponent->HealthMultiplier);
 
+		float multiply = 1.0f;
+		if (Hunger <= 25)
+			multiply = 0.5f;
+
 		float scale = (BioStruct.Age * 0.04f) + 0.28f;
-		AsyncTask(ENamedThreads::GameThread, [this, scale]() { Mesh->SetRelativeScale3D(FVector(scale, scale, scale)); });
+		AsyncTask(ENamedThreads::GameThread, [this, scale, multiply]() { Mesh->SetRelativeScale3D(FVector(scale, scale, scale) * FVector(multiply, multiply, 1.0f)); });
 	}
 	else if (BioStruct.Partner != nullptr && BioStruct.Sex == ESex::Female)
 		AsyncTask(ENamedThreads::GameThread, [this]() { HaveChild(); });
@@ -1928,7 +1897,7 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 		else if (Genetic.Grade == EGeneticsGrade::Bad) {
 			ApplyToMultiplier("Awareness", 0.75f);
 
-			GlassesMesh->SetHiddenInGame(false);
+			Mesh->SetCustomPrimitiveDataFloat(7, 1.0f);
 		}
 	}
 	else if (Genetic.Type == EGeneticsType::Productivity) {

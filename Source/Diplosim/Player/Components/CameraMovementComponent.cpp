@@ -175,7 +175,7 @@ void UCameraMovementComponent::Speed(const struct FInputActionInstance& Instance
 
 void UCameraMovementComponent::Scroll(const struct FInputActionInstance& Instance)
 {
-	float target = (100.0f / FMath::Min(GetWorld()->GetRealTimeSeconds() - LastScrollTime, 1.0f)) * Instance.GetValue().Get<float>();
+	float target = (100.0f / FMath::Min((GetWorld()->GetRealTimeSeconds() - LastScrollTime) * 5.0f, 1.0f)) * Instance.GetValue().Get<float>();
 
 	TargetLength = FMath::Clamp(TargetLength + target, 100.0f, 20000.0f);
 

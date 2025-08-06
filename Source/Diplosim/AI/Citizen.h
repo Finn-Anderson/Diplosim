@@ -353,13 +353,7 @@ public:
 		class UStaticMeshComponent* HatMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		class USkeletalMeshComponent* TorchMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UNiagaraComponent* TorchNiagaraComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		class UStaticMeshComponent* GlassesMesh;
 
 	// Education
 	bool CanAffordEducationLevel();
@@ -473,12 +467,6 @@ public:
 	// Status
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 		class UNiagaraComponent* DiseaseNiagaraComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-		class UStaticMeshComponent* IllnessMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-		class UStaticMeshComponent* HungerMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 		TArray<FConditionStruct> HealthIssues;
