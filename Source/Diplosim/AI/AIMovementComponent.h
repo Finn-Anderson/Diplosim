@@ -38,8 +38,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float SpeedMultiplier;
 
-	TMap<AActor*, TArray<FVector>> avoidPoints;
-
 	UPROPERTY()
 		TArray<FVector> Points;
 
@@ -53,5 +51,5 @@ public:
 		class AAI* AI;
 
 	UPROPERTY()
-		double Delta;
+		double LastUpdatedTime;
 };

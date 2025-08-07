@@ -17,7 +17,7 @@ UAIMovementComponent::UAIMovementComponent()
 
 	CurrentAnim = nullptr;
 
-	Delta = 0.0f;
+	LastUpdatedTime = 0.0f;
 }
 
 void UAIMovementComponent::BeginPlay()
@@ -29,20 +29,17 @@ void UAIMovementComponent::BeginPlay()
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime)
 {
-	Delta += DeltaTime;
+	LastUpdatedTime = GetWorld()->GetTimeSeconds();
 
-	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f || Delta < 1.0f/60.0f)
+	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
-
-	DeltaTime = Delta;
-	Delta = 0.0f;
 
 	UAnimSingleNodeInstance* animInst = AI->Mesh->GetSingleNodeInstance();
 
 	if (IsValid(animInst) && IsValid(animInst->GetAnimationAsset()) && animInst->IsPlaying()) {
-		animInst->UpdateAnimation(DeltaTime * AI->Mesh->GlobalAnimRateScale, false);
+			animInst->UpdateAnimation(DeltaTime * AI->Mesh->GlobalAnimRateScale, false);
 
-		AI->Mesh->RefreshBoneTransforms();
+			AI->Mesh->RefreshBoneTransforms(); 
 	}
 
 	if (Points.IsEmpty())
@@ -53,33 +50,11 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	ADiplosimAIController* aicontroller = AI->AIController;
 	AActor* goal = aicontroller->MoveRequest.GetGoalActor();
 
-	if (IsValid(goal)) {
-		if (AI->CanReach(goal, range)) {
-			FRotator rotation = (goal->GetActorLocation() - AI->GetActorLocation()).Rotation();
-			rotation.Pitch = 0.0f;
+	if (IsValid(goal) && Points.Last() != goal->GetActorLocation())
+		aicontroller->RecalculateMovement(goal);
 
-			AI->SetActorRotation(FMath::RInterpTo(AI->GetActorRotation(), rotation, DeltaTime, 10.0f));
-		}
-		else if (Velocity.IsNearlyZero(1e-6f) || goal->IsA<AAI>()) {
-			aicontroller->RecalculateMovement(goal);
-		}
-	}
-
-	if (!Points.IsEmpty() && FVector::DistXY(AI->GetActorLocation(), Points[0]) < range) {
-		for (auto& element : avoidPoints) {
-			if (!element.Value.Contains(Points[0]))
-				continue;
-
-			element.Value.RemoveAt(0);
-
-			if (element.Value.IsEmpty())
-				avoidPoints.Remove(element.Key);
-
-			break;
-		}
-
+	if (!Points.IsEmpty() && FVector::DistXY(AI->GetActorLocation(), Points[0]) < range)
 		Points.RemoveAt(0);
-	}
 
 	if (Points.IsEmpty())
 		Velocity = FVector::Zero();
@@ -96,7 +71,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 		double z = 0;
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, AI->GetActorLocation() + deltaV, AI->GetActorLocation() + deltaV - FVector(0.0f, 0.0f, 200.0f), ECollisionChannel::ECC_GameTraceChannel1))
+		if (GetWorld()->LineTraceSingleByChannel(hit, AI->GetActorLocation() + deltaV + FVector(0.0f, 0.0f, 100.0f), AI->GetActorLocation() + deltaV - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_GameTraceChannel1))
 			z = hit.Location.Z - GetActorLocation().Z;
 		
 		deltaV.Z = z + AI->Capsule->GetScaledCapsuleHalfHeight();

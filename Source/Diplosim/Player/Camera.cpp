@@ -11,6 +11,7 @@
 #include "Components/DecalComponent.h"
 #include "Components/AudioComponent.h"
 #include "NiagaraComponent.h"
+#include "Engine/ScopedMovementUpdate.h"
 
 #include "Map/Grid.h"
 #include "Map/Resources/Mineral.h"
@@ -206,13 +207,16 @@ void ACamera::Tick(float DeltaTime)
 	if (DeltaTime > 1.0f)
 		return;
 
-	if (GameSpeed != 0) {
+	if (!PauseUIInstance->IsInViewport() && !Start) {
 		TArray<AAI*> ais;
 		ais.Append(CitizenManager->Citizens);
 		ais.Append(CitizenManager->Enemies);
+		ais.Append(CitizenManager->Clones);
 
-		for (AAI* ai : ais)
-			ai->MovementComponent->ComputeMovement(DeltaTime * GameSpeed);
+		for (AAI* ai : ais) {
+			FScopedMovementUpdate movement = FScopedMovementUpdate(ai->GetRootComponent(), EScopedUpdate::DeferredUpdates);
+			ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
+		}
 	}
 
 	if (bMouseCapture)
