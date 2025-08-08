@@ -18,6 +18,7 @@ UAIMovementComponent::UAIMovementComponent()
 	CurrentAnim = nullptr;
 
 	LastUpdatedTime = 0.0f;
+	Transform = FTransform();
 }
 
 void UAIMovementComponent::BeginPlay()
@@ -37,9 +38,9 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	UAnimSingleNodeInstance* animInst = AI->Mesh->GetSingleNodeInstance();
 
 	if (IsValid(animInst) && IsValid(animInst->GetAnimationAsset()) && animInst->IsPlaying()) {
-			animInst->UpdateAnimation(DeltaTime * AI->Mesh->GlobalAnimRateScale, false);
+		animInst->UpdateAnimation(DeltaTime * AI->Mesh->GlobalAnimRateScale, false);
 
-			AI->Mesh->RefreshBoneTransforms(); 
+		AI->Mesh->RefreshBoneTransforms(); 
 	}
 
 	if (Points.IsEmpty())
@@ -49,11 +50,17 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	
 	ADiplosimAIController* aicontroller = AI->AIController;
 	AActor* goal = aicontroller->MoveRequest.GetGoalActor();
+	
+	if (IsValid(goal)) {
+		FVector location = goal->GetActorLocation();
+		if (goal->IsA<AAI>())
+			location = Cast<AAI>(goal)->MovementComponent->Transform.GetLocation();
 
-	if (IsValid(goal) && Points.Last() != goal->GetActorLocation())
-		aicontroller->RecalculateMovement(goal);
+		if (Points.Last() != location)
+			aicontroller->RecalculateMovement(goal);
+	}
 
-	if (!Points.IsEmpty() && FVector::DistXY(AI->GetActorLocation(), Points[0]) < range)
+	if (!Points.IsEmpty() && FVector::DistXY(Transform.GetLocation(), Points[0]) < range)
 		Points.RemoveAt(0);
 
 	if (Points.IsEmpty())
@@ -71,23 +78,24 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 		double z = 0;
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, AI->GetActorLocation() + deltaV + FVector(0.0f, 0.0f, 100.0f), AI->GetActorLocation() + deltaV - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_GameTraceChannel1))
-			z = hit.Location.Z - GetActorLocation().Z;
+		if (GetWorld()->LineTraceSingleByChannel(hit, Transform.GetLocation() + deltaV + FVector(0.0f, 0.0f, 100.0f), Transform.GetLocation() + deltaV - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_GameTraceChannel1))
+			z = hit.Location.Z - Transform.GetLocation().Z;
 		
-		deltaV.Z = z + AI->Capsule->GetScaledCapsuleHalfHeight();
+		deltaV.Z = z;
 
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;
 
-		AI->GetRootComponent()->MoveComponent(deltaV, FMath::RInterpTo(AI->GetActorRotation(), targetRotation, DeltaTime, 10.0f), false);
+		Transform.SetLocation(Transform.GetLocation() + deltaV);
+		Transform.SetRotation(FMath::RInterpTo(Transform.GetRotation().Rotator(), targetRotation, DeltaTime, 10.0f).Quaternion());
 
 		if (CurrentAnim == MoveAnim)
 			return;
 
-		SetAnimation(MoveAnim, true);
+		//SetAnimation(MoveAnim, true);
 	}
 	else if (CurrentAnim == MoveAnim) {
-		SetAnimation(nullptr, false);
+		//SetAnimation(nullptr, false);
 
 		AI->AIController->StopMovement();
 	}
@@ -95,7 +103,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 FVector UAIMovementComponent::CalculateVelocity(FVector Vector)
 {
-	return (Vector - AI->GetActorLocation()).Rotation().Vector() * MaxSpeed;
+	return (Vector - Transform.GetLocation()).Rotation().Vector() * MaxSpeed;
 }
 
 void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)

@@ -12,6 +12,7 @@
 #include "Components/WidgetComponent.h"
 
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "DiplosimGameModeBase.h"
@@ -302,8 +303,7 @@ void UDiplosimUserSettings::SetRenderTorches(bool Value)
 	if (bRenderTorches)
 		hour = Atmosphere->Calendar.Hour;
 
-	for (ACitizen* citizen : Camera->CitizenManager->Citizens)
-		citizen->SetTorch(hour);
+	Camera->Grid->AIVisualiser->ActivateTorches(hour);
 }
 
 bool UDiplosimUserSettings::GetRenderTorches() const

@@ -12,7 +12,4 @@ class DIPLOSIM_API AClone : public AAI
 	
 public:
 	AClone();
-
-protected:
-	virtual void BeginPlay() override;
 };

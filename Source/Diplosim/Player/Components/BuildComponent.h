@@ -60,7 +60,7 @@ public:
 
 	TArray<FHitResult> GetBuildingOverlaps(class ABuilding* Building, float Extent = 1.0f);
 
-	void SetTreeStatus(ABuilding* Building, bool bDestroy);
+	void SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding = false);
 
 	void DisplayInfluencedBuildings(class ABuilding* Building, bool bShow);
 

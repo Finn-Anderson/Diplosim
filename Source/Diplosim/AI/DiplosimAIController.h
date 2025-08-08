@@ -107,6 +107,8 @@ public:
 
 	virtual void StopMovement() override;
 
+	FVector GetTargetLocation(AActor* Actor);
+
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 		FMoveStruct MoveRequest;
 

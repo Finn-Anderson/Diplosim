@@ -201,7 +201,7 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 	return hits;
 }
 
-void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy)
+void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding)
 {
 	TArray<FResourceHISMStruct> vegetation;
 	vegetation.Append(Camera->Grid->TreeStruct);
@@ -216,7 +216,7 @@ void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy)
 			FTransform transform;
 			resource.Resource->ResourceHISM->GetInstanceTransform(instances[i], transform);
 
-			if (FMath::Abs(transform.GetLocation().X - Building->GetActorLocation().X) > size.X + 25.0f || FMath::Abs(transform.GetLocation().Y - Building->GetActorLocation().Y) > size.Y + 25.0f)
+			if (bRemoveBuilding || FMath::Abs(transform.GetLocation().X - Building->GetActorLocation().X) > size.X + 25.0f || FMath::Abs(transform.GetLocation().Y - Building->GetActorLocation().Y) > size.Y + 25.0f)
 				resource.Resource->ResourceHISM->SetCustomDataValue(instances[i], 1, 1.0f);
 			else if (bDestroy)
 				Camera->Grid->RemoveTree(resource.Resource, instances[i]);
@@ -529,7 +529,7 @@ void UBuildComponent::RemoveBuilding()
 	for (ABuilding* building : Buildings) {
 		DisplayInfluencedBuildings(building, false);
 
-		SetTreeStatus(building, false);
+		SetTreeStatus(building, false, true);
 
 		building->DestroyBuilding();
 	}
@@ -581,7 +581,7 @@ void UBuildComponent::EndPathPlace()
 	Buildings[0]->BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
-		SetTreeStatus(Buildings[i], false);
+		SetTreeStatus(Buildings[i], false, true);
 
 		Buildings[i]->DestroyBuilding();
 

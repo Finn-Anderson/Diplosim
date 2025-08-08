@@ -725,6 +725,9 @@ public:
 		TArray<class AAI*> Enemies;
 
 	UPROPERTY()
+		TArray<class ACitizen*> Rebels;
+
+	UPROPERTY()
 		TArray<class AAI*> Clones;
 
 	UPROPERTY()

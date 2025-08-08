@@ -9,6 +9,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Resources/Mineral.h"
 
 ABroch::ABroch()
@@ -37,7 +38,12 @@ void ABroch::SpawnCitizens()
 		FActorSpawnParameters params;
 		params.bNoFail = true;
 
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, navLoc.Location - FVector(0.0f, 0.0f, 2.0f), GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f), params);
+		FTransform transform;
+		transform.SetLocation(navLoc.Location);
+		transform.SetRotation((GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f)).Quaternion());
+
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, FVector::Zero(), FRotator::ZeroRotator, params);
+		Camera->Grid->AIVisualiser->AddInstance(citizen, Camera->Grid->AIVisualiser->HISMCitizen, transform);
 
 		citizen->SetSex(Camera->CitizenManager->Citizens);
 
@@ -53,7 +59,5 @@ void ABroch::SpawnCitizens()
 		citizen->HealthComponent->AddHealth(100 * citizen->HealthComponent->HealthMultiplier);
 
 		citizen->ApplyResearch();
-
-		citizen->SetActorLocation(navLoc.Location + FVector(0.0f, 0.0f, citizen->Capsule->GetScaledCapsuleHalfHeight()));
 	}
 }

@@ -317,9 +317,6 @@ public:
 	// On Hit
 	void SetHarvestVisuals(class AResource* Resource);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		class UNiagaraComponent* HarvestNiagaraComponent;
-
 	// Audio
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* AmbientAudioComponent;
@@ -346,14 +343,8 @@ public:
 		float VoicePitch;
 
 	// Cosmetics
-	UFUNCTION(BlueprintCallable)
-		void SetTorch(int32 Hour);
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UStaticMeshComponent* HatMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		class UNiagaraComponent* TorchNiagaraComponent;
 
 	// Education
 	bool CanAffordEducationLevel();
@@ -466,9 +457,6 @@ public:
 
 	// Status
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-		class UNiagaraComponent* DiseaseNiagaraComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 		TArray<FConditionStruct> HealthIssues;
 
 	// Happiness
@@ -518,6 +506,9 @@ public:
 	// Genetics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Genetics")
 		TArray<FGeneticsStruct> Genetics;
+
+	UPROPERTY()
+		bool bGlasses;
 
 	void GenerateGenetics();
 

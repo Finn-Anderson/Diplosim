@@ -11,6 +11,7 @@
 #include "Engine/ExponentialHeightFog.h"
 #include "NavigationSystem.h"
 
+#include "AIVisualiser.h"
 #include "Atmosphere/Clouds.h"
 #include "Resources/Mineral.h"
 #include "Resources/Vegetation.h"
@@ -138,6 +139,8 @@ AGrid::AGrid()
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 	AtmosphereComponent->WindComponent->SetupAttachment(RootComponent);
+
+	AIVisualiser = CreateDefaultSubobject<UAIVisualiser>(TEXT("AIVisualiser"));
 
 	CrystalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CrystalMesh"));
 	CrystalMesh->SetCollisionProfileName("NoCollision", false);

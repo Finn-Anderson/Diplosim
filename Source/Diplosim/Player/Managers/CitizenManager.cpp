@@ -2702,7 +2702,7 @@ void UCitizenManager::Overthrow()
 void UCitizenManager::SetupRebel(class ACitizen* Citizen)
 {
 	Citizens.Remove(Citizen);
-	Enemies.Add(Citizen);
+	Rebels.Add(Citizen);
 
 	Citizen->Rebel = true;
 

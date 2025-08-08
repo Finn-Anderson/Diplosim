@@ -104,6 +104,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		class UAtmosphereComponent* AtmosphereComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+		class UAIVisualiser* AIVisualiser;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ground", meta = (ClampMin = "0.0", ClampMax = "100.0", UIMin = "0.0", UIMax = "100.0"))
 		int32 PercentageGround;
 

@@ -12,6 +12,7 @@
 #include "AI/Enemy.h"
 #include "AI/AttackComponent.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Player/Camera.h"
@@ -338,15 +339,14 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations,
 	FActorSpawnParameters params;
 	params.bNoFail = true;
 
-	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, navLocation.Location, FRotator(0.0f), params);
+	FTransform transform;
+	transform.SetLocation(navLocation.Location);
 
-	enemy->Mesh->SetCustomPrimitiveDataFloat(1, Colour.R);
-	enemy->Mesh->SetCustomPrimitiveDataFloat(2, Colour.G);
-	enemy->Mesh->SetCustomPrimitiveDataFloat(3, Colour.B);
-
+	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, FVector::Zero(), FRotator(0.0f), params);
 	enemy->Colour = Colour;
 
 	Camera->CitizenManager->Enemies.Add(enemy);
+	Grid->AIVisualiser->AddInstance(enemy, Grid->AIVisualiser->HISMEnemy, transform);
 
 	enemy->MoveToBroch();
 

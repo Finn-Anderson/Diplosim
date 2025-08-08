@@ -5,7 +5,7 @@
 #include "AI.generated.h"
 
 UCLASS()
-class DIPLOSIM_API AAI : public APawn
+class DIPLOSIM_API AAI : public AActor
 {
 	GENERATED_BODY()
 
@@ -19,14 +19,6 @@ public:
 	void MoveToBroch();
 
 	bool CanReach(AActor* Actor, float Reach, int32 Instance = -1);
-
-	void EnableCollisions(bool bEnable);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CapsuleComponent")
-		class UCapsuleComponent* Capsule;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class USkeletalMeshComponent* Mesh;
 
 	UPROPERTY()
 		class ACamera* Camera;
@@ -45,7 +37,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 		TSubclassOf<class UNavigationQueryFilter> NavQueryFilter;
 
-	class ADiplosimAIController* AIController;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		class ADiplosimAIController* AIController;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		float InitialRange;

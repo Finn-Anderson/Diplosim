@@ -20,25 +20,6 @@ AAI::AAI()
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
-	Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	Capsule->SetCollisionResponseToAllChannels(ECR_Ignore);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
-	Capsule->SetGenerateOverlapEvents(false);
-	Capsule->SetCanEverAffectNavigation(false);
-	Capsule->bDynamicObstacle = false;
-	Capsule->PrimaryComponentTick.bCanEverTick = false;
-
-	RootComponent = Capsule;
-
-	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
-	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	Mesh->SetGenerateOverlapEvents(false);
-	Mesh->SetupAttachment(RootComponent);
-	Mesh->SetAllowClothActors(false);
-	Mesh->PrimaryComponentTick.bCanEverTick = false;
-
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
@@ -46,11 +27,7 @@ AAI::AAI()
 	MovementComponent = CreateDefaultSubobject<UAIMovementComponent>(TEXT("MovementComponent"));
 	MovementComponent->SetUpdatedComponent(RootComponent);
 
-	bUseControllerRotationYaw = false;
-
-	AIControllerClass = ADiplosimAIController::StaticClass();
-
-	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	AIController = CreateDefaultSubobject<ADiplosimAIController>(TEXT("AIController"));
 
 	InitialRange = 400.0f;
 	Range = InitialRange;
@@ -59,11 +36,6 @@ AAI::AAI()
 void AAI::BeginPlay()
 {
 	Super::BeginPlay();
-
-	SpawnDefaultController();
-
-	AIController = GetController<ADiplosimAIController>();
-	AIController->Owner = this;
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
@@ -101,7 +73,7 @@ void AAI::MoveToBroch()
 				continue;
 			}
 
-			double magnitude = AIController->GetClosestActor(400.0f, GetActorLocation(), target->GetActorLocation(), actor->GetActorLocation());
+			double magnitude = AIController->GetClosestActor(400.0f, MovementComponent->Transform.GetLocation(), target->GetActorLocation(), actor->GetActorLocation());
 
 			double targetDistToBroch = FVector::Dist(target->GetActorLocation(), brochs[0]->GetActorLocation()) + magnitude;
 
@@ -123,7 +95,7 @@ bool AAI::CanReach(AActor* Actor, float Reach, int32 Instance)
 	
 	TArray<FHitResult> hits;
 
-	if (GetWorld()->SweepMultiByChannel(hits, GetActorLocation(), GetActorLocation(), GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeSphere(Reach), params)) {
+	if (GetWorld()->SweepMultiByChannel(hits, MovementComponent->Transform.GetLocation(), MovementComponent->Transform.GetLocation(), GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeSphere(Reach), params)) {
 		for (FHitResult hit : hits) {
 			if (hit.GetActor() != Actor || (Instance > 0 && hit.Item != Instance) || (!hit.GetComponent()->IsA<UStaticMeshComponent>() && !hit.GetComponent()->IsA<USkeletalMeshComponent>() && !hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>()))
 				continue;
@@ -133,21 +105,4 @@ bool AAI::CanReach(AActor* Actor, float Reach, int32 Instance)
 	}
 
 	return false;
-}
-
-void AAI::EnableCollisions(bool bEnable)
-{
-	ECollisionResponse response = ECollisionResponse::ECR_Ignore;
-
-	if (bEnable)
-		response = ECollisionResponse::ECR_Block;
-
-	if (Capsule->GetCollisionResponseToChannel(ECC_Pawn) == response)
-		return;
-
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, response);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, response);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, response);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, response);
-	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, response);
 }

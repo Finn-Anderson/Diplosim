@@ -52,4 +52,7 @@ public:
 
 	UPROPERTY()
 		double LastUpdatedTime;
+
+	UPROPERTY()
+		FTransform Transform;
 };

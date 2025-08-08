@@ -14,6 +14,7 @@
 #include "Engine/ScopedMovementUpdate.h"
 
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Resources/Mineral.h"
 #include "Map/Resources/Vegetation.h"
 #include "Components/BuildComponent.h"
@@ -207,17 +208,8 @@ void ACamera::Tick(float DeltaTime)
 	if (DeltaTime > 1.0f)
 		return;
 
-	if (!PauseUIInstance->IsInViewport() && !Start) {
-		TArray<AAI*> ais;
-		ais.Append(CitizenManager->Citizens);
-		ais.Append(CitizenManager->Enemies);
-		ais.Append(CitizenManager->Clones);
-
-		for (AAI* ai : ais) {
-			FScopedMovementUpdate movement = FScopedMovementUpdate(ai->GetRootComponent(), EScopedUpdate::DeferredUpdates);
-			ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
-		}
-	}
+	if (!PauseUIInstance->IsInViewport() && !Start)
+		Grid->AIVisualiser->MainLoop(this);
 
 	if (bMouseCapture)
 		PController->SetMouseLocation(MousePosition.X, MousePosition.Y);

@@ -30,6 +30,7 @@
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "AIMovementComponent.h"
@@ -37,35 +38,12 @@
 
 ACitizen::ACitizen()
 {
-	Capsule->SetCapsuleSize(9.0f, 11.5f);
-	Capsule->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel2);
-
-	Mesh->SetRelativeLocation(FVector(0.0f, 0.0f, -11.5f));
-	Mesh->SetRelativeScale3D(FVector(0.28f, 0.28f, 0.28f));
-
 	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));
 	HatMesh->SetWorldScale3D(FVector(0.1f, 0.1f, 0.1f));
 	HatMesh->SetCollisionProfileName("NoCollision", false);
-	HatMesh->SetupAttachment(Mesh, "HatSocket");
+	HatMesh->SetupAttachment(GetRootComponent(), "HatSocket");
 	HatMesh->SetCanEverAffectNavigation(false);
 	HatMesh->PrimaryComponentTick.bCanEverTick = false;
-
-	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
-	TorchNiagaraComponent->SetupAttachment(Mesh, "TorchSocket");
-	TorchNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
-	TorchNiagaraComponent->bAutoActivate = false;
-
-	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
-	HarvestNiagaraComponent->SetupAttachment(Mesh);
-	HarvestNiagaraComponent->SetRelativeLocation(FVector(20.0f, 0.0f, 17.0f));
-	HarvestNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
-	HarvestNiagaraComponent->bAutoActivate = false;
-
-	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
-	DiseaseNiagaraComponent->SetupAttachment(Mesh);
-	DiseaseNiagaraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 6.0f));
-	DiseaseNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
-	DiseaseNiagaraComponent->bAutoActivate = false;
 
 	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
 	AmbientAudioComponent->SetupAttachment(RootComponent);
@@ -115,6 +93,8 @@ ACitizen::ACitizen()
 	ConversationHappiness = 0;
 
 	VoicePitch = 1.0f;
+
+	bGlasses = false;
 }
 
 void ACitizen::BeginPlay()
@@ -124,14 +104,6 @@ void ACitizen::BeginPlay()
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
 	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
-
-	float r = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
-	float g = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
-	float b = Camera->Grid->Stream.FRandRange(0.0f, 1.0f);
-
-	Mesh->SetCustomPrimitiveDataFloat(1, r);
-	Mesh->SetCustomPrimitiveDataFloat(2, g);
-	Mesh->SetCustomPrimitiveDataFloat(3, b);
 
 	GenerateGenetics();
 
@@ -170,11 +142,6 @@ void ACitizen::MainIslandSetup()
 
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
-
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-
-	if (settings->GetRenderTorches())
-		SetTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
 	AIController->ChooseIdleBuilding(this);
 	AIController->DefaultAction();
@@ -489,25 +456,10 @@ void ACitizen::SetHarvestVisuals(AResource* Resource)
 		colour = FLinearColor(0.270498f, 0.158961f, 0.07036f);
 	}
 
-	HarvestNiagaraComponent->SetVariableLinearColor(TEXT("Colour"), colour);
+	HarvestNiagaraComponent->SetVariableLinearColor(TEXT("Colour"), colour); // If can't make universal, reattach to this and set location. REFER TO YOUTUBE VIDEO
 	HarvestNiagaraComponent->Activate();
 
 	Camera->PlayAmbientSound(AmbientAudioComponent, sound);
-}
-
-//
-// Cosmetics
-//
-void ACitizen::SetTorch(int32 Hour)
-{
-	if (Hour >= 18 || Hour < 6) {
-		Mesh->SetCustomPrimitiveDataFloat(8, 1.0f);
-		TorchNiagaraComponent->Activate();
-	}
-	else {
-		Mesh->SetCustomPrimitiveDataFloat(8, 0.0f);
-		TorchNiagaraComponent->Deactivate();
-	}
 }
 
 //
@@ -780,9 +732,9 @@ void ACitizen::Eat()
 	}
 
 	if (Hunger > 25)
-		Mesh->SetRelativeScale3D(Mesh->GetRelativeScale3D() / FVector(0.5f, 0.5f, 1.0f));
+		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() / FVector(0.5f, 0.5f, 1.0f));
 	else if (Hunger == 25)
-		Mesh->SetRelativeScale3D(Mesh->GetRelativeScale3D() * FVector(0.5f, 0.5f, 1.0f));
+		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() * FVector(0.5f, 0.5f, 1.0f));
 }
 
 //
@@ -955,7 +907,8 @@ void ACitizen::Birthday()
 			multiply = 0.5f;
 
 		float scale = (BioStruct.Age * 0.04f) + 0.28f;
-		AsyncTask(ENamedThreads::GameThread, [this, scale, multiply]() { Mesh->SetRelativeScale3D(FVector(scale, scale, scale) * FVector(multiply, multiply, 1.0f)); });
+
+		MovementComponent->Transform.SetScale3D(FVector(scale, scale, scale) * FVector(multiply, multiply, 1.0f) * ReachMultiplier);
 	}
 	else if (BioStruct.Partner != nullptr && BioStruct.Sex == ESex::Female)
 		AsyncTask(ENamedThreads::GameThread, [this]() { HaveChild(); });
@@ -1176,10 +1129,13 @@ void ACitizen::HaveChild()
 	FActorSpawnParameters params;
 	params.bNoFail = true;
 
-	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), location, GetActorRotation(), params);
+	FTransform transform;
+	transform.SetLocation(location);
+	transform.SetRotation(GetActorRotation().Quaternion());
+	transform.SetScale3D(FVector(0.28f));
 
-	if (!IsValid(citizen))
-		return;
+	ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(ACitizen::GetClass(), FVector::Zero(), FRotator::ZeroRotator, params);
+	Camera->Grid->AIVisualiser->AddInstance(citizen, Camera->Grid->AIVisualiser->HISMCitizen, transform);
 
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Partner;
@@ -1897,7 +1853,7 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 		else if (Genetic.Grade == EGeneticsGrade::Bad) {
 			ApplyToMultiplier("Awareness", 0.75f);
 
-			Mesh->SetCustomPrimitiveDataFloat(7, 1.0f);
+			bGlasses = true;
 		}
 	}
 	else if (Genetic.Type == EGeneticsType::Productivity) {
@@ -1994,7 +1950,7 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 	else if (Affect == "Reach") {
 		ReachMultiplier += Amount;
 
-		Capsule->SetRelativeScale3D(FVector(1.0f) * ReachMultiplier);
+		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() * ReachMultiplier);
 
 		Range = InitialRange * AwarenessMultiplier * ReachMultiplier;
 	}
