@@ -14,9 +14,6 @@ protected:
 		bool bEnemies;
 
 	UPROPERTY(Config)
-		bool bAnim;
-
-	UPROPERTY(Config)
 		bool bSmoothCamera;
 
 	UPROPERTY(Config)
@@ -115,12 +112,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Enemies")
 		bool GetSpawnEnemies() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Animations")
-		void SetViewAnimations(bool Value);
-
-	UFUNCTION(BlueprintPure, Category = "Animations")
-		bool GetViewAnimations() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Camera")
 		void SetSmoothCamera(bool Value);

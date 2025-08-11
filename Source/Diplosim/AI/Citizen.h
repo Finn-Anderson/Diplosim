@@ -469,12 +469,6 @@ public:
 	UPROPERTY()
 		bool bHolliday;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Happiness")
-		class UStaticMesh* RebelHat;
-
-	UPROPERTY()
-		float Rebel;
-
 	UPROPERTY(BlueprintReadOnly, Category = "Festival")
 		EAttendStatus FestivalStatus;
 

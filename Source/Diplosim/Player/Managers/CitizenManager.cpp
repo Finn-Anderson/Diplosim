@@ -31,6 +31,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
@@ -2699,27 +2700,21 @@ void UCitizenManager::Overthrow()
 	}
 }
 
-void UCitizenManager::SetupRebel(class ACitizen* Citizen)
+void UCitizenManager::SetupRebel(ACitizen* Citizen)
 {
+	UAIVisualiser* aiVisualiser = Cast<ACamera>(GetOwner())->Grid->AIVisualiser;
+	aiVisualiser->RemoveInstance(aiVisualiser->HISMCitizen, Citizens.Find(Citizen));
 	Citizens.Remove(Citizen);
+
 	Rebels.Add(Citizen);
-
-	Citizen->Rebel = true;
-
-	Citizen->HatMesh->SetStaticMesh(Citizen->RebelHat);
-
-	Citizen->Capsule->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel3);
+	aiVisualiser->AddInstance(Citizen, aiVisualiser->HISMRebel, Citizen->MovementComponent->Transform);
 
 	Citizen->MoveToBroch();
 }
 
 bool UCitizenManager::IsRebellion()
 {
-	for (ACitizen* citizen : Citizens)
-		if (citizen->Rebel)
-			return true;
-
-	return false;
+	return !Rebels.IsEmpty();
 }
 
 //

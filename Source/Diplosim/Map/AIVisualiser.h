@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "AIVisualiser.generated.h"
 
 USTRUCT()
@@ -65,6 +66,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* HarvestNiagaraComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animations")
+		TArray<FAnimStruct> Animations;
+
 	void MainLoop(class ACamera* Camera);
 
 	void AddInstance(class AAI* AI, class UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
@@ -74,6 +78,12 @@ public:
 	void UpdateCitizenVisuals(class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
 
 	void ActivateTorches(int32 Hour, class UHierarchicalInstancedStaticMeshComponent* HISM = nullptr, int32 Instance = -1);
+
+	void AddHarvestVisual(FVector Location, FLinearColor Colour);
+
+	FTransform GetAnimationPoint(class AAI* AI);
+
+	void SetAnimationPoint(class AAI* AI, FTransform Transform);
 
 	UPROPERTY()
 		TArray<FPendingChangeStruct> PendingChange;

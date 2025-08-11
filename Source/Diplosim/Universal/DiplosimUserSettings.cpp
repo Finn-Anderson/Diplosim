@@ -26,8 +26,6 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 {
 	bEnemies = true;
 
-	bAnim = true;
-
 	bSmoothCamera = true;
 
 	bRenderTorches = true;
@@ -122,8 +120,6 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 
 	if (FString("bEnemies").Equals(Key))
 		SetSpawnEnemies(value.ToBool());
-	else if (FString("bAnim").Equals(Key))
-		SetViewAnimations(value.ToBool());
 	else if (FString("bSmoothCamera").Equals(Key))
 		SetSmoothCamera(value.ToBool());
 	else if (FString("bRenderTorches").Equals(Key))
@@ -209,7 +205,6 @@ void UDiplosimUserSettings::LoadIniSettings()
 void UDiplosimUserSettings::SaveIniSettings()
 {
 	GConfig->SetBool(*Section, TEXT("bEnemies"), GetSpawnEnemies(), Filename);
-	GConfig->SetBool(*Section, TEXT("bAnim"), GetViewAnimations(), Filename);
 	GConfig->SetBool(*Section, TEXT("bSmoothCamera"), GetSmoothCamera(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderTorches"), GetRenderTorches(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
@@ -254,31 +249,6 @@ void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
 bool UDiplosimUserSettings::GetSpawnEnemies() const
 {
 	return bEnemies;
-}
-
-void UDiplosimUserSettings::SetViewAnimations(bool Value)
-{
-	bAnim = Value;
-
-	if (!IsValid(Camera) || !IsValid(Camera->CitizenManager))
-		return;
-
-	for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
-		UAnimSequence* anim = nullptr;
-		bool bLooping = false;
-
-		if (bAnim && !citizen->MovementComponent->Points.IsEmpty()) {
-			anim = citizen->MovementComponent->MoveAnim;
-			bLooping = true;
-		}
-
-		citizen->MovementComponent->SetAnimation(anim, bLooping, true);
-	}
-}
-
-bool UDiplosimUserSettings::GetViewAnimations() const
-{
-	return bAnim;
 }
 
 void UDiplosimUserSettings::SetSmoothCamera(bool Value)

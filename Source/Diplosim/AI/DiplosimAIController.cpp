@@ -38,7 +38,7 @@ ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectIni
 
 void ADiplosimAIController::DefaultAction()
 {
-	if (GetOwner()->IsA<ACitizen>() && !Cast<ACitizen>(GetOwner())->Rebel) {
+	if (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Camera->CitizenManager->Citizens.Contains(GetOwner())) {
 		ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
 		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bEmergency) {
@@ -451,7 +451,7 @@ void ADiplosimAIController::StartMovement()
 	if (!Cast<AAI>(GetOwner())->MovementComponent->Points.IsEmpty())
 		return;
 	
-	Cast<AAI>(GetOwner())->MovementComponent->CurrentAnim = nullptr;
+	Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Move, true);
 }
 
 void ADiplosimAIController::StopMovement()

@@ -5,7 +5,9 @@
 
 #include "AI.h"
 #include "DiplosimAIController.h"
-#include "Universal/DiplosimUserSettings.h"
+#include "Player/Camera.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 
 UAIMovementComponent::UAIMovementComponent()
 {
@@ -14,8 +16,6 @@ UAIMovementComponent::UAIMovementComponent()
 	MaxSpeed = 200.0f;
 	InitialSpeed = 200.0f;
 	SpeedMultiplier = 1.0f;
-
-	CurrentAnim = nullptr;
 
 	LastUpdatedTime = 0.0f;
 	Transform = FTransform();
@@ -26,6 +26,7 @@ void UAIMovementComponent::BeginPlay()
 	Super::BeginPlay();
 
 	AI = Cast<AAI>(GetOwner());
+	AIVisualiser = AI->Camera->Grid->AIVisualiser;
 }
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime)
@@ -35,12 +36,17 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
 
-	UAnimSingleNodeInstance* animInst = AI->Mesh->GetSingleNodeInstance();
+	if (CurrentAnim.StartTransform.GetLocation() != CurrentAnim.EndTransfrom.GetLocation()) {
+		CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * 2.0f), 0.0f, 1.0f);
 
-	if (IsValid(animInst) && IsValid(animInst->GetAnimationAsset()) && animInst->IsPlaying()) {
-		animInst->UpdateAnimation(DeltaTime * AI->Mesh->GlobalAnimRateScale, false);
+		FTransform transform = FMath::Lerp(CurrentAnim.StartTransform, CurrentAnim.EndTransfrom, CurrentAnim.Alpha);
 
-		AI->Mesh->RefreshBoneTransforms(); 
+		if (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f && CurrentAnim.bRepeat) {
+			CurrentAnim.Alpha = FMath::Abs(CurrentAnim.Alpha - 1.0f);
+
+			CurrentAnim.EndTransfrom = CurrentAnim.StartTransform;
+			CurrentAnim.StartTransform = transform;
+		}
 	}
 
 	if (Points.IsEmpty())
@@ -88,17 +94,9 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 		Transform.SetLocation(Transform.GetLocation() + deltaV);
 		Transform.SetRotation(FMath::RInterpTo(Transform.GetRotation().Rotator(), targetRotation, DeltaTime, 10.0f).Quaternion());
-
-		if (CurrentAnim == MoveAnim)
-			return;
-
-		//SetAnimation(MoveAnim, true);
 	}
-	else if (CurrentAnim == MoveAnim) {
-		//SetAnimation(nullptr, false);
-
+	else if (CurrentAnim.Type == EAnim::Move)
 		AI->AIController->StopMovement();
-	}
 }
 
 FVector UAIMovementComponent::CalculateVelocity(FVector Vector)
@@ -112,8 +110,8 @@ void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 
 	if (!Points.IsEmpty())
 		AI->AIController->StartMovement();
-	else if (CurrentAnim == MoveAnim)
-		SetAnimation(nullptr, false);
+	else if (CurrentAnim.Type == EAnim::Move)
+		SetAnimation(EAnim::Still);
 }
 
 void UAIMovementComponent::SetMaxSpeed(int32 Energy)
@@ -126,17 +124,13 @@ float UAIMovementComponent::GetMaximumSpeed()
 	return MaxSpeed;
 }
 
-void UAIMovementComponent::SetAnimation(UAnimSequence* Anim, bool bLooping, bool bSettingsChange)
+void UAIMovementComponent::SetAnimation(EAnim Type, bool bRepeat)
 {
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	FAnimStruct animStruct;
+	animStruct.Type = Type;
 
-	if (!settings->GetViewAnimations() && !bSettingsChange)
-		return;
+	int32 index = AIVisualiser->Animations.Find(animStruct);
 
-	if (IsValid(Anim))
-		AI->Mesh->PlayAnimation(MoveAnim, bLooping);
-	else
-		AI->Mesh->Play(false);
-
-	CurrentAnim = Anim;
+	CurrentAnim = AIVisualiser->Animations[index];
+	CurrentAnim.bRepeat = bRepeat;
 }

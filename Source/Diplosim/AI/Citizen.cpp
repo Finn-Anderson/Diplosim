@@ -456,9 +456,11 @@ void ACitizen::SetHarvestVisuals(AResource* Resource)
 		colour = FLinearColor(0.270498f, 0.158961f, 0.07036f);
 	}
 
-	HarvestNiagaraComponent->SetVariableLinearColor(TEXT("Colour"), colour); // If can't make universal, reattach to this and set location. REFER TO YOUTUBE VIDEO
-	HarvestNiagaraComponent->Activate();
+	FVector location = MovementComponent->Transform.GetLocation() + FVector(20.0f, 0.0f, 17.0f);
 
+	Camera->Grid->AIVisualiser->AddHarvestVisual(location, colour);
+
+	AmbientAudioComponent->SetRelativeLocation(location);
 	Camera->PlayAmbientSound(AmbientAudioComponent, sound);
 }
 
@@ -809,8 +811,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 	float time = Camera->Grid->Stream.RandRange(6.0f, 10.0f);
 	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * GetProductivity());
 
-	AttackComponent->MeleeAnim->RateScale = 10.0f / time;
-	Mesh->PlayAnimation(AttackComponent->MeleeAnim, true);
+	MovementComponent->SetAnimation(EAnim::Melee, true);
 
 	Camera->CitizenManager->CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource), false, true);
 
@@ -823,15 +824,13 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 
 void ACitizen::HarvestResource(AResource* Resource)
 {
-	Mesh->Play(false);
+	MovementComponent->SetAnimation(EAnim::Still);
 	
 	AResource* resource = Resource->GetHarvestedResource();
 
 	HarvestVisualTimer = 0.0f;
 	HarvestVisualTargetTimer = HarvestVisualTimer;
 	HarvestVisualResource = nullptr;
-
-	HarvestNiagaraComponent->Deactivate();
 
 	Camera->CitizenManager->Injure(this, 99);
 

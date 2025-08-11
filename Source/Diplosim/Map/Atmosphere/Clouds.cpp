@@ -377,25 +377,17 @@ void UCloudComponent::SetGradualWetness()
 		WetnessStruct[i].Value += WetnessStruct[i].Increment;
 
 		if (WetnessStruct[i].Actor != nullptr) {
-			if (WetnessStruct[i].Actor->IsA<AAI>()) {
-				Cast<AAI>(WetnessStruct[i].Actor)->Mesh->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
+			UStaticMeshComponent* meshComp = nullptr;
 
-				if (WetnessStruct[i].Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(WetnessStruct[i].Actor)->HatMesh))
-					Cast<ACitizen>(WetnessStruct[i].Actor)->HatMesh->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
-			}
-			else {
-				UStaticMeshComponent* meshComp = nullptr;
+			if (WetnessStruct[i].Actor->IsA<ABuilding>())
+				meshComp = Cast<ABuilding>(WetnessStruct[i].Actor)->BuildingMesh;
+			else
+				meshComp = Cast<AEggBasket>(WetnessStruct[i].Actor)->BasketMesh;
 
-				if (WetnessStruct[i].Actor->IsA<ABuilding>())
-					meshComp = Cast<ABuilding>(WetnessStruct[i].Actor)->BuildingMesh;
-				else
-					meshComp = Cast<AEggBasket>(WetnessStruct[i].Actor)->BasketMesh;
+			meshComp->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
 
-				meshComp->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
-
-				if (WetnessStruct[i].Actor->IsA<ARoad>())
-					Cast<ARoad>(WetnessStruct[i].Actor)->HISMRoad->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
-			}
+			if (WetnessStruct[i].Actor->IsA<ARoad>())
+				Cast<ARoad>(WetnessStruct[i].Actor)->HISMRoad->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
 		}
 		else {
 			WetnessStruct[i].HISM->SetCustomDataValue(WetnessStruct[i].Instance, 0, WetnessStruct[i].Value);

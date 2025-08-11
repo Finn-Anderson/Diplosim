@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "AIMovementComponent.generated.h"
 
 UCLASS()
@@ -27,7 +28,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		float GetMaximumSpeed();
 
-	void SetAnimation(UAnimSequence* Anim, bool bLooping, bool bSettingsChange = false);
+	void SetAnimation(EAnim Type, bool bRepeat = false);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float MaxSpeed;
@@ -42,13 +43,13 @@ public:
 		TArray<FVector> Points;
 
 	UPROPERTY()
-		UAnimSequence* CurrentAnim;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		UAnimSequence* MoveAnim;
+		FAnimStruct CurrentAnim;
 
 	UPROPERTY()
 		class AAI* AI;
+
+	UPROPERTY()
+		class UAIVisualiser* AIVisualiser;
 
 	UPROPERTY()
 		double LastUpdatedTime;

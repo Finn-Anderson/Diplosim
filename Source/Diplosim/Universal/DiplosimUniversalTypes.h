@@ -90,6 +90,53 @@ struct FConditionStruct
 	}
 };
 
+//
+// Animations
+//
+UENUM(BlueprintType)
+enum class EAnim : uint8
+{
+	Still,
+	Move,
+	Melee,
+	Throw
+};
+
+USTRUCT(BlueprintType)
+struct FAnimStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animations")
+		EAnim Type;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animations")
+		FTransform EndTransfrom;
+
+	UPROPERTY()
+		FTransform StartTransform;
+
+	UPROPERTY()
+		float Alpha;
+
+	UPROPERTY()
+		bool bRepeat;
+
+	FAnimStruct()
+	{
+		Type = EAnim::Still;
+		EndTransfrom = FTransform();
+		StartTransform = FTransform();
+		Alpha = 0.0f;
+		bRepeat = false;
+	}
+
+	bool operator==(const FAnimStruct& other) const
+	{
+		return (other.Type == Type);
+	}
+};
+
 class DIPLOSIM_API DiplosimUniversalTypes
 {
 public:

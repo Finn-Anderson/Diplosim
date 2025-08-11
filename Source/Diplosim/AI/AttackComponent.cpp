@@ -109,24 +109,15 @@ void UAttackComponent::PickTarget()
 		ai = Cast<AAI>(GetOwner());
 
 		reach = ai->Range / 15.0f;
-
-		if (favoured != nullptr)
-			ai->EnableCollisions(true);
 	}
 
 	if (favoured == nullptr) {
 		SetComponentTickEnabled(false);
 
 		AttackTimer = 0.0f;
-
-		if (IsValid(ai))
-			ai->EnableCollisions(false);
 	}
-	else if (!*ProjectileClass && ai->CanReach(favoured, reach)) {
-		ai->MovementComponent->CurrentAnim = nullptr;
-
+	else if (!*ProjectileClass && ai->CanReach(favoured, reach))
 		ai->AIController->StopMovement();
-	}
 
 	AsyncTask(ENamedThreads::GameThread, [this, favoured, ai, reach]() {
 		if (favoured == nullptr) {
@@ -219,28 +210,12 @@ void UAttackComponent::Attack()
 		return;
 	}
 
+	UCitizenManager* cm = Cast<ACitizen>(GetOwner())->Camera->CitizenManager;
+
 	if (bShowMercy && healthComp->Health < 25)
-		Cast<ACitizen>(GetOwner())->Camera->CitizenManager->StopFighting(Cast<ACitizen>(GetOwner()));
-	else if (CurrentTarget->IsA<ACitizen>() && GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(CurrentTarget)->Capsule->GetCollisionObjectType() == Cast<ACitizen>(GetOwner())->Capsule->GetCollisionObjectType() && healthComp->Health == 0)
-		Cast<ACitizen>(GetOwner())->Camera->CitizenManager->ChangeReportToMurder(Cast<ACitizen>(GetOwner()));
-
-	UAnimSequence* anim = nullptr;
-
-	if (*ProjectileClass) {
-		anim = RangeAnim;
-	}
-	else {
-		if (IsValid(MeleeAnim))
-			anim = MeleeAnim;
-		else if (GetOwner()->IsA<AEnemy>())
-			Cast<AEnemy>(GetOwner())->Zap(CurrentTarget->GetActorLocation());
-	}
-
-	if (GetOwner()->IsA<AAI>() && IsValid(anim)) {
-		anim->RateScale = 0.5f / time;
-
-		Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(anim, false);
-	}
+		cm->StopFighting(Cast<ACitizen>(GetOwner()));
+	else if (cm->Citizens.Contains(CurrentTarget) && cm->Citizens.Contains(GetOwner()) && healthComp->Health == 0)
+		cm->ChangeReportToMurder(Cast<ACitizen>(GetOwner()));
 
 	AttackTimer = time;
 	bAttackedRecently = false;
@@ -250,6 +225,8 @@ void UAttackComponent::Throw()
 {
 	if (CurrentTarget == nullptr)
 		return;
+
+	Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Throw);
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
@@ -312,6 +289,11 @@ void UAttackComponent::Melee()
 {
 	if (CurrentTarget == nullptr)
 		return;
+
+	if (GetOwner()->IsA<AEnemy>())
+		Cast<AEnemy>(GetOwner())->Zap(CurrentTarget->GetActorLocation());
+	else
+		Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Melee);
 
 	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
 	
