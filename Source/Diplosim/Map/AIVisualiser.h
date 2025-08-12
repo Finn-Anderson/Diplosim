@@ -81,6 +81,8 @@ public:
 
 	void AddHarvestVisual(FVector Location, FLinearColor Colour);
 
+	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
+
 	FTransform GetAnimationPoint(class AAI* AI);
 
 	void SetAnimationPoint(class AAI* AI, FTransform Transform);

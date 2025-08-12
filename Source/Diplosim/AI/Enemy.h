@@ -16,9 +16,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
-		class UNiagaraComponent* SpawnComponent;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 		class UNiagaraComponent* ZapComponent;
 

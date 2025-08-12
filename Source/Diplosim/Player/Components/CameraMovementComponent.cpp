@@ -6,11 +6,14 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Player/Camera.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "AI/AI.h"
 #include "Buildings/Building.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 
 UCameraMovementComponent::UCameraMovementComponent()
 {
@@ -93,17 +96,17 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, boo
 	if (!IsValid(Actor))
 		return FVector::Zero();
 
-	FVector height = FVector::Zero();
+	FVector location = Camera->GetTargetLocation(Actor);
 
 	if (Actor->IsA<AAI>())
-		height.Z = Cast<AAI>(Actor)->Mesh->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
+		location.Z = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(Actor)).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 	else if (Actor->IsA<ABuilding>())
-		height.Z = Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+		location.Z = Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
 	if (!bWidget || (bWidget && Actor->IsA<AAI>()))
-		height.Z = height.Z / 2.0f + 5.0f;
+		location.Z = location.Z / 2.0f + 5.0f;
 
-	return Actor->GetActorLocation() + height;
+	return location;
 }
 
 void UCameraMovementComponent::SetBounds(FVector start, FVector end) {

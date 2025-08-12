@@ -99,7 +99,8 @@ enum class EAnim : uint8
 	Still,
 	Move,
 	Melee,
-	Throw
+	Throw,
+	Death
 };
 
 USTRUCT(BlueprintType)
@@ -122,6 +123,9 @@ struct FAnimStruct
 	UPROPERTY()
 		bool bRepeat;
 
+	UPROPERTY()
+		float Speed;
+
 	FAnimStruct()
 	{
 		Type = EAnim::Still;
@@ -129,6 +133,7 @@ struct FAnimStruct
 		StartTransform = FTransform();
 		Alpha = 0.0f;
 		bRepeat = false;
+		Speed = 2.0f;
 	}
 
 	bool operator==(const FAnimStruct& other) const

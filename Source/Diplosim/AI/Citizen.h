@@ -285,9 +285,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	void MainIslandSetup();
-
-	void ColonyIslandSetup();
+	void CitizenSetup();
 
 	void ClearCitizen();
 

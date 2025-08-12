@@ -140,7 +140,7 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 					continue;
 				}
 
-				double magnitude = Citizen->AIController->GetClosestActor(400.0f, Citizen->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation());
+				double magnitude = Citizen->AIController->GetClosestActor(400.0f, Camera->GetTargetLocation(Citizen), target->GetActorLocation(), building->GetActorLocation());
 
 				if (magnitude <= 0.0f)
 					continue;

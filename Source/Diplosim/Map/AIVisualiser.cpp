@@ -2,6 +2,7 @@
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
+#include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
 #include "Map/Grid.h"
@@ -33,7 +34,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMCitizen->SetGenerateOverlapEvents(false);
 	HISMCitizen->bWorldPositionOffsetWritesVelocity = false;
 	HISMCitizen->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMCitizen->NumCustomDataFloats = 12;
+	HISMCitizen->NumCustomDataFloats = 13;
 
 	HISMClone = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClone"));
 	HISMClone->SetupAttachment(HISMContainer);
@@ -44,7 +45,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMClone->SetGenerateOverlapEvents(false);
 	HISMClone->bWorldPositionOffsetWritesVelocity = false;
 	HISMClone->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMClone->NumCustomDataFloats = 8;
+	HISMClone->NumCustomDataFloats = 9;
 
 	HISMRebel = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRebel"));
 	HISMRebel->SetupAttachment(HISMContainer);
@@ -55,7 +56,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMRebel->SetGenerateOverlapEvents(false);
 	HISMRebel->bWorldPositionOffsetWritesVelocity = false;
 	HISMRebel->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMRebel->NumCustomDataFloats = 11;
+	HISMRebel->NumCustomDataFloats = 12;
 
 	HISMEnemy = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMEnemy"));
 	HISMEnemy->SetupAttachment(HISMContainer);
@@ -66,7 +67,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMEnemy->SetGenerateOverlapEvents(false);
 	HISMEnemy->bWorldPositionOffsetWritesVelocity = false;
 	HISMEnemy->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMEnemy->NumCustomDataFloats = 8;
+	HISMEnemy->NumCustomDataFloats = 9;
 
 	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
 	TorchNiagaraComponent->SetupAttachment(HISMContainer);
@@ -97,12 +98,14 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 		if (pending.Instance == 0) {
 			int32 instance = pending.HISM->AddInstance(pending.Transform, false);
 
+			if (IsValid(pending.AI->SpawnSystem))
+				UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), pending.AI->SpawnSystem, pending.Transform.GetLocation());
+
 			FLinearColor colour;
 			if (pending.AI->IsA<AEnemy>()) {
 				AEnemy* enemy = Cast<AEnemy>(pending.AI);
 
 				colour = enemy->Colour;
-				enemy->SpawnComponent->SetWorldLocation(pending.Transform.GetLocation()); // Consider making spawn component like torch niagara component
 			}
 			else
 				colour = FLinearColor(Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f));
@@ -196,14 +199,14 @@ void UAIVisualiser::RemoveInstance(UHierarchicalInstancedStaticMeshComponent* HI
 
 void UAIVisualiser::UpdateCitizenVisuals(ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
-	if (Citizen->bGlasses && HISMCitizen->PerInstanceSMCustomData[Instance * 12 + 9] == 0.0f)
-		HISMCitizen->SetCustomDataValue(Instance, 9, 1.0f);
+	if (Citizen->bGlasses && HISMCitizen->PerInstanceSMCustomData[Instance * 13 + 10] == 0.0f)
+		HISMCitizen->SetCustomDataValue(Instance, 10, 1.0f);
 
 	if (Camera->CitizenManager->Injured.Contains(Citizen))
-		if (HISMCitizen->PerInstanceSMCustomData[Instance * 12 + 8] == 0.0f)
-			HISMCitizen->SetCustomDataValue(Instance, 8, 1.0f);
-		else if (HISMCitizen->PerInstanceSMCustomData[Instance * 12 + 8] == 1.0f)
-			HISMCitizen->SetCustomDataValue(Instance, 8, 0.0f);
+		if (HISMCitizen->PerInstanceSMCustomData[Instance * 13 + 9] == 0.0f)
+			HISMCitizen->SetCustomDataValue(Instance, 9, 1.0f);
+		else if (HISMCitizen->PerInstanceSMCustomData[Instance * 13 + 9] == 1.0f)
+			HISMCitizen->SetCustomDataValue(Instance, 9, 0.0f);
 }
 
 void UAIVisualiser::ActivateTorches(int32 Hour, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
@@ -217,10 +220,10 @@ void UAIVisualiser::ActivateTorches(int32 Hour, UHierarchicalInstancedStaticMesh
 
 	if (Instance == INDEX_NONE) {
 		for (int32 i = 0; i < HISMCitizen->GetInstanceCount(); i++)
-			HISMCitizen->SetCustomDataValue(i, 10, value);
+			HISMCitizen->SetCustomDataValue(i, 11, value);
 
 		for (int32 i = 0; i < HISMRebel->GetInstanceCount(); i++)
-			HISMRebel->SetCustomDataValue(i, 10, value);
+			HISMRebel->SetCustomDataValue(i, 11, value);
 
 		if (value == 1.0f && !TorchNiagaraComponent->IsActive())
 			TorchNiagaraComponent->Activate();
@@ -228,7 +231,7 @@ void UAIVisualiser::ActivateTorches(int32 Hour, UHierarchicalInstancedStaticMesh
 			TorchNiagaraComponent->Deactivate();
 	}
 	else {
-		HISM->SetCustomDataValue(Instance, 10, value);
+		HISM->SetCustomDataValue(Instance, 11, value);
 	}
 }
 
@@ -244,46 +247,52 @@ void UAIVisualiser::AddHarvestVisual(FVector Location, FLinearColor Colour)
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayColor(HarvestNiagaraComponent, "Colours", colours);
 }
 
+TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)
+{
+	UCitizenManager* cm = AI->Camera->CitizenManager;
+
+	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info;
+
+	if (cm->Citizens.Contains(AI)) {
+		info.Key = HISMCitizen;
+		info.Value = cm->Citizens.Find(Cast<ACitizen>(AI));
+	}
+	else if (cm->Rebels.Contains(AI)) {
+		info.Key = HISMRebel;
+		info.Value = cm->Rebels.Find(Cast<ACitizen>(AI));
+	}
+	else if (cm->Clones.Contains(AI)) {
+		info.Key = HISMClone;
+		info.Value = cm->Clones.Find(AI);
+	}
+	else {
+		info.Key = HISMEnemy;
+		info.Value = cm->Enemies.Find(AI);
+	}
+
+	return info;
+}
+
 FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 {
 	UCitizenManager* cm = AI->Camera->CitizenManager;
 	
 	FVector position = FVector::Zero();
 	FRotator rotation = FRotator::ZeroRotator;
-	int32 instance = -1;
 
-	if (cm->Citizens.Contains(AI)) {
-		instance = cm->Citizens.Find(Cast<ACitizen>(AI));
+	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
-		position.X = HISMCitizen->PerInstanceSMCustomData[instance * 12 + 4];
-		position.Y = HISMCitizen->PerInstanceSMCustomData[instance * 12 + 5];
-		position.Z = HISMCitizen->PerInstanceSMCustomData[instance * 12 + 6];
-		rotation.Pitch = HISMCitizen->PerInstanceSMCustomData[instance * 12 + 7];
-	}
-	else if (cm->Rebels.Contains(AI)) {
-		instance = cm->Rebels.Find(Cast<ACitizen>(AI));
+	int32 numCustomData = 9;
 
-		position.X = HISMRebel->PerInstanceSMCustomData[instance * 11 + 4];
-		position.Y = HISMRebel->PerInstanceSMCustomData[instance * 11 + 5];
-		position.Z = HISMRebel->PerInstanceSMCustomData[instance * 11 + 6];
-		rotation.Pitch = HISMRebel->PerInstanceSMCustomData[instance * 11 + 7];
-	}
-	else if (cm->Clones.Contains(AI)) {
-		instance = cm->Clones.Find(AI);
+	if (info.Key == HISMCitizen)
+		numCustomData = 13;
+	else if (info.Key == HISMRebel)
+		numCustomData = 12;
 
-		position.X = HISMClone->PerInstanceSMCustomData[instance * 8 + 4];
-		position.Y = HISMClone->PerInstanceSMCustomData[instance * 8 + 5];
-		position.Z = HISMClone->PerInstanceSMCustomData[instance * 8 + 6];
-		rotation.Pitch = HISMClone->PerInstanceSMCustomData[instance * 8 + 7];
-	}
-	else {
-		instance = cm->Enemies.Find(AI);
-
-		position.X = HISMEnemy->PerInstanceSMCustomData[instance * 8 + 4];
-		position.Y = HISMEnemy->PerInstanceSMCustomData[instance * 8 + 5];
-		position.Z = HISMEnemy->PerInstanceSMCustomData[instance * 8 + 6];
-		rotation.Pitch = HISMEnemy->PerInstanceSMCustomData[instance * 8 + 7];
-	}
+	position.X = info.Key->PerInstanceSMCustomData[info.Value * numCustomData + 4];
+	position.Y = info.Key->PerInstanceSMCustomData[info.Value * numCustomData + 5];
+	position.Z = info.Key->PerInstanceSMCustomData[info.Value * numCustomData + 6];
+	rotation.Pitch = info.Key->PerInstanceSMCustomData[info.Value * numCustomData + 7];
 
 	FTransform transform;
 	transform.SetLocation(position);
@@ -295,38 +304,11 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 {
 	UCitizenManager* cm = AI->Camera->CitizenManager;
-	int32 instance = -1.0f;
 
-	if (cm->Citizens.Contains(AI)) {
-		instance = cm->Citizens.Find(Cast<ACitizen>(AI));
+	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
-		HISMCitizen->SetCustomDataValue(instance, 4, Transform.GetLocation().X);
-		HISMCitizen->SetCustomDataValue(instance, 5, Transform.GetLocation().Y);
-		HISMCitizen->SetCustomDataValue(instance, 6, Transform.GetLocation().Z);
-		HISMCitizen->SetCustomDataValue(instance, 7, Transform.GetRotation().Rotator().Pitch);
-	}
-	else if (cm->Rebels.Contains(AI)) {
-		instance = cm->Rebels.Find(Cast<ACitizen>(AI));
-
-		HISMRebel->SetCustomDataValue(instance, 4, Transform.GetLocation().X);
-		HISMRebel->SetCustomDataValue(instance, 5, Transform.GetLocation().Y);
-		HISMRebel->SetCustomDataValue(instance, 6, Transform.GetLocation().Z);
-		HISMRebel->SetCustomDataValue(instance, 7, Transform.GetRotation().Rotator().Pitch);
-	}
-	else if (cm->Clones.Contains(AI)) {
-		instance = cm->Clones.Find(AI);
-
-		HISMClone->SetCustomDataValue(instance, 4, Transform.GetLocation().X);
-		HISMClone->SetCustomDataValue(instance, 5, Transform.GetLocation().Y);
-		HISMClone->SetCustomDataValue(instance, 6, Transform.GetLocation().Z);
-		HISMClone->SetCustomDataValue(instance, 7, Transform.GetRotation().Rotator().Pitch);
-	}
-	else {
-		instance = cm->Enemies.Find(AI);
-
-		HISMEnemy->SetCustomDataValue(instance, 4, Transform.GetLocation().X);
-		HISMEnemy->SetCustomDataValue(instance, 5, Transform.GetLocation().Y);
-		HISMEnemy->SetCustomDataValue(instance, 6, Transform.GetLocation().Z);
-		HISMEnemy->SetCustomDataValue(instance, 7, Transform.GetRotation().Rotator().Pitch);
-	}
+	info.Key->SetCustomDataValue(info.Value, 4, Transform.GetLocation().X);
+	info.Key->SetCustomDataValue(info.Value, 5, Transform.GetLocation().Y);
+	info.Key->SetCustomDataValue(info.Value, 6, Transform.GetLocation().Z);
+	info.Key->SetCustomDataValue(info.Value, 7, Transform.GetRotation().Rotator().Pitch);
 }

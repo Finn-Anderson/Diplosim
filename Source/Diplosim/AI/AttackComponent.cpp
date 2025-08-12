@@ -22,6 +22,8 @@
 #include "AIMovementComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -175,7 +177,7 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-	NavData->CalcPathLength(GetOwner()->GetActorLocation(), Actor->GetActorLocation(), Favourability.Dist);
+	NavData->CalcPathLength(Camera->GetTargetLocation(GetOwner()), Camera->GetTargetLocation(Actor), Favourability.Dist);
 
 	return Favourability;
 }
@@ -210,7 +212,7 @@ void UAttackComponent::Attack()
 		return;
 	}
 
-	UCitizenManager* cm = Cast<ACitizen>(GetOwner())->Camera->CitizenManager;
+	UCitizenManager* cm = Camera->CitizenManager;
 
 	if (bShowMercy && healthComp->Health < 25)
 		cm->StopFighting(Cast<ACitizen>(GetOwner()));
@@ -226,7 +228,8 @@ void UAttackComponent::Throw()
 	if (CurrentTarget == nullptr)
 		return;
 
-	Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Throw);
+	if (GetOwner()->IsA<AAI>())
+		Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Throw);
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
@@ -235,17 +238,17 @@ void UAttackComponent::Throw()
 	if (GetOwner()->IsA<ABuilding>())
 		z = Cast<UStaticMeshComponent>(GetOwner()->GetComponentByClass(UStaticMeshComponent::StaticClass()))->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 	else
-		z = Cast<USkeletalMeshComponent>(GetOwner()->GetComponentByClass(USkeletalMeshComponent::StaticClass()))->GetSkeletalMeshAsset()->GetBounds().GetBox().GetSize().Z;
+		z = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner())).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
 	double g = FMath::Abs(GetWorld()->GetGravityZ());
 	double v = projectileMovement->InitialSpeed;
 
-	FVector startLoc = GetOwner()->GetActorLocation() + FVector(0.0f, 0.0f, z);
+	FVector startLoc = Camera->GetTargetLocation(GetOwner()) + FVector(0.0f, 0.0f, z);
 
 	if (GetOwner()->IsA<AAI>())
-		startLoc += GetOwner()->GetActorForwardVector();
+		startLoc += Cast<AAI>(GetOwner())->MovementComponent->Transform.GetRotation().Vector();
 
-	FVector targetLoc = CurrentTarget->GetActorLocation();
+	FVector targetLoc = Camera->GetTargetLocation(CurrentTarget);
 	targetLoc += CurrentTarget->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
 
 	FRotator lookAt = (targetLoc - startLoc).Rotation();
@@ -258,7 +261,9 @@ void UAttackComponent::Throw()
 	FCollisionQueryParams queryParams;
 	queryParams.AddIgnoredActor(GetOwner());
 
-	if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, CurrentTarget->GetActorLocation(), ECollisionChannel::ECC_PhysicsBody, queryParams)) {
+	FVector endLoc = Camera->GetTargetLocation(CurrentTarget);
+
+	if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, endLoc, ECollisionChannel::ECC_PhysicsBody, queryParams)) {
 		if (hit.GetActor()->IsA<AEnemy>()) {
 			d = FVector::Dist(startLoc, targetLoc);
 
@@ -279,7 +284,7 @@ void UAttackComponent::Throw()
 	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
 
 	if (GetOwner()->IsA<AAI>())
-		GetOwner()->SetActorRotation(ang);
+		Cast<AAI>(GetOwner())->MovementComponent->Transform.SetRotation(ang.Quaternion());
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 	projectile->SpawnNiagaraSystems(GetOwner());
@@ -291,7 +296,7 @@ void UAttackComponent::Melee()
 		return;
 
 	if (GetOwner()->IsA<AEnemy>())
-		Cast<AEnemy>(GetOwner())->Zap(CurrentTarget->GetActorLocation());
+		Cast<AEnemy>(GetOwner())->Zap(Camera->GetTargetLocation(CurrentTarget));
 	else
 		Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Melee);
 

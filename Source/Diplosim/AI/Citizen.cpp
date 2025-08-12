@@ -127,7 +127,7 @@ void ACitizen::BeginPlay()
 	VoicePitch = Camera->Grid->Stream.FRandRange(minPitch, maxPitch);
 }
 
-void ACitizen::MainIslandSetup()
+void ACitizen::CitizenSetup()
 {
 	Camera->CitizenManager->Citizens.Add(this);
 	Camera->CitizenManager->Infectible.Add(this);
@@ -147,28 +147,6 @@ void ACitizen::MainIslandSetup()
 	AIController->DefaultAction();
 
 	SetActorHiddenInGame(false);
-}
-
-void ACitizen::ColonyIslandSetup()
-{
-	Camera->CitizenManager->AIPendingRemoval.Add(this);
-	Camera->CitizenManager->Infectible.Remove(this);
-
-	Camera->CitizenManager->RemoveTimer("Eat", this);
-	Camera->CitizenManager->RemoveTimer("Energy", this);
-	Camera->CitizenManager->RemoveTimer("ChooseIdleBuilding", this);
-	Camera->CitizenManager->RemoveTimer("Idle", this); 
-
-	ClearCitizen();
-
-	Hunger = 100;
-	Energy = 100;
-
-	AIController->StopMovement();
-
-	SetActorLocation(FVector(0.0f, 0.0f, -10000.0f));
-
-	SetActorHiddenInGame(true);
 }
 
 void ACitizen::ClearCitizen()
@@ -234,7 +212,7 @@ void ACitizen::FindEducation(class ASchool* Education, int32 TimeToCompleteDay)
 		AllocatedBuildings[0] = Education;
 	}
 	else {
-		FVector location = GetActorLocation();
+		FVector location = MovementComponent->Transform.GetLocation();
 
 		if (IsValid(AllocatedBuildings[2]))
 			location = AllocatedBuildings[2]->GetActorLocation();
@@ -269,7 +247,7 @@ void ACitizen::FindJob(class AWork* Job, int32 TimeToCompleteDay)
 		if (happiness != nullptr)
 			diff -= *happiness / 5;
 
-		FVector location = GetActorLocation();
+		FVector location = MovementComponent->Transform.GetLocation();
 
 		if (IsValid(AllocatedBuildings[1]))
 			location = AllocatedBuildings[1]->GetActorLocation();
@@ -334,7 +312,7 @@ void ACitizen::FindHouse(class AHouse* House, int32 TimeToCompleteDay)
 		int32 currentValue = FMath::Max(chosenHouse->GetQuality() + curLeftoverMoney, 0);
 		int32 newValue = FMath::Max(House->GetQuality() + newLeftoverMoney, 0);
 
-		FVector workLocation = GetActorLocation();
+		FVector workLocation = MovementComponent->Transform.GetLocation();
 
 		if (IsValid(Building.Employment))
 			workLocation = Building.Employment->GetActorLocation();
@@ -588,7 +566,7 @@ float ACitizen::GetProductivity()
 		break;
 	}
 
-	if (Camera->Grid->AtmosphereComponent->bRedSun && !Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(GetActorLocation()))
+	if (Camera->Grid->AtmosphereComponent->bRedSun && !Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(MovementComponent->Transform.GetLocation()))
 		productivity *= 0.5f;
 
 	return productivity;
@@ -737,6 +715,15 @@ void ACitizen::Eat()
 		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() / FVector(0.5f, 0.5f, 1.0f));
 	else if (Hunger == 25)
 		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() * FVector(0.5f, 0.5f, 1.0f));
+
+	if (Camera->CitizenManager->Rebels.Contains(this) && Hunger > 25) {
+		UAIVisualiser* aiVisualiser = Camera->Grid->AIVisualiser;
+		aiVisualiser->RemoveInstance(aiVisualiser->HISMRebel, Camera->CitizenManager->Rebels.Find(this));
+		Camera->CitizenManager->Rebels.Remove(this);
+
+		Camera->CitizenManager->Citizens.Add(this);
+		aiVisualiser->AddInstance(this, aiVisualiser->HISMCitizen, MovementComponent->Transform);
+	}
 }
 
 //
@@ -790,6 +777,15 @@ void ACitizen::LoseEnergy()
 
 			break;
 		}
+	}
+	
+	if (Camera->CitizenManager->Rebels.Contains(this)) {
+		UAIVisualiser* aiVisualiser = Camera->Grid->AIVisualiser;
+		aiVisualiser->RemoveInstance(aiVisualiser->HISMRebel, Camera->CitizenManager->Rebels.Find(this));
+		Camera->CitizenManager->Rebels.Remove(this);
+
+		Camera->CitizenManager->Citizens.Add(this);
+		aiVisualiser->AddInstance(this, aiVisualiser->HISMCitizen, MovementComponent->Transform);
 	}
 }
 
@@ -1036,7 +1032,7 @@ void ACitizen::FindPartner()
 			continue;
 		}
 
-		double magnitude = AIController->GetClosestActor(50.0f, GetActorLocation(), citizen->GetActorLocation(), c->GetActorLocation(), true, curCount, count);
+		double magnitude = AIController->GetClosestActor(50.0f, MovementComponent->Transform.GetLocation(), citizen->MovementComponent->Transform.GetLocation(), c->MovementComponent->Transform.GetLocation(), true, curCount, count);
 
 		if (magnitude <= 0.0f)
 			continue;
@@ -1120,7 +1116,7 @@ void ACitizen::HaveChild()
 	if (chance < passMark)
 		return;
 
-	FVector location = GetActorLocation() + GetActorForwardVector() * 10.0f;
+	FVector location = MovementComponent->Transform.GetLocation() + MovementComponent->Transform.GetRotation().Vector() * 10.0f;
 
 	if (Building.BuildingAt != nullptr)
 		location = Building.EnterLocation;
@@ -1143,7 +1139,7 @@ void ACitizen::HaveChild()
 
 	if (Camera->CitizenManager->Citizens.Contains(this)) {
 		citizen->SetSex(Camera->CitizenManager->Citizens);
-		citizen->MainIslandSetup();
+		citizen->CitizenSetup();
 
 		if (IsValid(occupant))
 			citizen->Building.House->AddVisitor(occupant, citizen);

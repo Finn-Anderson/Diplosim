@@ -80,4 +80,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Attack")
 		int32 DamageMultiplier;
+
+	UPROPERTY()
+		class ACamera* Camera;
 };

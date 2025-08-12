@@ -37,7 +37,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		return;
 
 	if (CurrentAnim.StartTransform.GetLocation() != CurrentAnim.EndTransfrom.GetLocation()) {
-		CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * 2.0f), 0.0f, 1.0f);
+		CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
 
 		FTransform transform = FMath::Lerp(CurrentAnim.StartTransform, CurrentAnim.EndTransfrom, CurrentAnim.Alpha);
 
@@ -124,7 +124,7 @@ float UAIMovementComponent::GetMaximumSpeed()
 	return MaxSpeed;
 }
 
-void UAIMovementComponent::SetAnimation(EAnim Type, bool bRepeat)
+void UAIMovementComponent::SetAnimation(EAnim Type, bool bRepeat, float Speed)
 {
 	FAnimStruct animStruct;
 	animStruct.Type = Type;
@@ -133,4 +133,5 @@ void UAIMovementComponent::SetAnimation(EAnim Type, bool bRepeat)
 
 	CurrentAnim = AIVisualiser->Animations[index];
 	CurrentAnim.bRepeat = bRepeat;
+	CurrentAnim.Speed = Speed;
 }

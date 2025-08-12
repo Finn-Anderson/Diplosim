@@ -238,12 +238,12 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		TArray<TEnumAsByte<EObjectTypeQuery>> objects;
 
 		TArray<AActor*> ignore;
-		ignore.Add(Cast<ACamera>(GetOwner())->Grid);
+		ignore.Add(Camera->Grid);
 
-		for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->MineralStruct)
+		for (FResourceHISMStruct resourceStruct : Camera->Grid->MineralStruct)
 			ignore.Add(resourceStruct.Resource);
 
-		for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->FlowerStruct)
+		for (FResourceHISMStruct resourceStruct : Camera->Grid->FlowerStruct)
 			ignore.Add(resourceStruct.Resource);
 
 		TArray<AActor*> actors;
@@ -253,7 +253,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				continue;
 
 			int32 reach = citizen->Range / 15.0f;
-			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), citizen->GetActorLocation(), citizen->Range, objects, nullptr, ignore, actors);
+			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(citizen), citizen->Range, objects, nullptr, ignore, actors);
 
 			for (AActor* actor : actors) {
 				if (actor == citizen || (!actor->IsA<AAI>() && !actor->IsA<AResource>() && !actor->IsA<ABuilding>()))
@@ -277,12 +277,12 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 										if (c->HealthIssues.Contains(condition))
 											continue;
 
-										int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 100);
+										int32 chance = Camera->Grid->Stream.RandRange(1, 100);
 
 										if (chance <= condition.Spreadability) {
 											c->HealthIssues.Add(condition);
 
-											Cast<ACamera>(GetOwner())->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + condition.Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
+											Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + condition.Name, Camera->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
 										}
 									}
 
@@ -321,7 +321,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 								}
 							}
 							else if (!IsInAPoliceReport(citizen) && Enemies.IsEmpty() && !citizen->bConversing && !citizen->bSleep && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && !c->bConversing && !c->bSleep && c->AttackComponent->OverlappingEnemies.IsEmpty()) {
-								int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 1000);
+								int32 chance = Camera->Grid->Stream.RandRange(0, 1000);
 
 								if (chance < 1000)
 									continue;
@@ -339,7 +339,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 							FHitResult hit(ForceInit);
 
-							if (GetWorld()->LineTraceSingleByChannel(hit, citizen->GetActorLocation(), c->GetActorLocation(), ECollisionChannel::ECC_Visibility, params) && (hit.GetActor() == c || c->AttackComponent->OverlappingEnemies.Contains(hit.GetActor()))) {
+							if (GetWorld()->LineTraceSingleByChannel(hit, Camera->GetTargetLocation(citizen), Camera->GetTargetLocation(c), ECollisionChannel::ECC_Visibility, params) && (hit.GetActor() == c || c->AttackComponent->OverlappingEnemies.Contains(hit.GetActor()))) {
 								ACitizen* c2 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[0]);
 
 								int32 count1 = 0;
@@ -407,14 +407,14 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 											}
 										}
 
-										report.Location = (report.Team1.Instigator->GetActorLocation() + report.Team2.Instigator->GetActorLocation()) / 2;
+										report.Location = (Camera->GetTargetLocation(report.Team1.Instigator) + Camera->GetTargetLocation(report.Team2.Instigator)) / 2;
 
 										PoliceReports.Add(report);
 
 										index = PoliceReports.Num() - 1; 
 									}
 
-									float distance = FVector::Dist(citizen->GetActorLocation(), hit.Location);
+									float distance = FVector::Dist(Camera->GetTargetLocation(citizen), hit.Location);
 									float dist = 1000000000;
 
 									if (PoliceReports[index].Witnesses.Contains(citizen))
@@ -428,7 +428,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							}
 						}
 					}
-					else if (*citizen->AttackComponent->ProjectileClass || citizen->AIController->CanMoveTo(ai->GetActorLocation())) {
+					else if (*citizen->AttackComponent->ProjectileClass || citizen->AIController->CanMoveTo(Camera->GetTargetLocation(ai))) {
 						if (!citizen->AttackComponent->OverlappingEnemies.Contains(ai))
 							citizen->AttackComponent->OverlappingEnemies.Add(ai);
 
@@ -466,10 +466,10 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 					int32 max = (1000 + (citizen->GetHappiness() - 50) * 16) / aggressiveness;
 
-					if (Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, max) != max)
+					if (Camera->Grid->Stream.RandRange(1, max) != max)
 						continue;
 
-					Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->SetOnFire(actor);
+					Camera->Grid->AtmosphereComponent->SetOnFire(actor);
 
 					for (AActor* a : actors) {
 						if (!Citizens.Contains(a))
@@ -482,10 +482,10 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 						FHitResult hit(ForceInit);
 
-						if (GetWorld()->LineTraceSingleByChannel(hit, witness->GetActorLocation(), citizen->GetActorLocation(), ECollisionChannel::ECC_Visibility, params) && hit.GetActor() == citizen) {
+						if (GetWorld()->LineTraceSingleByChannel(hit, Camera->GetTargetLocation(witness), Camera->GetTargetLocation(citizen), ECollisionChannel::ECC_Visibility, params) && hit.GetActor() == citizen) {
 							int32 index = GetPoliceReportIndex(citizen);
 
-							float distance = FVector::Dist(witness->GetActorLocation(), hit.Location);
+							float distance = FVector::Dist(Camera->GetTargetLocation(witness), hit.Location);
 
 							if (index == INDEX_NONE) {
 								FPoliceReport report;
@@ -521,7 +521,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 			int32 reach = clone->InitialRange / 15.0f;
 
-			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), clone->GetActorLocation(), clone->Range, objects, nullptr, ignore, actors);
+			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(clone), clone->Range, objects, nullptr, ignore, actors);
 
 			for (AActor* actor : actors) {
 				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
@@ -532,7 +532,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				if (actor->IsA<AResource>() || actor->GetClass() == clone->GetClass() || clone->IsA<ACitizen>())
 					continue;
 
-				if (!clone->AIController->CanMoveTo(actor->GetActorLocation()))
+				if (!clone->AIController->CanMoveTo(Camera->GetTargetLocation(actor)))
 					continue;
 
 				clone->AttackComponent->OverlappingEnemies.Add(actor);
@@ -557,7 +557,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 			int32 reach = enemy->Range / 15.0f;
 
-			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), enemy->GetActorLocation(), enemy->Range, objects, nullptr, ignore, actors);
+			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(enemy), enemy->Range, objects, nullptr, ignore, actors);
 
 			for (AActor* actor : actors) {
 				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
@@ -565,10 +565,10 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				if (healthComp && healthComp->GetHealth() <= 0)
 					continue;
 
-				if (actor->IsA<AResource>() || (actor->GetClass() == enemy->GetClass() && (enemy->IsA<AEnemy>() || (enemy->IsA<ACitizen>() && Cast<ACitizen>(enemy)->Rebel == Cast<ACitizen>(actor)->Rebel))))
+				if (actor->IsA<AResource>() || actor->GetClass() == enemy->GetClass())
 					continue;
 
-				if (!*enemy->AttackComponent->ProjectileClass && !enemy->AIController->CanMoveTo(actor->GetActorLocation()))
+				if (!*enemy->AttackComponent->ProjectileClass && !enemy->AIController->CanMoveTo(Camera->GetTargetLocation(actor)))
 					continue;
 
 				enemy->AttackComponent->OverlappingEnemies.Add(actor);
@@ -620,7 +620,7 @@ void UCitizenManager::Loop()
 	for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
 		FTimerStruct &timer = node->GetValue();
 
-		if (!IsValid(timer.Actor) || (timer.Actor->IsA<ACitizen>() && Cast<ACitizen>(timer.Actor)->Rebel)) {
+		if (!IsValid(timer.Actor) || timer.Actor->IsA<ACitizen>()) {
 			FScopeLock lock(&TimerLock);
 			Timers.RemoveNode(node);
 
@@ -704,10 +704,10 @@ void UCitizenManager::Loop()
 
 		int32 rebelCount = 0;
 
-		int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
 		for (ACitizen* citizen : Citizens) {
-			if (!IsValid(citizen) || citizen->Rebel)
+			if (!IsValid(citizen))
 				continue;
 
 			for (FConditionStruct& condition : citizen->HealthIssues) {
@@ -782,7 +782,7 @@ void UCitizenManager::Loop()
 					if (distance > dist) {
 						distance = dist;
 
-						officer = building->GetCitizensAtBuilding()[Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, building->GetCitizensAtBuilding().Num() - 1)];
+						officer = building->GetCitizensAtBuilding()[Camera->Grid->Stream.RandRange(0, building->GetCitizensAtBuilding().Num() - 1)];
 					}
 				}
 
@@ -803,7 +803,7 @@ void UCitizenManager::Loop()
 			CooldownTimer--;
 
 			if (CooldownTimer < 1) {
-				auto value = Async(EAsyncExecution::TaskGraphMainThread, [this]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 3); });
+				auto value = Async(EAsyncExecution::TaskGraphMainThread, [this]() { return Camera->Grid->Stream.RandRange(1, 3); });
 
 				if (value.Get() == 3) {
 					Overthrow();
@@ -820,7 +820,7 @@ void UCitizenManager::Loop()
 		}
 	}
 
-	AsyncTask(ENamedThreads::GameThread, [this]() { Cast<ACamera>(GetOwner())->UpdateUI(); });
+	AsyncTask(ENamedThreads::GameThread, [this]() { Camera->UpdateUI(); });
 }
 
 void UCitizenManager::CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread)
@@ -949,18 +949,18 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
 
 	TArray<AActor*> ignore;
-	ignore.Add(Cast<ACamera>(GetOwner())->Grid);
+	ignore.Add(Camera->Grid);
 
-	for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->MineralStruct)
+	for (FResourceHISMStruct resourceStruct : Camera->Grid->MineralStruct)
 		ignore.Add(resourceStruct.Resource);
 
-	for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->FlowerStruct)
+	for (FResourceHISMStruct resourceStruct : Camera->Grid->FlowerStruct)
 		ignore.Add(resourceStruct.Resource);
 
 	TArray<AActor*> actors;
 
 	int32 reach = Citizen->Range / 15.0f;
-	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Citizen->GetActorLocation(), Citizen->Range, objects, nullptr, ignore, actors);
+	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(Citizen), Citizen->Range, objects, nullptr, ignore, actors);
 
 	for (AActor* actor : actors) {
 		if (!actor->IsA<ACitizen>())
@@ -1178,7 +1178,7 @@ void UCitizenManager::CheckForWeddings(int32 Hour)
 				continue;
 			}
 
-			double magnitude = citizen->AIController->GetClosestActor(400.0f, citizen->GetActorLocation(), chosenChurch->GetActorLocation(), church->GetActorLocation());
+			double magnitude = citizen->AIController->GetClosestActor(400.0f, Camera->GetTargetLocation(citizen), chosenChurch->GetActorLocation(), church->GetActorLocation());
 
 			if (magnitude <= 0.0f)
 				continue;
@@ -1256,8 +1256,8 @@ void UCitizenManager::StartConversation(ACitizen* Citizen1, ACitizen* Citizen2, 
 	Citizen2->bConversing = true;
 	
 	AsyncTask(ENamedThreads::GameThread, [this, Citizen1, Citizen2, bInterrogation]() {
-		Citizen1->SetActorRotation((Citizen2->GetActorLocation() - Citizen1->GetActorLocation()).Rotation());
-		Citizen2->SetActorRotation((Citizen1->GetActorLocation() - Citizen2->GetActorLocation()).Rotation());
+		Citizen1->MovementComponent->Transform.SetRotation((Citizen2->MovementComponent->Transform.GetLocation() - Citizen1->MovementComponent->Transform.GetLocation()).Rotation().Quaternion());
+		Citizen2->MovementComponent->Transform.SetRotation((Citizen1->MovementComponent->Transform.GetLocation() - Citizen2->MovementComponent->Transform.GetLocation()).Rotation().Quaternion());
 
 		Citizen1->AIController->StopMovement();
 		Citizen2->AIController->StopMovement();
@@ -1267,7 +1267,7 @@ void UCitizenManager::StartConversation(ACitizen* Citizen1, ACitizen* Citizen2, 
 		else
 			CreateTimer("Interact", Citizen1, 6.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::Interact, Citizen1, Citizen2), false);
 
-		int32 conversationIndex = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Citizen1->Conversations.Num() - 1);
+		int32 conversationIndex = Camera->Grid->Stream.RandRange(0, Citizen1->Conversations.Num() - 1);
 
 		TArray<USoundBase*> keys;
 		Citizen1->Conversations.GenerateKeyArray(keys);
@@ -1275,8 +1275,8 @@ void UCitizenManager::StartConversation(ACitizen* Citizen1, ACitizen* Citizen2, 
 		TArray<USoundBase*> values;
 		Citizen1->Conversations.GenerateValueArray(values);
 
-		Cast<ACamera>(GetOwner())->PlayAmbientSound(Citizen1->AmbientAudioComponent, keys[conversationIndex], Citizen1->VoicePitch);
-		Cast<ACamera>(GetOwner())->PlayAmbientSound(Citizen2->AmbientAudioComponent, values[conversationIndex], Citizen2->VoicePitch);
+		Camera->PlayAmbientSound(Citizen1->AmbientAudioComponent, keys[conversationIndex], Citizen1->VoicePitch);
+		Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, values[conversationIndex], Citizen2->VoicePitch);
 	});
 }
 
@@ -1292,7 +1292,7 @@ void UCitizenManager::Interact(ACitizen* Citizen1, ACitizen* Citizen2)
 
 	PersonalityComparison(Citizen1, Citizen2, count, citizen1Aggressiveness, citizen2Aggressiveness);
 
-	int32 chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 100);
+	int32 chance = Camera->Grid->Stream.RandRange(0, 100);
 	int32 positiveConversationLikelihood = 50 + count * 25;
 
 	int32 happinessValue = 12;
@@ -1300,7 +1300,7 @@ void UCitizenManager::Interact(ACitizen* Citizen1, ACitizen* Citizen2)
 	if (chance > positiveConversationLikelihood) {
 		happinessValue = -12;
 
-		FVector midPoint = (Citizen1->GetActorLocation() + Citizen2->GetActorLocation()) / 2;
+		FVector midPoint = (Camera->GetTargetLocation(Citizen1) + Camera->GetTargetLocation(Citizen2)) / 2;
 		float distance = 1000;
 
 		for (ABuilding* building : Buildings) {
@@ -1316,12 +1316,12 @@ void UCitizenManager::Interact(ACitizen* Citizen1, ACitizen* Citizen2)
 		TArray<TEnumAsByte<EObjectTypeQuery>> objects;
 
 		TArray<AActor*> ignore;
-		ignore.Add(Cast<ACamera>(GetOwner())->Grid);
+		ignore.Add(Camera->Grid);
 
-		for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->MineralStruct)
+		for (FResourceHISMStruct resourceStruct : Camera->Grid->MineralStruct)
 			ignore.Add(resourceStruct.Resource);
 
-		for (FResourceHISMStruct resourceStruct : Cast<ACamera>(GetOwner())->Grid->FlowerStruct)
+		for (FResourceHISMStruct resourceStruct : Camera->Grid->FlowerStruct)
 			ignore.Add(resourceStruct.Resource);
 
 		ignore.Append(Buildings);
@@ -1333,9 +1333,9 @@ void UCitizenManager::Interact(ACitizen* Citizen1, ACitizen* Citizen2)
 		if (citizen1Aggressiveness < citizen2Aggressiveness)
 			aggressor = Citizen2;
 
-		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), aggressor->GetActorLocation(), aggressor->Range, objects, nullptr, ignore, actors);
+		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(aggressor), aggressor->Range, objects, nullptr, ignore, actors);
 
-		chance = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, 100);
+		chance = Camera->Grid->Stream.RandRange(0, 100);
 		int32 fightChance = 25 * citizen1Aggressiveness * citizen2Aggressiveness - FMath::RoundHalfFromZero(300 / distance) - (10 * actors.Num());
 
 		if (fightChance > chance) {
@@ -1474,7 +1474,7 @@ void UCitizenManager::InterrogateWitnesses(ACitizen* Officer, ACitizen* Citizen)
 
 		float tally = impartial + accuseTeam1 + accuseTeam2;
 
-		int32 choice = Cast<ACamera>(GetOwner())->Grid->Stream.FRandRange(0.0f, tally);
+		int32 choice = Camera->Grid->Stream.FRandRange(0.0f, tally);
 
 		if (choice <= impartial)
 			report.Impartial.Add(Citizen);
@@ -1527,7 +1527,7 @@ void UCitizenManager::GotoClosestWantedMan(ACitizen* Officer)
 				continue;
 			}
 
-			double magnitude = Officer->AIController->GetClosestActor(Officer->Range, Officer->GetActorLocation(), target->GetActorLocation(), criminal->GetActorLocation());
+			double magnitude = Officer->AIController->GetClosestActor(Officer->Range, Camera->GetTargetLocation(Officer), Camera->GetTargetLocation(target), Camera->GetTargetLocation(criminal));
 
 			if (magnitude < 0.0f)
 				continue;
@@ -1617,7 +1617,7 @@ void UCitizenManager::SetInNearestJail(ACitizen* Officer, ACitizen* Citizen)
 			continue;
 		}
 
-		double magnitude = Citizen->AIController->GetClosestActor(20.0f, Citizen->GetActorLocation(), target->GetActorLocation(), building->GetActorLocation());
+		double magnitude = Citizen->AIController->GetClosestActor(20.0f, Camera->GetTargetLocation(Citizen), target->GetActorLocation(), building->GetActorLocation());
 
 		if (magnitude < 0.0f)
 			continue;
@@ -1625,7 +1625,7 @@ void UCitizenManager::SetInNearestJail(ACitizen* Officer, ACitizen* Citizen)
 		target = building;
 	}
 
-	Citizen->SetActorLocation(target->GetActorLocation());
+	Citizen->MovementComponent->Transform.SetLocation(target->GetActorLocation());
 
 	Citizen->Building.BuildingAt = target;
 
@@ -1679,12 +1679,12 @@ void UCitizenManager::ItterateThroughSentences()
 			served.Add(element.Key);
 	}
 
-	Cast<ACamera>(GetOwner())->ResourceManager->AddUniversalResource(Money, Arrested.Num());
+	Camera->ResourceManager->AddUniversalResource(Money, Arrested.Num());
 
 	for (ACitizen* citizen : served) {
 		Arrested.Remove(citizen);
 
-		citizen->SetActorLocation(citizen->Building.BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
+		citizen->MovementComponent->Transform.SetLocation(citizen->Building.BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 	}
 }
 
@@ -1728,20 +1728,20 @@ int32 UCitizenManager::GetPoliceReportIndex(ACitizen* Citizen)
 //
 void UCitizenManager::StartDiseaseTimer()
 {
-	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	CreateTimer("Disease", GetOwner(), Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
+	CreateTimer("Disease", GetOwner(), Camera->Grid->Stream.RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
 }
 
 void UCitizenManager::SpawnDisease()
 {
-	int32 index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Infectible.Num() - 1);
+	int32 index = Camera->Grid->Stream.RandRange(0, Infectible.Num() - 1);
 	ACitizen* citizen = Infectible[index];
 
-	index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Diseases.Num() - 1);
+	index = Camera->Grid->Stream.RandRange(0, Diseases.Num() - 1);
 	citizen->HealthIssues.Add(Diseases[index]);
 
-	Cast<ACamera>(GetOwner())->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + Diseases[index].Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
+	Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + Diseases[index].Name, Camera->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
 
 	Infect(citizen);
 
@@ -1751,7 +1751,8 @@ void UCitizenManager::SpawnDisease()
 void UCitizenManager::Infect(ACitizen* Citizen)
 {
 	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
-		Citizen->DiseaseNiagaraComponent->Activate();
+		if (Infected.IsEmpty())
+			Camera->Grid->AIVisualiser->DiseaseNiagaraComponent->Activate();
 
 		Infected.Add(Citizen);
 
@@ -1763,7 +1764,7 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 
 void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 {
-	int32 index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(1, 10);
+	int32 index = Camera->Grid->Stream.RandRange(1, 10);
 
 	if (index < Odds)
 		return;
@@ -1773,7 +1774,7 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 	for (FConditionStruct condition : Citizen->HealthIssues)
 		conditions.Remove(condition);
 
-	index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, conditions.Num() - 1);
+	index = Camera->Grid->Stream.RandRange(0, conditions.Num() - 1);
 	Citizen->HealthIssues.Add(conditions[index]);
 
 	for (FAffectStruct affect : conditions[index].Affects) {
@@ -1785,7 +1786,7 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 			Citizen->ApplyToMultiplier("Health", affect.Amount);
 	}
 
-	Cast<ACamera>(GetOwner())->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + conditions[index].Name, Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
+	Camera->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + conditions[index].Name, Camera->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
 
 	Citizen->Mesh->SetCustomPrimitiveDataFloat(6, 1.0f);
 
@@ -1811,14 +1812,14 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 
 	Citizen->HealthIssues.Empty();
 
-	Citizen->DiseaseNiagaraComponent->Deactivate();
-	Citizen->Mesh->SetCustomPrimitiveDataFloat(6, 0.0f);
-
 	Infected.Remove(Citizen);
 	Injured.Remove(Citizen);
 	Healing.Remove(Citizen);
 
-	Cast<ACamera>(GetOwner())->NotifyLog("Good", Citizen->BioStruct.Name + " has been healed", Cast<ACamera>(GetOwner())->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
+	if (Infected.IsEmpty())
+		Camera->Grid->AIVisualiser->DiseaseNiagaraComponent->Deactivate();
+
+	Camera->NotifyLog("Good", Citizen->BioStruct.Name + " has been healed", Camera->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
 
 	UpdateHealthText(Citizen);
 }
@@ -1826,10 +1827,8 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 void UCitizenManager::UpdateHealthText(ACitizen* Citizen)
 {
 	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
-		ACamera* camera = Cast<ACamera>(GetOwner());
-
-		if (camera->WidgetComponent->IsAttachedTo(Citizen->GetRootComponent()))
-			camera->UpdateHealthIssues();
+		if (Camera->WidgetComponent->IsAttachedTo(Citizen->GetRootComponent()))
+			Camera->UpdateHealthIssues();
 	});
 }
 
@@ -1845,7 +1844,7 @@ void UCitizenManager::GetClosestHealer(class ACitizen* Citizen)
 			AClinic* clinic = Cast<AClinic>(actor);
 
 			for (ACitizen* h : clinic->GetCitizensAtBuilding()) {
-				if (!h->AIController->CanMoveTo(Citizen->GetActorLocation()) || h->AIController->MoveRequest.GetGoalActor() != nullptr)
+				if (!h->AIController->CanMoveTo(Camera->GetTargetLocation(Citizen)) || h->AIController->MoveRequest.GetGoalActor() != nullptr)
 					continue;
 
 				if (healer == nullptr) {
@@ -1854,7 +1853,7 @@ void UCitizenManager::GetClosestHealer(class ACitizen* Citizen)
 					continue;
 				}
 
-				double magnitude = h->AIController->GetClosestActor(50.0f, Citizen->GetActorLocation(), healer->GetActorLocation(), h->GetActorLocation());
+				double magnitude = h->AIController->GetClosestActor(50.0f, Camera->GetTargetLocation(Citizen), Camera->GetTargetLocation(healer), Camera->GetTargetLocation(h));
 
 				if (magnitude > 0.0f)
 					healer = h;
@@ -1881,7 +1880,7 @@ void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
 				continue;
 			}
 
-			double magnitude = Healer->AIController->GetClosestActor(50.0f, Healer->GetActorLocation(), Citizen->GetActorLocation(), citizen->GetActorLocation());
+			double magnitude = Healer->AIController->GetClosestActor(50.0f, Camera->GetTargetLocation(Healer), Camera->GetTargetLocation(Citizen), Camera->GetTargetLocation(citizen));
 
 			if (magnitude > 0.0f)
 				Citizen = citizen;
@@ -1915,7 +1914,7 @@ void UCitizenManager::CreateEvent(EEventType Type, TSubclassOf<class ABuilding> 
 	event.Whitelist = Whitelist;
 
 	if (event.Type == EEventType::Protest) {
-		ABuilding* building = Buildings[Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Buildings.Num() - 1)];
+		ABuilding* building = Buildings[Camera->Grid->Stream.RandRange(0, Buildings.Num() - 1)];
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
@@ -1982,7 +1981,7 @@ TArray<FEventStruct> UCitizenManager::OngoingEvents()
 	TArray<FEventStruct> events;
 	
 	for (FEventStruct event : Events) {
-		UAtmosphereComponent* atmosphere = Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent;
+		UAtmosphereComponent* atmosphere = Camera->Grid->AtmosphereComponent;
 
 		if (!event.bStarted)
 			continue;
@@ -2010,7 +2009,7 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Citizen->GetActorLocation(), Event.Location, Citizen, Citizen->NavQueryFilter);
+		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetLocation(Citizen), Event.Location, Citizen, Citizen->NavQueryFilter);
 
 		Citizen->MovementComponent->SetPoints(path->PathPoints);
 
@@ -2079,7 +2078,7 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 				continue;
 			}
 
-			double magnitude = Citizen->AIController->GetClosestActor(400.0f, Citizen->GetActorLocation(), chosenBuilding->GetActorLocation(), building->GetActorLocation());
+			double magnitude = Citizen->AIController->GetClosestActor(400.0f, Camera->GetTargetLocation(Citizen), chosenBuilding->GetActorLocation(), building->GetActorLocation());
 
 			if (magnitude <= 0.0f)
 				continue;
@@ -2130,7 +2129,7 @@ void UCitizenManager::StartEvent(FEventStruct Event, int32 Hour)
 		PoliceReports.Add(report);
 	}
 
-	Cast<ACamera>(GetOwner())->DisplayEvent("Event", EnumToString<EEventType>(Event.Type));
+	Camera->DisplayEvent("Event", EnumToString<EEventType>(Event.Type));
 }
 
 void UCitizenManager::EndEvent(FEventStruct Event, int32 Hour)
@@ -2261,7 +2260,7 @@ void UCitizenManager::SelectNewLeader(FString Party)
 	if (candidates.IsEmpty())
 		return;
 
-	auto value = Async(EAsyncExecution::TaskGraph, [this, candidates]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, candidates.Num() - 1); });
+	auto value = Async(EAsyncExecution::TaskGraph, [this, candidates]() { return Camera->Grid->Stream.RandRange(0, candidates.Num() - 1); });
 
 	ACitizen* chosen = candidates[value.Get()];
 
@@ -2275,7 +2274,7 @@ void UCitizenManager::StartElectionTimer()
 {
 	RemoveTimer("Election", GetOwner());
 	
-	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
 	CreateTimer("Election", GetOwner(), timeToCompleteDay * GetLawValue("Election Timer"), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election), false);
 }
@@ -2324,7 +2323,7 @@ void UCitizenManager::Election()
 			if (pair.Value.IsEmpty())
 				continue;
 
-			auto value = Async(EAsyncExecution::TaskGraph, [this, pair]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, pair.Value.Num() - 1); });
+			auto value = Async(EAsyncExecution::TaskGraph, [this, pair]() { return Camera->Grid->Stream.RandRange(0, pair.Value.Num() - 1); });
 
 			ACitizen* citizen = pair.Value[value.Get()];
 
@@ -2349,10 +2348,10 @@ void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
 
 	int32 bribe = BribeValue[index];
 
-	bool bPass = Cast<ACamera>(GetOwner())->ResourceManager->TakeUniversalResource(Money, bribe, 0);
+	bool bPass = Camera->ResourceManager->TakeUniversalResource(Money, bribe, 0);
 
 	if (!bPass) {
-		Cast<ACamera>(GetOwner())->ShowWarning("Cannot afford");
+		Camera->ShowWarning("Cannot afford");
 
 		return;
 	}
@@ -2377,18 +2376,18 @@ void UCitizenManager::ProposeBill(FLawStruct Bill)
 	if (Laws[index].Cooldown != 0) {
 		FString string = "You must wait " + Laws[index].Cooldown;
 
-		Cast<ACamera>(GetOwner())->ShowWarning(string + " seconds");
+		Camera->ShowWarning(string + " seconds");
 
 		return;
 	}
 
 	ProposedBills.Add(Bill);
 
-	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
 	Laws[index].Cooldown = timeToCompleteDay;
 
-	Cast<ACamera>(GetOwner())->DisplayNewBill();
+	Camera->DisplayNewBill();
 
 	if (ProposedBills.Num() > 1)
 		return;
@@ -2438,7 +2437,7 @@ void UCitizenManager::SetupBill()
 		GetVerdict(citizen, ProposedBills[0], true, false);
 
 	for (ACitizen* citizen : Representatives) {
-		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(2, 20); }).Get();
+		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return Camera->Grid->Stream.RandRange(2, 20); }).Get();
 
 		if (Votes.For.Contains(citizen) || Votes.Against.Contains(citizen))
 			bribe *= 4;
@@ -2546,7 +2545,7 @@ void UCitizenManager::GetVerdict(ACitizen* Representative, FLawStruct Bill, bool
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 
-	auto value = Async(EAsyncExecution::TaskGraph, [this, verdict]() { return Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, verdict.Num() - 1); });
+	auto value = Async(EAsyncExecution::TaskGraph, [this, verdict]() { return Camera->Grid->Stream.RandRange(0, verdict.Num() - 1); });
 
 	FString result = verdict[value.Get()];
 
@@ -2603,15 +2602,15 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 			}
 		}
 
-		if (Laws[index].BillType == "Representatives" && Cast<ACamera>(GetOwner())->ParliamentUIInstance->IsInViewport())
-			Cast<ACamera>(GetOwner())->RefreshRepresentatives();
+		if (Laws[index].BillType == "Representatives" && Camera->ParliamentUIInstance->IsInViewport())
+			Camera->RefreshRepresentatives();
 
 		bPassed = true;
 	}
 
-	Cast<ACamera>(GetOwner())->LawPassed(bPassed, Votes.For.Num(), Votes.Against.Num());
+	Camera->LawPassed(bPassed, Votes.For.Num(), Votes.Against.Num());
 
-	Cast<ACamera>(GetOwner())->LawPassedUIInstance->AddToViewport();
+	Camera->LawPassedUIInstance->AddToViewport();
 
 	ProposedBills.Remove(Bill);
 
@@ -2702,7 +2701,10 @@ void UCitizenManager::Overthrow()
 
 void UCitizenManager::SetupRebel(ACitizen* Citizen)
 {
-	UAIVisualiser* aiVisualiser = Cast<ACamera>(GetOwner())->Grid->AIVisualiser;
+	Citizen->Energy = 100;
+	Citizen->Hunger = 100;
+
+	UAIVisualiser* aiVisualiser = Camera->Grid->AIVisualiser;
 	aiVisualiser->RemoveInstance(aiVisualiser->HISMCitizen, Citizens.Find(Citizen));
 	Citizens.Remove(Citizen);
 
@@ -2722,17 +2724,17 @@ bool UCitizenManager::IsRebellion()
 //
 void UCitizenManager::Pray()
 {
-	bool bPass = Cast<ACamera>(GetOwner())->ResourceManager->TakeUniversalResource(Money, GetPrayCost(), 0);
+	bool bPass = Camera->ResourceManager->TakeUniversalResource(Money, GetPrayCost(), 0);
 
 	if (!bPass) {
-		Cast<ACamera>(GetOwner())->ShowWarning("Cannot afford");
+		Camera->ShowWarning("Cannot afford");
 
 		return;
 	}
 
 	IncrementPray("Good", 1);
 
-	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
 	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Good"), -1), false);
 }
@@ -2758,12 +2760,12 @@ int32 UCitizenManager::GetPrayCost()
 void UCitizenManager::Sacrifice()
 {
 	if (Citizens.IsEmpty()) {
-		Cast<ACamera>(GetOwner())->ShowWarning("Cannot afford");
+		Camera->ShowWarning("Cannot afford");
 
 		return;
 	}
 
-	int32 index = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(0, Citizens.Num() - 1);
+	int32 index = Camera->Grid->Stream.RandRange(0, Citizens.Num() - 1);
 	ACitizen* citizen = Citizens[index];
 
 	citizen->AIController->StopMovement();
@@ -2775,7 +2777,7 @@ void UCitizenManager::Sacrifice()
 
 	IncrementPray("Bad", 1);
 
-	int32 timeToCompleteDay = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
 	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Bad"), -1), false);
 }

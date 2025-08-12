@@ -45,4 +45,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Range")
 		float Range;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+		class UNiagaraSystem* SpawnSystem;
 };

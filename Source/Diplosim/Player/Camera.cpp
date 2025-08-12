@@ -135,6 +135,8 @@ void ACamera::BeginPlay()
 {
 	Super::BeginPlay();
 
+	CitizenManager->Camera = this;
+
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	settings->Camera = this;
 	settings->SetVignette(settings->GetVignette());
@@ -572,6 +574,16 @@ void ACamera::Detach()
 	FocusedCitizen = nullptr;
 }
 
+FVector ACamera::GetTargetLocation(AActor* Actor)
+{
+	FVector location = Actor->GetActorLocation();
+
+	if (Actor->IsA<AAI>())
+		location = Cast<AAI>(Actor)->MovementComponent->Transform.GetLocation();
+
+	return location;
+}
+
 void ACamera::Lose()
 {
 	bLost = true;
@@ -594,8 +606,8 @@ void ACamera::Smite(class AAI* AI)
 		return;
 	}
 
-	SmiteComponent->SetVariablePosition("StartLocation", AI->GetActorLocation() + FVector(0.0f, 0.0f, 2000.0f));
-	SmiteComponent->SetVariablePosition("EndLocation", AI->GetActorLocation());
+	SmiteComponent->SetVariablePosition("StartLocation", GetTargetLocation(AI) + FVector(0.0f, 0.0f, 2000.0f));
+	SmiteComponent->SetVariablePosition("EndLocation", GetTargetLocation(AI));
 
 	SmiteComponent->Activate();
 

@@ -5,6 +5,7 @@
 #include "Components/WidgetComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
@@ -13,6 +14,7 @@
 #include "AI/Projectile.h"
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/AIMovementComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Work/Defence/Wall.h"
@@ -27,6 +29,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -55,39 +58,26 @@ void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
 		return;
 
-	if (GetOwner()->IsA<ABuilding>()) {
-		ABuilding* building = Cast<ABuilding>(GetOwner());
+	ABuilding* building = Cast<ABuilding>(GetOwner());
 
-		float height = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	float height = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
-		FVector location = FMath::VInterpTo(building->GetActorLocation(), building->GetActorLocation() - FVector(0.0f, 0.0f, height + 1.0f), DeltaTime, 0.15f);
+	FVector location = FMath::VInterpTo(building->GetActorLocation(), building->GetActorLocation() - FVector(0.0f, 0.0f, height + 1.0f), DeltaTime, 0.15f);
 
-		FVector difference = building->GetActorLocation() - location;
+	FVector difference = building->GetActorLocation() - location;
 
-		building->SetActorLocation(location);
+	building->SetActorLocation(location);
 
-		building->DestructionComponent->SetRelativeLocation(building->DestructionComponent->GetRelativeLocation() + difference);
-		building->GroundDecalComponent->SetRelativeLocation(building->GroundDecalComponent->GetRelativeLocation() + difference);
+	building->DestructionComponent->SetRelativeLocation(building->DestructionComponent->GetRelativeLocation() + difference);
+	building->GroundDecalComponent->SetRelativeLocation(building->GroundDecalComponent->GetRelativeLocation() + difference);
 
-		if (CrumbleLocation.Z <= building->GetActorLocation().Z) {
-			UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
-		}
-		else {
-			building->DestructionComponent->Deactivate();
-
-			SetComponentTickEnabled(false);
-		}
+	if (CrumbleLocation.Z <= building->GetActorLocation().Z) {
+		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
 	}
 	else {
-		AAI* ai = Cast<AAI>(GetOwner());
+		building->DestructionComponent->Deactivate();
 
-		FRotator rotation = ai->Mesh->GetRelativeRotation();
-		rotation.Pitch++;
-
-		ai->Mesh->SetRelativeRotation(rotation);
-
-		if (rotation.Pitch >= 90.0f)
-			SetComponentTickEnabled(false);
+		SetComponentTickEnabled(false);
 	}
 }
 
@@ -117,8 +107,8 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 			building->BuildingMesh->SetCustomPrimitiveDataFloat(6, opacity);
 		}
 		else {
-			Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(OnHitEffect);
-			Cast<AAI>(GetOwner())->Mesh->SetCustomPrimitiveDataFloat(8, opacity);
+			TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
+			info.Key->SetCustomDataValue(info.Value, 8, opacity);
 		}
 
 		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("RemoveDamageOverlay", GetOwner());
@@ -145,10 +135,14 @@ bool UHealthComponent::IsMaxHealth()
 
 void UHealthComponent::RemoveDamageOverlay()
 {
-	if (GetOwner()->IsA<ABuilding>())
+	if (GetOwner()->IsA<ABuilding>()) {
 		Cast<ABuilding>(GetOwner())->BuildingMesh->SetOverlayMaterial(nullptr);
-	else
-		Cast<AAI>(GetOwner())->Mesh->SetOverlayMaterial(nullptr);
+		Cast<ABuilding>(GetOwner())->BuildingMesh->SetCustomPrimitiveDataFloat(6, 0.0f);
+	}
+	else {
+		TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
+		info.Key->SetCustomDataValue(info.Value, 8, 0.0f);
+	}
 }
 
 void UHealthComponent::Death(AActor* Attacker, int32 Force)
@@ -171,7 +165,6 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		attackComp->ClearAttacks();
 
 		Cast<AAI>(actor)->AIController->StopMovement();
-		Cast<AAI>(actor)->DetachFromControllerPendingDestroy();
 
 		Camera->CitizenManager->AIPendingRemoval.Add(Cast<AAI>(actor));
 
@@ -181,6 +174,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 			//FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
 
 			Camera->CitizenManager->ClearCitizen(citizen);
+
+			citizen->MovementComponent->SetAnimation(EAnim::Death);
 
 			//Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", tile->Name);
 		}
@@ -211,6 +206,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		building->DestructionComponent->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
 
 		building->DestructionComponent->Activate();
+
+		SetComponentTickEnabled(true);
 	}
 
 	if (DeathSystem != nullptr) {
@@ -220,13 +217,13 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		FVector extent;
 		actor->GetActorBounds(false, origin, extent);
 
+		origin = Camera->GetTargetLocation(actor);
+
 		UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DeathSystem, origin + (extent / 2));
 
 		if (actor->IsA<AEnemy>())
 			deathComp->SetColorParameter("Colour", Cast<AEnemy>(actor)->Colour);
 	}
-	else
-		SetComponentTickEnabled(true);
 
 	Camera->CitizenManager->CreateTimer("Clear Death", GetOwner(), 10.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), false, true);
 }

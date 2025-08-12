@@ -28,6 +28,8 @@ void ATower::BeginPlay()
 
 	BuildingMesh->GetMaterial(0)->GetVectorParameterValue(matInfo, Colour);
 
+	AttackComponent->Camera = Camera;
+
 	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &ATower::OnTowerOverlapBegin);
 	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &ATower::OnTowerOverlapEnd);
 }

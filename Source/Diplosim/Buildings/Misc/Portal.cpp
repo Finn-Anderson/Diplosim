@@ -5,6 +5,7 @@
 #include "Player/Managers/ConquestManager.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/AIMovementComponent.h"
 
 APortal::APortal()
 {
@@ -26,7 +27,7 @@ void APortal::Enter(ACitizen* Citizen)
 		return;
 	}
 
-	Citizen->SetActorLocation(linkedPortal->GetActorLocation());
+	Citizen->MovementComponent->Transform.SetLocation(linkedPortal->GetActorLocation());
 
 	Citizen->AIController->AIMoveTo(Citizen->AIController->MoveRequest.GetUltimateGoalActor());
 }

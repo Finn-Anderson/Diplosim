@@ -39,6 +39,9 @@ void AAI::BeginPlay()
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
+
+	AIController->Camera = Camera;
+	AttackComponent->Camera = Camera;
 }
 
 void AAI::MoveToBroch()
@@ -91,7 +94,9 @@ bool AAI::CanReach(AActor* Actor, float Reach, int32 Instance)
 {
 	FCollisionQueryParams params;
 	params.AddIgnoredActor(this);
-	params.AddIgnoredActor(Camera->Grid);
+
+	TArray<UPrimitiveComponent*> components = { Camera->Grid->HISMFlatGround, Camera->Grid->HISMGround, Camera->Grid->HISMLava, Camera->Grid->HISMRampGround, Camera->Grid->HISMRiver, Camera->Grid->HISMSea, Camera->Grid->HISMWall };
+	params.AddIgnoredComponents(components);
 	
 	TArray<FHitResult> hits;
 

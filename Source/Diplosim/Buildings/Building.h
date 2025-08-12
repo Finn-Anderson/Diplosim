@@ -333,7 +333,7 @@ public:
 		TArray<FOccupantStruct> Occupied;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		TMap<FName, UAnimSequence*> AnimSockets;
+		TMap<FName, EAnim> AnimSockets;
 
 	FTimerHandle CostTimer;
 

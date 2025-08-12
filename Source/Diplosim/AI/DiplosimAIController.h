@@ -93,7 +93,7 @@ public:
 
 	double GetClosestActor(float Range, FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, bool bProjectLocation = true, int32 CurrentValue = 1, int32 NewValue = 1);
 
-	void GetGatherSite(class ACamera* Camera, TSubclassOf<class AResource> Resource);
+	void GetGatherSite(TSubclassOf<class AResource> Resource);
 
 	bool CanMoveTo(FVector Location, AActor* Target = nullptr, bool bCheckForPortals = true);
 
@@ -107,11 +107,12 @@ public:
 
 	virtual void StopMovement() override;
 
-	FVector GetTargetLocation(AActor* Actor);
-
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 		FMoveStruct MoveRequest;
 
 	UPROPERTY()
 		class ABuilding* ChosenBuilding;
+
+	UPROPERTY()
+	class ACamera* Camera;
 };

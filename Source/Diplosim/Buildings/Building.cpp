@@ -750,20 +750,18 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	int32 index = SocketList.Find(socketStruct);
 
 	if (index != INDEX_NONE) {
-		Citizen->SetActorLocation(SocketList[index].SocketLocation);
-		Citizen->SetActorRotation(SocketList[index].SocketRotation);
+		Citizen->MovementComponent->Transform.SetLocation(SocketList[index].SocketLocation);
+		Citizen->MovementComponent->Transform.SetRotation(SocketList[index].SocketRotation.Quaternion());
 	}
 	else if (!SocketList.IsEmpty()) {
-		Citizen->Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
-
 		for (int32 i = 0; i < SocketList.Num(); i++) {
 			if (SocketList[i].Citizen != nullptr)
 				continue;
 
 			SocketList[i].Citizen = Citizen;
 
-			Citizen->SetActorLocation(SocketList[i].SocketLocation);
-			Citizen->SetActorRotation(SocketList[i].SocketRotation);
+			Citizen->MovementComponent->Transform.SetLocation(SocketList[i].SocketLocation);
+			Citizen->MovementComponent->Transform.SetRotation(SocketList[i].SocketRotation.Quaternion());
 
 			index = i;
 
@@ -771,7 +769,7 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 		}
 	}
 	else if (bHideCitizen || Camera->ConstructionManager->IsBeingConstructed(this, nullptr)) {
-		Citizen->SetActorLocation(GetActorLocation());
+		Citizen->MovementComponent->Transform.SetLocation(GetActorLocation());
 	}
 
 	if (AnimSockets.IsEmpty())
@@ -780,34 +778,33 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	if (IsA<AFestival>())
 		Cast<AFestival>(this)->AttachToSpinMesh(Citizen, SocketList[index].Name);
 
-	UAnimSequence* anim;
+	EAnim anim = EAnim::Still;
+	bool bRepeat = false;
 
 	TArray<FName> keys;
 	AnimSockets.GenerateKeyArray(keys);
 
 	if (keys[0] == FName("All"))
 		anim = *AnimSockets.Find(keys[0]);
-	else {
-		if (index == INDEX_NONE || AnimSockets.Find(SocketList[index].Name) == nullptr)
-			anim = nullptr;
-		else
-			anim = *AnimSockets.Find(SocketList[index].Name);
-	}
+	else if (index != INDEX_NONE)
+		anim = *AnimSockets.Find(SocketList[index].Name);
 
-	if (!IsValid(anim))
-		return;
+	if (anim != EAnim::Still)
+		bRepeat = true;
+
+	float speed = 2.0f;
 
 	if (!IsA<AFestival>())
-		anim->RateScale = 1.0f * Citizen->GetProductivity();
+		speed = Citizen->GetProductivity();
 
-	Citizen->MovementComponent->SetAnimation(anim, true);
+	Citizen->MovementComponent->SetAnimation(anim, bRepeat, speed);
 
 	if (!IsValid(CitizenSound))
 		return;
 
 	AResource* resource = Cast<AResource>(Cast<AInternalProduction>(this)->ResourceToOverlap->GetDefaultObject());
 
-	Citizen->HarvestVisualTimer = anim->GetPlayLength() / anim->RateScale;
+	Citizen->HarvestVisualTimer = 1.0f / speed;
 	Citizen->HarvestVisualTargetTimer = Citizen->HarvestVisualTimer;
 	Citizen->HarvestVisualResource = resource;
 }
@@ -818,7 +815,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 		return;
 	
 	Citizen->Building.BuildingAt = this;
-	Citizen->Building.EnterLocation = Citizen->GetActorLocation();
+	Citizen->Building.EnterLocation = Citizen->MovementComponent->Transform.GetLocation();
 
 	SetSocketLocation(Citizen);
 
@@ -891,9 +888,6 @@ void ABuilding::Leave(ACitizen* Citizen)
 	Citizen->HarvestVisualTargetTimer = Citizen->HarvestVisualTimer;
 	Citizen->HarvestVisualResource = nullptr;
 
-	Citizen->MovementComponent->CurrentAnim = nullptr;
-	Citizen->Mesh->Play(false);
-
 	Inside.Remove(Citizen);
 
 	if (GetCitizensAtBuilding().IsEmpty() && !bConstant && ParticleComponent->GetAsset() != nullptr)
@@ -928,7 +922,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 				location = pos;
 	}
 
-	Citizen->SetActorLocation(location);
+	Citizen->MovementComponent->Transform.SetLocation(location);
 
 	Citizen->SetActorHiddenInGame(false);
 }

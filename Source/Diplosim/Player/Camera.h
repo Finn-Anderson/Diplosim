@@ -405,6 +405,8 @@ public:
 
 	void Detach();
 
+	FVector GetTargetLocation(AActor* Actor);
+
 	void Lose();
 
 	// Smite

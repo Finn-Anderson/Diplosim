@@ -484,6 +484,9 @@ public:
 
 	void Loop();
 
+	UPROPERTY()
+		class ACamera* Camera;
+
 	// Timers
 	void CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread = false);
 
