@@ -21,12 +21,6 @@
 
 AWork::AWork()
 {
-	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
-	DecalComponent->SetupAttachment(RootComponent);
-	DecalComponent->DecalSize = FVector(1500.0f, 1500.0f, 1500.0f);
-	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
-	DecalComponent->SetVisibility(false);
-
 	WagePerHour = 0.0f;
 
 	bCanAttendEvents = true;

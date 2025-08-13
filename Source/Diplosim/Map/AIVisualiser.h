@@ -87,6 +87,8 @@ public:
 
 	void SetAnimationPoint(class AAI* AI, FTransform Transform);
 
+	TArray<AActor*> GetOverlaps(ACamera* Camera, AActor* Actor, float Range);
+
 	UPROPERTY()
 		TArray<FPendingChangeStruct> PendingChange;
 

@@ -85,6 +85,12 @@ ABuilding::ABuilding()
 	AmbientAudioComponent->PitchModulationMin = 0.9f;
 	AmbientAudioComponent->PitchModulationMax = 1.1f;
 
+	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
+	DecalComponent->SetupAttachment(RootComponent);
+	DecalComponent->DecalSize = FVector(1500.0f, 1500.0f, 1500.0f);
+	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
+	DecalComponent->SetVisibility(false);
+
 	GroundDecalComponent = CreateDefaultSubobject<UDecalComponent>("GroundDecalComponent");
 	GroundDecalComponent->SetupAttachment(RootComponent);
 	GroundDecalComponent->DecalSize = FVector(1.0f, 100.0f, 100.0f);
@@ -702,31 +708,12 @@ void ABuilding::StoreSocketLocations()
 {
 	SocketList.Empty();
 	
-	TArray<FName> sockets;
-	if (IsA<AFestival>())
-		sockets = Cast<AFestival>(this)->GetSpinSockets();
-	else
-		sockets = BuildingMesh->GetAllSocketNames();
+	TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
 
 	FSocketStruct socketStruct;
 
-	int32 limit = 0;
-
-	if (IsA<AFestival>()) {
-		int32 size = FMath::Floor(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X / 200.0f);
-
-		for (int32 i = 0; i < size; i++)
-			limit += FMath::Max(1, i * 1.5f) * 48;
-
-		Space = limit;
-	}
-	else
-		limit += 1000000000;
-
 	for (FName socket : sockets) {
-		int32 number = FCString::Atoi(*socket.ToString().LeftChop(8));
-
-		if (!socket.ToString().Contains("Position") || number >= limit)
+		if (!socket.ToString().Contains("Position"))
 			continue;
 
 		socketStruct.Name = socket;
@@ -774,9 +761,6 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 
 	if (AnimSockets.IsEmpty())
 		return;
-
-	if (IsA<AFestival>())
-		Cast<AFestival>(this)->AttachToSpinMesh(Citizen, SocketList[index].Name);
 
 	EAnim anim = EAnim::Still;
 	bool bRepeat = false;

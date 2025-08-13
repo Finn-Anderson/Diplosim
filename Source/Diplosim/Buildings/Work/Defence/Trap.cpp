@@ -7,17 +7,17 @@
 
 #include "AI/Enemy.h"
 #include "Universal/HealthComponent.h"
+#include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 
 ATrap::ATrap()
 {
-	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
-	RangeComponent->SetCollisionProfileName("Spectator", true);
-	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	RangeComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
-	RangeComponent->SetupAttachment(BuildingMesh);
-	RangeComponent->SetSphereRadius(150.0f);
+	Range = 150.0f;
+	ActivateRange = 100.0f;
+
+	DecalComponent->SetVisibility(true);
 
 	Damage = 300;
 
@@ -26,37 +26,40 @@ ATrap::ATrap()
 	bExplode = false;
 }
 
-void ATrap::BeginPlay()
+void ATrap::ShouldStartTrapTimer(AActor* Actor)
 {
-	Super::BeginPlay();
+	if (Camera->CitizenManager->DoesTimerExist("Trap", this))
+		return;
 
-	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &ATrap::OnTrapOverlapBegin);
-	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &ATrap::OnTrapOverlapEnd);
-}
+	float distance = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
 
-void ATrap::OnTrapOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (OtherActor->IsA<AEnemy>())
-		OverlappingActors.Add(OtherActor);
+	if (distance > ActivateRange)
+		return;
 
-	FTimerHandle FFuseTimer;
-	GetWorld()->GetTimerManager().SetTimer(FFuseTimer, this, &ATrap::ActivateTrap, FuseTime);
-}
-
-void ATrap::OnTrapOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OverlappingActors.Contains(OtherActor))
-		OverlappingActors.Remove(OtherActor);
+	if (FuseTime == 0.0f)
+		ActivateTrap();
+	else
+		Camera->CitizenManager->CreateTimer("Trap", this, FuseTime, FTimerDelegate::CreateUObject(this, &ATrap::ActivateTrap), false, true);
 }
 
 void ATrap::ActivateTrap()
 {
-	for (AActor* actor : OverlappingActors) {
+	TArray<AActor*> actorsInRange = Camera->Grid->AIVisualiser->GetOverlaps(Camera, this, Range);
+
+	for (AActor* actor : actorsInRange) {
 		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+
+		if (!healthComp)
+			continue;
 
 		int32 dmg = Damage;
 
 		if (bExplode) {
+			FVector location = actor->GetActorLocation();
+
+			if (actor->IsA<ABuilding>())
+				Cast<ABuilding>(actor)->BuildingMesh->GetClosestPointOnCollision(GetActorLocation(), location);
+
 			float distance = FVector::Dist(GetActorLocation(), actor->GetActorLocation());
 
 			 dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);

@@ -13,6 +13,8 @@
 #include "AI/Enemy.h"
 #include "AI/AIMovementComponent.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "Universal/Resource.h"
+#include "Buildings/Building.h"
 
 UAIVisualiser::UAIVisualiser()
 {
@@ -311,4 +313,41 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 	info.Key->SetCustomDataValue(info.Value, 5, Transform.GetLocation().Y);
 	info.Key->SetCustomDataValue(info.Value, 6, Transform.GetLocation().Z);
 	info.Key->SetCustomDataValue(info.Value, 7, Transform.GetRotation().Rotator().Pitch);
+}
+
+TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range)
+{
+	TArray<AActor*> actors;
+
+	UCitizenManager* cm = Camera->CitizenManager;
+
+	TArray<AActor*> actorsToCheck;
+	actorsToCheck.Append(cm->Buildings);
+	actorsToCheck.Append(cm->Citizens);
+	actorsToCheck.Append(cm->Clones);
+	actorsToCheck.Append(cm->Rebels);
+	actorsToCheck.Append(cm->Enemies);
+
+	FVector location = Camera->GetTargetLocation(Actor);
+
+	for (AActor* actor : actorsToCheck) {
+		FVector loc = cm->Camera->GetTargetLocation(actor);
+
+		if (actor->IsA<ABuilding>())
+			Cast<ABuilding>(actor)->BuildingMesh->GetClosestPointOnCollision(location, loc);
+
+		float distance = FVector::Dist(location, loc);
+
+		if (distance <= Range)
+			actors.Add(actor);
+	}
+
+	for (FResourceHISMStruct resourceStruct : cm->Camera->Grid->TreeStruct) {
+		TArray<int32> instances = resourceStruct.Resource->ResourceHISM->GetInstancesOverlappingSphere(location, Range);
+
+		if (!instances.IsEmpty())
+			actors.Add(resourceStruct.Resource);
+	}
+
+	return actors;
 }

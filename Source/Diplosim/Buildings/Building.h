@@ -191,6 +191,9 @@ public:
 		class UAudioComponent* AmbientAudioComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
+		class UDecalComponent* DecalComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		class UDecalComponent* GroundDecalComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
@@ -243,7 +246,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		virtual void SetBuildingColour(float R, float G, float B);
 
-	void StoreSocketLocations();
+	virtual void StoreSocketLocations();
 
 	void SetSocketLocation(class ACitizen* Citizen);
 	

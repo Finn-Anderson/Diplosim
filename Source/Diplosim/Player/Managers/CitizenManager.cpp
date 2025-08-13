@@ -20,6 +20,7 @@
 #include "Universal/HealthComponent.h"
 #include "Buildings/Misc/Special/CloneLab.h"
 #include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Work/Defence/Trap.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
@@ -436,7 +437,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							citizen->AttackComponent->SetComponentTickEnabled(true);
 					}
 				}
-				else if (citizen->AIController->MoveRequest.GetGoalActor() == actor && citizen->CanReach(actor, reach) && citizen->AIController->MoveRequest.GetGoalInstance()) {
+				else if (citizen->AIController->MoveRequest.GetGoalActor() == actor && citizen->CanReach(actor, reach, citizen->AIController->MoveRequest.GetGoalInstance())) {
 					AsyncTask(ENamedThreads::GameThread, [this, citizen, actor]() {
 						if (actor->IsA<AResource>() && FindTimer("Harvest", citizen) == nullptr) {
 							AResource* r = Cast<AResource>(actor);
@@ -564,6 +565,12 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 				if (healthComp && healthComp->GetHealth() <= 0)
 					continue;
+
+				if (actor->IsA<ATrap>()) {
+					Cast<ATrap>(actor)->ShouldStartTrapTimer(enemy);
+
+					continue;
+				}
 
 				if (actor->IsA<AResource>() || actor->GetClass() == enemy->GetClass())
 					continue;

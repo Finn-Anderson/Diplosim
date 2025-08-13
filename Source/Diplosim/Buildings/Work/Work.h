@@ -45,10 +45,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	// Range
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
-		class UDecalComponent* DecalComponent;
-
 	// Cost
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		float WagePerHour;

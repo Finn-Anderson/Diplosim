@@ -92,22 +92,16 @@ void AAI::MoveToBroch()
 
 bool AAI::CanReach(AActor* Actor, float Reach, int32 Instance)
 {
-	FCollisionQueryParams params;
-	params.AddIgnoredActor(this);
+	FVector location = Camera->GetTargetLocation(Actor);
 
-	TArray<UPrimitiveComponent*> components = { Camera->Grid->HISMFlatGround, Camera->Grid->HISMGround, Camera->Grid->HISMLava, Camera->Grid->HISMRampGround, Camera->Grid->HISMRiver, Camera->Grid->HISMSea, Camera->Grid->HISMWall };
-	params.AddIgnoredComponents(components);
-	
-	TArray<FHitResult> hits;
+	if (Instance > -1) {
+		FTransform transform;
+		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(Instance, transform);
 
-	if (GetWorld()->SweepMultiByChannel(hits, MovementComponent->Transform.GetLocation(), MovementComponent->Transform.GetLocation(), GetActorQuat(), ECollisionChannel::ECC_Visibility, FCollisionShape::MakeSphere(Reach), params)) {
-		for (FHitResult hit : hits) {
-			if (hit.GetActor() != Actor || (Instance > 0 && hit.Item != Instance) || (!hit.GetComponent()->IsA<UStaticMeshComponent>() && !hit.GetComponent()->IsA<USkeletalMeshComponent>() && !hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>()))
-				continue;
-
-			return true;
-		}
+		location = transform.GetLocation();
 	}
+	else if (Actor->IsA<ABuilding>())
+		Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), location);
 
-	return false;
+	return Reach >= FVector::Dist(MovementComponent->Transform.GetLocation(), location);
 }

@@ -24,26 +24,6 @@ AFestival::AFestival()
 	FestivalMesh->SetCanEverAffectNavigation(true);
 	FestivalMesh->bFillCollisionUnderneathForNavmesh = true;
 
-	InnerSpinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("InnerSpinMesh"));
-	InnerSpinMesh->SetupAttachment(BuildingMesh);
-	InnerSpinMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	InnerIntermediateSpinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("InnerIntermediateSpinMesh"));
-	InnerIntermediateSpinMesh->SetupAttachment(BuildingMesh);
-	InnerIntermediateSpinMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	IntermediateSpinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("IntermediateSpinMesh"));
-	IntermediateSpinMesh->SetupAttachment(BuildingMesh);
-	IntermediateSpinMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	OuterIntermediateSpinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OuterIntermediateSpinMesh"));
-	OuterIntermediateSpinMesh->SetupAttachment(BuildingMesh);
-	OuterIntermediateSpinMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	OuterSpinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OuterSpinMesh"));
-	OuterSpinMesh->SetupAttachment(BuildingMesh);
-	OuterSpinMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
 	BoxAreaAffect = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxAreaAffect"));
 	BoxAreaAffect->SetupAttachment(BuildingMesh);
 	BoxAreaAffect->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
@@ -82,11 +62,24 @@ void AFestival::Tick(float DeltaTime)
 
 	float spinRate = 1.0f;
 
-	InnerSpinMesh->SetRelativeRotation(InnerSpinMesh->GetRelativeRotation() + FRotator(0.0f, spinRate, 0.0f));
-	InnerIntermediateSpinMesh->SetRelativeRotation(IntermediateSpinMesh->GetRelativeRotation() + FRotator(0.0f, spinRate / 1.15f, 0.0f));
-	IntermediateSpinMesh->SetRelativeRotation(OuterSpinMesh->GetRelativeRotation() + FRotator(0.0f, spinRate / 1.5f, 0.0f));
-	OuterIntermediateSpinMesh->SetRelativeRotation(OuterSpinMesh->GetRelativeRotation() + FRotator(0.0f, spinRate / 1.75f, 0.0f));
-	OuterSpinMesh->SetRelativeRotation(OuterSpinMesh->GetRelativeRotation() + FRotator(0.0f, spinRate / 2.0f, 0.0f));
+	for (FSocketStruct &socket : SocketList) {
+		if (!IsValid(socket.Citizen))
+			continue;
+
+		float distance = FVector::Dist(GetActorLocation(), socket.SocketLocation);
+		
+		socket.SocketRotation += FRotator(0.0f, spinRate / (1.0f + ((distance - 60.0f) / 40.0f) * 0.25f), 0.0f);
+
+		FVector location = GetActorLocation();
+		location.X += distance * FMath::Cos(socket.SocketRotation.Yaw);
+		location.Y += distance * FMath::Sin(socket.SocketRotation.Yaw);
+		socket.SocketLocation = location;
+
+		socket.Citizen->MovementComponent->Transform.SetLocation(socket.SocketLocation);
+		socket.Citizen->MovementComponent->Transform.SetRotation(socket.SocketRotation.Quaternion());
+
+		break;
+	}
 }
 
 void AFestival::OnCitizenOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -114,6 +107,36 @@ void AFestival::OnBuilt()
 			continue;
 
 		StartFestival(event.bFireFestival);
+	}
+}
+
+void AFestival::StoreSocketLocations()
+{
+	int32 tier = 0;
+	int32 amount = 8;
+	int32 target = 8;
+
+	for (int32 i = 1; i <= Space; i++) {
+		if (i == amount) {
+			target *= 2;
+			amount += target;
+			tier++;
+		}
+
+		float distance = 60.0f + (40.0f * tier);
+
+		FRotator rotation = GetActorRotation();
+		rotation.Yaw += 360.0f * ((i - (amount - target)) / target);
+
+		FVector location = GetActorLocation();
+		location.X += distance * FMath::Cos(rotation.Yaw);
+		location.Y += distance * FMath::Sin(rotation.Yaw);
+
+		FSocketStruct socketStruct;
+		socketStruct.SocketLocation = location;
+		socketStruct.SocketRotation = rotation;
+
+		SocketList.Add(socketStruct);
 	}
 }
 
@@ -172,40 +195,4 @@ void AFestival::StopFestival()
 	}
 
 	SetActorTickEnabled(false);
-}
-
-TArray<FName> AFestival::GetSpinSockets()
-{
-	TArray<FName> sockets;
-
-	sockets.Append(InnerSpinMesh->GetAllSocketNames());
-	sockets.Append(InnerIntermediateSpinMesh->GetAllSocketNames());
-	sockets.Append(IntermediateSpinMesh->GetAllSocketNames());
-	sockets.Append(OuterIntermediateSpinMesh->GetAllSocketNames());
-	sockets.Append(OuterSpinMesh->GetAllSocketNames());
-
-	return sockets;
-}
-
-void AFestival::AttachToSpinMesh(ACitizen* Citizen, FName Socket)
-{
-	UStaticMeshComponent* spinMesh;
-
-	if (InnerSpinMesh->DoesSocketExist(Socket))
-		spinMesh = InnerSpinMesh;
-	else if (InnerIntermediateSpinMesh->DoesSocketExist(Socket))
-		spinMesh = InnerIntermediateSpinMesh;
-	else if (IntermediateSpinMesh->DoesSocketExist(Socket))
-		spinMesh = IntermediateSpinMesh;
-	else if (OuterIntermediateSpinMesh->DoesSocketExist(Socket))
-		spinMesh = OuterIntermediateSpinMesh;
-	else
-		spinMesh = OuterSpinMesh;
-
-	Citizen->AttachToComponent(spinMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
-
-	Citizen->SetActorRelativeLocation(FVector(0.0f, 0.0f, Citizen->Capsule->GetScaledCapsuleHalfHeight()));
-
-	FRotator rot = (spinMesh->GetSocketLocation(Socket) - GetActorLocation()).Rotation() - FRotator(0.0f, 90.0f, 0.0f);
-	Citizen->SetActorRotation(FRotator(0.0f, rot.Yaw, 0.0f));
 }
