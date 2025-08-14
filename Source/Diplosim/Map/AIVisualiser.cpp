@@ -201,13 +201,17 @@ void UAIVisualiser::RemoveInstance(UHierarchicalInstancedStaticMeshComponent* HI
 
 void UAIVisualiser::UpdateCitizenVisuals(ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
-	if (Citizen->bGlasses && HISMCitizen->PerInstanceSMCustomData[Instance * 13 + 10] == 0.0f)
+	int32 instNum = 13;
+	if (Camera->CitizenManager->Rebels.Contains(Citizen))
+		instNum = 12;
+
+	if (Citizen->bGlasses && HISMCitizen->PerInstanceSMCustomData[Instance * instNum + 10] == 0.0f)
 		HISMCitizen->SetCustomDataValue(Instance, 10, 1.0f);
 
 	if (Camera->CitizenManager->Injured.Contains(Citizen))
-		if (HISMCitizen->PerInstanceSMCustomData[Instance * 13 + 9] == 0.0f)
+		if (HISMCitizen->PerInstanceSMCustomData[Instance * instNum + 9] == 0.0f)
 			HISMCitizen->SetCustomDataValue(Instance, 9, 1.0f);
-		else if (HISMCitizen->PerInstanceSMCustomData[Instance * 13 + 9] == 1.0f)
+		else if (HISMCitizen->PerInstanceSMCustomData[Instance * instNum + 9] == 1.0f)
 			HISMCitizen->SetCustomDataValue(Instance, 9, 0.0f);
 }
 

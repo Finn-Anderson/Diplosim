@@ -233,33 +233,17 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 		Loop();
 
-		if (Citizens.IsEmpty() && Enemies.IsEmpty())
-			return;
-
-		TArray<TEnumAsByte<EObjectTypeQuery>> objects;
-
-		TArray<AActor*> ignore;
-		ignore.Add(Camera->Grid);
-
-		for (FResourceHISMStruct resourceStruct : Camera->Grid->MineralStruct)
-			ignore.Add(resourceStruct.Resource);
-
-		for (FResourceHISMStruct resourceStruct : Camera->Grid->FlowerStruct)
-			ignore.Add(resourceStruct.Resource);
-
 		TArray<AActor*> actors;
 
 		for (ACitizen* citizen : Citizens) {
 			if (citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || Arrested.Contains(citizen))
 				continue;
 
+			actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range);
+
 			int32 reach = citizen->Range / 15.0f;
-			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(citizen), citizen->Range, objects, nullptr, ignore, actors);
 
 			for (AActor* actor : actors) {
-				if (actor == citizen || (!actor->IsA<AAI>() && !actor->IsA<AResource>() && !actor->IsA<ABuilding>()))
-					continue;
-
 				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
 				if (healthComp && healthComp->GetHealth() <= 0)
@@ -268,12 +252,19 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				if (actor->IsA<AAI>()) {
 					AAI* ai = Cast<AAI>(actor);
 
-					if (ai->Capsule->GetCollisionObjectType() == citizen->Capsule->GetCollisionObjectType()) {
+					if (Citizens.Contains(ai) || Rebels.Contains(ai)) {
 						ACitizen* c = Cast<ACitizen>(ai);
 
 						if (citizen->CanReach(c, reach)) {
 							if (!Infected.IsEmpty()) {
-								if (!IsValid(c->Building.Employment) || !c->Building.Employment->IsA<AClinic>()) {
+								if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr && Citizens.Contains(c)) {
+									citizen->CitizenHealing = c;
+
+									CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
+								}
+								else if (!IsValid(c->Building.Employment) || !c->Building.Employment->IsA<AClinic>()) {
+									bool bInfected = false;
+
 									for (FConditionStruct condition : citizen->HealthIssues) {
 										if (c->HealthIssues.Contains(condition))
 											continue;
@@ -283,18 +274,14 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 										if (chance <= condition.Spreadability) {
 											c->HealthIssues.Add(condition);
 
-											Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + condition.Name, Camera->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
+											bInfected = true;
+
+											Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + condition.Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
 										}
 									}
 
-									if (!c->HealthIssues.IsEmpty() && !c->DiseaseNiagaraComponent->IsActive())
+									if (bInfected && !Infected.Contains(c))
 										Infect(c);
-								}
-
-								if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr) {
-									citizen->CitizenHealing = c;
-
-									CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
 								}
 							}
 
@@ -321,7 +308,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 									Arrest(citizen, c);
 								}
 							}
-							else if (!IsInAPoliceReport(citizen) && Enemies.IsEmpty() && !citizen->bConversing && !citizen->bSleep && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && !c->bConversing && !c->bSleep && c->AttackComponent->OverlappingEnemies.IsEmpty()) {
+							else if (Citizens.Contains(c) && !IsInAPoliceReport(citizen) && Enemies.IsEmpty() && !citizen->bConversing && !citizen->bSleep && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && !c->bConversing && !c->bSleep && c->AttackComponent->OverlappingEnemies.IsEmpty()) {
 								int32 chance = Camera->Grid->Stream.RandRange(0, 1000);
 
 								if (chance < 1000)
@@ -331,7 +318,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							}
 						}
 
-						if (Enemies.IsEmpty() && c->AttackComponent->IsComponentTickEnabled()) {
+						if (Enemies.IsEmpty() && Rebels.IsEmpty() && c->AttackComponent->IsComponentTickEnabled()) {
 							FCollisionQueryParams params;
 							params.AddIgnoredActor(citizen);
 
@@ -429,7 +416,8 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							}
 						}
 					}
-					else if (*citizen->AttackComponent->ProjectileClass || citizen->AIController->CanMoveTo(Camera->GetTargetLocation(ai))) {
+					
+					if ((*citizen->AttackComponent->ProjectileClass || citizen->AIController->CanMoveTo(Camera->GetTargetLocation(ai))) && !Citizens.Contains(ai)) {
 						if (!citizen->AttackComponent->OverlappingEnemies.Contains(ai))
 							citizen->AttackComponent->OverlappingEnemies.Add(ai);
 
@@ -516,81 +504,41 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			}
 		}
 
-		for (AAI* clone : Clones) {
-			if (clone->HealthComponent->GetHealth() <= 0)
+		TArray<AAI*> ais;
+		ais.Append(Clones);
+		ais.Append(Rebels);
+		ais.Append(Enemies);
+
+		for (AAI* ai : ais) {
+			if (ai->HealthComponent->GetHealth() <= 0)
 				continue;
 
-			int32 reach = clone->InitialRange / 15.0f;
+			actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range);
 
-			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(clone), clone->Range, objects, nullptr, ignore, actors);
+			int32 reach = ai->InitialRange / 15.0f;
 
 			for (AActor* actor : actors) {
 				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
-				if (healthComp && healthComp->GetHealth() <= 0)
+				if ((healthComp && healthComp->GetHealth() <= 0) || actor->IsA<AResource>() || actor->GetClass() == ai->GetClass() || (ai->IsA<AClone>() && Citizens.Contains(actor)))
 					continue;
 
-				if (actor->IsA<AResource>() || actor->GetClass() == clone->GetClass() || clone->IsA<ACitizen>())
+				if (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetLocation(actor)))
 					continue;
 
-				if (!clone->AIController->CanMoveTo(Camera->GetTargetLocation(actor)))
-					continue;
+				ai->AttackComponent->OverlappingEnemies.Add(actor);
 
-				clone->AttackComponent->OverlappingEnemies.Add(actor);
-
-				if (clone->AttackComponent->OverlappingEnemies.Num() == 1)
-					clone->AttackComponent->SetComponentTickEnabled(true);
+				if (ai->AttackComponent->OverlappingEnemies.Num() == 1)
+					ai->AttackComponent->SetComponentTickEnabled(true);
 			}
 
-			for (int32 i = clone->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
-				AActor* actor = clone->AttackComponent->OverlappingEnemies[i];
+			for (int32 i = ai->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
+				AActor* actor = ai->AttackComponent->OverlappingEnemies[i];
 
 				if (actors.Contains(actor))
 					continue;
 
-				clone->AttackComponent->OverlappingEnemies.RemoveAt(i);
-			}
-		}
-
-		for (AAI* enemy : Enemies) {
-			if (enemy->HealthComponent->GetHealth() <= 0)
-				continue;
-
-			int32 reach = enemy->Range / 15.0f;
-
-			UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(enemy), enemy->Range, objects, nullptr, ignore, actors);
-
-			for (AActor* actor : actors) {
-				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
-
-				if (healthComp && healthComp->GetHealth() <= 0)
-					continue;
-
-				if (actor->IsA<ATrap>()) {
-					Cast<ATrap>(actor)->ShouldStartTrapTimer(enemy);
-
-					continue;
-				}
-
-				if (actor->IsA<AResource>() || actor->GetClass() == enemy->GetClass())
-					continue;
-
-				if (!*enemy->AttackComponent->ProjectileClass && !enemy->AIController->CanMoveTo(Camera->GetTargetLocation(actor)))
-					continue;
-
-				enemy->AttackComponent->OverlappingEnemies.Add(actor);
-
-				if (enemy->AttackComponent->OverlappingEnemies.Num() == 1)
-					enemy->AttackComponent->SetComponentTickEnabled(true);
-			}
-
-			for (int32 i = enemy->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
-				AActor* actor = enemy->AttackComponent->OverlappingEnemies[i];
-
-				if (actors.Contains(actor))
-					continue;
-
-				enemy->AttackComponent->OverlappingEnemies.RemoveAt(i);
+				ai->AttackComponent->OverlappingEnemies.RemoveAt(i);
 			}
 		}
 
@@ -598,8 +546,14 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			if (!IsValid(ai))
 				continue;
 
-			if (ai->IsA<ACitizen>() && Citizens.Contains(Cast<ACitizen>(ai)))
-				Citizens.Remove(Cast<ACitizen>(ai));
+			if (ai->IsA<ACitizen>()) {
+				ACitizen* citizen = Cast<ACitizen>(ai);
+
+				if (Citizens.Contains(citizen))
+					Citizens.Remove(citizen);
+				else
+					Rebels.Remove(citizen);
+			}
 			else if (ai->IsA<AClone>())
 				Clones.Remove(ai);
 			else
@@ -1712,7 +1666,7 @@ void UCitizenManager::CeaseAllInternalFighting()
 		for (int32 i = citizen->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
 			AActor* actor = citizen->AttackComponent->OverlappingEnemies[i];
 
-			if (actor->IsA<ACitizen>() && Cast<ACitizen>(actor)->Capsule->GetCollisionObjectType() == citizen->Capsule->GetCollisionObjectType())
+			if (Citizens.Contains(actor))
 				citizen->AttackComponent->OverlappingEnemies.RemoveAt(i);
 		}
 	}
@@ -1748,7 +1702,7 @@ void UCitizenManager::SpawnDisease()
 	index = Camera->Grid->Stream.RandRange(0, Diseases.Num() - 1);
 	citizen->HealthIssues.Add(Diseases[index]);
 
-	Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + Diseases[index].Name, Camera->ConquestManager->GetColonyContainingCitizen(citizen)->Name);
+	Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + Diseases[index].Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
 
 	Infect(citizen);
 
@@ -1793,9 +1747,7 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 			Citizen->ApplyToMultiplier("Health", affect.Amount);
 	}
 
-	Camera->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + conditions[index].Name, Camera->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
-
-	Citizen->Mesh->SetCustomPrimitiveDataFloat(6, 1.0f);
+	Camera->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + conditions[index].Name, Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
 
 	Injured.Add(Citizen);
 
@@ -1826,7 +1778,7 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 	if (Infected.IsEmpty())
 		Camera->Grid->AIVisualiser->DiseaseNiagaraComponent->Deactivate();
 
-	Camera->NotifyLog("Good", Citizen->BioStruct.Name + " has been healed", Camera->ConquestManager->GetColonyContainingCitizen(Citizen)->Name);
+	Camera->NotifyLog("Good", Citizen->BioStruct.Name + " has been healed", Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
 
 	UpdateHealthText(Citizen);
 }
@@ -2001,7 +1953,7 @@ TArray<FEventStruct> UCitizenManager::OngoingEvents()
 
 void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 {
-	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->IsWorking(Citizen)) || (Event.Type == EEventType::Mass && Cast<ABooster>(Event.Building->GetDefaultObject())->DoesPromoteFavouringValues(Citizen) && Citizen->BioStruct.Age >= 18) || Citizen->Camera->ConquestManager->IsCitizenMoving(Citizen))
+	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event.Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->IsWorking(Citizen)) || (Event.Type == EEventType::Mass && Cast<ABooster>(Event.Building->GetDefaultObject())->DoesPromoteFavouringValues(Citizen) && Citizen->BioStruct.Age >= 18))
 		return;
 
 	int32 index = Events.Find(Event);

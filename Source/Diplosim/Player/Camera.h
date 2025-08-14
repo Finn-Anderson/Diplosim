@@ -112,25 +112,10 @@ public:
 		void UpdateSpeedUI(float Speed);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateMoveCitizen(class ACitizen* Citizen, const FWorldTileStruct& FromTile, const FWorldTileStruct& ToTile);
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateAlterCitizen(class ACitizen* Citizen, const FWorldTileStruct& Tile);
-
-	UFUNCTION(BlueprintImplementableEvent)
 		void DisableMoveBtn(class ACitizen* Citizen);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateFactionHappiness();
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateRaidHP(const FWorldTileStruct& Tile);
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void SetIslandBeingRaided(const FWorldTileStruct& Tile, bool bRaided);
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateIslandInfoPostRaid(const FWorldTileStruct& Tile);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void NotifyConquestEvent(const FString& Message, const FString& FactionName, bool bChoice);
@@ -405,7 +390,7 @@ public:
 
 	void Detach();
 
-	FVector GetTargetLocation(AActor* Actor);
+	FVector GetTargetActorLocation(AActor* Actor);
 
 	void Lose();
 

@@ -60,12 +60,6 @@ void ADiplosimAIController::DefaultAction()
 		if (citizen->bConversing || Camera->CitizenManager->IsInAPoliceReport(citizen) || (citizen->AttackComponent->IsComponentTickEnabled() && Camera->CitizenManager->Enemies.IsEmpty()))
 			return;
 
-		if (Camera->ConquestManager->IsCitizenMoving(citizen)) {
-			AIMoveTo(Camera->ConquestManager->Portal);
-
-			return;
-		}
-
 		if (Camera->CitizenManager->IsAttendingEvent(citizen))
 			return;
 
@@ -276,7 +270,7 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 	if (target != nullptr)
 		AIMoveTo(target);
 	else
-		Camera->CitizenManager->CreateTimer("FindGatherSite", GetOwner(), 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Camera, Resource), false);
+		Camera->CitizenManager->CreateTimer("FindGatherSite", GetOwner(), 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Resource), false);
 }
 
 bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCheckForPortals)

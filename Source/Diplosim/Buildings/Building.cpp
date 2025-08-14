@@ -88,7 +88,7 @@ ABuilding::ABuilding()
 	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
 	DecalComponent->SetupAttachment(RootComponent);
 	DecalComponent->DecalSize = FVector(1500.0f, 1500.0f, 1500.0f);
-	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
+	DecalComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	DecalComponent->SetVisibility(false);
 
 	GroundDecalComponent = CreateDefaultSubobject<UDecalComponent>("GroundDecalComponent");
@@ -961,7 +961,7 @@ bool ABuilding::CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items)
 		if (item.Stored == item.Amount)
 			continue;
 
-		Citizen->AIController->GetGatherSite(Camera, item.Resource);
+		Citizen->AIController->GetGatherSite(item.Resource);
 
 		return false;
 	}

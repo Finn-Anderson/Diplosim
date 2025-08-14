@@ -120,7 +120,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 
 		if (Health == 0)
 			Death(Attacker, force);
-		else if (Camera->CitizenManager->Citizens.Contains(GetOwner()))
+		else if (GetOwner()->IsA<ACitizen>())
 			Camera->CitizenManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Grid->Stream.RandRange(0, 100));
 	});
 }
@@ -171,13 +171,11 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		if (actor->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(actor);
 
-			//FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(citizen);
-
 			Camera->CitizenManager->ClearCitizen(citizen);
 
 			citizen->MovementComponent->SetAnimation(EAnim::Death);
 
-			//Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", tile->Name);
+			Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", Camera->ConquestManager->GetCitizenFaction(citizen).Name);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {

@@ -19,10 +19,8 @@ ABroch::ABroch()
 
 	BuildingMesh->bReceivesDecals = false;
 
-	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
-	DecalComponent->SetupAttachment(RootComponent);
 	DecalComponent->DecalSize = FVector(2000.0f, 2000.0f, 2000.0f);
-	DecalComponent->SetRelativeRotation(FRotator(-90, 0, 0));
+	DecalComponent->SetVisibility(true);
 
 	StorageCap = 1000000;
 }
@@ -47,7 +45,7 @@ void ABroch::SpawnCitizens()
 
 		citizen->SetSex(Camera->CitizenManager->Citizens);
 
-		citizen->MainIslandSetup();
+		citizen->CitizenSetup();
 
 		for (int32 j = 0; j < 2; j++)
 			citizen->GivePersonalityTrait();

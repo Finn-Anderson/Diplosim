@@ -13,6 +13,7 @@
 #include "NiagaraComponent.h"
 
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Resources/Vegetation.h"
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
@@ -149,8 +150,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
 		if (settings->GetRenderTorches())
-			for (ACitizen* citizen : Grid->Camera->CitizenManager->Citizens)
-				citizen->SetTorch(hour);
+			Grid->AIVisualiser->ActivateTorches(hour);
 
 		for (ABuilding* building : Grid->Camera->CitizenManager->Buildings)
 			building->SetLights(hour);
@@ -184,7 +184,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 		Grid->Camera->ResourceManager->SetTrendOnHour(hour);
 
-		Grid->Camera->ConquestManager->GiveResource();
+		Grid->Camera->ConquestManager->ComputeAI();
 
 		NaturalDisasterComponent->IncrementDisasterChance();
 	}

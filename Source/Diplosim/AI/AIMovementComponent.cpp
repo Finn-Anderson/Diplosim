@@ -36,15 +36,17 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
 
-	if (CurrentAnim.StartTransform.GetLocation() != CurrentAnim.EndTransfrom.GetLocation()) {
+	if (CurrentAnim.StartTransform.GetLocation() != CurrentAnim.EndTransform.GetLocation()) {
 		CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
 
-		FTransform transform = FMath::Lerp(CurrentAnim.StartTransform, CurrentAnim.EndTransfrom, CurrentAnim.Alpha);
+		FTransform transform;
+		transform.SetLocation(FMath::Lerp(CurrentAnim.StartTransform.GetLocation(), CurrentAnim.EndTransform.GetLocation(), CurrentAnim.Alpha));
+		transform.SetRotation(FMath::Lerp(CurrentAnim.StartTransform.GetRotation(), CurrentAnim.EndTransform.GetRotation(), CurrentAnim.Alpha));
 
 		if (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f && CurrentAnim.bRepeat) {
 			CurrentAnim.Alpha = FMath::Abs(CurrentAnim.Alpha - 1.0f);
 
-			CurrentAnim.EndTransfrom = CurrentAnim.StartTransform;
+			CurrentAnim.EndTransform = CurrentAnim.StartTransform;
 			CurrentAnim.StartTransform = transform;
 		}
 	}

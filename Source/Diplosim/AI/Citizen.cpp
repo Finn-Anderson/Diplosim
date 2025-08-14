@@ -1002,8 +1002,6 @@ void ACitizen::FindPartner()
 
 	if (Camera->CitizenManager->Citizens.Contains(this))
 		citizens = Camera->CitizenManager->Citizens;
-	else
-		citizens = Camera->ConquestManager->GetColonyContainingCitizen(this)->Citizens;
 
 	for (ACitizen* c : citizens) {
 		if (!IsValid(c) || c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
@@ -1098,7 +1096,7 @@ void ACitizen::IncrementHoursTogetherWithPartner()
 
 void ACitizen::HaveChild()
 {
-	if ((!IsValid(Building.House) && Camera->ConquestManager->GetColonyContainingCitizen(this) == nullptr) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue("Child Policy"))
+	if (!IsValid(Building.House) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue("Child Policy"))
 		return;
 
 	ACitizen* occupant = nullptr;
@@ -1135,34 +1133,13 @@ void ACitizen::HaveChild()
 	citizen->BioStruct.Mother = this;
 	citizen->BioStruct.Father = BioStruct.Partner;
 
-	FString islandName = "";
+	citizen->SetSex(Camera->CitizenManager->Citizens);
+	citizen->CitizenSetup();
 
-	if (Camera->CitizenManager->Citizens.Contains(this)) {
-		citizen->SetSex(Camera->CitizenManager->Citizens);
-		citizen->CitizenSetup();
+	if (IsValid(occupant))
+		citizen->Building.House->AddVisitor(occupant, citizen);
 
-		if (IsValid(occupant))
-			citizen->Building.House->AddVisitor(occupant, citizen);
-
-		islandName = Camera->ColonyName;
-	}
-	else {
-		FWorldTileStruct* tile = Camera->ConquestManager->GetColonyContainingCitizen(this);
-
-		citizen->SetSex(tile->Citizens);
-		citizen->SetActorHiddenInGame(true);
-
-		if (tile->Owner == Camera->ConquestManager->EmpireName)
-			citizen->ApplyResearch();
-
-		tile->Citizens.Add(citizen);
-
-		Camera->UpdateAlterCitizen(citizen, *tile);
-
-		islandName = tile->Name;
-	}
-
-	Camera->NotifyLog("Good", citizen->BioStruct.Name + " is born", islandName);
+	Camera->NotifyLog("Good", citizen->BioStruct.Name + " is born", Camera->ConquestManager->GetCitizenFaction(citizen).Name);
 
 	for (ACitizen* child : BioStruct.Children) {
 		citizen->BioStruct.Siblings.Add(child);
@@ -1393,7 +1370,7 @@ void ACitizen::SetPoliticalLeanings()
 	}
 
 	if (bLog)
-		Camera->NotifyLog("Neutral", BioStruct.Name + " is now a " + UEnum::GetValueAsString(sway->GetValue()) + " " + party->Party, Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
+		Camera->NotifyLog("Neutral", BioStruct.Name + " is now a " + UEnum::GetValueAsString(sway->GetValue()) + " " + party->Party, Camera->ConquestManager->GetCitizenFaction(this).Name);
 }
 
 //
@@ -1463,7 +1440,7 @@ void ACitizen::SetReligion()
 
 	Spirituality.Faith = religionList[index];
 
-	Camera->NotifyLog("Neutral", BioStruct.Name + " set their faith as " + Spirituality.Faith, Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
+	Camera->NotifyLog("Neutral", BioStruct.Name + " set their faith as " + Spirituality.Faith, Camera->ConquestManager->GetCitizenFaction(this).Name);
 }
 
 //
@@ -1739,12 +1716,12 @@ void ACitizen::SetHappiness()
 	if (WitnessedDeathHappiness != 0)
 		Happiness.SetValue("Witnessed death", WitnessedDeathHappiness);
 
-	if (Camera->ConquestManager->GetFactionFromOwner(Camera->ConquestManager->EmpireName).WarFatigue >= 120)
+	if (Camera->ConquestManager->GetCitizenFaction(this).WarFatigue >= 120)
 		Happiness.SetValue("High War Fatigue", -15);
 
 	if (GetHappiness() < 35 && !Camera->CitizenManager->Arrested.Contains(this)) {
 		if (SadTimer == 0)
-			Camera->NotifyLog("Bad", BioStruct.Name + " is sad", Camera->ConquestManager->GetColonyContainingCitizen(this)->Name);
+			Camera->NotifyLog("Bad", BioStruct.Name + " is sad", Camera->ConquestManager->GetCitizenFaction(this).Name);
 
 		SadTimer++;
 	}

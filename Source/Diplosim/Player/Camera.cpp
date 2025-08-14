@@ -350,7 +350,7 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	Cast<ABroch>(Broch)->SpawnCitizens();
 
-	ConquestManager->StartConquest();
+	//ConquestManager->CreateFactions();
 	UpdateInteractUI(false);
 
 	Start = false;
@@ -574,7 +574,7 @@ void ACamera::Detach()
 	FocusedCitizen = nullptr;
 }
 
-FVector ACamera::GetTargetLocation(AActor* Actor)
+FVector ACamera::GetTargetActorLocation(AActor* Actor)
 {
 	FVector location = Actor->GetActorLocation();
 

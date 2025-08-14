@@ -82,18 +82,9 @@ void UResearchManager::Research(float Amount)
 	else
 		camera->ResearchComplete(CurrentIndex);
 
-	for (auto& element : ResearchStruct[CurrentIndex].Modifiers) {
+	for (auto& element : ResearchStruct[CurrentIndex].Modifiers)
 		for (ACitizen* citizen : camera->CitizenManager->Citizens)
 			citizen->ApplyToMultiplier(element.Key, element.Value);
-
-		for (FWorldTileStruct& tile : camera->ConquestManager->World) {
-			if (!tile.bIsland || tile.Owner != camera->ConquestManager->EmpireName || tile.bCapital)
-				continue;
-			
-			for (ACitizen* citizen : tile.Citizens)
-				citizen->ApplyToMultiplier(element.Key, element.Value);
-		}
-	}
 
 	camera->DisplayEvent(ResearchStruct[CurrentIndex].ResearchName, "Research Complete");
 

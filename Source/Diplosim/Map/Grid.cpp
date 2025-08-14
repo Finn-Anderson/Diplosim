@@ -754,7 +754,6 @@ void AGrid::SetupEnvironment()
 	SetSpecialBuildings(ValidMineralTiles);
 
 	// Conquest Map
-	Camera->ConquestManager->GenerateWorld();
 	Camera->UpdateWorldMap();
 	Camera->UpdateInteractUI(true);
 	Camera->UpdateFactionIcons();

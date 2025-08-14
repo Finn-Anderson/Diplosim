@@ -112,7 +112,7 @@ struct FAnimStruct
 		EAnim Type;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animations")
-		FTransform EndTransfrom;
+		FTransform EndTransform;
 
 	UPROPERTY()
 		FTransform StartTransform;
@@ -129,7 +129,7 @@ struct FAnimStruct
 	FAnimStruct()
 	{
 		Type = EAnim::Still;
-		EndTransfrom = FTransform();
+		EndTransform = FTransform();
 		StartTransform = FTransform();
 		Alpha = 0.0f;
 		bRepeat = false;

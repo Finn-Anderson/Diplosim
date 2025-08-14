@@ -17,6 +17,7 @@ ATrap::ATrap()
 	Range = 150.0f;
 	ActivateRange = 100.0f;
 
+	DecalComponent->DecalSize = FVector(Range);
 	DecalComponent->SetVisibility(true);
 
 	Damage = 300;
