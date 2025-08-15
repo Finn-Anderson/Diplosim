@@ -24,6 +24,7 @@ struct FPendingChangeStruct
 
 	FPendingChangeStruct()
 	{
+		AI = nullptr;
 		HISM = nullptr;
 		Transform = FTransform();
 		Instance = 0;
@@ -43,7 +44,7 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class USceneComponent* HISMContainer;
+		class USceneComponent* AIContainer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMCitizen;

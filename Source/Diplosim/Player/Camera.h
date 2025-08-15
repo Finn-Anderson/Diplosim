@@ -85,6 +85,9 @@ public:
 		void UpdateTrends();
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateSpeedUI(float Speed);
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void ResearchComplete(int32 Index);
 
 	UFUNCTION(BlueprintImplementableEvent)
@@ -94,25 +97,13 @@ public:
 		void UpdateMapSpecialBuildings();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateWorldMap();
+		void SetFactionsInDiplomacyUI();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateFactionIcons();
+		void UpdateFactionIcons(int32 Index);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateFactionImage();
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateIconEmpireName(const FString& Name);
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateInteractUI(bool bWorldCreation);
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateSpeedUI(float Speed);
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void DisableMoveBtn(class ACitizen* Citizen);
+		void RemoveFactionBtn(int32 Index);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateFactionHappiness();
@@ -284,16 +275,10 @@ public:
 		class UUserWidget* ResearchHoverUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-		TSubclassOf<class UUserWidget> WorldUI;
+		TSubclassOf<class UUserWidget> DiplomacyUI;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-		class UUserWidget* WorldUIInstance;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-		TSubclassOf<class UUserWidget> FactionColourUI;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-		class UUserWidget* FactionColourUIInstance;
+		class UUserWidget* DiplomacyUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> HoursUI;

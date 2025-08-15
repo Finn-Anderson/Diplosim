@@ -47,23 +47,18 @@ void UConquestManager::CreateFactions()
 			factionsParsed.RemoveAt(index);
 	}
 
-	TArray<FFactionStruct> factionIcons = DefaultOccupierTextureList;
-
 	for (FString name : factions) {
 		FFactionStruct f;
 		f.Name = name;
 
-		int32 tIndex = Camera->Grid->Stream.RandRange(0, factionIcons.Num() - 1);
-
-		f.Texture = factionIcons[tIndex].Texture;
-		f.Colour = factionIcons[tIndex].Colour;
-
-		factionIcons.RemoveAt(tIndex);
-
 		Factions.Add(f);
 
 		// Get all valid tile placements for broch, then check if another broch within 3000 units. Add buildings, rebels and citizens to faction struct as storage.
+
+		SetFactionCulture(f);
 	}
+
+	Camera->SetFactionsInDiplomacyUI();
 }
 
 int32 UConquestManager::GetFactionIndexFromOwner(FString Owner)
@@ -83,14 +78,20 @@ FFactionStruct UConquestManager::GetFactionFromOwner(FString Owner)
 	return Factions[GetFactionIndexFromOwner(Owner)];
 }
 
-void UConquestManager::SetFactionTexture(FString Owner, UTexture2D* Texture, FLinearColor Colour)
+UTexture2D* UConquestManager::GetTextureFromCulture(FString Type)
 {
-	int32 i = GetFactionIndexFromOwner(Owner);
+	UTexture2D* texture = nullptr;
 
-	Factions[i].Texture = Texture;
-	Factions[i].Colour = Colour;
+	for (FCultureImageStruct culture : CultureTextureList) {
+		if (culture.Type != Type)
+			continue;
 
-	Camera->UpdateFactionImage();
+		texture = culture.Texture;
+
+		break;
+	}
+		
+	return texture;
 }
 
 void UConquestManager::ComputeAI()
@@ -129,7 +130,11 @@ void UConquestManager::ComputeAI()
 					f.Happiness.RemoveAt(i);
 		}
 
-		Factions.Remove(faction);
+		int32 index = GetFactionIndexFromOwner(faction.Name);
+
+		Camera->RemoveFactionBtn(index);
+
+		Factions.RemoveAt(index);
 	}
 }
 
@@ -203,8 +208,13 @@ void UConquestManager::SetFactionCulture(FFactionStruct Faction)
 		biggestReligion = element;
 	}
 
+	if (Factions[index].PartyInPower == biggestParty.Key && Factions[index].LargestReligion == biggestReligion.Key)
+		return;
+
 	Factions[index].PartyInPower = biggestParty.Key;
 	Factions[index].LargestReligion = biggestReligion.Key;
+
+	Camera->UpdateFactionIcons(index);
 }
 
 int32 UConquestManager::GetHappinessWithFaction(FFactionStruct Faction, FFactionStruct Target)

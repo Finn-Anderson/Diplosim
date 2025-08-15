@@ -77,12 +77,6 @@ struct FFactionStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
 		FString Name;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
-		UTexture2D* Texture;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
-		FLinearColor Colour;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
 		TArray<FString> AtWar;
 
@@ -104,8 +98,6 @@ struct FFactionStruct
 	FFactionStruct()
 	{
 		Name = "";
-		Texture = nullptr;
-		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
 		WarFatigue = 0;
 		PartyInPower = "";
 		LargestReligion = "";
@@ -114,6 +106,30 @@ struct FFactionStruct
 	bool operator==(const FFactionStruct& other) const
 	{
 		return (other.Name == Name);
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FCultureImageStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FString Type;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		UTexture2D* Texture;
+
+	FCultureImageStruct()
+	{
+		Type = "";
+		Texture = nullptr;
+	}
+
+	bool operator==(const FCultureImageStruct& other) const
+	{
+		return (other.Type == Type);
 	}
 };
 
@@ -177,7 +193,7 @@ public:
 		FFactionStruct GetFactionFromOwner(FString Owner);
 
 	UFUNCTION(BlueprintCallable)
-		void SetFactionTexture(FString Owner, UTexture2D* Texture, FLinearColor Colour);
+		UTexture2D* GetTextureFromCulture(FString Type);
 
 	void ComputeAI();
 
@@ -190,8 +206,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
 		int32 EnemiesNum;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Occupier Texture List")
-		TArray<FFactionStruct> DefaultOccupierTextureList;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Culture Texture List")
+		TArray<FCultureImageStruct> CultureTextureList;
 
 	UPROPERTY()
 		class ACamera* Camera;

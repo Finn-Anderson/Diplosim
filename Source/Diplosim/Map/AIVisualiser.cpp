@@ -25,10 +25,10 @@ UAIVisualiser::UAIVisualiser()
 	response.Visibility = ECR_Block;
 	response.WorldStatic = ECR_Block;
 
-	HISMContainer = CreateDefaultSubobject<USceneComponent>(TEXT("HISMContainer"));
+	AIContainer = CreateDefaultSubobject<USceneComponent>(TEXT("AIContainer"));
 
 	HISMCitizen = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMCitizen"));
-	HISMCitizen->SetupAttachment(HISMContainer);
+	HISMCitizen->SetupAttachment(AIContainer);
 	HISMCitizen->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	HISMCitizen->SetCollisionObjectType(ECC_GameTraceChannel2);
 	HISMCitizen->SetCollisionResponseToChannels(response);
@@ -39,7 +39,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMCitizen->NumCustomDataFloats = 13;
 
 	HISMClone = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClone"));
-	HISMClone->SetupAttachment(HISMContainer);
+	HISMClone->SetupAttachment(AIContainer);
 	HISMClone->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	HISMClone->SetCollisionObjectType(ECC_GameTraceChannel2);
 	HISMClone->SetCollisionResponseToChannels(response);
@@ -50,7 +50,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMClone->NumCustomDataFloats = 9;
 
 	HISMRebel = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRebel"));
-	HISMRebel->SetupAttachment(HISMContainer);
+	HISMRebel->SetupAttachment(AIContainer);
 	HISMRebel->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	HISMRebel->SetCollisionObjectType(ECC_GameTraceChannel3);
 	HISMRebel->SetCollisionResponseToChannels(response);
@@ -61,7 +61,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMRebel->NumCustomDataFloats = 12;
 
 	HISMEnemy = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMEnemy"));
-	HISMEnemy->SetupAttachment(HISMContainer);
+	HISMEnemy->SetupAttachment(AIContainer);
 	HISMEnemy->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	HISMEnemy->SetCollisionObjectType(ECC_GameTraceChannel4);
 	HISMEnemy->SetCollisionResponseToChannels(response);
@@ -72,17 +72,17 @@ UAIVisualiser::UAIVisualiser()
 	HISMEnemy->NumCustomDataFloats = 9;
 
 	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
-	TorchNiagaraComponent->SetupAttachment(HISMContainer);
+	TorchNiagaraComponent->SetupAttachment(AIContainer);
 	TorchNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	TorchNiagaraComponent->bAutoActivate = false;
 
 	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
-	DiseaseNiagaraComponent->SetupAttachment(HISMContainer);
+	DiseaseNiagaraComponent->SetupAttachment(AIContainer);
 	DiseaseNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	DiseaseNiagaraComponent->bAutoActivate = false;
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
-	HarvestNiagaraComponent->SetupAttachment(HISMContainer);
+	HarvestNiagaraComponent->SetupAttachment(AIContainer);
 	HarvestNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	HarvestNiagaraComponent->bAutoActivate = true;
 }

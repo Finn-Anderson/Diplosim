@@ -18,7 +18,6 @@
 #include "Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
-#include "Player/Managers/ConquestManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Player/Components/BuildComponent.h"
 #include "Universal/EggBasket.h"
@@ -42,6 +41,9 @@ AGrid::AGrid()
 	response.GameTraceChannel2 = ECR_Ignore;
 	response.GameTraceChannel3 = ECR_Ignore;
 	response.GameTraceChannel4 = ECR_Ignore;
+
+	WorldContainer = CreateDefaultSubobject<USceneComponent>(TEXT("WorldContainer"));
+	RootComponent = WorldContainer;
 
 	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
 	HISMLava->SetupAttachment(GetRootComponent());
@@ -138,15 +140,16 @@ AGrid::AGrid()
 	LavaComponent->SetAutoActivate(false);
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
-	AtmosphereComponent->WindComponent->SetupAttachment(RootComponent);
+	AtmosphereComponent->WindComponent->SetupAttachment(GetRootComponent());
 
 	AIVisualiser = CreateDefaultSubobject<UAIVisualiser>(TEXT("AIVisualiser"));
+	AIVisualiser->AIContainer->SetupAttachment(GetRootComponent());
 
 	CrystalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CrystalMesh"));
 	CrystalMesh->SetCollisionProfileName("NoCollision", false);
 	CrystalMesh->SetComponentTickEnabled(false);
 	CrystalMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -1000.0f));
-	CrystalMesh->SetupAttachment(RootComponent);
+	CrystalMesh->SetupAttachment(GetRootComponent());
 
 	Size = 22500;
 	Chunks = 1;
@@ -752,11 +755,6 @@ void AGrid::SetupEnvironment()
 
 	// Unique Buildings
 	SetSpecialBuildings(ValidMineralTiles);
-
-	// Conquest Map
-	Camera->UpdateWorldMap();
-	Camera->UpdateInteractUI(true);
-	Camera->UpdateFactionIcons();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(true, false);

@@ -101,6 +101,9 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class USceneComponent* WorldContainer;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 		class UAtmosphereComponent* AtmosphereComponent;
 

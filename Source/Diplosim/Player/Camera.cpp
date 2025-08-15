@@ -187,9 +187,7 @@ void ACamera::BeginPlay()
 
 	ResearchHoverUIInstance = CreateWidget<UUserWidget>(PController, ResearchHoverUI);
 
-	WorldUIInstance = CreateWidget<UUserWidget>(PController, WorldUI);
-
-	FactionColourUIInstance = CreateWidget<UUserWidget>(PController, FactionColourUI);
+	DiplomacyUIInstance = CreateWidget<UUserWidget>(PController, DiplomacyUI);
 
 	HoursUIInstance = CreateWidget<UUserWidget>(PController, HoursUI);
 
@@ -301,7 +299,6 @@ void ACamera::StartGame()
 	bInMenu = false;
 
 	Grid->MapUIInstance->AddToViewport();
-	WorldUIInstance->AddToViewport();
 }
 
 void ACamera::OnBrochPlace(ABuilding* Broch)
@@ -350,8 +347,7 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	Cast<ABroch>(Broch)->SpawnCitizens();
 
-	//ConquestManager->CreateFactions();
-	UpdateInteractUI(false);
+	ConquestManager->CreateFactions();
 
 	Start = false;
 
@@ -417,7 +413,7 @@ void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
 
 void ACamera::ClearPopupUI()
 {
-	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, ResearchUIInstance, ResearchHoverUIInstance, BuildingColourUIInstance, HoursUIInstance, FactionColourUIInstance };
+	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, ResearchUIInstance, ResearchHoverUIInstance, BuildingColourUIInstance, HoursUIInstance };
 
 	if (widgets.Contains(HoveredWidget))
 		widgets.Remove(HoveredWidget);
