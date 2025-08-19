@@ -67,13 +67,13 @@ void ADiplosimAIController::DefaultAction()
 				return;
 		}
 
-		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->IsWorking(citizen)) {
+		if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsWorking(citizen)) {
 			if (IsValid(MoveRequest.GetGoalActor()) && MoveRequest.GetGoalActor()->IsA<AResource>())
 				StartMovement();
 			else
 				AIMoveTo(citizen->Building.Employment);
 		}
-		else if (citizen->Building.School != nullptr && citizen->Building.School->IsWorking(citizen->Building.School->GetOccupant(citizen)))
+		else if (IsValid(citizen->Building.School) && citizen->Building.School->IsWorking(citizen->Building.School->GetOccupant(citizen)))
 			AIMoveTo(citizen->Building.School);
 		else
 			Idle(citizen);
@@ -94,27 +94,6 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 	int32 hoursLeft = Citizen->HoursSleptToday.Num();
 
 	AHouse* house = Citizen->Building.House;
-
-	if (!IsValid(house)) {
-		TArray<AHouse*> familyHouses;
-
-		for (ACitizen* citizen : Citizen->GetLikedFamily(false)) {
-			if (!IsValid(citizen->Building.House) || !IsValid(citizen->Building.House->GetOccupant(citizen)) || citizen->Building.House->GetVisitors(citizen->Building.House->GetOccupant(citizen)).Num() == citizen->Building.House->Space)
-				continue;
-
-			familyHouses.Add(citizen->Building.House);
-		}
-
-		if (!familyHouses.IsEmpty()) {
-			int32 index = Camera->Grid->Stream.RandRange(0, familyHouses.Num() - 1);
-
-			house = familyHouses[index];
-
-			ACitizen* citizen = Cast<ACitizen>(AI);
-
-			familyHouses[index]->AddVisitor(house->GetOccupant(citizen), citizen);
-		}
-	}
 
 	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
 		AIMoveTo(house);
@@ -163,7 +142,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 			}
 		}
 
-		Camera->CitizenManager->CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::DefaultAction), false, true);
+		Camera->CitizenManager->CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::DefaultAction), false);
 	}
 }
 

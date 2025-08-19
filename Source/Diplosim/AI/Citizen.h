@@ -312,6 +312,9 @@ public:
 	UPROPERTY()
 		TArray<class ABuilding*> AllocatedBuildings;
 
+	UPROPERTY()
+		ACitizen* FoundHouseOccupant;
+
 	// On Hit
 	void SetHarvestVisuals(class AResource* Resource);
 

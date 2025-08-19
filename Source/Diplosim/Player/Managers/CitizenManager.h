@@ -548,6 +548,8 @@ public:
 
 	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness);
 
+	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness);
+
 	void StartConversation(class ACitizen* Citizen1, class ACitizen* Citizen2, bool bInterrogation);
 
 	void Interact(class ACitizen* Citizen1, class ACitizen* Citizen2);

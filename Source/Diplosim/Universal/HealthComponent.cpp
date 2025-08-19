@@ -312,6 +312,9 @@ void UHealthComponent::Clear(AActor* Attacker)
 		return;
 	}
 
+	if (actor->IsA<AAI>())
+		Camera->CitizenManager->AIPendingRemoval.Add(Cast<AAI>(actor));
+
 	actor->Destroy();
 }
 

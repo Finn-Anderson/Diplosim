@@ -546,6 +546,10 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			if (!IsValid(ai))
 				continue;
 
+			TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
+
+			Camera->Grid->AIVisualiser->RemoveInstance(info.Key, info.Value);
+
 			if (ai->IsA<ACitizen>()) {
 				ACitizen* citizen = Cast<ACitizen>(ai);
 
@@ -1201,6 +1205,23 @@ void UCitizenManager::PersonalityComparison(ACitizen* Citizen1, ACitizen* Citize
 		for (FPersonality* p : citizen2Personalities) {
 			Citizen2Aggressiveness += p->Aggressiveness / citizen2Personalities.Num();
 
+			if (personality->Trait == p->Trait)
+				Likeness += 2;
+			else if (personality->Likes.Contains(p->Trait))
+				Likeness++;
+			else if (personality->Dislikes.Contains(p->Trait))
+				Likeness--;
+		}
+	}
+}
+
+void UCitizenManager::PersonalityComparison(ACitizen* Citizen1, ACitizen* Citizen2, int32& Likeness)
+{
+	TArray<FPersonality*> citizen1Personalities = GetCitizensPersonalities(Citizen1);
+	TArray<FPersonality*> citizen2Personalities = GetCitizensPersonalities(Citizen2);
+
+	for (FPersonality* personality : citizen1Personalities) {
+		for (FPersonality* p : citizen2Personalities) {
 			if (personality->Trait == p->Trait)
 				Likeness += 2;
 			else if (personality->Likes.Contains(p->Trait))

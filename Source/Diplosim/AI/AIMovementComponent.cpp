@@ -52,16 +52,13 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);
 	
-	ADiplosimAIController* aicontroller = AI->AIController;
-	AActor* goal = aicontroller->MoveRequest.GetGoalActor();
+	AActor* goal = AI->AIController->MoveRequest.GetGoalActor();
 	
 	if (IsValid(goal)) {
-		FVector location = goal->GetActorLocation();
-		if (goal->IsA<AAI>())
-			location = Cast<AAI>(goal)->MovementComponent->Transform.GetLocation();
+		FVector location = AI->Camera->GetTargetLocation(goal);
 
 		if (Points.Last() != location)
-			aicontroller->RecalculateMovement(goal);
+			AI->AIController->RecalculateMovement(goal);
 	}
 
 	if (!Points.IsEmpty() && FVector::DistXY(Transform.GetLocation(), Points[0]) < range)
@@ -91,7 +88,9 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		targetRotation.Pitch = 0.0f;
 
 		Transform.SetLocation(Transform.GetLocation() + deltaV);
-		Transform.SetRotation(FMath::RInterpTo(Transform.GetRotation().Rotator(), targetRotation, DeltaTime, 10.0f).Quaternion());
+
+		if (Transform.GetRotation().Rotator() != targetRotation)
+			Transform.SetRotation(FMath::RInterpTo(Transform.GetRotation().Rotator(), targetRotation, DeltaTime, 10.0f).Quaternion());
 	}
 	else if (CurrentAnim.Type == EAnim::Move)
 		AI->AIController->StopMovement();

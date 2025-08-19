@@ -76,6 +76,8 @@ public:
 
 	void RemoveInstance(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
 
+	void SetInstanceTransform(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform);
+
 	void UpdateCitizenVisuals(class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
 
 	void ActivateTorches(int32 Hour, class UHierarchicalInstancedStaticMeshComponent* HISM = nullptr, int32 Instance = -1);

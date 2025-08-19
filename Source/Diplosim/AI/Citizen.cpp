@@ -271,42 +271,85 @@ void ACitizen::FindHouse(class AHouse* House, int32 TimeToCompleteDay)
 	if (!IsValid(AllocatedBuildings[2]))
 		SetAcquiredTime(2, -1000.0f);
 
-	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(2) + TimeToCompleteDay || House->GetCapacity() == House->GetOccupied().Num() || Balance < House->Rent && (!IsValid(Building.Employment) || Building.Employment->GetWage(this) < House->Rent))
+	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(2) + TimeToCompleteDay)
+		return;
+
+	int32 wages = 0;
+	int32 spaceRequired = 0;
+	ACitizen* occupant = nullptr;
+	
+	if (IsValid(Building.Employment))
+		Building.Employment->GetWage(this);
+	else
+		wages = Balance;
+
+	if (BioStruct.Partner != nullptr)
+		spaceRequired++;
+
+	if (IsValid(Building.House) && Building.House->GetOccupied().Contains(this)) {
+		TArray<ACitizen*> visitors = Building.House->GetVisitors(this);
+
+		for (ACitizen* visitor : visitors) {
+			if (IsValid(visitor->Building.Employment))
+				visitor->Building.Employment->GetWage(this);
+			else
+				wages = visitor->Balance;
+		}
+
+		spaceRequired = visitors.Num();
+	}
+	else if (spaceRequired == 0) {
+		for (ACitizen* occupier : House->GetOccupied()) {
+			TArray<ACitizen*> citizens = House->GetVisitors(occupier);
+
+			if (citizens.Num() == House->Space)
+				continue;
+
+			citizens.Add(occupier);
+
+			bool bAvailable = true;
+
+			for (ACitizen* citizen : citizens) {
+				int32 likeness = 0;
+
+				Camera->CitizenManager->PersonalityComparison(this, citizen, likeness);
+
+				if (likeness < 0) {
+					bAvailable = false;
+
+					break;
+				}
+
+				if (IsValid(citizen->Building.Employment))
+					citizen->Building.Employment->GetWage(this);
+				else
+					wages = citizen->Balance;
+			}
+
+			if (bAvailable) {
+				occupant = occupier;
+
+				break;
+			}
+		}
+	}
+
+	if (wages < House->Rent || House->Space < spaceRequired || (!IsValid(occupant) && House->GetOccupied().Num() == House->GetCapacity()))
 		return;
 
 	AHouse* chosenHouse = Cast<AHouse>(AllocatedBuildings[2]);
 
-	if (!IsValid(chosenHouse)) {
+	if (!IsValid(chosenHouse) || (IsValid(FoundHouseOccupant) && !IsValid(occupant))) {
 		AllocatedBuildings[2] = House;
+		FoundHouseOccupant = occupant;
 	}
 	else {
-		int32 curLeftoverMoney = 0;
+		int32 newLeftoverMoney = (wages - House->Rent) * 50;
 
-		if (IsValid(Building.Employment))
-			curLeftoverMoney = Building.Employment->GetWage(this);
-		else
-			curLeftoverMoney = Balance;
+		wages -= chosenHouse->Rent;
+		wages *= 50;
 
-		int32 spaceRequired = 0;
-
-		if (IsValid(Building.House) && Building.House->GetOccupied().Contains(this)) {
-			TArray<ACitizen*> visitors = Building.House->GetVisitors(this);
-
-			for (ACitizen* citizen : visitors)
-				curLeftoverMoney += Balance;
-
-			spaceRequired = visitors.Num();
-		}
-
-		if (House->Space < spaceRequired)
-			return;
-
-		int32 newLeftoverMoney = (curLeftoverMoney - House->Rent) * 50;
-
-		curLeftoverMoney -= chosenHouse->Rent;
-		curLeftoverMoney *= 50;
-
-		int32 currentValue = FMath::Max(chosenHouse->GetQuality() + curLeftoverMoney, 0);
+		int32 currentValue = FMath::Max(chosenHouse->GetQuality() + wages, 0);
 		int32 newValue = FMath::Max(House->GetQuality() + newLeftoverMoney, 0);
 
 		FVector workLocation = MovementComponent->Transform.GetLocation();
@@ -328,6 +371,7 @@ void ACitizen::FindHouse(class AHouse* House, int32 TimeToCompleteDay)
 			return;
 
 		AllocatedBuildings[2] = House;
+		FoundHouseOccupant = occupant;
 	}
 }
 
@@ -358,18 +402,24 @@ void ACitizen::SetJobHouseEducation(int32 TimeToCompleteDay)
 
 		if (i == 0)
 			Cast<ASchool>(building)->AddVisitor(Cast<ASchool>(building)->GetOccupant(this), this);
-		else
+		else if (i == 1)
 			building->AddCitizen(this);
-
-		if (i == 2) {
+		else {
 			if (IsValid(Building.Orphanage))
 				Building.Orphanage->RemoveVisitor(Building.Orphanage->GetOccupant(this), this);
 
-			for (ACitizen* citizen : roommates)
-				building->AddVisitor(this, citizen);
+			if (FoundHouseOccupant) {
+				building->AddVisitor(FoundHouseOccupant, this);
 
-			if (BioStruct.Partner->IsValidLowLevelFast() && !roommates.Contains(BioStruct.Partner))
-				building->AddVisitor(this, Cast<ACitizen>(BioStruct.Partner));
+				FoundHouseOccupant = nullptr;
+			}
+			else {
+				for (ACitizen* citizen : roommates)
+					building->AddVisitor(this, citizen);
+
+				if (BioStruct.Partner != nullptr && !roommates.Contains(BioStruct.Partner))
+					building->AddVisitor(this, Cast<ACitizen>(BioStruct.Partner));
+			}
 		}
 
 		SetAcquiredTime(i, GetWorld()->GetTimeSeconds());
@@ -1229,20 +1279,11 @@ TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
 
 	for (int32 i = (family.Num() - 1); i > -1; i--) {
 		ACitizen* citizen = family[i];
-		int32 count = 0;
+		int32 likeness = 0;
 
-		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
-			for (FPersonality* p : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {
-				if (personality->Trait == p->Trait)
-					count += 2;
-				else if (personality->Likes.Contains(p->Trait))
-					count++;
-				else if (personality->Dislikes.Contains(p->Trait))
-					count--;
-			}
-		}
+		Camera->CitizenManager->PersonalityComparison(this, citizen, likeness);
 
-		if (count < 0)
+		if (likeness < 0)
 			family.RemoveAt(i);
 	}
 

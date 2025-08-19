@@ -24,13 +24,12 @@ UAIVisualiser::UAIVisualiser()
 	FCollisionResponseContainer response;
 	response.SetAllChannels(ECR_Ignore);
 	response.Visibility = ECR_Block;
-	response.WorldStatic = ECR_Block;
 
 	AIContainer = CreateDefaultSubobject<USceneComponent>(TEXT("AIContainer"));
 
 	HISMCitizen = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMCitizen"));
 	HISMCitizen->SetupAttachment(AIContainer);
-	HISMCitizen->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	HISMCitizen->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMCitizen->SetCollisionObjectType(ECC_GameTraceChannel2);
 	HISMCitizen->SetCollisionResponseToChannels(response);
 	HISMCitizen->SetCanEverAffectNavigation(false);
@@ -41,7 +40,7 @@ UAIVisualiser::UAIVisualiser()
 
 	HISMClone = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClone"));
 	HISMClone->SetupAttachment(AIContainer);
-	HISMClone->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	HISMClone->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMClone->SetCollisionObjectType(ECC_GameTraceChannel2);
 	HISMClone->SetCollisionResponseToChannels(response);
 	HISMClone->SetCanEverAffectNavigation(false);
@@ -52,7 +51,7 @@ UAIVisualiser::UAIVisualiser()
 
 	HISMRebel = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRebel"));
 	HISMRebel->SetupAttachment(AIContainer);
-	HISMRebel->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	HISMRebel->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMRebel->SetCollisionObjectType(ECC_GameTraceChannel3);
 	HISMRebel->SetCollisionResponseToChannels(response);
 	HISMRebel->SetCanEverAffectNavigation(false);
@@ -63,7 +62,7 @@ UAIVisualiser::UAIVisualiser()
 
 	HISMEnemy = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMEnemy"));
 	HISMEnemy->SetupAttachment(AIContainer);
-	HISMEnemy->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	HISMEnemy->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	HISMEnemy->SetCollisionObjectType(ECC_GameTraceChannel4);
 	HISMEnemy->SetCollisionResponseToChannels(response);
 	HISMEnemy->SetCanEverAffectNavigation(false);
@@ -113,9 +112,9 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			else
 				colour = FLinearColor(Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f));
 
-			pending.HISM->SetCustomDataValue(instance, 1, colour.R);
-			pending.HISM->SetCustomDataValue(instance, 2, colour.G);
-			pending.HISM->SetCustomDataValue(instance, 3, colour.B);
+			pending.HISM->PerInstanceSMCustomData[instance * pending.HISM->NumCustomDataFloats + 1] = colour.R;
+			pending.HISM->PerInstanceSMCustomData[instance * pending.HISM->NumCustomDataFloats + 2] = colour.G;
+			pending.HISM->PerInstanceSMCustomData[instance * pending.HISM->NumCustomDataFloats + 3] = colour.B;
 
 			ActivateTorches(Camera->Grid->AtmosphereComponent->Calendar.Hour, pending.HISM, instance);
 
@@ -141,16 +140,16 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
 
 			if (i == 0) {
-				HISMCitizen->UpdateInstanceTransform(j, citizen->MovementComponent->Transform, true);
+				SetInstanceTransform(HISMCitizen, j, citizen->MovementComponent->Transform);
 
 				float opacity = 1.0f;
 				if (IsValid(citizen->Building.BuildingAt))
 					opacity = 0.0f;
 
-				HISMCitizen->SetCustomDataValue(j, 12, opacity);
+				HISMCitizen->PerInstanceSMCustomData[j * HISMCitizen->NumCustomDataFloats + 12] = opacity;
 			}
 			else
-				HISMRebel->UpdateInstanceTransform(j, citizen->MovementComponent->Transform, true);
+				SetInstanceTransform(HISMRebel, j, citizen->MovementComponent->Transform);
 
 			if (Camera->CitizenManager->Infected.Contains(citizen))
 				diseaseLocations.Add(citizen->MovementComponent->Transform.GetLocation());
@@ -171,7 +170,11 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			AAI* ai = ais[i][j];
 
 			ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
-			HISMClone->UpdateInstanceTransform(j, ai->MovementComponent->Transform, true);
+
+			if (i == 0)
+				SetInstanceTransform(HISMClone, j, ai->MovementComponent->Transform);
+			else
+				SetInstanceTransform(HISMEnemy, j, ai->MovementComponent->Transform);
 		}
 	}
 
@@ -186,6 +189,9 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 	}
 
 	HISMCitizen->BuildTreeIfOutdated(false, true);
+	HISMRebel->BuildTreeIfOutdated(false, true);
+	HISMClone->BuildTreeIfOutdated(false, true);
+	HISMEnemy->BuildTreeIfOutdated(false, true);
 }
 
 void UAIVisualiser::AddInstance(class AAI* AI, UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform)
@@ -209,24 +215,35 @@ void UAIVisualiser::RemoveInstance(UHierarchicalInstancedStaticMeshComponent* HI
 	PendingChange.Add(pending);
 }
 
+void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform)
+{
+	FInstancedStaticMeshInstanceData& instanceData = HISM->PerInstanceSMData[Instance];
+	instanceData.Transform = Transform.ToMatrixWithScale();
+}
+
 void UAIVisualiser::UpdateCitizenVisuals(ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
-	int32 instNum = 13;
-	if (Camera->CitizenManager->Rebels.Contains(Citizen))
-		instNum = 12;
+	UHierarchicalInstancedStaticMeshComponent* HISM = nullptr;
 
-	if (Citizen->bGlasses && HISMCitizen->PerInstanceSMCustomData[Instance * instNum + 10] == 0.0f)
-		HISMCitizen->SetCustomDataValue(Instance, 10, 1.0f);
+	if (Camera->CitizenManager->Citizens.Contains(Citizen))
+		HISM = HISMCitizen;
+	else
+		HISM = HISMRebel;
 
-	if (Camera->CitizenManager->Injured.Contains(Citizen))
-		if (HISMCitizen->PerInstanceSMCustomData[Instance * instNum + 9] == 0.0f)
-			HISMCitizen->SetCustomDataValue(Instance, 9, 1.0f);
-		else if (HISMCitizen->PerInstanceSMCustomData[Instance * instNum + 9] == 1.0f)
-			HISMCitizen->SetCustomDataValue(Instance, 9, 0.0f);
+	if (Citizen->bGlasses && HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 10] == 0.0f)
+		HISMCitizen->PerInstanceSMCustomData[Instance * HISMCitizen->NumCustomDataFloats + 10] = 1.0f;
+
+	if (Camera->CitizenManager->Injured.Contains(Citizen) && HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] == 0.0f)
+		HISMCitizen->PerInstanceSMCustomData[Instance * HISMCitizen->NumCustomDataFloats + 9] = 1.0f;
+	else if (HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] == 1.0f)
+		HISMCitizen->PerInstanceSMCustomData[Instance * HISMCitizen->NumCustomDataFloats + 9] = 0.0f;
 }
 
 void UAIVisualiser::ActivateTorches(int32 Hour, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
 {
+	if (HISM == HISMClone || HISM == HISMEnemy)
+		return;
+
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
 	int32 value = 0.0f;
@@ -236,10 +253,10 @@ void UAIVisualiser::ActivateTorches(int32 Hour, UHierarchicalInstancedStaticMesh
 
 	if (Instance == INDEX_NONE) {
 		for (int32 i = 0; i < HISMCitizen->GetInstanceCount(); i++)
-			HISMCitizen->SetCustomDataValue(i, 11, value);
+			HISMCitizen->PerInstanceSMCustomData[i * HISMCitizen->NumCustomDataFloats + 11] = value;
 
 		for (int32 i = 0; i < HISMRebel->GetInstanceCount(); i++)
-			HISMRebel->SetCustomDataValue(i, 11, value);
+			HISMRebel->PerInstanceSMCustomData[i * HISMRebel->NumCustomDataFloats + 11] = value;
 
 		if (value == 1.0f && !TorchNiagaraComponent->IsActive())
 			TorchNiagaraComponent->Activate();
@@ -247,7 +264,7 @@ void UAIVisualiser::ActivateTorches(int32 Hour, UHierarchicalInstancedStaticMesh
 			TorchNiagaraComponent->Deactivate();
 	}
 	else {
-		HISM->SetCustomDataValue(Instance, 11, value);
+		HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 11] = value;
 	}
 }
 
@@ -341,10 +358,10 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
-	info.Key->SetCustomDataValue(info.Value, 4, Transform.GetLocation().X);
-	info.Key->SetCustomDataValue(info.Value, 5, Transform.GetLocation().Y);
-	info.Key->SetCustomDataValue(info.Value, 6, Transform.GetLocation().Z);
-	info.Key->SetCustomDataValue(info.Value, 7, Transform.GetRotation().Rotator().Pitch);
+	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 4] = Transform.GetLocation().X;
+	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 5] = Transform.GetLocation().Y;
+	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 6] = Transform.GetLocation().Z;
+	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7] = Transform.GetRotation().Rotator().Pitch;
 }
 
 TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range)
