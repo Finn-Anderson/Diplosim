@@ -40,8 +40,8 @@ ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectIni
 
 void ADiplosimAIController::DefaultAction()
 {
-	if (GetOwner()->IsA<ACitizen>() && Camera->CitizenManager->Citizens.Contains(GetOwner())) {
-		ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	if (AI->IsA<ACitizen>() && Camera->CitizenManager->Citizens.Contains(AI)) {
+		ACitizen* citizen = Cast<ACitizen>(AI);
 
 		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bEmergency) {
 			AIMoveTo(citizen->Building.Employment);
@@ -57,10 +57,7 @@ void ADiplosimAIController::DefaultAction()
 			return;
 		}
 
-		if (citizen->bConversing || Camera->CitizenManager->IsInAPoliceReport(citizen) || (citizen->AttackComponent->IsComponentTickEnabled() && Camera->CitizenManager->Enemies.IsEmpty()))
-			return;
-
-		if (Camera->CitizenManager->IsAttendingEvent(citizen))
+		if (citizen->bConversing || Camera->CitizenManager->IsInAPoliceReport(citizen) || citizen->AttackComponent->IsComponentTickEnabled() || Camera->CitizenManager->IsAttendingEvent(citizen))
 			return;
 
 		for (FEventStruct event : Camera->CitizenManager->OngoingEvents()) {
@@ -82,7 +79,7 @@ void ADiplosimAIController::DefaultAction()
 			Idle(citizen);
 	}
 	else
-		Cast<AAI>(GetOwner())->MoveToBroch();
+		AI->MoveToBroch();
 }
 
 void ADiplosimAIController::Idle(ACitizen* Citizen)
@@ -113,7 +110,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 
 			house = familyHouses[index];
 
-			ACitizen* citizen = Cast<ACitizen>(GetOwner());
+			ACitizen* citizen = Cast<ACitizen>(AI);
 
 			familyHouses[index]->AddVisitor(house->GetOccupant(citizen), citizen);
 		}
@@ -151,7 +148,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 			FNavLocation navLoc;
 			nav->GetRandomPointInNavigableRadius(location, range, navLoc);
 
-			location = Camera->GetTargetLocation(Citizen);
+			location = Camera->GetTargetActorLocation(Citizen);
 
 			double length;
 			nav->GetPathLength(location, navLoc.Location, length);
@@ -258,7 +255,7 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 
 			int32 targetIndex = target->Storage.Find(itemStruct);
 
-			double magnitude = GetClosestActor(400.0f, Camera->GetTargetLocation(GetOwner()), target->GetActorLocation(), building->GetActorLocation(), true, target->Storage[targetIndex].Amount, building->Storage[index].Amount);
+			double magnitude = GetClosestActor(400.0f, Camera->GetTargetActorLocation(AI), target->GetActorLocation(), building->GetActorLocation(), true, target->Storage[targetIndex].Amount, building->Storage[index].Amount);
 
 			if (magnitude <= 0.0f)
 				continue;
@@ -270,15 +267,15 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 	if (target != nullptr)
 		AIMoveTo(target);
 	else
-		Camera->CitizenManager->CreateTimer("FindGatherSite", GetOwner(), 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Resource), false);
+		Camera->CitizenManager->CreateTimer("FindGatherSite", AI, 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Resource), false);
 }
 
 bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCheckForPortals)
 {
 	if (!IsValid(Target))
-		Target = GetOwner();
+		Target = AI;
 
-	if (!IsValid(GetOwner()) || !IsValid(Target))
+	if (!IsValid(AI) || !IsValid(Target))
 		return false;
 
 	UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
@@ -293,7 +290,7 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 	nav->ProjectPointToNavigation(Location, targetLoc, FVector(400.0f, 400.0f, 20.0f));
 
 	FNavLocation ownerLoc;
-	nav->ProjectPointToNavigation(Camera->GetTargetLocation(Target), ownerLoc, FVector(400.0f, 400.0f, 20.0f));
+	nav->ProjectPointToNavigation(Camera->GetTargetActorLocation(Target), ownerLoc, FVector(400.0f, 400.0f, 20.0f));
 
 	FPathFindingQuery query(Target, *navData, ownerLoc.Location, targetLoc.Location);
 
@@ -302,8 +299,8 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 	if (path)
 		return true;
 
-	if (bCheckForPortals && GetOwner()->IsA<ACitizen>()) {
-		ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	if (bCheckForPortals && AI->IsA<ACitizen>()) {
+		ACitizen* citizen = Cast<ACitizen>(AI);
 
 		bool targetCanReachPortal = false;
 		bool ownerCanReachPortal = false;
@@ -315,8 +312,8 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 			FNavLocation buildingLoc;
 			nav->ProjectPointToNavigation(building->GetActorLocation(), buildingLoc, FVector(400.0f, 400.0f, 20.0f));
 
-			FPathFindingQuery ownerQuery(GetOwner(), *navData, ownerLoc.Location, buildingLoc.Location);
-			FPathFindingQuery targetQuery(GetOwner(), *navData, targetLoc.Location, buildingLoc.Location);
+			FPathFindingQuery ownerQuery(AI, *navData, ownerLoc.Location, buildingLoc.Location);
+			FPathFindingQuery targetQuery(AI, *navData, targetLoc.Location, buildingLoc.Location);
 
 			bool ownerPath = nav->TestPathSync(ownerQuery, EPathFindingMode::Hierarchical);
 			bool targetPath = nav->TestPathSync(targetQuery, EPathFindingMode::Hierarchical);
@@ -339,39 +336,39 @@ TArray<FVector> ADiplosimAIController::GetPathPoints(FVector StartLocation, FVec
 {
 	TSubclassOf<UNavigationQueryFilter> filter = nullptr;
 
-	if (GetOwner()->IsValidLowLevelFast() && Cast<AAI>(GetOwner())->NavQueryFilter != nullptr)
-		filter = Cast<AAI>(GetOwner())->NavQueryFilter;
+	if (IsValid(AI) && AI->NavQueryFilter != nullptr)
+		filter = AI->NavQueryFilter;
 
-	if (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt != nullptr)
-		StartLocation = Cast<ACitizen>(GetOwner())->Building.EnterLocation;
+	if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->Building.BuildingAt != nullptr)
+		StartLocation = Cast<ACitizen>(AI)->Building.EnterLocation;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), StartLocation, EndLocation, GetOwner(), filter);
+	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), StartLocation, EndLocation, AI, filter);
 
 	return path->PathPoints;
 }
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	if (!IsValid(this) || !IsValid(Owner))
+	if (!IsValid(AI))
 		return;
 	
-	int32 reach = Cast<AAI>(GetOwner())->Range / 15.0f;
+	int32 reach = AI->Range / 15.0f;
 	
-	if ((IsValid(MoveRequest.GetGoalActor()) && Cast<AAI>(GetOwner())->CanReach(MoveRequest.GetGoalActor(), reach)) || (GetOwner()->IsA<ACitizen>() && Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor))
+	if ((IsValid(MoveRequest.GetGoalActor()) && AI->CanReach(MoveRequest.GetGoalActor(), reach)) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->Building.BuildingAt == Actor))
 		return;
 
 	StartMovement();
 
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);
-	MoveRequest.SetLocation(Camera->GetTargetLocation(Actor));
+	MoveRequest.SetLocation(Camera->GetTargetActorLocation(Actor));
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	if (GetOwner()->IsA<ACitizen>()) {
-		ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	if (AI->IsA<ACitizen>()) {
+		ACitizen* citizen = Cast<ACitizen>(AI);
 
 		ABuilding* ownerNearestPortal = nullptr;
 		ABuilding* targetNearestPortal = nullptr;
@@ -380,7 +377,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 			if (!building->IsA<APortal>() || building->HealthComponent->GetHealth() == 0)
 				continue;
 
-			if (!IsValid(ownerNearestPortal) && CanMoveTo(building->GetActorLocation(), GetOwner(), false))
+			if (!IsValid(ownerNearestPortal) && CanMoveTo(building->GetActorLocation(), AI, false))
 				ownerNearestPortal = building;
 
 			if (!IsValid(targetNearestPortal) && CanMoveTo(building->GetActorLocation(), Actor, false))
@@ -389,7 +386,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 		if (IsValid(ownerNearestPortal) && IsValid(targetNearestPortal)) {
 			double originalPathLength = 0.0f;
-			auto originalResult = nav->GetPathLength(Camera->GetTargetLocation(GetOwner()), MoveRequest.GetLocation(), originalPathLength);
+			auto originalResult = nav->GetPathLength(Camera->GetTargetActorLocation(AI), MoveRequest.GetLocation(), originalPathLength);
 
 			double ownerPathLength = 0.0f;
 			auto ownerResult = nav->GetPathLength(ownerNearestPortal->GetActorLocation(), MoveRequest.GetLocation(), ownerPathLength);
@@ -417,18 +414,18 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	MoveRequest.SetLocation(navLoc.Location);
 
-	TArray<FVector> points = GetPathPoints(Camera->GetTargetLocation(GetOwner()), MoveRequest.GetLocation());
+	TArray<FVector> points = GetPathPoints(Camera->GetTargetActorLocation(AI), MoveRequest.GetLocation());
 
-	Cast<AAI>(GetOwner())->MovementComponent->SetPoints(points);
+	AI->MovementComponent->SetPoints(points);
 
 	SetFocus(Actor);
 
-	if (!GetOwner()->IsA<ACitizen>() || Cast<ACitizen>(GetOwner())->Building.BuildingAt == Actor)
+	if (!AI->IsA<ACitizen>() || Cast<ACitizen>(AI)->Building.BuildingAt == Actor)
 		return;
 
-	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	ACitizen* citizen = Cast<ACitizen>(AI);
 
-	Camera->CitizenManager->RemoveTimer("Idle", GetOwner());
+	Camera->CitizenManager->RemoveTimer("Idle", AI);
 
 	if (citizen->Building.BuildingAt != nullptr)
 		citizen->Building.BuildingAt->Leave(citizen);
@@ -436,7 +433,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 {
-	if (!IsValid(Actor) || !IsValid(GetOwner()) || !IsValid(Cast<AAI>(GetOwner())->MovementComponent) || MoveRequest.GetGoalActor() != Actor || (!Cast<AAI>(GetOwner())->MovementComponent->Points.IsEmpty() && FVector::Dist(Camera->GetTargetLocation(Actor), Cast<AAI>(GetOwner())->MovementComponent->Points.Last()) < 20.0f))
+	if (!IsValid(Actor) || !IsValid(AI) || !IsValid(AI->MovementComponent) || MoveRequest.GetGoalActor() != Actor || (!AI->MovementComponent->Points.IsEmpty() && FVector::Dist(Camera->GetTargetActorLocation(Actor), AI->MovementComponent->Points.Last()) < 20.0f))
 		return;
 
 	AIMoveTo(Actor, MoveRequest.GetLocation(), MoveRequest.GetGoalInstance());
@@ -444,18 +441,18 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 
 void ADiplosimAIController::StartMovement()
 {
-	if (!Cast<AAI>(GetOwner())->MovementComponent->Points.IsEmpty())
+	if (!AI->MovementComponent->Points.IsEmpty())
 		return;
 	
-	Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Move, true);
+	AI->MovementComponent->SetAnimation(EAnim::Move, true, 6.0f);
 }
 
 void ADiplosimAIController::StopMovement()
 {
-	if (!IsValid(GetOwner()))
+	if (!IsValid(AI))
 		return;
 	
 	MoveRequest.SetGoalActor(nullptr);
 	
-	Cast<AAI>(GetOwner())->MovementComponent->SetPoints({});
+	AI->MovementComponent->SetPoints({});
 }

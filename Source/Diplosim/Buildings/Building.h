@@ -277,6 +277,8 @@ public:
 
 	void SetLights(int32 Hour);
 
+	void ToggleDecalComponentVisibility(bool bVisible);
+
 	// Construct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
 		TArray<FItemStruct> CostList;

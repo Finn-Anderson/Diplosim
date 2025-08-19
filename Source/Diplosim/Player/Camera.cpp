@@ -118,8 +118,6 @@ ACamera::ACamera()
 	bInstantBuildCheat = false;
 	bInstantEnemies = false;
 
-	ActorAttachedTo = nullptr;
-
 	bWasClosingWindow = false;
 
 	GameSpeed = 1.0f;
@@ -208,7 +206,7 @@ void ACamera::Tick(float DeltaTime)
 	if (DeltaTime > 1.0f)
 		return;
 
-	if (!PauseUIInstance->IsInViewport() && !Start)
+	if (CustomTimeDilation <= 1.0f && !Start)
 		Grid->AIVisualiser->MainLoop(this);
 
 	if (bMouseCapture)
@@ -238,13 +236,22 @@ void ACamera::Tick(float DeltaTime)
 
 		MouseHitLocation = hit.Location;
 
-		if (!actor->IsA<AAI>() && !actor->IsA<ABuilding>() && !actor->IsA<AEggBasket>() && !actor->IsA<AMineral>())
+		if (hit.GetComponent() == Grid->HISMSea || (hit.GetActor() != Grid && !hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsA<AEggBasket>()))
 			return;
 
-		HoveredActor.Actor = actor;
+		if (hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
+			AAI* ai = Grid->AIVisualiser->GetHISMAI(this, Cast<UHierarchicalInstancedStaticMeshComponent>(hit.Component), hit.Item);
 
-		if (actor->IsA<AMineral>())
-			HoveredActor.Instance = hit.Item;
+			if (IsValid(ai))
+				HoveredActor.Actor = ai;
+			else
+				return;
+		}
+		else
+			HoveredActor.Actor = actor;
+
+		HoveredActor.Component = hit.GetComponent();
+		HoveredActor.Instance = hit.Item;
 
 		if (!bBulldoze)
 			PController->CurrentMouseCursor = EMouseCursor::Hand;
@@ -477,10 +484,13 @@ void ACamera::SetTimeDilation(float Dilation)
 	CustomTimeDilation = 1.0f / Dilation;
 }
 
-void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
+void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 Instance)
 {
 	if (!IsValid(Actor))
 		return;
+
+	if (!IsValid(Component))
+		Component = Actor->GetRootComponent();
 	
 	SetInteractableText(Actor, Instance);
 
@@ -497,71 +507,52 @@ void ACamera::DisplayInteract(AActor* Actor, int32 Instance)
 		}
 
 		if (bAttach)
-			Attach(Actor);
+			Attach(Actor, Component, Instance);
 	}
 
-	FString socketName = "InfoSocket";
-
-	if (Instance > -1)
-		socketName.AppendInt(Instance);
-
-	SetInteractStatus(Actor, true, socketName);
+	SetInteractStatus(Actor, true, Component, Instance);
 }
 
-void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName)
+void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, USceneComponent* Component, int32 Instance)
 {
-	if (IsValid(Actor)) {
-		TArray<UDecalComponent*> decalComponents;
-		Actor->GetComponents<UDecalComponent>(decalComponents);
+	if (IsValid(WidgetComponent->GetAttachParentActor()) && WidgetComponent->GetAttachParentActor() != Actor && WidgetComponent->GetAttachParentActor()->IsA<ABuilding>())
+		Cast<ABuilding>(WidgetComponent->GetAttachParentActor())->ToggleDecalComponentVisibility(false);
 
-		if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(Actor), nullptr)) {
-			decalComponents[1]->SetVisibility(bStatus);
-
-			BuildComponent->DisplayInfluencedBuildings(Cast<ABuilding>(Actor), bStatus);
-		}
-	}
-
-	if (IsValid(WidgetComponent->GetAttachParentActor())) {
-		TArray<UDecalComponent*> decalComponents;
-		WidgetComponent->GetAttachParentActor()->GetComponents<UDecalComponent>(decalComponents);
-
-		if (decalComponents.Num() >= 2 && decalComponents[1]->GetDecalMaterial() != nullptr && !ConstructionManager->IsBeingConstructed(Cast<ABuilding>(WidgetComponent->GetAttachParentActor()), nullptr)) {
-			decalComponents[1]->SetVisibility(false);
-
-			BuildComponent->DisplayInfluencedBuildings(Cast<ABuilding>(WidgetComponent->GetAttachParentActor()), false);
-		}
-	}
+	if (IsValid(Actor) && Actor->IsA<ABuilding>())
+		Cast<ABuilding>(Actor)->ToggleDecalComponentVisibility(bStatus);
 
 	WidgetComponent->SetHiddenInGame(!bStatus);
 
 	if (bStatus) {
-		WidgetComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform, *SocketName);
+		WidgetComponent->AttachToComponent(Component, FAttachmentTransformRules::KeepWorldTransform);
 
-		WidgetComponent->SetWorldLocation(MovementComponent->SetAttachedMovementLocation(Actor, true));
+		MovementComponent->SetAttachedMovementLocation(Actor, Component, Instance);
 	}
 	else {
 		WidgetComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
 	}
 }
 
-void ACamera::Attach(AActor* Actor)
+void ACamera::Attach(AActor* Actor, USceneComponent* Component, int32 Instance)
 {
-	if (ActorAttachedTo == Actor)
-		return;
-	
-	ActorAttachedTo = Actor;
+	AttachedTo.Actor = Actor;
+
+	if (IsValid(Component)) {
+		AttachedTo.Component = Component;
+		AttachedTo.Instance = Instance;
+	}
 
 	SpringArmComponent->ProbeSize = 6.0f;
 }
 
 void ACamera::Detach()
 {
-	if (ActorAttachedTo == nullptr)
+	if (!IsValid(AttachedTo.Actor))
 		return;
 	
 	SpringArmComponent->ProbeSize = 12.0f;
 
-	ActorAttachedTo = nullptr;
+	AttachedTo.Reset();
 
 	FVector location = GetActorLocation();
 	location.Z = 800.0f;
@@ -602,8 +593,8 @@ void ACamera::Smite(class AAI* AI)
 		return;
 	}
 
-	SmiteComponent->SetVariablePosition("StartLocation", GetTargetLocation(AI) + FVector(0.0f, 0.0f, 2000.0f));
-	SmiteComponent->SetVariablePosition("EndLocation", GetTargetLocation(AI));
+	SmiteComponent->SetVariablePosition("StartLocation", GetTargetActorLocation(AI) + FVector(0.0f, 0.0f, 2000.0f));
+	SmiteComponent->SetVariablePosition("EndLocation", GetTargetActorLocation(AI));
 
 	SmiteComponent->Activate();
 
@@ -711,7 +702,7 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 		if (HoveredActor.Actor->IsA<AEggBasket>())
 			Cast<AEggBasket>(HoveredActor.Actor)->RedeemReward();
 		else
-			DisplayInteract(HoveredActor.Actor, HoveredActor.Instance);
+			DisplayInteract(HoveredActor.Actor, HoveredActor.Component, HoveredActor.Instance);
 	}
 }
 

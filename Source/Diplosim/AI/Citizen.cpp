@@ -144,9 +144,6 @@ void ACitizen::CitizenSetup()
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
 
 	AIController->ChooseIdleBuilding(this);
-	AIController->DefaultAction();
-
-	SetActorHiddenInGame(false);
 }
 
 void ACitizen::ClearCitizen()

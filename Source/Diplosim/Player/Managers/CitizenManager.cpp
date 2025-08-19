@@ -327,7 +327,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 							FHitResult hit(ForceInit);
 
-							if (GetWorld()->LineTraceSingleByChannel(hit, Camera->GetTargetLocation(citizen), Camera->GetTargetLocation(c), ECollisionChannel::ECC_Visibility, params) && (hit.GetActor() == c || c->AttackComponent->OverlappingEnemies.Contains(hit.GetActor()))) {
+							if (GetWorld()->LineTraceSingleByChannel(hit, Camera->GetTargetActorLocation(citizen), Camera->GetTargetActorLocation(c), ECollisionChannel::ECC_Visibility, params) && (hit.GetActor() == c || c->AttackComponent->OverlappingEnemies.Contains(hit.GetActor()))) {
 								ACitizen* c2 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[0]);
 
 								int32 count1 = 0;
@@ -395,14 +395,14 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 											}
 										}
 
-										report.Location = (Camera->GetTargetLocation(report.Team1.Instigator) + Camera->GetTargetLocation(report.Team2.Instigator)) / 2;
+										report.Location = (Camera->GetTargetActorLocation(report.Team1.Instigator) + Camera->GetTargetActorLocation(report.Team2.Instigator)) / 2;
 
 										PoliceReports.Add(report);
 
 										index = PoliceReports.Num() - 1; 
 									}
 
-									float distance = FVector::Dist(Camera->GetTargetLocation(citizen), hit.Location);
+									float distance = FVector::Dist(Camera->GetTargetActorLocation(citizen), hit.Location);
 									float dist = 1000000000;
 
 									if (PoliceReports[index].Witnesses.Contains(citizen))
@@ -417,7 +417,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 						}
 					}
 					
-					if ((*citizen->AttackComponent->ProjectileClass || citizen->AIController->CanMoveTo(Camera->GetTargetLocation(ai))) && !Citizens.Contains(ai)) {
+					if ((*citizen->AttackComponent->ProjectileClass || citizen->AIController->CanMoveTo(Camera->GetTargetActorLocation(ai))) && !Citizens.Contains(ai)) {
 						if (!citizen->AttackComponent->OverlappingEnemies.Contains(ai))
 							citizen->AttackComponent->OverlappingEnemies.Add(ai);
 
@@ -471,10 +471,10 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 						FHitResult hit(ForceInit);
 
-						if (GetWorld()->LineTraceSingleByChannel(hit, Camera->GetTargetLocation(witness), Camera->GetTargetLocation(citizen), ECollisionChannel::ECC_Visibility, params) && hit.GetActor() == citizen) {
+						if (GetWorld()->LineTraceSingleByChannel(hit, Camera->GetTargetActorLocation(witness), Camera->GetTargetActorLocation(citizen), ECollisionChannel::ECC_Visibility, params) && hit.GetActor() == citizen) {
 							int32 index = GetPoliceReportIndex(citizen);
 
-							float distance = FVector::Dist(Camera->GetTargetLocation(witness), hit.Location);
+							float distance = FVector::Dist(Camera->GetTargetActorLocation(witness), hit.Location);
 
 							if (index == INDEX_NONE) {
 								FPoliceReport report;
@@ -523,7 +523,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				if ((healthComp && healthComp->GetHealth() <= 0) || actor->IsA<AResource>() || actor->GetClass() == ai->GetClass() || (ai->IsA<AClone>() && Citizens.Contains(actor)))
 					continue;
 
-				if (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetLocation(actor)))
+				if (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor)))
 					continue;
 
 				ai->AttackComponent->OverlappingEnemies.Add(actor);
@@ -581,7 +581,7 @@ void UCitizenManager::Loop()
 	for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
 		FTimerStruct &timer = node->GetValue();
 
-		if (!IsValid(timer.Actor) || timer.Actor->IsA<ACitizen>()) {
+		if (!IsValid(timer.Actor)) {
 			FScopeLock lock(&TimerLock);
 			Timers.RemoveNode(node);
 
@@ -921,7 +921,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	TArray<AActor*> actors;
 
 	int32 reach = Citizen->Range / 15.0f;
-	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(Citizen), Citizen->Range, objects, nullptr, ignore, actors);
+	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetActorLocation(Citizen), Citizen->Range, objects, nullptr, ignore, actors);
 
 	for (AActor* actor : actors) {
 		if (!actor->IsA<ACitizen>())
@@ -1139,7 +1139,7 @@ void UCitizenManager::CheckForWeddings(int32 Hour)
 				continue;
 			}
 
-			double magnitude = citizen->AIController->GetClosestActor(400.0f, Camera->GetTargetLocation(citizen), chosenChurch->GetActorLocation(), church->GetActorLocation());
+			double magnitude = citizen->AIController->GetClosestActor(400.0f, Camera->GetTargetActorLocation(citizen), chosenChurch->GetActorLocation(), church->GetActorLocation());
 
 			if (magnitude <= 0.0f)
 				continue;
@@ -1261,7 +1261,7 @@ void UCitizenManager::Interact(ACitizen* Citizen1, ACitizen* Citizen2)
 	if (chance > positiveConversationLikelihood) {
 		happinessValue = -12;
 
-		FVector midPoint = (Camera->GetTargetLocation(Citizen1) + Camera->GetTargetLocation(Citizen2)) / 2;
+		FVector midPoint = (Camera->GetTargetActorLocation(Citizen1) + Camera->GetTargetActorLocation(Citizen2)) / 2;
 		float distance = 1000;
 
 		for (ABuilding* building : Buildings) {
@@ -1294,7 +1294,7 @@ void UCitizenManager::Interact(ACitizen* Citizen1, ACitizen* Citizen2)
 		if (citizen1Aggressiveness < citizen2Aggressiveness)
 			aggressor = Citizen2;
 
-		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetLocation(aggressor), aggressor->Range, objects, nullptr, ignore, actors);
+		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Camera->GetTargetActorLocation(aggressor), aggressor->Range, objects, nullptr, ignore, actors);
 
 		chance = Camera->Grid->Stream.RandRange(0, 100);
 		int32 fightChance = 25 * citizen1Aggressiveness * citizen2Aggressiveness - FMath::RoundHalfFromZero(300 / distance) - (10 * actors.Num());
@@ -1488,7 +1488,7 @@ void UCitizenManager::GotoClosestWantedMan(ACitizen* Officer)
 				continue;
 			}
 
-			double magnitude = Officer->AIController->GetClosestActor(Officer->Range, Camera->GetTargetLocation(Officer), Camera->GetTargetLocation(target), Camera->GetTargetLocation(criminal));
+			double magnitude = Officer->AIController->GetClosestActor(Officer->Range, Camera->GetTargetActorLocation(Officer), Camera->GetTargetActorLocation(target), Camera->GetTargetActorLocation(criminal));
 
 			if (magnitude < 0.0f)
 				continue;
@@ -1578,7 +1578,7 @@ void UCitizenManager::SetInNearestJail(ACitizen* Officer, ACitizen* Citizen)
 			continue;
 		}
 
-		double magnitude = Citizen->AIController->GetClosestActor(20.0f, Camera->GetTargetLocation(Citizen), target->GetActorLocation(), building->GetActorLocation());
+		double magnitude = Citizen->AIController->GetClosestActor(20.0f, Camera->GetTargetActorLocation(Citizen), target->GetActorLocation(), building->GetActorLocation());
 
 		if (magnitude < 0.0f)
 			continue;
@@ -1803,7 +1803,7 @@ void UCitizenManager::GetClosestHealer(class ACitizen* Citizen)
 			AClinic* clinic = Cast<AClinic>(actor);
 
 			for (ACitizen* h : clinic->GetCitizensAtBuilding()) {
-				if (!h->AIController->CanMoveTo(Camera->GetTargetLocation(Citizen)) || h->AIController->MoveRequest.GetGoalActor() != nullptr)
+				if (!h->AIController->CanMoveTo(Camera->GetTargetActorLocation(Citizen)) || h->AIController->MoveRequest.GetGoalActor() != nullptr)
 					continue;
 
 				if (healer == nullptr) {
@@ -1812,7 +1812,7 @@ void UCitizenManager::GetClosestHealer(class ACitizen* Citizen)
 					continue;
 				}
 
-				double magnitude = h->AIController->GetClosestActor(50.0f, Camera->GetTargetLocation(Citizen), Camera->GetTargetLocation(healer), Camera->GetTargetLocation(h));
+				double magnitude = h->AIController->GetClosestActor(50.0f, Camera->GetTargetActorLocation(Citizen), Camera->GetTargetActorLocation(healer), Camera->GetTargetActorLocation(h));
 
 				if (magnitude > 0.0f)
 					healer = h;
@@ -1839,7 +1839,7 @@ void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
 				continue;
 			}
 
-			double magnitude = Healer->AIController->GetClosestActor(50.0f, Camera->GetTargetLocation(Healer), Camera->GetTargetLocation(Citizen), Camera->GetTargetLocation(citizen));
+			double magnitude = Healer->AIController->GetClosestActor(50.0f, Camera->GetTargetActorLocation(Healer), Camera->GetTargetActorLocation(Citizen), Camera->GetTargetActorLocation(citizen));
 
 			if (magnitude > 0.0f)
 				Citizen = citizen;
@@ -1968,7 +1968,7 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetLocation(Citizen), Event.Location, Citizen, Citizen->NavQueryFilter);
+		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetActorLocation(Citizen), Event.Location, Citizen, Citizen->NavQueryFilter);
 
 		Citizen->MovementComponent->SetPoints(path->PathPoints);
 
@@ -2037,7 +2037,7 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct Event)
 				continue;
 			}
 
-			double magnitude = Citizen->AIController->GetClosestActor(400.0f, Camera->GetTargetLocation(Citizen), chosenBuilding->GetActorLocation(), building->GetActorLocation());
+			double magnitude = Citizen->AIController->GetClosestActor(400.0f, Camera->GetTargetActorLocation(Citizen), chosenBuilding->GetActorLocation(), building->GetActorLocation());
 
 			if (magnitude <= 0.0f)
 				continue;

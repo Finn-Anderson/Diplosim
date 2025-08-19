@@ -28,6 +28,7 @@ AAI::AAI()
 	MovementComponent->SetUpdatedComponent(RootComponent);
 
 	AIController = CreateDefaultSubobject<ADiplosimAIController>(TEXT("AIController"));
+	AIController->SetOwner(this);
 
 	InitialRange = 400.0f;
 	Range = InitialRange;
@@ -40,7 +41,12 @@ void AAI::BeginPlay()
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
 
+	MovementComponent->AI = this;
+	MovementComponent->AIVisualiser = Camera->Grid->AIVisualiser;
+
 	AIController->Camera = Camera;
+	AIController->AI = this;
+
 	AttackComponent->Camera = Camera;
 }
 
@@ -92,7 +98,7 @@ void AAI::MoveToBroch()
 
 bool AAI::CanReach(AActor* Actor, float Reach, int32 Instance)
 {
-	FVector location = Camera->GetTargetLocation(Actor);
+	FVector location = Camera->GetTargetActorLocation(Actor);
 
 	if (Instance > -1) {
 		FTransform transform;

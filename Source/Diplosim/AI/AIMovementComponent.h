@@ -13,9 +13,6 @@ class DIPLOSIM_API UAIMovementComponent : public UPawnMovementComponent
 public:
 	UAIMovementComponent();
 
-protected:
-	virtual void BeginPlay() override;
-
 public:
 	void ComputeMovement(float DeltaTime);
 

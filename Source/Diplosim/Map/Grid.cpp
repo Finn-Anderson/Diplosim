@@ -43,6 +43,7 @@ AGrid::AGrid()
 	response.GameTraceChannel4 = ECR_Ignore;
 
 	WorldContainer = CreateDefaultSubobject<USceneComponent>(TEXT("WorldContainer"));
+	WorldContainer->SetMobility(EComponentMobility::Static);
 	RootComponent = WorldContainer;
 
 	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
@@ -1293,15 +1294,6 @@ void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
 	
 	int32 inst = Resource->ResourceHISM->AddInstance(transform);
 	Resource->ResourceHISM->SetCustomDataValue(inst, 0, 0.0f);
-
-	FString socketName = "InfoSocket";
-	socketName.AppendInt(inst);
-
-	UStaticMeshSocket* socket = NewObject<UStaticMeshSocket>(Resource);
-	socket->SocketName = *socketName;
-	socket->RelativeLocation = transform.GetLocation() + FVector(0.0f, 0.0f, Resource->ResourceHISM->GetStaticMesh()->GetBounds().GetBox().GetSize().Z);
-
-	Resource->ResourceHISM->GetStaticMesh()->AddSocket(socket);
 
 	ResourceTiles.Remove(Tile);
 }

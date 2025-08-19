@@ -21,14 +21,6 @@ UAIMovementComponent::UAIMovementComponent()
 	Transform = FTransform();
 }
 
-void UAIMovementComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	AI = Cast<AAI>(GetOwner());
-	AIVisualiser = AI->Camera->Grid->AIVisualiser;
-}
-
 void UAIMovementComponent::ComputeMovement(float DeltaTime)
 {
 	LastUpdatedTime = GetWorld()->GetTimeSeconds();
@@ -36,18 +28,22 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
 
-	if (CurrentAnim.StartTransform.GetLocation() != CurrentAnim.EndTransform.GetLocation()) {
+	if (CurrentAnim.bPlay) {
 		CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
 
 		FTransform transform;
 		transform.SetLocation(FMath::Lerp(CurrentAnim.StartTransform.GetLocation(), CurrentAnim.EndTransform.GetLocation(), CurrentAnim.Alpha));
 		transform.SetRotation(FMath::Lerp(CurrentAnim.StartTransform.GetRotation(), CurrentAnim.EndTransform.GetRotation(), CurrentAnim.Alpha));
 
-		if (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f && CurrentAnim.bRepeat) {
-			CurrentAnim.Alpha = FMath::Abs(CurrentAnim.Alpha - 1.0f);
+		AIVisualiser->SetAnimationPoint(AI, transform);
 
-			CurrentAnim.EndTransform = CurrentAnim.StartTransform;
-			CurrentAnim.StartTransform = transform;
+		if (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f) {
+			CurrentAnim.Speed *= -1.0f;
+
+			CurrentAnim.StartTransform = FTransform();
+
+			if (CurrentAnim.StartTransform.GetLocation() == CurrentAnim.EndTransform.GetLocation() || (CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat))
+				CurrentAnim.bPlay = false;
 		}
 	}
 
@@ -108,12 +104,12 @@ FVector UAIMovementComponent::CalculateVelocity(FVector Vector)
 
 void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 {
-	Points = VectorPoints;
-
-	if (!Points.IsEmpty())
+	if (!VectorPoints.IsEmpty())
 		AI->AIController->StartMovement();
 	else if (CurrentAnim.Type == EAnim::Move)
 		SetAnimation(EAnim::Still);
+
+	Points = VectorPoints;
 }
 
 void UAIMovementComponent::SetMaxSpeed(int32 Energy)
@@ -134,6 +130,8 @@ void UAIMovementComponent::SetAnimation(EAnim Type, bool bRepeat, float Speed)
 	int32 index = AIVisualiser->Animations.Find(animStruct);
 
 	CurrentAnim = AIVisualiser->Animations[index];
+	CurrentAnim.StartTransform = AIVisualiser->GetAnimationPoint(AI);
 	CurrentAnim.bRepeat = bRepeat;
 	CurrentAnim.Speed = Speed;
+	CurrentAnim.bPlay = true;
 }

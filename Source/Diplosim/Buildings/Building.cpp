@@ -194,6 +194,16 @@ void ABuilding::SetLights(int32 Hour)
 		BuildingMesh->SetCustomPrimitiveDataFloat(7, newLights);
 }
 
+void ABuilding::ToggleDecalComponentVisibility(bool bVisible)
+{
+	if (!IsValid(DecalComponent->GetDecalMaterial()) || Camera->ConstructionManager->IsBeingConstructed(this, nullptr))
+		return;
+
+	DecalComponent->SetVisibility(bVisible);
+
+	Camera->BuildComponent->DisplayInfluencedBuildings(this, bVisible);
+}
+
 void ABuilding::SetSeed(int32 Seed)
 {
 	if (Seeds.IsEmpty())
@@ -811,12 +821,9 @@ void ABuilding::Enter(ACitizen* Citizen)
 	
 	UConstructionManager* cm = Camera->ConstructionManager;
 
-	if (bHideCitizen || cm->IsBeingConstructed(this, nullptr)) {
-		Citizen->SetActorHiddenInGame(true);
-
+	if (bHideCitizen || cm->IsBeingConstructed(this, nullptr))
 		if (Camera->FocusedCitizen == Citizen)
 			Camera->Attach(this);
-	}
 
 	if (Citizen->Carrying.Amount > 0)
 		StoreResource(Citizen);
@@ -907,8 +914,6 @@ void ABuilding::Leave(ACitizen* Citizen)
 	}
 
 	Citizen->MovementComponent->Transform.SetLocation(location);
-
-	Citizen->SetActorHiddenInGame(false);
 }
 
 bool ABuilding::CheckInstant()

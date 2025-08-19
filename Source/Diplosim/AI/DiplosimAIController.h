@@ -114,5 +114,8 @@ public:
 		class ABuilding* ChosenBuilding;
 
 	UPROPERTY()
-	class ACamera* Camera;
+		class ACamera* Camera;
+
+	UPROPERTY()
+		class AAI* AI;
 };

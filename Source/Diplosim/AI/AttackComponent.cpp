@@ -177,7 +177,7 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
 
-	NavData->CalcPathLength(Camera->GetTargetLocation(GetOwner()), Camera->GetTargetLocation(Actor), Favourability.Dist);
+	NavData->CalcPathLength(Camera->GetTargetActorLocation(GetOwner()), Camera->GetTargetActorLocation(Actor), Favourability.Dist);
 
 	return Favourability;
 }
@@ -243,12 +243,12 @@ void UAttackComponent::Throw()
 	double g = FMath::Abs(GetWorld()->GetGravityZ());
 	double v = projectileMovement->InitialSpeed;
 
-	FVector startLoc = Camera->GetTargetLocation(GetOwner()) + FVector(0.0f, 0.0f, z);
+	FVector startLoc = Camera->GetTargetActorLocation(GetOwner()) + FVector(0.0f, 0.0f, z);
 
 	if (GetOwner()->IsA<AAI>())
 		startLoc += Cast<AAI>(GetOwner())->MovementComponent->Transform.GetRotation().Vector();
 
-	FVector targetLoc = Camera->GetTargetLocation(CurrentTarget);
+	FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget);
 	targetLoc += CurrentTarget->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
 
 	FRotator lookAt = (targetLoc - startLoc).Rotation();
@@ -261,7 +261,7 @@ void UAttackComponent::Throw()
 	FCollisionQueryParams queryParams;
 	queryParams.AddIgnoredActor(GetOwner());
 
-	FVector endLoc = Camera->GetTargetLocation(CurrentTarget);
+	FVector endLoc = Camera->GetTargetActorLocation(CurrentTarget);
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, endLoc, ECollisionChannel::ECC_PhysicsBody, queryParams)) {
 		if (hit.GetActor()->IsA<AEnemy>()) {
@@ -296,7 +296,7 @@ void UAttackComponent::Melee()
 		return;
 
 	if (GetOwner()->IsA<AEnemy>())
-		Cast<AEnemy>(GetOwner())->Zap(Camera->GetTargetLocation(CurrentTarget));
+		Cast<AEnemy>(GetOwner())->Zap(Camera->GetTargetActorLocation(CurrentTarget));
 	else
 		Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Melee);
 

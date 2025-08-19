@@ -27,7 +27,7 @@ struct FPendingChangeStruct
 		AI = nullptr;
 		HISM = nullptr;
 		Transform = FTransform();
-		Instance = 0;
+		Instance = -1;
 	}
 };
 
@@ -84,11 +84,13 @@ public:
 
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
 
+	class AAI* GetHISMAI(class ACamera* Camera, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
+
 	FTransform GetAnimationPoint(class AAI* AI);
 
 	void SetAnimationPoint(class AAI* AI, FTransform Transform);
 
-	TArray<AActor*> GetOverlaps(ACamera* Camera, AActor* Actor, float Range);
+	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range);
 
 	UPROPERTY()
 		TArray<FPendingChangeStruct> PendingChange;

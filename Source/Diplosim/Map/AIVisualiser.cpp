@@ -12,6 +12,7 @@
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/DiplosimAIController.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/Resource.h"
 #include "Buildings/Building.h"
@@ -97,7 +98,7 @@ void UAIVisualiser::BeginPlay()
 void UAIVisualiser::MainLoop(ACamera* Camera)
 {
 	for (FPendingChangeStruct pending : PendingChange) {
-		if (pending.Instance == 0) {
+		if (pending.Instance == -1) {
 			int32 instance = pending.HISM->AddInstance(pending.Transform, false);
 
 			if (IsValid(pending.AI->SpawnSystem))
@@ -117,6 +118,8 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			pending.HISM->SetCustomDataValue(instance, 3, colour.B);
 
 			ActivateTorches(Camera->Grid->AtmosphereComponent->Calendar.Hour, pending.HISM, instance);
+
+			pending.AI->AIController->DefaultAction();
 		}
 		else
 			pending.HISM->RemoveInstance(pending.Instance);
@@ -137,8 +140,15 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 
 			citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
 
-			if (i == 0)
+			if (i == 0) {
 				HISMCitizen->UpdateInstanceTransform(j, citizen->MovementComponent->Transform, true);
+
+				float opacity = 1.0f;
+				if (IsValid(citizen->Building.BuildingAt))
+					opacity = 0.0f;
+
+				HISMCitizen->SetCustomDataValue(j, 12, opacity);
+			}
 			else
 				HISMRebel->UpdateInstanceTransform(j, citizen->MovementComponent->Transform, true);
 
@@ -279,6 +289,24 @@ TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::G
 	return info;
 }
 
+AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
+{
+	UCitizenManager* cm = Camera->CitizenManager;
+
+	AAI* ai = nullptr;
+
+	if (HISM == HISMCitizen)
+		ai = cm->Citizens[Instance];
+	else if (HISM == HISMRebel)
+		ai = cm->Rebels[Instance];
+	else if (HISM == HISMClone)
+		ai = cm->Clones[Instance];
+	else if (HISM == HISMEnemy)
+		ai = cm->Enemies[Instance];
+
+	return ai;
+}
+
 FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 {
 	UCitizenManager* cm = AI->Camera->CitizenManager;
@@ -332,10 +360,10 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 	actorsToCheck.Append(cm->Rebels);
 	actorsToCheck.Append(cm->Enemies);
 
-	FVector location = Camera->GetTargetLocation(Actor);
+	FVector location = Camera->GetTargetActorLocation(Actor);
 
 	for (AActor* actor : actorsToCheck) {
-		FVector loc = cm->Camera->GetTargetLocation(actor);
+		FVector loc = cm->Camera->GetTargetActorLocation(actor);
 
 		if (actor->IsA<ABuilding>())
 			Cast<ABuilding>(actor)->BuildingMesh->GetClosestPointOnCollision(location, loc);

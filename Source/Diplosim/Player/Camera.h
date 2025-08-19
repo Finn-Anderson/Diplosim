@@ -13,6 +13,9 @@ struct FHoverStruct
 		AActor* Actor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
+		USceneComponent* Component;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
 		int32 Instance;
 
 	FHoverStruct()
@@ -23,6 +26,7 @@ struct FHoverStruct
 	void Reset()
 	{
 		Actor = nullptr;
+		Component = nullptr;
 		Instance = -1;
 	}
 };
@@ -332,7 +336,7 @@ public:
 		FVector MouseHitLocation;
 
 	UPROPERTY()
-		AActor* ActorAttachedTo;
+		FHoverStruct AttachedTo;
 
 	UPROPERTY()
 		float GameSpeed;
@@ -366,12 +370,12 @@ public:
 	void SetTimeDilation(float Dilation);
 
 	UFUNCTION(BlueprintCallable)
-		void DisplayInteract(AActor* Actor, int32 Instance = -1);
+		void DisplayInteract(AActor* Actor, USceneComponent* Component = nullptr, int32 Instance = -1);
 
 	UFUNCTION(BlueprintCallable)
-		void SetInteractStatus(AActor* Actor, bool bStatus, FString SocketName = "InfoSocket");
+		void SetInteractStatus(AActor* Actor, bool bStatus, USceneComponent* Component = nullptr, int32 Instance = -1);
 
-	void Attach(AActor* Actor);
+	void Attach(AActor* Actor, USceneComponent* Component = nullptr, int32 Instance = -1);
 
 	void Detach();
 

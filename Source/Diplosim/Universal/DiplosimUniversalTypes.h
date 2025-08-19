@@ -126,6 +126,9 @@ struct FAnimStruct
 	UPROPERTY()
 		float Speed;
 
+	UPROPERTY()
+		bool bPlay;
+
 	FAnimStruct()
 	{
 		Type = EAnim::Still;
@@ -134,6 +137,7 @@ struct FAnimStruct
 		Alpha = 0.0f;
 		bRepeat = false;
 		Speed = 2.0f;
+		bPlay = false;
 	}
 
 	bool operator==(const FAnimStruct& other) const

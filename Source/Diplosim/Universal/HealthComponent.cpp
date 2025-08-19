@@ -215,7 +215,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		FVector extent;
 		actor->GetActorBounds(false, origin, extent);
 
-		origin = Camera->GetTargetLocation(actor);
+		origin = Camera->GetTargetActorLocation(actor);
 
 		UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DeathSystem, origin + (extent / 2));
 

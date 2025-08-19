@@ -64,7 +64,7 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		movementSpeed *= 10.0f;
 	}
 
-	FVector movementLoc = SetAttachedMovementLocation(Camera->ActorAttachedTo);
+	FVector movementLoc = SetAttachedMovementLocation(Camera->AttachedTo.Actor, Camera->AttachedTo.Component, Camera->AttachedTo.Instance);
 
 	if (movementLoc != FVector::Zero())
 		MovementLocation = movementLoc;
@@ -91,20 +91,32 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 }
 
-FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, bool bWidget)
+FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USceneComponent* Component, int32 Instance)
 {
 	if (!IsValid(Actor))
 		return FVector::Zero();
 
-	FVector location = Camera->GetTargetLocation(Actor);
+	FVector location = Camera->GetTargetActorLocation(Actor);
 
-	if (Actor->IsA<AAI>())
-		location.Z = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(Actor)).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-	else if (Actor->IsA<ABuilding>())
-		location.Z = Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	if (Actor->IsA<AGrid>()) {
+		FTransform transform;
+		Cast<UHierarchicalInstancedStaticMeshComponent>(Component)->GetInstanceTransform(Instance, transform);
 
-	if (!bWidget || (bWidget && Actor->IsA<AAI>()))
-		location.Z = location.Z / 2.0f + 5.0f;
+		location = transform.GetLocation();
+	}
+
+	float z = 0.0f;
+
+	if (Actor->IsA<ABuilding>())
+		z = Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	else
+		z = Cast<UHierarchicalInstancedStaticMeshComponent>(Component)->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+
+	FVector widgetLocation = location;
+	widgetLocation.Z += z;
+	Camera->WidgetComponent->SetWorldLocation(widgetLocation);
+
+	location.Z += z / 2.0f + 5.0f;
 
 	return location;
 }
