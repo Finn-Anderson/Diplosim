@@ -168,6 +168,8 @@ void UCloudComponent::ActivateCloud()
 	if (!Settings->GetRain())
 		chance = 1;
 
+	chance = 100;
+
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);
 	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
 
@@ -198,14 +200,17 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	cloud->SetAffectDistanceFieldLighting(false);
 	cloud->SetRelativeLocation(Transform.GetLocation());
 	cloud->SetRelativeRotation(Transform.GetRotation());
+	cloud->SetCanEverAffectNavigation(false);
 	cloud->SetupAttachment(Grid->GetRootComponent());
 	cloud->PrimaryComponentTick.bCanEverTick = false;
+	cloud->bAutoRebuildTreeOnInstanceChanges = false;
 	cloud->RegisterComponent();
 
 	FCloudStruct cloudStruct;
 	cloudStruct.HISMCloud = cloud;
 
 	TArray<FVector> locations;
+	TArray<FTransform> transforms;
 
 	for (int32 i = 0; i < 200; i++) {
 		FTransform t = Transform;
@@ -218,10 +223,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 		float diff = Grid->Stream.FRandRange(20.0f, 40.0f);
 		t.SetScale3D(t.GetScale3D() * diff);
 
-		int32 inst = cloud->AddInstance(t);
-
-		cloud->GetInstanceTransform(inst, t, true);
-		t.SetLocation(t.GetLocation() - Transform.GetLocation());
+		transforms.Add(t);
 
 		float bounds = cloud->GetStaticMesh().Get()->GetBounds().GetBox().GetSize().X / 2.0f;
 
@@ -229,12 +231,14 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 			locations.Append(SetPrecipitationLocations(t, bounds));
 	}
 
+	cloud->AddInstances(transforms, false, false, false);
+	cloud->BuildTreeIfOutdated(true, true);
+
 	if (Chance <= 75)
 		return cloudStruct;
 
 	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 	precipitation->SetVariableObject(TEXT("Callback"), Grid);
-	precipitation->SetVariableVec3(TEXT("CloudLocation"), Transform.GetLocation());
 
 	float spawnRate = 0.0f;
 
@@ -373,6 +377,8 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 
 void UCloudComponent::SetGradualWetness()
 {
+	TArray<UHierarchicalInstancedStaticMeshComponent*> hismsToUpdate;
+
 	for (int32 i = (WetnessStruct.Num() - 1); i > -1; i--) {
 		WetnessStruct[i].Value += WetnessStruct[i].Increment;
 
@@ -390,10 +396,16 @@ void UCloudComponent::SetGradualWetness()
 				Cast<ARoad>(WetnessStruct[i].Actor)->HISMRoad->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
 		}
 		else {
-			WetnessStruct[i].HISM->SetCustomDataValue(WetnessStruct[i].Instance, 0, WetnessStruct[i].Value);
+			WetnessStruct[i].HISM->PerInstanceSMCustomData[WetnessStruct[i].Instance * WetnessStruct[i].HISM->NumCustomDataFloats] = WetnessStruct[i].Value;
+
+			if (!hismsToUpdate.Contains(WetnessStruct[i].HISM))
+				hismsToUpdate.Add(WetnessStruct[i].HISM);
 		}
 
 		if (WetnessStruct[i].Value <= 0.0f || WetnessStruct[i].Value >= 1.0f)
 			WetnessStruct.RemoveAt(i);
 	}
+
+	for (UHierarchicalInstancedStaticMeshComponent* hism : hismsToUpdate)
+		hism->BuildTreeIfOutdated(true, true);
 }

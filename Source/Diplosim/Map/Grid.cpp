@@ -193,21 +193,15 @@ void AGrid::BeginPlay()
 	for (FResourceHISMStruct &ResourceStruct : TreeStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
-		ResourceStruct.Resource->ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
-		ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
 	}
 
 	for (FResourceHISMStruct& ResourceStruct : FlowerStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
-		ResourceStruct.Resource->ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
-		ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
 	}
 
-	for (FResourceHISMStruct& ResourceStruct : MineralStruct) {
+	for (FResourceHISMStruct& ResourceStruct : MineralStruct)
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
-		ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
-	}
 
 	for (TSubclassOf<ASpecial> specialClass : SpecialBuildingClasses) {
 		SpecialBuildings.Add(GetWorld()->SpawnActor<ASpecial>(specialClass, FVector::Zero(), FRotator(0.0f)));
@@ -250,13 +244,11 @@ void AGrid::Load()
 
 void AGrid::SetupMap()
 {
-	TArray<FTransform> seaTransforms;
-
 	// Set map limts
 	FTransform seaTransform;
 	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
-	seaTransforms.Add(seaTransform);
-	HISMSea->AddInstances(seaTransforms, false);
+	HISMSea->AddInstance(seaTransform);
+	HISMSea->BuildTreeIfOutdated(true, true);
 
 	auto bound = GetMapBounds();
 
@@ -600,6 +592,7 @@ void AGrid::SpawnTiles()
 	for (TArray<FTileStruct>& row : Storage) {
 		for (FTileStruct& tile : row) {
 			CalculateTile(&tile);
+			CreateEdgeWalls(&tile);
 
 			if (tile.Level < 0 || tile.Level > 4 || tile.bRiver || tile.bRamp)
 				continue;
@@ -609,18 +602,6 @@ void AGrid::SpawnTiles()
 	}
 
 	GenerateTiles();
-
-	for (TArray<FTileStruct>& row : Storage)
-		for (FTileStruct& tile : row)
-			CreateEdgeWalls(&tile);
-
-	HISMLava->BuildTreeIfOutdated(true, false);
-	HISMSea->BuildTreeIfOutdated(true, false);
-	HISMGround->BuildTreeIfOutdated(true, false);
-	HISMFlatGround->BuildTreeIfOutdated(true, false);
-	HISMRampGround->BuildTreeIfOutdated(true, false);
-	HISMRiver->BuildTreeIfOutdated(true, false);
-	HISMWall->BuildTreeIfOutdated(true, false);
 
 	Camera->UpdateLoadingText("Spawning Minerals");
 
@@ -661,9 +642,11 @@ void AGrid::SpawnMinerals()
 						ValidMineralTiles.RemoveAt(j);
 			}
 
-			ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, false);
+			ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
 		}
 	}
+
+	GenerateTiles();
 
 	Camera->UpdateLoadingText("Spawning Vegetation");
 
@@ -715,12 +698,11 @@ void AGrid::SpawnVegetation()
 					ResourceTiles.Remove(tile);
 		}
 
-		for (FResourceHISMStruct ResourceStruct : element.Value) {
+		for (FResourceHISMStruct ResourceStruct : element.Value)
 			ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
-
-			ResourceStruct.Resource->ResourceHISM->bAutoRebuildTreeOnInstanceChanges = true;
-		}
 	}
+
+	GenerateTiles();
 
 	Camera->UpdateLoadingText("Setting Up Environment");
 
@@ -929,39 +911,6 @@ void AGrid::CalculateTile(FTileStruct* Tile)
 	transform.SetLocation(loc);
 	transform.SetRotation(Tile->Rotation);
 
-	/*if (Tile->AdjacentTiles.Num() < 4) {
-		FTransform t = transform;
-
-		if (t.GetLocation().Z != -200.0f)
-			t.SetLocation(t.GetLocation() + FVector(0.0f, 0.0f, -200.0f));
-
-		if (!Tile->AdjacentTiles.Find("Left")) {
-			t.SetLocation(t.GetLocation() + FVector(-100.0f, 0.0f, 0.0f));
-			AddCalculatedTile(HISMFlatGround, t);
-		}
-
-		if (!Tile->AdjacentTiles.Find("Right")) {
-			t.SetLocation(t.GetLocation() + FVector(100.0f, 0.0f, 0.0f));
-			AddCalculatedTile(HISMFlatGround, t);
-		}
-
-		if (!Tile->AdjacentTiles.Find("Below")) {
-			t.SetLocation(t.GetLocation() + FVector(0.0f, -100.0f, 0.0f));
-			AddCalculatedTile(HISMFlatGround, t);
-		}
-
-		if (!Tile->AdjacentTiles.Find("Above")) {
-			t.SetLocation(t.GetLocation() + FVector(0.0f, 100.0f, 0.0f));
-			AddCalculatedTile(HISMFlatGround, t);
-		}
-
-	}
-
-	if (Tile->Level < 0) {
-		transform.SetLocation(loc + FVector(0.0f, 0.0f, -200.0f));
-
-		AddCalculatedTile(HISMFlatGround, transform);
-	}*/
 	if (bLava && Tile->Level == MaxLevel) {
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * (MaxLevel - 2)));
 
@@ -1103,27 +1052,106 @@ void AGrid::AddCalculatedTile(UHierarchicalInstancedStaticMeshComponent* HISM, F
 void AGrid::GenerateTiles()
 {
 	for (auto& element : CalculatedTiles) {
-		TArray<int32> instances = element.Key->AddInstances(element.Value, true);
+		TArray<int32> instances = element.Key->AddInstances(element.Value, true, true, false);
 
 		for (int32 inst : instances) {
+			if (inst == 0)
+				FNavigationSystem::RegisterComponent(*element.Key);
+
 			FTransform transform;
 			element.Key->GetInstanceTransform(inst, transform);
 
-			if (element.Key == HISMRiver) {
+			float r = 0.0f;
+			float g = 0.0f;
+			float b = 0.0f;
+
+			if (element.Key->GetOwner()->IsA<AResource>()) {
+				if (element.Key->GetOwner()->IsA<AVegetation>()) {
+					bool bTree = false;
+
+					for (FResourceHISMStruct resourceStruct : TreeStruct) {
+						if (resourceStruct.Resource->ResourceHISM != element.Key)
+							continue;
+
+						bTree = true;
+
+						break;
+					}
+
+					if (bTree) {
+						int32 colour = Stream.RandRange(0, 3);
+
+						if (colour == 0) {
+							r = 53.0f;
+							g = 90.0f;
+							b = 32.0f;
+						}
+						else if (colour == 1) {
+							r = 54.0f;
+							g = 79.0f;
+							b = 38.0f;
+						}
+						else if (colour == 2) {
+							r = 32.0f;
+							g = 90.0f;
+							b = 40.0f;
+						}
+						else {
+							r = 38.0f;
+							g = 79.0f;
+							b = 43.0f;
+						}
+
+						int32 dyingChance = Stream.RandRange(0, 100);
+
+						if (dyingChance >= 97) {
+							r = 82.0f;
+							g = 90.0f;
+							b = 32.0f;
+						}
+
+						if (dyingChance == 100)
+							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
+						else
+							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 0.0f;
+
+						r /= 255.0f;
+						g /= 255.0f;
+						b /= 255.0f;
+
+						element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 9] = transform.GetScale3D().Z;
+					}
+					else {
+						r = Stream.FRandRange(0.0f, 1.0f);
+						g = Stream.FRandRange(0.0f, 1.0f);
+						b = Stream.FRandRange(0.0f, 1.0f);
+					}
+
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = r;
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = g;
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = b;
+				}
+				else {
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
+				}
+			}
+			else if (element.Key == HISMRiver) {
 				int32 level = FMath::RoundHalfFromZero(transform.GetLocation().Z / 75.0f);
 
-				float r = 0.0f + (76.0f / 5.0f * (5.0f - level));
-				float g = 99.0f + (80.0f / 5.0f * (5.0f - level));
-				float b = 255.0f;
+				r = 0.0f + (76.0f / 5.0f * (5.0f - level));
+				g = 99.0f + (80.0f / 5.0f * (5.0f - level));
+				b = 255.0f;
 
 				r /= 255.0f;
 				g /= 255.0f;
 				b /= 255.0f;
 
-				HISMRiver->SetCustomDataValue(inst, 0, 1.0f);
-				HISMRiver->SetCustomDataValue(inst, 1, r);
-				HISMRiver->SetCustomDataValue(inst, 2, g);
-				HISMRiver->SetCustomDataValue(inst, 3, b);
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats] = 1.0f;
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 1] = r;
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 2] = g;
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 3] = b;
 			}
 
 			if ((int32)transform.GetLocation().X % 100 != 0 || (int32)transform.GetLocation().Y % 100 != 0)
@@ -1134,11 +1162,7 @@ void AGrid::GenerateTiles()
 			if (tile == nullptr)
 				continue;
 
-			if (transform.GetLocation().Z >= 0.0f && (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround)) {
-				float r = 0.0f;
-				float g = 0.0f;
-				float b = 0.0f;
-
+			if (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround) {
 				if (tile->Fertility == 0) {
 					r = 30.0f;
 					g = 20.0f;
@@ -1174,17 +1198,21 @@ void AGrid::GenerateTiles()
 				g /= 255.0f;
 				b /= 255.0f;
 
-				inst = element.Key->AddInstance(transform);
-				element.Key->SetCustomDataValue(inst, 0, 0.0f);
-				element.Key->SetCustomDataValue(inst, 1, 1.0f);
-				element.Key->SetCustomDataValue(inst, 2, r);
-				element.Key->SetCustomDataValue(inst, 3, g);
-				element.Key->SetCustomDataValue(inst, 4, b);
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = r;
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = g;
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = b;
 			}
 
 			tile->Instance = inst;
 		}
+
+		element.Key->PartialNavigationUpdates({ element.Value });
+		element.Key->BuildTreeIfOutdated(true, true);
 	}
+
+	CalculatedTiles.Empty();
 }
 
 void AGrid::CreateEdgeWalls(FTileStruct* Tile)
@@ -1254,7 +1282,7 @@ void AGrid::CreateEdgeWalls(FTileStruct* Tile)
 		}
 
 		if (!bExists)
-			HISMWall->AddInstance(transform);
+			AddCalculatedTile(HISMWall, transform);
 	}
 }
 
@@ -1288,16 +1316,6 @@ void AGrid::SetMineralMultiplier(TSubclassOf<class AMineral> MineralClass, int32
 	}
 }
 
-void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
-{
-	FTransform transform = GetTransform(Tile);
-	
-	int32 inst = Resource->ResourceHISM->AddInstance(transform);
-	Resource->ResourceHISM->SetCustomDataValue(inst, 0, 0.0f);
-
-	ResourceTiles.Remove(Tile);
-}
-
 void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles)
 {
 	if (CheckTile->X > SpawnTile->X + Range || CheckTile->X < SpawnTile->X - Range || CheckTile->Y > SpawnTile->Y + Range || CheckTile->Y < SpawnTile->Y - Range)
@@ -1314,6 +1332,15 @@ void AGrid::GetValidSpawnLocations(FTileStruct* SpawnTile, FTileStruct* CheckTil
 	for (auto& element : CheckTile->AdjacentTiles)
 		if (!Tiles.Contains(element.Value))
 			GetValidSpawnLocations(SpawnTile, element.Value, Range, Valid, Tiles);
+}
+
+void AGrid::GenerateMinerals(FTileStruct* Tile, AResource* Resource)
+{
+	FTransform transform = GetTransform(Tile);
+
+	AddCalculatedTile(Resource->ResourceHISM, transform);
+
+	ResourceTiles.Remove(Tile);
 }
 
 void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* StartingTile, FTileStruct* Tile, int32 Amount, float Scale, bool bTree)
@@ -1368,91 +1395,13 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 
 		AVegetation* resource = Cast<AVegetation>(Vegetation[index].Resource);
 
-		int32 inst = resource->ResourceHISM->AddInstance(transform);
-
-		resource->ResourceHISM->SetCustomDataValue(inst, 9, size);
-
-		if (bTree)
-			GenerateTree(resource, inst);
-		else
-			GenerateFlower(Tile, resource, inst);
+		AddCalculatedTile(resource->ResourceHISM, transform);
 	}
 
 	VegetationTiles.Add(Tile);
 
 	for (auto& element : Tile->AdjacentTiles)
 		GenerateVegetation(Vegetation, StartingTile, element.Value, Amount, Scale, bTree);
-}
-
-void AGrid::GenerateTree(AVegetation* Resource, int32 Instance)
-{
-	float r = 0.0f;
-	float g = 0.0f;
-	float b = 0.0f;
-
-	int32 colour = Stream.RandRange(0, 3);
-
-	if (colour == 0) {
-		r = 53.0f;
-		g = 90.0f;
-		b = 32.0f;
-	}
-	else if (colour == 1) {
-		r = 54.0f;
-		g = 79.0f;
-		b = 38.0f;
-	}
-	else if (colour == 2) {
-		r = 32.0f;
-		g = 90.0f;
-		b = 40.0f;
-	}
-	else {
-		r = 38.0f;
-		g = 79.0f;
-		b = 43.0f;
-	}
-
-	int32 dyingChance = Stream.RandRange(0, 100);
-
-	if (dyingChance >= 97) {
-		r = 82.0f;
-		g = 90.0f;
-		b = 32.0f;
-	}
-
-	if (dyingChance == 100)
-		Resource->ResourceHISM->SetCustomDataValue(Instance, 10, 1.0f);
-	else
-		Resource->ResourceHISM->SetCustomDataValue(Instance, 10, 0.0f);
-
-	r /= 255.0f;
-	g /= 255.0f;
-	b /= 255.0f;
-
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 0, 0.0f);
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 1, 1.0f);
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 2, r);
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 3, g);
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 4, b);
-}
-
-void AGrid::GenerateFlower(FTileStruct* Tile, AVegetation* Resource, int32 Instance)
-{
-	UHierarchicalInstancedStaticMeshComponent* HISM = HISMFlatGround;
-
-	if (Tile->bEdge)
-		HISM = HISMGround;
-
-	float r = Stream.FRandRange(0.0f, 1.0f);;
-	float g = Stream.FRandRange(0.0f, 1.0f);
-	float b = Stream.FRandRange(0.0f, 1.0f);
-
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 0, 0.0f);
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 1, 1.0f);
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 2, r);
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 3, g);
-	Resource->ResourceHISM->SetCustomDataValue(Instance, 4, b);
 }
 
 void AGrid::RemoveTree(AResource* Resource, int32 Instance)
@@ -1597,7 +1546,7 @@ void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 		else
 			Values[2] = FMath::Clamp(Values[2] - Increment, 0.0f, 1.0f);
 
-		SetSeasonAffect(Values);
+		SetSeasonValues(Values);
 
 		Values.Remove(0.0f);
 
@@ -1622,52 +1571,36 @@ void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 	});
 }
 
-void AGrid::SetSeasonAffect(TArray<float> Values)
+void AGrid::SetSeasonValues(TArray<float> Values)
 {
+	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms;
+	hisms.Add(HISMGround);
+	hisms.Add(HISMFlatGround);
+	hisms.Add(HISMRampGround);
+
 	TArray<FResourceHISMStruct> resourceList;
 	resourceList.Append(TreeStruct);
 	resourceList.Append(FlowerStruct);
 
-	for (FResourceHISMStruct& ResourceStruct : resourceList) {
-		for (int32 inst = 0; inst < ResourceStruct.Resource->ResourceHISM->GetInstanceCount(); inst++) {
-			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 5] = Values[0];
-			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 6] = Values[1];
-			ResourceStruct.Resource->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 7] = Values[2];
+	for (FResourceHISMStruct& resourceStruct : resourceList)
+		hisms.Add(resourceStruct.Resource->ResourceHISM);
+
+	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
+		for (int32 inst = 0; inst < hism->GetInstanceCount(); inst++) {
+			if (hism->IsAttachedTo(GetRootComponent())) {
+				FTransform transform;
+				HISMGround->GetInstanceTransform(inst, transform);
+
+				FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
+
+				if (tile == nullptr || tile->Fertility == 0.0f)
+					continue;
+			}
+
+			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 5] = Values[0];
+			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 6] = Values[1];
+			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 7] = Values[2];
 		}
-	}
-
-	for (int32 inst = 0; inst < HISMGround->GetInstanceCount(); inst++) {
-		FTransform transform;
-		HISMGround->GetInstanceTransform(inst, transform);
-
-		FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
-
-		if (tile == nullptr || tile->Fertility == 0.0f)
-			continue;
-
-		HISMGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];
-		HISMGround->PerInstanceSMCustomData[inst * 8 + 6] = Values[1];
-		HISMGround->PerInstanceSMCustomData[inst * 8 + 7] = Values[2];
-	}
-
-	for (int32 inst = 0; inst < HISMFlatGround->GetInstanceCount(); inst++) {
-		FTransform transform;
-		HISMFlatGround->GetInstanceTransform(inst, transform);
-
-		FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
-
-		if (tile == nullptr || tile->Fertility == 0.0f)
-			continue;
-
-		HISMFlatGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];
-		HISMFlatGround->PerInstanceSMCustomData[inst * 8 + 6] = Values[1];
-		HISMFlatGround->PerInstanceSMCustomData[inst * 8 + 7] = Values[2];
-	}
-
-	for (int32 inst = 0; inst < HISMRampGround->GetInstanceCount(); inst++) {
-		HISMRampGround->PerInstanceSMCustomData[inst * 8 + 5] = Values[0];
-		HISMRampGround->PerInstanceSMCustomData[inst * 8 + 6] = Values[1];
-		HISMRampGround->PerInstanceSMCustomData[inst * 8 + 7] = Values[2];
 	}
 }
 
@@ -1735,6 +1668,6 @@ void AGrid::SetSpecialBuildingStatus(ASpecial* Building, bool bShow)
 		if (bShow)
 			opacity = 0.0f;
 
-		vegetation->ResourceHISM->SetCustomDataValue(hit.Item, 1, opacity);
+		vegetation->ResourceHISM->PerInstanceSMCustomData[hit.Item * vegetation->ResourceHISM->NumCustomDataFloats + 1] = opacity;
 	}
 }

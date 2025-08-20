@@ -20,6 +20,8 @@ AResource::AResource()
 	ResourceHISM->SetCanEverAffectNavigation(false);
 	ResourceHISM->bCastDynamicShadow = true;
 	ResourceHISM->CastShadow = true;
+	ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
+	ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
 
 	SetRootComponent(ResourceHISM);
 

@@ -165,6 +165,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		attackComp->ClearAttacks();
 
 		Cast<AAI>(actor)->AIController->StopMovement();
+		Camera->CitizenManager->RemoveTimer("Idle", actor);
 
 		Camera->CitizenManager->AIPendingRemoval.Add(Cast<AAI>(actor));
 

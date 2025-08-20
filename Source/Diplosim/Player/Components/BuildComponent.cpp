@@ -210,19 +210,23 @@ void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRe
 	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 
 	for (FResourceHISMStruct resource : vegetation) {
-		TArray<int32> instances = resource.Resource->ResourceHISM->GetInstancesOverlappingSphere(Building->GetActorLocation(), FMath::Sqrt(FMath::Square(size.X) + FMath::Square(size.Y)) + 50.0f);
+		UHierarchicalInstancedStaticMeshComponent* hism = resource.Resource->ResourceHISM;
+
+		TArray<int32> instances = hism->GetInstancesOverlappingSphere(Building->GetActorLocation(), FMath::Sqrt(FMath::Square(size.X) + FMath::Square(size.Y)) + 50.0f);
 
 		for (int32 i = instances.Num() - 1; i > -1; i--) {
 			FTransform transform;
-			resource.Resource->ResourceHISM->GetInstanceTransform(instances[i], transform);
+			hism->GetInstanceTransform(instances[i], transform);
 
 			if (bRemoveBuilding || FMath::Abs(transform.GetLocation().X - Building->GetActorLocation().X) > size.X + 25.0f || FMath::Abs(transform.GetLocation().Y - Building->GetActorLocation().Y) > size.Y + 25.0f)
-				resource.Resource->ResourceHISM->SetCustomDataValue(instances[i], 1, 1.0f);
+				hism->PerInstanceSMCustomData[instances[i] * hism->NumCustomDataFloats + 1] = 1.0f;
 			else if (bDestroy)
 				Camera->Grid->RemoveTree(resource.Resource, instances[i]);
 			else 
-				resource.Resource->ResourceHISM->SetCustomDataValue(instances[i], 1, 0.0f);
+				hism->PerInstanceSMCustomData[instances[i] * hism->NumCustomDataFloats + 1] = 0.0f;
 		}
+
+		hism->BuildTreeIfOutdated(true, true);
 	}
 }
 

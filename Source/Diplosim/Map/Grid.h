@@ -253,15 +253,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetMineralMultiplier(TSubclassOf<class AMineral> MineralClass, int32 Multiplier);
 
-	void GenerateMinerals(FTileStruct* Tile, class AResource* Resource);
-
 	void GetValidSpawnLocations(FTileStruct* Tile, FTileStruct* CheckTile, int32 Range, bool& Valid, TArray<FTileStruct*>& Tiles);
 
+	void GenerateMinerals(FTileStruct* Tile, class AResource* Resource);
+
 	void GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* StartingTile, FTileStruct* Tile, int32 Amount, float Scale, bool bTree);
-
-	void GenerateTree(class AVegetation* Resource, int32 Instance);
-
-	void GenerateFlower(FTileStruct* Tile, class AVegetation* Resource, int32 Instance);
 
 	void RemoveTree(class AResource* Resource, int32 Instance);
 
@@ -303,7 +299,7 @@ public:
 
 	void AlterSeasonAffectGradually(FString Period, float Increment);
 
-	void SetSeasonAffect(TArray<float> Values);
+	void SetSeasonValues(TArray<float> Values);
 
 	// Unique Buildings
 	void SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles);
