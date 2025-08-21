@@ -313,24 +313,9 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	if (PauseUIInstance->IsInViewport())
 		Pause();
 
-	for (ASpecial* building :  Grid->SpecialBuildings) {
-		if (building->IsHidden()) {
-			building->Destroy();
-		}
-		else {
-			TArray<FHitResult> hits = BuildComponent->GetBuildingOverlaps(building);
-
-			for (FHitResult hit : hits) {
-				if (!hit.GetActor()->IsA<AVegetation>())
-					continue;
-
-				AVegetation* vegetation = Cast<AVegetation>(hit.GetActor());
-				Grid->RemoveTree(vegetation, hit.Item);
-			}
-		}
-	}
-
 	bBlockPause = true;
+
+	Grid->BuildSpecialBuildings();
 
 	Grid->MapUIInstance->RemoveFromParent();
 

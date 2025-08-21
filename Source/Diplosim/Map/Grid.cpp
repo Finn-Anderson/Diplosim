@@ -1646,7 +1646,7 @@ void AGrid::SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles)
 			validLocations[chosenLocation]->bUnique = true;
 		}
 
-		SetSpecialBuildingStatus(building, building->IsHidden());
+		SetSpecialBuildingStatus(building, !building->IsHidden());
 	}
 
 	Camera->UpdateMapSpecialBuildings();
@@ -1656,18 +1656,15 @@ void AGrid::SetSpecialBuildingStatus(ASpecial* Building, bool bShow)
 {
 	Building->SetActorHiddenInGame(!bShow);
 
-	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(Building);
+	Camera->BuildComponent->SetTreeStatus(Building, false, bShow);
+}
 
-	for (FHitResult hit : hits) {
-		if (!hit.GetActor()->IsA<AVegetation>())
-			continue;
-
-		AVegetation* vegetation = Cast<AVegetation>(hit.GetActor());
-		float opacity = 1.0f;
-
-		if (bShow)
-			opacity = 0.0f;
-
-		vegetation->ResourceHISM->PerInstanceSMCustomData[hit.Item * vegetation->ResourceHISM->NumCustomDataFloats + 1] = opacity;
+void AGrid::BuildSpecialBuildings()
+{
+	for (ASpecial* building : SpecialBuildings) {
+		if (building->IsHidden())
+			building->Destroy();
+		else
+			Camera->BuildComponent->SetTreeStatus(building, true);
 	}
 }

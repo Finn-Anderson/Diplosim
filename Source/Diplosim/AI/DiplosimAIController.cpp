@@ -271,9 +271,6 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-	if (!IsValid(nav) || !IsValid(navData))
-		return false;
-
 	FNavLocation targetLoc;
 	nav->ProjectPointToNavigation(Location, targetLoc, FVector(400.0f, 400.0f, 20.0f));
 

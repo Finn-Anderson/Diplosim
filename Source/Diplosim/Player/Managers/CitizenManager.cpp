@@ -227,6 +227,9 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		return;
 
 	Async(EAsyncExecution::Thread, [this, DeltaTime]() {
+		if (!IsValid(this))
+			return;
+
 		FScopeTryLock lock(&TickLock);
 		if (!lock.IsLocked())
 			return;
@@ -236,6 +239,9 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		TArray<AActor*> actors;
 
 		for (ACitizen* citizen : Citizens) {
+			if (!IsValid(this))
+				return;
+
 			if (citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || Arrested.Contains(citizen))
 				continue;
 
@@ -244,6 +250,9 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			int32 reach = citizen->Range / 15.0f;
 
 			for (AActor* actor : actors) {
+				if (!IsValid(this))
+					return;
+
 				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
 				if (healthComp && healthComp->GetHealth() <= 0)
@@ -416,6 +425,9 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							}
 						}
 					}
+
+					if (!IsValid(this))
+						return;
 					
 					if ((*citizen->AttackComponent->ProjectileClass || citizen->AIController->CanMoveTo(Camera->GetTargetActorLocation(ai))) && !Citizens.Contains(ai)) {
 						if (!citizen->AttackComponent->OverlappingEnemies.Contains(ai))

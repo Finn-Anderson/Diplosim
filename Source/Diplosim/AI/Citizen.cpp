@@ -759,18 +759,9 @@ void ACitizen::Eat()
 	}
 
 	if (Hunger > 25)
-		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() / FVector(0.5f, 0.5f, 1.0f));
+		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() / FVector(0.75f, 0.75f, 1.0f));
 	else if (Hunger == 25)
-		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() * FVector(0.5f, 0.5f, 1.0f));
-
-	if (Camera->CitizenManager->Rebels.Contains(this) && Hunger > 25) {
-		UAIVisualiser* aiVisualiser = Camera->Grid->AIVisualiser;
-		aiVisualiser->RemoveInstance(aiVisualiser->HISMRebel, Camera->CitizenManager->Rebels.Find(this));
-		Camera->CitizenManager->Rebels.Remove(this);
-
-		Camera->CitizenManager->Citizens.Add(this);
-		aiVisualiser->AddInstance(this, aiVisualiser->HISMCitizen, MovementComponent->Transform);
-	}
+		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() * FVector(0.75f, 0.75f, 1.0f));
 }
 
 //
@@ -946,7 +937,7 @@ void ACitizen::Birthday()
 
 		float multiply = 1.0f;
 		if (Hunger <= 25)
-			multiply = 0.5f;
+			multiply = 0.75f;
 
 		float scale = (BioStruct.Age * 0.04f) + 0.28f;
 

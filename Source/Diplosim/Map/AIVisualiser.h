@@ -99,4 +99,6 @@ public:
 
 	UPROPERTY()
 		float ToggleTorches;
+
+	FCriticalSection MovementLock;
 };

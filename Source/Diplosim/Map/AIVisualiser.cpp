@@ -4,6 +4,7 @@
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "Misc/ScopeTryLock.h"
 
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -126,67 +127,76 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 
 	PendingChange.Empty();
 
-	TArray<FVector> diseaseLocations;
-	TArray<FVector> torchLocations;
+	Async(EAsyncExecution::Thread, [this, Camera]() {
+		if (!IsValid(this))
+			return;
 
-	TArray<TArray<ACitizen*>> citizens;
-	citizens.Add(Camera->CitizenManager->Citizens);
-	citizens.Add(Camera->CitizenManager->Rebels);
+		FScopeTryLock lock(&MovementLock);
+		if (!lock.IsLocked())
+			return;
 
-	for (int32 i = 0; i < citizens.Num(); i++) {
-		for (int32 j = 0; j < citizens[i].Num(); j++) {
-			ACitizen* citizen = citizens[i][j];
+		TArray<FVector> diseaseLocations;
+		TArray<FVector> torchLocations;
 
-			citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
+		TArray<TArray<ACitizen*>> citizens;
+		citizens.Add(Camera->CitizenManager->Citizens);
+		citizens.Add(Camera->CitizenManager->Rebels);
 
-			if (i == 0) {
-				SetInstanceTransform(HISMCitizen, j, citizen->MovementComponent->Transform);
+		for (int32 i = 0; i < citizens.Num(); i++) {
+			for (int32 j = 0; j < citizens[i].Num(); j++) {
+				ACitizen* citizen = citizens[i][j];
 
-				float opacity = 1.0f;
-				if (IsValid(citizen->Building.BuildingAt))
-					opacity = 0.0f;
+				citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
 
-				HISMCitizen->PerInstanceSMCustomData[j * HISMCitizen->NumCustomDataFloats + 12] = opacity;
+				if (i == 0) {
+					SetInstanceTransform(HISMCitizen, j, citizen->MovementComponent->Transform);
+
+					float opacity = 1.0f;
+					if (IsValid(citizen->Building.BuildingAt))
+						opacity = 0.0f;
+
+					HISMCitizen->PerInstanceSMCustomData[j * HISMCitizen->NumCustomDataFloats + 12] = opacity;
+				}
+				else
+					SetInstanceTransform(HISMRebel, j, citizen->MovementComponent->Transform);
+
+				if (Camera->CitizenManager->Infected.Contains(citizen))
+					diseaseLocations.Add(citizen->MovementComponent->Transform.GetLocation());
+
+				if (TorchNiagaraComponent->IsActive())
+					torchLocations.Add(citizen->MovementComponent->Transform.GetLocation());
+
+				UpdateCitizenVisuals(Camera, citizen, j);
 			}
-			else
-				SetInstanceTransform(HISMRebel, j, citizen->MovementComponent->Transform);
-
-			if (Camera->CitizenManager->Infected.Contains(citizen))
-				diseaseLocations.Add(citizen->MovementComponent->Transform.GetLocation());
-
-			if (TorchNiagaraComponent->IsActive())
-				torchLocations.Add(citizen->MovementComponent->Transform.GetLocation());
-
-			UpdateCitizenVisuals(Camera, citizen, j);
 		}
-	}
 
-	TArray<TArray<AAI*>> ais;
-	ais.Add(Camera->CitizenManager->Clones);
-	ais.Add(Camera->CitizenManager->Enemies);
+		TArray<TArray<AAI*>> ais;
+		ais.Add(Camera->CitizenManager->Clones);
+		ais.Add(Camera->CitizenManager->Enemies);
 
-	for (int32 i = 0; i < ais.Num(); i++) {
-		for (int32 j = 0; j < ais[i].Num(); j++) {
-			AAI* ai = ais[i][j];
+		for (int32 i = 0; i < ais.Num(); i++) {
+			for (int32 j = 0; j < ais[i].Num(); j++) {
+				AAI* ai = ais[i][j];
 
-			ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
+				ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
 
-			if (i == 0)
-				SetInstanceTransform(HISMClone, j, ai->MovementComponent->Transform);
-			else
-				SetInstanceTransform(HISMEnemy, j, ai->MovementComponent->Transform);
+				if (i == 0)
+					SetInstanceTransform(HISMClone, j, ai->MovementComponent->Transform);
+				else
+					SetInstanceTransform(HISMEnemy, j, ai->MovementComponent->Transform);
+			}
 		}
-	}
 
-	if (!torchLocations.IsEmpty()) {
-		torchLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(TorchNiagaraComponent, "Locations"));
-		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(TorchNiagaraComponent, "Locations", torchLocations);
-	}
+		if (!torchLocations.IsEmpty()) {
+			torchLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(TorchNiagaraComponent, "Locations"));
+			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(TorchNiagaraComponent, "Locations", torchLocations);
+		}
 
-	if (!diseaseLocations.IsEmpty()) {
-		diseaseLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations"));
-		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
-	}
+		if (!diseaseLocations.IsEmpty()) {
+			diseaseLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations"));
+			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
+		}
+	});
 
 	HISMCitizen->BuildTreeIfOutdated(false, true);
 	HISMRebel->BuildTreeIfOutdated(false, true);
@@ -218,11 +228,20 @@ void UAIVisualiser::RemoveInstance(UHierarchicalInstancedStaticMeshComponent* HI
 void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform)
 {
 	FInstancedStaticMeshInstanceData& instanceData = HISM->PerInstanceSMData[Instance];
+
+	if (instanceData.Transform == Transform.ToMatrixWithScale())
+		return;
+
 	instanceData.Transform = Transform.ToMatrixWithScale();
 
-	FBodyInstance*& InstanceBodyInstance = HISM->InstanceBodies[Instance];
-	InstanceBodyInstance->SetBodyTransform(Transform, TeleportFlagToEnum(false));
-	InstanceBodyInstance->UpdateBodyScale(Transform.GetScale3D());
+	AsyncTask(ENamedThreads::GameThread, [this, HISM, Instance, Transform]() {
+		if (!IsValid(this))
+			return;
+
+		FBodyInstance*& InstanceBodyInstance = HISM->InstanceBodies[Instance];
+		InstanceBodyInstance->SetBodyTransform(Transform, TeleportFlagToEnum(false));
+		InstanceBodyInstance->UpdateBodyScale(Transform.GetScale3D());
+	});
 }
 
 void UAIVisualiser::UpdateCitizenVisuals(ACamera* Camera, ACitizen* Citizen, int32 Instance)
@@ -235,12 +254,12 @@ void UAIVisualiser::UpdateCitizenVisuals(ACamera* Camera, ACitizen* Citizen, int
 		HISM = HISMRebel;
 
 	if (Citizen->bGlasses && HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 10] == 0.0f)
-		HISMCitizen->PerInstanceSMCustomData[Instance * HISMCitizen->NumCustomDataFloats + 10] = 1.0f;
+		HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 10] = 1.0f;
 
 	if (Camera->CitizenManager->Injured.Contains(Citizen) && HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] == 0.0f)
-		HISMCitizen->PerInstanceSMCustomData[Instance * HISMCitizen->NumCustomDataFloats + 9] = 1.0f;
+		HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] = 1.0f;
 	else if (HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] == 1.0f)
-		HISMCitizen->PerInstanceSMCustomData[Instance * HISMCitizen->NumCustomDataFloats + 9] = 0.0f;
+		HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] = 0.0f;
 }
 
 void UAIVisualiser::ActivateTorches(int32 Hour, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)

@@ -307,6 +307,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetSpecialBuildingStatus(class ASpecial* Building, bool bShow);
 
+	void BuildSpecialBuildings();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
 		TArray<class ASpecial*> SpecialBuildings;
 
