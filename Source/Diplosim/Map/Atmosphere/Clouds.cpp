@@ -115,13 +115,19 @@ void UCloudComponent::TickCloud(float DeltaTime)
 		}
 	}
 
-	for (int32 i = ProcessRainEffect.Num() - 1; i > -1; i--) {
-		SetRainMaterialEffect(ProcessRainEffect[i].Value, ProcessRainEffect[i].Actor, ProcessRainEffect[i].HISM, ProcessRainEffect[i].Instance);
+	Async(EAsyncExecution::Thread, [this, DeltaTime]() {
+		FScopeTryLock lock(&RainLock);
+		if (!lock.IsLocked())
+			return;
 
-		ProcessRainEffect.RemoveAt(i);
-	}
+		for (int32 i = ProcessRainEffect.Num() - 1; i > -1; i--) {
+			SetRainMaterialEffect(ProcessRainEffect[i].Value, ProcessRainEffect[i].Actor, ProcessRainEffect[i].HISM, ProcessRainEffect[i].Instance);
 
-	SetGradualWetness();
+			ProcessRainEffect.RemoveAt(i);
+		}
+
+		SetGradualWetness();
+	});
 }
 
 void UCloudComponent::Clear()
@@ -167,8 +173,6 @@ void UCloudComponent::ActivateCloud()
 
 	if (!Settings->GetRain())
 		chance = 1;
-
-	chance = 100;
 
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);
 	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
@@ -317,23 +321,26 @@ void UCloudComponent::UpdateSpawnedClouds()
 
 void UCloudComponent::RainCollisionHandler(FVector CollisionLocation)
 {
-	if (CollisionLocation.Z < 0.0f)
-		return;
-	
 	FHitResult hit(ForceInit);
 
-	if (GetWorld()->LineTraceSingleByChannel(hit, CollisionLocation, CollisionLocation - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Visibility))
+	if (GetWorld()->LineTraceSingleByChannel(hit, CollisionLocation + FVector(0.0f, 0.0f, 20.0f), CollisionLocation - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Visibility))
 	{
+		if (hit.Component == Grid->HISMSea || hit.Component == Grid->HISMLava || hit.Component == Grid->HISMRiver)
+			return;
+
 		FWetnessStruct rainDrop;
 		rainDrop.Value = 1.0f;
 
 		if (hit.GetActor()->IsA<ABuilding>() || hit.GetActor()->IsA<AAI>() || hit.GetActor()->IsA<AEggBasket>()) {
 			rainDrop.Actor = hit.GetActor();
 		}
-		else if (hit.Component != nullptr && hit.Component->IsA<UHierarchicalInstancedStaticMeshComponent>() && hit.Component != Grid->HISMRiver) {
+		else if (hit.Component != nullptr && hit.Component->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
 			rainDrop.HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.Component);
 			rainDrop.Instance = hit.Item;
 		}
+
+		if (IsValid(rainDrop.HISM) && rainDrop.HISM->NumCustomDataFloats == 0)
+			return;
 
 		ProcessRainEffect.Add(rainDrop);
 	}
@@ -398,7 +405,7 @@ void UCloudComponent::SetGradualWetness()
 		else {
 			WetnessStruct[i].HISM->PerInstanceSMCustomData[WetnessStruct[i].Instance * WetnessStruct[i].HISM->NumCustomDataFloats] = WetnessStruct[i].Value;
 
-			if (!hismsToUpdate.Contains(WetnessStruct[i].HISM))
+			if (hismsToUpdate.IsEmpty() || !hismsToUpdate.Contains(WetnessStruct[i].HISM))
 				hismsToUpdate.Add(WetnessStruct[i].HISM);
 		}
 
@@ -406,6 +413,8 @@ void UCloudComponent::SetGradualWetness()
 			WetnessStruct.RemoveAt(i);
 	}
 
-	for (UHierarchicalInstancedStaticMeshComponent* hism : hismsToUpdate)
-		hism->BuildTreeIfOutdated(true, true);
+	AsyncTask(ENamedThreads::GameThread, [hismsToUpdate]() {
+		for (UHierarchicalInstancedStaticMeshComponent* hism : hismsToUpdate)
+			hism->BuildTreeIfOutdated(true, true);
+	});
 }

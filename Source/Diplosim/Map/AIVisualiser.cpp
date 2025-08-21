@@ -219,6 +219,10 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 {
 	FInstancedStaticMeshInstanceData& instanceData = HISM->PerInstanceSMData[Instance];
 	instanceData.Transform = Transform.ToMatrixWithScale();
+
+	FBodyInstance*& InstanceBodyInstance = HISM->InstanceBodies[Instance];
+	InstanceBodyInstance->SetBodyTransform(Transform, TeleportFlagToEnum(false));
+	InstanceBodyInstance->UpdateBodyScale(Transform.GetScale3D());
 }
 
 void UAIVisualiser::UpdateCitizenVisuals(ACamera* Camera, ACitizen* Citizen, int32 Instance)
