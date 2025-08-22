@@ -521,6 +521,8 @@ public:
 	UPROPERTY()
 		FVector BrochLocation;
 
+	FCriticalSection LoopLock;
+
 	FCriticalSection TickLock;
 
 	FCriticalSection TimerLock;

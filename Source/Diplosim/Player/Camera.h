@@ -174,6 +174,9 @@ public:
 
 	void OnBrochPlace(class ABuilding* Broch);
 
+	UFUNCTION(BlueprintCallable)
+		void Quit(bool bMenu);
+
 	// Audio
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* InteractAudioComponent;

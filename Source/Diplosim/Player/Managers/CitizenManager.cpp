@@ -226,23 +226,23 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	if (DeltaTime < 0.005f || DeltaTime > 1.0f)
 		return;
 
-	Async(EAsyncExecution::Thread, [this, DeltaTime]() {
-		if (!IsValid(this))
-			return;
-
-		FScopeTryLock lock(&TickLock);
+	Async(EAsyncExecution::Thread, [this]() {
+		FScopeTryLock lock(&LoopLock);
 		if (!lock.IsLocked())
 			return;
 
 		Loop();
+	});
+
+	Async(EAsyncExecution::Thread, [this]() {
+		FScopeTryLock lock(&TickLock);
+		if (!lock.IsLocked())
+			return;
 
 		TArray<AActor*> actors;
 
 		for (ACitizen* citizen : Citizens) {
-			if (!IsValid(this))
-				return;
-
-			if (citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || Arrested.Contains(citizen))
+			if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || Arrested.Contains(citizen))
 				continue;
 
 			actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range);
@@ -250,8 +250,8 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			int32 reach = citizen->Range / 15.0f;
 
 			for (AActor* actor : actors) {
-				if (!IsValid(this))
-					return;
+				if (!IsValid(actor))
+					continue;
 
 				UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
@@ -425,9 +425,6 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 							}
 						}
 					}
-
-					if (!IsValid(this))
-						return;
 					
 					if ((*citizen->AttackComponent->ProjectileClass || citizen->AIController->CanMoveTo(Camera->GetTargetActorLocation(ai))) && !Citizens.Contains(ai)) {
 						if (!citizen->AttackComponent->OverlappingEnemies.Contains(ai))
@@ -522,7 +519,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 		ais.Append(Enemies);
 
 		for (AAI* ai : ais) {
-			if (ai->HealthComponent->GetHealth() <= 0)
+			if (!IsValid(ai) || ai->HealthComponent->GetHealth() <= 0)
 				continue;
 
 			actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range);
@@ -580,7 +577,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 		if (!Enemies.IsEmpty()) {
 			for (ABuilding* building : Buildings) {
-				if (!building->IsA<ACloneLab>())
+				if (!IsValid(building) || !building->IsA<ACloneLab>())
 					continue;
 
 				if (!DoesTimerExist("Internal", Cast<ACloneLab>(building)) && Enemies[0]->AIController->CanMoveTo(building->GetActorLocation()))
@@ -596,6 +593,9 @@ void UCitizenManager::Loop()
 {
 	for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
 		FTimerStruct &timer = node->GetValue();
+
+		if (!IsValid(this))
+			return;
 
 		if (!IsValid(timer.Actor)) {
 			FScopeLock lock(&TimerLock);

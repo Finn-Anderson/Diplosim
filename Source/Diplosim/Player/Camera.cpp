@@ -12,6 +12,7 @@
 #include "Components/AudioComponent.h"
 #include "NiagaraComponent.h"
 #include "Engine/ScopedMovementUpdate.h"
+#include "Misc/ScopeTryLock.h"
 
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -347,6 +348,16 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	FTimerHandle displayBuildUITimer;
 	GetWorld()->GetTimerManager().SetTimer(displayBuildUITimer, this, &ACamera::DisplayBuildUI, 2.7f, false);
+}
+
+void ACamera::Quit(bool bMenu)
+{
+	MainMenuUIInstance->RemoveFromParent();
+
+	if (bMenu)
+		UGameplayStatics::OpenLevel(GetWorld(), "Map");
+	else
+		UKismetSystemLibrary::QuitGame(GetWorld(), PController, EQuitPreference::Quit, false);
 }
 
 void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch)

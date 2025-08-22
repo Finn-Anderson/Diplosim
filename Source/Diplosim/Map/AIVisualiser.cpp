@@ -198,10 +198,10 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 		}
 	});
 
-	HISMCitizen->BuildTreeIfOutdated(false, true);
-	HISMRebel->BuildTreeIfOutdated(false, true);
-	HISMClone->BuildTreeIfOutdated(false, true);
-	HISMEnemy->BuildTreeIfOutdated(false, true);
+	HISMCitizen->BuildTreeIfOutdated(false, false);
+	HISMRebel->BuildTreeIfOutdated(false, false);
+	HISMClone->BuildTreeIfOutdated(false, false);
+	HISMEnemy->BuildTreeIfOutdated(false, false);
 }
 
 void UAIVisualiser::AddInstance(class AAI* AI, UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform)
@@ -235,12 +235,11 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 	instanceData.Transform = Transform.ToMatrixWithScale();
 
 	AsyncTask(ENamedThreads::GameThread, [this, HISM, Instance, Transform]() {
-		if (!IsValid(this))
-			return;
-
 		FBodyInstance*& InstanceBodyInstance = HISM->InstanceBodies[Instance];
 		InstanceBodyInstance->SetBodyTransform(Transform, TeleportFlagToEnum(false));
 		InstanceBodyInstance->UpdateBodyScale(Transform.GetScale3D());
+
+		HISM->UnbuiltInstanceBoundsList.Add(InstanceBodyInstance->GetBodyBounds());
 	});
 }
 
@@ -403,7 +402,7 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 	FVector location = Camera->GetTargetActorLocation(Actor);
 
 	for (AActor* actor : actorsToCheck) {
-		FVector loc = cm->Camera->GetTargetActorLocation(actor);
+		FVector loc = Camera->GetTargetActorLocation(actor);
 
 		if (actor->IsA<ABuilding>())
 			Cast<ABuilding>(actor)->BuildingMesh->GetClosestPointOnCollision(location, loc);
@@ -414,7 +413,7 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 			actors.Add(actor);
 	}
 
-	for (FResourceHISMStruct resourceStruct : cm->Camera->Grid->TreeStruct) {
+	for (FResourceHISMStruct resourceStruct : Camera->Grid->TreeStruct) {
 		TArray<int32> instances = resourceStruct.Resource->ResourceHISM->GetInstancesOverlappingSphere(location, Range);
 
 		if (!instances.IsEmpty())
