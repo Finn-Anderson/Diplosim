@@ -23,6 +23,9 @@ public:
 	UPROPERTY()
 		class ACamera* Camera;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class USceneComponent* RootSceneComponent;
+
 	// Fighting
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		class UHealthComponent* HealthComponent;

@@ -143,6 +143,10 @@ public:
 
 	void MainLoop(class ACamera* Camera);
 
+	void CalculateCitizenMovement(class ACamera* Camera);
+
+	void CalculateAIMovement(class ACamera* Camera);
+
 	void AddInstance(class AAI* AI, class UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
 
 	void RemoveInstance(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);

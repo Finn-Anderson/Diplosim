@@ -23,6 +23,9 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY()
+		double lastUpdatedTime;
+
+	UPROPERTY()
 		bool bCanRotate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
@@ -60,7 +63,7 @@ public:
 
 	TArray<FHitResult> GetBuildingOverlaps(class ABuilding* Building, float Extent = 1.0f);
 
-	void SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding = false);
+	void SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding = false, FVector PrevLocation = FVector::Zero());
 
 	void DisplayInfluencedBuildings(class ABuilding* Building, bool bShow);
 

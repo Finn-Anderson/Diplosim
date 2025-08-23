@@ -70,7 +70,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	else
 		Velocity = CalculateVelocity(Points[0]);
 
-	UpdateComponentVelocity();
+	AI->GetRootComponent()->ComponentVelocity = Velocity;
 
 	FVector deltaV = Velocity * DeltaTime;
 

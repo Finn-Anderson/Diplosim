@@ -124,13 +124,21 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 		else
 			pending.HISM->RemoveInstance(pending.Instance);
 	}
+	
+	if (!PendingChange.IsEmpty())
+		PendingChange.Empty();
 
-	PendingChange.Empty();
+	CalculateCitizenMovement(Camera);
+
+	CalculateAIMovement(Camera);
+}
+
+void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
+{
+	if (Camera->CitizenManager->Citizens.IsEmpty() && Camera->CitizenManager->Rebels.IsEmpty())
+		return;
 
 	Async(EAsyncExecution::Thread, [this, Camera]() {
-		if (!IsValid(this))
-			return;
-
 		FScopeTryLock lock(&CitizenMovementLock);
 		if (!lock.IsLocked())
 			return;
@@ -146,7 +154,7 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			for (int32 j = 0; j < citizens[i].Num(); j++) {
 				ACitizen* citizen = citizens[i][j];
 
-				if (!IsValid(citizen))
+				if (!IsValid(citizen) || citizen->IsPendingKillPending())
 					continue;
 
 				citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
@@ -172,9 +180,9 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 				UpdateCitizenVisuals(Camera, citizen, j);
 			}
 
-			if (i == 0)
+			if (i == 0 && !citizens[i].IsEmpty())
 				AsyncTask(ENamedThreads::GameThread, [this]() { HISMCitizen->BuildTreeIfOutdated(false, false); });
-			else
+			else if (!citizens[i].IsEmpty())
 				AsyncTask(ENamedThreads::GameThread, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
 		}
 
@@ -188,11 +196,14 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
 		}
 	});
+}
+
+void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
+{
+	if (Camera->CitizenManager->Clones.IsEmpty() && Camera->CitizenManager->Enemies.IsEmpty())
+		return;
 
 	Async(EAsyncExecution::Thread, [this, Camera]() {
-		if (!IsValid(this))
-			return;
-
 		FScopeTryLock lock(&AIMovementLock);
 		if (!lock.IsLocked())
 			return;
@@ -205,7 +216,9 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			for (int32 j = 0; j < ais[i].Num(); j++) {
 				AAI* ai = ais[i][j];
 
-				ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
+				if (!IsValid(ai) || ai->IsPendingKillPending())
+
+					ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
 
 				if (i == 0)
 					SetInstanceTransform(HISMClone, j, ai->MovementComponent->Transform);
@@ -213,9 +226,9 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 					SetInstanceTransform(HISMEnemy, j, ai->MovementComponent->Transform);
 			}
 
-			if (i == 0)
+			if (i == 0 && !ais[i].IsEmpty())
 				AsyncTask(ENamedThreads::GameThread, [this]() { HISMClone->BuildTreeIfOutdated(false, false); });
-			else
+			else if (!ais[i].IsEmpty())
 				AsyncTask(ENamedThreads::GameThread, [this]() { HISMEnemy->BuildTreeIfOutdated(false, false); });
 		}
 	});

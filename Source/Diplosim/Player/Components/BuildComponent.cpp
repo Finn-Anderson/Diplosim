@@ -40,6 +40,8 @@ UBuildComponent::UBuildComponent()
 	StartLocation = FVector::Zero();
 
 	BuildingToMove = nullptr;
+
+	lastUpdatedTime = 0.0f;
 }
 
 void UBuildComponent::BeginPlay()
@@ -52,6 +54,11 @@ void UBuildComponent::BeginPlay()
 void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction); 
+
+	lastUpdatedTime += DeltaTime;
+
+	if (lastUpdatedTime < 1 / 60.0f)
+		return;
 	
 	FScopeTryLock lock(&BuildLock);
 	if (!lock.IsLocked() || DeltaTime > 1.0f || Buildings.IsEmpty() || Camera->bInMenu || Camera->bMouseCapture)
@@ -101,6 +108,8 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		else if (hit2.GetComponent() == Camera->Grid->HISMRiver && Buildings[0]->IsA<ARoad>())
 			location.Z += 20.0f;
 
+		FVector prevLocation = Buildings[0]->GetActorLocation();
+
 		Buildings[0]->SetActorLocation(location);
 		Buildings[0]->SetActorRotation(Rotation);
 
@@ -113,14 +122,15 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (Buildings[0]->IsA<ARoad>() && !Buildings[0]->IsHidden())
 			Cast<ARoad>(Buildings[0])->SetTier(Cast<ARoad>(Buildings[0])->Tier);
 
-		SetTreeStatus(Buildings[0], false);
+		if (FVector::Dist(prevLocation, location) <= 100.0f)
+			prevLocation = FVector::Zero();
+
+		SetTreeStatus(Buildings[0], false, false, prevLocation);
 	}
 
 	for (ABuilding* building : Buildings) {
 		if (building->IsHidden())
 			continue;
-
-		UDecalComponent* decalComp = building->FindComponentByClass<UDecalComponent>();
 
 		if ((StartLocation == FVector::Zero() && !IsValidLocation(building)) || !CheckBuildCosts()) {
 			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
@@ -134,8 +144,8 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 			DisplayInfluencedBuildings(building, false);
 
-			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
-				decalComp->SetVisibility(false);
+			if (building->DecalComponent->GetDecalMaterial() != nullptr)
+				building->DecalComponent->SetVisibility(false);
 		}
 		else {
 			building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
@@ -149,8 +159,8 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 			DisplayInfluencedBuildings(building, true);
 
-			if (IsValid(decalComp) && decalComp->GetDecalMaterial() != nullptr)
-				decalComp->SetVisibility(true);
+			if (building->DecalComponent->GetDecalMaterial() != nullptr)
+				building->DecalComponent->SetVisibility(true);
 		}
 	}
 }
@@ -201,7 +211,7 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 	return hits;
 }
 
-void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding)
+void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding, FVector PrevLocation)
 {
 	TArray<FResourceHISMStruct> vegetation;
 	vegetation.Append(Camera->Grid->TreeStruct);
@@ -214,6 +224,11 @@ void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRe
 
 		TArray<int32> instances = hism->GetInstancesOverlappingSphere(Building->GetActorLocation(), FMath::Sqrt(FMath::Square(size.X) + FMath::Square(size.Y)) + 50.0f);
 
+		if (PrevLocation != FVector::Zero())
+			instances.Append(hism->GetInstancesOverlappingSphere(PrevLocation, FMath::Sqrt(FMath::Square(size.X) + FMath::Square(size.Y)) + 50.0f));
+
+		instances.Sort();
+
 		for (int32 i = instances.Num() - 1; i > -1; i--) {
 			FTransform transform;
 			hism->GetInstanceTransform(instances[i], transform);
@@ -224,9 +239,11 @@ void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRe
 				Camera->Grid->RemoveTree(resource.Resource, instances[i]);
 			else 
 				hism->PerInstanceSMCustomData[instances[i] * hism->NumCustomDataFloats + 1] = 0.0f;
+
+			hism->UnbuiltInstanceBoundsList.Add(hism->InstanceBodies[instances[i]]->GetBodyBounds());
 		}
 
-		hism->BuildTreeIfOutdated(true, true);
+		hism->BuildTreeIfOutdated(true, false);
 	}
 }
 
