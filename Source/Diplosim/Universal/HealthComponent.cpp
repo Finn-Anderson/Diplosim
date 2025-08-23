@@ -167,8 +167,6 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		Cast<AAI>(actor)->AIController->StopMovement();
 		Camera->CitizenManager->RemoveTimer("Idle", actor);
 
-		Camera->CitizenManager->AIPendingRemoval.Add(Cast<AAI>(actor));
-
 		if (actor->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(actor);
 
@@ -304,19 +302,37 @@ void UHealthComponent::Clear(AActor* Attacker)
 			gamemode->SetWaveTimer();
 	}
 	else if (actor->IsA<ABuilding>()) {
-		Cast<ABuilding>(actor)->GroundDecalComponent->SetHiddenInGame(false);
+		ABuilding* building = Cast<ABuilding>(actor);
 
-		Cast<ABuilding>(actor)->DestructionComponent->Deactivate();
+		building->GroundDecalComponent->SetHiddenInGame(false);
+
+		building->DestructionComponent->Deactivate();
 
 		SetComponentTickEnabled(false);
-
-		return;
 	}
 
-	if (actor->IsA<AAI>())
-		Camera->CitizenManager->AIPendingRemoval.Add(Cast<AAI>(actor));
+	if (actor->IsA<AAI>()) {
+		AAI* ai = Cast<AAI>(actor);
 
-	actor->Destroy();
+		TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
+
+		Camera->Grid->AIVisualiser->RemoveInstance(info.Key, info.Value);
+
+		if (ai->IsA<ACitizen>()) {
+			ACitizen* citizen = Cast<ACitizen>(ai);
+
+			if (Camera->CitizenManager->Citizens.Contains(citizen))
+				Camera->CitizenManager->Citizens.Remove(citizen);
+			else
+				Camera->CitizenManager->Rebels.Remove(citizen);
+		}
+		else if (ai->IsA<AEnemy>())
+			Camera->CitizenManager->Enemies.Remove(ai);
+		else
+			Camera->CitizenManager->Clones.Remove(ai);
+
+		ai->Destroy();
+	}
 }
 
 int32 UHealthComponent::GetHealth()

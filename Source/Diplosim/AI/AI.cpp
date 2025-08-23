@@ -100,7 +100,7 @@ bool AAI::CanReach(AActor* Actor, float Reach, int32 Instance)
 {
 	FVector location = Camera->GetTargetActorLocation(Actor);
 
-	if (Instance > -1) {
+	if (Actor->IsA<AResource>()) {
 		FTransform transform;
 		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(Instance, transform);
 

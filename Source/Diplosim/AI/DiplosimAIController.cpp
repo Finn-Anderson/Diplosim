@@ -260,7 +260,7 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 	if (!IsValid(Target))
 		Target = AI;
 
-	if (!IsValid(AI) || !IsValid(Target))
+	if (!IsValid(AI) || !IsValid(Target) || !IsValid(GetOwner()))
 		return false;
 
 	UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();

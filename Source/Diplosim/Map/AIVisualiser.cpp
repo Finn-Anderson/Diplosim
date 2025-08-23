@@ -131,7 +131,7 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 		if (!IsValid(this))
 			return;
 
-		FScopeTryLock lock(&MovementLock);
+		FScopeTryLock lock(&CitizenMovementLock);
 		if (!lock.IsLocked())
 			return;
 
@@ -145,6 +145,9 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 		for (int32 i = 0; i < citizens.Num(); i++) {
 			for (int32 j = 0; j < citizens[i].Num(); j++) {
 				ACitizen* citizen = citizens[i][j];
+
+				if (!IsValid(citizen))
+					continue;
 
 				citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
 
@@ -168,7 +171,31 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 
 				UpdateCitizenVisuals(Camera, citizen, j);
 			}
+
+			if (i == 0)
+				AsyncTask(ENamedThreads::GameThread, [this]() { HISMCitizen->BuildTreeIfOutdated(false, false); });
+			else
+				AsyncTask(ENamedThreads::GameThread, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
 		}
+
+		if (!torchLocations.IsEmpty()) {
+			torchLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(TorchNiagaraComponent, "Locations"));
+			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(TorchNiagaraComponent, "Locations", torchLocations);
+		}
+
+		if (!diseaseLocations.IsEmpty()) {
+			diseaseLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations"));
+			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
+		}
+	});
+
+	Async(EAsyncExecution::Thread, [this, Camera]() {
+		if (!IsValid(this))
+			return;
+
+		FScopeTryLock lock(&AIMovementLock);
+		if (!lock.IsLocked())
+			return;
 
 		TArray<TArray<AAI*>> ais;
 		ais.Add(Camera->CitizenManager->Clones);
@@ -185,23 +212,13 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 				else
 					SetInstanceTransform(HISMEnemy, j, ai->MovementComponent->Transform);
 			}
-		}
 
-		if (!torchLocations.IsEmpty()) {
-			torchLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(TorchNiagaraComponent, "Locations"));
-			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(TorchNiagaraComponent, "Locations", torchLocations);
-		}
-
-		if (!diseaseLocations.IsEmpty()) {
-			diseaseLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations"));
-			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
+			if (i == 0)
+				AsyncTask(ENamedThreads::GameThread, [this]() { HISMClone->BuildTreeIfOutdated(false, false); });
+			else
+				AsyncTask(ENamedThreads::GameThread, [this]() { HISMEnemy->BuildTreeIfOutdated(false, false); });
 		}
 	});
-
-	HISMCitizen->BuildTreeIfOutdated(false, false);
-	HISMRebel->BuildTreeIfOutdated(false, false);
-	HISMClone->BuildTreeIfOutdated(false, false);
-	HISMEnemy->BuildTreeIfOutdated(false, false);
 }
 
 void UAIVisualiser::AddInstance(class AAI* AI, UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform)
@@ -386,22 +403,35 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7] = Transform.GetRotation().Rotator().Pitch;
 }
 
-TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range)
+TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps)
 {
 	TArray<AActor*> actors;
 
 	UCitizenManager* cm = Camera->CitizenManager;
 
 	TArray<AActor*> actorsToCheck;
-	actorsToCheck.Append(cm->Buildings);
-	actorsToCheck.Append(cm->Citizens);
-	actorsToCheck.Append(cm->Clones);
-	actorsToCheck.Append(cm->Rebels);
-	actorsToCheck.Append(cm->Enemies);
+
+	if (RequestedOverlaps.bBuildings)
+		actorsToCheck.Append(cm->Buildings);
+
+	if (RequestedOverlaps.bCitizens)
+		actorsToCheck.Append(cm->Citizens);
+
+	if (RequestedOverlaps.bClones)
+		actorsToCheck.Append(cm->Clones);
+
+	if (RequestedOverlaps.bRebels)
+		actorsToCheck.Append(cm->Rebels);
+
+	if (RequestedOverlaps.bEnemies)
+		actorsToCheck.Append(cm->Enemies);
 
 	FVector location = Camera->GetTargetActorLocation(Actor);
 
 	for (AActor* actor : actorsToCheck) {
+		if (!IsValid(actor) || actor->IsPendingKillPending())
+			continue;
+
 		FVector loc = Camera->GetTargetActorLocation(actor);
 
 		if (actor->IsA<ABuilding>())
@@ -413,11 +443,13 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 			actors.Add(actor);
 	}
 
-	for (FResourceHISMStruct resourceStruct : Camera->Grid->TreeStruct) {
-		TArray<int32> instances = resourceStruct.Resource->ResourceHISM->GetInstancesOverlappingSphere(location, Range);
+	if (RequestedOverlaps.bResources) {
+		for (FResourceHISMStruct resourceStruct : Camera->Grid->TreeStruct) {
+			TArray<int32> instances = resourceStruct.Resource->ResourceHISM->GetInstancesOverlappingSphere(location, Range);
 
-		if (!instances.IsEmpty())
-			actors.Add(resourceStruct.Resource);
+			if (!instances.IsEmpty())
+				actors.Add(resourceStruct.Resource);
+		}
 	}
 
 	return actors;

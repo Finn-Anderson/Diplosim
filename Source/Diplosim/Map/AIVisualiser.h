@@ -31,6 +31,77 @@ struct FPendingChangeStruct
 	}
 };
 
+USTRUCT()
+struct FOverlapsStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		bool bCitizens;
+
+	UPROPERTY()
+		bool bRebels;
+
+	UPROPERTY()
+		bool bEnemies;
+
+	UPROPERTY()
+		bool bClones;
+
+	UPROPERTY()
+		bool bBuildings;
+
+	UPROPERTY()
+		bool bResources;
+
+	FOverlapsStruct()
+	{
+		bCitizens = false;
+		bRebels = false;
+		bEnemies = false;
+		bClones = false;
+		bBuildings = false;
+		bResources = false;
+	}
+
+	void GetCitizenInteractions(bool bIncludeBuildingsAndResources, bool bIncludeRebels)
+	{
+		bCitizens = true;
+		bBuildings = bIncludeBuildingsAndResources;
+		bResources = bIncludeBuildingsAndResources;
+		bRebels = bIncludeRebels;
+	}
+
+	void GetCitizenEnemies()
+	{
+		bRebels = true;
+		bEnemies = true;
+	}
+
+	void GetRebelsEnemies()
+	{
+		bCitizens = true;
+		bEnemies = true;
+		bClones = true;
+	}
+
+	void GetEnemyEnemies()
+	{
+		bCitizens = true;
+		bRebels = true;
+		bClones = true;
+	}
+
+	void GetEverythingWithHealth()
+	{
+		bCitizens = true;
+		bRebels = true;
+		bEnemies = true;
+		bClones = true;
+		bBuildings = true;
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UAIVisualiser : public UActorComponent
 {
@@ -92,7 +163,7 @@ public:
 
 	void SetAnimationPoint(class AAI* AI, FTransform Transform);
 
-	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range);
+	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps);
 
 	UPROPERTY()
 		TArray<FPendingChangeStruct> PendingChange;
@@ -100,5 +171,7 @@ public:
 	UPROPERTY()
 		float ToggleTorches;
 
-	FCriticalSection MovementLock;
+	FCriticalSection CitizenMovementLock;
+
+	FCriticalSection AIMovementLock;
 };

@@ -45,7 +45,10 @@ void ATrap::ShouldStartTrapTimer(AActor* Actor)
 
 void ATrap::ActivateTrap()
 {
-	TArray<AActor*> actorsInRange = Camera->Grid->AIVisualiser->GetOverlaps(Camera, this, Range);
+	FOverlapsStruct requestedOverlaps;
+	requestedOverlaps.GetEverythingWithHealth();
+
+	TArray<AActor*> actorsInRange = Camera->Grid->AIVisualiser->GetOverlaps(Camera, this, Range, requestedOverlaps);
 
 	for (AActor* actor : actorsInRange) {
 		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();

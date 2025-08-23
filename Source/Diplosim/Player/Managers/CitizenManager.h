@@ -513,9 +513,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Buildings")
 		TArray<class ABuilding*> Buildings;
 
-	UPROPERTY()
-		TArray<class AAI*> AIPendingRemoval;
-
 	TDoubleLinkedList<FTimerStruct> Timers;
 
 	UPROPERTY()
@@ -523,9 +520,15 @@ public:
 
 	FCriticalSection LoopLock;
 
-	FCriticalSection TickLock;
+	FCriticalSection DiseaseSpreadLock;
+
+	FCriticalSection CitizenInteractionsLock;
 
 	FCriticalSection TimerLock;
+
+	FCriticalSection FightLock;
+
+	FCriticalSection CloneLock;
 
 	// House
 	UFUNCTION(BlueprintCallable)

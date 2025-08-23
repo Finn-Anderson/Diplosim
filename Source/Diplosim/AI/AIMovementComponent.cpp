@@ -4,6 +4,7 @@
 #include "Animation/AnimSingleNodeInstance.h"
 
 #include "AI.h"
+#include "AttackComponent.h"
 #include "DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Map/Grid.h"
@@ -57,7 +58,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	if (IsValid(goal)) {
 		FVector location = AI->Camera->GetTargetLocation(goal);
 
-		if (Points.Last() != location)
+		if (Points.Last() != location && (!goal->IsA<AAI>() || !AI->AttackComponent->OverlappingEnemies.IsEmpty()))
 			AI->AIController->RecalculateMovement(goal);
 	}
 
