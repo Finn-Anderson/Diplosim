@@ -141,5 +141,5 @@ void AResearch::Production(class ACitizen* Citizen)
 {
 	Super::Production(Citizen);
 
-	Camera->ResearchManager->Research(1.0f);
+	Camera->ResearchManager->Research(1.0f, FactionName);
 }

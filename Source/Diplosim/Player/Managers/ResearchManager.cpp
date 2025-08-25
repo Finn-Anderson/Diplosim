@@ -2,14 +2,13 @@
 
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "AI/Citizen.h"
 #include "ConquestManager.h"
 
 UResearchManager::UResearchManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-
-	CurrentIndex = INDEX_NONE;
 
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Research.json");
 }
@@ -46,47 +45,95 @@ void UResearchManager::ReadJSONFile(FString Path)
 					}
 				}
 
-				ResearchStruct.Add(research);
+				InitResearchStruct.Add(research);
 			}
 		}
 	}
-
 }
 
-bool UResearchManager::IsReseached(FString Name)
+bool UResearchManager::IsReseached(FString Name, FString FactionName)
 {
+	if (FactionName == "")
+		return false;
+	
 	FResearchStruct r;
 	r.ResearchName = Name;
-	
-	int32 index = ResearchStruct.Find(r);
-
-	return ResearchStruct[index].Level == ResearchStruct[index].MaxLevel;
-}
-
-void UResearchManager::Research(float Amount)
-{
-	if (CurrentIndex == INDEX_NONE)
-		return;
-	
-	ResearchStruct[CurrentIndex].AmountResearched += Amount;
-
-	if (ResearchStruct[CurrentIndex].AmountResearched < ResearchStruct[CurrentIndex].Target)
-		return;
 
 	ACamera* camera = Cast<ACamera>(GetOwner());
 
-	ResearchStruct[CurrentIndex].Level++;
+	FFactionStruct faction = camera->ConquestManager->GetFactionFromName(FactionName);
+	int32 index = faction.ResearchStruct.Find(r);
 
-	if (ResearchStruct[CurrentIndex].Level != ResearchStruct[CurrentIndex].MaxLevel)
-		ResearchStruct[CurrentIndex].Target *= 1.25f;
-	else
-		camera->ResearchComplete(CurrentIndex);
+	return faction.ResearchStruct[index].Level == faction.ResearchStruct[index].MaxLevel;
+}
 
-	for (auto& element : ResearchStruct[CurrentIndex].Modifiers)
-		for (ACitizen* citizen : camera->CitizenManager->Citizens)
+bool UResearchManager::IsBeingResearched(int32 Index, FString FactionName)
+{
+	int32 currentIndex = GetCurrentResearchIndex(FactionName);
+
+	if (currentIndex == Index)
+		return true;
+
+	return false;
+}
+
+int32 UResearchManager::GetCurrentResearchIndex(FString FactionName)
+{
+	ACamera* camera = Cast<ACamera>(GetOwner());
+	FFactionStruct faction = camera->ConquestManager->GetFactionFromName(FactionName);
+
+	return faction.ResearchIndex;
+}
+
+void UResearchManager::GetResearchAmount(int32 Index, FString FactionName, float& Amount, int32& Target)
+{
+	ACamera* camera = Cast<ACamera>(GetOwner());
+	FFactionStruct faction = camera->ConquestManager->GetFactionFromName(FactionName);
+
+	Amount = faction.ResearchStruct[Index].AmountResearched;
+	Target = faction.ResearchStruct[Index].Target;
+}
+
+void UResearchManager::SetResearch(int32 Index, FString FactionName)
+{
+	ACamera* camera = Cast<ACamera>(GetOwner());
+
+	int32 factionIndex = camera->ConquestManager->GetFactionIndexFromName(FactionName);
+
+	camera->ConquestManager->Factions[factionIndex].ResearchIndex = Index;
+}
+
+void UResearchManager::Research(float Amount, FString FactionName)
+{
+	ACamera* camera = Cast<ACamera>(GetOwner());
+	UConquestManager* conquest = camera->ConquestManager;
+
+	int32 factionIndex = conquest->GetFactionIndexFromName(FactionName);
+	int32 currentIndex = conquest->Factions[factionIndex].ResearchIndex;
+
+	if (currentIndex == INDEX_NONE)
+		return;
+
+	FResearchStruct* research = &conquest->Factions[factionIndex].ResearchStruct[currentIndex];
+	
+	research->AmountResearched += Amount;
+
+	if (research->AmountResearched < research->Target)
+		return;
+
+	research->Level++;
+
+	if (research->Level != research->MaxLevel)
+		research->Target *= 1.25f;
+	else if (FactionName == camera->ColonyName)
+		camera->ResearchComplete(currentIndex);
+
+	for (auto& element : research->Modifiers)
+		for (ACitizen* citizen : conquest->Factions[factionIndex].Citizens)
 			citizen->ApplyToMultiplier(element.Key, element.Value);
 
-	camera->DisplayEvent(ResearchStruct[CurrentIndex].ResearchName, "Research Complete");
+	if (FactionName == camera->ColonyName)
+		camera->DisplayEvent(research->ResearchName, "Research Complete");
 
-	CurrentIndex = INDEX_NONE;
+	conquest->Factions[factionIndex].ResearchIndex = INDEX_NONE;
 }

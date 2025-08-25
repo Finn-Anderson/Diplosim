@@ -43,9 +43,9 @@ void ABroch::SpawnCitizens()
 		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, FVector::Zero(), FRotator::ZeroRotator, params);
 		Camera->Grid->AIVisualiser->AddInstance(citizen, Camera->Grid->AIVisualiser->HISMCitizen, transform);
 
-		citizen->SetSex(Camera->CitizenManager->Citizens);
-
 		citizen->CitizenSetup();
+
+		citizen->SetSex(Camera->CitizenManager->Citizens);
 
 		for (int32 j = 0; j < 2; j++)
 			citizen->GivePersonalityTrait();
@@ -55,7 +55,5 @@ void ABroch::SpawnCitizens()
 		
 		citizen->HealthComponent->MaxHealth = 100 * citizen->HealthComponent->HealthMultiplier;
 		citizen->HealthComponent->AddHealth(100 * citizen->HealthComponent->HealthMultiplier);
-
-		citizen->ApplyResearch();
 	}
 }

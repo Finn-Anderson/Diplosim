@@ -12,8 +12,10 @@ ASpecial::ASpecial()
 
 void ASpecial::Rebuild()
 {
-	if (!Camera->ResearchManager->IsReseached("Unlock ancient buildings")) {
+	if (!Camera->ResearchManager->IsReseached("Unlock ancient buildings", FactionName)) {
 		Camera->DisplayWarning("Must research: Unlock Ancient Buildings");
+
+		FactionName = "";
 
 		return;
 	}

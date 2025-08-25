@@ -143,7 +143,10 @@ void ACitizen::CitizenSetup()
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
 
+	ApplyResearch();
+
 	AIController->ChooseIdleBuilding(this);
+	AIController->DefaultAction();
 }
 
 void ACitizen::ClearCitizen()
@@ -186,7 +189,9 @@ void ACitizen::ClearCitizen()
 
 void ACitizen::ApplyResearch()
 {
-	for (FResearchStruct research : Camera->ResearchManager->ResearchStruct)
+	FFactionStruct faction = Camera->ConquestManager->GetCitizenFaction(this);
+
+	for (FResearchStruct research : faction.ResearchStruct)
 		for (int32 i = 0; i < research.Level; i++)
 			for (auto& element : research.Modifiers)
 				ApplyToMultiplier(element.Key, element.Value);
@@ -874,12 +879,12 @@ void ACitizen::HarvestResource(AResource* Resource)
 	int32 amount = FMath::Clamp(Resource->GetYield(this, instance), 0, 10 * GetProductivity());
 
 	if (!Camera->ResourceManager->GetResources(Building.Employment).Contains(resource->GetClass())) {
-		ABuilding* broch = Camera->ResourceManager->GameMode->Broch;
+		FFactionStruct faction = Camera->ConquestManager->GetCitizenFaction(this);
 
-		if (!AIController->CanMoveTo(broch->GetActorLocation()))
+		if (!AIController->CanMoveTo(faction.EggTimer->GetActorLocation()))
 			AIController->DefaultAction();
 		else
-			Carry(resource, amount, broch);
+			Carry(resource, amount, faction.EggTimer);
 	}
 	else
 		Carry(resource, amount, Building.Employment);

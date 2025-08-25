@@ -1,47 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "Components/ActorComponent.h"
 #include "ResearchManager.generated.h"
-
-USTRUCT(BlueprintType)
-struct FResearchStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-		FString ResearchName;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-		int32 Level;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-		int32 MaxLevel;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-		float AmountResearched;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-		int32 Target;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-		TMap<FString, float> Modifiers;
-
-	FResearchStruct()
-	{
-		ResearchName = "";
-		Level = 0;
-		MaxLevel = 20;
-		AmountResearched = 0;
-		Target = 0;
-	}
-
-	bool operator==(const FResearchStruct& other) const
-	{
-		return (other.ResearchName == ResearchName);
-	}
-};
-
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UResearchManager : public UActorComponent
@@ -56,13 +18,22 @@ protected:
 
 public:	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-		TArray<FResearchStruct> ResearchStruct;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Research")
-		int32 CurrentIndex;
+		TArray<FResearchStruct> InitResearchStruct;
 
 	UFUNCTION(BlueprintCallable)
-		bool IsReseached(FString Name);
+		bool IsReseached(FString Name, FString FactionName);
 
-	void Research(float Amount);
+	UFUNCTION(BlueprintCallable)
+		bool IsBeingResearched(int32 Index, FString FactionName);
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetCurrentResearchIndex(FString FactionName);
+
+	UFUNCTION(BlueprintCallable)
+		void GetResearchAmount(int32 Index, FString FactionName, float& Amount, int32& Target);
+
+	UFUNCTION(BlueprintCallable)
+		void SetResearch(int32 Index, FString FactionName);
+
+	void Research(float Amount, FString FactionName);
 };

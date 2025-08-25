@@ -95,12 +95,31 @@ struct FFactionStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
 		FString LargestReligion;
 
+	UPROPERTY()
+		TArray<class ACitizen*> Citizens;
+
+	UPROPERTY()
+		TArray<class ACitizen*> Rebels;
+
+	UPROPERTY()
+		TArray<class ABuilding*> Buildings;
+
+	UPROPERTY()
+		class ABuilding* EggTimer;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		TArray<FResearchStruct> ResearchStruct;
+
+	UPROPERTY()
+		int32 ResearchIndex;
+
 	FFactionStruct()
 	{
 		Name = "";
 		WarFatigue = 0;
 		PartyInPower = "";
 		LargestReligion = "";
+		ResearchIndex = 0;
 	}
 
 	bool operator==(const FFactionStruct& other) const
@@ -187,10 +206,13 @@ protected:
 public:	
 	void CreateFactions();
 
-	int32 GetFactionIndexFromOwner(FString Owner);
+	UFUNCTION(BlueprintCallable)
+		class ABuilding* DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<class ABuilding> BuildingClass);
+
+	int32 GetFactionIndexFromName(FString FactionName);
 
 	UFUNCTION(BlueprintCallable)
-		FFactionStruct GetFactionFromOwner(FString Owner);
+		FFactionStruct GetFactionFromName(FString FactionName);
 
 	UFUNCTION(BlueprintCallable)
 		UTexture2D* GetTextureFromCulture(FString Type);

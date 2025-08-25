@@ -50,12 +50,10 @@ void ADiplosimAIController::DefaultAction()
 			AIMoveTo(citizen->Building.Employment);
 		}
 		else if (!Camera->CitizenManager->Enemies.IsEmpty() && Camera->CitizenManager->GetRaidPolicyStatus() != ERaidPolicy::Default) {
-			ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-
 			if (Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Home)
 				AIMoveTo(citizen->Building.House);
 			else
-				AIMoveTo(gamemode->Broch);
+				AIMoveTo(Camera->ConquestManager->GetCitizenFaction(citizen).EggTimer);
 
 			return;
 		}
@@ -336,7 +334,7 @@ TArray<FVector> ADiplosimAIController::GetPathPoints(FVector StartLocation, FVec
 
 void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
 {
-	if (!IsValid(AI))
+	if (!IsValid(AI) || !IsValid(Actor))
 		return;
 	
 	int32 reach = AI->Range / 15.0f;

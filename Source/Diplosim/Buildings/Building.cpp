@@ -128,6 +128,8 @@ ABuilding::ABuilding()
 	Tier = 1;
 
 	bOperate = true;
+
+	FactionName = "";
 }
 
 void ABuilding::BeginPlay()

@@ -235,6 +235,9 @@ public:
 	UPROPERTY()
 		int32 Tier;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Faction")
+		FString FactionName;
+
 	UFUNCTION(BlueprintCallable)
 		void SetSeed(int32 Seed);
 

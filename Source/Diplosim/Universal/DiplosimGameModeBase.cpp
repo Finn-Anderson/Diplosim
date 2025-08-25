@@ -17,6 +17,7 @@
 #include "Buildings/Work/Defence/Wall.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "DiplosimUserSettings.h"
 
 ADiplosimGameModeBase::ADiplosimGameModeBase()
@@ -26,7 +27,6 @@ ADiplosimGameModeBase::ADiplosimGameModeBase()
 
 	TargetOpacity = 0.0f;
 	
-	Broch = nullptr;
 	Grid = nullptr;
 	bOngoingRaid = false;
 }
@@ -117,29 +117,32 @@ void ADiplosimGameModeBase::EvaluateThreats()
 
 bool ADiplosimGameModeBase::PathToBuilding(FVector Location, UNavigationSystemV1* Nav, const ANavigationData* NavData)
 {
-	double outLength = FVector::Dist(Location, Broch->GetActorLocation());
-
-	if (outLength < 3000.0f)
-		return false;
-
 	FNavLocation loc;
 	Nav->ProjectPointToNavigation(Location, loc, FVector(400.0f, 400.0f, 20.0f));
 
-	for (int32 i = Camera->CitizenManager->Buildings.Num() - 1; i > -1; i--) {
-		ABuilding* building = Camera->CitizenManager->Buildings[i];
+	bool bPath = false;
 
-		FNavLocation buildingLoc;
-		Nav->ProjectPointToNavigation(building->GetActorLocation(), buildingLoc, FVector(400.0f, 400.0f, 20.0f));
+	for (FFactionStruct faction : Camera->ConquestManager->Factions) {
+		for (ABuilding* building : faction.Buildings) {
+			if (!IsValid(building) || building->HealthComponent == 0)
+				continue;
 
-		FPathFindingQuery query(NULL, *NavData, loc.Location, buildingLoc.Location);
+			if (building->IsA<ABroch>() && FVector::Dist(Location, building->GetActorLocation()) < 3000.0f)
+				return false;
 
-		bool path = Nav->TestPathSync(query, EPathFindingMode::Hierarchical);
+			if (bPath)
+				continue;
 
-		if (path)
-			return true;
+			FNavLocation buildingLoc;
+			Nav->ProjectPointToNavigation(building->GetActorLocation(), buildingLoc, FVector(400.0f, 400.0f, 20.0f));
+
+			FPathFindingQuery query(NULL, *NavData, loc.Location, buildingLoc.Location);
+
+			bPath = Nav->TestPathSync(query, EPathFindingMode::Hierarchical);
+		}
 	}
 
-	return false;
+	return bPath;
 }
 
 TArray<FVector> ADiplosimGameModeBase::GetSpawnPoints()

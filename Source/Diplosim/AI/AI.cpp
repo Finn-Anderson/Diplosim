@@ -13,6 +13,7 @@
 #include "Enemy.h"
 #include "Buildings/Misc/Broch.h"
 #include "Player/Camera.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 
 AAI::AAI()
@@ -54,44 +55,35 @@ void AAI::BeginPlay()
 
 void AAI::MoveToBroch()
 {
-	if (!IsValidLowLevelFast())
-		return;
+	ABuilding* target = nullptr;
 
-	TArray<AActor*> brochs;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABroch::StaticClass(), brochs);
-
-	if (brochs.IsEmpty() || HealthComponent->Health == 0)
-		return;
-
-	AActor* target = brochs[0];
-
-	UHealthComponent* healthComp = target->GetComponentByClass<UHealthComponent>();
-
-	if (!healthComp || healthComp->GetHealth() <= 0)
-		return;
-
-	if (!AIController->CanMoveTo(brochs[0]->GetActorLocation()) && IsA<AEnemy>()) {
-		TArray<AActor*> buildings;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), buildings);
-
-		for (AActor* actor : buildings) {
-			if (!AIController->CanMoveTo(actor->GetActorLocation()))
+	for (FFactionStruct faction : Camera->ConquestManager->Factions) {
+		for (ABuilding* building : faction.Buildings) {
+			if (!IsValid(building) || building->HealthComponent == 0 || !AIController->CanMoveTo(building->GetActorLocation()))
 				continue;
 
-			if (target == brochs[0]) {
-				target = actor;
+			if (!IsValid(target)) {
+				target = building;
 
-				continue;
+				if (building->IsA<ABroch>())
+					break;
+				else
+					continue;
 			}
 
-			double magnitude = AIController->GetClosestActor(400.0f, MovementComponent->Transform.GetLocation(), target->GetActorLocation(), actor->GetActorLocation());
+			int32 targetValue = 1.0f;
+			int32 buildingValue = 1.0f;
 
-			double targetDistToBroch = FVector::Dist(target->GetActorLocation(), brochs[0]->GetActorLocation()) + magnitude;
+			if (target->IsA<ABroch>())
+				targetValue = 5.0f;
 
-			double actorDistToBroch = FVector::Dist(actor->GetActorLocation(), brochs[0]->GetActorLocation()) - magnitude;
+			if (building->IsA<ABroch>())
+				buildingValue = 5.0f;
 
-			if (targetDistToBroch > actorDistToBroch)
-				target = actor;
+			double magnitude = AIController->GetClosestActor(400.0f, MovementComponent->Transform.GetLocation(), target->GetActorLocation(), building->GetActorLocation(), true, targetValue, buildingValue);
+
+			if (magnitude > 0.0f)
+				target = building;
 		}
 	}
 

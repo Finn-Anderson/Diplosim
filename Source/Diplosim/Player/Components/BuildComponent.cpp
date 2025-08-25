@@ -286,7 +286,7 @@ void UBuildComponent::SetBuildingsOnPath()
 		Buildings[0]->SetActorLocation(location);
 
 		if (IsValidLocation(Buildings[0])) {
-			SpawnBuilding(Buildings[0]->GetClass(), location);
+			SpawnBuilding(Buildings[0]->GetClass(), Buildings[0]->FactionName, location);
 
 			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
 
@@ -499,7 +499,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* building)
 	return true;
 }
 
-void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, FVector location)
+void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, FString FactionName, FVector location)
 {
 	if (!IsComponentTickEnabled())
 		SetComponentTickEnabled(true);
@@ -508,6 +508,7 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 	params.bNoFail = true;
 
 	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation, params);
+	building->FactionName = FactionName;
 
 	Buildings.Add(building);
 

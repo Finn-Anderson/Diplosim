@@ -2536,9 +2536,7 @@ void UCitizenManager::TallyVotes(FLawStruct Bill)
 		int32 index = Laws.Find(Bill);
 
 		if (Laws[index].BillType == "Abolish") {
-			ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-
-			CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(gamemode->Broch->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
+			CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(Buildings[0]->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
 		}
 		else if (Laws[index].BillType == "Election") {
 			Election();

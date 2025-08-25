@@ -304,6 +304,8 @@ void UHealthComponent::Clear(AActor* Attacker)
 	else if (actor->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(actor);
 
+		building->BuildingMesh->SetCanEverAffectNavigation(false);
+
 		building->GroundDecalComponent->SetHiddenInGame(false);
 
 		building->DestructionComponent->Deactivate();

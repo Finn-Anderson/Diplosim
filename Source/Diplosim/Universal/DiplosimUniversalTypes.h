@@ -146,6 +146,47 @@ struct FAnimStruct
 	}
 };
 
+//
+// Research
+//
+USTRUCT(BlueprintType)
+struct FResearchStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
+	FString ResearchName;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
+	int32 Level;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
+	int32 MaxLevel;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
+	float AmountResearched;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
+	int32 Target;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
+	TMap<FString, float> Modifiers;
+
+	FResearchStruct()
+	{
+		ResearchName = "";
+		Level = 0;
+		MaxLevel = 20;
+		AmountResearched = 0;
+		Target = 0;
+	}
+
+	bool operator==(const FResearchStruct& other) const
+	{
+		return (other.ResearchName == ResearchName);
+	}
+};
+
 class DIPLOSIM_API DiplosimUniversalTypes
 {
 public:

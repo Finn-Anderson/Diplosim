@@ -6,6 +6,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ResearchManager.h"
 #include "Map/Grid.h"
 #include "AI/Citizen.h"
 #include "AI/Clone.h"
@@ -51,6 +52,8 @@ void UConquestManager::CreateFactions()
 		FFactionStruct f;
 		f.Name = name;
 
+		f.ResearchStruct = Camera->ResearchManager->InitResearchStruct;
+
 		Factions.Add(f);
 
 		// Get all valid tile placements for broch, then check if another broch within 3000 units. Add buildings, rebels and citizens to faction struct as storage.
@@ -61,10 +64,24 @@ void UConquestManager::CreateFactions()
 	Camera->SetFactionsInDiplomacyUI();
 }
 
-int32 UConquestManager::GetFactionIndexFromOwner(FString Owner)
+ABuilding* UConquestManager::DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<class ABuilding> BuildingClass)
+{
+	FFactionStruct faction = GetFactionFromName(FactionName);
+
+	for (ABuilding* building : faction.Buildings) {
+		if (!building->IsA(BuildingClass))
+			continue;
+
+		return building;
+	}
+
+	return nullptr;
+}
+
+int32 UConquestManager::GetFactionIndexFromName(FString FactionName)
 {
 	for (int32 i = 0; i < Factions.Num(); i++) {
-		if (Factions[i].Name != Owner)
+		if (Factions[i].Name != FactionName)
 			continue;
 
 		return i;
@@ -73,9 +90,9 @@ int32 UConquestManager::GetFactionIndexFromOwner(FString Owner)
 	UE_LOGFMT(LogTemp, Fatal, "Faction not found");
 }
 
-FFactionStruct UConquestManager::GetFactionFromOwner(FString Owner)
+FFactionStruct UConquestManager::GetFactionFromName(FString FactionName)
 {
-	return Factions[GetFactionIndexFromOwner(Owner)];
+	return Factions[GetFactionIndexFromName(FactionName)];
 }
 
 UTexture2D* UConquestManager::GetTextureFromCulture(FString Type)
@@ -130,7 +147,7 @@ void UConquestManager::ComputeAI()
 					f.Happiness.RemoveAt(i);
 		}
 
-		int32 index = GetFactionIndexFromOwner(faction.Name);
+		int32 index = GetFactionIndexFromName(faction.Name);
 
 		Camera->RemoveFactionBtn(index);
 
@@ -150,7 +167,14 @@ FFactionStruct UConquestManager::GetCitizenFaction(ACitizen* Citizen)
 {
 	FFactionStruct faction;
 
-	/*Give faction struct citizens, rebels and buildings array*/
+	for (FFactionStruct f : Factions) {
+		if (!f.Citizens.Contains(Citizen))
+			continue;
+
+		faction = f;
+
+		break;
+	}
 
 	return faction;
 }
@@ -536,7 +560,7 @@ void UConquestManager::Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts)
 
 		int32 i = Factions.Find(Faction);
 
-		FFactionStruct playerFaction = GetFactionFromOwner(Camera->ColonyName);
+		FFactionStruct playerFaction = GetFactionFromName(Camera->ColonyName);
 
 		int32 index = GetHappinessWithFaction(Faction, playerFaction);
 

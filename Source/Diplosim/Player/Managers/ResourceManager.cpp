@@ -340,7 +340,6 @@ void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABui
 	if (ResourceList[index].Category == "Money" || ResourceList[index].Category == "Crystal")
 		return;
 
-
 	Async(EAsyncExecution::Thread, [this, Resource, Building, Amount]() {
 		ACamera* camera = Cast<ACamera>(GetOwner());
 		TArray<AStockpile*> foundStockpiles;

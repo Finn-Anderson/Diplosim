@@ -164,9 +164,6 @@ public:
 		TArray<FWaveStruct> WavesData;
 
 	UPROPERTY()
-		class ABuilding* Broch;
-
-	UPROPERTY()
 		class AGrid* Grid;
 
 	UPROPERTY()

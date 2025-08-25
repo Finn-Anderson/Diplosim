@@ -301,7 +301,7 @@ void ACamera::SetMouseCapture(bool bCapture, bool bUI, bool bOverwrite)
 
 void ACamera::StartGame()
 {
-	BuildComponent->SpawnBuilding(StartBuilding);
+	BuildComponent->SpawnBuilding(StartBuilding, ColonyName);
 
 	bStartMenu = false;
 	bInMenu = false;
@@ -324,7 +324,6 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 	gamemode->Camera = this;
-	gamemode->Broch = Broch;
 	gamemode->Grid = Grid;
 
 	gamemode->SetWaveTimer();
@@ -337,6 +336,8 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 
 	CitizenManager->StartDiseaseTimer();
 	CitizenManager->BrochLocation = Broch->GetActorLocation();
+
+	Broch->FactionName = ColonyName;
 
 	Cast<ABroch>(Broch)->SpawnCitizens();
 
@@ -945,7 +946,7 @@ void ACamera::CompleteResearch()
 	if (bInMenu)
 		return;
 
-	ResearchManager->Research(100000000000.0f);
+	ResearchManager->Research(100000000000.0f, ColonyName);
 }
 
 void ACamera::TurnOnInstantBuild(bool Value)
@@ -964,7 +965,8 @@ void ACamera::SpawnCitizen(int32 Amount, bool bAdult)
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
 	for (int32 i = 0; i < Amount; i++) {
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(Cast<ABroch>(gamemode->Broch)->CitizenClass, MouseHitLocation, FRotator(0.0f));
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(Cast<ABroch>(CitizenManager->Buildings[0])->CitizenClass, MouseHitLocation, FRotator(0.0f));
+		citizen->CitizenSetup();
 
 		if (!bAdult || !IsValid(citizen))
 			continue;
