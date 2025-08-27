@@ -20,7 +20,9 @@ ABuilder::ABuilder()
 
 bool ABuilder::CheckInstant() 
 {
-	for (const ABuilding* building : Camera->CitizenManager->Buildings) {
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	for (const ABuilding* building : faction->Buildings) {
 		if (!building->IsA<ABuilder>())
 			continue;
 

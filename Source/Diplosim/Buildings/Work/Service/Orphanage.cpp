@@ -58,7 +58,9 @@ void AOrphanage::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 
 void AOrphanage::Kickout(ACitizen* Citizen)
 {
-	if (Camera->CitizenManager->GetLawValue("Work Age") > Citizen->BioStruct.Age && IsValid(GetOccupant(Citizen)))
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	if (Camera->CitizenManager->GetLawValue(faction->Name, "Work Age") > Citizen->BioStruct.Age && IsValid(GetOccupant(Citizen)))
 		return;
 
 	RemoveVisitor(GetOccupant(Citizen), Citizen);
@@ -95,8 +97,10 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 		}
 	}
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 	int32 maxF = FMath::CeilToInt((100 - Citizen->Hunger) / (25.0f * Citizen->FoodMultiplier));
-	int32 cost = Camera->CitizenManager->GetLawValue("Food Cost");
+	int32 cost = Camera->CitizenManager->GetLawValue(faction->Name, "Food Cost");
 
 	int32 amount = FMath::Min(Citizen->Building.House->Space - Citizen->Building.House->GetVisitors(Citizen->Building.House->GetOccupant(Citizen)).Num(), money / (maxF * cost));
 

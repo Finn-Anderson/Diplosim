@@ -233,14 +233,16 @@ void UNaturalDisasterComponent::CancelRedSun()
 
 bool UNaturalDisasterComponent::IsProtected(FVector Location)
 {
-	for (ABuilding* building : Grid->Camera->CitizenManager->Buildings) {
-		if (!building->IsA<AWork>() || Cast<AWork>(building)->ForcefieldRange == 0 || building->GetCitizensAtBuilding().IsEmpty())
-			continue;
+	for (FFactionStruct& faction : Grid->Camera->ConquestManager->Factions) {
+		for (ABuilding* building : faction.Buildings) {
+			if (!building->IsA<AWork>() || Cast<AWork>(building)->ForcefieldRange == 0 || building->GetCitizensAtBuilding().IsEmpty())
+				continue;
 
-		double distance = FVector::Dist(building->GetActorLocation(), Location);
+			double distance = FVector::Dist(building->GetActorLocation(), Location);
 
-		if (distance <= Cast<AWork>(building)->ForcefieldRange)
-			return true;
+			if (distance <= Cast<AWork>(building)->ForcefieldRange)
+				return true;
+		}
 	}
 
 	return false;

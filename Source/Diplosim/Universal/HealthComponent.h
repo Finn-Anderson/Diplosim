@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Components/ActorComponent.h"
 #include "HealthComponent.generated.h"
 
@@ -48,7 +49,7 @@ public:
 	// Death
 	void Death(AActor* Attacker, int32 Force);
 
-	void Clear(AActor* Attacker);
+	void Clear(FFactionStruct* Faction, AActor* Attacker);
 
 	UPROPERTY()
 		FVector RebuildLocation;

@@ -2,6 +2,7 @@
 
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Universal/HealthComponent.h"
 
 AParliament::AParliament()
@@ -14,7 +15,9 @@ void AParliament::OnBuilt()
 {
 	Super::OnBuilt();
 
-	Camera->CitizenManager->Election();
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	Camera->CitizenManager->StartElectionTimer();
+	Camera->CitizenManager->Election(faction);
+
+	Camera->CitizenManager->StartElectionTimer(faction);
 }

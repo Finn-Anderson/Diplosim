@@ -309,7 +309,7 @@ void ACamera::StartGame()
 	Grid->MapUIInstance->AddToViewport();
 }
 
-void ACamera::OnBrochPlace(ABuilding* Broch)
+void ACamera::OnBrochPlace(ABuilding* EggTimer)
 {
 	if (PauseUIInstance->IsInViewport())
 		Pause();
@@ -335,13 +335,8 @@ void ACamera::OnBrochPlace(ABuilding* Broch)
 	CitizenManager->CreateTimer("EggBasket", this, 300, FTimerDelegate::CreateUObject(Grid, &AGrid::SpawnEggBasket), true, true);
 
 	CitizenManager->StartDiseaseTimer();
-	CitizenManager->BrochLocation = Broch->GetActorLocation();
 
-	Broch->FactionName = ColonyName;
-
-	Cast<ABroch>(Broch)->SpawnCitizens();
-
-	ConquestManager->CreateFactions();
+	ConquestManager->CreateFactions(EggTimer);
 
 	Start = false;
 
@@ -925,14 +920,6 @@ void ACamera::AddEnemies(FString Category, int32 Amount)
 	gamemode->TallyEnemyData(resource, Amount * 200);
 }
 
-void ACamera::DamageLastBuilding()
-{
-	if (bInMenu)
-		return;
-
-	CitizenManager->Buildings.Last()->HealthComponent->TakeHealth(1000, CitizenManager->Buildings.Last());
-}
-
 void ACamera::ChangeSeasonAffect(FString Season)
 {
 	if (bInMenu)
@@ -962,11 +949,11 @@ void ACamera::SpawnCitizen(int32 Amount, bool bAdult)
 	if (bInMenu)
 		return;
 
-	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	FFactionStruct* faction = ConquestManager->GetFaction(ColonyName);
 
 	for (int32 i = 0; i < Amount; i++) {
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(Cast<ABroch>(CitizenManager->Buildings[0])->CitizenClass, MouseHitLocation, FRotator(0.0f));
-		citizen->CitizenSetup();
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(Cast<ABroch>(faction->EggTimer)->CitizenClass, MouseHitLocation, FRotator(0.0f));
+		citizen->CitizenSetup(faction);
 
 		if (!bAdult || !IsValid(citizen))
 			continue;
@@ -1004,7 +991,7 @@ void ACamera::SetEvent(FString Type, FString Period, int32 Day, int32 StartHour,
 	for (int32 i = StartHour; i < EndHour; i++)
 		hours.Add(i);
 
-	CitizenManager->CreateEvent(type, building, nullptr, Period, Day, hours, bRecurring, {}, bFireFestival);
+	CitizenManager->CreateEvent(ColonyName, type, building, nullptr, Period, Day, hours, bRecurring, {}, bFireFestival);
 }
 
 void ACamera::DamageActor(int32 Amount)

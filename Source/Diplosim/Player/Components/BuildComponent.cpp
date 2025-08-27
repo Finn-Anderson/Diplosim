@@ -256,7 +256,9 @@ void UBuildComponent::DisplayInfluencedBuildings(class ABuilding* Building, bool
 
 	TArray<ABuilding*> influencedBuildings = booster->GetAffectedBuildings();
 
-	for (ABuilding* b : Camera->CitizenManager->Buildings) {
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(booster->FactionName);
+
+	for (ABuilding* b : faction->Buildings) {
 		if (bShow && influencedBuildings.Contains(b))
 			b->BuildingMesh->SetOverlayMaterial(InfluencedMaterial);
 		else
@@ -376,7 +378,9 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 
 		TArray<FItemStruct> cost = building->CostList;
 
-		for (ABuilding* b : Camera->CitizenManager->Buildings) {
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(building->FactionName);
+
+		for (ABuilding* b : faction->Buildings) {
 			if (!b->IsA(building->GetClass()) || b->GetActorLocation() != building->GetActorLocation())
 				continue;
 
@@ -716,11 +720,8 @@ void UBuildComponent::Place(bool bQuick)
 		for (ACitizen* citizen : BuildingToMove->GetOccupied()) {
 			if (!citizen->AIController->CanMoveTo(BuildingToMove->GetActorLocation())) {
 				BuildingToMove->RemoveCitizen(citizen);
-
-				continue;
 			}
-
-			if (BuildingToMove->GetCitizensAtBuilding().Contains(citizen)) {
+			else if (BuildingToMove->GetCitizensAtBuilding().Contains(citizen)) {
 				citizen->Building.EnterLocation += diff;
 
 				BuildingToMove->SetSocketLocation(citizen);
@@ -740,11 +741,13 @@ void UBuildComponent::Place(bool bQuick)
 		}
 
 		if (BuildingToMove->IsA(Camera->CitizenManager->PoliceStationClass)) {
-			for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
-				if (citizen->Building.BuildingAt != BuildingToMove || BuildingToMove->GetOccupied().Contains(citizen) || !Camera->CitizenManager->Arrested.Contains(citizen))
+			FFactionStruct* faction = Camera->ConquestManager->GetFaction(BuildingToMove->FactionName);
+
+			for (ACitizen* citizen : faction->Citizens) {
+				if (citizen->Building.BuildingAt != BuildingToMove || !faction->Police.Arrested.Contains(citizen))
 					continue;
 
-				Camera->CitizenManager->SetInNearestJail(nullptr, citizen);
+				Camera->CitizenManager->SetInNearestJail(faction, nullptr, citizen);
 			}
 		}
 

@@ -151,7 +151,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 	EWorkType type = *WorkHours[index].WorkHours.Find(Hour);
 
-	if ((type == EWorkType::Work && Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Default && !Camera->CitizenManager->IsAttendingEvent(Citizen) && !Citizen->bHolliday) || bEmergency)
+	if ((type == EWorkType::Work && Camera->CitizenManager->GetRaidPolicyStatus(Citizen) == ERaidPolicy::Default && !Camera->CitizenManager->IsAttendingEvent(Citizen) && !Citizen->bHolliday) || bEmergency)
 		return true;
 
 	return false;
@@ -240,7 +240,9 @@ void AWork::Production(ACitizen* Citizen)
 		citizen->HealthComponent->TakeHealth(5, this);
 	}
 
-	for (ABuilding* building : Camera->CitizenManager->Buildings) {
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	for (ABuilding* building : faction->Buildings) {
 		if (!building->IsA<ABooster>())
 			continue;
 

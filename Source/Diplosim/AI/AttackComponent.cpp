@@ -22,6 +22,7 @@
 #include "AIMovementComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 
@@ -212,15 +213,19 @@ void UAttackComponent::Attack()
 		return;
 	}
 
-	UCitizenManager* cm = Camera->CitizenManager;
-
-	if (bShowMercy && healthComp->Health < 25)
-		cm->StopFighting(Cast<ACitizen>(GetOwner()));
-	else if (cm->Citizens.Contains(CurrentTarget) && cm->Citizens.Contains(GetOwner()) && healthComp->Health == 0)
-		cm->ChangeReportToMurder(Cast<ACitizen>(GetOwner()));
-
 	AttackTimer = time;
 	bAttackedRecently = false;
+
+	FFactionStruct* faction1 = Camera->ConquestManager->GetFaction("", CurrentTarget);
+	FFactionStruct* faction2 = Camera->ConquestManager->GetFaction("", GetOwner());
+
+	if (faction1 == nullptr || faction2 == nullptr)
+		return;
+
+	if (bShowMercy && healthComp->Health < 25)
+		Camera->CitizenManager->StopFighting(Cast<ACitizen>(GetOwner()));
+	else if (healthComp->Health == 0)
+		Camera->CitizenManager->ChangeReportToMurder(Cast<ACitizen>(GetOwner()));
 }
 
 void UAttackComponent::Throw()

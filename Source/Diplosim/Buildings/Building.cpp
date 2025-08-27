@@ -22,6 +22,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Map/Resources/Vegetation.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -546,15 +547,17 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 		Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 	}
 
-	if (Camera->CitizenManager->Buildings.Contains(this))
-		Camera->CitizenManager->Buildings.Remove(this);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	if (faction != nullptr)
+		faction->Buildings.Remove(this);
 
 	if (IsA(Camera->CitizenManager->PoliceStationClass)) {
-		for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
-			if (citizen->Building.BuildingAt != this || GetOccupied().Contains(citizen) || !Camera->CitizenManager->Arrested.Contains(citizen))
+		for (ACitizen* citizen : faction->Citizens) {
+			if (citizen->Building.BuildingAt != this || GetOccupied().Contains(citizen) || !faction->Police.Arrested.Contains(citizen))
 				continue;
 
-			Camera->CitizenManager->SetInNearestJail(nullptr, citizen);
+			Camera->CitizenManager->SetInNearestJail(faction, nullptr, citizen);
 		}
 	}
 
@@ -596,7 +599,8 @@ void ABuilding::OnBuilt()
 
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
-	Camera->CitizenManager->Buildings.Add(this);
+	int32 factionIndex = Camera->ConquestManager->GetFactionIndexFromName(FactionName);
+	Camera->ConquestManager->Factions[factionIndex].Buildings.Add(this);
 
 	if (bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Activate();

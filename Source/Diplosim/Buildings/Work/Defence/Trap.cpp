@@ -48,7 +48,7 @@ void ATrap::ActivateTrap()
 	FOverlapsStruct requestedOverlaps;
 	requestedOverlaps.GetEverythingWithHealth();
 
-	TArray<AActor*> actorsInRange = Camera->Grid->AIVisualiser->GetOverlaps(Camera, this, Range, requestedOverlaps);
+	TArray<AActor*> actorsInRange = Camera->Grid->AIVisualiser->GetOverlaps(Camera, this, Range, requestedOverlaps, EFactionType::Both);
 
 	for (AActor* actor : actorsInRange) {
 		UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
@@ -82,6 +82,8 @@ void ATrap::ActivateTrap()
 	DestructionComponent->SetRelativeLocation(DestructionComponent->GetRelativeLocation() + FVector(0.0f, 0.0f, height));
 	GroundDecalComponent->SetRelativeLocation(GroundDecalComponent->GetRelativeLocation() + FVector(0.0f, 0.0f, height));
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 	HealthComponent->Health = 0;
-	HealthComponent->Clear(this);
+	HealthComponent->Clear(faction, this);
 }

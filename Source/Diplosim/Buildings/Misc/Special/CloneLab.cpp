@@ -3,6 +3,7 @@
 #include "AI/Clone.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 
@@ -25,7 +26,9 @@ void ACloneLab::Production(ACitizen* Citizen)
 	transform.SetLocation(BuildingMesh->GetSocketLocation("Entrance"));
 	transform.SetRotation(GetActorQuat());
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 	AClone* clone = GetWorld()->SpawnActor<AClone>(Clone, FVector::Zero(), FRotator::ZeroRotator, params);
-	Camera->CitizenManager->Clones.Add(clone);
+	faction->Clones.Add(clone);
 	Camera->Grid->AIVisualiser->AddInstance(clone, Camera->Grid->AIVisualiser->HISMClone, transform);
 }

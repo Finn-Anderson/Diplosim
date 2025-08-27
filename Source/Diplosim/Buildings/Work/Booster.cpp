@@ -57,7 +57,9 @@ TArray<ABuilding*> ABooster::GetAffectedBuildings()
 	for (FResourceHISMStruct resourceStruct : Camera->Grid->TreeStruct)
 		ignore.Add(resourceStruct.Resource);
 
-	ignore.Append(Camera->CitizenManager->Citizens);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	ignore.Append(faction->Citizens);
 	ignore.Append(Camera->CitizenManager->Enemies);
 
 	TArray<AActor*> actors;
@@ -81,7 +83,7 @@ TArray<ABuilding*> ABooster::GetAffectedBuildings()
 			break;
 		}
 
-		if (!bContainsBuilding)
+		if (!bContainsBuilding || !faction->Buildings.Contains(actor))
 			continue;
 
 		buildings.Add(Cast<ABuilding>(actor));
@@ -101,7 +103,9 @@ bool ABooster::DoesPromoteFavouringValues(ACitizen* Citizen)
 		FPartyStruct party;
 		party.Party = element.Value;
 
-		bool bContainsParty = Camera->CitizenManager->Parties.Contains(party);
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+		bool bContainsParty = faction->Politics.Parties.Contains(party);
 
 		if ((!Camera->CitizenManager->Religions.Contains(religion) && !bContainsParty) || element.Value == Citizen->Spirituality.Faith || (bContainsParty && element.Value == Camera->CitizenManager->GetMembersParty(Citizen)->Party))
 			continue;

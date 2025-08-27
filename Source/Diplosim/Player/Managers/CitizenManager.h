@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Universal/DiplosimUniversalTypes.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Components/ActorComponent.h"
 #include "CitizenManager.generated.h"
 
@@ -56,234 +57,6 @@ struct FTimerStruct
 	bool operator==(const FTimerStruct& other) const
 	{
 		return (other.ID == ID && other.Actor == Actor);
-	}
-};
-
-UENUM()
-enum class EEventType : uint8
-{
-	Mass,
-	Festival,
-	Holliday,
-	Marriage,
-	Protest
-};
-
-template<typename T>
-FString EnumToString(T EnumValue)
-{
-	static_assert(TIsUEnumClass<T>::Value, "'T' template parameter to EnumToString must be a valid UEnum");
-	return StaticEnum<T>()->GetNameStringByValue((int64)EnumValue);
-};
-
-USTRUCT(BlueprintType)
-struct FEventStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		EEventType Type;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		FString Period;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		int32 Day;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		TArray<int32> Hours;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		bool bRecurring;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		bool bFireFestival;
-
-	UPROPERTY()
-		bool bStarted;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		TSubclassOf<class ABuilding> Building;
-
-	UPROPERTY()
-		class ABuilding* Venue;
-
-	UPROPERTY()
-		TArray<class ACitizen*> Whitelist;
-
-	UPROPERTY()
-		TArray<class ACitizen*> Attendees;
-
-	UPROPERTY()
-		FVector Location;
-
-	FEventStruct()
-	{
-		Type = EEventType::Holliday;
-		Period = "";
-		Day = 0;
-		bRecurring = false;
-		bStarted = false;
-		bFireFestival = false;
-		Building = nullptr;
-		Venue = nullptr;
-		Location = FVector::Zero();
-	}
-
-	bool operator==(const FEventStruct& other) const
-	{
-		return (other.Type == Type && other.Period == Period && other.Day == Day && other.Hours == Hours);
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FPartyStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		FString Party;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FString> Agreeable;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
-		TMap<class ACitizen*, TEnumAsByte<ESway>> Members;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
-		class ACitizen* Leader;
-
-	FPartyStruct()
-	{
-		Party = "";
-		Leader = nullptr;
-	}
-
-	bool operator==(const FPartyStruct& other) const
-	{
-		return (other.Party == Party);
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FLeanStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		FString Party;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		FString Personality;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<int32> ForRange;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<int32> AgainstRange;
-
-	FLeanStruct()
-	{
-		Party = "";
-		Personality = "";
-	}
-
-	bool operator==(const FLeanStruct& other) const
-	{
-		return (other.Party == Party && other.Personality == Personality);
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FDescriptionStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		FString Description;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		int32 Min;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		int32 Max;
-
-	FDescriptionStruct()
-	{
-		Description = "";
-		Min = 0;
-		Max = 0;
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FLawStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		FString BillType;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FDescriptionStruct> Description;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		FString Warning;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		int32 Value;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FLeanStruct> Lean;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		int32 Cooldown;
-
-	FLawStruct()
-	{
-		BillType = "";
-		Warning = "";
-		Value = 0.0f;
-		Cooldown = 0;
-	}
-
-	int32 GetLeanIndex(FString Party = "", FString Personality = "")
-	{
-		FLeanStruct lean;
-		lean.Party = Party;
-		lean.Personality = Personality;
-
-		int32 index = Lean.Find(lean);
-
-		return index;
-	}
-
-	bool operator==(const FLawStruct& other) const
-	{
-		return (other.BillType == BillType);
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FVoteStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<class ACitizen*> For;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<class ACitizen*> Against;
-
-	FVoteStruct()
-	{
-
-	}
-
-	void Clear()
-	{
-		For.Empty();
-		Against.Empty();
 	}
 };
 
@@ -360,106 +133,6 @@ struct FPersonality
 	}
 };
 
-USTRUCT()
-struct FFightTeam
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-		class ACitizen* Instigator;
-
-	UPROPERTY()
-		TArray<class ACitizen*> Assistors;
-
-	FFightTeam()
-	{
-		Instigator = nullptr;
-	}
-
-	TArray<class ACitizen*> GetTeam()
-	{
-		TArray<class ACitizen*> team = Assistors;
-		team.Add(Instigator);
-
-		return team;
-	}
-
-	bool HasCitizen(class ACitizen* Citizen)
-	{
-		if (Instigator == Citizen || Assistors.Contains(Citizen))
-			return true;
-
-		return false;
-	}
-
-	bool operator==(const FFightTeam& other) const
-	{
-		return (other.Instigator == Instigator);
-	}
-};
-
-UENUM()
-enum class EReportType : uint8
-{
-	Fighting,
-	Murder,
-	Vandalism,
-	Protest
-};
-
-USTRUCT()
-struct FPoliceReport
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-		EReportType Type;
-
-	UPROPERTY()
-		FVector Location;
-
-	UPROPERTY()
-		FFightTeam Team1;
-
-	UPROPERTY()
-		FFightTeam Team2;
-
-	UPROPERTY()
-		TMap<class ACitizen*, float> Witnesses;
-
-	UPROPERTY()
-		class ACitizen* RespondingOfficer;
-
-	UPROPERTY()
-		TArray<class ACitizen*> AcussesTeam1;
-
-	UPROPERTY()
-		TArray<class ACitizen*> Impartial;
-
-	UPROPERTY()
-		TArray<class ACitizen*> AcussesTeam2;
-
-	FPoliceReport()
-	{
-		Type = EReportType::Fighting;
-		Location = FVector::Zero();
-		RespondingOfficer = nullptr;
-	}
-
-	bool Contains(class ACitizen* Citizen)
-	{
-		if (Team1.Instigator == Citizen || Team1.Assistors.Contains(Citizen) || Team2.Instigator == Citizen || Team2.Assistors.Contains(Citizen))
-			return true;
-
-		return false;
-	}
-
-	bool operator==(const FPoliceReport& other) const
-	{
-		return (other.Team1 == Team1 && other.Team2 == Team2);
-	}
-};
-
 UENUM()
 enum class ERaidPolicy : uint8
 {
@@ -507,16 +180,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool DoesTimerExist(FString ID, AActor* Actor);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Citizens")
-		TArray<class ACitizen*> Citizens;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Buildings")
-		TArray<class ABuilding*> Buildings;
-
 	TDoubleLinkedList<FTimerStruct> Timers;
-
-	UPROPERTY()
-		FVector BrochLocation;
 
 	FCriticalSection LoopLock;
 
@@ -532,7 +196,7 @@ public:
 
 	// House
 	UFUNCTION(BlueprintCallable)
-		void UpdateRent(TSubclassOf<class AHouse> HouseType, int32 NewRent);
+		void UpdateRent(FString FactionName, TSubclassOf<class AHouse> HouseType, int32 NewRent);
 
 	// Death
 	void ClearCitizen(ACitizen* Citizen);
@@ -540,7 +204,7 @@ public:
 	// Work
 	void CheckWorkStatus(int32 Hour);
 
-	ERaidPolicy GetRaidPolicyStatus();
+	ERaidPolicy GetRaidPolicyStatus(ACitizen* Citizen);
 
 	// Citizen
 	void CheckUpkeepCosts();
@@ -555,9 +219,9 @@ public:
 
 	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness);
 
-	void StartConversation(class ACitizen* Citizen1, class ACitizen* Citizen2, bool bInterrogation);
+	void StartConversation(FFactionStruct* Faction, class ACitizen* Citizen1, class ACitizen* Citizen2, bool bInterrogation);
 
-	void Interact(class ACitizen* Citizen1, class ACitizen* Citizen2);
+	void Interact(FFactionStruct* Faction, class ACitizen* Citizen1, class ACitizen* Citizen2);
 
 	bool IsCarelessWitness(class ACitizen* Citizen);
 
@@ -569,27 +233,21 @@ public:
 
 	void StopFighting(class ACitizen* Citizen);
 
-	void InterrogateWitnesses(class ACitizen* Officer, class ACitizen* Citizen);
+	void InterrogateWitnesses(FFactionStruct* Faction, class ACitizen* Officer, class ACitizen* Citizen);
 
 	void GotoClosestWantedMan(class ACitizen* Officer);
 
 	void Arrest(class ACitizen* Officer, class ACitizen* Citizen);
 
-	void SetInNearestJail(class ACitizen* Officer, class ACitizen* Citizen);
+	void SetInNearestJail(FFactionStruct* Faction, class ACitizen* Officer, class ACitizen* Citizen);
 
 	void ItterateThroughSentences();
 
 	void ToggleOfficerLights(class ACitizen* Officer, float Value);
 
-	void CeaseAllInternalFighting();
+	void CeaseAllInternalFighting(FFactionStruct* Faction);
 
 	int32 GetPoliceReportIndex(class ACitizen* Citizen);
-
-	UPROPERTY()
-		TArray<FPoliceReport> PoliceReports;
-
-	UPROPERTY()
-		TMap<ACitizen*, int32> Arrested;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Police")
 		TSubclassOf<class AWork> PoliceStationClass;
@@ -634,7 +292,7 @@ public:
 
 	// Events
 	UFUNCTION(BlueprintCallable)
-	void CreateEvent(EEventType Type, TSubclassOf<class ABuilding> Building, class ABuilding* Venue, FString Period, int32 Day, TArray<int32> Hours, bool bRecurring, TArray<ACitizen*> Whitelist, bool bFireFestival = false);
+		void CreateEvent(FString FactionName, EEventType Type, TSubclassOf<class ABuilding> Building, class ABuilding* Venue, FString Period, int32 Day, TArray<int32> Hours, bool bRecurring, TArray<ACitizen*> Whitelist, bool bFireFestival = false);
 
 	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
 
@@ -642,40 +300,25 @@ public:
 
 	void RemoveFromEvent(class ACitizen* Citizen);
 
-	TArray<FEventStruct> OngoingEvents();
+	TMap<FFactionStruct*, TArray<FEventStruct*>> OngoingEvents();
 
-	void GotoEvent(ACitizen* Citizen, FEventStruct Event);
+	void GotoEvent(ACitizen* Citizen, FEventStruct* Event);
 
-	void StartEvent(FEventStruct Event, int32 Hour);
+	void StartEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour);
 
-	void EndEvent(FEventStruct Event, int32 Hour);
+	void EndEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour);
 
-	bool UpcomingProtest();
+	bool UpcomingProtest(FFactionStruct* Faction);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-		TArray<FEventStruct> Events;
+		TArray<FEventStruct> InitEvents;
 
 	// Politics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FPartyStruct> Parties;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
-		TArray<class ACitizen*> Representatives;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
-		TArray<int32> BribeValue;
+		TArray<FPartyStruct> InitParties;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FLawStruct> Laws;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
-		FVoteStruct Votes;
-
-	UPROPERTY()
-		FVoteStruct Predictions;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TArray<FLawStruct> ProposedBills;
+		TArray<FLawStruct> InitLaws;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TSubclassOf<class AResource> Money;
@@ -685,38 +328,38 @@ public:
 	UFUNCTION(BlueprintCallable)
 		FString GetCitizenParty(ACitizen* Citizen);
 
-	void SelectNewLeader(FString Party);
+	void SelectNewLeader(FPartyStruct* Party);
 
-	void StartElectionTimer();
+	void StartElectionTimer(FFactionStruct* Faction);
 
-	void Election();
+	void Election(FFactionStruct* Faction);
 
 	UFUNCTION(BlueprintCallable)
 		void Bribe(class ACitizen* Representative, bool bAgree);
 
 	UFUNCTION(BlueprintCallable)
-		void ProposeBill(FLawStruct Bill);
+		void ProposeBill(FString FactionName, FLawStruct Bill);
 
-	void SetElectionBillLeans(FLawStruct* Bill);
+	void SetElectionBillLeans(FFactionStruct* Faction, FLawStruct* Bill);
 
-	void SetupBill();
+	void SetupBill(FFactionStruct* Faction);
 
-	void MotionBill(FLawStruct Bill);
+	void MotionBill(FFactionStruct* Faction, FLawStruct Bill);
 
 	bool IsInRange(TArray<int32> Range, int32 Value);
 
-	void GetVerdict(class ACitizen* Representative, FLawStruct Bill, bool bCanAbstain, bool bPrediction);
+	void GetVerdict(FFactionStruct* Faction, class ACitizen* Representative, FLawStruct Bill, bool bCanAbstain, bool bPrediction);
 
-	void TallyVotes(FLawStruct Bill);
-
-	UFUNCTION(BlueprintCallable)
-		int32 GetLawValue(FString BillType);
+	void TallyVotes(FFactionStruct* Faction, FLawStruct Bill);
 
 	UFUNCTION(BlueprintCallable)
-		int32 GetCooldownTimer(FLawStruct Law);
+		int32 GetLawValue(FString FactionName, FString BillType);
 
 	UFUNCTION(BlueprintCallable)
-		FString GetBillPassChance(FLawStruct Bill);
+		int32 GetCooldownTimer(FString FactionName, FLawStruct Law);
+
+	UFUNCTION(BlueprintCallable)
+		FString GetBillPassChance(FString FactionName, FLawStruct Bill);
 
 	// Pensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pensions")
@@ -725,23 +368,14 @@ public:
 	void IssuePensions(int32 Hour);
 
 	// Fighting
-	void Overthrow();
+	void Overthrow(FFactionStruct* Faction);
 
-	void SetupRebel(class ACitizen* Citizen);
+	void SetupRebel(FFactionStruct* Faction, class ACitizen* Citizen);
 
-	bool IsRebellion();
+	bool IsRebellion(FFactionStruct* Faction);
 
 	UPROPERTY()
 		TArray<class AAI*> Enemies;
-
-	UPROPERTY()
-		TArray<class ACitizen*> Rebels;
-
-	UPROPERTY()
-		TArray<class AAI*> Clones;
-
-	UPROPERTY()
-		int32 CooldownTimer;
 
 	// Genetics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sacrifice")
@@ -759,7 +393,7 @@ public:
 		int32 GetPrayCost();
 
 	UFUNCTION(BlueprintCallable)
-		void Sacrifice();
+		void Sacrifice(FString FactionName);
 
 	// Religion
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")

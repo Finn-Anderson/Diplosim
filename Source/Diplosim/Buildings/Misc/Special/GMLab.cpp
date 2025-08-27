@@ -13,7 +13,9 @@ void AGMLab::Production(ACitizen* Citizen)
 {
 	Super::Production(Citizen);
 
-	for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	for (ACitizen* citizen : faction->Citizens) {
 		for (FGeneticsStruct& genetic : citizen->Genetics) {
 			if (genetic.Grade == EGeneticsGrade::Good)
 				continue;

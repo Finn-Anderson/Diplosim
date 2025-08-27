@@ -149,13 +149,16 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 {
 	AActor* actor = GetOwner();
 
-	if (actor->IsA<ABroch>()) {
-		Camera->Lose();
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", actor);
 
-		for (ACitizen* citizen : Camera->CitizenManager->Citizens)
+	if (actor->IsA<ABroch>()) {
+		if (faction->Name == Camera->ColonyName)
+			Camera->Lose();
+
+		for (ACitizen* citizen : faction->Citizens)
 			citizen->HealthComponent->TakeHealth(1000, Camera);
 
-		for (ABuilding* building : Camera->CitizenManager->Buildings)
+		for (ABuilding* building : faction->Buildings)
 			building->HealthComponent->TakeHealth(1000, Camera);
 	}
 
@@ -190,7 +193,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 		building->Storage.Empty();
 
-		Camera->CitizenManager->Buildings.Remove(building);
+		faction->Buildings.Remove(building);
 		Camera->ConstructionManager->RemoveBuilding(building);
 
 		FVector dimensions = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
@@ -222,10 +225,10 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 			deathComp->SetColorParameter("Colour", Cast<AEnemy>(actor)->Colour);
 	}
 
-	Camera->CitizenManager->CreateTimer("Clear Death", GetOwner(), 10.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, Attacker), false, true);
+	Camera->CitizenManager->CreateTimer("Clear Death", GetOwner(), 10.0f, FTimerDelegate::CreateUObject(this, &UHealthComponent::Clear, faction, Attacker), false, true);
 }
 
-void UHealthComponent::Clear(AActor* Attacker)
+void UHealthComponent::Clear(FFactionStruct* Faction, AActor* Attacker)
 {
 	AActor* actor = GetOwner();
 
@@ -323,15 +326,15 @@ void UHealthComponent::Clear(AActor* Attacker)
 		if (ai->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(ai);
 
-			if (Camera->CitizenManager->Citizens.Contains(citizen))
-				Camera->CitizenManager->Citizens.Remove(citizen);
+			if (Faction->Citizens.Contains(citizen))
+				Faction->Citizens.Remove(citizen);
 			else
-				Camera->CitizenManager->Rebels.Remove(citizen);
+				Faction->Rebels.Remove(citizen);
 		}
 		else if (ai->IsA<AEnemy>())
 			Camera->CitizenManager->Enemies.Remove(ai);
 		else
-			Camera->CitizenManager->Clones.Remove(ai);
+			Faction->Clones.Remove(ai);
 
 		ai->Destroy();
 	}

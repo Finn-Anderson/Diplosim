@@ -509,9 +509,6 @@ public:
 		void AddEnemies(FString Category, int32 Amount);
 
 	UFUNCTION(Exec)
-		void DamageLastBuilding();
-
-	UFUNCTION(Exec)
 		void ChangeSeasonAffect(FString Season);
 
 	UFUNCTION(Exec)

@@ -102,11 +102,13 @@ void AFestival::OnBuilt()
 {
 	Super::OnBuilt();
 
-	for (FEventStruct event : Camera->CitizenManager->OngoingEvents()) {
-		if (event.Type != EEventType::Festival)
-			continue;
+	for (auto& element : Camera->CitizenManager->OngoingEvents()) {
+		for (FEventStruct* event : element.Value) {
+			if (event->Type != EEventType::Festival)
+				continue;
 
-		StartFestival(event.bFireFestival);
+			StartFestival(event->bFireFestival);
+		}
 	}
 }
 

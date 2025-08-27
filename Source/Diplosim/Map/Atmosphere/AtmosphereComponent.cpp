@@ -152,8 +152,9 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		if (settings->GetRenderTorches())
 			Grid->AIVisualiser->ActivateTorches(hour);
 
-		for (ABuilding* building : Grid->Camera->CitizenManager->Buildings)
-			building->SetLights(hour);
+		for (FFactionStruct& faction : Grid->Camera->ConquestManager->Factions)
+			for (ABuilding* building : faction.Buildings)
+				building->SetLights(hour);
 
 		if (hour == 18) {
 			Sun->SetCastShadows(false);

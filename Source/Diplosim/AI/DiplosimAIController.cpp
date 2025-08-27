@@ -43,29 +43,41 @@ void ADiplosimAIController::DefaultAction()
 	if (!IsValid(AI) || AI->HealthComponent->GetHealth() == 0)
 		return;
 
-	if (AI->IsA<ACitizen>() && Camera->CitizenManager->Citizens.Contains(AI)) {
+	if (AI->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(AI);
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
 		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bEmergency) {
 			AIMoveTo(citizen->Building.Employment);
 		}
-		else if (!Camera->CitizenManager->Enemies.IsEmpty() && Camera->CitizenManager->GetRaidPolicyStatus() != ERaidPolicy::Default) {
-			if (Camera->CitizenManager->GetRaidPolicyStatus() == ERaidPolicy::Home)
-				AIMoveTo(citizen->Building.House);
-			else
-				AIMoveTo(Camera->ConquestManager->GetCitizenFaction(citizen).EggTimer);
+		else if (!Camera->CitizenManager->Enemies.IsEmpty()) {
+			ERaidPolicy raidPolicy = Camera->CitizenManager->GetRaidPolicyStatus(citizen);
 
-			return;
+			if (raidPolicy != ERaidPolicy::Default) {
+				if (raidPolicy == ERaidPolicy::Home)
+					AIMoveTo(citizen->Building.House);
+				else
+					AIMoveTo(Camera->ConquestManager->GetCitizenFaction(citizen).EggTimer);
+
+				return;
+			}
 		}
 
 		if (citizen->bConversing || Camera->CitizenManager->IsInAPoliceReport(citizen) || citizen->AttackComponent->IsComponentTickEnabled() || Camera->CitizenManager->IsAttendingEvent(citizen))
 			return;
 
-		for (FEventStruct event : Camera->CitizenManager->OngoingEvents()) {
-			Camera->CitizenManager->GotoEvent(citizen, event);
+		for (auto& element : Camera->CitizenManager->OngoingEvents()) {
+			if (element.Key->Name != faction->Name)
+				continue;
 
-			if (Camera->CitizenManager->IsAttendingEvent(citizen))
-				return;
+			for (FEventStruct* event : element.Value) {
+				Camera->CitizenManager->GotoEvent(citizen, event);
+
+				if (Camera->CitizenManager->IsAttendingEvent(citizen))
+					return;
+			}
+
+			break;
 		}
 
 		if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsWorking(citizen)) {
@@ -77,13 +89,13 @@ void ADiplosimAIController::DefaultAction()
 		else if (IsValid(citizen->Building.School) && citizen->Building.School->IsWorking(citizen->Building.School->GetOccupant(citizen)))
 			AIMoveTo(citizen->Building.School);
 		else
-			Idle(citizen);
+			Idle(faction, citizen);
 	}
 	else
 		AI->MoveToBroch();
 }
 
-void ADiplosimAIController::Idle(ACitizen* Citizen)
+void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 {
 	if (!IsValid(Citizen))
 		return;
@@ -101,7 +113,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 	else {
 		int32 time = Camera->Grid->Stream.RandRange(5, 30);
 
-		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66 && !Camera->CitizenManager->Arrested.Contains(Citizen)) {
+		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66 && !Faction->Police.Arrested.Contains(Citizen)) {
 			AIMoveTo(ChosenBuilding);
 
 			time = 60.0f;
@@ -113,7 +125,7 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 			int32 innerRange = 200;
 			int32 outerRange = 1000;
 
-			FVector location = Camera->CitizenManager->BrochLocation;
+			FVector location = Faction->EggTimer->GetActorLocation();
 					
 			if (IsValid(ChosenBuilding) && !ChosenBuilding->IsA<ABroch>()) {
 				FVector size = ChosenBuilding->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
@@ -152,12 +164,14 @@ void ADiplosimAIController::Idle(ACitizen* Citizen)
 
 void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 {
-	if (Camera->CitizenManager->Arrested.Contains(Citizen))
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
+
+	if (faction->Police.Arrested.Contains(Citizen))
 		return;
 
 	TArray<ABuilding*> buildings;
 
-	for (ABuilding* building : Camera->CitizenManager->Buildings) {
+	for (ABuilding* building : faction->Buildings) {
 		if (!IsValid(building) || (building->IsA<AWork>() && !building->IsA<AOrphanage>()) || building->IsA<ARoad>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
 			continue;
 
@@ -284,11 +298,12 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 
 	if (bCheckForPortals && AI->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(AI);
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
 		bool targetCanReachPortal = false;
 		bool ownerCanReachPortal = false;
 
-		for (ABuilding* building : Camera->CitizenManager->Buildings) {
+		for (ABuilding* building : faction->Buildings) {
 			if (!building->IsA<APortal>() || building->HealthComponent->GetHealth() == 0)
 				continue;
 
@@ -352,11 +367,12 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	if (AI->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(AI);
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
 		ABuilding* ownerNearestPortal = nullptr;
 		ABuilding* targetNearestPortal = nullptr;
 
-		for (ABuilding* building : Camera->CitizenManager->Buildings) {
+		for (ABuilding* building : faction->Buildings) {
 			if (!building->IsA<APortal>() || building->HealthComponent->GetHealth() == 0)
 				continue;
 

@@ -54,6 +54,9 @@ struct FOverlapsStruct
 	UPROPERTY()
 		bool bResources;
 
+	UPROPERTY()
+		bool bGettingCitizensEnemies;
+
 	FOverlapsStruct()
 	{
 		bCitizens = false;
@@ -62,6 +65,7 @@ struct FOverlapsStruct
 		bClones = false;
 		bBuildings = false;
 		bResources = false;
+		bGettingCitizensEnemies = false;
 	}
 
 	void GetCitizenInteractions(bool bIncludeBuildingsAndResources, bool bIncludeRebels)
@@ -74,8 +78,13 @@ struct FOverlapsStruct
 
 	void GetCitizenEnemies()
 	{
-		bRebels = true;
-		bEnemies = true;
+		GetEverythingWithHealth();
+		bGettingCitizensEnemies = true;
+	}
+
+	bool IsGettingCitizenEnemies()
+	{
+		return bGettingCitizensEnemies;
 	}
 
 	void GetRebelsEnemies()
@@ -102,6 +111,14 @@ struct FOverlapsStruct
 	}
 };
 
+UENUM()
+enum class EFactionType : uint8
+{
+	Both,
+	Different,
+	Same
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UAIVisualiser : public UActorComponent
 {
@@ -110,10 +127,6 @@ class DIPLOSIM_API UAIVisualiser : public UActorComponent
 public:	
 	UAIVisualiser();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class USceneComponent* AIContainer;
 
@@ -153,7 +166,7 @@ public:
 
 	void SetInstanceTransform(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform);
 
-	void UpdateCitizenVisuals(class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
+	void UpdateCitizenVisuals(class UHierarchicalInstancedStaticMeshComponent* HISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
 
 	void ActivateTorches(int32 Hour, class UHierarchicalInstancedStaticMeshComponent* HISM = nullptr, int32 Instance = -1);
 
@@ -167,7 +180,7 @@ public:
 
 	void SetAnimationPoint(class AAI* AI, FTransform Transform);
 
-	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps);
+	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType);
 
 	UPROPERTY()
 		TArray<FPendingChangeStruct> PendingChange;

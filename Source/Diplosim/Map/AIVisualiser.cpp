@@ -10,6 +10,7 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
 #include "AI/AIMovementComponent.h"
@@ -86,11 +87,6 @@ UAIVisualiser::UAIVisualiser()
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);
 	HarvestNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	HarvestNiagaraComponent->bAutoActivate = true;
-}
-
-void UAIVisualiser::BeginPlay()
-{
-	Super::BeginPlay();
 
 	// ECC_WorldDynamic, ECC_Pawn, ECC_GameTraceChannel2, ECC_GameTraceChannel3, ECC_GameTraceChannel4: Consider ECR_Block
 }
@@ -135,10 +131,18 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 
 void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 {
-	if (Camera->CitizenManager->Citizens.IsEmpty() && Camera->CitizenManager->Rebels.IsEmpty())
+	TArray<ACitizen*> cs;
+	TArray<ACitizen*> rebels;
+
+	for (FFactionStruct faction : Camera->ConquestManager->Factions) {
+		cs.Append(faction.Citizens);
+		rebels.Append(faction.Rebels);
+	}
+
+	if (cs.IsEmpty() && rebels.IsEmpty())
 		return;
 
-	Async(EAsyncExecution::Thread, [this, Camera]() {
+	Async(EAsyncExecution::Thread, [this, Camera, cs, rebels]() {
 		FScopeTryLock lock(&CitizenMovementLock);
 		if (!lock.IsLocked())
 			return;
@@ -147,8 +151,8 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 		TArray<FVector> torchLocations;
 
 		TArray<TArray<ACitizen*>> citizens;
-		citizens.Add(Camera->CitizenManager->Citizens);
-		citizens.Add(Camera->CitizenManager->Rebels);
+		citizens.Add(cs);
+		citizens.Add(rebels);
 
 		for (int32 i = 0; i < citizens.Num(); i++) {
 			for (int32 j = 0; j < citizens[i].Num(); j++) {
@@ -159,17 +163,21 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 				citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
 
-				if (i == 0) {
-					SetInstanceTransform(HISMCitizen, j, citizen->MovementComponent->Transform);
+				UHierarchicalInstancedStaticMeshComponent* hism = nullptr;
 
+				if (i == 0) {
 					float opacity = 1.0f;
 					if (IsValid(citizen->Building.BuildingAt))
 						opacity = 0.0f;
 
 					HISMCitizen->PerInstanceSMCustomData[j * HISMCitizen->NumCustomDataFloats + 12] = opacity;
+
+					hism = HISMCitizen;
 				}
 				else
-					SetInstanceTransform(HISMRebel, j, citizen->MovementComponent->Transform);
+					hism = HISMRebel;
+
+				SetInstanceTransform(hism, j, citizen->MovementComponent->Transform);
 
 				if (Camera->CitizenManager->Infected.Contains(citizen))
 					diseaseLocations.Add(citizen->MovementComponent->Transform.GetLocation());
@@ -177,7 +185,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 				if (TorchNiagaraComponent->IsActive())
 					torchLocations.Add(citizen->MovementComponent->Transform.GetLocation());
 
-				UpdateCitizenVisuals(Camera, citizen, j);
+				UpdateCitizenVisuals(hism, Camera, citizen, j);
 			}
 
 			if (i == 0 && !citizens[i].IsEmpty())
@@ -200,16 +208,21 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 {
-	if (Camera->CitizenManager->Clones.IsEmpty() && Camera->CitizenManager->Enemies.IsEmpty())
+	TArray<AAI*> clones;
+
+	for (FFactionStruct faction : Camera->ConquestManager->Factions)
+		clones.Append(faction.Citizens);
+
+	if (clones.IsEmpty() && Camera->CitizenManager->Enemies.IsEmpty())
 		return;
 
-	Async(EAsyncExecution::Thread, [this, Camera]() {
+	Async(EAsyncExecution::Thread, [this, Camera, clones]() {
 		FScopeTryLock lock(&AIMovementLock);
 		if (!lock.IsLocked())
 			return;
 
 		TArray<TArray<AAI*>> ais;
-		ais.Add(Camera->CitizenManager->Clones);
+		ais.Add(clones);
 		ais.Add(Camera->CitizenManager->Enemies);
 
 		for (int32 i = 0; i < ais.Num(); i++) {
@@ -273,15 +286,8 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 	});
 }
 
-void UAIVisualiser::UpdateCitizenVisuals(ACamera* Camera, ACitizen* Citizen, int32 Instance)
+void UAIVisualiser::UpdateCitizenVisuals(UHierarchicalInstancedStaticMeshComponent* HISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
-	UHierarchicalInstancedStaticMeshComponent* HISM = nullptr;
-
-	if (Camera->CitizenManager->Citizens.Contains(Citizen))
-		HISM = HISMCitizen;
-	else
-		HISM = HISMRebel;
-
 	if (Citizen->bGlasses && HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 10] == 0.0f)
 		HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 10] = 1.0f;
 
@@ -338,21 +344,28 @@ TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::G
 
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info;
 
-	if (cm->Citizens.Contains(AI)) {
-		info.Key = HISMCitizen;
-		info.Value = cm->Citizens.Find(Cast<ACitizen>(AI));
-	}
-	else if (cm->Rebels.Contains(AI)) {
-		info.Key = HISMRebel;
-		info.Value = cm->Rebels.Find(Cast<ACitizen>(AI));
-	}
-	else if (cm->Clones.Contains(AI)) {
-		info.Key = HISMClone;
-		info.Value = cm->Clones.Find(AI);
-	}
-	else {
+	if (cm->Enemies.Contains(AI)) {
 		info.Key = HISMEnemy;
 		info.Value = cm->Enemies.Find(AI);
+	}
+	else {
+		for (FFactionStruct faction : AI->Camera->ConquestManager->Factions) {
+			if (faction.Citizens.Contains(AI)) {
+				info.Key = HISMCitizen;
+				info.Value = faction.Citizens.Find(Cast<ACitizen>(AI));
+			}
+			else if (faction.Rebels.Contains(AI)) {
+				info.Key = HISMRebel;
+				info.Value = faction.Rebels.Find(Cast<ACitizen>(AI));
+			}
+			else if (faction.Clones.Contains(AI)) {
+				info.Key = HISMClone;
+				info.Value = faction.Clones.Find(AI);
+			}
+
+			if (IsValid(info.Key))
+				break;
+		}
 	}
 
 	return info;
@@ -364,12 +377,22 @@ AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UHierarchicalInstancedStaticMeshC
 
 	AAI* ai = nullptr;
 
+	TArray<ACitizen*> citizens;
+	TArray<ACitizen*> rebels;
+	TArray<AAI*> clones;
+
+	for (FFactionStruct faction : Camera->ConquestManager->Factions) {
+		citizens.Append(faction.Citizens);
+		rebels.Append(faction.Rebels);
+		clones.Append(faction.Clones);
+	}
+
 	if (HISM == HISMCitizen)
-		ai = cm->Citizens[Instance];
+		ai = citizens[Instance];
 	else if (HISM == HISMRebel)
-		ai = cm->Rebels[Instance];
+		ai = rebels[Instance];
 	else if (HISM == HISMClone)
-		ai = cm->Clones[Instance];
+		ai = clones[Instance];
 	else if (HISM == HISMEnemy)
 		ai = cm->Enemies[Instance];
 
@@ -416,7 +439,7 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7] = Transform.GetRotation().Rotator().Pitch;
 }
 
-TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps)
+TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType)
 {
 	TArray<AActor*> actors;
 
@@ -424,20 +447,32 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 
 	TArray<AActor*> actorsToCheck;
 
-	if (RequestedOverlaps.bBuildings)
-		actorsToCheck.Append(cm->Buildings);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Actor);
 
-	if (RequestedOverlaps.bCitizens)
-		actorsToCheck.Append(cm->Citizens);
+	for (FFactionStruct& f : Camera->ConquestManager->Factions) {
+		if (FactionType != EFactionType::Both && faction != nullptr && ((FactionType == EFactionType::Same && faction->Name != f.Name) || (FactionType == EFactionType::Different && faction->Name == f.Name)))
+			continue;
 
-	if (RequestedOverlaps.bClones)
-		actorsToCheck.Append(cm->Clones);
+		if (!RequestedOverlaps.IsGettingCitizenEnemies() || faction->AtWar.Contains(f.Name)) {
+			if (RequestedOverlaps.bBuildings)
+				actorsToCheck.Append(f.Buildings);
 
-	if (RequestedOverlaps.bRebels)
-		actorsToCheck.Append(cm->Rebels);
+			if (RequestedOverlaps.bCitizens)
+				actorsToCheck.Append(f.Citizens);
+
+			if (RequestedOverlaps.bClones)
+				actorsToCheck.Append(f.Clones);
+		}
+
+		if (RequestedOverlaps.bRebels)
+			actorsToCheck.Append(f.Rebels);
+	}
 
 	if (RequestedOverlaps.bEnemies)
 		actorsToCheck.Append(cm->Enemies);
+
+	if (actorsToCheck.Contains(Actor))
+		actorsToCheck.Remove(Actor);
 
 	FVector location = Camera->GetTargetActorLocation(Actor);
 

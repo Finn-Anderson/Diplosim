@@ -14,6 +14,7 @@
 #include "AI/DiplosimAIController.h"
 #include "Universal/HealthComponent.h"
 #include "Buildings/Misc/Portal.h"
+#include "Buildings/Misc/Broch.h"
 
 UConquestManager::UConquestManager()
 {
@@ -29,7 +30,7 @@ void UConquestManager::BeginPlay()
 	Camera = Cast<ACamera>(GetOwner());
 }
 
-void UConquestManager::CreateFactions()
+void UConquestManager::CreateFactions(ABuilding* EggTimer)
 {
 	TArray<FString> factions;
 	factions.Add(Camera->ColonyName);
@@ -54,11 +55,26 @@ void UConquestManager::CreateFactions()
 
 		f.ResearchStruct = Camera->ResearchManager->InitResearchStruct;
 
+		f.Politics.Parties = Camera->CitizenManager->InitParties;
+		f.Politics.Laws = Camera->CitizenManager->InitLaws;
+		f.Events = Camera->CitizenManager->InitEvents;
+
+		if (name == Camera->ColonyName) {
+			EggTimer->FactionName = Camera->ColonyName;
+
+			f.EggTimer = EggTimer;
+		}
+		else {
+			// Get all valid tile placements for broch, then check if another broch within 3000 units. Add buildings, rebels and citizens to faction struct as storage.
+		}
+
+		Cast<ABroch>(f.EggTimer)->SpawnCitizens();
+
+		Camera->CitizenManager->Election(&f);
+
+		SetFactionCulture(&f);
+
 		Factions.Add(f);
-
-		// Get all valid tile placements for broch, then check if another broch within 3000 units. Add buildings, rebels and citizens to faction struct as storage.
-
-		SetFactionCulture(f);
 	}
 
 	Camera->SetFactionsInDiplomacyUI();
@@ -128,7 +144,7 @@ void UConquestManager::ComputeAI()
 		if (faction.Name == Camera->ColonyName)
 			continue;
 
-		SetFactionCulture(faction);
+		SetFactionCulture(&faction);
 
 		Camera->UpdateFactionHappiness();
 
@@ -155,9 +171,11 @@ void UConquestManager::ComputeAI()
 	}
 }
 
-bool UConquestManager::CanTravel(class ACitizen* Citizen)
+bool UConquestManager::CanJoinArmy(class ACitizen* Citizen)
 {
-	if (Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue("Work Age") || !Citizen->WillWork())
+	FFactionStruct faction = GetCitizenFaction(Citizen);
+
+	if (Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork())
 		return false;
 
 	return true;
@@ -179,16 +197,30 @@ FFactionStruct UConquestManager::GetCitizenFaction(ACitizen* Citizen)
 	return faction;
 }
 
+FFactionStruct* UConquestManager::GetFaction(FString Name, AActor* Actor)
+{
+	FFactionStruct* faction = nullptr;
+
+	for (FFactionStruct& f : Factions) {
+		if (f.Name != Name && !f.Citizens.Contains(Actor) && f.Buildings.Contains(Actor) && f.Rebels.Contains(Actor))
+			continue;
+
+		faction = &f;
+
+		break;
+	}
+
+	return faction;
+}
+
 //
 // Diplomacy
 //
-void UConquestManager::SetFactionCulture(FFactionStruct Faction)
+void UConquestManager::SetFactionCulture(FFactionStruct* Faction)
 {
-	int32 index = Factions.Find(Faction);
-
 	TMap<FString, int32> partyCount;
 
-	for (ACitizen* Citizen : Camera->CitizenManager->Representatives) {
+	for (ACitizen* Citizen : Faction->Politics.Representatives) {
 		FString party = Camera->CitizenManager->GetCitizenParty(Citizen);
 
 		if (partyCount.Contains(party)) {
@@ -211,7 +243,7 @@ void UConquestManager::SetFactionCulture(FFactionStruct Faction)
 
 	TMap<FString, int32> religionCount;
 
-	for (ACitizen* citizen : Camera->CitizenManager->Citizens) {
+	for (ACitizen* citizen : Faction->Citizens) {
 		FString faith = citizen->Spirituality.Faith;
 
 		if (religionCount.Contains(faith)) {
@@ -232,13 +264,13 @@ void UConquestManager::SetFactionCulture(FFactionStruct Faction)
 		biggestReligion = element;
 	}
 
-	if (Factions[index].PartyInPower == biggestParty.Key && Factions[index].LargestReligion == biggestReligion.Key)
+	if (Faction->PartyInPower == biggestParty.Key && Faction->LargestReligion == biggestReligion.Key)
 		return;
 
-	Factions[index].PartyInPower = biggestParty.Key;
-	Factions[index].LargestReligion = biggestReligion.Key;
+	Faction->PartyInPower = biggestParty.Key;
+	Faction->LargestReligion = biggestReligion.Key;
 
-	Camera->UpdateFactionIcons(index);
+	Camera->UpdateFactionIcons(Factions.Find(*Faction));
 }
 
 int32 UConquestManager::GetHappinessWithFaction(FFactionStruct Faction, FFactionStruct Target)

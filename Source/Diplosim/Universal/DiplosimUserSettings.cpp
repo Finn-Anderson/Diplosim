@@ -743,11 +743,13 @@ void UDiplosimUserSettings::UpdateAmbientVolume()
 
 	ACamera* camera = PController->GetPawn<ACamera>();
 
-	for (ACitizen* citizen : camera->CitizenManager->Citizens)
-		citizen->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
+	for (FFactionStruct& faction : camera->ConquestManager->Factions) {
+		for (ACitizen* citizen : faction.Citizens)
+			citizen->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
 
-	for (ABuilding* building : camera->CitizenManager->Buildings)
-		building->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
+		for (ABuilding* building : faction.Buildings)
+			building->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
+	}
 }
 
 FVector2D UDiplosimUserSettings::GetWindowPosAsVector(FString Value)

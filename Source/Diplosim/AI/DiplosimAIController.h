@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Player/Managers/ConquestManager.h"
 #include "AIController.h"
 #include "DiplosimAIController.generated.h"
 
@@ -87,7 +88,7 @@ public:
 
 	void DefaultAction();
 
-	void Idle(class ACitizen* Citizen);
+	void Idle(FFactionStruct* Faction, class ACitizen* Citizen);
 
 	void ChooseIdleBuilding(class ACitizen* Citizen);
 

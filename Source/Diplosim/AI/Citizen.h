@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Universal/DiplosimUniversalTypes.h"
+#include "Player/Managers/ConquestManager.h"
 #include "AI/AI.h"
 #include "Citizen.generated.h"
 
@@ -285,7 +286,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	void CitizenSetup();
+	void CitizenSetup(FFactionStruct* Faction);
 
 	void ClearCitizen();
 

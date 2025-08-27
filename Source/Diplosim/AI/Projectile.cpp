@@ -11,7 +11,7 @@
 #include "Buildings/Work/Defence/Tower.h"
 #include "AttackComponent.h"
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
@@ -94,7 +94,10 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 	for (FResourceHISMStruct resourceStruct : camera->Grid->FlowerStruct)
 		ignore.Add(resourceStruct.Resource);
 
-	ignore.Append(camera->CitizenManager->Buildings);
+	FFactionStruct* faction = camera->ConquestManager->GetFaction("", GetOwner());
+
+	if (faction != nullptr)
+		ignore.Append(faction->Buildings);
 
 	TArray<AActor*> actors;
 
