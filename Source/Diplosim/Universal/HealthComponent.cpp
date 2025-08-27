@@ -33,12 +33,7 @@
 
 UHealthComponent::UHealthComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
-	SetComponentTickInterval(0.01f);
-
-	RebuildLocation = FVector::Zero();
-	CrumbleLocation = FVector::Zero();
+	PrimaryComponentTick.bCanEverTick = false;
 
 	HealthMultiplier = 1.0f;
 }
@@ -49,36 +44,6 @@ void UHealthComponent::BeginPlay()
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
-}
-
-void UHealthComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
-		return;
-
-	ABuilding* building = Cast<ABuilding>(GetOwner());
-
-	float height = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-
-	FVector location = FMath::VInterpTo(building->GetActorLocation(), building->GetActorLocation() - FVector(0.0f, 0.0f, height + 1.0f), DeltaTime, 0.15f);
-
-	FVector difference = building->GetActorLocation() - location;
-
-	building->SetActorLocation(location);
-
-	building->DestructionComponent->SetRelativeLocation(building->DestructionComponent->GetRelativeLocation() + difference);
-	building->GroundDecalComponent->SetRelativeLocation(building->GroundDecalComponent->GetRelativeLocation() + difference);
-
-	if (CrumbleLocation.Z <= building->GetActorLocation().Z) {
-		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
-	}
-	else {
-		building->DestructionComponent->Deactivate();
-
-		SetComponentTickEnabled(false);
-	}
 }
 
 void UHealthComponent::AddHealth(int32 Amount)
@@ -183,11 +148,11 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 	else if (actor->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(actor);
 
-		for (ACitizen* citizen : building->GetOccupied())
-			building->RemoveCitizen(citizen);
-
 		for (AActor* citizen : building->Inside)
 			Cast<ACitizen>(citizen)->HealthComponent->TakeHealth(1000, Attacker);
+
+		for (ACitizen* citizen : building->GetOccupied())
+			building->RemoveCitizen(citizen);
 
 		building->BuildingMesh->SetGenerateOverlapEvents(false);
 
@@ -198,16 +163,17 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 		FVector dimensions = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-		RebuildLocation = building->GetActorLocation();
-
-		CrumbleLocation = RebuildLocation - FVector(0.0f, 0.0f, dimensions.Z);
-
 		building->DestructionComponent->SetVariableVec2(TEXT("XY"), FVector2D(dimensions.X, dimensions.Y));
 		building->DestructionComponent->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
 
+		building->ParticleComponent->Deactivate();
 		building->DestructionComponent->Activate();
 
-		SetComponentTickEnabled(true);
+		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
+
+		building->DeathTime = GetWorld()->GetTimeSeconds();
+
+		Camera->Grid->AIVisualiser->DestructingBuildings.Add(building);
 	}
 
 	if (DeathSystem != nullptr) {
@@ -252,6 +218,8 @@ void UHealthComponent::Clear(FFactionStruct* Faction, AActor* Attacker)
 			TMap<ACitizen*, int32> favouredChildren;
 			int32 totalCount = 0;
 
+			FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
+
 			for (ACitizen* c : citizen->BioStruct.Children) {
 				int32 count = 0;
 
@@ -280,10 +248,10 @@ void UHealthComponent::Clear(FFactionStruct* Faction, AActor* Attacker)
 				for (auto& element : favouredChildren)
 					element.Key->Balance += (citizen->Balance / totalCount * element.Value);
 
-				Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, remainder);
+				Camera->ResourceManager->AddUniversalResource(faction, Camera->ResourceManager->Money, remainder);
 			}
 			else {
-				Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, citizen->Balance);
+				Camera->ResourceManager->AddUniversalResource(faction, Camera->ResourceManager->Money, citizen->Balance);
 			}
 		}
 	}
@@ -312,8 +280,6 @@ void UHealthComponent::Clear(FFactionStruct* Faction, AActor* Attacker)
 		building->GroundDecalComponent->SetHiddenInGame(false);
 
 		building->DestructionComponent->Deactivate();
-
-		SetComponentTickEnabled(false);
 	}
 
 	if (actor->IsA<AAI>()) {

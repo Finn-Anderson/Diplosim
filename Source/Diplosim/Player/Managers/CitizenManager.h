@@ -82,22 +82,6 @@ struct FReligionStruct
 	}
 };
 
-USTRUCT()
-struct FPrayStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	int32 Good;
-
-	int32 Bad;
-
-	FPrayStruct()
-	{
-		Good = 0;
-		Bad = 0;
-	}
-};
-
 USTRUCT(BlueprintType)
 struct FPersonality
 {
@@ -381,16 +365,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sacrifice")
 		class UNiagaraSystem* SacrificeSystem;
 
-	UPROPERTY()
-		FPrayStruct PrayStruct;
+	UFUNCTION(BlueprintCallable)
+		void Pray(FString FactionName);
+
+	void IncrementPray(FFactionStruct* Faction, FString Type, int32 Increment);
 
 	UFUNCTION(BlueprintCallable)
-		void Pray();
-
-	void IncrementPray(FString Type, int32 Increment);
-
-	UFUNCTION(BlueprintCallable)
-		int32 GetPrayCost();
+		int32 GetPrayCost(FString FactionName);
 
 	UFUNCTION(BlueprintCallable)
 		void Sacrifice(FString FactionName);

@@ -17,6 +17,7 @@
 #include "AI/DiplosimAIController.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/Resource.h"
+#include "Universal/HealthComponent.h"
 #include "Buildings/Building.h"
 
 UAIVisualiser::UAIVisualiser()
@@ -126,7 +127,7 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 
 	CalculateCitizenMovement(Camera);
 
-	CalculateAIMovement(Camera);
+	CalculateAIMovement(Camera); 
 }
 
 void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
@@ -243,6 +244,36 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 				AsyncTask(ENamedThreads::GameThread, [this]() { HISMClone->BuildTreeIfOutdated(false, false); });
 			else if (!ais[i].IsEmpty())
 				AsyncTask(ENamedThreads::GameThread, [this]() { HISMEnemy->BuildTreeIfOutdated(false, false); });
+		}
+	});
+}
+
+void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
+{
+	if (DestructingBuildings.IsEmpty())
+		return;
+
+	Async(EAsyncExecution::Thread, [this]() {
+		FScopeTryLock lock(&BuildingDeathLock);
+		if (!lock.IsLocked())
+			return;
+
+		for (int32 i = DestructingBuildings.Num() - 1; i > -1; i--) {
+			ABuilding* building = DestructingBuildings[i];
+
+			if (building->BuildingMesh->GetCustomPrimitiveData().Data[8] == 1.0f)
+				continue;
+
+			double alpha = FMath::Clamp((GetWorld()->GetTimeSeconds() - building->DeathTime) / 10.0f, 0.0f, 1.0f);
+			float z = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z + 1.0f;
+
+			building->BuildingMesh->SetCustomPrimitiveDataFloat(8, FMath::Lerp(0.0f, -z, alpha));
+
+			if (alpha == 1.0f) {
+				building->DestructionComponent->Deactivate();
+
+				DestructingBuildings.RemoveAt(i);
+			}
 		}
 	});
 }

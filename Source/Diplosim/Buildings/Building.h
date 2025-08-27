@@ -311,6 +311,9 @@ public:
 		bool bCoastal;
 
 	UPROPERTY()
+		double DeathTime;
+
+	UPROPERTY()
 		UStaticMesh* ActualMesh;
 
 	UFUNCTION(BlueprintCallable)

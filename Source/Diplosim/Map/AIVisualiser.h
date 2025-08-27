@@ -160,6 +160,8 @@ public:
 
 	void CalculateAIMovement(class ACamera* Camera);
 
+	void CalculateBuildingDeath(class ACamera* Camera);
+
 	void AddInstance(class AAI* AI, class UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
 
 	void RemoveInstance(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
@@ -188,7 +190,12 @@ public:
 	UPROPERTY()
 		float ToggleTorches;
 
+	UPROPERTY()
+		TArray<class ABuilding*> DestructingBuildings;
+
 	FCriticalSection CitizenMovementLock;
 
 	FCriticalSection AIMovementLock;
+
+	FCriticalSection BuildingDeathLock;
 };

@@ -42,28 +42,28 @@ void UResourceManager::StoreBasket(TSubclassOf<AResource> Resource, ABuilding* B
 	UpdateResourceUI(Resource);
 }
 
-void UResourceManager::AddCommittedResource(TSubclassOf<AResource> Resource, int32 Amount)
+FFactionResourceStruct* UResourceManager::GetFactionResourceStruct(FFactionStruct* Faction, TSubclassOf<class AResource> Resource)
 {
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Type == Resource) {
-			ResourceList[i].Committed += Amount;
+	FFactionResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
 
-			break;
-		}
-	}
+	int32 index = Faction->Resources.Find(resourceStruct);
+
+	return &Faction->Resources[index];
+}
+
+void UResourceManager::AddCommittedResource(FFactionStruct* Faction, TSubclassOf<AResource> Resource, int32 Amount)
+{
+	FFactionResourceStruct* resourceStruct = GetFactionResourceStruct(Faction, Resource);
+	resourceStruct->Committed += Amount;
 
 	UpdateResourceUI(Resource);
 }
 
-void UResourceManager::TakeCommittedResource(TSubclassOf<AResource> Resource, int32 Amount)
+void UResourceManager::TakeCommittedResource(FFactionStruct* Faction, TSubclassOf<AResource> Resource, int32 Amount)
 {
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Type == Resource) {
-			ResourceList[i].Committed -= Amount;
-
-			break;
-		}
-	}
+	FFactionResourceStruct* resourceStruct = GetFactionResourceStruct(Faction, Resource);
+	resourceStruct->Committed -= Amount;
 }
 
 int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuilding* Building, int32 Amount)
@@ -100,66 +100,57 @@ int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuild
 	return Amount;
 }
 
-bool UResourceManager::AddUniversalResource(TSubclassOf<AResource> Resource, int32 Amount)
+bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf<AResource> Resource, int32 Amount)
 {
 	GameMode->TallyEnemyData(Resource, Amount);
 
 	int32 stored = 0;
 	int32 capacity = 0;
 
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Type == Resource) {
-			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
 
-				for (ABuilding* building : foundBuildings) {
-					int32 currentAmount = 0;
+	int32 index = ResourceList.Find(resourceStruct);
 
-					for (FItemStruct item : building->Storage)
-						currentAmount += item.Amount;
+	TArray<ABuilding*> foundBuildings;
+	for (TSubclassOf<ABuilding> buildingClass : ResourceList[index].Buildings)
+		foundBuildings.Append(GetBuildingsOfClass(Faction, buildingClass));
 
-					stored += currentAmount;
-					capacity += building->StorageCap;
-				}
-			}
+	for (ABuilding* building : foundBuildings) {
+		int32 currentAmount = 0;
 
-			break;
-		}
+		for (FItemStruct item : building->Storage)
+			currentAmount += item.Amount;
+
+		stored += currentAmount;
+		capacity += building->StorageCap;
 	}
 
 	if (stored == capacity)
 		return false;
 
 	int32 AmountLeft = Amount;
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Type == Resource) {
-			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
+	for (ABuilding* building : foundBuildings) {
+		FItemStruct itemStruct;
+		itemStruct.Resource = Resource;
 
-				for (ABuilding* building : foundBuildings) {
-					FItemStruct itemStruct;
-					itemStruct.Resource = Resource;
+		index = building->Storage.Find(itemStruct);
 
-					int32 index = building->Storage.Find(itemStruct);
+		AmountLeft -= (building->StorageCap - building->Storage[index].Amount);
 
-					AmountLeft -= (building->StorageCap - building->Storage[index].Amount);
+		int32 currentAmount = 0;
 
-					int32 currentAmount = 0;
+		for (FItemStruct item : building->Storage)
+			currentAmount += item.Amount;
 
-					for (FItemStruct item : building->Storage)
-						currentAmount += item.Amount;
+		building->Storage[index].Amount += FMath::Clamp(Amount, 0, building->StorageCap - currentAmount);
 
-					building->Storage[index].Amount += FMath::Clamp(Amount, 0, building->StorageCap - currentAmount);
+		GetNearestStockpile(Resource, building, building->Storage[index].Amount);
 
-					GetNearestStockpile(Resource, building, building->Storage[index].Amount);
+		if (AmountLeft <= 0) {
+			UpdateResourceUI(Resource);
 
-					if (AmountLeft <= 0) {
-						UpdateResourceUI(Resource);
-
-						return true;
-					}
-				}
-			}
+			return true;
 		}
 	}
 
@@ -190,27 +181,26 @@ bool UResourceManager::TakeLocalResource(TSubclassOf<AResource> Resource, ABuild
 	return true;
 }
 
-bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, int32 Amount, int32 Min)
+bool UResourceManager::TakeUniversalResource(FFactionStruct* Faction, TSubclassOf<AResource> Resource, int32 Amount, int32 Min)
 {
 	int32 stored = 0;
 
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Type == Resource) {
-			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
 
-				for (ABuilding* building : foundBuildings) {
-					FItemStruct itemStruct;
-					itemStruct.Resource = Resource;
+	int32 index = ResourceList.Find(resourceStruct);
 
-					int32 index = building->Storage.Find(itemStruct);
+	TArray<ABuilding*> foundBuildings;
+	for (TSubclassOf<ABuilding> buildingClass : ResourceList[index].Buildings)
+		foundBuildings.Append(GetBuildingsOfClass(Faction, buildingClass));
 
-					stored += building->Storage[index].Amount;
-				}
-			}
+	for (ABuilding* building : foundBuildings) {
+		FItemStruct itemStruct;
+		itemStruct.Resource = Resource;
 
-			break;
-		}
+		index = building->Storage.Find(itemStruct);
+
+		stored += building->Storage[index].Amount;
 	}
 
 	int32 target = stored - Amount - Min;
@@ -219,33 +209,23 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 		return false;
 
 	int32 AmountLeft = Amount;
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Type == Resource) {
-			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
+	for (ABuilding* building : foundBuildings) {
+		FItemStruct itemStruct;
+		itemStruct.Resource = Resource;
 
-				for (ABuilding* building : foundBuildings) {
-					FItemStruct itemStruct;
-					itemStruct.Resource = Resource;
+		index = building->Storage.Find(itemStruct);
 
-					int32 index = building->Storage.Find(itemStruct);
+		AmountLeft -= building->Storage[index].Amount - Min;
 
-					AmountLeft -= building->Storage[index].Amount - Min;
+		building->Storage[index].Amount = FMath::Clamp(building->Storage[index].Amount - Amount, Min, 1000);
 
-					building->Storage[index].Amount = FMath::Clamp(building->Storage[index].Amount - Amount, Min, 1000);
+		if (!building->Basket.IsEmpty())
+			StoreBasket(Resource, building);
 
-					if (!building->Basket.IsEmpty())
-						StoreBasket(Resource, building);
+		if (AmountLeft <= 0) {
+			UpdateResourceUI(Resource);
 
-					if (AmountLeft <= 0) {
-						UpdateResourceUI(Resource);
-
-						return true;
-					}
-				}
-			}
-
-			break;
+			return true;
 		}
 	}
 
@@ -254,32 +234,28 @@ bool UResourceManager::TakeUniversalResource(TSubclassOf<AResource> Resource, in
 	return false;
 }
 
-int32 UResourceManager::GetResourceAmount(TSubclassOf<AResource> Resource)
+int32 UResourceManager::GetResourceAmount(FString FactionName, TSubclassOf<AResource> Resource)
 {
-	int32 amount = 0;
+	FFactionStruct* faction = Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(FactionName);
+
+	int32 amount = -GetFactionResourceStruct(faction, Resource)->Committed;
 	int32 committed = 0;
 
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		if (ResourceList[i].Type == Resource) {
-			amount -= ResourceList[i].Committed;
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
 
-			for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++) {
-				TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(ResourceList[i].Buildings[j]);
+	int32 index = ResourceList.Find(resourceStruct);
 
-				for (ABuilding* building : foundBuildings) {
-					FItemStruct itemStruct;
-					itemStruct.Resource = Resource;
+	for (TSubclassOf<ABuilding> buildingClass : ResourceList[index].Buildings) {
+		TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(faction, buildingClass);
 
-					int32 index = building->Storage.Find(itemStruct);
+		for (ABuilding* building : foundBuildings) {
+			FItemStruct itemStruct;
+			itemStruct.Resource = Resource;
 
-					if (index == INDEX_NONE)
-						continue;
+			index = building->Storage.Find(itemStruct);
 
-					amount += building->Storage[index].Amount;
-				}
-			}
-
-			break;
+			amount += building->Storage[index].Amount;
 		}
 	}
 
@@ -290,48 +266,45 @@ TArray<TSubclassOf<AResource>> UResourceManager::GetResources(ABuilding* Buildin
 {
 	TArray<TSubclassOf<AResource>> resources;
 
-	for (int32 i = 0; i < ResourceList.Num(); i++)
-		for (int32 j = 0; j < ResourceList[i].Buildings.Num(); j++)
-			if (ResourceList[i].Buildings[j] == Building->GetClass())
-				resources.Add(ResourceList[i].Type);
+	for (FResourceStruct resource : ResourceList)
+		for (TSubclassOf<ABuilding> buildingClass : resource.Buildings)
+			if (buildingClass == Building->GetClass())
+				resources.Add(resource.Type);
 
 	return resources;
 }
 
 TArray<TSubclassOf<ABuilding>> UResourceManager::GetBuildings(TSubclassOf<AResource> Resource) 
 {
-	for (int32 i = 0; i < ResourceList.Num(); i++)
-		if (ResourceList[i].Type == Resource)
-			return ResourceList[i].Buildings;
+	for (FResourceStruct resource : ResourceList)
+		if (resource.Type == Resource)
+			return resource.Buildings;
 
 	TArray<TSubclassOf<ABuilding>> null;
 
 	return null;
 }
 
-TArray<ABuilding*> UResourceManager::GetBuildingsOfClass(TSubclassOf<AActor> Class)
+TArray<ABuilding*> UResourceManager::GetBuildingsOfClass(FFactionStruct* Faction, TSubclassOf<AActor> Class)
 {
-	TArray<AActor*> foundBuildings;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), Class, foundBuildings);
-
-	TArray<ABuilding*> validBuildings;
+	TArray<ABuilding*> foundBuildings;
 
 	ACamera* camera = Cast<ACamera>(GetOwner());
 
-	for (AActor* actor : foundBuildings) {
-		ABuilding* building = Cast<ABuilding>(actor);
-		
-		if (camera->BuildComponent->Buildings.Contains(building) || camera->ConstructionManager->IsBeingConstructed(building, nullptr) || building->HealthComponent->GetHealth() == 0)
+	for (ABuilding* building : Faction->Buildings) {
+		if (building->GetClass() != Class || camera->BuildComponent->Buildings.Contains(building) || camera->ConstructionManager->IsBeingConstructed(building, nullptr) || building->HealthComponent->GetHealth() == 0)
 			continue;
 
-		validBuildings.Add(building);
+		foundBuildings.Add(building);
 	}
 
-	return validBuildings;
+	return foundBuildings;
 }
 
 void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABuilding* Building, int32 Amount)
 {
+	FFactionStruct* faction = Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName);
+
 	FResourceStruct resourceStruct;
 	resourceStruct.Type = Resource;
 
@@ -340,21 +313,18 @@ void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABui
 	if (ResourceList[index].Category == "Money" || ResourceList[index].Category == "Crystal")
 		return;
 
-	Async(EAsyncExecution::Thread, [this, Resource, Building, Amount]() {
+	Async(EAsyncExecution::Thread, [this, Resource, Building, Amount, faction]() {
 		ACamera* camera = Cast<ACamera>(GetOwner());
-		TArray<AStockpile*> foundStockpiles;
-
-		for (ABuilding* building : camera->CitizenManager->Buildings)
-			if (building->IsA<AStockpile>())
-				foundStockpiles.Add(Cast<AStockpile>(building));
-
 		int32 workersNum = FMath::CeilToInt(Amount / 10.0f);
-
 		AStockpile* nearestStockpile = nullptr;
-
 		TArray<AStockpile*> stockpiles;
 
-		for (AStockpile* stockpile : foundStockpiles) {
+		for (ABuilding* building : faction->Buildings) {
+			if (!building->IsA<AStockpile>())
+				continue;
+
+			AStockpile* stockpile = Cast<AStockpile>(building); 
+			
 			if (!stockpile->DoesStoreResource(Resource))
 				continue;
 
@@ -425,11 +395,13 @@ TArray<TSubclassOf<AResource>> UResourceManager::GetResourcesFromCategory(FStrin
 //
 void UResourceManager::Interest()
 {
-	int32 amount = GetResourceAmount(Money);
+	for (FFactionStruct& faction : Cast<ACamera>(GetOwner())->ConquestManager->Factions) {
+		int32 amount = GetResourceAmount(faction.Name, Money);
 
-	amount = FMath::CeilToInt32(amount * 0.02f);
+		amount = FMath::CeilToInt32(amount * 0.02f);
 
-	AddUniversalResource(Money, amount);
+		AddUniversalResource(&faction, Money, amount);
+	}
 }
 
 //
@@ -478,42 +450,45 @@ int32 UResourceManager::GetMarketValue(TSubclassOf<class AResource> Resource)
 //
 void UResourceManager::SetTrendOnHour(int32 Hour)
 {
-	for (int32 i = 0; i < ResourceList.Num(); i++) {
-		int32 amount = GetResourceAmount(ResourceList[i].Type);
+	for (FFactionStruct& faction : Cast<ACamera>(GetOwner())->ConquestManager->Factions) {
+		for (FResourceStruct resource : ResourceList) {
+			int32 amount = GetResourceAmount(faction.Name, resource.Type);
 
-		int32 change = amount - ResourceList[i].LastHourAmount;
+			FFactionResourceStruct* resourceStruct = GetFactionResourceStruct(&faction, resource.Type);
 
-		ResourceList[i].HourlyTrend.Emplace(Hour, change);
+			int32 change = amount - resourceStruct->LastHourAmount;
 
-		ResourceList[i].LastHourAmount = amount;
+			resourceStruct->HourlyTrend.Emplace(Hour, change);
+
+			resourceStruct->LastHourAmount = amount;
+		}
+
+		if (faction.Name == Cast<ACamera>(GetOwner())->ColonyName)
+			Cast<ACamera>(GetOwner())->UpdateTrends();
 	}
-
-	Cast<ACamera>(GetOwner())->UpdateTrends();
 }
 
-int32 UResourceManager::GetResourceTrend(TSubclassOf<class AResource> Resource)
+int32 UResourceManager::GetResourceTrend(FString FactionName, TSubclassOf<class AResource> Resource)
 {
-	FResourceStruct resourceStruct;
-	resourceStruct.Type = Resource;
-
-	int32 index = ResourceList.Find(resourceStruct);
+	FFactionStruct* faction = Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(FactionName);
+	FFactionResourceStruct* resourceStruct = GetFactionResourceStruct(faction, Resource);
 
 	int32 overallTrend = 0;
 
-	for (auto& element : ResourceList[index].HourlyTrend)
+	for (auto& element : resourceStruct->HourlyTrend)
 		overallTrend += element.Value;
 
 	return overallTrend;
 }
 
-int32 UResourceManager::GetCategoryTrend(FString Category)
+int32 UResourceManager::GetCategoryTrend(FString FactionName, FString Category)
 {
+	FFactionStruct* faction = Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(FactionName);
+
 	int32 overallTrend = 0;
 
-	UCitizenManager* citizenManager = Cast<ACamera>(GetOwner())->CitizenManager;
-
 	if (Category == "Money") {
-		for (ABuilding* building : citizenManager->Buildings) {
+		for (ABuilding* building : faction->Buildings) {
 			if (!IsValid(building))
 				continue;
 
@@ -525,9 +500,9 @@ int32 UResourceManager::GetCategoryTrend(FString Category)
 		}
 	}
 	else if (Category == "Food") {
-		overallTrend -= citizenManager->Citizens.Num() * 8;
+		overallTrend -= faction->Citizens.Num() * 8;
 
-		for (ABuilding* building : citizenManager->Buildings) {
+		for (ABuilding* building : faction->Buildings) {
 			if (!IsValid(building) || !building->IsA<AFarm>() || building->GetOccupied().IsEmpty())
 				continue;
 
@@ -551,7 +526,9 @@ int32 UResourceManager::GetCategoryTrend(FString Category)
 			if (resource.Category != Category)
 				continue;
 
-			for (auto& element : resource.HourlyTrend)
+			FFactionResourceStruct* resourceStruct = GetFactionResourceStruct(faction, resource.Type);
+
+			for (auto& element : resourceStruct->HourlyTrend)
 				overallTrend += element.Value;
 		}
 	}

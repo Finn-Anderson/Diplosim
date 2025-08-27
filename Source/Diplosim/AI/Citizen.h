@@ -290,7 +290,7 @@ public:
 
 	void ClearCitizen();
 
-	void ApplyResearch();
+	void ApplyResearch(FFactionStruct* Faction);
 
 	// Find Job, House and Education
 	void FindEducation(class ASchool* Education, int32 TimeToCompleteDay);
@@ -506,7 +506,7 @@ public:
 	UPROPERTY()
 		bool bGlasses;
 
-	void GenerateGenetics();
+	void GenerateGenetics(FFactionStruct* Faction);
 
 	void ApplyGeneticAffect(FGeneticsStruct Genetic);
 

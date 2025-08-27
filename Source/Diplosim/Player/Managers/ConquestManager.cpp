@@ -587,7 +587,7 @@ void UConquestManager::Praise(FFactionStruct Faction, FFactionStruct Target)
 void UConquestManager::Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts)
 {
 	for (FGiftStruct gift : Gifts) {
-		if (!Camera->ResourceManager->TakeUniversalResource(gift.Resource, gift.Amount, 0))
+		if (!Camera->ResourceManager->TakeUniversalResource(GetFaction(Faction.Name), gift.Resource, gift.Amount, 0))
 			continue;
 
 		int32 i = Factions.Find(Faction);

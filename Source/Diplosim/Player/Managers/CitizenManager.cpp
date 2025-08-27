@@ -1055,7 +1055,7 @@ void UCitizenManager::CheckUpkeepCosts()
 				amount += FMath::RoundHalfFromZero(workHours.Work->WagePerHour * workHours.Hours.Num());
 
 			citizen->Balance += amount;
-			citizen->Camera->ResourceManager->TakeUniversalResource(Money, amount, -100000);
+			citizen->Camera->ResourceManager->TakeUniversalResource(&faction, Money, amount, -100000);
 
 			if (IsValid(citizen->Building.House))
 				citizen->Building.House->GetRent(citizen);
@@ -1690,7 +1690,7 @@ void UCitizenManager::ItterateThroughSentences()
 				served.Add(element.Key);
 		}
 
-		Camera->ResourceManager->AddUniversalResource(Money, faction.Police.Arrested.Num());
+		Camera->ResourceManager->AddUniversalResource(&faction, Money, faction.Police.Arrested.Num());
 
 		for (ACitizen* citizen : served) {
 			faction.Police.Arrested.Remove(citizen);
@@ -2369,7 +2369,7 @@ void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
 
 	int32 bribe = faction->Politics.BribeValue[index];
 
-	bool bPass = Camera->ResourceManager->TakeUniversalResource(Money, bribe, 0);
+	bool bPass = Camera->ResourceManager->TakeUniversalResource(faction, Money, bribe, 0);
 
 	if (!bPass) {
 		Camera->ShowWarning("Cannot afford");
@@ -2750,9 +2750,11 @@ bool UCitizenManager::IsRebellion(FFactionStruct* Faction)
 //
 // Genetics
 //
-void UCitizenManager::Pray()
+void UCitizenManager::Pray(FString FactionName)
 {
-	bool bPass = Camera->ResourceManager->TakeUniversalResource(Money, GetPrayCost(), 0);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	bool bPass = Camera->ResourceManager->TakeUniversalResource(faction, Money, GetPrayCost(), 0);
 
 	if (!bPass) {
 		Camera->ShowWarning("Cannot afford");
@@ -2764,22 +2766,24 @@ void UCitizenManager::Pray()
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Good"), -1), false);
+	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, faction, FString("Good"), -1), false);
 }
 
-void UCitizenManager::IncrementPray(FString Type, int32 Increment)
+void UCitizenManager::IncrementPray(FFactionStruct* Faction, FString Type, int32 Increment)
 {
 	if (Type == "Good")
-		PrayStruct.Good = FMath::Max(PrayStruct.Good + Increment, 0);
+		Faction->PrayStruct.Good = FMath::Max(Faction->PrayStruct.Good + Increment, 0);
 	else
-		PrayStruct.Bad = FMath::Max(PrayStruct.Bad + Increment, 0);
+		Faction->PrayStruct.Bad = FMath::Max(Faction->PrayStruct.Bad + Increment, 0);
 }
 
-int32 UCitizenManager::GetPrayCost()
+int32 UCitizenManager::GetPrayCost(FString FactionName)
 {
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 	int32 cost = 50;
 
-	for (int32 i = 0; i < PrayStruct.Good; i++)
+	for (int32 i = 0; i < faction->PrayStruct.Good; i++)
 		cost *= 1.15;
 
 	return cost;
@@ -2809,7 +2813,7 @@ void UCitizenManager::Sacrifice(FString FactionName)
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, FString("Bad"), -1), false);
+	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, faction, FString("Bad"), -1), false);
 }
 
 //

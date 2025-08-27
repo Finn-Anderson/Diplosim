@@ -318,7 +318,6 @@ struct FResearchStruct
 //
 // Events
 //
-
 UENUM()
 enum class EEventType : uint8
 {
@@ -393,6 +392,25 @@ struct FEventStruct
 	bool operator==(const FEventStruct& other) const
 	{
 		return (other.Type == Type && other.Period == Period && other.Day == Day && other.Hours == Hours);
+	}
+};
+
+//
+// Pray
+//
+USTRUCT()
+struct FPrayStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	int32 Good;
+
+	int32 Bad;
+
+	FPrayStruct()
+	{
+		Good = 0;
+		Bad = 0;
 	}
 };
 

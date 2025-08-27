@@ -184,6 +184,40 @@ struct FPoliceStruct
 };
 
 //
+// Resources
+//
+USTRUCT(BlueprintType)
+struct FFactionResourceStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+	TSubclassOf<class AResource> Type;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+	int32 Committed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+	int32 LastHourAmount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+	TMap<int32, int32> HourlyTrend;
+
+	FFactionResourceStruct()
+	{
+		Committed = 0;
+		LastHourAmount = 0;
+		for (int32 i = 0; i < 24; i++)
+			HourlyTrend.Add(i, 0);
+	}
+
+	bool operator==(const FFactionResourceStruct& other) const
+	{
+		return (other.Type == Type);
+	}
+};
+
+//
 // Factions
 //
 USTRUCT(BlueprintType)
@@ -308,6 +342,12 @@ struct FFactionStruct
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		TArray<FEventStruct> Events;
+
+	UPROPERTY()
+		FPrayStruct PrayStruct;
+
+	UPROPERTY()
+		TArray<FFactionResourceStruct> Resources;
 
 	FFactionStruct()
 	{

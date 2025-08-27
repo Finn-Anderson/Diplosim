@@ -412,7 +412,7 @@ bool UBuildComponent::CheckBuildCosts()
 	TArray<FItemStruct> items = GetBuildCosts();
 
 	for (FItemStruct item : items) {
-		int32 maxAmount = rm->GetResourceAmount(item.Resource);
+		int32 maxAmount = rm->GetResourceAmount(Buildings[0]->FactionName, item.Resource);
 
 		if (maxAmount < item.Amount)
 			return false;

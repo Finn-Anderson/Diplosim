@@ -43,6 +43,8 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 	if (GetCitizensAtBuilding().IsEmpty())
 		return;
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 	ParticleComponent->Activate();
 
 	UGameplayStatics::PlayWorldCameraShake(GetWorld(), CannonShake, GetActorLocation(), 0.0f, 1000.0f, 1.0f);
@@ -68,7 +70,7 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 
 		int32 index = rm->ResourceList.Find(resource);
 
-		rm->AddUniversalResource(item.Resource, item.Amount);
+		rm->AddUniversalResource(faction, item.Resource, item.Amount);
 
 		rm->ResourceList[index].Stored -= item.Amount;
 
@@ -76,9 +78,9 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 	}
 
 	if (money < 0)
-		rm->TakeUniversalResource(Money, -money, -1000000);
+		rm->TakeUniversalResource(faction, Money, -money, -1000000);
 	else
-		rm->AddUniversalResource(Money, money);
+		rm->AddUniversalResource(faction, Money, money);
 
 	Orders[0].OrderWidget->RemoveFromParent();
 
@@ -174,9 +176,11 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 
 void ATrader::SetNewOrder(FQueueStruct Order)
 {
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 	if (Order.bLimit) {
 		for (FItemStruct &item : Order.SellingItems) {
-			int32 Amount = Camera->ResourceManager->GetResourceAmount(item.Resource);
+			int32 Amount = Camera->ResourceManager->GetResourceAmount(faction->Name, item.Resource);
 
 			if (Amount <= item.Amount)
 				continue;
@@ -185,7 +189,7 @@ void ATrader::SetNewOrder(FQueueStruct Order)
 		}
 
 		for (FItemStruct &item : Order.BuyingItems) {
-			int32 Amount = Camera->ResourceManager->GetResourceAmount(item.Resource);
+			int32 Amount = Camera->ResourceManager->GetResourceAmount(faction->Name, item.Resource);
 
 			if (Amount >= item.Amount)
 				continue;
@@ -199,7 +203,7 @@ void ATrader::SetNewOrder(FQueueStruct Order)
 	UResourceManager* rm = Camera->ResourceManager;
 
 	for (FItemStruct items : Order.SellingItems)
-		rm->AddCommittedResource(items.Resource, items.Amount);
+		rm->AddCommittedResource(faction, items.Resource, items.Amount);
 
 	if (Orders.Num() != 1)
 		return;
@@ -225,8 +229,10 @@ void ATrader::SetOrderCancelled(int32 index, bool bCancel)
 
 	UResourceManager* rm = Camera->ResourceManager;
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 	for (FItemStruct items : Orders[index].SellingItems)
-		rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);
+		rm->TakeCommittedResource(faction, items.Resource, items.Amount - items.Stored);
 
 	for (ACitizen* Citizen : GetOccupied())
 		Citizen->AIController->AIMoveTo(this);

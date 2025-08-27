@@ -577,7 +577,9 @@ void ACamera::Lose()
 
 void ACamera::Smite(class AAI* AI)
 {
-	bool bPass = ResourceManager->TakeUniversalResource(Crystal, GetSmiteCost(), 0);
+	FFactionStruct* faction = ConquestManager->GetFaction("", AI);
+
+	bool bPass = ResourceManager->TakeUniversalResource(faction, Crystal, GetSmiteCost(), 0);
 
 	if (!bPass) {
 		ShowWarning("Cannot afford");

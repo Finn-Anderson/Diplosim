@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Components/ActorComponent.h"
 #include "ResourceManager.generated.h"
 
@@ -16,9 +17,6 @@ struct FResourceStruct
 		TArray<TSubclassOf<class ABuilding>> Buildings;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 Committed;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Value;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
@@ -26,12 +24,6 @@ struct FResourceStruct
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		FString Category;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 LastHourAmount;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TMap<int32, int32> HourlyTrend;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		UTexture2D* Texture;
@@ -42,15 +34,9 @@ struct FResourceStruct
 	FResourceStruct()
 	{
 		Type = nullptr;
-		Committed = 0;
 		Value = 0;
 		Stored = 0;
 		Category = "";
-
-		LastHourAmount = 0;
-
-		for (int32 i = 0; i < 24; i++)
-			HourlyTrend.Add(i, 0);
 
 		Texture = nullptr;
 		TextureDimensions = { 32, 32 };
@@ -78,26 +64,28 @@ public:
 
 	void StoreBasket(TSubclassOf<class AResource> Resource, class ABuilding* Building);
 
-	void AddCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount);
+	FFactionResourceStruct* GetFactionResourceStruct(FFactionStruct* Faction, TSubclassOf<class AResource> Resource);
 
-	void TakeCommittedResource(TSubclassOf<class AResource> Resource, int32 Amount);
+	void AddCommittedResource(FFactionStruct* Faction, TSubclassOf<class AResource> Resource, int32 Amount);
+
+	void TakeCommittedResource(FFactionStruct* Faction, TSubclassOf<class AResource> Resource, int32 Amount);
 
 	int32 AddLocalResource(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
 
-	bool AddUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount);
+	bool AddUniversalResource(FFactionStruct* Faction, TSubclassOf<class AResource> Resource, int32 Amount);
 
 	bool TakeLocalResource(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
 
-	bool TakeUniversalResource(TSubclassOf<class AResource> Resource, int32 Amount, int32 Min);
+	bool TakeUniversalResource(FFactionStruct* Faction, TSubclassOf<class AResource> Resource, int32 Amount, int32 Min);
 
 	UFUNCTION(BlueprintCallable, Category = "Resource")
-		int32 GetResourceAmount(TSubclassOf<class AResource> Resource);
+		int32 GetResourceAmount(FString FactionName, TSubclassOf<class AResource> Resource);
 
 	TArray<TSubclassOf<class AResource>> GetResources(class ABuilding* Building);
 
 	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
 
-	TArray<class ABuilding*> GetBuildingsOfClass(TSubclassOf<AActor> Class);
+	TArray<class ABuilding*> GetBuildingsOfClass(FFactionStruct* Faction, TSubclassOf<AActor> Class);
 
 	void GetNearestStockpile(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
 
@@ -126,8 +114,8 @@ public:
 	void SetTrendOnHour(int32 Hour);
 
 	UFUNCTION(BlueprintCallable)
-		int32 GetResourceTrend(TSubclassOf<class AResource> Resource);
+		int32 GetResourceTrend(FString FactionName, TSubclassOf<class AResource> Resource);
 
 	UFUNCTION(BlueprintCallable)
-		int32 GetCategoryTrend(FString Category);
+		int32 GetCategoryTrend(FString FactionName, FString Category);
 };

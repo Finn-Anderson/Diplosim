@@ -131,6 +131,8 @@ ABuilding::ABuilding()
 	bOperate = true;
 
 	FactionName = "";
+
+	DeathTime = 0.0f;
 }
 
 void ABuilding::BeginPlay()
@@ -390,7 +392,7 @@ void ABuilding::Rebuild()
 {
 	if (!Camera->bInstantBuildCheat) {
 		for (FItemStruct item : GetRebuildCost()) {
-			int32 amount = Camera->ResourceManager->GetResourceAmount(item.Resource);
+			int32 amount = Camera->ResourceManager->GetResourceAmount(FactionName, item.Resource);
 
 			if (amount < item.Amount) {
 				Camera->ShowWarning("Cannot afford building");
@@ -400,17 +402,11 @@ void ABuilding::Rebuild()
 		}
 	}
 
-	FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
-
 	Build(true);
 
+	BuildingMesh->SetCustomPrimitiveDataFloat(8, 0.0f);
+
 	GroundDecalComponent->SetHiddenInGame(true);
-
-	if (HealthComponent->RebuildLocation != FVector::Zero())
-		SetActorLocation(HealthComponent->RebuildLocation);
-
-	DestructionComponent->SetRelativeLocation(FVector::Zero());
-	GroundDecalComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -0.75f));
 }
 
 void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
@@ -424,6 +420,8 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 	UResourceManager* rm = Camera->ResourceManager;
 	UConstructionManager* cm = Camera->ConstructionManager;
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 	TargetList = CostList;
 
 	if (bRebuild)
@@ -435,7 +433,7 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 			if (TargetList[i].Amount >= 0)
 				continue;
 
-			rm->AddUniversalResource(TargetList[i].Resource, FMath::Abs(TargetList[i].Amount) / 2.0f);
+			rm->AddUniversalResource(faction, TargetList[i].Resource, FMath::Abs(TargetList[i].Amount) / 2.0f);
 
 			TargetList.RemoveAt(i);
 		}
@@ -453,10 +451,10 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 			return;
 
 		for (FItemStruct item : TargetList)
-			rm->TakeUniversalResource(item.Resource, item.Amount, 0);
+			rm->TakeUniversalResource(faction, item.Resource, item.Amount, 0);
 	} else {
 		for (FItemStruct item : TargetList)
-			rm->AddCommittedResource(item.Resource, item.Amount);
+			rm->AddCommittedResource(faction, item.Resource, item.Amount);
 
 		cm->AddBuilding(this, EBuildStatus::Construction);
 
@@ -479,16 +477,18 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 	UResourceManager* rm = Camera->ResourceManager;
 	UConstructionManager* cm = Camera->ConstructionManager;
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 	if (cm->IsBeingConstructed(this, nullptr)) {
 		for (FItemStruct items : CostList) {
-			rm->AddUniversalResource(items.Resource, items.Stored);
+			rm->AddUniversalResource(faction, items.Resource, items.Stored);
 
-			rm->TakeCommittedResource(items.Resource, items.Amount - items.Stored);
+			rm->TakeCommittedResource(faction, items.Resource, items.Amount - items.Stored);
 		}
 	}
 	else {
 		for (FItemStruct items : CostList)
-			rm->AddUniversalResource(items.Resource, items.Stored / 2.0f);
+			rm->AddUniversalResource(faction, items.Resource, items.Stored / 2.0f);
 	}
 
 	if (IsA(Camera->BuildComponent->FoundationClass)) {
@@ -547,9 +547,7 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 		Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 	}
 
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
-
-	if (faction != nullptr)
+	if (faction->Buildings.Contains(this))
 		faction->Buildings.Remove(this);
 
 	if (IsA(Camera->CitizenManager->PoliceStationClass)) {
@@ -635,7 +633,7 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen))
 		return false;
 
-	if (Citizen->Building.BuildingAt == this)
+	if (Citizen->Building.BuildingAt == this ||  Citizen->HealthComponent->GetHealth() != 0)
 		Leave(Citizen);
 
 	for (ACitizen* citizen : GetVisitors(Citizen))
@@ -1011,8 +1009,11 @@ void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<F
 
 	Camera->ResourceManager->TakeLocalResource(resource, this, amount);
 
-	if (!DeliverTo->IsA<AStockpile>())
-		Camera->ResourceManager->TakeCommittedResource(resource, amount);
+	if (!DeliverTo->IsA<AStockpile>()) {
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+		Camera->ResourceManager->TakeCommittedResource(faction, resource, amount);
+	}
 
 	Citizen->Carry(Cast<AResource>(resource->GetDefaultObject()), amount, DeliverTo);
 }

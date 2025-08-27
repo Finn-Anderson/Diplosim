@@ -105,8 +105,6 @@ void ACitizen::BeginPlay()
 
 	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, FTimerDelegate::CreateUObject(this, &ACitizen::Birthday), true);
 
-	GenerateGenetics();
-
 	float minPitch = 0.8f;
 	float maxPitch = 1.2f;
 
@@ -143,7 +141,8 @@ void ACitizen::CitizenSetup(FFactionStruct* Faction)
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
 
-	ApplyResearch();
+	GenerateGenetics(Faction);
+	ApplyResearch(Faction);
 
 	AIController->ChooseIdleBuilding(this);
 	AIController->DefaultAction();
@@ -185,11 +184,9 @@ void ACitizen::ClearCitizen()
 	Camera->CitizenManager->RemoveFromEvent(this);
 }
 
-void ACitizen::ApplyResearch()
+void ACitizen::ApplyResearch(FFactionStruct* Faction)
 {
-	FFactionStruct faction = Camera->ConquestManager->GetCitizenFaction(this);
-
-	for (FResearchStruct research : faction.ResearchStruct)
+	for (FResearchStruct& research : Faction->ResearchStruct)
 		for (int32 i = 0; i < research.Level; i++)
 			for (auto& element : research.Modifiers)
 				ApplyToMultiplier(element.Key, element.Value);
@@ -690,7 +687,7 @@ void ACitizen::Eat()
 	TArray<TSubclassOf<AResource>> foods = Camera->ResourceManager->GetResourcesFromCategory("Food");
 
 	for (TSubclassOf<AResource> food : foods) {
-		int32 curAmount = Camera->ResourceManager->GetResourceAmount(food);
+		int32 curAmount = Camera->ResourceManager->GetResourceAmount(faction->Name, food);
 
 		foodAmounts.Add(curAmount);
 		totalAmount += curAmount;
@@ -739,7 +736,7 @@ void ACitizen::Eat()
 				selected -= foodAmounts[j];
 			}
 			else {
-				Camera->ResourceManager->TakeUniversalResource(foods[j], 1, 0);
+				Camera->ResourceManager->TakeUniversalResource(faction, foods[j], 1, 0);
 
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
@@ -771,7 +768,7 @@ void ACitizen::Eat()
 			}
 		}
 
-		Camera->ResourceManager->AddUniversalResource(Camera->ResourceManager->Money, cost);
+		Camera->ResourceManager->AddUniversalResource(faction, Camera->ResourceManager->Money, cost);
 
 		Hunger = FMath::Clamp(Hunger + 25, 0, 100);
 	}
@@ -1811,7 +1808,7 @@ void ACitizen::SetHappiness()
 //
 // Genetics
 //
-void ACitizen::GenerateGenetics()
+void ACitizen::GenerateGenetics(FFactionStruct* Faction)
 {
 	TArray<EGeneticsGrade> grades;
 
@@ -1840,7 +1837,7 @@ void ACitizen::GenerateGenetics()
 
 		int32 mutate = Camera->Grid->Stream.RandRange(1, 100);
 
-		int32 chance = 100 - (Camera->CitizenManager->PrayStruct.Bad * 5) - (Camera->CitizenManager->PrayStruct.Good * 5);
+		int32 chance = 100 - (Faction->PrayStruct.Bad * 5) - (Faction->PrayStruct.Good * 5);
 
 		if (mutate >= chance)
 			continue;
@@ -1849,10 +1846,10 @@ void ACitizen::GenerateGenetics()
 
 		grades.Add(EGeneticsGrade::Neutral);
 
-		for (int32 i = 0; i <= Camera->CitizenManager->PrayStruct.Good; i++)
+		for (int32 i = 0; i <= Faction->PrayStruct.Good; i++)
 			grades.Add(EGeneticsGrade::Good);
 
-		for (int32 i = 0; i <= Camera->CitizenManager->PrayStruct.Bad; i++)
+		for (int32 i = 0; i <= Faction->PrayStruct.Bad; i++)
 			grades.Add(EGeneticsGrade::Bad);
 
 		grades.Remove(genetic.Grade);

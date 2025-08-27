@@ -67,7 +67,9 @@ void AHouse::GetRent(ACitizen* Citizen)
 			}
 		}
 
-		Camera->ResourceManager->AddUniversalResource(Money, Rent);
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+		Camera->ResourceManager->AddUniversalResource(faction, Money, Rent);
 	}
 }
 

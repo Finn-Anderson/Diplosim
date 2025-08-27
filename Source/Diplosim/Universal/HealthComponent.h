@@ -18,8 +18,6 @@ private:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -50,12 +48,6 @@ public:
 	void Death(AActor* Attacker, int32 Force);
 
 	void Clear(FFactionStruct* Faction, AActor* Attacker);
-
-	UPROPERTY()
-		FVector RebuildLocation;
-
-	UPROPERTY()
-		FVector CrumbleLocation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
