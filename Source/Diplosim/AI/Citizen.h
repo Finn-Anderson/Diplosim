@@ -376,9 +376,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		TArray<FWorkHours> HoursWorked;
 
-	UPROPERTY()
-		ACitizen* CitizenHealing;
-
 	// Buildings
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
 		FBuildingStruct Building;

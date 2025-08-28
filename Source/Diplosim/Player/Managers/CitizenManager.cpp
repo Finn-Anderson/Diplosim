@@ -258,9 +258,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 					if (c->HealthComponent->GetHealth() <= 0 || !citizen->CanReach(c, citizen->Range / 15.0f))
 						continue;
 
-					if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr && faction.Citizens.Contains(c) && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && c->AttackComponent->OverlappingEnemies.IsEmpty()) {
-						citizen->CitizenHealing = c;
-
+					if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr && faction.Citizens.Contains(c) && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && c->AttackComponent->OverlappingEnemies.IsEmpty() && citizen->AIController->MoveRequest.GetGoalActor() == c) {
 						CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
 					}
 					else if (Infectible.Contains(citizen) && Infectible.Contains(c)) {
@@ -811,6 +809,9 @@ void UCitizenManager::Loop()
 				}
 			}
 
+			if (!Infected.IsEmpty() || !Injured.IsEmpty())
+				PairCitizenToHealer(&faction);
+
 			if (!faction.Citizens.IsEmpty() && (rebelCount / faction.Citizens.Num()) * 100 > 33 && !IsRebellion(&faction)) {
 				faction.RebelCooldownTimer--;
 
@@ -1278,6 +1279,9 @@ void UCitizenManager::PersonalityComparison(ACitizen* Citizen1, ACitizen* Citize
 	}
 }
 
+//
+// Police
+//
 void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citizen1, ACitizen* Citizen2, bool bInterrogation)
 {
 	Citizen1->bConversing = true;
@@ -1739,7 +1743,7 @@ int32 UCitizenManager::GetPoliceReportIndex(ACitizen* Citizen)
 }
 
 //
-// Disease
+// Health
 //
 void UCitizenManager::StartDiseaseTimer()
 {
@@ -1772,8 +1776,6 @@ void UCitizenManager::Infect(ACitizen* Citizen)
 		Infected.Add(Citizen);
 
 		UpdateHealthText(Citizen);
-
-		GetClosestHealer(Citizen);
 	});
 }
 
@@ -1806,8 +1808,6 @@ void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
 	Injured.Add(Citizen);
 
 	UpdateHealthText(Citizen);
-
-	GetClosestHealer(Citizen);
 }
 
 void UCitizenManager::Cure(ACitizen* Citizen)
@@ -1827,7 +1827,6 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 
 	Infected.Remove(Citizen);
 	Injured.Remove(Citizen);
-	Healing.Remove(Citizen);
 
 	if (Infected.IsEmpty())
 		Camera->Grid->AIVisualiser->DiseaseNiagaraComponent->Deactivate();
@@ -1845,69 +1844,84 @@ void UCitizenManager::UpdateHealthText(ACitizen* Citizen)
 	});
 }
 
-void UCitizenManager::GetClosestHealer(class ACitizen* Citizen)
+TArray<ACitizen*> UCitizenManager::GetAvailableHealers(FFactionStruct* Faction)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
-		TArray<AActor*> clinics;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClinic::StaticClass(), clinics);
+	TArray<ACitizen*> healers;
 
-		ACitizen* healer = nullptr;
+	for (ABuilding* building : Faction->Buildings) {
+		if (!building->IsA<AClinic>())
+			continue;
 
-		for (AActor* actor : clinics) {
-			AClinic* clinic = Cast<AClinic>(actor);
+		AClinic* clinic = Cast<AClinic>(building);
 
-			for (ACitizen* h : clinic->GetCitizensAtBuilding()) {
-				if (!h->AIController->CanMoveTo(Camera->GetTargetActorLocation(Citizen)) || h->AIController->MoveRequest.GetGoalActor() != nullptr)
-					continue;
+		for (ACitizen* citizen : clinic->GetOccupied()) {
+			if (!clinic->IsWorking(citizen) || Healing.Contains(citizen))
+				continue;
 
-				if (healer == nullptr) {
-					healer = h;
-
-					continue;
-				}
-
-				double magnitude = h->AIController->GetClosestActor(50.0f, Camera->GetTargetActorLocation(Citizen), Camera->GetTargetActorLocation(healer), Camera->GetTargetActorLocation(h));
-
-				if (magnitude > 0.0f)
-					healer = h;
-			}
+			healers.Add(citizen);
 		}
+	}
 
-		if (healer == nullptr)
-			return;
-
-		PickCitizenToHeal(healer, Citizen);
-	});
+	return healers;
 }
 
-void UCitizenManager::PickCitizenToHeal(ACitizen* Healer, ACitizen* Citizen)
+void UCitizenManager::PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Healer)
 {
-	if (Citizen == nullptr) {
-		for (ACitizen* citizen : Infected) {
-			if (Healing.Contains(citizen))
+	TArray<ACitizen*> ill;
+	ill.Append(Infected);
+
+	TArray<ACitizen*> healers;
+
+	if (IsValid(Healer))
+		healers.Add(Healer);
+	else
+		healers.Append(GetAvailableHealers(Faction));
+
+	TArray<ACitizen*> beingHealed;
+	Healing.GenerateValueArray(beingHealed);
+
+	for (ACitizen* healer : healers) {
+		if (ill.IsEmpty()) {
+			ill.Append(Injured);
+
+			if (ill.IsEmpty())
+				break;
+		}
+
+		ACitizen* chosenPatient = nullptr;
+		FVector location = Camera->GetTargetActorLocation(healer);
+
+		for (ACitizen* citizen : ill) {
+			if (!citizen->AIController->CanMoveTo(location))
 				continue;
 
-			if (Citizen == nullptr) {
-				Citizen = citizen;
+			if (!IsValid(chosenPatient)) {
+				chosenPatient = citizen;
 
 				continue;
 			}
 
-			double magnitude = Healer->AIController->GetClosestActor(50.0f, Camera->GetTargetActorLocation(Healer), Camera->GetTargetActorLocation(Citizen), Camera->GetTargetActorLocation(citizen));
+			double magnitude = healer->AIController->GetClosestActor(50.0f, Camera->GetTargetActorLocation(healer), Camera->GetTargetActorLocation(chosenPatient), Camera->GetTargetActorLocation(citizen));
 
 			if (magnitude > 0.0f)
-				Citizen = citizen;
+				chosenPatient = citizen;
 		}
-	}
 
-	if (Citizen != nullptr) {
-		Healer->AIController->AIMoveTo(Citizen);
+		if (IsValid(chosenPatient)) {
+			GotoHealCitizen(healer, chosenPatient);
 
-		Healing.Add(Citizen);
+			ill.Remove(chosenPatient);
+		}
+		else
+			healer->AIController->DefaultAction();
 	}
-	else if (Healer->Building.BuildingAt != Healer->Building.Employment) {
-		Healer->AIController->DefaultAction();
-	}
+}
+
+void UCitizenManager::GotoHealCitizen(ACitizen* Healer, ACitizen* Citizen)
+{
+	Healing.Add(Healer, Citizen);
+
+	Healer->AIController->AIMoveTo(Citizen);
 }
 
 //
@@ -2754,7 +2768,7 @@ void UCitizenManager::Pray(FString FactionName)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	bool bPass = Camera->ResourceManager->TakeUniversalResource(faction, Money, GetPrayCost(), 0);
+	bool bPass = Camera->ResourceManager->TakeUniversalResource(faction, Money, GetPrayCost(FactionName), 0);
 
 	if (!bPass) {
 		Camera->ShowWarning("Cannot afford");
@@ -2762,7 +2776,7 @@ void UCitizenManager::Pray(FString FactionName)
 		return;
 	}
 
-	IncrementPray("Good", 1);
+	IncrementPray(faction, "Good", 1);
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
@@ -2805,11 +2819,11 @@ void UCitizenManager::Sacrifice(FString FactionName)
 	citizen->AIController->StopMovement();
 	citizen->MovementComponent->SetMaxSpeed(0.0f);
 
-	UNiagaraComponent* component = UNiagaraFunctionLibrary::SpawnSystemAttached(SacrificeSystem, citizen->GetRootComponent(), NAME_None, FVector::Zero(), FRotator(0.0f), EAttachLocation::SnapToTarget, true);
+	UNiagaraComponent* component = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SacrificeSystem, citizen->MovementComponent->Transform.GetLocation());
 
-	CreateTimer("Sacrifice", GetOwner(), 4.0f, FTimerDelegate::CreateUObject(citizen->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
+	CreateTimer("Sacrifice", citizen, 4.0f, FTimerDelegate::CreateUObject(citizen->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner()), false);
 
-	IncrementPray("Bad", 1);
+	IncrementPray(faction, "Bad", 1);
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 

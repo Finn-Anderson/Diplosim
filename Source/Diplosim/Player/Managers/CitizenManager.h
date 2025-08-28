@@ -252,9 +252,11 @@ public:
 
 	void UpdateHealthText(class ACitizen* Citizen);
 
-	void GetClosestHealer(class ACitizen* Citizen);
+	TArray<ACitizen*> GetAvailableHealers(FFactionStruct* Faction);
 
-	void PickCitizenToHeal(class ACitizen* Healer, class ACitizen* Citizen = nullptr);
+	void PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Healer = nullptr);
+
+	void GotoHealCitizen(class ACitizen* Healer, class ACitizen* Citizen);
 
 	UPROPERTY()
 		TArray<class ACitizen*> Infectible;
@@ -272,7 +274,7 @@ public:
 		TArray<FConditionStruct> Injuries;
 
 	UPROPERTY()
-		TArray<ACitizen*> Healing;
+		TMap<ACitizen*, ACitizen*> Healing;
 
 	// Events
 	UFUNCTION(BlueprintCallable)

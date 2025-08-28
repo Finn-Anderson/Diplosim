@@ -160,7 +160,9 @@ public:
 
 	void CalculateAIMovement(class ACamera* Camera);
 
-	void CalculateBuildingDeath(class ACamera* Camera);
+	void CalculateBuildingDeath();
+
+	void CalculateBuildingRotation();
 
 	void AddInstance(class AAI* AI, class UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
 
@@ -193,9 +195,14 @@ public:
 	UPROPERTY()
 		TArray<class ABuilding*> DestructingBuildings;
 
+	UPROPERTY()
+		TArray<class AResearch*> RotatingBuildings;
+
 	FCriticalSection CitizenMovementLock;
 
 	FCriticalSection AIMovementLock;
 
 	FCriticalSection BuildingDeathLock;
+
+	FCriticalSection BuildingRotationLock;
 };

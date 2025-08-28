@@ -5,13 +5,10 @@
 #include "Player/Managers/CitizenManager.h"
 #include "AI/Citizen.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 
 AResearch::AResearch()
 {
-	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = false;
-	SetActorTickInterval(0.01f);
-	
 	TimeLength = 5.0f;
 
 	TurretMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TurretMesh"));
@@ -23,26 +20,17 @@ AResearch::AResearch()
 	TelescopeMesh->SetupAttachment(TurretMesh, "TelescopeSocket");
 }
 
-void AResearch::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
-		return;
-
-	TurretMesh->SetRelativeRotation(FMath::RInterpTo(TurretMesh->GetRelativeRotation(), TurretTargetRotation, DeltaTime, 1.0f));
-	TelescopeMesh->SetRelativeRotation(FMath::RInterpTo(TelescopeMesh->GetRelativeRotation(), TelescopeTargetRotation, DeltaTime, 1.0f));
-
-	if (FVector::Dist(TurretMesh->GetRelativeRotation().Vector(), TurretTargetRotation.Vector()) < 0.1f && FVector::Dist(TelescopeMesh->GetRelativeRotation().Vector(), TelescopeTargetRotation.Vector()) < 0.1f)
-		SetActorTickEnabled(false);
-}
-
 void AResearch::BeginRotation()
 {
-	TurretTargetRotation = FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 359), 0.0f);
-	TelescopeTargetRotation = FRotator(0.0f, 0.0f, Camera->Grid->Stream.RandRange(-15, 15));
+	PrevTurretTargetYaw = TurretTargetYaw;
+	PrevTelescopeTargetPitch = TelescopeTargetPitch;
 
-	SetActorTickEnabled(true);
+	TurretTargetYaw = Camera->Grid->Stream.RandRange(0, 359) / 360.0f;
+	TelescopeTargetPitch = Camera->Grid->Stream.RandRange(-15, 15) / 360.0f;
+
+	RotationTime = GetWorld()->GetTimeSeconds();
+
+	Camera->Grid->AIVisualiser->RotatingBuildings.Add(this);
 
 	Camera->CitizenManager->CreateTimer("Rotate", this, GetTime(Camera->Grid->Stream.RandRange(60, 120)), FTimerDelegate::CreateUObject(this, &AResearch::BeginRotation), false, true);
 }

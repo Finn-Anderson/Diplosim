@@ -634,9 +634,9 @@ float ACitizen::GetProductivity()
 void ACitizen::Heal(ACitizen* Citizen)
 {		
 	Camera->CitizenManager->Cure(Citizen);
+	Camera->CitizenManager->Healing.Remove(this);
 
-	if (AIController->MoveRequest.GetGoalActor() == Citizen)
-		Camera->CitizenManager->PickCitizenToHeal(this);
+	Camera->CitizenManager->PairCitizenToHealer(Camera->ConquestManager->GetFaction("", this), this);
 }
 
 int32 ACitizen::GetLeftoverMoney()
@@ -794,9 +794,10 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	MovementComponent->SetMaxSpeed(Energy);
+	if (!Camera->CitizenManager->DoesTimerExist("Sacrifice", this))
+		MovementComponent->SetMaxSpeed(Energy);
 
-	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && (Building.Employment->IsWorking(this) || (Building.Employment->IsA<AClinic>() && Camera->CitizenManager->Healing.Contains(AIController->MoveRequest.GetGoalActor())))))
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && (Building.Employment->IsWorking(this) || Camera->CitizenManager->Healing.Contains(this))))
 		return;
 
 	if (IsValid(Building.House) || IsValid(Building.Orphanage)) {

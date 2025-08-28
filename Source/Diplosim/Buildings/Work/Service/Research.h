@@ -23,12 +23,19 @@ public:
 		int32 TimeLength;
 
 	UPROPERTY()
-		FRotator TurretTargetRotation;
+		float TurretTargetYaw;
 
 	UPROPERTY()
-		FRotator TelescopeTargetRotation;
+		float TelescopeTargetPitch;
 
-	void Tick(float DeltaTime) override;
+	UPROPERTY()
+		float PrevTurretTargetYaw;
+
+	UPROPERTY()
+		float PrevTelescopeTargetPitch;
+
+	UPROPERTY()
+		double RotationTime;
 
 	void BeginRotation();
 

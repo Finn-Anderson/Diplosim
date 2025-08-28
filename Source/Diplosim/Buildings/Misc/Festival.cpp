@@ -62,18 +62,20 @@ void AFestival::Tick(float DeltaTime)
 
 	float spinRate = 1.0f;
 
-	for (FSocketStruct &socket : SocketList) {
-		if (!IsValid(socket.Citizen))
-			continue;
+	FVector location = GetActorLocation();
 
-		float distance = FVector::Dist(GetActorLocation(), socket.SocketLocation);
+	for (FSocketStruct &socket : SocketList) {
+		float distance = FVector::Dist(location, socket.SocketLocation);
 		
 		socket.SocketRotation += FRotator(0.0f, spinRate / (1.0f + ((distance - 60.0f) / 40.0f) * 0.25f), 0.0f);
 
-		FVector location = GetActorLocation();
-		location.X += distance * FMath::Cos(socket.SocketRotation.Yaw);
-		location.Y += distance * FMath::Sin(socket.SocketRotation.Yaw);
-		socket.SocketLocation = location;
+		FVector socketLocation = location;
+		socketLocation.X += distance * FMath::Cos(socket.SocketRotation.Yaw);
+		socketLocation.Y += distance * FMath::Sin(socket.SocketRotation.Yaw);
+		socket.SocketLocation = socketLocation;
+
+		if (!IsValid(socket.Citizen))
+			continue;
 
 		socket.Citizen->MovementComponent->Transform.SetLocation(socket.SocketLocation);
 		socket.Citizen->MovementComponent->Transform.SetRotation(socket.SocketRotation.Quaternion());

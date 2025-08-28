@@ -12,8 +12,6 @@ class DIPLOSIM_API AClinic : public AWork
 public:
 	AClinic();
 
-	virtual void Enter(class ACitizen* Citizen) override;
-
 	virtual bool AddCitizen(class ACitizen* Citizen) override;
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;

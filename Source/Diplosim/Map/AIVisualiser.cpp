@@ -19,6 +19,7 @@
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
 #include "Buildings/Building.h"
+#include "Buildings/Work/Service/Research.h"
 
 UAIVisualiser::UAIVisualiser()
 {
@@ -128,6 +129,10 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 	CalculateCitizenMovement(Camera);
 
 	CalculateAIMovement(Camera); 
+
+	CalculateBuildingDeath();
+
+	CalculateBuildingRotation();
 }
 
 void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
@@ -248,7 +253,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 	});
 }
 
-void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
+void UAIVisualiser::CalculateBuildingDeath()
 {
 	if (DestructingBuildings.IsEmpty())
 		return;
@@ -260,9 +265,6 @@ void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
 
 		for (int32 i = DestructingBuildings.Num() - 1; i > -1; i--) {
 			ABuilding* building = DestructingBuildings[i];
-
-			if (building->BuildingMesh->GetCustomPrimitiveData().Data[8] == 1.0f)
-				continue;
 
 			double alpha = FMath::Clamp((GetWorld()->GetTimeSeconds() - building->DeathTime) / 10.0f, 0.0f, 1.0f);
 			float z = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z + 1.0f;
@@ -276,6 +278,34 @@ void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
 			}
 		}
 	});
+}
+
+void UAIVisualiser::CalculateBuildingRotation()
+{
+	if (RotatingBuildings.IsEmpty())
+		return;
+
+	Async(EAsyncExecution::Thread, [this]() {
+		FScopeTryLock lock(&BuildingRotationLock);
+		if (!lock.IsLocked())
+			return;
+
+		for (int32 i = RotatingBuildings.Num() - 1; i > -1; i--) {
+			AResearch* building = RotatingBuildings[i];
+
+			double alpha = FMath::Clamp((GetWorld()->GetTimeSeconds() - building->RotationTime) / 10.0f, 0.0f, 1.0f);
+			float pitch = FMath::Lerp(building->PrevTelescopeTargetPitch, building->TelescopeTargetPitch, alpha);
+			float yaw = FMath::Lerp(building->PrevTurretTargetYaw, building->TurretTargetYaw, alpha);
+
+			building->TurretMesh->SetCustomPrimitiveDataFloat(10, yaw);
+
+			building->TelescopeMesh->SetCustomPrimitiveDataFloat(9, pitch);
+			building->TelescopeMesh->SetCustomPrimitiveDataFloat(10, yaw);
+
+			if (alpha == 1.0f)
+				RotatingBuildings.RemoveAt(i);
+		}
+		});
 }
 
 void UAIVisualiser::AddInstance(class AAI* AI, UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform)

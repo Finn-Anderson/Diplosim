@@ -3,6 +3,7 @@
 #include "NiagaraComponent.h"
 #include "Components/WidgetComponent.h"
 
+#include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Universal/HealthComponent.h"
@@ -36,15 +37,9 @@ bool AClinic::RemoveCitizen(ACitizen* Citizen)
 
 	Camera->CitizenManager->Infectible.Add(Citizen);
 
+	Camera->CitizenManager->Healing.Remove(Citizen);
+
+	Camera->CitizenManager->RemoveTimer("Healing", Citizen);
+
 	return true;
-}
-
-void AClinic::Enter(ACitizen* Citizen)
-{
-	Super::Enter(Citizen);
-
-	if (!GetOccupied().Contains(Citizen))
-		return;
-
-	Camera->CitizenManager->PickCitizenToHeal(Citizen);
 }
