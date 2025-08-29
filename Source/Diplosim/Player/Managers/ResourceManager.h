@@ -62,6 +62,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FResourceStruct> ResourceList;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
+		TSubclassOf<class AResource> Money;
+
 	void StoreBasket(TSubclassOf<class AResource> Resource, class ABuilding* Building);
 
 	FFactionResourceStruct* GetFactionResourceStruct(FFactionStruct* Faction, TSubclassOf<class AResource> Resource);
@@ -89,15 +92,9 @@ public:
 
 	void GetNearestStockpile(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
 
-	void UpdateResourceUI(TSubclassOf<class AResource> Resource);
+	void UpdateResourceUI(FFactionStruct* Faction, TSubclassOf<class AResource> Resource);
 
 	TArray<TSubclassOf<class AResource>> GetResourcesFromCategory(FString Category);
-
-	// Interest
-	void Interest();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
-		TSubclassOf<class AResource> Money;
 
 	// Trade
 	void RandomiseMarket();

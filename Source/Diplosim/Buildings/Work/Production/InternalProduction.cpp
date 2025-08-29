@@ -13,10 +13,12 @@ AInternalProduction::AInternalProduction()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	MinYield = 1;
-	MaxYield = 5;
+	MinYield = 1.0f;
+	MaxYield = 5.0f;
 
 	TimeLength = 10;
+
+	bMultiplicitive = false;
 
 	bNoTimer = false;
 }
@@ -72,14 +74,25 @@ void AInternalProduction::Production(ACitizen* Citizen)
 {
 	Super::Production(Citizen);
 
-	if (!Camera->ResourceManager->GetResources(this).IsEmpty()) {
-		GetCitizensAtBuilding()[0]->Carry(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>(), Camera->Grid->Stream.RandRange(MinYield, MaxYield), this);
+	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 
-		StoreResource(GetCitizensAtBuilding()[0]);
+	if (!resources.IsEmpty()) {
+		float yield = MinYield;
+
+		if (MinYield != MaxYield)
+			yield = Camera->Grid->Stream.RandRange(MinYield, MaxYield);
+
+		if (bMultiplicitive) {
+			yield = FMath::CeilToInt32(Camera->ResourceManager->GetResourceAmount(FactionName, resources[0]) * yield);
+
+			Camera->ResourceManager->AddUniversalResource(Camera->ConquestManager->GetFaction(FactionName), resources[0], yield);
+		}
+		else {
+			GetCitizensAtBuilding()[0]->Carry(resources[0]->GetDefaultObject<AResource>(), yield, this);
+
+			StoreResource(GetCitizensAtBuilding()[0]);
+		}
 	}
-
-	for (ACitizen* citizen : GetCitizensAtBuilding())
-		Camera->CitizenManager->Injure(citizen, 99);
 
 	SetTimer();
 

@@ -27,10 +27,13 @@ public:
 	void PauseTimer(bool bPause);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
-		int32 MinYield;
+		float MinYield;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
-		int32 MaxYield;
+		float MaxYield;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
+		bool bMultiplicitive;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		int32 TimeLength;

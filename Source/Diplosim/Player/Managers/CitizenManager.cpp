@@ -1056,7 +1056,7 @@ void UCitizenManager::CheckUpkeepCosts()
 				amount += FMath::RoundHalfFromZero(workHours.Work->WagePerHour * workHours.Hours.Num());
 
 			citizen->Balance += amount;
-			citizen->Camera->ResourceManager->TakeUniversalResource(&faction, Money, amount, -100000);
+			Camera->ResourceManager->TakeUniversalResource(&faction, Camera->ResourceManager->Money, amount, -100000);
 
 			if (IsValid(citizen->Building.House))
 				citizen->Building.House->GetRent(citizen);
@@ -1694,7 +1694,7 @@ void UCitizenManager::ItterateThroughSentences()
 				served.Add(element.Key);
 		}
 
-		Camera->ResourceManager->AddUniversalResource(&faction, Money, faction.Police.Arrested.Num());
+		Camera->ResourceManager->AddUniversalResource(&faction, Camera->ResourceManager->Money, faction.Police.Arrested.Num());
 
 		for (ACitizen* citizen : served) {
 			faction.Police.Arrested.Remove(citizen);
@@ -2383,7 +2383,7 @@ void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
 
 	int32 bribe = faction->Politics.BribeValue[index];
 
-	bool bPass = Camera->ResourceManager->TakeUniversalResource(faction, Money, bribe, 0);
+	bool bPass = Camera->ResourceManager->TakeUniversalResource(faction, Camera->ResourceManager->Money, bribe, 0);
 
 	if (!bPass) {
 		Camera->ShowWarning("Cannot afford");
@@ -2768,7 +2768,7 @@ void UCitizenManager::Pray(FString FactionName)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	bool bPass = Camera->ResourceManager->TakeUniversalResource(faction, Money, GetPrayCost(FactionName), 0);
+	bool bPass = Camera->ResourceManager->TakeUniversalResource(faction, Camera->ResourceManager->Money, GetPrayCost(FactionName), 0);
 
 	if (!bPass) {
 		Camera->ShowWarning("Cannot afford");

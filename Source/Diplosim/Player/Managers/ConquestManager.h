@@ -453,6 +453,9 @@ public:
 		FFactionStruct GetFactionFromName(FString FactionName);
 
 	UFUNCTION(BlueprintCallable)
+		TArray<ACitizen*> GetCitizensFromFactionName(FString FactionName);
+
+	UFUNCTION(BlueprintCallable)
 		UTexture2D* GetTextureFromCulture(FString Type);
 
 	void ComputeAI();

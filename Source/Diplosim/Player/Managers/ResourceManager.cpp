@@ -39,7 +39,7 @@ void UResourceManager::StoreBasket(TSubclassOf<AResource> Resource, ABuilding* B
 		}
 	}
 
-	UpdateResourceUI(Resource);
+	UpdateResourceUI(Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName), Resource);
 }
 
 FFactionResourceStruct* UResourceManager::GetFactionResourceStruct(FFactionStruct* Faction, TSubclassOf<class AResource> Resource)
@@ -57,7 +57,7 @@ void UResourceManager::AddCommittedResource(FFactionStruct* Faction, TSubclassOf
 	FFactionResourceStruct* resourceStruct = GetFactionResourceStruct(Faction, Resource);
 	resourceStruct->Committed += Amount;
 
-	UpdateResourceUI(Resource);
+	UpdateResourceUI(Faction, Resource);
 }
 
 void UResourceManager::TakeCommittedResource(FFactionStruct* Faction, TSubclassOf<AResource> Resource, int32 Amount)
@@ -95,7 +95,7 @@ int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuild
 
 	GetNearestStockpile(Resource, Building, Building->Storage[index].Amount);
 
-	UpdateResourceUI(Resource);
+	UpdateResourceUI(Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName), Resource);
 
 	return Amount;
 }
@@ -148,13 +148,13 @@ bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf
 		GetNearestStockpile(Resource, building, building->Storage[index].Amount);
 
 		if (AmountLeft <= 0) {
-			UpdateResourceUI(Resource);
+			UpdateResourceUI(Faction, Resource);
 
 			return true;
 		}
 	}
 
-	UpdateResourceUI(Resource);
+	UpdateResourceUI(Faction, Resource);
 
 	return false;
 }
@@ -176,7 +176,7 @@ bool UResourceManager::TakeLocalResource(TSubclassOf<AResource> Resource, ABuild
 	if (!Building->Basket.IsEmpty())
 		StoreBasket(Resource, Building);
 
-	UpdateResourceUI(Resource);
+	UpdateResourceUI(Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName), Resource);
 
 	return true;
 }
@@ -223,13 +223,13 @@ bool UResourceManager::TakeUniversalResource(FFactionStruct* Faction, TSubclassO
 			StoreBasket(Resource, building);
 
 		if (AmountLeft <= 0) {
-			UpdateResourceUI(Resource);
+			UpdateResourceUI(Faction, Resource);
 
 			return true;
 		}
 	}
 
-	UpdateResourceUI(Resource);
+	UpdateResourceUI(Faction, Resource);
 
 	return false;
 }
@@ -364,8 +364,11 @@ void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABui
 	});
 }
 
-void UResourceManager::UpdateResourceUI(TSubclassOf<AResource> Resource)
+void UResourceManager::UpdateResourceUI(FFactionStruct* Faction, TSubclassOf<AResource> Resource)
 {
+	if (Faction->Name != Cast<ACamera>(GetOwner())->ColonyName)
+		return;
+
 	AsyncTask(ENamedThreads::GameThread, [this, Resource]() {
 		FResourceStruct resourceStruct;
 		resourceStruct.Type = Resource;
@@ -388,20 +391,6 @@ TArray<TSubclassOf<AResource>> UResourceManager::GetResourcesFromCategory(FStrin
 	}
 
 	return resources;
-}
-
-//
-// Interest
-//
-void UResourceManager::Interest()
-{
-	for (FFactionStruct& faction : Cast<ACamera>(GetOwner())->ConquestManager->Factions) {
-		int32 amount = GetResourceAmount(faction.Name, Money);
-
-		amount = FMath::CeilToInt32(amount * 0.02f);
-
-		AddUniversalResource(&faction, Money, amount);
-	}
 }
 
 //

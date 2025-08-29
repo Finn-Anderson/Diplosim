@@ -306,9 +306,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FLawStruct> InitLaws;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		TSubclassOf<class AResource> Money;
-
 	FPartyStruct* GetMembersParty(ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)

@@ -330,9 +330,6 @@ public:
 	UPROPERTY()
 		bool bOperate;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
-		TSubclassOf<class AResource> Money;
-
 	UFUNCTION(BlueprintCallable)
 		void AlterOperate();
 

@@ -328,8 +328,6 @@ void ACamera::OnBrochPlace(ABuilding* EggTimer)
 
 	gamemode->SetWaveTimer();
 
-	CitizenManager->CreateTimer("Interest", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::Interest), true, true);
-
 	CitizenManager->CreateTimer("TradeValue", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::SetTradeValues), true);
 
 	CitizenManager->CreateTimer("EggBasket", this, 300, FTimerDelegate::CreateUObject(Grid, &AGrid::SpawnEggBasket), true, true);

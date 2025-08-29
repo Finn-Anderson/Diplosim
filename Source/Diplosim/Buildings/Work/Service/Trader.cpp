@@ -78,9 +78,9 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 	}
 
 	if (money < 0)
-		rm->TakeUniversalResource(faction, Money, -money, -1000000);
+		rm->TakeUniversalResource(faction, rm->Money, -money, -1000000);
 	else
-		rm->AddUniversalResource(faction, Money, money);
+		rm->AddUniversalResource(faction, rm->Money, money);
 
 	Orders[0].OrderWidget->RemoveFromParent();
 

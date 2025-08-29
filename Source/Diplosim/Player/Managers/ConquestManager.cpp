@@ -111,6 +111,11 @@ FFactionStruct UConquestManager::GetFactionFromName(FString FactionName)
 	return Factions[GetFactionIndexFromName(FactionName)];
 }
 
+TArray<ACitizen*> UConquestManager::GetCitizensFromFactionName(FString FactionName)
+{
+	return GetFactionFromName(FactionName).Citizens;
+}
+
 UTexture2D* UConquestManager::GetTextureFromCulture(FString Type)
 {
 	UTexture2D* texture = nullptr;
