@@ -17,7 +17,7 @@ AStockpile::AStockpile()
 	HISMBox = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMBox"));
 	HISMBox->SetupAttachment(GetRootComponent());
 
-	StorageCap = 1000;
+	StorageCap = 2000;
 }
 
 void AStockpile::BeginPlay()

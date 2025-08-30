@@ -225,17 +225,14 @@ double ADiplosimAIController::GetClosestActor(float Range, FVector TargetLocatio
 
 void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 {
-	TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManager->GetBuildings(Resource);
+	TMap<TSubclassOf<class ABuilding>, int32> buildings = Camera->ResourceManager->GetBuildings(Resource);
 
 	ABuilding* target = nullptr;
 
-	for (int32 j = 0; j < buildings.Num(); j++) {
-		TArray<AActor*> foundBuildings;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
+	for (auto& element : buildings) {
+		TArray<ABuilding*> foundBuildings = Camera->ResourceManager->GetBuildingsOfClass(Camera->ConquestManager->GetFaction("", AI), element.Key);
 
-		for (int32 k = 0; k < foundBuildings.Num(); k++) {
-			ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
-
+		for (ABuilding* building : foundBuildings) {
 			FItemStruct itemStruct;
 			itemStruct.Resource = Resource;
 

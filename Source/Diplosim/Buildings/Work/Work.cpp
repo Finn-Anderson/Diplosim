@@ -250,3 +250,21 @@ void AWork::Production(ACitizen* Citizen)
 			Boosters++;
 	}
 }
+
+bool AWork::IsCapacityFull()
+{
+	for (auto& element : Camera->ResourceManager->GetBuildingCapacities(this)) {
+		FItemStruct item;
+		item.Resource = element.Key;
+
+		int32 index = Storage.Find(item);
+
+		if (index == INDEX_NONE)
+			continue;
+
+		if (Storage[index].Amount == element.Value)
+			return true;
+	}
+
+	return false;
+}

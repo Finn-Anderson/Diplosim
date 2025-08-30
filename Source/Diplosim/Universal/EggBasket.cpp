@@ -29,13 +29,12 @@ FRewardStruct AEggBasket::PickReward(ACamera* Camera)
 	TArray<FRewardStruct> chosenRewards;
 
 	for (FRewardStruct reward : Rewards) {
-		TArray<TSubclassOf<ABuilding>> buildings = Camera->ResourceManager->GetBuildings(reward.Resource);
+		TMap<TSubclassOf<class ABuilding>, int32> buildings = Camera->ResourceManager->GetBuildings(reward.Resource);
 
-		for (TSubclassOf<ABuilding> building : buildings) {
-			TArray<AActor*> actors;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), building, actors);
+		for (auto& element : buildings) {
+			TArray<ABuilding*> foundBuildings = Camera->ResourceManager->GetBuildingsOfClass(Camera->ConquestManager->GetFaction(Camera->ColonyName), element.Key);
 
-			if (actors.IsEmpty())
+			if (foundBuildings.IsEmpty())
 				continue;
 
 			chosenRewards.Add(reward);

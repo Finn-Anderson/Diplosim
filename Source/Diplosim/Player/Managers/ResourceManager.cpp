@@ -81,11 +81,12 @@ int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuild
 		currentAmount += item.Amount;
 
 	int32 target = currentAmount + Amount;
+	int32 storageCap = *GetBuildingCapacities(Building, Resource).Find(Resource);
 
-	if (target > Building->StorageCap) {
-		Building->Storage[index].Amount = Building->StorageCap;
+	if (target > storageCap) {
+		Building->Storage[index].Amount = storageCap;
 
-		Amount = target - Building->StorageCap;
+		Amount = target - storageCap;
 	}
 	else {
 		Building->Storage[index].Amount = target;
@@ -112,40 +113,41 @@ bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf
 
 	int32 index = ResourceList.Find(resourceStruct);
 
-	TArray<ABuilding*> foundBuildings;
-	for (TSubclassOf<ABuilding> buildingClass : ResourceList[index].Buildings)
-		foundBuildings.Append(GetBuildingsOfClass(Faction, buildingClass));
+	TMap<ABuilding*, int32> foundBuildings;
+	for (auto& element : ResourceList[index].Buildings)
+		for (ABuilding* building : GetBuildingsOfClass(Faction, element.Key))
+			foundBuildings.Add(building, *GetBuildingCapacities(building, Resource).Find(Resource));
 
-	for (ABuilding* building : foundBuildings) {
+	for (auto& element : foundBuildings) {
 		int32 currentAmount = 0;
 
-		for (FItemStruct item : building->Storage)
+		for (FItemStruct item : element.Key->Storage)
 			currentAmount += item.Amount;
 
 		stored += currentAmount;
-		capacity += building->StorageCap;
+		capacity += element.Value;
 	}
 
 	if (stored == capacity)
 		return false;
 
 	int32 AmountLeft = Amount;
-	for (ABuilding* building : foundBuildings) {
+	for (auto& element : foundBuildings) {
 		FItemStruct itemStruct;
 		itemStruct.Resource = Resource;
 
-		index = building->Storage.Find(itemStruct);
+		index = element.Key->Storage.Find(itemStruct);
 
-		AmountLeft -= (building->StorageCap - building->Storage[index].Amount);
+		AmountLeft -= (element.Value - element.Key->Storage[index].Amount);
 
 		int32 currentAmount = 0;
 
-		for (FItemStruct item : building->Storage)
+		for (FItemStruct item : element.Key->Storage)
 			currentAmount += item.Amount;
 
-		building->Storage[index].Amount += FMath::Clamp(Amount, 0, building->StorageCap - currentAmount);
+		element.Key->Storage[index].Amount += FMath::Clamp(Amount, 0, element.Value - currentAmount);
 
-		GetNearestStockpile(Resource, building, building->Storage[index].Amount);
+		GetNearestStockpile(Resource, element.Key, element.Key->Storage[index].Amount);
 
 		if (AmountLeft <= 0) {
 			UpdateResourceUI(Faction, Resource);
@@ -191,8 +193,8 @@ bool UResourceManager::TakeUniversalResource(FFactionStruct* Faction, TSubclassO
 	int32 index = ResourceList.Find(resourceStruct);
 
 	TArray<ABuilding*> foundBuildings;
-	for (TSubclassOf<ABuilding> buildingClass : ResourceList[index].Buildings)
-		foundBuildings.Append(GetBuildingsOfClass(Faction, buildingClass));
+	for (auto& element : ResourceList[index].Buildings)
+		foundBuildings.Append(GetBuildingsOfClass(Faction, element.Key));
 
 	for (ABuilding* building : foundBuildings) {
 		FItemStruct itemStruct;
@@ -246,8 +248,8 @@ int32 UResourceManager::GetResourceAmount(FString FactionName, TSubclassOf<AReso
 
 	int32 index = ResourceList.Find(resourceStruct);
 
-	for (TSubclassOf<ABuilding> buildingClass : ResourceList[index].Buildings) {
-		TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(faction, buildingClass);
+	for (auto& element : ResourceList[index].Buildings) {
+		TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(faction, element.Key);
 
 		for (ABuilding* building : foundBuildings) {
 			FItemStruct itemStruct;
@@ -262,25 +264,74 @@ int32 UResourceManager::GetResourceAmount(FString FactionName, TSubclassOf<AReso
 	return amount;
 }
 
+int32 UResourceManager::GetResourceCapacity(FString FactionName, TSubclassOf<class AResource> Resource)
+{
+	FFactionStruct* faction = Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(FactionName);
+
+	int32 capacity = 0;
+
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
+
+	int32 index = ResourceList.Find(resourceStruct);
+
+	for (auto &element : ResourceList[index].Buildings) {
+		TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(faction, element.Key);
+
+		for (ABuilding* building : foundBuildings)
+			capacity += *GetBuildingCapacities(building, Resource).Find(Resource);
+	}
+
+	return capacity;
+}
+
+TMap<TSubclassOf<class AResource>, int32> UResourceManager::GetBuildingCapacities(ABuilding* Building, TSubclassOf<class AResource> Resource)
+{
+	TMap<TSubclassOf<class AResource>, int32> capacities;
+
+	for (FResourceStruct resource : ResourceList) {
+		if ((Resource != nullptr && resource.Type != Resource) || !resource.Buildings.Contains(Building->GetClass()))
+			continue;
+
+		if (Building->IsA<AStockpile>()) {
+			AStockpile* stockpile = Cast<AStockpile>(Building);
+			int32 capacity = stockpile->StorageCap;
+
+			for (FItemStruct item : stockpile->Storage) {
+				if (item.Resource == resource.Type)
+					continue;
+
+				capacity -= item.Amount;
+			}
+
+			capacities.Add(resource.Type, capacity);
+		}
+		else
+			capacities.Add(resource.Type, *resource.Buildings.Find(Building->GetClass()));
+	}
+
+	return capacities;
+}
+
 TArray<TSubclassOf<AResource>> UResourceManager::GetResources(ABuilding* Building)
 {
 	TArray<TSubclassOf<AResource>> resources;
 
 	for (FResourceStruct resource : ResourceList)
-		for (TSubclassOf<ABuilding> buildingClass : resource.Buildings)
-			if (buildingClass == Building->GetClass())
+		for (auto& element : resource.Buildings)
+			if (element.Key == Building->GetClass())
 				resources.Add(resource.Type);
 
 	return resources;
 }
 
-TArray<TSubclassOf<ABuilding>> UResourceManager::GetBuildings(TSubclassOf<AResource> Resource) 
+TMap<TSubclassOf<class ABuilding>, int32> UResourceManager::GetBuildings(TSubclassOf<AResource> Resource)
 {
 	for (FResourceStruct resource : ResourceList)
 		if (resource.Type == Resource)
 			return resource.Buildings;
 
-	TArray<TSubclassOf<ABuilding>> null;
+	TMap<TSubclassOf<class ABuilding>, int32> null;
 
 	return null;
 }
@@ -377,6 +428,25 @@ void UResourceManager::UpdateResourceUI(FFactionStruct* Faction, TSubclassOf<ARe
 
 		Cast<ACamera>(GetOwner())->UpdateResourceText(ResourceList[index].Category);
 	});
+}
+
+void UResourceManager::UpdateResourceCapacityUI(ABuilding* Building)
+{
+	ACamera* camera = Cast<ACamera>(GetOwner());
+
+	if (Building->FactionName != camera->ColonyName)
+		return;
+
+	TArray<TSubclassOf<AResource>> resources = GetResources(Building);
+
+	for (TSubclassOf<AResource> resource : resources) {
+		FResourceStruct resourceStruct;
+		resourceStruct.Type = resource;
+
+		int32 index = ResourceList.Find(resourceStruct);
+
+		Cast<ACamera>(GetOwner())->UpdateResourceCapacityText(ResourceList[index].Category);
+	}
 }
 
 TArray<TSubclassOf<AResource>> UResourceManager::GetResourcesFromCategory(FString Category)

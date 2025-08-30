@@ -106,8 +106,6 @@ ABuilding::ABuilding()
 	Capacity = 2;
 	MaxCapacity = 2;
 
-	StorageCap = 150;
-
 	bHideCitizen = true;
 
 	bInstantConstruction = false;
@@ -559,6 +557,8 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 		}
 	}
 
+	rm->UpdateResourceCapacityUI(this);
+
 	Destroy();
 }
 
@@ -592,8 +592,7 @@ void ABuilding::OnBuilt()
 	if (IsA(Camera->BuildComponent->FoundationClass))
 		BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 
-	UConstructionManager* cm = Camera->ConstructionManager;
-	cm->RemoveBuilding(this);
+	Camera->ConstructionManager->RemoveBuilding(this);
 
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
@@ -602,6 +601,8 @@ void ABuilding::OnBuilt()
 
 	if (bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Activate();
+
+	Camera->ResourceManager->UpdateResourceCapacityUI(this);
 }
 
 void ABuilding::AlterOperate()
@@ -1024,13 +1025,9 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 		return;
 
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
+	TSubclassOf<AResource> resource = Citizen->Carrying.Type->GetClass();
 
-	if (!resources.IsEmpty() && resources.Contains(Citizen->Carrying.Type->GetClass())) {
-		TSubclassOf<AResource> resource = nullptr;
-
-		for (TSubclassOf<AResource> r : resources)
-			if (Citizen->Carrying.Type->IsA(r))
-				resource = r;
+	if (!resources.IsEmpty() && resources.Contains(resource)) {
 
 		if (IsA<AWork>() && Cast<AWork>(this)->Boosters != 0)
 			Citizen->Carrying.Amount *= (1.50f * Cast<AWork>(this)->Boosters);
@@ -1055,7 +1052,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			items = Cast<AInternalProduction>(this)->Intake;
 
 		for (int32 i = 0; i < items.Num(); i++) {
-			if (!Citizen->Carrying.Type->IsA(items[i].Resource))
+			if (resource != items[i].Resource)
 				continue;
 
 			if (cm->IsBeingConstructed(this, nullptr))

@@ -25,12 +25,7 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	int32 amount = 0;
-
-	for (FItemStruct item : Storage)
-		amount += item.Amount;
-
-	if (amount == StorageCap)
+	if (IsCapacityFull())
 		return;
 
 	if (GetOccupied().Contains(Citizen))

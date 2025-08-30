@@ -21,8 +21,6 @@ ABroch::ABroch()
 
 	DecalComponent->DecalSize = FVector(2000.0f, 2000.0f, 2000.0f);
 	DecalComponent->SetVisibility(true);
-
-	StorageCap = 1000000;
 }
 
 void ABroch::SpawnCitizens()

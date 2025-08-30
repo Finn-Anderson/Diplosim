@@ -115,25 +115,22 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 		if (Orders[0].SellingItems[i].Stored == 0)
 			continue;
 
-		TArray<TSubclassOf<class ABuilding>> buildings = Camera->ResourceManager->GetBuildings(Orders[0].SellingItems[i].Resource);
+		TMap<TSubclassOf<class ABuilding>, int32> buildings = Camera->ResourceManager->GetBuildings(Orders[0].SellingItems[i].Resource);
 
 		ABuilding* target = nullptr;
 
 		int32 amount = FMath::Clamp(Orders[0].SellingItems[i].Stored, 0, 10);
 
-		for (int32 j = 0; j < buildings.Num(); j++) {
-			TArray<AActor*> foundBuildings;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), buildings[j], foundBuildings);
+		for (auto& element : buildings) {
+			TArray<ABuilding*> foundBuildings = Camera->ResourceManager->GetBuildingsOfClass(Camera->ConquestManager->GetFaction(FactionName), element.Key);
 
-			for (int32 k = 0; k < foundBuildings.Num(); k++) {
-				ABuilding* building = Cast<ABuilding>(foundBuildings[k]);
-
+			for (ABuilding* building : foundBuildings) {
 				FItemStruct itemStruct;
 				itemStruct.Resource = Orders[0].SellingItems[i].Resource;
 
 				int32 index = building->Storage.Find(itemStruct);
 
-				if (building->Storage[index].Amount + amount > building->StorageCap)
+				if (building->Storage[index].Amount + amount > *Camera->ResourceManager->GetBuildingCapacities(building, itemStruct.Resource).Find(itemStruct.Resource))
 					continue;
 
 				if (target == nullptr) {

@@ -30,6 +30,9 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen) || bNoTimer)
 		return;
 
+	if (IsCapacityFull())
+		return;
+
 	for (FItemStruct item : Intake) {
 		if (item.Use > item.Stored) {
 			CheckStored(Citizen, Intake);
@@ -37,14 +40,6 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 			return;
 		}
 	}
-
-	int32 amount = 0;
-
-	for (FItemStruct item : Storage)
-		amount += item.Amount;
-
-	if (amount == StorageCap)
-		return;
 
 	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Internal", this);
 

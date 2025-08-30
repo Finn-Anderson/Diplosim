@@ -14,7 +14,7 @@ struct FResourceStruct
 		TSubclassOf<class AResource> Type;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		TArray<TSubclassOf<class ABuilding>> Buildings;
+		TMap<TSubclassOf<class ABuilding>, int32> Buildings;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Value;
@@ -84,15 +84,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Resource")
 		int32 GetResourceAmount(FString FactionName, TSubclassOf<class AResource> Resource);
 
+	UFUNCTION(BlueprintCallable, Category = "Resource")
+		int32 GetResourceCapacity(FString FactionName, TSubclassOf<class AResource> Resource);
+
+	TMap<TSubclassOf<class AResource>, int32> GetBuildingCapacities(class ABuilding* Building, TSubclassOf<class AResource> Resource = nullptr);
+
 	TArray<TSubclassOf<class AResource>> GetResources(class ABuilding* Building);
 
-	TArray<TSubclassOf<class ABuilding>> GetBuildings(TSubclassOf<class AResource> Resource);
+	TMap<TSubclassOf<class ABuilding>, int32> GetBuildings(TSubclassOf<class AResource> Resource);
 
 	TArray<class ABuilding*> GetBuildingsOfClass(FFactionStruct* Faction, TSubclassOf<AActor> Class);
 
 	void GetNearestStockpile(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
 
 	void UpdateResourceUI(FFactionStruct* Faction, TSubclassOf<class AResource> Resource);
+
+	void UpdateResourceCapacityUI(ABuilding* Building);
 
 	TArray<TSubclassOf<class AResource>> GetResourcesFromCategory(FString Category);
 

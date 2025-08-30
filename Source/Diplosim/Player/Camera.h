@@ -62,6 +62,9 @@ public:
 		void UpdateResourceText(const FString& Category);
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateResourceCapacityText(const FString& Category);
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateUI();
 
 	UFUNCTION(BlueprintImplementableEvent)

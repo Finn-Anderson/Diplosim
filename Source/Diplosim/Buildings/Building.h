@@ -368,9 +368,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FItemStruct> Storage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		int32 StorageCap;
-
 	UPROPERTY()
 		TArray<FBasketStruct> Basket;
 

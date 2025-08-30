@@ -19,6 +19,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stockpile")
 		TMap<TSubclassOf<class AResource>, bool> Store;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stockpile")
+		int32 StorageCap;
+
 	UPROPERTY()
 		TMap<class ACitizen*, FItemStruct> Gathering;
 

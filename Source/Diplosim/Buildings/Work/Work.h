@@ -90,6 +90,8 @@ public:
 	// Resources
 	virtual void Production(class ACitizen* Citizen);
 
+	bool IsCapacityFull();
+
 	UPROPERTY()
 		int32 Boosters;
 
