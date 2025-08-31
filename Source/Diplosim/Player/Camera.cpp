@@ -334,7 +334,7 @@ void ACamera::OnBrochPlace(ABuilding* EggTimer)
 
 	CitizenManager->StartDiseaseTimer();
 
-	ConquestManager->CreateFactions(EggTimer);
+	ConquestManager->CreateFactions(Cast<ABroch>(EggTimer));
 
 	Start = false;
 

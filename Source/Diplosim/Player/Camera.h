@@ -104,6 +104,9 @@ public:
 		void UpdateMapSpecialBuildings();
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateMapAIUI();
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void SetFactionsInDiplomacyUI();
 
 	UFUNCTION(BlueprintImplementableEvent)

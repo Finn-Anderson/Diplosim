@@ -265,6 +265,10 @@ void AGrid::SetupMap()
 		}
 	}
 
+	// Set Conquest max AI
+	Camera->ConquestManager->AINum = Storage.Num() * PercentageGround / 5000;
+	Camera->UpdateMapAIUI();
+
 	// Set adjacent tile information
 	for (int32 x = 0; x < bound; x++) {
 		for (int32 y = 0; y < bound; y++) {

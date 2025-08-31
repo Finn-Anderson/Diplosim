@@ -7,6 +7,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ResearchManager.h"
+#include "Player/Components/BuildComponent.h"
 #include "Map/Grid.h"
 #include "AI/Citizen.h"
 #include "AI/Clone.h"
@@ -20,7 +21,8 @@ UConquestManager::UConquestManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	EnemiesNum = 2;
+	AINum = 2;
+	MaxAINum = 2;
 }
 
 void UConquestManager::BeginPlay()
@@ -30,7 +32,7 @@ void UConquestManager::BeginPlay()
 	Camera = Cast<ACamera>(GetOwner());
 }
 
-void UConquestManager::CreateFactions(ABuilding* EggTimer)
+void UConquestManager::CreateFactions(ABroch* EggTimer)
 {
 	TArray<FString> factions;
 	factions.Add(Camera->ColonyName);
@@ -41,7 +43,9 @@ void UConquestManager::CreateFactions(ABuilding* EggTimer)
 	TArray<FString> factionsParsed;
 	factionNames.ParseIntoArray(factionsParsed, TEXT(","));
 
-	for (int32 i = 0; i < EnemiesNum; i++) {
+	TArray<FTileStruct*> validLocations;
+
+	for (int32 i = 0; i < AINum; i++) {
 		int32 index = Camera->Grid->Stream.RandRange(0, factionsParsed.Num() - 1);
 		factions.Add(factionsParsed[index]);
 
@@ -59,16 +63,51 @@ void UConquestManager::CreateFactions(ABuilding* EggTimer)
 		f.Politics.Laws = Camera->CitizenManager->InitLaws;
 		f.Events = Camera->CitizenManager->InitEvents;
 
-		if (name == Camera->ColonyName) {
-			EggTimer->FactionName = Camera->ColonyName;
-
+		if (f.Name == Camera->ColonyName) {
 			f.EggTimer = EggTimer;
 		}
 		else {
-			// Get all valid tile placements for broch, then check if another broch within 3000 units. Add buildings, rebels and citizens to faction struct as storage.
+			FActorSpawnParameters params;
+			params.bNoFail = true;
+
+			ABroch* eggTimer = GetWorld()->SpawnActor<ABroch>(EggTimer->GetClass(), FVector::Zero(), FRotator::ZeroRotator, params);
+
+			for (TArray<FTileStruct*> tiles : Camera->Grid->ValidMineralTiles) {
+				FTileStruct* tile = tiles[0];
+
+				eggTimer->SetActorLocation(Camera->Grid->GetTransform(tile).GetLocation());
+
+				if (!Camera->BuildComponent->IsValidLocation(eggTimer))
+					continue;
+
+				bool bTooCloseToAnotherFaction = false;
+
+				for (FFactionStruct& faction : Factions) {
+					double dist = FVector::Dist(faction.EggTimer->GetActorLocation(), eggTimer->GetActorLocation());
+
+					if (dist > 3000.0f)
+						continue;
+
+					bTooCloseToAnotherFaction = true;
+
+					break;
+				}
+
+				if (!bTooCloseToAnotherFaction)
+					validLocations.Add(tile);
+			}
+
+			int32 index = Camera->Grid->Stream.RandRange(0, validLocations.Num() - 1);
+			FTileStruct* chosenTile = validLocations[index];
+
+			eggTimer->SetActorLocation(Camera->Grid->GetTransform(chosenTile).GetLocation());
+
+			f.EggTimer = eggTimer;
 		}
 
-		Cast<ABroch>(f.EggTimer)->SpawnCitizens();
+		f.EggTimer->FactionName = f.Name;
+
+		f.EggTimer->SpawnCitizens();
 
 		Camera->CitizenManager->Election(&f);
 

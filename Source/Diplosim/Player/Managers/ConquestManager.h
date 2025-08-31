@@ -327,7 +327,7 @@ struct FFactionStruct
 		TArray<class ABuilding*> Buildings;
 
 	UPROPERTY()
-		class ABuilding* EggTimer;
+		class ABroch* EggTimer;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
 		TArray<FResearchStruct> ResearchStruct;
@@ -442,7 +442,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	void CreateFactions(ABuilding* EggTimer);
+	void CreateFactions(class ABroch* EggTimer);
 
 	UFUNCTION(BlueprintCallable)
 		class ABuilding* DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<class ABuilding> BuildingClass);
@@ -469,7 +469,10 @@ public:
 	FFactionStruct* GetFaction(FString Name = "", AActor* Actor = nullptr);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
-		int32 EnemiesNum;
+		int32 AINum;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World")
+		int32 MaxAINum;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Culture Texture List")
 		TArray<FCultureImageStruct> CultureTextureList;
