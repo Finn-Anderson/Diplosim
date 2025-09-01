@@ -2643,9 +2643,25 @@ void UCitizenManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 		bPassed = true;
 	}
 
-	Camera->LawPassed(bPassed, Faction->Politics.Votes.For.Num(), Faction->Politics.Votes.Against.Num());
+	if (Faction->Name == Camera->ColonyName) {
+		FDescriptionStruct descriptionStruct;
 
-	Camera->LawPassedUIInstance->AddToViewport();
+		for (FDescriptionStruct desc : Bill.Description) {
+			if (desc.Min > Bill.Value || desc.Max < Bill.Value)
+				continue;
+
+			descriptionStruct = desc;
+
+			break;
+		}
+
+		FString value = FString::FromInt(Bill.Value);
+		FString description = descriptionStruct.Description.Replace(TEXT("X"), *value);
+
+		Camera->LawPassed(bPassed, description, Faction->Politics.Votes.For.Num(), Faction->Politics.Votes.Against.Num());
+
+		Camera->LawPassedUIInstance->AddToViewport();
+	}
 
 	Faction->Politics.ProposedBills.Remove(Bill);
 

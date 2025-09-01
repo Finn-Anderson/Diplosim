@@ -356,6 +356,7 @@ struct FFactionStruct
 		WarFatigue = 0;
 		PartyInPower = "";
 		LargestReligion = "";
+		EggTimer = nullptr;
 		ResearchIndex = 0;
 		RebelCooldownTimer = 0;
 	}
@@ -457,6 +458,18 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		UTexture2D* GetTextureFromCulture(FString Type);
+
+	UFUNCTION(BlueprintCallable)
+		FPoliticsStruct GetFactionPoliticsStruct(FString FactionName);
+
+	UFUNCTION(BlueprintCallable)
+		TArray<FResearchStruct> GetFactionResearch(FString FactionName);
+
+	UFUNCTION(BlueprintCallable)
+		FFactionStruct GetFactionFromActor(AActor* Actor);
+
+	UFUNCTION(BlueprintCallable)
+		bool DoesFactionContainActor(FString FactionName, AActor* Actor);
 
 	void ComputeAI();
 

@@ -320,7 +320,7 @@ public:
 		TArray<FItemStruct> GetRebuildCost();
 
 	UFUNCTION(BlueprintCallable)
-		virtual void Rebuild();
+		virtual void Rebuild(FString NewFactionName = "");
 
 	virtual void Build(bool bRebuild = false, bool bUpgrade = false, int32 Grade = 0);
 

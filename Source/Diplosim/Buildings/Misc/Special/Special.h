@@ -13,7 +13,7 @@ class DIPLOSIM_API ASpecial : public AInternalProduction
 public:
 	ASpecial();
 
-	virtual void Rebuild() override;
+	virtual void Rebuild(FString NewFactionName = "") override;
 
 	virtual void Build(bool bRebuild = false, bool bUpgrade = false, int32 Grade = 0) override;
 

@@ -386,7 +386,7 @@ TArray<FItemStruct> ABuilding::GetRebuildCost()
 	return items;
 }
 
-void ABuilding::Rebuild()
+void ABuilding::Rebuild(FString NewFactionName)
 {
 	if (!Camera->bInstantBuildCheat) {
 		for (FItemStruct item : GetRebuildCost()) {
@@ -399,6 +399,8 @@ void ABuilding::Rebuild()
 			}
 		}
 	}
+
+	FactionName = NewFactionName;
 
 	Build(true);
 

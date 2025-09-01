@@ -43,6 +43,10 @@ void UConquestManager::CreateFactions(ABroch* EggTimer)
 	TArray<FString> factionsParsed;
 	factionNames.ParseIntoArray(factionsParsed, TEXT(","));
 
+	for (int32 i = factionsParsed.Num() - 1; i > -1; i--)
+		if (factions.Contains(factionsParsed[i]))
+			factions.RemoveAt(i);
+
 	TArray<FTileStruct*> validLocations;
 
 	for (int32 i = 0; i < AINum; i++) {
@@ -169,6 +173,46 @@ UTexture2D* UConquestManager::GetTextureFromCulture(FString Type)
 	}
 		
 	return texture;
+}
+
+FPoliticsStruct UConquestManager::GetFactionPoliticsStruct(FString FactionName)
+{
+	FFactionStruct faction = GetFactionFromName(FactionName);
+
+	return faction.Politics;
+}
+
+TArray<FResearchStruct> UConquestManager::GetFactionResearch(FString FactionName)
+{
+	FFactionStruct faction = GetFactionFromName(FactionName);
+
+	return faction.ResearchStruct;
+}
+
+FFactionStruct UConquestManager::GetFactionFromActor(AActor* Actor)
+{
+	FFactionStruct faction;
+
+	for (FFactionStruct f : Factions) {
+		if (!DoesFactionContainActor(faction.Name, Actor))
+			continue;
+
+		faction = f;
+
+		break;
+	}
+
+	return faction;
+}
+
+bool UConquestManager::DoesFactionContainActor(FString FactionName, AActor* Actor)
+{
+	if (Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->FactionName == "")
+		return true;
+
+	FFactionStruct faction = GetFactionFromName(FactionName);
+
+	return faction.Buildings.Contains(Actor) || faction.Citizens.Contains(Actor) || faction.Clones.Contains(Actor) || faction.Rebels.Contains(Actor);
 }
 
 void UConquestManager::ComputeAI()

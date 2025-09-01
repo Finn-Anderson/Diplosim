@@ -74,7 +74,7 @@ public:
 		void UpdateResolutionText();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void LawPassed(bool bPassed, int32 For, int32 Against);
+		void LawPassed(bool bPassed, const FString& Description, int32 For, int32 Against);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void DisplayWarning(const FString& Warning);
@@ -377,6 +377,9 @@ public:
 		void SetGameSpeed(float Speed);
 
 	void SetTimeDilation(float Dilation);
+
+	UFUNCTION(BlueprintCallable)
+		void DisplayInteractOnAI(AAI* AI);
 
 	UFUNCTION(BlueprintCallable)
 		void DisplayInteract(AActor* Actor, USceneComponent* Component = nullptr, int32 Instance = -1);

@@ -53,14 +53,19 @@ void UConstructionManager::RemoveBuilding(class ABuilding* Building)
 
 void UConstructionManager::FindBuilder(class ABuilding* Building)
 {
-	TArray<AActor*> foundBuilders;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilder::StaticClass(), foundBuilders);
+	FFactionStruct* faction = Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName);
+
+	TArray<ABuilder*> foundBuilders;
+	for (ABuilding* building : faction->Buildings) {
+		if (!building->IsA<ABuilder>())
+			continue;
+
+		foundBuilders.Add(Cast<ABuilder>(building));
+	}
 
 	ABuilder* target = nullptr;
 
-	for (int32 i = 0; i < foundBuilders.Num(); i++) {
-		ABuilder* builder = Cast<ABuilder>(foundBuilders[i]);
-
+	for (ABuilder* builder : foundBuilders) {
 		FConstructionStruct constructionStruct;
 		constructionStruct.Builder = builder;
 		constructionStruct.Building = builder;
@@ -106,7 +111,7 @@ void UConstructionManager::FindConstruction(class ABuilder* Builder)
 	int32 repairIndex = -1;
 
 	for (int32 i = 0; i < Construction.Num(); i++) {
-		if (Construction[i].Builder != nullptr)
+		if (Construction[i].Builder != nullptr || Construction[i].Building->FactionName != Builder->FactionName)
 			continue;
 
 		bool bCanMove = Builder->GetOccupied()[0]->AIController->CanMoveTo(Construction[i].Building->GetActorLocation());

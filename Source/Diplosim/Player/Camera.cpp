@@ -474,6 +474,13 @@ void ACamera::SetTimeDilation(float Dilation)
 	CustomTimeDilation = 1.0f / Dilation;
 }
 
+void ACamera::DisplayInteractOnAI(AAI* AI)
+{
+	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> hism = Grid->AIVisualiser->GetAIHISM(AI);
+
+	DisplayInteract(AI, hism.Key, hism.Value);
+}
+
 void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 Instance)
 {
 	if (!IsValid(Actor))

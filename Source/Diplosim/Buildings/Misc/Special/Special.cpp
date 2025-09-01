@@ -10,7 +10,7 @@ ASpecial::ASpecial()
 	HealthComponent->MaxHealth = 200;
 }
 
-void ASpecial::Rebuild()
+void ASpecial::Rebuild(FString NewFactionName)
 {
 	if (!Camera->ResearchManager->IsReseached("Unlock ancient buildings", FactionName)) {
 		Camera->DisplayWarning("Must research: Unlock Ancient Buildings");
