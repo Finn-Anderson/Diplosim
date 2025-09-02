@@ -802,7 +802,7 @@ void UCitizenManager::Loop()
 					if (IsValid(officer)) {
 						faction.Police.PoliceReports[i].RespondingOfficer = officer;
 
-						ToggleOfficerLights(officer, 1.0f);
+						Camera->Grid->AIVisualiser->ToggleOfficerLights(officer, 1.0f);
 
 						officer->AIController->AIMoveTo(witnesses[0]);
 					}
@@ -1553,7 +1553,7 @@ void UCitizenManager::GotoClosestWantedMan(ACitizen* Officer)
 		else {
 			faction->Police.PoliceReports.Remove(report);
 
-			ToggleOfficerLights(Officer, 0.0f);
+			Camera->Grid->AIVisualiser->ToggleOfficerLights(Officer, 0.0f);
 
 			Officer->AIController->DefaultAction();
 		}
@@ -1703,11 +1703,6 @@ void UCitizenManager::ItterateThroughSentences()
 			citizen->MovementComponent->Transform.SetLocation(citizen->Building.BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 		}
 	}
-}
-
-void UCitizenManager::ToggleOfficerLights(ACitizen* Officer, float Value)
-{
-	Officer->HatMesh->SetCustomPrimitiveDataFloat(1, Value);
 }
 
 void UCitizenManager::CeaseAllInternalFighting(FFactionStruct* Faction)

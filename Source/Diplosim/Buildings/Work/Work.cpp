@@ -16,6 +16,7 @@
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Work/Booster.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Universal/HealthComponent.h"
 
@@ -90,7 +91,7 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 
 	AddToWorkHours(Citizen, false);
 
-	Citizen->HatMesh->SetStaticMesh(nullptr);
+	Camera->Grid->AIVisualiser->RemoveCitizenFromHISMHat(Citizen);
 
 	Citizen->AIController->DefaultAction();
 
@@ -104,8 +105,8 @@ void AWork::Enter(ACitizen* Citizen)
 	if (!IsWorking(Citizen) && GetOccupied().Contains(Citizen))
 		Citizen->AIController->DefaultAction();
 
-	if (GetOccupied().Contains(Citizen) && Citizen->HatMesh->GetStaticMesh() != WorkHat)
-		Citizen->HatMesh->SetStaticMesh(WorkHat);
+	if (GetOccupied().Contains(Citizen) && !Camera->Grid->AIVisualiser->DoesCitizenHaveHat(Citizen))
+		Camera->Grid->AIVisualiser->AddCitizenToHISMHat(Citizen, WorkHat);
 }
 
 void AWork::AddToWorkHours(ACitizen* Citizen, bool bAdd)

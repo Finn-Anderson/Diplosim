@@ -4,7 +4,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "NiagaraComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/AudioComponent.h"
 #include "Components/SphereComponent.h"
@@ -21,6 +20,7 @@
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
+#include "Buildings/Misc/Broch.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Booster.h"
 #include "Buildings/Work/Service/Clinic.h"
@@ -38,13 +38,6 @@
 
 ACitizen::ACitizen()
 {
-	HatMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HatMesh"));
-	HatMesh->SetWorldScale3D(FVector(0.1f, 0.1f, 0.1f));
-	HatMesh->SetCollisionProfileName("NoCollision", false);
-	HatMesh->SetupAttachment(GetRootComponent(), "HatSocket");
-	HatMesh->SetCanEverAffectNavigation(false);
-	HatMesh->PrimaryComponentTick.bCanEverTick = false;
-
 	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
 	AmbientAudioComponent->SetupAttachment(RootComponent);
 	AmbientAudioComponent->SetVolumeMultiplier(0.0f);

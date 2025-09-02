@@ -227,8 +227,6 @@ public:
 
 	void ItterateThroughSentences();
 
-	void ToggleOfficerLights(class ACitizen* Officer, float Value);
-
 	void CeaseAllInternalFighting(FFactionStruct* Faction);
 
 	int32 GetPoliceReportIndex(class ACitizen* Citizen);

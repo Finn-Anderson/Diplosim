@@ -344,10 +344,6 @@ public:
 	UPROPERTY()
 		float VoicePitch;
 
-	// Cosmetics
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
-		class UStaticMeshComponent* HatMesh;
-
 	// Education
 	bool CanAffordEducationLevel();
 

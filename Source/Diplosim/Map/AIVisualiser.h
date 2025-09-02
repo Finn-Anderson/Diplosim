@@ -119,6 +119,28 @@ enum class EFactionType : uint8
 	Same
 };
 
+USTRUCT(BlueprintType)
+struct FHatsStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
+	class UHierarchicalInstancedStaticMeshComponent* HISMHat;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
+	TArray<ACitizen*> Citizens;
+
+	FHatsStruct()
+	{
+		HISMHat = nullptr;
+	}
+
+	bool operator==(const FHatsStruct& other) const
+	{
+		return (other.HISMHat == HISMHat);
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UAIVisualiser : public UActorComponent
 {
@@ -205,4 +227,25 @@ public:
 	FCriticalSection BuildingDeathLock;
 
 	FCriticalSection BuildingRotationLock;
+
+	// Hats
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
+		TArray<FHatsStruct> HISMHats;
+
+	FTransform GetHatTransform(ACitizen* Citizen);
+
+	void AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh);
+
+	void RemoveCitizenFromHISMHat(ACitizen* Citizen);
+
+	void UpdateHatsTransforms(ACamera* Camera);
+
+	bool DoesCitizenHaveHat(ACitizen* Citizen);
+
+	void ToggleOfficerLights(ACitizen* Citizen, float Value);
+
+	UPROPERTY()
+		int32 hatsNum;
+
+	FCriticalSection HatLock;
 };

@@ -90,6 +90,8 @@ UAIVisualiser::UAIVisualiser()
 	HarvestNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	HarvestNiagaraComponent->bAutoActivate = true;
 
+	hatsNum = 0;
+
 	// ECC_WorldDynamic, ECC_Pawn, ECC_GameTraceChannel2, ECC_GameTraceChannel3, ECC_GameTraceChannel4: Consider ECR_Block
 }
 
@@ -127,8 +129,9 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 		PendingChange.Empty();
 
 	CalculateCitizenMovement(Camera);
+	UpdateHatsTransforms(Camera);
 
-	CalculateAIMovement(Camera); 
+	CalculateAIMovement(Camera);
 
 	CalculateBuildingDeath();
 
@@ -217,7 +220,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 	TArray<AAI*> clones;
 
 	for (FFactionStruct faction : Camera->ConquestManager->Factions)
-		clones.Append(faction.Citizens);
+		clones.Append(faction.Clones);
 
 	if (clones.IsEmpty() && Camera->CitizenManager->Enemies.IsEmpty())
 		return;
@@ -469,17 +472,10 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
-	int32 numCustomData = 9;
-
-	if (info.Key == HISMCitizen)
-		numCustomData = 13;
-	else if (info.Key == HISMRebel)
-		numCustomData = 12;
-
-	position.X = info.Key->PerInstanceSMCustomData[info.Value * numCustomData + 4];
-	position.Y = info.Key->PerInstanceSMCustomData[info.Value * numCustomData + 5];
-	position.Z = info.Key->PerInstanceSMCustomData[info.Value * numCustomData + 6];
-	rotation.Pitch = info.Key->PerInstanceSMCustomData[info.Value * numCustomData + 7];
+	position.X = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 4];
+	position.Y = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 5];
+	position.Z = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 6];
+	rotation.Pitch = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7];
 
 	FTransform transform;
 	transform.SetLocation(position);
@@ -562,4 +558,101 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 	}
 
 	return actors;
+}
+
+//
+// Hats
+//
+FTransform UAIVisualiser::GetHatTransform(ACitizen* Citizen)
+{
+	FTransform transform = Citizen->MovementComponent->Transform + GetAnimationPoint(Citizen);
+	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, HISMCitizen->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2.0f));
+
+	return transform;
+}
+
+void UAIVisualiser::AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh)
+{
+	for (FHatsStruct& hat : HISMHats) {
+		if (hat.HISMHat->GetStaticMesh() != HatMesh)
+			continue;
+
+		hat.Citizens.Add(Citizen);
+		hat.HISMHat->AddInstance(GetHatTransform(Citizen));
+
+		hatsNum++;
+
+		break;
+	}
+}
+
+void UAIVisualiser::RemoveCitizenFromHISMHat(ACitizen* Citizen)
+{
+	for (FHatsStruct& hat : HISMHats) {
+		if (!hat.Citizens.Contains(Citizen))
+			continue;
+
+		hat.Citizens.Remove(Citizen);
+
+		hatsNum--;
+
+		break;
+	}
+}
+
+void UAIVisualiser::UpdateHatsTransforms(ACamera* Camera)
+{
+	if (hatsNum == 0)
+		return;
+
+	Async(EAsyncExecution::Thread, [this, Camera]() {
+		FScopeTryLock lock(&HatLock);
+		if (!lock.IsLocked())
+			return;
+
+		for (FHatsStruct& hat : HISMHats) {
+			if (hat.Citizens.IsEmpty())
+				continue;
+
+			for (int32 i = 0; i < hat.Citizens.Num(); i++) {
+				FTransform transform = GetHatTransform(hat.Citizens[i]);
+
+				FInstancedStaticMeshInstanceData& instanceData = hat.HISMHat->PerInstanceSMData[i];
+
+				if (instanceData.Transform == transform.ToMatrixWithScale())
+					return;
+
+				instanceData.Transform = transform.ToMatrixWithScale();
+
+				FBodyInstance*& InstanceBodyInstance = hat.HISMHat->InstanceBodies[i];
+				hat.HISMHat->UnbuiltInstanceBoundsList.Add(InstanceBodyInstance->GetBodyBounds());
+			}
+
+			AsyncTask(ENamedThreads::GameThread, [this, hat]() { hat.HISMHat->BuildTreeIfOutdated(false, false); });
+		}
+	});
+}
+
+bool UAIVisualiser::DoesCitizenHaveHat(ACitizen* Citizen)
+{
+	for (FHatsStruct& hat : HISMHats) {
+		if (!hat.Citizens.Contains(Citizen))
+			continue;
+
+		return true;
+	}
+
+	return false;
+}
+
+void UAIVisualiser::ToggleOfficerLights(ACitizen* Citizen, float Value)
+{
+	for (FHatsStruct& hat : HISMHats) {
+		if (!hat.Citizens.Contains(Citizen))
+			continue;
+
+		int32 instance = hat.Citizens.Find(Citizen);
+
+		hat.HISMHat->PerInstanceSMCustomData[instance * hat.HISMHat->NumCustomDataFloats + 1] = Value;
+	}
 }
