@@ -146,6 +146,8 @@ void ACamera::BeginPlay()
 	PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PController->bEnableClickEvents = true;
 
+	ConquestManager->CreatePlayerFaction();
+
 	SetMouseCapture(false);
 
 	GetWorld()->bIsCameraMoveableWhenPaused = false;
@@ -314,6 +316,8 @@ void ACamera::OnBrochPlace(ABuilding* EggTimer)
 	if (PauseUIInstance->IsInViewport())
 		Pause();
 
+	ColonyName = TypedColonyName;
+
 	bBlockPause = true;
 
 	Grid->BuildSpecialBuildings();
@@ -334,7 +338,7 @@ void ACamera::OnBrochPlace(ABuilding* EggTimer)
 
 	CitizenManager->StartDiseaseTimer();
 
-	ConquestManager->CreateFactions(Cast<ABroch>(EggTimer));
+	ConquestManager->FinaliseFactions(Cast<ABroch>(EggTimer));
 
 	Start = false;
 

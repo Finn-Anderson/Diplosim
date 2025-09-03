@@ -1410,13 +1410,12 @@ void ACitizen::SetPoliticalLeanings()
 			partyStruct.Party = partyList[index];
 
 			int32 i = faction->Politics.Parties.Find(partyStruct);
+			party = &faction->Politics.Parties[i];
 
-			faction->Politics.Parties[i].Members.Add(this, ESway::Moderate);
-
-			party = Camera->CitizenManager->GetMembersParty(this);
+			party->Members.Add(this, ESway::Moderate);
 			sway = party->Members.Find(this);
 
-			if (faction->Politics.Parties[i].Party == "Shell Breakers" && Camera->CitizenManager->IsRebellion(faction))
+			if (party->Party == "Shell Breakers" && Camera->CitizenManager->IsRebellion(faction))
 				Camera->CitizenManager->SetupRebel(faction, this);
 		}
 

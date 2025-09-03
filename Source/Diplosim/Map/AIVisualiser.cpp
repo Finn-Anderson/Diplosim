@@ -5,6 +5,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "Misc/ScopeTryLock.h"
+#include "EngineUtils.h"
 
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -90,9 +91,34 @@ UAIVisualiser::UAIVisualiser()
 	HarvestNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	HarvestNiagaraComponent->bAutoActivate = true;
 
+	HatsContainer = CreateDefaultSubobject<USceneComponent>(TEXT("HatsContainer"));
+	HatsContainer->SetupAttachment(AIContainer);
+
 	hatsNum = 0;
 
 	// ECC_WorldDynamic, ECC_Pawn, ECC_GameTraceChannel2, ECC_GameTraceChannel3, ECC_GameTraceChannel4: Consider ECR_Block
+}
+
+void UAIVisualiser::BeginPlay()
+{
+	Super::BeginPlay();
+
+	for (auto& element : HatsMeshesList) {
+		FString name = element.Key->GetName() + "Component";
+
+		FHatsStruct hatsStruct;
+		hatsStruct.HISMHat = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass(), *name);
+		hatsStruct.HISMHat->SetStaticMesh(element.Key);
+		hatsStruct.HISMHat->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		hatsStruct.HISMHat->SetCanEverAffectNavigation(false);
+		hatsStruct.HISMHat->SetGenerateOverlapEvents(false);
+		hatsStruct.HISMHat->bWorldPositionOffsetWritesVelocity = false;
+		hatsStruct.HISMHat->bAutoRebuildTreeOnInstanceChanges = false;
+		hatsStruct.HISMHat->NumCustomDataFloats = element.Value;
+		hatsStruct.HISMHat->RegisterComponent();
+
+		HISMHats.Add(hatsStruct);
+	}
 }
 
 void UAIVisualiser::MainLoop(ACamera* Camera)
@@ -470,14 +496,18 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 	FVector position = FVector::Zero();
 	FRotator rotation = FRotator::ZeroRotator;
 
+	FTransform transform;
+
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
+
+	if (!IsValid(info.Key) || info.Key->GetNumInstances() == 0)
+		return transform;
 
 	position.X = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 4];
 	position.Y = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 5];
 	position.Z = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 6];
 	rotation.Pitch = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7];
 
-	FTransform transform;
 	transform.SetLocation(position);
 	transform.SetRotation(rotation.Quaternion());
 

@@ -2231,12 +2231,11 @@ bool UCitizenManager::UpcomingProtest(FFactionStruct* Faction)
 FPartyStruct* UCitizenManager::GetMembersParty(ACitizen* Citizen)
 {
 	FPartyStruct* partyStruct = nullptr;
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
 
-	for (FFactionStruct faction : Camera->ConquestManager->Factions) {
-		for (FPartyStruct& party : faction.Politics.Parties) {
-			TEnumAsByte<ESway>* sway = party.Members.Find(Citizen);
-
-			if (sway == nullptr)
+	if (faction != nullptr) {
+		for (FPartyStruct& party : faction->Politics.Parties) {
+			if (!party.Members.Contains(Citizen))
 				continue;
 
 			partyStruct = &party;
@@ -2244,7 +2243,6 @@ FPartyStruct* UCitizenManager::GetMembersParty(ACitizen* Citizen)
 			break;
 		}
 	}
-	
 
 	return partyStruct;
 }

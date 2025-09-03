@@ -149,6 +149,10 @@ class DIPLOSIM_API UAIVisualiser : public UActorComponent
 public:	
 	UAIVisualiser();
 
+protected:
+	virtual void BeginPlay() override;
+
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class USceneComponent* AIContainer;
 
@@ -229,8 +233,14 @@ public:
 	FCriticalSection BuildingRotationLock;
 
 	// Hats
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class USceneComponent* HatsContainer;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
 		TArray<FHatsStruct> HISMHats;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
+		TMap<UStaticMesh*, int32> HatsMeshesList;
 
 	FTransform GetHatTransform(ACitizen* Citizen);
 

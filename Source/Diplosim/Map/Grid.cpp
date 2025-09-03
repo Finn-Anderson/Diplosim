@@ -1660,7 +1660,7 @@ void AGrid::SetSpecialBuildingStatus(ASpecial* Building, bool bShow)
 {
 	Building->SetActorHiddenInGame(!bShow);
 
-	Camera->BuildComponent->SetTreeStatus(Building, false, bShow);
+	Camera->BuildComponent->SetTreeStatus(Building, false, !bShow);
 }
 
 void AGrid::BuildSpecialBuildings()

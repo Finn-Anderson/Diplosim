@@ -165,6 +165,9 @@ public:
 		FString ColonyName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
+		FString TypedColonyName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
 		int32 CitizenNum;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Start")

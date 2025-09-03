@@ -193,19 +193,20 @@ struct FFactionResourceStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-	TSubclassOf<class AResource> Type;
+		TSubclassOf<class AResource> Type;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-	int32 Committed;
+		int32 Committed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-	int32 LastHourAmount;
+		int32 LastHourAmount;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-	TMap<int32, int32> HourlyTrend;
+		TMap<int32, int32> HourlyTrend;
 
 	FFactionResourceStruct()
 	{
+		Type = nullptr;
 		Committed = 0;
 		LastHourAmount = 0;
 		for (int32 i = 0; i < 24; i++)
@@ -443,7 +444,11 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	void CreateFactions(class ABroch* EggTimer);
+	FFactionStruct InitialiseFaction(FString Name);
+
+	void CreatePlayerFaction();
+
+	void FinaliseFactions(class ABroch* EggTimer);
 
 	UFUNCTION(BlueprintCallable)
 		class ABuilding* DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<class ABuilding> BuildingClass);

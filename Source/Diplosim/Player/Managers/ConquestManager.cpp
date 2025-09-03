@@ -32,10 +32,39 @@ void UConquestManager::BeginPlay()
 	Camera = Cast<ACamera>(GetOwner());
 }
 
-void UConquestManager::CreateFactions(ABroch* EggTimer)
+FFactionStruct UConquestManager::InitialiseFaction(FString Name)
 {
+	FFactionStruct faction;
+	faction.Name = Name;
+
+	faction.ResearchStruct = Camera->ResearchManager->InitResearchStruct;
+
+	faction.Politics.Parties = Camera->CitizenManager->InitParties;
+	faction.Politics.Laws = Camera->CitizenManager->InitLaws;
+	faction.Events = Camera->CitizenManager->InitEvents;
+
+	for (FResourceStruct resource : Camera->ResourceManager->ResourceList) {
+		FFactionResourceStruct factionResource;
+		factionResource.Type = resource.Type;
+
+		faction.Resources.Add(factionResource);
+	}
+
+	return faction;
+}
+
+void UConquestManager::CreatePlayerFaction()
+{
+	Factions.Add(InitialiseFaction(Camera->ColonyName));
+}
+
+void UConquestManager::FinaliseFactions(ABroch* EggTimer)
+{
+	Factions[0].Name = Camera->ColonyName;
+	Factions[0].EggTimer = EggTimer;
+	EggTimer->FactionName = Camera->ColonyName;
+
 	TArray<FString> factions;
-	factions.Add(Camera->ColonyName);
 
 	FString factionNames;
 	FFileHelper::LoadFileToString(factionNames, *(FPaths::ProjectDir() + "/Content/Custom/Colony/ColonyNames.txt"));
@@ -58,66 +87,55 @@ void UConquestManager::CreateFactions(ABroch* EggTimer)
 	}
 
 	for (FString name : factions) {
-		FFactionStruct f;
-		f.Name = name;
+		FFactionStruct f = InitialiseFaction(name);
 
-		f.ResearchStruct = Camera->ResearchManager->InitResearchStruct;
+		FActorSpawnParameters params;
+		params.bNoFail = true;
 
-		f.Politics.Parties = Camera->CitizenManager->InitParties;
-		f.Politics.Laws = Camera->CitizenManager->InitLaws;
-		f.Events = Camera->CitizenManager->InitEvents;
+		ABroch* eggTimer = GetWorld()->SpawnActor<ABroch>(EggTimer->GetClass(), FVector::Zero(), FRotator::ZeroRotator, params);
 
-		if (f.Name == Camera->ColonyName) {
-			f.EggTimer = EggTimer;
-		}
-		else {
-			FActorSpawnParameters params;
-			params.bNoFail = true;
+		for (TArray<FTileStruct*> tiles : Camera->Grid->ValidMineralTiles) {
+			FTileStruct* tile = tiles[0];
 
-			ABroch* eggTimer = GetWorld()->SpawnActor<ABroch>(EggTimer->GetClass(), FVector::Zero(), FRotator::ZeroRotator, params);
+			eggTimer->SetActorLocation(Camera->Grid->GetTransform(tile).GetLocation());
 
-			for (TArray<FTileStruct*> tiles : Camera->Grid->ValidMineralTiles) {
-				FTileStruct* tile = tiles[0];
+			if (!Camera->BuildComponent->IsValidLocation(eggTimer))
+				continue;
 
-				eggTimer->SetActorLocation(Camera->Grid->GetTransform(tile).GetLocation());
+			bool bTooCloseToAnotherFaction = false;
 
-				if (!Camera->BuildComponent->IsValidLocation(eggTimer))
+			for (FFactionStruct& faction : Factions) {
+				double dist = FVector::Dist(faction.EggTimer->GetActorLocation(), eggTimer->GetActorLocation());
+
+				if (dist > 3000.0f)
 					continue;
 
-				bool bTooCloseToAnotherFaction = false;
+				bTooCloseToAnotherFaction = true;
 
-				for (FFactionStruct& faction : Factions) {
-					double dist = FVector::Dist(faction.EggTimer->GetActorLocation(), eggTimer->GetActorLocation());
-
-					if (dist > 3000.0f)
-						continue;
-
-					bTooCloseToAnotherFaction = true;
-
-					break;
-				}
-
-				if (!bTooCloseToAnotherFaction)
-					validLocations.Add(tile);
+				break;
 			}
 
-			int32 index = Camera->Grid->Stream.RandRange(0, validLocations.Num() - 1);
-			FTileStruct* chosenTile = validLocations[index];
-
-			eggTimer->SetActorLocation(Camera->Grid->GetTransform(chosenTile).GetLocation());
-
-			f.EggTimer = eggTimer;
+			if (!bTooCloseToAnotherFaction)
+				validLocations.Add(tile);
 		}
 
-		f.EggTimer->FactionName = f.Name;
+		int32 index = Camera->Grid->Stream.RandRange(0, validLocations.Num() - 1);
+		FTileStruct* chosenTile = validLocations[index];
 
-		f.EggTimer->SpawnCitizens();
+		eggTimer->SetActorLocation(Camera->Grid->GetTransform(chosenTile).GetLocation());
+		eggTimer->FactionName = f.Name;
 
-		Camera->CitizenManager->Election(&f);
-
-		SetFactionCulture(&f);
+		f.EggTimer = eggTimer;
 
 		Factions.Add(f);
+	}
+
+	for (FFactionStruct& faction : Factions) {
+		faction.EggTimer->SpawnCitizens();
+
+		Camera->CitizenManager->Election(&faction);
+
+		SetFactionCulture(&faction);
 	}
 
 	Camera->SetFactionsInDiplomacyUI();
@@ -290,7 +308,7 @@ FFactionStruct* UConquestManager::GetFaction(FString Name, AActor* Actor)
 	FFactionStruct* faction = nullptr;
 
 	for (FFactionStruct& f : Factions) {
-		if (f.Name != Name && !f.Citizens.Contains(Actor) && f.Buildings.Contains(Actor) && f.Rebels.Contains(Actor))
+		if (f.Name != Name && !f.Citizens.Contains(Actor) && !f.Buildings.Contains(Actor) && !f.Rebels.Contains(Actor))
 			continue;
 
 		faction = &f;
