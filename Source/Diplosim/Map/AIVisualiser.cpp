@@ -95,6 +95,11 @@ UAIVisualiser::UAIVisualiser()
 	HatsContainer->SetupAttachment(AIContainer);
 
 	hatsNum = 0;
+	bCitizensMoving = false;
+	bAIMoving = false;
+	bBuildingsDying = false;
+	bBuildingsRotating = false;
+	bHatsMoving = false;
 
 	// ECC_WorldDynamic, ECC_Pawn, ECC_GameTraceChannel2, ECC_GameTraceChannel3, ECC_GameTraceChannel4: Consider ECR_Block
 }
@@ -166,21 +171,29 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 
 void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 {
-	TArray<ACitizen*> cs;
-	TArray<ACitizen*> rebels;
-
-	for (FFactionStruct faction : Camera->ConquestManager->Factions) {
-		cs.Append(faction.Citizens);
-		rebels.Append(faction.Rebels);
-	}
-
-	if (cs.IsEmpty() && rebels.IsEmpty())
+	if (bCitizensMoving)
 		return;
 
-	Async(EAsyncExecution::Thread, [this, Camera, cs, rebels]() {
+	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
 		FScopeTryLock lock(&CitizenMovementLock);
 		if (!lock.IsLocked())
 			return;
+
+		bCitizensMoving = true;
+
+		TArray<ACitizen*> cs;
+		TArray<ACitizen*> rebels;
+
+		for (FFactionStruct faction : Camera->ConquestManager->Factions) {
+			cs.Append(faction.Citizens);
+			rebels.Append(faction.Rebels);
+		}
+
+		if (cs.IsEmpty() && rebels.IsEmpty()) {
+			bCitizensMoving = false;
+
+			return;
+		}
 
 		TArray<FVector> diseaseLocations;
 		TArray<FVector> torchLocations;
@@ -193,7 +206,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 			for (int32 j = 0; j < citizens[i].Num(); j++) {
 				ACitizen* citizen = citizens[i][j];
 
-				if (!IsValid(citizen) || citizen->IsPendingKillPending())
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() == 0)
 					continue;
 
 				citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
@@ -238,11 +251,16 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 			diseaseLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations"));
 			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
 		}
+
+		bCitizensMoving = false;
 	});
 }
 
 void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 {
+	if (bAIMoving)
+		return;
+
 	TArray<AAI*> clones;
 
 	for (FFactionStruct faction : Camera->ConquestManager->Factions)
@@ -251,10 +269,12 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 	if (clones.IsEmpty() && Camera->CitizenManager->Enemies.IsEmpty())
 		return;
 
-	Async(EAsyncExecution::Thread, [this, Camera, clones]() {
+	Async(EAsyncExecution::TaskGraph, [this, Camera, clones]() {
 		FScopeTryLock lock(&AIMovementLock);
 		if (!lock.IsLocked())
 			return;
+
+		bAIMoving = true;
 
 		TArray<TArray<AAI*>> ais;
 		ais.Add(clones);
@@ -264,9 +284,10 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 			for (int32 j = 0; j < ais[i].Num(); j++) {
 				AAI* ai = ais[i][j];
 
-				if (!IsValid(ai) || ai->IsPendingKillPending())
+				if (!IsValid(ai) || ai->HealthComponent->GetHealth() == 0)
+					continue;
 
-					ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
+				ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
 
 				if (i == 0)
 					SetInstanceTransform(HISMClone, j, ai->MovementComponent->Transform);
@@ -279,18 +300,22 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 			else if (!ais[i].IsEmpty())
 				AsyncTask(ENamedThreads::GameThread, [this]() { HISMEnemy->BuildTreeIfOutdated(false, false); });
 		}
+
+		bAIMoving = false;
 	});
 }
 
 void UAIVisualiser::CalculateBuildingDeath()
 {
-	if (DestructingBuildings.IsEmpty())
+	if (bBuildingsDying || DestructingBuildings.IsEmpty())
 		return;
 
-	Async(EAsyncExecution::Thread, [this]() {
+	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&BuildingDeathLock);
 		if (!lock.IsLocked())
 			return;
+
+		bBuildingsDying = true;
 
 		for (int32 i = DestructingBuildings.Num() - 1; i > -1; i--) {
 			ABuilding* building = DestructingBuildings[i];
@@ -306,18 +331,22 @@ void UAIVisualiser::CalculateBuildingDeath()
 				DestructingBuildings.RemoveAt(i);
 			}
 		}
+
+		bBuildingsDying = false;
 	});
 }
 
 void UAIVisualiser::CalculateBuildingRotation()
 {
-	if (RotatingBuildings.IsEmpty())
+	if (bBuildingsRotating || RotatingBuildings.IsEmpty())
 		return;
 
-	Async(EAsyncExecution::Thread, [this]() {
+	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&BuildingRotationLock);
 		if (!lock.IsLocked())
 			return;
+
+		bBuildingsRotating = true;
 
 		for (int32 i = RotatingBuildings.Num() - 1; i > -1; i--) {
 			AResearch* building = RotatingBuildings[i];
@@ -334,7 +363,9 @@ void UAIVisualiser::CalculateBuildingRotation()
 			if (alpha == 1.0f)
 				RotatingBuildings.RemoveAt(i);
 		}
-		});
+
+		bBuildingsRotating = false;
+	});
 }
 
 void UAIVisualiser::AddInstance(class AAI* AI, UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform)
@@ -632,13 +663,15 @@ void UAIVisualiser::RemoveCitizenFromHISMHat(ACitizen* Citizen)
 
 void UAIVisualiser::UpdateHatsTransforms(ACamera* Camera)
 {
-	if (hatsNum == 0)
+	if (bHatsMoving || hatsNum == 0)
 		return;
 
 	Async(EAsyncExecution::Thread, [this, Camera]() {
 		FScopeTryLock lock(&HatLock);
 		if (!lock.IsLocked())
 			return;
+
+		bHatsMoving = false;
 
 		for (FHatsStruct& hat : HISMHats) {
 			if (hat.Citizens.IsEmpty())
@@ -660,6 +693,8 @@ void UAIVisualiser::UpdateHatsTransforms(ACamera* Camera)
 
 			AsyncTask(ENamedThreads::GameThread, [this, hat]() { hat.HISMHat->BuildTreeIfOutdated(false, false); });
 		}
+
+		bHatsMoving = true;
 	});
 }
 

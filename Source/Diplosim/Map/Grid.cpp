@@ -203,9 +203,8 @@ void AGrid::BeginPlay()
 	for (FResourceHISMStruct& ResourceStruct : MineralStruct)
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 
-	for (TSubclassOf<ASpecial> specialClass : SpecialBuildingClasses) {
+	for (TSubclassOf<ASpecial> specialClass : SpecialBuildingClasses)
 		SpecialBuildings.Add(GetWorld()->SpawnActor<ASpecial>(specialClass, FVector::Zero(), FRotator(0.0f)));
-	}
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
@@ -1665,9 +1664,14 @@ void AGrid::SetSpecialBuildingStatus(ASpecial* Building, bool bShow)
 
 void AGrid::BuildSpecialBuildings()
 {
-	for (ASpecial* building : SpecialBuildings) {
-		if (building->IsHidden())
+	for (int32 i = SpecialBuildings.Num() - 1; i > -1; i--) {
+		ASpecial* building = SpecialBuildings[i];
+
+		if (building->IsHidden()) {
 			building->Destroy();
+
+			SpecialBuildings.RemoveAt(i);
+		}
 		else
 			Camera->BuildComponent->SetTreeStatus(building, true);
 	}

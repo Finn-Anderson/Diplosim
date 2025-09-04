@@ -70,7 +70,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 {
 	int32 money = Citizen->GetLeftoverMoney();
 
-	if (Citizen->BioStruct.Partner->IsValidLowLevelFast())
+	if (Citizen->BioStruct.Partner != nullptr)
 		money += Citizen->GetLeftoverMoney();
 	
 	TArray<ACitizen*> favourites;
@@ -114,7 +114,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 		else
 			child->BioStruct.Father = Citizen;
 
-		if (Citizen->BioStruct.Partner->IsValidLowLevelFast()) {
+		if (Citizen->BioStruct.Partner != nullptr) {
 			if (Citizen->BioStruct.Partner->BioStruct.Sex == ESex::Female)
 				child->BioStruct.Mother = Citizen->BioStruct.Partner;
 			else

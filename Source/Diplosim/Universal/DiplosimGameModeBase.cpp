@@ -15,6 +15,7 @@
 #include "Map/AIVisualiser.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Misc/Special/CloneLab.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
@@ -78,7 +79,7 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		FWaveStruct wave = WavesData[i];
 
 		for (FDiedToStruct diedTo : wave.DiedTo) {
-			if (!diedTo.Actor->IsValidLowLevelFast() || diedTo.Actor->IsA<ACitizen>())
+			if (diedTo.Actor == nullptr || diedTo.Actor->IsA<ACitizen>())
 				continue;
 
 			if (threats.Contains(diedTo)) {
@@ -326,6 +327,15 @@ void ADiplosimGameModeBase::SpawnAllEnemies(TArray<FVector> SpawnLocations)
 
 	FTimerHandle crystalTimer;
 	GetWorld()->GetTimerManager().SetTimer(crystalTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::ShowRaidCrystal, false, FVector(0.0f, 0.0f, -1000.0f)), 0.1f * count, false);
+
+	for (ASpecial* building : Camera->Grid->SpecialBuildings) {
+		if (!building->IsA<ACloneLab>())
+			continue;
+
+		Cast<ACloneLab>(building)->StartCloneLab();
+
+		break;
+	}
 
 	Camera->DisplayEvent("Event", "Raid");
 }

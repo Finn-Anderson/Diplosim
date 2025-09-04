@@ -203,10 +203,10 @@ void UHealthComponent::Clear(FFactionStruct* Faction, AActor* Attacker)
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
-		if (citizen->BioStruct.Mother->IsValidLowLevelFast())
+		if (citizen->BioStruct.Mother != nullptr)
 			citizen->BioStruct.Mother->BioStruct.Children.Remove(citizen);
 
-		if (citizen->BioStruct.Father->IsValidLowLevelFast())
+		if (citizen->BioStruct.Father != nullptr)
 			citizen->BioStruct.Father->BioStruct.Children.Remove(citizen);
 
 		for (ACitizen* sibling : citizen->BioStruct.Siblings)

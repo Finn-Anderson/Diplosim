@@ -150,7 +150,7 @@ void ACitizen::ClearCitizen()
 
 	if (IsValid(Building.House)) {
 		if (Building.House->GetOccupied().Contains(this)) {
-			if (BioStruct.Partner->IsValidLowLevelFast()) {
+			if (BioStruct.Partner != nullptr) {
 				Building.House->RemoveVisitor(this, Cast<ACitizen>(BioStruct.Partner));
 
 				int32 index = Building.House->GetOccupied().Find(this);
@@ -354,7 +354,7 @@ void ACitizen::FindHouse(class AHouse* House, int32 TimeToCompleteDay)
 
 		double magnitude = AIController->GetClosestActor(400.0f, workLocation, chosenHouse->GetActorLocation(), House->GetActorLocation(), true, currentValue, newValue);
 
-		if (BioStruct.Partner->IsValidLowLevelFast() && IsValid(BioStruct.Partner->Building.Employment)) {
+		if (BioStruct.Partner != nullptr && IsValid(BioStruct.Partner->Building.Employment)) {
 			FVector partnerWorkLoc = BioStruct.Partner->Building.Employment->GetActorLocation();
 
 			double m = AIController->GetClosestActor(400.0f, partnerWorkLoc, chosenHouse->GetActorLocation(), House->GetActorLocation(), true, currentValue, newValue);
@@ -647,7 +647,7 @@ int32 ACitizen::GetLeftoverMoney()
 
 		int32 modifier = 1;
 
-		if (BioStruct.Partner->IsValidLowLevelFast() && IsValid(BioStruct.Partner->Building.Employment))
+		if (BioStruct.Partner != nullptr && IsValid(BioStruct.Partner->Building.Employment))
 			modifier = 2;
 
 		money -= (cost * maxF) / modifier;
@@ -817,7 +817,7 @@ void ACitizen::LoseEnergy()
 		TArray<TWeakObjectPtr<ACitizen>> parents = { BioStruct.Mother, BioStruct.Father };
 
 		for (TWeakObjectPtr<ACitizen> parent : parents) {
-			if (!parent->IsValidLowLevelFast() || !IsValid(parent->Building.House))
+			if (parent == nullptr || !IsValid(parent->Building.House))
 				continue;
 
 			AIController->AIMoveTo(parent->Building.House);
@@ -1239,12 +1239,12 @@ void ACitizen::RemoveFromHouse()
 
 				Building.House->RemoveVisitor(Building.House->GetOccupant(this), this);
 
-				if (BioStruct.Mother->IsValidLowLevelFast()) {
+				if (BioStruct.Mother != nullptr) {
 					BioStruct.Mother = nullptr;
 					BioStruct.Mother->BioStruct.Children.Remove(this);
 				}
 
-				if (BioStruct.Father->IsValidLowLevelFast()) {
+				if (BioStruct.Father != nullptr) {
 					BioStruct.Father = nullptr;
 					BioStruct.Father->BioStruct.Children.Remove(this);
 				}
@@ -1435,19 +1435,19 @@ void ACitizen::SetReligion()
 
 	TArray<FString> religionList;
 
-	if (BioStruct.Father->IsValidLowLevelFast()) {
+	if (BioStruct.Father != nullptr) {
 		Spirituality.FathersFaith = BioStruct.Father->Spirituality.Faith;
 
 		religionList.Add(Spirituality.FathersFaith);
 	}
 
-	if (BioStruct.Mother->IsValidLowLevelFast()) {
+	if (BioStruct.Mother != nullptr) {
 		Spirituality.MothersFaith = BioStruct.Mother->Spirituality.Faith;
 
 		religionList.Add(Spirituality.MothersFaith);
 	}
 
-	if (BioStruct.Partner->IsValidLowLevelFast())
+	if (BioStruct.Partner != nullptr)
 		religionList.Add(BioStruct.Partner->Spirituality.Faith);
 
 	religionList.Add(Spirituality.Faith);

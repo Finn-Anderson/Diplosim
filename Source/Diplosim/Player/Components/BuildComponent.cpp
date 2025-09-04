@@ -781,7 +781,7 @@ void UBuildComponent::Place(bool bQuick)
 
 void UBuildComponent::QuickPlace()
 {
-	if (Camera->Start || BuildingToMove->IsValidLowLevelFast()) {
+	if (Camera->Start || BuildingToMove != nullptr) {
 		Place();
 
 		return;

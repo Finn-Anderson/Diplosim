@@ -115,7 +115,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 		}
 	}
 
-	Async(EAsyncExecution::Thread, [this, DeltaTime]() {
+	Async(EAsyncExecution::TaskGraph, [this, DeltaTime]() {
 		FScopeTryLock lock(&RainLock);
 		if (!lock.IsLocked())
 			return;

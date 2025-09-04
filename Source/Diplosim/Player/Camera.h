@@ -65,7 +65,7 @@ public:
 		void UpdateResourceCapacityText(const FString& Category);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateUI();
+		void UpdateUI(float Happiness, float Rebels);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void SaveSettings();

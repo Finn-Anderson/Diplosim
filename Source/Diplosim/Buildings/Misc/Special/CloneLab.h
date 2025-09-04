@@ -13,6 +13,8 @@ public:
 	ACloneLab();
 
 public:
+	void StartCloneLab();
+
 	virtual void Production(class ACitizen* Citizen) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clone")

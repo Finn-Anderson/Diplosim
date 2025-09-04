@@ -225,12 +225,24 @@ public:
 		TArray<class AResearch*> RotatingBuildings;
 
 	FCriticalSection CitizenMovementLock;
+	
+	UPROPERTY()
+		bool bCitizensMoving;
 
 	FCriticalSection AIMovementLock;
 
+	UPROPERTY()
+		bool bAIMoving;
+
 	FCriticalSection BuildingDeathLock;
 
+	UPROPERTY()
+		bool bBuildingsDying;
+
 	FCriticalSection BuildingRotationLock;
+
+	UPROPERTY()
+		bool bBuildingsRotating;
 
 	// Hats
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
@@ -258,4 +270,7 @@ public:
 		int32 hatsNum;
 
 	FCriticalSection HatLock;
+
+	UPROPERTY()
+		bool bHatsMoving;
 };

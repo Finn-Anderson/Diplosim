@@ -12,9 +12,19 @@ ACloneLab::ACloneLab()
 	TimeLength = 30.0f;
 }
 
+void ACloneLab::StartCloneLab()
+{
+	if (FactionName == "" || Camera->CitizenManager->DoesTimerExist("Internal", this))
+		return;
+
+	SetTimer();
+}
+
 void ACloneLab::Production(ACitizen* Citizen)
 {
-	if (Camera->CitizenManager->Enemies.IsEmpty())
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	if (Camera->CitizenManager->Enemies.IsEmpty() && faction->Rebels.IsEmpty())
 		return;
 	
 	Super::Production(Citizen);
@@ -25,8 +35,6 @@ void ACloneLab::Production(ACitizen* Citizen)
 	FTransform transform;
 	transform.SetLocation(BuildingMesh->GetSocketLocation("Entrance"));
 	transform.SetRotation(GetActorQuat());
-
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	AClone* clone = GetWorld()->SpawnActor<AClone>(Clone, FVector::Zero(), FRotator::ZeroRotator, params);
 	faction->Clones.Add(clone);

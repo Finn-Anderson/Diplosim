@@ -37,7 +37,7 @@ void ABroch::SpawnCitizens()
 		params.bNoFail = true;
 
 		FTransform transform;
-		transform.SetLocation(navLoc.Location);
+		transform.SetLocation(navLoc.Location - FVector(0.0f, 0.0f, 2.0f));
 		transform.SetRotation((GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f)).Quaternion());
 
 		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, FVector::Zero(), FRotator::ZeroRotator, params);

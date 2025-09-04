@@ -222,26 +222,272 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	if (DeltaTime < 0.005f || DeltaTime > 1.0f)
 		return;
 
-	Async(EAsyncExecution::Thread, [this]() {
-		FScopeTryLock lock(&LoopLock);
+	TimerLoop();
+
+	CitizenGeneralLoop();
+	CalculateDisease();
+	CalculateCitizenInteractions();
+	
+	CalculateFighting();
+}
+
+void UCitizenManager::TimerLoop()
+{
+	if (Timers.IsEmpty())
+		return;
+
+	Async(EAsyncExecution::TaskGraph, [this]() {
+		FScopeTryLock loopLock(&TimerLoopLock);
+		if (!loopLock.IsLocked())
+			return;
+
+		for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
+			FTimerStruct& timer = node->GetValue();
+
+			if (!IsValid(this))
+				return;
+
+			if (!IsValid(timer.Actor)) {
+				FScopeLock lock(&TimerLock);
+				Timers.RemoveNode(node);
+
+				continue;
+			}
+
+			if (timer.bPaused)
+				continue;
+
+			double currentTime = GetWorld()->GetTimeSeconds();
+
+			timer.Timer += (currentTime - timer.LastUpdateTime);
+			timer.LastUpdateTime = currentTime;
+
+			if ((timer.ID == "Harvest" || timer.ID == "Internal")) {
+				TArray<ACitizen*> citizens;
+
+				if (timer.Actor->IsA<ACitizen>())
+					citizens.Add(Cast<ACitizen>(timer.Actor));
+				else
+					citizens = Cast<AWork>(timer.Actor)->GetCitizensAtBuilding();
+
+				for (ACitizen* citizen : citizens) {
+					if (citizen->HarvestVisualTimer < timer.Timer || citizen->HarvestVisualResource == nullptr)
+						continue;
+
+					citizen->HarvestVisualTimer += citizen->HarvestVisualTargetTimer;
+
+					citizen->SetHarvestVisuals(citizen->HarvestVisualResource);
+				}
+
+			}
+
+			if (timer.Timer >= timer.Target && !timer.bModifying) {
+				if (timer.bOnGameThread) {
+					timer.bModifying = true;
+
+					AsyncTask(ENamedThreads::GameThread, [this, &timer]() {
+						timer.Delegate.ExecuteIfBound();
+
+						timer.bDone = true;
+						});
+				}
+				else {
+					timer.bModifying = true;
+
+					timer.Delegate.ExecuteIfBound();
+
+					timer.bDone = true;
+				}
+			}
+
+			if (!timer.bDone)
+				continue;
+
+			if (timer.bRepeat) {
+				timer.Timer = 0;
+				timer.bModifying = false;
+				timer.bDone = false;
+			}
+			else {
+				FScopeLock lock(&TimerLock);
+				Timers.RemoveNode(node);
+			}
+		}
+	});
+}
+
+void UCitizenManager::CitizenGeneralLoop()
+{
+	Async(EAsyncExecution::TaskGraph, [this]() {
+		FScopeTryLock lock(&CitizenGeneralLoopLock);
 		if (!lock.IsLocked())
 			return;
 
-		Loop();
-	});
+		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+			if (faction.Citizens.IsEmpty())
+				continue;
 
-	Async(EAsyncExecution::Thread, [this]() {
+			for (FPartyStruct& party : faction.Politics.Parties) {
+				if (party.Leader != nullptr)
+					continue;
+
+				SelectNewLeader(&party);
+			}
+
+			for (FLawStruct& law : faction.Politics.Laws) {
+				if (law.Cooldown == 0)
+					continue;
+
+				law.Cooldown--;
+			}
+
+			int32 rebelCount = 0;
+			int32 happinessCount = 0;
+
+			int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+
+			for (ACitizen* citizen : faction.Citizens) {
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() == 0)
+					continue;
+
+				for (FConditionStruct& condition : citizen->HealthIssues) {
+					condition.Level++;
+
+					if (condition.Level == condition.DeathLevel)
+						citizen->HealthComponent->TakeHealth(1000, citizen);
+				}
+
+				citizen->AllocatedBuildings.Empty();
+				citizen->AllocatedBuildings = { citizen->Building.School, citizen->Building.Employment, citizen->Building.House };
+
+				if (citizen->CanFindAnything(timeToCompleteDay)) {
+					for (ABuilding* building : faction.Buildings) {
+						if (!IsValid(building) || !citizen->AIController->CanMoveTo(building->GetActorLocation()) || citizen->AllocatedBuildings.Contains(building) || building->HealthComponent->GetHealth() == 0)
+							continue;
+
+						if (building->IsA<ASchool>())
+							citizen->FindEducation(Cast<ASchool>(building), timeToCompleteDay);
+						else if (building->IsA<AWork>())
+							citizen->FindJob(Cast<AWork>(building), timeToCompleteDay);
+						else if (building->IsA<AHouse>())
+							citizen->FindHouse(Cast<AHouse>(building), timeToCompleteDay);
+					}
+
+					AsyncTask(ENamedThreads::GameThread, [citizen, timeToCompleteDay]() { citizen->SetJobHouseEducation(timeToCompleteDay); });
+				}
+
+				citizen->SetHappiness();
+				happinessCount += citizen->GetHappiness();
+
+				if (GetMembersParty(citizen) != nullptr && GetMembersParty(citizen)->Party == "Shell Breakers")
+					rebelCount++;
+
+				if (!IsValid(citizen->Building.Employment))
+					continue;
+
+				if (citizen->Building.Employment->IsA<AWall>())
+					Cast<AWall>(citizen->Building.Employment)->SetEmergency(!Enemies.IsEmpty());
+				else if (citizen->Building.Employment->IsA<AClinic>())
+					Cast<AClinic>(citizen->Building.Employment)->SetEmergency(!Infected.IsEmpty());
+			}
+
+			if (!faction.Police.PoliceReports.IsEmpty()) {
+				for (int32 i = faction.Police.PoliceReports.Num() - 1; i > -1; i--) {
+					FPoliceReport report = faction.Police.PoliceReports[i];
+
+					if (IsValid(report.RespondingOfficer)) {
+						if (report.Witnesses.IsEmpty()) {
+							faction.Police.PoliceReports.RemoveAt(i);
+
+							report.RespondingOfficer->AIController->DefaultAction();
+						}
+
+						continue;
+					}
+
+					if (report.Witnesses.IsEmpty()) {
+						faction.Police.PoliceReports.RemoveAt(i);
+
+						continue;
+					}
+
+					float distance = 1000;
+					ACitizen* officer = nullptr;
+
+					for (ABuilding* building : faction.Buildings) {
+						if (!building->IsA(PoliceStationClass) || building->GetCitizensAtBuilding().IsEmpty())
+							continue;
+
+						float dist = FVector::Dist(report.Location, building->GetActorLocation());
+
+						if (distance > dist) {
+							distance = dist;
+
+							officer = building->GetCitizensAtBuilding()[Camera->Grid->Stream.RandRange(0, building->GetCitizensAtBuilding().Num() - 1)];
+						}
+					}
+
+					TArray<ACitizen*> witnesses;
+					report.Witnesses.GenerateKeyArray(witnesses);
+
+					if (IsValid(officer)) {
+						faction.Police.PoliceReports[i].RespondingOfficer = officer;
+
+						Camera->Grid->AIVisualiser->ToggleOfficerLights(officer, 1.0f);
+
+						officer->AIController->AIMoveTo(witnesses[0]);
+					}
+				}
+			}
+
+			float rebelsPerc = rebelCount / (float)faction.Citizens.Num();
+
+			if (!faction.Citizens.IsEmpty() && rebelsPerc > 0.33f && !IsRebellion(&faction)) {
+				faction.RebelCooldownTimer--;
+
+				if (faction.RebelCooldownTimer < 1) {
+					int32 value = Camera->Grid->Stream.RandRange(1, 3);
+
+					if (value == 3) {
+						Overthrow(&faction);
+					}
+					else {
+						FLawStruct lawStruct;
+						lawStruct.BillType = "Abolish";
+
+						int32 index = faction.Politics.Laws.Find(lawStruct);
+
+						ProposeBill(faction.Name, faction.Politics.Laws[index]);
+					}
+				}
+			}
+
+			if (faction.Name == Camera->ColonyName) {
+				float happinessPerc = happinessCount / (faction.Citizens.Num() * 100.0f);
+
+				AsyncTask(ENamedThreads::GameThread, [this, happinessPerc, rebelsPerc]() { Camera->UpdateUI(happinessPerc, rebelsPerc); });
+			}
+		}
+	});
+}
+
+void UCitizenManager::CalculateDisease()
+{
+	if (Infected.IsEmpty() && Injured.IsEmpty())
+		return;
+
+	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&DiseaseSpreadLock);
-		if (!lock.IsLocked() || Infected.IsEmpty())
+		if (!lock.IsLocked())
 			return;
-		
+
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens;
 			citizens.Append(faction.Citizens);
 			citizens.Append(faction.Rebels);
 
 			for (ACitizen* citizen : citizens) {
-				if (!IsValid(citizen) || citizen->IsPendingKillPending() || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen) || Infected.IsEmpty())
+				if (!IsValid(citizen) || citizen->IsPendingKillPending() || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen))
 					continue;
 
 				FOverlapsStruct requestedOverlaps;
@@ -250,7 +496,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range, requestedOverlaps, EFactionType::Both);
 
 				for (AActor* actor : actors) {
-					if (!IsValid(actor) || actor->IsPendingKillPending() || Infected.IsEmpty())
+					if (!IsValid(actor) || actor->IsPendingKillPending())
 						continue;
 
 					ACitizen* c = Cast<ACitizen>(actor);
@@ -261,7 +507,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 					if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr && faction.Citizens.Contains(c) && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && c->AttackComponent->OverlappingEnemies.IsEmpty() && citizen->AIController->MoveRequest.GetGoalActor() == c) {
 						CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
 					}
-					else if (Infectible.Contains(citizen) && Infectible.Contains(c)) {
+					else if (Infectible.Contains(citizen) && Infectible.Contains(c) && Infected.Contains(citizen)) {
 						bool bInfected = false;
 
 						for (FConditionStruct condition : citizen->HealthIssues) {
@@ -284,10 +530,15 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 					}
 				}
 			}
+
+			PairCitizenToHealer(&faction);
 		}
 	});
+}
 
-	Async(EAsyncExecution::Thread, [this]() {
+void UCitizenManager::CalculateCitizenInteractions()
+{
+	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&CitizenInteractionsLock);
 		if (!lock.IsLocked())
 			return;
@@ -312,7 +563,7 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 					UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
-					if ((healthComp && healthComp->GetHealth() <= 0))
+					if (healthComp && healthComp->GetHealth() <= 0)
 						continue;
 
 					if (actor->IsA<ACitizen>()) {
@@ -521,12 +772,16 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 			}
 		}
 	});
+}
 
-
-	Async(EAsyncExecution::Thread, [this]() {
+void UCitizenManager::CalculateFighting()
+{
+	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&FightLock);
 		if (!lock.IsLocked())
 			return;
+
+		bool bEnemies = false;
 
 		TMap<FString, TArray<AAI*>> ais;
 
@@ -548,9 +803,18 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 			ai = ais.Find("Rebels");
 			ai->Append(faction.Rebels);
+
+			if (!faction.Rebels.IsEmpty())
+				bEnemies = true;
 		}
 
 		ais.Add("Enemies", Enemies);
+
+		if (!Enemies.IsEmpty())
+			bEnemies = true;
+
+		if (!bEnemies)
+			return;
 
 		for (auto& element : ais) {
 			for (AAI* ai : element.Value) {
@@ -584,257 +848,9 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 					if (ai->AttackComponent->OverlappingEnemies.Num() == 1)
 						ai->AttackComponent->SetComponentTickEnabled(true);
 				}
-
-				for (int32 i = ai->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
-					AActor* actor = ai->AttackComponent->OverlappingEnemies[i];
-
-					if (actors.Contains(actor))
-						continue;
-
-					ai->AttackComponent->OverlappingEnemies.RemoveAt(i);
-				}
 			}
 		}
 	});
-
-	Async(EAsyncExecution::Thread, [this]() {
-		FScopeTryLock lock(&CloneLock);
-		if (!lock.IsLocked())
-			return;
-
-		if (Enemies.IsEmpty())
-			return;
-
-		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-			TArray<ABuilding*> buildings = faction.Buildings;
-
-			for (ABuilding* building : buildings) {
-				if (!IsValid(building) || building->IsPendingKillPending() || !building->IsA<ACloneLab>())
-					continue;
-
-				if (!DoesTimerExist("Internal", Cast<ACloneLab>(building)) && Enemies[0]->AIController->CanMoveTo(building->GetActorLocation()))
-					Cast<ACloneLab>(building)->SetTimer();
-
-				break;
-			}
-		}
-	});
-}
-
-void UCitizenManager::Loop()
-{
-	for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
-		FTimerStruct& timer = node->GetValue();
-
-		if (!IsValid(this))
-			return;
-
-		if (!IsValid(timer.Actor)) {
-			FScopeLock lock(&TimerLock);
-			Timers.RemoveNode(node);
-
-			continue;
-		}
-
-		if (timer.bPaused)
-			continue;
-
-		double currentTime = GetWorld()->GetTimeSeconds();
-
-		timer.Timer += (currentTime - timer.LastUpdateTime);
-		timer.LastUpdateTime = currentTime;
-
-		if ((timer.ID == "Harvest" || timer.ID == "Internal")) {
-			TArray<ACitizen*> citizens;
-
-			if (timer.Actor->IsA<ACitizen>())
-				citizens.Add(Cast<ACitizen>(timer.Actor));
-			else
-				citizens = Cast<AWork>(timer.Actor)->GetCitizensAtBuilding();
-
-			for (ACitizen* citizen : citizens) {
-				if (citizen->HarvestVisualTimer < timer.Timer || citizen->HarvestVisualResource == nullptr)
-					continue;
-
-				citizen->HarvestVisualTimer += citizen->HarvestVisualTargetTimer;
-
-				citizen->SetHarvestVisuals(citizen->HarvestVisualResource);
-			}
-
-		}
-
-		if (timer.Timer >= timer.Target && !timer.bModifying) {
-			if (timer.bOnGameThread) {
-				timer.bModifying = true;
-
-				AsyncTask(ENamedThreads::GameThread, [this, &timer]() {
-					timer.Delegate.ExecuteIfBound();
-
-					timer.bDone = true;
-					});
-			}
-			else {
-				timer.bModifying = true;
-
-				timer.Delegate.ExecuteIfBound();
-
-				timer.bDone = true;
-			}
-		}
-
-		if (!timer.bDone)
-			continue;
-
-		if (timer.bRepeat) {
-			timer.Timer = 0;
-			timer.bModifying = false;
-			timer.bDone = false;
-		}
-		else {
-			FScopeLock lock(&TimerLock);
-			Timers.RemoveNode(node);
-		}
-	}
-
-	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-		if (!faction.Citizens.IsEmpty()) {
-			for (FPartyStruct& party : faction.Politics.Parties) {
-				if (party.Leader != nullptr)
-					continue;
-
-				SelectNewLeader(&party);
-			}
-
-			for (FLawStruct& law : faction.Politics.Laws) {
-				if (law.Cooldown == 0)
-					continue;
-
-				law.Cooldown--;
-			}
-
-			int32 rebelCount = 0;
-
-			int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
-
-			for (ACitizen* citizen : faction.Citizens) {
-				if (!IsValid(citizen))
-					continue;
-
-				for (FConditionStruct& condition : citizen->HealthIssues) {
-					condition.Level++;
-
-					if (condition.Level == condition.DeathLevel)
-						citizen->HealthComponent->TakeHealth(1000, citizen);
-				}
-
-				citizen->AllocatedBuildings.Empty();
-				citizen->AllocatedBuildings = { citizen->Building.School, citizen->Building.Employment, citizen->Building.House };
-
-				if (citizen->CanFindAnything(timeToCompleteDay)) {
-					for (ABuilding* building : faction.Buildings) {
-						if (!IsValid(building) || !citizen->AIController->CanMoveTo(building->GetActorLocation()) || citizen->AllocatedBuildings.Contains(building) || building->HealthComponent->GetHealth() == 0)
-							continue;
-
-						if (building->IsA<ASchool>())
-							citizen->FindEducation(Cast<ASchool>(building), timeToCompleteDay);
-						else if (building->IsA<AWork>())
-							citizen->FindJob(Cast<AWork>(building), timeToCompleteDay);
-						else if (building->IsA<AHouse>())
-							citizen->FindHouse(Cast<AHouse>(building), timeToCompleteDay);
-					}
-
-					AsyncTask(ENamedThreads::GameThread, [citizen, timeToCompleteDay]() { citizen->SetJobHouseEducation(timeToCompleteDay); });
-				}
-
-				citizen->SetHappiness();
-
-				if (GetMembersParty(citizen) != nullptr && GetMembersParty(citizen)->Party == "Shell Breakers")
-					rebelCount++;
-
-				if (!IsValid(citizen->Building.Employment))
-					continue;
-
-				if (citizen->Building.Employment->IsA<AWall>())
-					Cast<AWall>(citizen->Building.Employment)->SetEmergency(!Enemies.IsEmpty());
-				else if (citizen->Building.Employment->IsA<AClinic>())
-					Cast<AClinic>(citizen->Building.Employment)->SetEmergency(!Infected.IsEmpty());
-			}
-
-			if (!faction.Police.PoliceReports.IsEmpty()) {
-				for (int32 i = faction.Police.PoliceReports.Num() - 1; i > -1; i--) {
-					FPoliceReport report = faction.Police.PoliceReports[i];
-
-					if (IsValid(report.RespondingOfficer)) {
-						if (report.Witnesses.IsEmpty()) {
-							faction.Police.PoliceReports.RemoveAt(i);
-
-							report.RespondingOfficer->AIController->DefaultAction();
-						}
-
-						continue;
-					}
-
-					if (report.Witnesses.IsEmpty()) {
-						faction.Police.PoliceReports.RemoveAt(i);
-
-						continue;
-					}
-
-					float distance = 1000;
-					ACitizen* officer = nullptr;
-
-					for (ABuilding* building : faction.Buildings) {
-						if (!building->IsA(PoliceStationClass) || building->GetCitizensAtBuilding().IsEmpty())
-							continue;
-
-						float dist = FVector::Dist(report.Location, building->GetActorLocation());
-
-						if (distance > dist) {
-							distance = dist;
-
-							officer = building->GetCitizensAtBuilding()[Camera->Grid->Stream.RandRange(0, building->GetCitizensAtBuilding().Num() - 1)];
-						}
-					}
-
-					TArray<ACitizen*> witnesses;
-					report.Witnesses.GenerateKeyArray(witnesses);
-
-					if (IsValid(officer)) {
-						faction.Police.PoliceReports[i].RespondingOfficer = officer;
-
-						Camera->Grid->AIVisualiser->ToggleOfficerLights(officer, 1.0f);
-
-						officer->AIController->AIMoveTo(witnesses[0]);
-					}
-				}
-			}
-
-			if (!Infected.IsEmpty() || !Injured.IsEmpty())
-				PairCitizenToHealer(&faction);
-
-			if (!faction.Citizens.IsEmpty() && (rebelCount / faction.Citizens.Num()) * 100 > 33 && !IsRebellion(&faction)) {
-				faction.RebelCooldownTimer--;
-
-				if (faction.RebelCooldownTimer < 1) {
-					auto value = Async(EAsyncExecution::TaskGraphMainThread, [this]() { return Camera->Grid->Stream.RandRange(1, 3); });
-
-					if (value.Get() == 3) {
-						Overthrow(&faction);
-					}
-					else {
-						FLawStruct lawStruct;
-						lawStruct.BillType = "Abolish";
-
-						int32 index = faction.Politics.Laws.Find(lawStruct);
-
-						ProposeBill(faction.Name, faction.Politics.Laws[index]);
-					}
-				}
-			}
-		}
-	}
-
-	AsyncTask(ENamedThreads::GameThread, [this]() { Camera->UpdateUI(); });
 }
 
 void UCitizenManager::CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread)
@@ -2066,7 +2082,7 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event)
 
 		bool validReligion = (Citizen->Spirituality.Faith == faiths[0]);
 
-		if (Citizen->BioStruct.Age < 18 && (Citizen->BioStruct.Mother->IsValidLowLevelFast() && faiths[0] != Citizen->BioStruct.Mother->Spirituality.Faith || Citizen->BioStruct.Father->IsValidLowLevelFast() && faiths[0] != Citizen->BioStruct.Father->Spirituality.Faith))
+		if (Citizen->BioStruct.Age < 18 && (Citizen->BioStruct.Mother != nullptr && faiths[0] != Citizen->BioStruct.Mother->Spirituality.Faith || Citizen->BioStruct.Father != nullptr && faiths[0] != Citizen->BioStruct.Father->Spirituality.Faith))
 			validReligion = true;
 
 		if (!validReligion)
@@ -2747,6 +2763,15 @@ void UCitizenManager::Overthrow(FFactionStruct* Faction)
 			Faction->Politics.Representatives.Remove(citizen);
 
 		SetupRebel(Faction, citizen);
+	}
+
+	for (ASpecial* building : Camera->Grid->SpecialBuildings) {
+		if (!building->IsA<ACloneLab>())
+			continue;
+
+		Cast<ACloneLab>(building)->StartCloneLab();
+
+		break;
 	}
 }
 

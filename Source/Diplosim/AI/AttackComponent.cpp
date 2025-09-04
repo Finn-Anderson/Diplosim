@@ -74,7 +74,14 @@ void UAttackComponent::PickTarget()
 		AActor* target = OverlappingEnemies[i];
 		FFavourabilityStruct targetFavourability = GetActorFavourability(target);
 
-		if (targetFavourability.Hp == 0 || targetFavourability.Hp == 10000000) {
+		bool withinRange = true;
+		if (GetOwner()->IsA<AAI>()) {
+			AAI* ai = Cast<AAI>(GetOwner());
+
+			withinRange = ai->CanReach(target, ai->Range);
+		}
+
+		if (targetFavourability.Hp == 0 || targetFavourability.Hp == 10000000 || !withinRange) {
 			OverlappingEnemies.RemoveAt(i);
 
 			continue;

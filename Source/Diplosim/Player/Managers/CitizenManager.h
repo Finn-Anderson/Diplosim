@@ -139,7 +139,15 @@ protected:
 public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void Loop();
+	void TimerLoop();
+
+	void CitizenGeneralLoop();
+
+	void CalculateDisease();
+
+	void CalculateCitizenInteractions();
+
+	void CalculateFighting();
 
 	UPROPERTY()
 		class ACamera* Camera;
@@ -166,7 +174,9 @@ public:
 
 	TDoubleLinkedList<FTimerStruct> Timers;
 
-	FCriticalSection LoopLock;
+	FCriticalSection TimerLoopLock;
+
+	FCriticalSection CitizenGeneralLoopLock;
 
 	FCriticalSection DiseaseSpreadLock;
 
@@ -280,7 +290,8 @@ public:
 
 	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
 
-	bool IsAttendingEvent(class ACitizen* Citizen);
+	UFUNCTION(BlueprintCallable)
+		bool IsAttendingEvent(class ACitizen* Citizen);
 
 	void RemoveFromEvent(class ACitizen* Citizen);
 
