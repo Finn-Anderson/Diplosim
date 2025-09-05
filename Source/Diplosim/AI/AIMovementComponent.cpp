@@ -19,7 +19,9 @@ UAIMovementComponent::UAIMovementComponent()
 	SpeedMultiplier = 1.0f;
 
 	LastUpdatedTime = 0.0f;
-	Transform = FTransform();
+	Transform = FTransform(FQuat::Identity, FVector(0, 0, 0));
+
+	ActorToLookAt = nullptr;
 }
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime)
@@ -45,6 +47,24 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 			if (CurrentAnim.StartTransform.GetLocation() == CurrentAnim.EndTransform.GetLocation() || (CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat))
 				CurrentAnim.bPlay = false;
+
+			if (CurrentAnim.Alpha == 1.0f && (CurrentAnim.Type == EAnim::Melee || CurrentAnim.Type == EAnim::Throw)) {
+				if (CurrentAnim.Type == EAnim::Melee)
+					AI->AttackComponent->Melee();
+				else
+					AI->AttackComponent->Throw();
+			}
+		}
+
+		if (IsValid(ActorToLookAt)) {
+			FRotator rotation = (AI->Camera->GetTargetActorLocation(ActorToLookAt) - Transform.GetLocation()).Rotation() * CurrentAnim.Alpha;
+			rotation.Pitch = 0.0f;
+			rotation.Roll = 0.0f;
+
+			Transform.SetRotation((Transform.GetRotation() + rotation.Quaternion()).GetNormalized());
+
+			if (CurrentAnim.Alpha == 1.0f)
+				ActorToLookAt = nullptr;
 		}
 	}
 
@@ -134,4 +154,12 @@ void UAIMovementComponent::SetAnimation(EAnim Type, bool bRepeat, float Speed)
 	CurrentAnim.bRepeat = bRepeat;
 	CurrentAnim.Speed = Speed;
 	CurrentAnim.bPlay = true;
+}
+
+bool UAIMovementComponent::IsAttacking()
+{
+	if (CurrentAnim.bPlay && (CurrentAnim.Type == EAnim::Melee || CurrentAnim.Type == EAnim::Throw))
+		return true;
+
+	return false;
 }

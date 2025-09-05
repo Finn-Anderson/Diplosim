@@ -64,9 +64,6 @@ public:
 		float AttackTimer;
 
 	UPROPERTY()
-		bool bAttackedRecently;
-
-	UPROPERTY()
 		bool bShowMercy;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")

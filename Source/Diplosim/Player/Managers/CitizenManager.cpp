@@ -285,11 +285,11 @@ void UCitizenManager::TimerLoop()
 				if (timer.bOnGameThread) {
 					timer.bModifying = true;
 
-					AsyncTask(ENamedThreads::GameThread, [this, &timer]() {
+					Async(EAsyncExecution::TaskGraphMainTick, [this, &timer]() {
 						timer.Delegate.ExecuteIfBound();
 
 						timer.bDone = true;
-						});
+					});
 				}
 				else {
 					timer.bModifying = true;
@@ -362,7 +362,7 @@ void UCitizenManager::CitizenGeneralLoop()
 
 				if (citizen->CanFindAnything(timeToCompleteDay)) {
 					for (ABuilding* building : faction.Buildings) {
-						if (!IsValid(building) || !citizen->AIController->CanMoveTo(building->GetActorLocation()) || citizen->AllocatedBuildings.Contains(building) || building->HealthComponent->GetHealth() == 0)
+						if (!IsValid(building) || !IsValid(citizen) || !citizen->AIController->CanMoveTo(building->GetActorLocation()) || citizen->AllocatedBuildings.Contains(building) || building->HealthComponent->GetHealth() == 0)
 							continue;
 
 						if (building->IsA<ASchool>())
@@ -373,7 +373,7 @@ void UCitizenManager::CitizenGeneralLoop()
 							citizen->FindHouse(Cast<AHouse>(building), timeToCompleteDay);
 					}
 
-					AsyncTask(ENamedThreads::GameThread, [citizen, timeToCompleteDay]() { citizen->SetJobHouseEducation(timeToCompleteDay); });
+					citizen->SetJobHouseEducation(timeToCompleteDay);
 				}
 
 				citizen->SetHappiness();
@@ -465,7 +465,7 @@ void UCitizenManager::CitizenGeneralLoop()
 			if (faction.Name == Camera->ColonyName) {
 				float happinessPerc = happinessCount / (faction.Citizens.Num() * 100.0f);
 
-				AsyncTask(ENamedThreads::GameThread, [this, happinessPerc, rebelsPerc]() { Camera->UpdateUI(happinessPerc, rebelsPerc); });
+				Async(EAsyncExecution::TaskGraphMainTick, [this, happinessPerc, rebelsPerc]() { Camera->UpdateUI(happinessPerc, rebelsPerc); });
 			}
 		}
 	});
@@ -692,7 +692,7 @@ void UCitizenManager::CalculateCitizenInteractions()
 						}
 					}
 					else if (citizen->AIController->MoveRequest.GetGoalActor() == actor && citizen->CanReach(actor, reach, citizen->AIController->MoveRequest.GetGoalInstance())) {
-						AsyncTask(ENamedThreads::GameThread, [this, citizen, actor]() {
+						Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() {
 							if (actor->IsA<AResource>() && FindTimer("Harvest", citizen) == nullptr) {
 								AResource* r = Cast<AResource>(actor);
 
@@ -1306,10 +1306,10 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 	Citizen1->AIController->StopMovement();
 	Citizen2->AIController->StopMovement();
 
-	Citizen1->MovementComponent->Transform.SetRotation((Citizen2->MovementComponent->Transform.GetLocation() - Citizen1->MovementComponent->Transform.GetLocation()).Rotation().Quaternion());
-	Citizen2->MovementComponent->Transform.SetRotation((Citizen1->MovementComponent->Transform.GetLocation() - Citizen2->MovementComponent->Transform.GetLocation()).Rotation().Quaternion());
+	Citizen1->MovementComponent->ActorToLookAt = Citizen2;
+	Citizen2->MovementComponent->ActorToLookAt = Citizen1;
 	
-	AsyncTask(ENamedThreads::GameThread, [this, Faction, Citizen1, Citizen2, bInterrogation]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen1, Citizen2, bInterrogation]() {
 		if (bInterrogation)
 			CreateTimer("Interrogate", Citizen1, 6.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::InterrogateWitnesses, Faction, Citizen1, Citizen2), false);
 		else
@@ -1780,7 +1780,7 @@ void UCitizenManager::SpawnDisease()
 
 void UCitizenManager::Infect(ACitizen* Citizen)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen]() {
 		if (Infected.IsEmpty())
 			Camera->Grid->AIVisualiser->DiseaseNiagaraComponent->Activate();
 
@@ -1849,10 +1849,8 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 
 void UCitizenManager::UpdateHealthText(ACitizen* Citizen)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, Citizen]() {
-		if (Camera->WidgetComponent->IsAttachedTo(Citizen->GetRootComponent()))
-			Camera->UpdateHealthIssues();
-	});
+	if (Camera->WidgetComponent->IsAttachedTo(Citizen->GetRootComponent()))
+		Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen]() { Camera->UpdateHealthIssues(); });
 }
 
 TArray<ACitizen*> UCitizenManager::GetAvailableHealers(FFactionStruct* Faction)
@@ -2089,7 +2087,7 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event)
 			return;
 	}
 
-	AsyncTask(ENamedThreads::GameThread, [this, Citizen, Event]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen, Event]() {
 		ABuilding* chosenBuilding = nullptr;
 		ACitizen* chosenOccupant = nullptr;
 
@@ -2498,7 +2496,7 @@ void UCitizenManager::SetupBill(FFactionStruct* Faction)
 
 void UCitizenManager::MotionBill(FFactionStruct* Faction, FLawStruct Bill)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, Faction, Bill]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Bill]() {
 		int32 count = 1;
 
 		for (ACitizen* citizen : Faction->Politics.Representatives) {

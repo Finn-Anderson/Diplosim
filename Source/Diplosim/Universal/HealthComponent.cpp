@@ -53,7 +53,7 @@ void UHealthComponent::AddHealth(int32 Amount)
 
 void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, Amount, Attacker]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Amount, Attacker]() {
 		if (GetHealth() == 0)
 			return;
 

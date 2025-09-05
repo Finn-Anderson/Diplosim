@@ -380,6 +380,9 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction(building->FactionName);
 
+		if (faction == nullptr)
+			continue;
+
 		for (ABuilding* b : faction->Buildings) {
 			if (!b->IsA(building->GetClass()) || b->GetActorLocation() != building->GetActorLocation())
 				continue;

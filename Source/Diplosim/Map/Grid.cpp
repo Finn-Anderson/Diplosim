@@ -1528,7 +1528,7 @@ void AGrid::SetSeasonAffect(FString Period, float Increment)
 
 void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 {
-	Async(EAsyncExecution::Thread, [this, Period, Increment]() {
+	Async(EAsyncExecution::TaskGraph, [this, Period, Increment]() {
 		TArray<float> Values;
 		Values.Add(HISMGround->PerInstanceSMCustomData[5]);
 		Values.Add(HISMGround->PerInstanceSMCustomData[6]);
@@ -1553,7 +1553,7 @@ void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 
 		Values.Remove(0.0f);
 
-		AsyncTask(ENamedThreads::GameThread, [this, Values, Period, Increment]() {
+		Async(EAsyncExecution::TaskGraphMainTick, [this, Values, Period, Increment]() {
 			TArray<FResourceHISMStruct> resourceList;
 			resourceList.Append(TreeStruct);
 			resourceList.Append(FlowerStruct);

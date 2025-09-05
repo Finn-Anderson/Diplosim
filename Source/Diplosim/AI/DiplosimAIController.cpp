@@ -154,7 +154,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 				Citizen->MovementComponent->SetPoints(path->PathPoints);
 
 				if (IsValid(Citizen->Building.BuildingAt))
-					AsyncTask(ENamedThreads::GameThread, [Citizen]() { Citizen->Building.BuildingAt->Leave(Citizen); });
+					Async(EAsyncExecution::TaskGraphMainTick, [Citizen]() { Citizen->Building.BuildingAt->Leave(Citizen); });
 			}
 		}
 
@@ -421,10 +421,10 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	ACitizen* citizen = Cast<ACitizen>(AI);
 
-	Camera->CitizenManager->RemoveTimer("Idle", AI);
+	Camera->CitizenManager->RemoveTimer("Idle", citizen);
 
 	if (citizen->Building.BuildingAt != nullptr)
-		citizen->Building.BuildingAt->Leave(citizen);
+		Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { citizen->Building.BuildingAt->Leave(citizen); });
 }
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
@@ -451,4 +451,6 @@ void ADiplosimAIController::StopMovement()
 	MoveRequest.SetGoalActor(nullptr);
 	
 	AI->MovementComponent->SetPoints({});
+
+	AI->MovementComponent->SetAnimation(EAnim::Still);
 }

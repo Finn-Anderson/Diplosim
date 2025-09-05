@@ -42,7 +42,6 @@ UAttackComponent::UAttackComponent()
 
 	DamageMultiplier = 1.0f;
 
-	bAttackedRecently = false;
 	bShowMercy = false;
 }
 
@@ -55,7 +54,7 @@ void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	if (healthComp->Health == 0)
 		return;
 
-	Async(EAsyncExecution::Thread, [this]() { PickTarget(); });
+	Async(EAsyncExecution::TaskGraph, [this]() { PickTarget(); });
 }
 
 void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
@@ -129,23 +128,21 @@ void UAttackComponent::PickTarget()
 	else if (!*ProjectileClass && ai->CanReach(favoured, reach))
 		ai->AIController->StopMovement();
 
-	AsyncTask(ENamedThreads::GameThread, [this, favoured, ai, reach]() {
-		if (favoured == nullptr) {
-			if (IsValid(ai))
-				ai->AIController->DefaultAction();
+	if (favoured == nullptr) {
+		if (IsValid(ai))
+			ai->AIController->DefaultAction();
 
-			bShowMercy = false;
+		bShowMercy = false;
 
-			return;
-		}
+		return;
+	}
 
-		if ((*ProjectileClass || ai->CanReach(favoured, reach)))
-			Attack();
-		else if (CurrentTarget != favoured)
-			ai->AIController->AIMoveTo(favoured);
+	if ((*ProjectileClass || ai->CanReach(favoured, reach)))
+		Attack();
+	else if (CurrentTarget != favoured)
+		ai->AIController->AIMoveTo(favoured);
 
-		CurrentTarget = favoured;
-	});
+	CurrentTarget = favoured;
 }
 
 FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
@@ -202,26 +199,42 @@ void UAttackComponent::Attack()
 
 	float time = AttackTime;
 
-	if (GetOwner()->IsA<ACitizen>())
-		time /= Cast<ACitizen>(GetOwner())->GetProductivity();
+	if (GetOwner()->IsA<AWall>()) {
+		AWall* defensiveBuilding = Cast<AWall>(GetOwner());
+
+		for (ACitizen* citizen : defensiveBuilding->GetCitizensAtBuilding())
+			time -= (time / defensiveBuilding->GetCitizensAtBuilding().Num()) * citizen->GetProductivity() - 1.0f;
+	}
 
 	if (AttackTimer > 0.0f) {
 		AttackTimer -= 0.1f;
 
-		if (AttackTimer <= (time / 2)) {
-			if (*ProjectileClass)
-				Throw();
-			else
-				Melee();
-
-			bAttackedRecently = true;
-		}
-
 		return;
 	}
+	else if (GetOwner()->IsA<AAI>() && Cast<AAI>(GetOwner())->MovementComponent->IsAttacking())
+		return;
 
-	AttackTimer = time;
-	bAttackedRecently = false;
+	if ((GetOwner()->IsA<ABuilding>() && *ProjectileClass) || (GetOwner()->IsA<AEnemy>() && !*ProjectileClass)) {
+		AttackTimer = time;
+
+		if (*ProjectileClass)
+			Throw();
+		else
+			Melee();
+	}
+	else {
+		time = 2.0f;
+
+		if (GetOwner()->IsA<ACitizen>())
+			time *= Cast<ACitizen>(GetOwner())->GetProductivity();
+
+		UAIMovementComponent* movementComponent = Cast<AAI>(GetOwner())->MovementComponent;
+
+		if (*ProjectileClass)
+			movementComponent->SetAnimation(EAnim::Throw, false, time);
+		else
+			movementComponent->SetAnimation(EAnim::Melee, false, time);
+	}
 
 	FFactionStruct* faction1 = Camera->ConquestManager->GetFaction("", CurrentTarget);
 	FFactionStruct* faction2 = Camera->ConquestManager->GetFaction("", GetOwner());
@@ -240,9 +253,6 @@ void UAttackComponent::Throw()
 	if (CurrentTarget == nullptr)
 		return;
 
-	if (GetOwner()->IsA<AAI>())
-		Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Throw);
-
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
 	float z = 0.0f;
@@ -257,13 +267,13 @@ void UAttackComponent::Throw()
 
 	FVector startLoc = Camera->GetTargetActorLocation(GetOwner()) + FVector(0.0f, 0.0f, z);
 
-	if (GetOwner()->IsA<AAI>())
-		startLoc += Cast<AAI>(GetOwner())->MovementComponent->Transform.GetRotation().Vector();
-
 	FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget);
 	targetLoc += CurrentTarget->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
 
 	FRotator lookAt = (targetLoc - startLoc).Rotation();
+
+	if (GetOwner()->IsA<AAI>())
+		startLoc += lookAt.Vector();
 
 	double angle = 0.0f;
 	double d = 0.0f;
@@ -296,7 +306,7 @@ void UAttackComponent::Throw()
 	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
 
 	if (GetOwner()->IsA<AAI>())
-		Cast<AAI>(GetOwner())->MovementComponent->Transform.SetRotation(ang.Quaternion());
+		Cast<AAI>(GetOwner())->MovementComponent->ActorToLookAt = CurrentTarget;
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 	projectile->SpawnNiagaraSystems(GetOwner());
@@ -309,8 +319,6 @@ void UAttackComponent::Melee()
 
 	if (GetOwner()->IsA<AEnemy>())
 		Cast<AEnemy>(GetOwner())->Zap(Camera->GetTargetActorLocation(CurrentTarget));
-	else
-		Cast<AAI>(GetOwner())->MovementComponent->SetAnimation(EAnim::Melee);
 
 	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
 	

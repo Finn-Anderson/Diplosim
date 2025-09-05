@@ -108,6 +108,7 @@ ACamera::ACamera()
 	bLost = false;
 
 	ColonyName = "Eggerton";
+	TypedColonyName = "Eggerton";
 	CitizenNum = 10;
 
 	FocusedCitizen = nullptr;
@@ -363,7 +364,7 @@ void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Soun
 	if (MainMenuUIInstance->IsInViewport() || Grid->Storage.IsEmpty())
 		return;
 
-	AsyncTask(ENamedThreads::GameThread, [this, AudioComponent, Sound, Pitch]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, AudioComponent, Sound, Pitch]() {
 		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
 		float pitch = Pitch;
@@ -409,7 +410,7 @@ void ACamera::ShowWarning(FString Warning)
 
 void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, Type, Message, IslandName]() { DisplayNotifyLog(Type, Message, IslandName); });
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Type, Message, IslandName]() { DisplayNotifyLog(Type, Message, IslandName); });
 }
 
 void ACamera::ClearPopupUI()
@@ -909,8 +910,7 @@ void ACamera::SpawnEnemies()
 	bInstantEnemies = true;
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-
-	Async(EAsyncExecution::Thread, [this, gamemode]() { gamemode->StartRaid(); });
+	gamemode->StartRaid();
 }
 
 void ACamera::AddEnemies(FString Category, int32 Amount)

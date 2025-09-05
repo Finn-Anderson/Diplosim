@@ -27,6 +27,8 @@ public:
 
 	void SetAnimation(EAnim Type, bool bRepeat = false, float Speed = 2.0f);
 
+	bool IsAttacking();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float MaxSpeed;
 
@@ -53,4 +55,7 @@ public:
 
 	UPROPERTY()
 		FTransform Transform;
+
+	UPROPERTY()
+		class AActor* ActorToLookAt;
 };

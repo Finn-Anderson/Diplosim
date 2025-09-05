@@ -387,7 +387,7 @@ void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABui
 	if (ResourceList[index].Category == "Money" || ResourceList[index].Category == "Crystal")
 		return;
 
-	Async(EAsyncExecution::Thread, [this, Resource, Building, Amount, faction]() {
+	Async(EAsyncExecution::TaskGraph, [this, Resource, Building, Amount, faction]() {
 		ACamera* camera = Cast<ACamera>(GetOwner());
 		int32 workersNum = FMath::CeilToInt(Amount / 10.0f);
 		AStockpile* nearestStockpile = nullptr;
@@ -434,7 +434,7 @@ void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABui
 		}();
 
 		for (auto& element : workers)
-			AsyncTask(ENamedThreads::GameThread, [this, element, Resource, Building]() { element.Key->SetItemToGather(Resource, element.Value, Building); });
+			element.Key->SetItemToGather(Resource, element.Value, Building);
 	});
 }
 
@@ -443,7 +443,7 @@ void UResourceManager::UpdateResourceUI(FFactionStruct* Faction, TSubclassOf<ARe
 	if (Faction->Name != Cast<ACamera>(GetOwner())->ColonyName)
 		return;
 
-	AsyncTask(ENamedThreads::GameThread, [this, Resource]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Resource]() {
 		FResourceStruct resourceStruct;
 		resourceStruct.Type = Resource;
 

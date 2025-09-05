@@ -237,9 +237,9 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 			}
 
 			if (i == 0 && !citizens[i].IsEmpty())
-				AsyncTask(ENamedThreads::GameThread, [this]() { HISMCitizen->BuildTreeIfOutdated(false, false); });
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMCitizen->BuildTreeIfOutdated(false, false); });
 			else if (!citizens[i].IsEmpty())
-				AsyncTask(ENamedThreads::GameThread, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
 		}
 
 		if (!torchLocations.IsEmpty()) {
@@ -296,9 +296,9 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 			}
 
 			if (i == 0 && !ais[i].IsEmpty())
-				AsyncTask(ENamedThreads::GameThread, [this]() { HISMClone->BuildTreeIfOutdated(false, false); });
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMClone->BuildTreeIfOutdated(false, false); });
 			else if (!ais[i].IsEmpty())
-				AsyncTask(ENamedThreads::GameThread, [this]() { HISMEnemy->BuildTreeIfOutdated(false, false); });
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMEnemy->BuildTreeIfOutdated(false, false); });
 		}
 
 		bAIMoving = false;
@@ -398,7 +398,7 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 
 	instanceData.Transform = Transform.ToMatrixWithScale();
 
-	AsyncTask(ENamedThreads::GameThread, [this, HISM, Instance, Transform]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, HISM, Instance, Transform]() {
 		FBodyInstance*& InstanceBodyInstance = HISM->InstanceBodies[Instance];
 		InstanceBodyInstance->SetBodyTransform(Transform, TeleportFlagToEnum(false));
 		InstanceBodyInstance->UpdateBodyScale(Transform.GetScale3D());
@@ -666,7 +666,7 @@ void UAIVisualiser::UpdateHatsTransforms(ACamera* Camera)
 	if (bHatsMoving || hatsNum == 0)
 		return;
 
-	Async(EAsyncExecution::Thread, [this, Camera]() {
+	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
 		FScopeTryLock lock(&HatLock);
 		if (!lock.IsLocked())
 			return;
@@ -691,7 +691,7 @@ void UAIVisualiser::UpdateHatsTransforms(ACamera* Camera)
 				hat.HISMHat->UnbuiltInstanceBoundsList.Add(InstanceBodyInstance->GetBodyBounds());
 			}
 
-			AsyncTask(ENamedThreads::GameThread, [this, hat]() { hat.HISMHat->BuildTreeIfOutdated(false, false); });
+			Async(EAsyncExecution::TaskGraphMainTick, [this, hat]() { hat.HISMHat->BuildTreeIfOutdated(false, false); });
 		}
 
 		bHatsMoving = true;

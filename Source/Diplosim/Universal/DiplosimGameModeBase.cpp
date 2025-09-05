@@ -298,7 +298,7 @@ void ADiplosimGameModeBase::SetRaidInformation()
 
 	bOngoingRaid = true;
 
-	AsyncTask(ENamedThreads::GameThread, [this, spawnLocations]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocation + FVector(0.0f, 0.0f, 500.0f)); });
+	Async(EAsyncExecution::TaskGraphMainTick, [this, spawnLocations]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocation + FVector(0.0f, 0.0f, 500.0f)); });
 
 	int32 time = 120;
 
