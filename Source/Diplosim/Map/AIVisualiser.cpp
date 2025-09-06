@@ -236,10 +236,11 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 				UpdateCitizenVisuals(hism, Camera, citizen, j);
 			}
 
-			if (i == 0 && !citizens[i].IsEmpty())
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMCitizen->BuildTreeIfOutdated(false, false); });
-			else if (!citizens[i].IsEmpty())
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
+			if (i == 0 && !HISMCitizen->UnbuiltInstanceBoundsList.IsEmpty()) {
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMCitizen->BuildTreeIfOutdated(true, false); });
+			}
+			else if (!HISMRebel->UnbuiltInstanceBoundsList.IsEmpty())
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(true, false); });
 		}
 
 		if (!torchLocations.IsEmpty()) {
@@ -295,10 +296,10 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 					SetInstanceTransform(HISMEnemy, j, ai->MovementComponent->Transform);
 			}
 
-			if (i == 0 && !ais[i].IsEmpty())
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMClone->BuildTreeIfOutdated(false, false); });
-			else if (!ais[i].IsEmpty())
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMEnemy->BuildTreeIfOutdated(false, false); });
+			if (i == 0 && !HISMClone->UnbuiltInstanceBoundsList.IsEmpty())
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMClone->BuildTreeIfOutdated(true, false); });
+			else if (!HISMEnemy->UnbuiltInstanceBoundsList.IsEmpty())
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMEnemy->BuildTreeIfOutdated(true, false); });
 		}
 
 		bAIMoving = false;

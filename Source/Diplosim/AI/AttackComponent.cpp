@@ -236,6 +236,9 @@ void UAttackComponent::Attack()
 			movementComponent->SetAnimation(EAnim::Melee, false, time);
 	}
 
+	if (GetOwner()->IsA<AAI>())
+		Cast<AAI>(GetOwner())->MovementComponent->ActorToLookAt = CurrentTarget;
+
 	FFactionStruct* faction1 = Camera->ConquestManager->GetFaction("", CurrentTarget);
 	FFactionStruct* faction2 = Camera->ConquestManager->GetFaction("", GetOwner());
 
@@ -304,9 +307,6 @@ void UAttackComponent::Throw()
 	}
 
 	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
-
-	if (GetOwner()->IsA<AAI>())
-		Cast<AAI>(GetOwner())->MovementComponent->ActorToLookAt = CurrentTarget;
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 	projectile->SpawnNiagaraSystems(GetOwner());
