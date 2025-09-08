@@ -28,13 +28,13 @@ UAIVisualiser::UAIVisualiser()
 
 	FCollisionResponseContainer response;
 	response.SetAllChannels(ECR_Ignore);
-	response.Visibility = ECR_Block;
+	//response.Visibility = ECR_Block;
 
 	AIContainer = CreateDefaultSubobject<USceneComponent>(TEXT("AIContainer"));
 
 	HISMCitizen = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMCitizen"));
 	HISMCitizen->SetupAttachment(AIContainer);
-	HISMCitizen->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	HISMCitizen->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HISMCitizen->SetCollisionObjectType(ECC_GameTraceChannel2);
 	HISMCitizen->SetCollisionResponseToChannels(response);
 	HISMCitizen->SetCanEverAffectNavigation(false);
@@ -45,7 +45,7 @@ UAIVisualiser::UAIVisualiser()
 
 	HISMClone = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClone"));
 	HISMClone->SetupAttachment(AIContainer);
-	HISMClone->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	HISMClone->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HISMClone->SetCollisionObjectType(ECC_GameTraceChannel2);
 	HISMClone->SetCollisionResponseToChannels(response);
 	HISMClone->SetCanEverAffectNavigation(false);
@@ -56,7 +56,7 @@ UAIVisualiser::UAIVisualiser()
 
 	HISMRebel = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRebel"));
 	HISMRebel->SetupAttachment(AIContainer);
-	HISMRebel->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	HISMRebel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HISMRebel->SetCollisionObjectType(ECC_GameTraceChannel3);
 	HISMRebel->SetCollisionResponseToChannels(response);
 	HISMRebel->SetCanEverAffectNavigation(false);
@@ -67,7 +67,7 @@ UAIVisualiser::UAIVisualiser()
 
 	HISMEnemy = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMEnemy"));
 	HISMEnemy->SetupAttachment(AIContainer);
-	HISMEnemy->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	HISMEnemy->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HISMEnemy->SetCollisionObjectType(ECC_GameTraceChannel4);
 	HISMEnemy->SetCollisionResponseToChannels(response);
 	HISMEnemy->SetCanEverAffectNavigation(false);
@@ -236,11 +236,10 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 				UpdateCitizenVisuals(hism, Camera, citizen, j);
 			}
 
-			if (i == 0 && !HISMCitizen->UnbuiltInstanceBoundsList.IsEmpty()) {
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMCitizen->BuildTreeIfOutdated(true, false); });
-			}
-			else if (!HISMRebel->UnbuiltInstanceBoundsList.IsEmpty())
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(true, false); });
+			if (i == 0 && HISMCitizen->bIsOutOfDate)
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMCitizen->BuildTreeIfOutdated(false, false); });
+			else if (HISMRebel->bIsOutOfDate)
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
 		}
 
 		if (!torchLocations.IsEmpty()) {
@@ -296,10 +295,10 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 					SetInstanceTransform(HISMEnemy, j, ai->MovementComponent->Transform);
 			}
 
-			if (i == 0 && !HISMClone->UnbuiltInstanceBoundsList.IsEmpty())
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMClone->BuildTreeIfOutdated(true, false); });
-			else if (!HISMEnemy->UnbuiltInstanceBoundsList.IsEmpty())
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMEnemy->BuildTreeIfOutdated(true, false); });
+			if (i == 0 && HISMClone->bIsOutOfDate)
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMClone->BuildTreeIfOutdated(false, false); });
+			else if (HISMEnemy->bIsOutOfDate)
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMEnemy->BuildTreeIfOutdated(false, false); });
 		}
 
 		bAIMoving = false;
@@ -399,13 +398,7 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 
 	instanceData.Transform = Transform.ToMatrixWithScale();
 
-	Async(EAsyncExecution::TaskGraphMainTick, [this, HISM, Instance, Transform]() {
-		FBodyInstance*& InstanceBodyInstance = HISM->InstanceBodies[Instance];
-		InstanceBodyInstance->SetBodyTransform(Transform, TeleportFlagToEnum(false));
-		InstanceBodyInstance->UpdateBodyScale(Transform.GetScale3D());
-
-		HISM->UnbuiltInstanceBoundsList.Add(InstanceBodyInstance->GetBodyBounds());
-	});
+	HISM->bIsOutOfDate = true;
 }
 
 void UAIVisualiser::UpdateCitizenVisuals(UHierarchicalInstancedStaticMeshComponent* HISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)

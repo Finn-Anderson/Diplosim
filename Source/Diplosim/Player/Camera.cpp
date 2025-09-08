@@ -241,21 +241,48 @@ void ACamera::Tick(float DeltaTime)
 		MouseHitLocation = hit.Location;
 
 		if (hit.GetComponent() == Grid->HISMSea || (hit.GetActor() != Grid && !hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsA<AEggBasket>()))
-			return;
+			return; 
+		
+		TArray<AAI*> ais;
 
-		if (hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
-			AAI* ai = Grid->AIVisualiser->GetHISMAI(this, Cast<UHierarchicalInstancedStaticMeshComponent>(hit.Component), hit.Item);
-
-			if (IsValid(ai))
-				HoveredActor.Actor = ai;
-			else
-				return;
+		for (FFactionStruct faction : ConquestManager->Factions) {
+			ais.Append(faction.Citizens);
+			ais.Append(faction.Rebels);
+			ais.Append(faction.Clones);
 		}
-		else
-			HoveredActor.Actor = actor;
 
-		HoveredActor.Component = hit.GetComponent();
-		HoveredActor.Instance = hit.Item;
+		ais.Append(CitizenManager->Enemies);
+
+		FVector chosenLocation = FVector::Zero();
+
+		for (AAI* ai : ais) {
+			FVector aiLoc = ai->MovementComponent->Transform.GetLocation() + FVector(0.0f, 0.0f, 9.0f);
+			float distance = FMath::PointDistToSegment(aiLoc, mouseLoc, hit.Location);
+
+			float size = 1.0f;
+			if (ai->IsA<ACitizen>())
+				size = Cast<ACitizen>(ai)->ReachMultiplier;
+
+			if (distance > 12.0f * size || (chosenLocation != FVector::Zero() && FVector::Dist(mouseLoc, chosenLocation) < FVector::Dist(mouseLoc, aiLoc)))
+				continue;
+
+			HoveredActor.Actor = ai;
+
+			TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> hismValue = Grid->AIVisualiser->GetAIHISM(ai);
+			HoveredActor.Component = hismValue.Key;
+			HoveredActor.Instance = hismValue.Value;
+
+			chosenLocation = aiLoc;
+		}
+
+		if ((hit.GetActor()->IsA<ABuilding>() || hit.GetActor()->IsA<AEggBasket>()) && FVector::Dist(mouseLoc, chosenLocation) > FVector::Dist(mouseLoc, hit.Location)) {
+			HoveredActor.Actor = actor;
+			HoveredActor.Component = hit.GetComponent();
+			HoveredActor.Instance = hit.Item;
+		}
+
+		if (hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>() && HoveredActor.Actor == nullptr)
+			return;
 
 		if (!bBulldoze)
 			PController->CurrentMouseCursor = EMouseCursor::Hand;
@@ -510,6 +537,9 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 
 		if (bAttach)
 			Attach(Actor, Component, Instance);
+	}
+	else {
+		Detach();
 	}
 
 	SetInteractStatus(Actor, true, Component, Instance);
