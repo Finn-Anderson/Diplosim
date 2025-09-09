@@ -428,16 +428,9 @@ void UDiplosimUserSettings::SetShadowLevel(int32 Value)
 {
 	ShadowLevel = Value;
 
-	if (ShadowLevel == 5) {
-		GEngine->Exec(GetWorld(), TEXT("r.Shadow.Virtual.Enable 1"));
-	}
-	else {
-		GEngine->Exec(GetWorld(), TEXT("r.Shadow.Virtual.Enable 0"));
+	FString cmd = "r.Shadow.CSM.MaxCascades " + FString::FromInt(ShadowLevel);
 
-		FString cmd = "r.Shadow.CSM.MaxCascades " + FString::FromInt(ShadowLevel);
-
-		GEngine->Exec(GetWorld(), *cmd);
-	}
+	GEngine->Exec(GetWorld(), *cmd);
 }
 
 int32 UDiplosimUserSettings::GetShadowLevel() const
