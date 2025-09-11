@@ -140,7 +140,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 				location = ChosenBuilding->GetActorLocation();
 			}
 
-			location += FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.RandRange(innerRange, outerRange);
+			location += FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.RandRange(innerRange, outerRange);;
 
 			FNavLocation navLoc;
 			nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));
@@ -269,7 +269,7 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 	if (!IsValid(Target))
 		Target = AI;
 
-	if (!IsValid(AI) || !IsValid(Target) || !IsValid(GetOwner()))
+	if (!IsValid(AI) || !IsValid(Target) || !IsValid(GetWorld()))
 		return false;
 
 	UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();

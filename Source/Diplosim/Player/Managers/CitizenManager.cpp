@@ -236,7 +236,7 @@ void UCitizenManager::TimerLoop()
 	if (Timers.IsEmpty())
 		return;
 
-	Async(EAsyncExecution::TaskGraph, [this]() {
+	Async(EAsyncExecution::ThreadPool, [this]() {
 		FScopeTryLock loopLock(&TimerLoopLock);
 		if (!loopLock.IsLocked())
 			return;
@@ -262,25 +262,6 @@ void UCitizenManager::TimerLoop()
 			timer.Timer += (currentTime - timer.LastUpdateTime);
 			timer.LastUpdateTime = currentTime;
 
-			if ((timer.ID == "Harvest" || timer.ID == "Internal")) {
-				TArray<ACitizen*> citizens;
-
-				if (timer.Actor->IsA<ACitizen>())
-					citizens.Add(Cast<ACitizen>(timer.Actor));
-				else
-					citizens = Cast<AWork>(timer.Actor)->GetCitizensAtBuilding();
-
-				for (ACitizen* citizen : citizens) {
-					if (citizen->HarvestVisualTimer < timer.Timer || citizen->HarvestVisualResource == nullptr)
-						continue;
-
-					citizen->HarvestVisualTimer += citizen->HarvestVisualTargetTimer;
-
-					citizen->SetHarvestVisuals(citizen->HarvestVisualResource);
-				}
-
-			}
-
 			if (timer.Timer >= timer.Target && !timer.bModifying) {
 				if (timer.bOnGameThread) {
 					timer.bModifying = true;
@@ -294,9 +275,11 @@ void UCitizenManager::TimerLoop()
 				else {
 					timer.bModifying = true;
 
-					timer.Delegate.ExecuteIfBound();
+					Async(EAsyncExecution::ThreadPool, [this, &timer]() {
+						timer.Delegate.ExecuteIfBound();
 
-					timer.bDone = true;
+						timer.bDone = true;
+					});
 				}
 			}
 
@@ -313,6 +296,9 @@ void UCitizenManager::TimerLoop()
 				Timers.RemoveNode(node);
 			}
 		}
+
+		if (!Camera->Start)
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Purple, FString::Printf(TEXT("Timers: %f"), GetWorld()->GetTimeSeconds())); // Check when energy + hunger low
 	});
 }
 
@@ -468,6 +454,9 @@ void UCitizenManager::CitizenGeneralLoop()
 				Async(EAsyncExecution::TaskGraphMainTick, [this, happinessPerc, rebelsPerc]() { Camera->UpdateUI(happinessPerc, rebelsPerc); });
 			}
 		}
+
+		if (!Camera->Start)
+			GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Yellow, FString::Printf(TEXT("CitizenGeneralLoop: %f"), GetWorld()->GetTimeSeconds()));
 	});
 }
 
@@ -547,7 +536,7 @@ void UCitizenManager::CalculateCitizenInteractions()
 			TArray<ACitizen*> citizens = faction.Citizens;
 
 			for (ACitizen* citizen : citizens) {
-				if (!IsValid(citizen) || citizen->IsPendingKillPending() || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen))
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen))
 					continue;
 
 				FOverlapsStruct requestedOverlaps;
@@ -771,6 +760,9 @@ void UCitizenManager::CalculateCitizenInteractions()
 				}
 			}
 		}
+
+		if (!Camera->Start)
+			GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Cyan, FString::Printf(TEXT("Interactions: %f"), GetWorld()->GetTimeSeconds()));
 	});
 }
 
@@ -2847,6 +2839,9 @@ void UCitizenManager::Sacrifice(FString FactionName)
 
 	int32 index = Camera->Grid->Stream.RandRange(0, faction->Citizens.Num() - 1);
 	ACitizen* citizen = faction->Citizens[index];
+
+	RemoveTimer("Energy", citizen);
+	RemoveTimer("Eat", citizen);
 
 	citizen->AIController->StopMovement();
 	citizen->MovementComponent->SetMaxSpeed(0.0f);

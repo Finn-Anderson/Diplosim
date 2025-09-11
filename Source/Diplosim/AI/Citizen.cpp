@@ -79,9 +79,6 @@ ACitizen::ACitizen()
 	SpeedBeforeOld = 100.0f;
 	MaxHealthBeforeOld = 100.0f;
 
-	HarvestVisualTargetTimer = 0.0f;
-	HarvestVisualResource = nullptr;
-
 	bConversing = false;
 	ConversationHappiness = 0;
 
@@ -125,7 +122,7 @@ void ACitizen::CitizenSetup(FFactionStruct* Faction)
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	Camera->CitizenManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true, true);
+	Camera->CitizenManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::Eat), true);
 
 	Camera->CitizenManager->CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, FTimerDelegate::CreateUObject(this, &ACitizen::CheckGainOrLoseEnergy), true);
 
@@ -787,8 +784,7 @@ void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	if (!Camera->CitizenManager->DoesTimerExist("Sacrifice", this))
-		MovementComponent->SetMaxSpeed(Energy);
+	MovementComponent->SetMaxSpeed(Energy);
 
 	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && (Building.Employment->IsWorking(this) || Camera->CitizenManager->Healing.Contains(this))))
 		return;
@@ -860,10 +856,6 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 
 	Camera->CitizenManager->CreateTimer("Harvest", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::HarvestResource, Resource), false, true);
 
-	HarvestVisualTimer = time / 5.0f;
-	HarvestVisualTargetTimer = HarvestVisualTimer;
-	HarvestVisualResource = Resource;
-
 	AIController->StopMovement();
 }
 
@@ -872,10 +864,6 @@ void ACitizen::HarvestResource(AResource* Resource)
 	MovementComponent->SetAnimation(EAnim::Still);
 	
 	AResource* resource = Resource->GetHarvestedResource();
-
-	HarvestVisualTimer = 0.0f;
-	HarvestVisualTargetTimer = HarvestVisualTimer;
-	HarvestVisualResource = nullptr;
 
 	Camera->CitizenManager->Injure(this, 99);
 

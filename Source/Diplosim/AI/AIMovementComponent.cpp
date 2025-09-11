@@ -1,8 +1,5 @@
 #include "AI/AIMovementComponent.h"
 
-#include "Components/CapsuleComponent.h"
-#include "Animation/AnimSingleNodeInstance.h"
-
 #include "AI.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
@@ -89,8 +86,6 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		Velocity = FVector::Zero();
 	else
 		Velocity = CalculateVelocity(Points[0]);
-
-	AI->GetRootComponent()->ComponentVelocity = Velocity;
 
 	FVector deltaV = Velocity * DeltaTime;
 

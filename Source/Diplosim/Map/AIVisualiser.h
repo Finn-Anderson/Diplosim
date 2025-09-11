@@ -109,6 +109,12 @@ struct FOverlapsStruct
 		bClones = true;
 		bBuildings = true;
 	}
+
+	void GetEverything()
+	{
+		GetEverythingWithHealth();
+		bResources = true;
+	}
 };
 
 UENUM()

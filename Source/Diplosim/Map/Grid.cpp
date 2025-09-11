@@ -1672,7 +1672,10 @@ void AGrid::BuildSpecialBuildings()
 
 			SpecialBuildings.RemoveAt(i);
 		}
-		else
+		else {
 			Camera->BuildComponent->SetTreeStatus(building, true);
+
+			building->BuildingMesh->SetCanEverAffectNavigation(true);
+		}
 	}
 }

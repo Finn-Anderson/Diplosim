@@ -799,15 +799,6 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 		speed = Citizen->GetProductivity();
 
 	Citizen->MovementComponent->SetAnimation(anim, bRepeat, speed);
-
-	if (!IsValid(CitizenSound))
-		return;
-
-	AResource* resource = Cast<AResource>(Cast<AInternalProduction>(this)->ResourceToOverlap->GetDefaultObject());
-
-	Citizen->HarvestVisualTimer = 1.0f / speed;
-	Citizen->HarvestVisualTargetTimer = Citizen->HarvestVisualTimer;
-	Citizen->HarvestVisualResource = resource;
 }
 
 void ABuilding::Enter(ACitizen* Citizen)
@@ -881,10 +872,6 @@ void ABuilding::Enter(ACitizen* Citizen)
 void ABuilding::Leave(ACitizen* Citizen)
 {
 	Citizen->Building.BuildingAt = nullptr;
-
-	Citizen->HarvestVisualTimer = 0.0f;
-	Citizen->HarvestVisualTargetTimer = Citizen->HarvestVisualTimer;
-	Citizen->HarvestVisualResource = nullptr;
 
 	Inside.Remove(Citizen);
 

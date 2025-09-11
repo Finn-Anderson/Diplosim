@@ -333,15 +333,6 @@ public:
 		TMap<USoundBase*, USoundBase*> Conversations;
 
 	UPROPERTY()
-		float HarvestVisualTimer;
-
-	UPROPERTY()
-		float HarvestVisualTargetTimer;
-
-	UPROPERTY()
-		class AResource* HarvestVisualResource;
-
-	UPROPERTY()
 		float VoicePitch;
 
 	// Education

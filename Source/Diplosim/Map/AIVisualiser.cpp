@@ -28,7 +28,6 @@ UAIVisualiser::UAIVisualiser()
 
 	FCollisionResponseContainer response;
 	response.SetAllChannels(ECR_Ignore);
-	//response.Visibility = ECR_Block;
 
 	AIContainer = CreateDefaultSubobject<USceneComponent>(TEXT("AIContainer"));
 
@@ -100,8 +99,6 @@ UAIVisualiser::UAIVisualiser()
 	bBuildingsDying = false;
 	bBuildingsRotating = false;
 	bHatsMoving = false;
-
-	// ECC_WorldDynamic, ECC_Pawn, ECC_GameTraceChannel2, ECC_GameTraceChannel3, ECC_GameTraceChannel4: Consider ECR_Block
 }
 
 void UAIVisualiser::BeginPlay()
