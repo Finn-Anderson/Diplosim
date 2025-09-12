@@ -145,8 +145,6 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			pending.HISM->PerInstanceSMCustomData[instance * pending.HISM->NumCustomDataFloats + 2] = colour.G;
 			pending.HISM->PerInstanceSMCustomData[instance * pending.HISM->NumCustomDataFloats + 3] = colour.B;
 
-			ActivateTorches(Camera->Grid->AtmosphereComponent->Calendar.Hour, pending.HISM, instance);
-
 			pending.AI->AIController->DefaultAction();
 		}
 		else
@@ -215,7 +213,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 					if (IsValid(citizen->Building.BuildingAt))
 						opacity = 0.0f;
 
-					HISMCitizen->PerInstanceSMCustomData[j * HISMCitizen->NumCustomDataFloats + 12] = opacity;
+					UpdateInstanceCustomData(HISMCitizen, j, 12, opacity);
 
 					hism = HISMCitizen;
 				}
@@ -386,6 +384,16 @@ void UAIVisualiser::RemoveInstance(UHierarchicalInstancedStaticMeshComponent* HI
 	PendingChange.Add(pending);
 }
 
+void UAIVisualiser::UpdateInstanceCustomData(UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, int32 Index, float Value)
+{
+	if (HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + Index] == Value)
+		return;
+
+	HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + Index] = Value;
+
+	HISM->bIsOutOfDate = true;
+}
+
 void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform)
 {
 	FInstancedStaticMeshInstanceData& instanceData = HISM->PerInstanceSMData[Instance];
@@ -400,20 +408,19 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 
 void UAIVisualiser::UpdateCitizenVisuals(UHierarchicalInstancedStaticMeshComponent* HISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
-	if (Citizen->bGlasses && HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 10] == 0.0f)
-		HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 10] = 1.0f;
+	if (Citizen->bGlasses)
+		UpdateInstanceCustomData(HISM, Instance, 10, 1.0f);
 
-	if (Camera->CitizenManager->Injured.Contains(Citizen) && HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] == 0.0f)
-		HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] = 1.0f;
-	else if (HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] == 1.0f)
-		HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 9] = 0.0f;
+	if (Camera->CitizenManager->Injured.Contains(Citizen))
+		UpdateInstanceCustomData(HISM, Instance, 9, 1.0f);
+	else
+		UpdateInstanceCustomData(HISM, Instance, 9, 0.0f);
+
+	ActivateTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour, HISM, Instance);
 }
 
-void UAIVisualiser::ActivateTorches(int32 Hour, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
+void UAIVisualiser::ActivateTorch(int32 Hour, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
 {
-	if (HISM == HISMClone || HISM == HISMEnemy)
-		return;
-
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
 	int32 value = 0.0f;
@@ -421,21 +428,7 @@ void UAIVisualiser::ActivateTorches(int32 Hour, UHierarchicalInstancedStaticMesh
 	if (settings->GetRenderTorches() && (Hour >= 18 || Hour < 6))
 		value = 1.0f;
 
-	if (Instance == INDEX_NONE) {
-		for (int32 i = 0; i < HISMCitizen->GetInstanceCount(); i++)
-			HISMCitizen->PerInstanceSMCustomData[i * HISMCitizen->NumCustomDataFloats + 11] = value;
-
-		for (int32 i = 0; i < HISMRebel->GetInstanceCount(); i++)
-			HISMRebel->PerInstanceSMCustomData[i * HISMRebel->NumCustomDataFloats + 11] = value;
-
-		if (value == 1.0f && !TorchNiagaraComponent->IsActive())
-			TorchNiagaraComponent->Activate();
-		else if (TorchNiagaraComponent->IsActive())
-			TorchNiagaraComponent->Deactivate();
-	}
-	else {
-		HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + 11] = value;
-	}
+	UpdateInstanceCustomData(HISM, Instance, 11, value);
 }
 
 void UAIVisualiser::AddHarvestVisual(FVector Location, FLinearColor Colour)

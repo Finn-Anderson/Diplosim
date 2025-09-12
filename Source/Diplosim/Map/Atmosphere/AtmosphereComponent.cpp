@@ -147,11 +147,6 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		hour += 24;
 
 	if (Calendar.Hour != hour && (hour == 6 || hour == 18)) {
-		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-
-		if (settings->GetRenderTorches())
-			Grid->AIVisualiser->ActivateTorches(hour);
-
 		for (FFactionStruct& faction : Grid->Camera->ConquestManager->Factions)
 			for (ABuilding* building : faction.Buildings)
 				building->SetLights(hour);

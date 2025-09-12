@@ -201,11 +201,13 @@ public:
 
 	void RemoveInstance(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
 
+	void UpdateInstanceCustomData(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, int32 Index, float Value);
+
 	void SetInstanceTransform(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform);
 
 	void UpdateCitizenVisuals(class UHierarchicalInstancedStaticMeshComponent* HISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
 
-	void ActivateTorches(int32 Hour, class UHierarchicalInstancedStaticMeshComponent* HISM = nullptr, int32 Instance = -1);
+	void ActivateTorch(int32 Hour, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
 
 	void AddHarvestVisual(FVector Location, FLinearColor Colour);
 

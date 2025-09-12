@@ -974,7 +974,7 @@ void ACitizen::Birthday()
 	}
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(faction->Name, "Vote Age"))
-		SetPoliticalLeanings();
+		Async(EAsyncExecution::TaskGraphMainTick, [this]() { SetPoliticalLeanings(); });
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(faction->Name, "Work Age")) {
 		if (IsValid(Building.House)) {
@@ -1372,6 +1372,7 @@ void ACitizen::SetPoliticalLeanings()
 	if (partyList.IsEmpty())
 		return;
 
+	
 	int32 index = Camera->Grid->Stream.RandRange(0, partyList.Num() - 1);
 
 	bool bLog = false;

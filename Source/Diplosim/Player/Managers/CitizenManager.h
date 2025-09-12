@@ -180,7 +180,10 @@ public:
 
 	FCriticalSection DiseaseSpreadLock;
 
-	FCriticalSection CitizenInteractionsLock;
+	FCriticalSection GoalInteractionsLock;
+	FCriticalSection ConversationInteractionsLock;
+	FCriticalSection VandalismInteractionsLock;
+	FCriticalSection ReportInteractionsLock;
 
 	FCriticalSection TimerLock;
 

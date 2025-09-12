@@ -264,16 +264,6 @@ bool UDiplosimUserSettings::GetSmoothCamera() const
 void UDiplosimUserSettings::SetRenderTorches(bool Value)
 {
 	bRenderTorches = Value;
-
-	if (Camera == nullptr || Atmosphere == nullptr)
-		return;
-
-	int32 hour = 12;
-
-	if (bRenderTorches)
-		hour = Atmosphere->Calendar.Hour;
-
-	Camera->Grid->AIVisualiser->ActivateTorches(hour);
 }
 
 bool UDiplosimUserSettings::GetRenderTorches() const
