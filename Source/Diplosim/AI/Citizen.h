@@ -305,7 +305,7 @@ public:
 
 	void SetAcquiredTime(int32 Index, float Time);
 
-	bool CanFindAnything(int32 TimeToCompleteDay);
+	bool CanFindAnything(int32 TimeToCompleteDay, FFactionStruct* Faction);
 
 	UPROPERTY()
 		TArray<float> TimeOfAcquirement;

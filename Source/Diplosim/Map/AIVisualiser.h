@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Universal/DiplosimUniversalTypes.h"
 #include "AIVisualiser.generated.h"
 
@@ -216,7 +217,7 @@ public:
 
 	void SetAnimationPoint(class AAI* AI, FTransform Transform);
 
-	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType);
+	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction = nullptr);
 
 	UPROPERTY()
 		TArray<FPendingChangeStruct> PendingChange;

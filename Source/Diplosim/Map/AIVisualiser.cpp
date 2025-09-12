@@ -548,7 +548,7 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7] = Transform.GetRotation().Rotator().Pitch;
 }
 
-TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType)
+TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction)
 {
 	TArray<AActor*> actors;
 
@@ -556,25 +556,41 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 
 	TArray<AActor*> actorsToCheck;
 
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Actor);
+	if (Faction == nullptr)
+		Faction = Camera->ConquestManager->GetFaction("", Actor);
 
-	for (FFactionStruct& f : Camera->ConquestManager->Factions) {
-		if (FactionType != EFactionType::Both && faction != nullptr && ((FactionType == EFactionType::Same && faction->Name != f.Name) || (FactionType == EFactionType::Different && faction->Name == f.Name)))
-			continue;
+	if (FactionType != EFactionType::Same) {
+		for (FFactionStruct& f : Camera->ConquestManager->Factions) {
+			if (FactionType != EFactionType::Both && Faction != nullptr && Faction->Name == f.Name)
+				continue;
 
-		if (!RequestedOverlaps.IsGettingCitizenEnemies() || faction->AtWar.Contains(f.Name)) {
-			if (RequestedOverlaps.bBuildings)
-				actorsToCheck.Append(f.Buildings);
+			if (!RequestedOverlaps.IsGettingCitizenEnemies() || Faction->AtWar.Contains(f.Name)) {
+				if (RequestedOverlaps.bBuildings)
+					actorsToCheck.Append(f.Buildings);
 
-			if (RequestedOverlaps.bCitizens)
-				actorsToCheck.Append(f.Citizens);
+				if (RequestedOverlaps.bCitizens)
+					actorsToCheck.Append(f.Citizens);
 
-			if (RequestedOverlaps.bClones)
-				actorsToCheck.Append(f.Clones);
+				if (RequestedOverlaps.bClones)
+					actorsToCheck.Append(f.Clones);
+			}
+
+			if (RequestedOverlaps.bRebels)
+				actorsToCheck.Append(f.Rebels);
 		}
+	}
+	else {
+		if (RequestedOverlaps.bBuildings)
+			actorsToCheck.Append(Faction->Buildings);
+
+		if (RequestedOverlaps.bCitizens)
+			actorsToCheck.Append(Faction->Citizens);
+
+		if (RequestedOverlaps.bClones)
+			actorsToCheck.Append(Faction->Clones);
 
 		if (RequestedOverlaps.bRebels)
-			actorsToCheck.Append(f.Rebels);
+			actorsToCheck.Append(Faction->Rebels);
 	}
 
 	if (RequestedOverlaps.bEnemies)
@@ -586,7 +602,12 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 	FVector location = Camera->GetTargetActorLocation(Actor);
 
 	for (AActor* actor : actorsToCheck) {
-		if (!IsValid(actor) || actor->IsPendingKillPending())
+		if (!IsValid(actor))
+			continue;
+
+		UHealthComponent* healthComp = actor->FindComponentByClass<UHealthComponent>();
+
+		if (healthComp && healthComp->GetHealth() == 0)
 			continue;
 
 		FVector loc = Camera->GetTargetActorLocation(actor);

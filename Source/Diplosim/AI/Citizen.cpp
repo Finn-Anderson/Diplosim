@@ -428,9 +428,11 @@ void ACitizen::SetAcquiredTime(int32 Index, float Time)
 	TimeOfAcquirement[Index] = Time;
 }
 
-bool ACitizen::CanFindAnything(int32 TimeToCompleteDay)
+bool ACitizen::CanFindAnything(int32 TimeToCompleteDay, FFactionStruct* Faction)
 {
-	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(0) + TimeToCompleteDay && GetWorld()->GetTimeSeconds() < GetAcquiredTime(1) + TimeToCompleteDay && GetWorld()->GetTimeSeconds() < GetAcquiredTime(2) + TimeToCompleteDay || Camera->CitizenManager->DoesTimerExist("Arrested", this))
+	double time = GetWorld()->GetTimeSeconds();
+
+	if ((time < GetAcquiredTime(0) + TimeToCompleteDay && time < GetAcquiredTime(1) + TimeToCompleteDay && time < GetAcquiredTime(2) + TimeToCompleteDay) || Faction->Police.Arrested.Contains(this))
 		return false;
 
 	return true;
@@ -789,23 +791,24 @@ void ACitizen::LoseEnergy()
 	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && (Building.Employment->IsWorking(this) || Camera->CitizenManager->Healing.Contains(this))))
 		return;
 
+	ABuilding* target = nullptr;
+
 	if (IsValid(Building.House) || IsValid(Building.Orphanage)) {
 		if (IsValid(Building.House))
-			AIController->AIMoveTo(Building.House);
+			target = Building.House;
 		else
-			AIController->AIMoveTo(Building.Orphanage);
+			target = Building.Orphanage;
 
-		if (!IsValid(Building.Employment) || !Building.Employment->IsA<AExternalProduction>())
-			return;
+		if (IsValid(Building.Employment) && Building.Employment->IsA<AExternalProduction>()) {
+			for (auto& element : Cast<AExternalProduction>(Building.Employment)->GetValidResources()) {
+				for (FWorkerStruct workerStruct : element.Key->WorkerStruct) {
+					if (!workerStruct.Citizens.Contains(this))
+						continue;
 
-		for (auto& element : Cast<AExternalProduction>(Building.Employment)->GetValidResources()) {
-			for (FWorkerStruct workerStruct : element.Key->WorkerStruct) {
-				if (!workerStruct.Citizens.Contains(this))
-					continue;
+					workerStruct.Citizens.Remove(this);
 
-				workerStruct.Citizens.Remove(this);
-
-				break;
+					break;
+				}
 			}
 		}
 	}
@@ -816,11 +819,14 @@ void ACitizen::LoseEnergy()
 			if (parent == nullptr || !IsValid(parent->Building.House))
 				continue;
 
-			AIController->AIMoveTo(parent->Building.House);
+			target = parent->Building.House;
 
 			break;
 		}
 	}
+
+	if (IsValid(target) && AIController->MoveRequest.GetGoalActor() != target)
+		AIController->AIMoveTo(target);
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 

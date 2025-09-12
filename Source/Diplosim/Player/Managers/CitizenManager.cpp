@@ -236,7 +236,7 @@ void UCitizenManager::TimerLoop()
 	if (Timers.IsEmpty())
 		return;
 
-	Async(EAsyncExecution::ThreadPool, [this]() {
+	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock loopLock(&TimerLoopLock);
 		if (!loopLock.IsLocked())
 			return;
@@ -275,7 +275,7 @@ void UCitizenManager::TimerLoop()
 				else {
 					timer.bModifying = true;
 
-					Async(EAsyncExecution::ThreadPool, [this, &timer]() {
+					Async(EAsyncExecution::TaskGraph, [this, &timer]() {
 						timer.Delegate.ExecuteIfBound();
 
 						timer.bDone = true;
@@ -294,11 +294,8 @@ void UCitizenManager::TimerLoop()
 			else {
 				FScopeLock lock(&TimerLock);
 				Timers.RemoveNode(node);
-			}
+			} 
 		}
-
-		if (!Camera->Start)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Purple, FString::Printf(TEXT("Timers: %f"), GetWorld()->GetTimeSeconds())); // Check when energy + hunger low
 	});
 }
 
@@ -336,19 +333,12 @@ void UCitizenManager::CitizenGeneralLoop()
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() == 0)
 					continue;
 
-				for (FConditionStruct& condition : citizen->HealthIssues) {
-					condition.Level++;
-
-					if (condition.Level == condition.DeathLevel)
-						citizen->HealthComponent->TakeHealth(1000, citizen);
-				}
-
 				citizen->AllocatedBuildings.Empty();
 				citizen->AllocatedBuildings = { citizen->Building.School, citizen->Building.Employment, citizen->Building.House };
 
-				if (citizen->CanFindAnything(timeToCompleteDay)) {
+				if (citizen->CanFindAnything(timeToCompleteDay, &faction)) {
 					for (ABuilding* building : faction.Buildings) {
-						if (!IsValid(building) || !IsValid(citizen) || !citizen->AIController->CanMoveTo(building->GetActorLocation()) || citizen->AllocatedBuildings.Contains(building) || building->HealthComponent->GetHealth() == 0)
+						if (!IsValid(building) || building->HealthComponent->GetHealth() == 0 || citizen->AllocatedBuildings.Contains(building) || (!building->IsA<AWork>() && !building->IsA<AHouse>()) || building->GetOccupied().Num() == building->Capacity || !citizen->AIController->CanMoveTo(building->GetActorLocation()))
 							continue;
 
 						if (building->IsA<ASchool>())
@@ -372,7 +362,7 @@ void UCitizenManager::CitizenGeneralLoop()
 					continue;
 
 				if (citizen->Building.Employment->IsA<AWall>())
-					Cast<AWall>(citizen->Building.Employment)->SetEmergency(!Enemies.IsEmpty());
+					Cast<AWall>(citizen->Building.Employment)->SetEmergency(!Enemies.IsEmpty() || !faction.Rebels.IsEmpty());
 				else if (citizen->Building.Employment->IsA<AClinic>())
 					Cast<AClinic>(citizen->Building.Employment)->SetEmergency(!Infected.IsEmpty());
 			}
@@ -454,9 +444,6 @@ void UCitizenManager::CitizenGeneralLoop()
 				Async(EAsyncExecution::TaskGraphMainTick, [this, happinessPerc, rebelsPerc]() { Camera->UpdateUI(happinessPerc, rebelsPerc); });
 			}
 		}
-
-		if (!Camera->Start)
-			GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Yellow, FString::Printf(TEXT("CitizenGeneralLoop: %f"), GetWorld()->GetTimeSeconds()));
 	});
 }
 
@@ -476,27 +463,37 @@ void UCitizenManager::CalculateDisease()
 			citizens.Append(faction.Rebels);
 
 			for (ACitizen* citizen : citizens) {
-				if (!IsValid(citizen) || citizen->IsPendingKillPending() || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen))
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen))
 					continue;
 
-				FOverlapsStruct requestedOverlaps;
-				requestedOverlaps.GetCitizenInteractions(false, true);
+				for (FConditionStruct& condition : citizen->HealthIssues) {
+					condition.Level++;
 
-				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range, requestedOverlaps, EFactionType::Both);
+					if (condition.Level == condition.DeathLevel)
+						citizen->HealthComponent->TakeHealth(1000, citizen);
+				}
 
-				for (AActor* actor : actors) {
-					if (!IsValid(actor) || actor->IsPendingKillPending())
-						continue;
+				if (citizen->HealthComponent->GetHealth() <= 0 || (!Infected.Contains(citizen) && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->IsA<AClinic>())))
+					continue;
 
-					ACitizen* c = Cast<ACitizen>(actor);
+				if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && faction.Citizens.Contains(citizen->AIController->MoveRequest.GetGoalActor()) && citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), citizen->Range / 15.0f)) {
+					CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, Cast<ACitizen>(citizen->AIController->MoveRequest.GetGoalActor())), false);
+				}
+				else if (Infectible.Contains(citizen) && Infected.Contains(citizen)) {
+					FOverlapsStruct requestedOverlaps;
+					requestedOverlaps.GetCitizenInteractions(false, true);
 
-					if (c->HealthComponent->GetHealth() <= 0 || !citizen->CanReach(c, citizen->Range / 15.0f))
-						continue;
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range / 15.0f, requestedOverlaps, EFactionType::Both);
 
-					if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && FindTimer("Healing", citizen) == nullptr && faction.Citizens.Contains(c) && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && c->AttackComponent->OverlappingEnemies.IsEmpty() && citizen->AIController->MoveRequest.GetGoalActor() == c) {
-						CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, c), false);
-					}
-					else if (Infectible.Contains(citizen) && Infectible.Contains(c) && Infected.Contains(citizen)) {
+					for (AActor* actor : actors) {
+						if (!IsValid(actor))
+							continue;
+
+						ACitizen* c = Cast<ACitizen>(actor);
+
+						if (c->HealthComponent->GetHealth() <= 0 || !Infectible.Contains(c))
+							continue;
+
 						bool bInfected = false;
 
 						for (FConditionStruct condition : citizen->HealthIssues) {
@@ -536,30 +533,22 @@ void UCitizenManager::CalculateCitizenInteractions()
 			TArray<ACitizen*> citizens = faction.Citizens;
 
 			for (ACitizen* citizen : citizens) {
-				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen))
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 					continue;
 
 				FOverlapsStruct requestedOverlaps;
 				requestedOverlaps.GetCitizenInteractions(true, false);
 
-				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range, requestedOverlaps, EFactionType::Same);
+				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range, requestedOverlaps, EFactionType::Same, &faction);
 
 				int32 reach = citizen->Range / 15.0f;
 
 				for (AActor* actor : actors) {
-					if (!IsValid(actor) || actor->IsPendingKillPending())
-						continue;
-
-					UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
-
-					if (healthComp && healthComp->GetHealth() <= 0)
-						continue;
-
 					if (actor->IsA<ACitizen>()) {
 						ACitizen* c = Cast<ACitizen>(actor);
 
 						if (citizen->CanReach(c, reach)) {
-							if (citizen->AIController->MoveRequest.GetGoalActor() == c && IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA(PoliceStationClass) && !DoesTimerExist("Interrogate", citizen)) {
+							if (citizen->AIController->MoveRequest.GetGoalActor() == c && IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA(PoliceStationClass) && !citizen->bConversing) {
 								bool bInterrogate = true;
 
 								for (FPoliceReport report : faction.Police.PoliceReports) {
@@ -582,7 +571,7 @@ void UCitizenManager::CalculateCitizenInteractions()
 									Arrest(citizen, c);
 								}
 							}
-							else if (!IsInAPoliceReport(citizen) && Enemies.IsEmpty() && faction.Rebels.IsEmpty() && !citizen->bConversing && !citizen->bSleep && citizen->AttackComponent->OverlappingEnemies.IsEmpty() && !c->bConversing && !c->bSleep && c->AttackComponent->OverlappingEnemies.IsEmpty()) {
+							else if (Enemies.IsEmpty() && faction.Rebels.IsEmpty() && !IsInAPoliceReport(citizen, &faction) && !IsInAPoliceReport(c, &faction) && !citizen->bConversing && !citizen->bSleep && !c->bConversing && !c->bSleep && c->AttackComponent->OverlappingEnemies.IsEmpty()) {
 								int32 chance = Camera->Grid->Stream.RandRange(0, 1000);
 
 								if (chance < 1000)
@@ -592,92 +581,93 @@ void UCitizenManager::CalculateCitizenInteractions()
 							}
 						}
 
-						if (Enemies.IsEmpty() && faction.Rebels.IsEmpty() && !c->AttackComponent->OverlappingEnemies.IsEmpty() && !citizen->AttackComponent->OverlappingEnemies.IsEmpty()) {
-							ACitizen* c2 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[0]);
+						if (!Enemies.IsEmpty() || !faction.Rebels.IsEmpty() || IsCarelessWitness(citizen) || c->AttackComponent->OverlappingEnemies.IsEmpty())
+							continue;
 
-							int32 count1 = 0;
-							int32 count2 = 0;
+						int32 index = GetPoliceReportIndex(c);
+						ACitizen* citizenToAttack = nullptr;
 
-							float citizenAggressiveness = 0;
-							float c1Aggressiveness = 0;
-							float c2Aggressiveness = 0;
+						ACitizen* c2 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[0]);
 
-							PersonalityComparison(citizen, c, count1, citizenAggressiveness, c1Aggressiveness);
+						int32 count1 = 0;
+						int32 count2 = 0;
+
+						float citizenAggressiveness = 0;
+						float c1Aggressiveness = 0;
+						float c2Aggressiveness = 0;
+
+						PersonalityComparison(citizen, c, count1, citizenAggressiveness, c1Aggressiveness);
+
+						if (citizenAggressiveness >= 1.0f) {
 							PersonalityComparison(citizen, c2, count2, citizenAggressiveness, c2Aggressiveness);
 
-							ACitizen* citizenToAttack = nullptr;
+							if (count1 > 1 && count2 < 1)
+								citizenToAttack = c2;
+							else if (count1 < 1 && count2 > 1)
+								citizenToAttack = c;
+						}
 
-							if (citizenAggressiveness >= 1.0f) {
-								if (count1 > 1 && count2 < 1)
-									citizenToAttack = c2;
-								else if (count1 < 1 && count2 > 1)
-									citizenToAttack = c;
+						if (IsValid(citizenToAttack)) {
+							if (!citizen->AttackComponent->OverlappingEnemies.Contains(citizenToAttack))
+								citizen->AttackComponent->OverlappingEnemies.Add(citizenToAttack);
+
+							if (!citizenToAttack->AttackComponent->OverlappingEnemies.Contains(citizen))
+								citizenToAttack->AttackComponent->OverlappingEnemies.Add(citizen);
+
+							if (citizen->AttackComponent->OverlappingEnemies.Num() == 1)
+								citizen->AttackComponent->SetComponentTickEnabled(true);
+
+							citizen->AttackComponent->bShowMercy = citizenToAttack->AttackComponent->bShowMercy;
+
+							if (index != INDEX_NONE) {
+								if (faction.Police.PoliceReports[index].Team1.Instigator == citizenToAttack)
+									faction.Police.PoliceReports[index].Team2.Assistors.Add(citizen);
+								else
+									faction.Police.PoliceReports[index].Team1.Assistors.Add(citizen);
 							}
+						}
+						else {
+							if (index == INDEX_NONE) {
+								FPoliceReport report;
+								report.Type = EReportType::Fighting;
 
-							int32 index = GetPoliceReportIndex(c);
+								for (int32 i = 0; i < c->AttackComponent->OverlappingEnemies.Num(); i++) {
+									ACitizen* fighter1 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[i]);
 
-							if (IsValid(citizenToAttack)) {
-								if (!citizen->AttackComponent->OverlappingEnemies.Contains(citizenToAttack))
-									citizen->AttackComponent->OverlappingEnemies.Add(citizenToAttack);
+									if (i == 0) {
+										report.Team2.Instigator = fighter1;
 
-								if (!citizenToAttack->AttackComponent->OverlappingEnemies.Contains(citizen))
-									citizenToAttack->AttackComponent->OverlappingEnemies.Add(citizen);
+										for (int32 j = 0; j < fighter1->AttackComponent->OverlappingEnemies.Num(); j++) {
+											ACitizen* fighter2 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[i]);
 
-								if (citizen->AttackComponent->OverlappingEnemies.Num() == 1)
-									citizen->AttackComponent->SetComponentTickEnabled(true);
-
-								citizen->AttackComponent->bShowMercy = citizenToAttack->AttackComponent->bShowMercy;
-
-								if (index != INDEX_NONE) {
-									if (faction.Police.PoliceReports[index].Team1.Instigator == citizenToAttack)
-										faction.Police.PoliceReports[index].Team2.Assistors.Add(citizen);
-									else
-										faction.Police.PoliceReports[index].Team1.Assistors.Add(citizen);
-								}
-							}
-							else if (!IsCarelessWitness(citizen)) {
-								if (index == INDEX_NONE) {
-									FPoliceReport report;
-									report.Type = EReportType::Fighting;
-
-									for (int32 i = 0; i < c->AttackComponent->OverlappingEnemies.Num(); i++) {
-										ACitizen* fighter1 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[i]);
-
-										if (i == 0) {
-											report.Team2.Instigator = fighter1;
-
-											for (int32 j = 0; j < fighter1->AttackComponent->OverlappingEnemies.Num(); j++) {
-												ACitizen* fighter2 = Cast<ACitizen>(c->AttackComponent->OverlappingEnemies[i]);
-
-												if (i == 0)
-													report.Team1.Instigator = fighter2;
-												else
-													report.Team1.Assistors.Add(fighter2);
-											}
-										}
-										else {
-											report.Team2.Assistors.Add(fighter1);
+											if (i == 0)
+												report.Team1.Instigator = fighter2;
+											else
+												report.Team1.Assistors.Add(fighter2);
 										}
 									}
-
-									report.Location = (Camera->GetTargetActorLocation(report.Team1.Instigator) + Camera->GetTargetActorLocation(report.Team2.Instigator)) / 2;
-
-									faction.Police.PoliceReports.Add(report);
-
-									index = faction.Police.PoliceReports.Num() - 1;
+									else {
+										report.Team2.Assistors.Add(fighter1);
+									}
 								}
 
-								float distance = FVector::Dist(Camera->GetTargetActorLocation(citizen), Camera->GetTargetActorLocation(c));
-								float dist = 1000000000;
+								report.Location = (Camera->GetTargetActorLocation(report.Team1.Instigator) + Camera->GetTargetActorLocation(report.Team2.Instigator)) / 2;
 
-								if (faction.Police.PoliceReports[index].Witnesses.Contains(citizen))
-									dist = *faction.Police.PoliceReports[index].Witnesses.Find(citizen);
+								faction.Police.PoliceReports.Add(report);
 
-								GetCloserToFight(citizen, c, faction.Police.PoliceReports[index].Location);
-
-								if (distance < dist)
-									faction.Police.PoliceReports[index].Witnesses.Add(citizen, distance);
+								index = faction.Police.PoliceReports.Num() - 1;
 							}
+
+							float distance = FVector::Dist(Camera->GetTargetActorLocation(citizen), Camera->GetTargetActorLocation(c));
+							float dist = 1000000000;
+
+							if (faction.Police.PoliceReports[index].Witnesses.Contains(citizen))
+								dist = *faction.Police.PoliceReports[index].Witnesses.Find(citizen);
+
+							GetCloserToFight(citizen, c, faction.Police.PoliceReports[index].Location);
+
+							if (distance < dist)
+								faction.Police.PoliceReports[index].Witnesses.Add(citizen, distance);
 						}
 					}
 					else if (citizen->AIController->MoveRequest.GetGoalActor() == actor && citizen->CanReach(actor, reach, citizen->AIController->MoveRequest.GetGoalInstance())) {
@@ -694,7 +684,7 @@ void UCitizenManager::CalculateCitizenInteractions()
 							}
 
 							citizen->AIController->StopMovement();
-							});
+						});
 					}
 					else if (actor->IsA<ABuilding>() && !actor->IsA<ABroch>() && citizen->CanReach(actor, reach) && !IsValid(citizen->Building.BuildingAt) && citizen->AttackComponent->OverlappingEnemies.IsEmpty()) {
 						FPartyStruct* partyStruct = GetMembersParty(citizen);
@@ -810,7 +800,7 @@ void UCitizenManager::CalculateFighting()
 
 		for (auto& element : ais) {
 			for (AAI* ai : element.Value) {
-				if (!IsValid(ai) || ai->IsPendingKillPending() || ai->HealthComponent->GetHealth() <= 0)
+				if (!IsValid(ai) || ai->HealthComponent->GetHealth() <= 0)
 					continue;
 
 				FOverlapsStruct requestedOverlaps;
@@ -824,10 +814,8 @@ void UCitizenManager::CalculateFighting()
 
 				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range, requestedOverlaps, EFactionType::Both);
 
-				int32 reach = ai->InitialRange / 15.0f;
-
 				for (AActor* actor : actors) {
-					if (!IsValid(actor) || actor->IsPendingKillPending())
+					if (!IsValid(actor) || ai->AttackComponent->OverlappingEnemies.Contains(actor))
 						continue;
 
 					UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
@@ -1404,11 +1392,9 @@ bool UCitizenManager::IsCarelessWitness(ACitizen* Citizen)
 	return false;
 }
 
-bool UCitizenManager::IsInAPoliceReport(ACitizen* Citizen)
+bool UCitizenManager::IsInAPoliceReport(ACitizen* Citizen, FFactionStruct* Faction)
 {
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
-
-	for (FPoliceReport& report : faction->Police.PoliceReports) {
+	for (FPoliceReport& report : Faction->Police.PoliceReports) {
 		if (!report.Witnesses.Contains(Citizen) && report.RespondingOfficer != Citizen && !report.AcussesTeam1.Contains(Citizen) && !report.AcussesTeam2.Contains(Citizen))
 			continue;
 

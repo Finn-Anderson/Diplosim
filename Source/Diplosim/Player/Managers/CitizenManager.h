@@ -219,7 +219,7 @@ public:
 
 	bool IsCarelessWitness(class ACitizen* Citizen);
 
-	bool IsInAPoliceReport(class ACitizen* Citizen);
+	bool IsInAPoliceReport(class ACitizen* Citizen, FFactionStruct* Faction);
 
 	void ChangeReportToMurder(class ACitizen* Citizen);
 

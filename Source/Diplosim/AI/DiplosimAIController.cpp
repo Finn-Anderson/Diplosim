@@ -57,13 +57,13 @@ void ADiplosimAIController::DefaultAction()
 				if (raidPolicy == ERaidPolicy::Home)
 					AIMoveTo(citizen->Building.House);
 				else
-					AIMoveTo(Camera->ConquestManager->GetCitizenFaction(citizen).EggTimer);
+					AIMoveTo(faction->EggTimer);
 
 				return;
 			}
 		}
 
-		if (citizen->bConversing || Camera->CitizenManager->IsInAPoliceReport(citizen) || citizen->AttackComponent->IsComponentTickEnabled() || Camera->CitizenManager->IsAttendingEvent(citizen))
+		if (citizen->bConversing || Camera->CitizenManager->IsInAPoliceReport(citizen, faction) || citizen->AttackComponent->IsComponentTickEnabled() || Camera->CitizenManager->IsAttendingEvent(citizen))
 			return;
 
 		for (auto& element : Camera->CitizenManager->OngoingEvents()) {
