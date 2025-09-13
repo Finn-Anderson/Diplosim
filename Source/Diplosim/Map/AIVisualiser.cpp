@@ -431,16 +431,20 @@ void UAIVisualiser::ActivateTorch(int32 Hour, UHierarchicalInstancedStaticMeshCo
 	UpdateInstanceCustomData(HISM, Instance, 11, value);
 }
 
-void UAIVisualiser::AddHarvestVisual(FVector Location, FLinearColor Colour)
+FVector UAIVisualiser::AddHarvestVisual(class AAI* AI, FLinearColor Colour)
 {
+	FVector location = AI->MovementComponent->Transform.GetLocation() + FVector(20.0f, 0.0f, 17.0f);
+
 	TArray<FVector> locations = UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(HarvestNiagaraComponent, "Locations");
-	locations.Add(Location);
+	locations.Add(location);
 
 	TArray<FLinearColor> colours = UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayColor(HarvestNiagaraComponent, "Colours");
 	colours.Add(Colour);
 
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(HarvestNiagaraComponent, "Locations", locations);
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayColor(HarvestNiagaraComponent, "Colours", colours);
+
+	return location;
 }
 
 TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)

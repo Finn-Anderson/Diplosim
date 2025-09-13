@@ -647,7 +647,7 @@ void UCitizenManager::CalculateCitizenInteractions()
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens = faction.Citizens;
 
-			if (!Enemies.IsEmpty() || !faction.Rebels.IsEmpty())
+			if (!Enemies.IsEmpty() || !faction.Rebels.IsEmpty() || faction.Buildings.Num() < 2)
 				continue;
 
 			for (ACitizen* citizen : citizens) {
@@ -663,10 +663,10 @@ void UCitizenManager::CalculateCitizenInteractions()
 				requestedOverlaps.bBuildings = true;
 
 				int32 reach = citizen->Range / 15.0f;
-				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range, requestedOverlaps, EFactionType::Same, &faction);
+				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, reach, requestedOverlaps, EFactionType::Same, &faction);
 
 				for (AActor* actor : actors) {
-					if (actor->IsA<ABroch>() || !citizen->CanReach(actor, reach))
+					if (actor->IsA<ABroch>())
 						continue;
 
 					int32 aggressiveness = 0;
@@ -684,10 +684,12 @@ void UCitizenManager::CalculateCitizenInteractions()
 
 					int32 index = INDEX_NONE;
 
-					for (AActor* a : actors) {
-						if (!faction.Citizens.Contains(a))
-							continue;
+					FOverlapsStruct rqstdOvrlps;
+					rqstdOvrlps.bCitizens = true;
 
+					TArray<AActor*> actrs = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range, rqstdOvrlps, EFactionType::Same, &faction);
+
+					for (AActor* a : actrs) {
 						ACitizen* witness = Cast<ACitizen>(a);
 
 						float distance = FVector::Dist(Camera->GetTargetActorLocation(witness), Camera->GetTargetActorLocation(citizen));
@@ -726,10 +728,7 @@ void UCitizenManager::CalculateCitizenInteractions()
 				}
 			}
 		}
-
-		if (!Camera->Start)
-			GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Cyan, FString::Printf(TEXT("Vandalism Interactions: %f"), GetWorld()->GetTimeSeconds()));
-		});
+	});
 
 	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&ReportInteractionsLock);

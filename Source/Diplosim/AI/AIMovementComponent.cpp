@@ -1,6 +1,9 @@
 #include "AI/AIMovementComponent.h"
 
+#include "NavigationSystem.h"
+
 #include "AI.h"
+#include "Citizen.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
 #include "Player/Camera.h"
@@ -28,6 +31,8 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
 
+	AActor* goal = AI->AIController->MoveRequest.GetGoalActor();
+
 	if (CurrentAnim.bPlay) {
 		CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
 
@@ -46,8 +51,12 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 				CurrentAnim.bPlay = false;
 
 			if (CurrentAnim.Alpha == 1.0f && (CurrentAnim.Type == EAnim::Melee || CurrentAnim.Type == EAnim::Throw)) {
-				if (CurrentAnim.Type == EAnim::Melee)
-					AI->AttackComponent->Melee();
+				if (CurrentAnim.Type == EAnim::Melee) {
+					if (goal->IsA<AResource>())
+						Cast<ACitizen>(AI)->SetHarvestVisuals(Cast<AResource>(goal));
+					else
+						AI->AttackComponent->Melee();
+				}
 				else
 					AI->AttackComponent->Throw();
 			}
@@ -70,8 +79,6 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);
 	
-	AActor* goal = AI->AIController->MoveRequest.GetGoalActor();
-	
 	if (IsValid(goal)) {
 		FVector location = AI->Camera->GetTargetLocation(goal);
 
@@ -93,12 +100,13 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	{
 		FHitResult hit;
 
-		double z = 0;
+		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, Transform.GetLocation() + deltaV + FVector(0.0f, 0.0f, 100.0f), Transform.GetLocation() + deltaV - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_GameTraceChannel1))
-			z = hit.Location.Z - Transform.GetLocation().Z;
-		
-		deltaV.Z = z;
+		FNavLocation navLoc;
+		nav->ProjectPointToNavigation(Transform.GetLocation() + deltaV, navLoc, FVector(20.0f, 20.0f, 40.0f));
+
+		deltaV.Z = navLoc.Location.Z - Transform.GetLocation().Z - 6.0f;
 
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;

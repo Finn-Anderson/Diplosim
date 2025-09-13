@@ -475,9 +475,7 @@ void ACitizen::SetHarvestVisuals(AResource* Resource)
 		colour = FLinearColor(0.270498f, 0.158961f, 0.07036f);
 	}
 
-	FVector location = MovementComponent->Transform.GetLocation() + FVector(20.0f, 0.0f, 17.0f);
-
-	Camera->Grid->AIVisualiser->AddHarvestVisual(location, colour);
+	FVector location = Camera->Grid->AIVisualiser->AddHarvestVisual(this, colour);
 
 	AmbientAudioComponent->SetRelativeLocation(location);
 	Camera->PlayAmbientSound(AmbientAudioComponent, sound);
