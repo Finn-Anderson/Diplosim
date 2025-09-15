@@ -545,7 +545,7 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7] = Transform.GetRotation().Rotator().Pitch;
 }
 
-TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction)
+TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction, FVector Location)
 {
 	TArray<AActor*> actors;
 
@@ -596,7 +596,8 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 	if (actorsToCheck.Contains(Actor))
 		actorsToCheck.Remove(Actor);
 
-	FVector location = Camera->GetTargetActorLocation(Actor);
+	if (Location == FVector::Zero())
+		Location = Camera->GetTargetActorLocation(Actor);
 
 	for (AActor* actor : actorsToCheck) {
 		if (!IsValid(actor))
@@ -604,15 +605,15 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 
 		UHealthComponent* healthComp = actor->FindComponentByClass<UHealthComponent>();
 
-		if (healthComp && healthComp->GetHealth() == 0)
+		if (IsValid(healthComp) && healthComp->GetHealth() == 0)
 			continue;
 
 		FVector loc = Camera->GetTargetActorLocation(actor);
 
 		if (actor->IsA<ABuilding>())
-			Cast<ABuilding>(actor)->BuildingMesh->GetClosestPointOnCollision(location, loc);
+			Cast<ABuilding>(actor)->BuildingMesh->GetClosestPointOnCollision(Location, loc);
 
-		float distance = FVector::Dist(location, loc);
+		float distance = FVector::Dist(Location, loc);
 
 		if (distance <= Range)
 			actors.Add(actor);
@@ -620,7 +621,7 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 
 	if (RequestedOverlaps.bResources) {
 		for (FResourceHISMStruct resourceStruct : Camera->Grid->TreeStruct) {
-			TArray<int32> instances = resourceStruct.Resource->ResourceHISM->GetInstancesOverlappingSphere(location, Range);
+			TArray<int32> instances = resourceStruct.Resource->ResourceHISM->GetInstancesOverlappingSphere(Location, Range);
 
 			if (!instances.IsEmpty())
 				actors.Add(resourceStruct.Resource);

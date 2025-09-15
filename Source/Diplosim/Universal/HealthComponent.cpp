@@ -6,6 +6,7 @@
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/AudioComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
@@ -33,7 +34,11 @@
 
 UHealthComponent::UHealthComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = false; 
+	
+	HitAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("HitAudioComponent"));
+	HitAudioComponent->SetVolumeMultiplier(0.0f);
+	HitAudioComponent->bCanPlayMultipleInstances = true;
 
 	HealthMultiplier = 1.0f;
 }
@@ -51,9 +56,9 @@ void UHealthComponent::AddHealth(int32 Amount)
 	Health = FMath::Clamp(Health + Amount, 0, MaxHealth);
 }
 
-void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
+void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* Sound)
 {
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Amount, Attacker]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Amount, Attacker, Sound]() {
 		if (GetHealth() == 0)
 			return;
 
@@ -87,6 +92,8 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker)
 			Death(Attacker, force);
 		else if (GetOwner()->IsA<ACitizen>())
 			Camera->CitizenManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Grid->Stream.RandRange(0, 100));
+
+		Camera->PlayAmbientSound(HitAudioComponent, Sound);
 	});
 }
 

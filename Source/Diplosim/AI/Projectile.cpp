@@ -76,9 +76,11 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 		return;
 
 	int32 multiplier = 1.0f; 
+
+	UAttackComponent* attackComponent = GetOwner()->FindComponentByClass<UAttackComponent>();
 	
-	if (GetOwner()->IsA<AAI>())
-		multiplier = Cast<AAI>(GetOwner())->AttackComponent->DamageMultiplier;
+	if (attackComponent)
+		multiplier = attackComponent->DamageMultiplier;
 
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	ACamera* camera = PController->GetPawn<ACamera>();
@@ -105,6 +107,11 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 
 	UHealthComponent* healthComp = nullptr;
 
+	USoundBase* sound = nullptr;
+
+	if (attackComponent)
+		sound = attackComponent->OnHitSound;
+
 	if (bExplode) {
 		for (AActor* actor : actors) {
 			if (actor->IsA<ABuilding>())
@@ -125,7 +132,7 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 			else if (GetOwner()->IsA<UNaturalDisasterComponent>() && camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(actor->GetActorLocation()))
 				continue;
 
-			healthComp->TakeHealth(dmg, this);
+			healthComp->TakeHealth(dmg, this, sound);
 		}
 
 		UNiagaraComponent* explosion = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionSystem, GetActorLocation());
@@ -139,7 +146,7 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 		healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
 
 		if (healthComp)
-			healthComp->TakeHealth(Damage * multiplier, this);
+			healthComp->TakeHealth(Damage * multiplier, this, sound);
 	}
 
 	Destroy();

@@ -432,7 +432,7 @@ bool ACitizen::CanFindAnything(int32 TimeToCompleteDay, FFactionStruct* Faction)
 {
 	double time = GetWorld()->GetTimeSeconds();
 
-	if ((time < GetAcquiredTime(0) + TimeToCompleteDay && time < GetAcquiredTime(1) + TimeToCompleteDay && time < GetAcquiredTime(2) + TimeToCompleteDay) || Faction->Police.Arrested.Contains(this))
+	if ((time < GetAcquiredTime(0) + TimeToCompleteDay && time < GetAcquiredTime(1) + TimeToCompleteDay && time < GetAcquiredTime(2) + TimeToCompleteDay) || Faction == nullptr || Faction->Police.Arrested.Contains(this))
 		return false;
 
 	return true;
@@ -972,7 +972,7 @@ void ACitizen::Birthday()
 	}
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(faction->Name, "Vote Age"))
-		Async(EAsyncExecution::TaskGraphMainTick, [this]() { SetPoliticalLeanings(); });
+		SetPoliticalLeanings();
 
 	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(faction->Name, "Work Age")) {
 		if (IsValid(Building.House)) {

@@ -219,7 +219,7 @@ public:
 
 	void SetAnimationPoint(class AAI* AI, FTransform Transform);
 
-	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction = nullptr);
+	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction = nullptr, FVector Location = FVector::Zero());
 
 	UPROPERTY()
 		TArray<FPendingChangeStruct> PendingChange;

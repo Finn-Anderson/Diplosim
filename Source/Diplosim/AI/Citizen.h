@@ -329,8 +329,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		TArray<USoundBase*> Mines;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		TMap<USoundBase*, USoundBase*> Conversations;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+		class TArray<USoundBase*> NormalConversations;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+		class TArray<USoundBase*> IneptIdiotConversations;
 
 	UPROPERTY()
 		float VoicePitch;

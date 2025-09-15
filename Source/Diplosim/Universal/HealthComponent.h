@@ -34,9 +34,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		class UMaterial* OnHitEffect;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* HitAudioComponent;
+
 	void AddHealth(int32 Amount);
 
-	void TakeHealth(int32 Amount, AActor* Attacker);
+	void TakeHealth(int32 Amount, AActor* Attacker, USoundBase* Sound = nullptr);
 
 	bool IsMaxHealth();
 

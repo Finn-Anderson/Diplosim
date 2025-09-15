@@ -66,12 +66,6 @@ public:
 	UPROPERTY()
 		bool bShowMercy;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		UAnimSequence* MeleeAnim;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		UAnimSequence* RangeAnim;
-
 	UPROPERTY()
 		AActor* CurrentTarget;
 
@@ -80,4 +74,10 @@ public:
 
 	UPROPERTY()
 		class ACamera* Camera;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+		class USoundBase* OnHitSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+		class USoundBase* ZapSound;
 };

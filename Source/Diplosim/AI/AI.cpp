@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/AudioComponent.h"
 
 #include "Universal/HealthComponent.h"
 #include "AIMovementComponent.h"
@@ -25,6 +26,7 @@ AAI::AAI()
 	RootComponent = RootSceneComponent;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	HealthComponent->HitAudioComponent->SetupAttachment(RootComponent);
 
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 

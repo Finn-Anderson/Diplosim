@@ -317,8 +317,13 @@ void UAttackComponent::Melee()
 	if (CurrentTarget == nullptr)
 		return;
 
-	if (GetOwner()->IsA<AEnemy>())
+	USoundBase* sound = OnHitSound;
+
+	if (GetOwner()->IsA<AEnemy>()) {
 		Cast<AEnemy>(GetOwner())->Zap(Camera->GetTargetActorLocation(CurrentTarget));
+
+		sound = ZapSound;
+	}
 
 	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
 	
@@ -327,7 +332,7 @@ void UAttackComponent::Melee()
 	if (GetOwner()->IsA<ACitizen>())
 		dmg *= 1 / (18 / FMath::Clamp(Cast<ACitizen>(GetOwner())->BioStruct.Age, 0, 18));
 
-	healthComp->TakeHealth(dmg * DamageMultiplier, GetOwner());
+	healthComp->TakeHealth(dmg * DamageMultiplier, GetOwner(), sound);
 }
 
 void UAttackComponent::ClearAttacks()
