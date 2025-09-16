@@ -104,9 +104,12 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 		FNavLocation navLoc;
-		nav->ProjectPointToNavigation(Transform.GetLocation() + deltaV, navLoc, FVector(20.0f, 20.0f, 40.0f));
+		bool bProjected = nav->ProjectPointToNavigation(Transform.GetLocation() + deltaV, navLoc, FVector(20.0f, 20.0f, 40.0f));
 
-		deltaV.Z = navLoc.Location.Z - Transform.GetLocation().Z - 6.0f;
+		if (bProjected)
+			deltaV.Z = navLoc.Location.Z - Transform.GetLocation().Z - 5.0f;
+		else
+			deltaV.Z = 0.0f;
 
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;

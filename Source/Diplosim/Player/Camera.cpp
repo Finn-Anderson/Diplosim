@@ -696,6 +696,8 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	Input->BindAction(InputGameSpeed, ETriggerEvent::Triggered, this, &ACamera::IncrementGameSpeed);
 	Input->BindAction(InputGameSpeed, ETriggerEvent::Completed, this, &ACamera::ResetGameSpeedCounter);
+
+	Input->BindAction(InputGameSpeedNumbers, ETriggerEvent::Started, this, &ACamera::DirectSetGameSpeed);
 }
 
 void ACamera::Action(const struct FInputActionInstance& Instance)
@@ -927,6 +929,13 @@ void ACamera::IncrementGameSpeed(const struct FInputActionInstance& Instance)
 void ACamera::ResetGameSpeedCounter()
 {
 	GameSpeedCounter = 100;
+}
+
+void ACamera::DirectSetGameSpeed(const FInputActionInstance& Instance)
+{
+	SetGameSpeed(Instance.GetValue().Get<float>());
+
+	UpdateSpeedUI(GameSpeed);
 }
 
 //

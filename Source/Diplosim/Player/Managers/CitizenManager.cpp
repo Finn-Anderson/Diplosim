@@ -1348,36 +1348,36 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 
 	Citizen1->MovementComponent->ActorToLookAt = Citizen2;
 	Citizen2->MovementComponent->ActorToLookAt = Citizen1;
+
+	int32 index1 = Camera->Grid->Stream.RandRange(0, Citizen1->NormalConversations.Num() - 1);
+	int32 index2 = Camera->Grid->Stream.RandRange(0, Citizen2->NormalConversations.Num() - 1);
+
+	USoundBase* convo1 = Citizen1->NormalConversations[index1];
+	USoundBase* convo2 = Citizen2->NormalConversations[index2];
+
+	TArray<ACitizen*> citizens = { Citizen1, Citizen2 };
+
+	for (ACitizen* citizen : citizens) {
+		for (FPersonality* personality : GetCitizensPersonalities(citizen)) {
+			if (personality->Trait != "Inept")
+				continue;
+
+			int32 index = Camera->Grid->Stream.RandRange(0, citizen->IneptIdiotConversations.Num() - 1);
+
+			if (citizen == Citizen1)
+				convo1 = citizen->IneptIdiotConversations[index];
+			else
+				convo2 = citizen->IneptIdiotConversations[index];
+
+			break;
+		}
+	}
 	
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen1, Citizen2, bInterrogation]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen1, Citizen2, bInterrogation, convo1, convo2]() {
 		if (bInterrogation)
 			CreateTimer("Interrogate", Citizen1, 6.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::InterrogateWitnesses, Faction, Citizen1, Citizen2), false);
 		else
 			CreateTimer("Interact", Citizen1, 6.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::Interact, Faction, Citizen1, Citizen2), false);
-
-		int32 index1 = Camera->Grid->Stream.RandRange(0, Citizen1->NormalConversations.Num() - 1);
-		int32 index2 = Camera->Grid->Stream.RandRange(0, Citizen2->NormalConversations.Num() - 1);
-
-		USoundBase* convo1 = Citizen1->NormalConversations[index1];
-		USoundBase* convo2 = Citizen2->NormalConversations[index2];
-
-		TArray<ACitizen*> citizens = { Citizen1, Citizen2 };
-
-		for (ACitizen* citizen : citizens) {
-			for (FPersonality* personality : GetCitizensPersonalities(citizen)) {
-				if (personality->Trait != "Inept")
-					continue;
-
-				int32 index = Camera->Grid->Stream.RandRange(0, citizen->IneptIdiotConversations.Num() - 1);
-
-				if (citizen == Citizen1)
-					convo1 = citizen->IneptIdiotConversations[index];
-				else
-					convo2 = citizen->IneptIdiotConversations[index];
-
-				break;
-			}
-		}
 
 		Camera->PlayAmbientSound(Citizen1->AmbientAudioComponent, convo1, Citizen1->VoicePitch);
 		Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);

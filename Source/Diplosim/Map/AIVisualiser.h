@@ -234,9 +234,8 @@ public:
 		TArray<class AResearch*> RotatingBuildings;
 
 	FCriticalSection CitizenMovementLock;
-	
-	UPROPERTY()
-		bool bCitizensMoving;
+	FCriticalSection CitizenMovementLock1;
+	FCriticalSection CitizenMovementLock2;
 
 	FCriticalSection AIMovementLock;
 

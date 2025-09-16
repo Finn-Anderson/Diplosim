@@ -240,7 +240,7 @@ void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRe
 			else 
 				hism->PerInstanceSMCustomData[instances[i] * hism->NumCustomDataFloats + 1] = 0.0f;
 
-			hism->UnbuiltInstanceBoundsList.Add(hism->InstanceBodies[instances[i]]->GetBodyBounds());
+			hism->bIsOutOfDate = true;
 		}
 
 		hism->BuildTreeIfOutdated(true, false);

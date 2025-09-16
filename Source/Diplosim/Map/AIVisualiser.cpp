@@ -94,7 +94,6 @@ UAIVisualiser::UAIVisualiser()
 	HatsContainer->SetupAttachment(AIContainer);
 
 	hatsNum = 0;
-	bCitizensMoving = false;
 	bAIMoving = false;
 	bBuildingsDying = false;
 	bBuildingsRotating = false;
@@ -166,15 +165,10 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 
 void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 {
-	if (bCitizensMoving)
-		return;
-
 	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
 		FScopeTryLock lock(&CitizenMovementLock);
 		if (!lock.IsLocked())
 			return;
-
-		bCitizensMoving = true;
 
 		TArray<ACitizen*> cs;
 		TArray<ACitizen*> rebels;
@@ -184,70 +178,81 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 			rebels.Append(faction.Rebels);
 		}
 
-		if (cs.IsEmpty() && rebels.IsEmpty()) {
-			bCitizensMoving = false;
-
+		if (cs.IsEmpty() && rebels.IsEmpty())
 			return;
-		}
-
-		TArray<FVector> diseaseLocations;
-		TArray<FVector> torchLocations;
 
 		TArray<TArray<ACitizen*>> citizens;
 		citizens.Add(cs);
 		citizens.Add(rebels);
 
-		for (int32 i = 0; i < citizens.Num(); i++) {
-			for (int32 j = 0; j < citizens[i].Num(); j++) {
-				ACitizen* citizen = citizens[i][j];
-
-				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() == 0)
-					continue;
-
-				citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
-
-				UHierarchicalInstancedStaticMeshComponent* hism = nullptr;
-
-				if (i == 0) {
-					float opacity = 1.0f;
-					if (IsValid(citizen->Building.BuildingAt))
-						opacity = 0.0f;
-
-					UpdateInstanceCustomData(HISMCitizen, j, 12, opacity);
-
-					hism = HISMCitizen;
+		for (int32 k = 0; k < 2; k++) {
+			Async(EAsyncExecution::TaskGraph, [this, Camera, citizens, k]() {
+				if (k == 0) {
+					FScopeTryLock citizenLock(&CitizenMovementLock1);
+					if (!citizenLock.IsLocked())
+						return;
 				}
-				else
-					hism = HISMRebel;
+				else {
+					FScopeTryLock citizenLock(&CitizenMovementLock2);
+					if (!citizenLock.IsLocked())
+						return;
 
-				SetInstanceTransform(hism, j, citizen->MovementComponent->Transform);
+				}
 
-				if (Camera->CitizenManager->Infected.Contains(citizen))
-					diseaseLocations.Add(citizen->MovementComponent->Transform.GetLocation());
+				TArray<FVector> diseaseLocations;
+				TArray<FVector> torchLocations;
 
-				if (TorchNiagaraComponent->IsActive())
-					torchLocations.Add(citizen->MovementComponent->Transform.GetLocation());
+				for (int32 i = 0; i < citizens.Num(); i++) {
+					for (int32 j = (citizens[i].Num() * k) / 2; j < citizens[i].Num() / (2 - k); j++) {
+						ACitizen* citizen = citizens[i][j];
 
-				UpdateCitizenVisuals(hism, Camera, citizen, j);
-			}
+						if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() == 0)
+							continue;
 
-			if (i == 0 && HISMCitizen->bIsOutOfDate)
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMCitizen->BuildTreeIfOutdated(false, false); });
-			else if (HISMRebel->bIsOutOfDate)
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
+						citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
+
+						UHierarchicalInstancedStaticMeshComponent* hism = nullptr;
+
+						if (i == 0) {
+							float opacity = 1.0f;
+							if (IsValid(citizen->Building.BuildingAt))
+								opacity = 0.0f;
+
+							UpdateInstanceCustomData(HISMCitizen, j, 12, opacity);
+
+							hism = HISMCitizen;
+						}
+						else
+							hism = HISMRebel;
+
+						SetInstanceTransform(hism, j, citizen->MovementComponent->Transform);
+
+						if (Camera->CitizenManager->Infected.Contains(citizen))
+							diseaseLocations.Add(citizen->MovementComponent->Transform.GetLocation());
+
+						if (hism->PerInstanceSMCustomData[j * hism->NumCustomDataFloats + 11] == 1.0f)
+							torchLocations.Add(citizen->MovementComponent->Transform.GetLocation() + FVector(-8.8f, 0.0f, 14.5f));
+
+						UpdateCitizenVisuals(hism, Camera, citizen, j);
+					}
+
+					if (i == 0 && HISMCitizen->bIsOutOfDate)
+						Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMCitizen->BuildTreeIfOutdated(false, false); });
+					else if (HISMRebel->bIsOutOfDate)
+						Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
+				}
+
+				if (!torchLocations.IsEmpty()) {
+					torchLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(TorchNiagaraComponent, "Locations"));
+					UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(TorchNiagaraComponent, "Locations", torchLocations);
+				}
+
+				if (!diseaseLocations.IsEmpty()) {
+					diseaseLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations"));
+					UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
+				}
+			});
 		}
-
-		if (!torchLocations.IsEmpty()) {
-			torchLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(TorchNiagaraComponent, "Locations"));
-			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(TorchNiagaraComponent, "Locations", torchLocations);
-		}
-
-		if (!diseaseLocations.IsEmpty()) {
-			diseaseLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations"));
-			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
-		}
-
-		bCitizensMoving = false;
 	});
 }
 
@@ -392,6 +397,16 @@ void UAIVisualiser::UpdateInstanceCustomData(UHierarchicalInstancedStaticMeshCom
 	HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + Index] = Value;
 
 	HISM->bIsOutOfDate = true;
+
+	if (Index != 11)
+		return;
+
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Value]() {
+		if (Value == 1.0f)
+			TorchNiagaraComponent->Activate();
+		else
+			TorchNiagaraComponent->Deactivate();
+	});
 }
 
 void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform)

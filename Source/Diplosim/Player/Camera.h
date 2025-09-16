@@ -458,6 +458,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputGameSpeed;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputGameSpeedNumbers;
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -509,6 +512,8 @@ public:
 	void IncrementGameSpeed(const struct FInputActionInstance& Instance);
 
 	void ResetGameSpeedCounter();
+
+	void DirectSetGameSpeed(const struct FInputActionInstance& Instance);
 
 	UPROPERTY()
 		int32 GameSpeedCounter;

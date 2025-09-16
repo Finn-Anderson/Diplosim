@@ -111,7 +111,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
 		AIMoveTo(house);
 	else {
-		int32 time = Camera->Grid->Stream.RandRange(5, 30);
+		int32 time = Camera->Grid->Stream.RandRange(5, 20);
 
 		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66 && !Faction->Police.Arrested.Contains(Citizen)) {
 			AIMoveTo(ChosenBuilding);
@@ -140,7 +140,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 				location = ChosenBuilding->GetActorLocation();
 			}
 
-			location += FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.RandRange(innerRange, outerRange);;
+			location += FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.RandRange(innerRange, outerRange);
 
 			FNavLocation navLoc;
 			nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));

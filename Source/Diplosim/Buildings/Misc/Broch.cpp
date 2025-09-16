@@ -30,14 +30,17 @@ void ABroch::SpawnCitizens()
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	for (int32 i = 0; i < Camera->CitizenNum; i++) {
+		FVector location = GetActorLocation();
+		location += FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.FRandRange(120.0f, 400.0f);
+
 		FNavLocation navLoc;
-		nav->GetRandomReachablePointInRadius(GetActorLocation(), 400.0f, navLoc);
+		nav->ProjectPointToNavigation(location, navLoc, FVector(300.0f, 300.0f, 9.0f));
 
 		FActorSpawnParameters params;
 		params.bNoFail = true;
 
 		FTransform transform;
-		transform.SetLocation(navLoc.Location - FVector(0.0f, 0.0f, 6.0f));
+		transform.SetLocation(navLoc.Location - FVector(0.0f, 0.0f, 5.0f));
 		transform.SetRotation((GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f)).Quaternion());
 
 		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, FVector::Zero(), FRotator::ZeroRotator, params);

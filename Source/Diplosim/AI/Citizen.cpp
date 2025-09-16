@@ -432,7 +432,7 @@ bool ACitizen::CanFindAnything(int32 TimeToCompleteDay, FFactionStruct* Faction)
 {
 	double time = GetWorld()->GetTimeSeconds();
 
-	if ((time < GetAcquiredTime(0) + TimeToCompleteDay && time < GetAcquiredTime(1) + TimeToCompleteDay && time < GetAcquiredTime(2) + TimeToCompleteDay) || Faction == nullptr || Faction->Police.Arrested.Contains(this))
+	if (!IsValid(this) || (time < GetAcquiredTime(0) + TimeToCompleteDay && time < GetAcquiredTime(1) + TimeToCompleteDay && time < GetAcquiredTime(2) + TimeToCompleteDay) || Faction == nullptr || Faction->Police.Arrested.Contains(this))
 		return false;
 
 	return true;
@@ -1342,7 +1342,7 @@ void ACitizen::SetPoliticalLeanings()
 		}
 	}
 
-	int32 itterate = FMath::Floor(GetHappiness() / 10) - 5;
+	int32 itterate = FMath::Floor(GetHappiness() / 10.0f) - 5;
 
 	if (itterate < 0)
 		for (int32 i = 0; i < FMath::Abs(itterate); i++)
@@ -1534,7 +1534,9 @@ int32 ACitizen::GetHappiness()
 {
 	int32 value = 50;
 
-	for (const TPair<FString, int32>& pair : Happiness.Modifiers)
+	TMap<FString, int32> modifiers = Happiness.Modifiers;
+
+	for (auto pair : modifiers)
 		value += pair.Value;
 
 	return value;
@@ -1711,7 +1713,9 @@ void ACitizen::SetHappiness()
 	else if (ConversationHappiness > 0)
 		Happiness.SetValue("Recent conversations", ConversationHappiness);
 
-	if (Camera->CitizenManager->GetCitizenParty(this) != "Undecided") {
+	FString party = Camera->CitizenManager->GetCitizenParty(this);
+
+	if (party != "Undecided") {
 		int32 lawTally = 0;
 
 		for (FLawStruct law : faction->Politics.Laws) {
@@ -1721,7 +1725,7 @@ void ACitizen::SetHappiness()
 			int32 count = 0;
 
 			FLeanStruct partyLean;
-			partyLean.Party = Camera->CitizenManager->GetMembersParty(this)->Party;
+			partyLean.Party = party;
 
 			int32 index = law.Lean.Find(partyLean);
 
