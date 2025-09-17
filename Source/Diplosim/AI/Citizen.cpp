@@ -1534,10 +1534,11 @@ int32 ACitizen::GetHappiness()
 {
 	int32 value = 50;
 
-	TMap<FString, int32> modifiers = Happiness.Modifiers;
+	TArray<int32> values;
+	Happiness.Modifiers.GenerateValueArray(values);
 
-	for (auto pair : modifiers)
-		value += pair.Value;
+	for (int32 v : values)
+		value += v;
 
 	return value;
 }

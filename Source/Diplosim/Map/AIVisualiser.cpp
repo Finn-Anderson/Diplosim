@@ -79,11 +79,13 @@ UAIVisualiser::UAIVisualiser()
 	TorchNiagaraComponent->SetupAttachment(AIContainer);
 	TorchNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	TorchNiagaraComponent->bAutoActivate = false;
+	TorchNiagaraComponent->BoundsScale = 10.0f;
 
 	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
 	DiseaseNiagaraComponent->SetupAttachment(AIContainer);
 	DiseaseNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	DiseaseNiagaraComponent->bAutoActivate = false;
+	DiseaseNiagaraComponent->BoundsScale = 10.0f;
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);
@@ -230,8 +232,15 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						if (Camera->CitizenManager->Infected.Contains(citizen))
 							diseaseLocations.Add(citizen->MovementComponent->Transform.GetLocation());
 
-						if (hism->PerInstanceSMCustomData[j * hism->NumCustomDataFloats + 11] == 1.0f)
-							torchLocations.Add(citizen->MovementComponent->Transform.GetLocation() + FVector(-8.8f, 0.0f, 14.5f));
+						if (hism->PerInstanceSMCustomData[j * hism->NumCustomDataFloats + 11] == 1.0f) {
+							FRotator rotation = citizen->MovementComponent->Transform.GetRotation().Rotator() - FRotator(0.0f, 90.0f, 0.0f);
+							rotation.Normalize();
+
+							FVector location = rotation.Vector() * 8.8f * citizen->MovementComponent->Transform.GetScale3D().X;
+							location.Z = 14.5f * citizen->MovementComponent->Transform.GetScale3D().Z + hism->PerInstanceSMCustomData[j * hism->NumCustomDataFloats + 6];
+
+							torchLocations.Add(citizen->MovementComponent->Transform.GetLocation() + location);
+						}
 
 						UpdateCitizenVisuals(hism, Camera, citizen, j);
 					}
@@ -242,15 +251,11 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
 				}
 
-				if (!torchLocations.IsEmpty()) {
-					torchLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(TorchNiagaraComponent, "Locations"));
+				if (!torchLocations.IsEmpty())
 					UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(TorchNiagaraComponent, "Locations", torchLocations);
-				}
 
-				if (!diseaseLocations.IsEmpty()) {
-					diseaseLocations.Append(UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations"));
+				if (!diseaseLocations.IsEmpty())
 					UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
-				}
 			});
 		}
 	});
