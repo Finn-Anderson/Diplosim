@@ -256,6 +256,9 @@ void ACamera::Tick(float DeltaTime)
 		FVector chosenLocation = FVector::Zero();
 
 		for (AAI* ai : ais) {
+			if (!IsValid(ai) || ai->HealthComponent->GetHealth() == 0)
+				continue;
+
 			FVector aiLoc = ai->MovementComponent->Transform.GetLocation() + FVector(0.0f, 0.0f, 9.0f);
 			float distance = FMath::PointDistToSegment(aiLoc, mouseLoc, hit.Location);
 
@@ -697,7 +700,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Input->BindAction(InputGameSpeed, ETriggerEvent::Triggered, this, &ACamera::IncrementGameSpeed);
 	Input->BindAction(InputGameSpeed, ETriggerEvent::Completed, this, &ACamera::ResetGameSpeedCounter);
 
-	Input->BindAction(InputGameSpeedNumbers, ETriggerEvent::Started, this, &ACamera::DirectSetGameSpeed);
+	Input->BindAction(InputGameSpeedNumbers, ETriggerEvent::Triggered, this, &ACamera::DirectSetGameSpeed);
 }
 
 void ACamera::Action(const struct FInputActionInstance& Instance)
@@ -933,7 +936,12 @@ void ACamera::ResetGameSpeedCounter()
 
 void ACamera::DirectSetGameSpeed(const FInputActionInstance& Instance)
 {
-	SetGameSpeed(Instance.GetValue().Get<float>());
+	float value = Instance.GetValue().Get<float>();
+
+	if (GameSpeed == value)
+		return;
+
+	SetGameSpeed(value);
 
 	UpdateSpeedUI(GameSpeed);
 }

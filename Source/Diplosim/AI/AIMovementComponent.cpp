@@ -22,6 +22,7 @@ UAIMovementComponent::UAIMovementComponent()
 	Transform = FTransform(FQuat::Identity, FVector(0, 0, 0));
 
 	ActorToLookAt = nullptr;
+	bSetPoints = false;
 }
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime)
@@ -74,6 +75,13 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		}
 	}
 
+	if (bSetPoints) {
+		Points = TempPoints;
+
+		TempPoints.Empty();
+		bSetPoints = false;
+	}
+
 	if (Points.IsEmpty())
 		return;
 
@@ -100,16 +108,10 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	{
 		FHitResult hit;
 
-		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+		FVector location = Transform.GetLocation() + deltaV;
 
-		FNavLocation navLoc;
-		bool bProjected = nav->ProjectPointToNavigation(Transform.GetLocation() + deltaV, navLoc, FVector(20.0f, 20.0f, 40.0f));
-
-		if (bProjected)
-			deltaV.Z = navLoc.Location.Z - Transform.GetLocation().Z - 5.0f;
-		else
-			deltaV.Z = 0.0f;
+		if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 20.0f), location - FVector(0.0f, 0.0f, 20.0f), ECollisionChannel::ECC_GameTraceChannel1))
+			deltaV.Z = hit.Location.Z - Transform.GetLocation().Z;
 
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;
@@ -135,7 +137,8 @@ void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 	else if (CurrentAnim.Type == EAnim::Move)
 		SetAnimation(EAnim::Still);
 
-	Points = VectorPoints;
+	TempPoints = VectorPoints;
+	bSetPoints = true;
 }
 
 void UAIMovementComponent::SetMaxSpeed(int32 Energy)

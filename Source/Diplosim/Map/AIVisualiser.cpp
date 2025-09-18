@@ -77,6 +77,7 @@ UAIVisualiser::UAIVisualiser()
 
 	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
 	TorchNiagaraComponent->SetupAttachment(AIContainer);
+	TorchNiagaraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 1000.0f));
 	TorchNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	TorchNiagaraComponent->bAutoActivate = false;
 	TorchNiagaraComponent->BoundsScale = 10.0f;
@@ -85,7 +86,7 @@ UAIVisualiser::UAIVisualiser()
 	DiseaseNiagaraComponent->SetupAttachment(AIContainer);
 	DiseaseNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
 	DiseaseNiagaraComponent->bAutoActivate = false;
-	DiseaseNiagaraComponent->BoundsScale = 10.0f;
+	DiseaseNiagaraComponent->BoundsScale = 3.0f;
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);
@@ -469,31 +470,32 @@ FVector UAIVisualiser::AddHarvestVisual(class AAI* AI, FLinearColor Colour)
 
 TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)
 {
-	UCitizenManager* cm = AI->Camera->CitizenManager;
-
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info;
 
-	if (cm->Enemies.Contains(AI)) {
+	if (!IsValid(AI))
+		return info;
+
+	if (AI->Camera->CitizenManager->Enemies.Contains(AI)) {
 		info.Key = HISMEnemy;
-		info.Value = cm->Enemies.Find(AI);
+		info.Value = AI->Camera->CitizenManager->Enemies.Find(AI);
 	}
 	else {
-		for (FFactionStruct faction : AI->Camera->ConquestManager->Factions) {
-			if (faction.Citizens.Contains(AI)) {
-				info.Key = HISMCitizen;
-				info.Value = faction.Citizens.Find(Cast<ACitizen>(AI));
-			}
-			else if (faction.Rebels.Contains(AI)) {
-				info.Key = HISMRebel;
-				info.Value = faction.Rebels.Find(Cast<ACitizen>(AI));
-			}
-			else if (faction.Clones.Contains(AI)) {
-				info.Key = HISMClone;
-				info.Value = faction.Clones.Find(AI);
-			}
+		FFactionStruct* faction = AI->Camera->ConquestManager->GetFaction("", AI);
 
-			if (IsValid(info.Key))
-				break;
+		if (faction == nullptr)
+			return info;
+
+		if (faction->Citizens.Contains(AI)) {
+			info.Key = HISMCitizen;
+			info.Value = faction->Citizens.Find(Cast<ACitizen>(AI));
+		}
+		else if (faction->Rebels.Contains(AI)) {
+			info.Key = HISMRebel;
+			info.Value = faction->Rebels.Find(Cast<ACitizen>(AI));
+		}
+		else if (faction->Clones.Contains(AI)) {
+			info.Key = HISMClone;
+			info.Value = faction->Clones.Find(AI);
 		}
 	}
 
@@ -558,6 +560,9 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 	UCitizenManager* cm = AI->Camera->CitizenManager;
 
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
+
+	if (!IsValid(info.Key) || info.Value == -1)
+		return;
 
 	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 4] = Transform.GetLocation().X;
 	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 5] = Transform.GetLocation().Y;

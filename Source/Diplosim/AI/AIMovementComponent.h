@@ -58,4 +58,10 @@ public:
 
 	UPROPERTY()
 		class AActor* ActorToLookAt;
+
+	UPROPERTY()
+		TArray<FVector> TempPoints;
+
+	UPROPERTY()
+		bool bSetPoints;
 };

@@ -35,6 +35,7 @@ void ABroch::SpawnCitizens()
 
 		FNavLocation navLoc;
 		nav->ProjectPointToNavigation(location, navLoc, FVector(300.0f, 300.0f, 9.0f));
+		navLoc.Location.Z = location.Z + 4.5f;
 
 		FActorSpawnParameters params;
 		params.bNoFail = true;
