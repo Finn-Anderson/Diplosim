@@ -1899,9 +1899,6 @@ void UCitizenManager::SpawnDisease()
 void UCitizenManager::Infect(ACitizen* Citizen)
 {
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen]() {
-		if (Infected.IsEmpty())
-			Camera->Grid->AIVisualiser->DiseaseNiagaraComponent->Activate();
-
 		Infected.Add(Citizen);
 
 		UpdateHealthText(Citizen);
@@ -1956,9 +1953,6 @@ void UCitizenManager::Cure(ACitizen* Citizen)
 
 	Infected.Remove(Citizen);
 	Injured.Remove(Citizen);
-
-	if (Infected.IsEmpty())
-		Camera->Grid->AIVisualiser->DiseaseNiagaraComponent->Deactivate();
 
 	Camera->NotifyLog("Good", Citizen->BioStruct.Name + " has been healed", Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
 

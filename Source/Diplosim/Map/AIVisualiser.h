@@ -176,12 +176,6 @@ public:
 		class UHierarchicalInstancedStaticMeshComponent* HISMEnemy;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
-		class UNiagaraComponent* TorchNiagaraComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
-		class UNiagaraComponent* DiseaseNiagaraComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* HarvestNiagaraComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animations")

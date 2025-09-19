@@ -40,7 +40,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMCitizen->SetGenerateOverlapEvents(false);
 	HISMCitizen->bWorldPositionOffsetWritesVelocity = false;
 	HISMCitizen->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMCitizen->NumCustomDataFloats = 13;
+	HISMCitizen->NumCustomDataFloats = 14;
 
 	HISMClone = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClone"));
 	HISMClone->SetupAttachment(AIContainer);
@@ -62,7 +62,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMRebel->SetGenerateOverlapEvents(false);
 	HISMRebel->bWorldPositionOffsetWritesVelocity = false;
 	HISMRebel->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMRebel->NumCustomDataFloats = 12;
+	HISMRebel->NumCustomDataFloats = 13;
 
 	HISMEnemy = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMEnemy"));
 	HISMEnemy->SetupAttachment(AIContainer);
@@ -74,19 +74,6 @@ UAIVisualiser::UAIVisualiser()
 	HISMEnemy->bWorldPositionOffsetWritesVelocity = false;
 	HISMEnemy->bAutoRebuildTreeOnInstanceChanges = false;
 	HISMEnemy->NumCustomDataFloats = 9;
-
-	TorchNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TorchNiagaraComponent"));
-	TorchNiagaraComponent->SetupAttachment(AIContainer);
-	TorchNiagaraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 1000.0f));
-	TorchNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
-	TorchNiagaraComponent->bAutoActivate = false;
-	TorchNiagaraComponent->BoundsScale = 10.0f;
-
-	DiseaseNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DiseaseNiagaraComponent"));
-	DiseaseNiagaraComponent->SetupAttachment(AIContainer);
-	DiseaseNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
-	DiseaseNiagaraComponent->bAutoActivate = false;
-	DiseaseNiagaraComponent->BoundsScale = 3.0f;
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);
@@ -202,9 +189,6 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 				}
 
-				TArray<FVector> diseaseLocations;
-				TArray<FVector> torchLocations;
-
 				for (int32 i = 0; i < citizens.Num(); i++) {
 					for (int32 j = (citizens[i].Num() * k) / 2; j < citizens[i].Num() / (2 - k); j++) {
 						ACitizen* citizen = citizens[i][j];
@@ -221,7 +205,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 							if (IsValid(citizen->Building.BuildingAt))
 								opacity = 0.0f;
 
-							UpdateInstanceCustomData(HISMCitizen, j, 12, opacity);
+							UpdateInstanceCustomData(HISMCitizen, j, 13, opacity);
 
 							hism = HISMCitizen;
 						}
@@ -229,19 +213,6 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 							hism = HISMRebel;
 
 						SetInstanceTransform(hism, j, citizen->MovementComponent->Transform);
-
-						if (Camera->CitizenManager->Infected.Contains(citizen))
-							diseaseLocations.Add(citizen->MovementComponent->Transform.GetLocation());
-
-						if (hism->PerInstanceSMCustomData[j * hism->NumCustomDataFloats + 11] == 1.0f) {
-							FRotator rotation = citizen->MovementComponent->Transform.GetRotation().Rotator() - FRotator(0.0f, 90.0f, 0.0f);
-							rotation.Normalize();
-
-							FVector location = rotation.Vector() * 8.8f * citizen->MovementComponent->Transform.GetScale3D().X;
-							location.Z = 14.5f * citizen->MovementComponent->Transform.GetScale3D().Z + hism->PerInstanceSMCustomData[j * hism->NumCustomDataFloats + 6];
-
-							torchLocations.Add(citizen->MovementComponent->Transform.GetLocation() + location);
-						}
 
 						UpdateCitizenVisuals(hism, Camera, citizen, j);
 					}
@@ -251,12 +222,6 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 					else if (HISMRebel->bIsOutOfDate)
 						Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
 				}
-
-				if (!torchLocations.IsEmpty())
-					UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(TorchNiagaraComponent, "Locations", torchLocations);
-
-				if (!diseaseLocations.IsEmpty())
-					UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(DiseaseNiagaraComponent, "Locations", diseaseLocations);
 			});
 		}
 	});
@@ -403,16 +368,6 @@ void UAIVisualiser::UpdateInstanceCustomData(UHierarchicalInstancedStaticMeshCom
 	HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + Index] = Value;
 
 	HISM->bIsOutOfDate = true;
-
-	if (Index != 11)
-		return;
-
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Value]() {
-		if (Value == 1.0f)
-			TorchNiagaraComponent->Activate();
-		else
-			TorchNiagaraComponent->Deactivate();
-	});
 }
 
 void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform)
@@ -429,15 +384,20 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 
 void UAIVisualiser::UpdateCitizenVisuals(UHierarchicalInstancedStaticMeshComponent* HISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
-	if (Citizen->bGlasses)
-		UpdateInstanceCustomData(HISM, Instance, 10, 1.0f);
-
 	if (Camera->CitizenManager->Injured.Contains(Citizen))
 		UpdateInstanceCustomData(HISM, Instance, 9, 1.0f);
 	else
 		UpdateInstanceCustomData(HISM, Instance, 9, 0.0f);
 
+	if (Citizen->bGlasses)
+		UpdateInstanceCustomData(HISM, Instance, 10, 1.0f);
+
 	ActivateTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour, HISM, Instance);
+
+	if (Camera->CitizenManager->Infected.Contains(Citizen))
+		UpdateInstanceCustomData(HISM, Instance, 12, 1.0f);
+	else
+		UpdateInstanceCustomData(HISM, Instance, 12, 0.0f);
 }
 
 void UAIVisualiser::ActivateTorch(int32 Hour, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
