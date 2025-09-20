@@ -1130,10 +1130,19 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 			if (citizen->bSleep)
 				citizen->HoursSleptToday.Add(Hour);
 
-			if (citizen->HoursSleptToday.Num() < citizen->IdealHoursSlept && !citizen->bSleep && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->IsWorking(citizen)) && IsValid(citizen->Building.House) && citizen->Building.BuildingAt == citizen->Building.House)
+			if (citizen->HoursSleptToday.Num() < citizen->IdealHoursSlept && !citizen->bSleep && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->IsWorking(citizen)) && IsValid(citizen->Building.House) && citizen->Building.BuildingAt == citizen->Building.House) {
 				citizen->bSleep = true;
-			else if (citizen->bSleep)
+
+				citizen->Snore(true);
+			}
+			else if (citizen->bSleep && citizen->HoursSleptToday.Num() >= citizen->IdealHoursSlept) {
 				citizen->bSleep = false;
+
+				FTimerStruct* timer = FindTimer("Snore", citizen);
+
+				if (timer != nullptr)
+					timer->Actor = nullptr;
+			}
 
 			citizen->DecayHappiness();
 			citizen->IncrementHoursTogetherWithPartner();

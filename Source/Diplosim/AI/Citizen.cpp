@@ -1897,6 +1897,30 @@ void ACitizen::ApplyGeneticAffect(FGeneticsStruct Genetic)
 	}
 }
 
+void ACitizen::Snore(bool bCreate)
+{
+	float time = Camera->Grid->Stream.FRandRange(2.0f, 10.0f);
+
+	if (bCreate) {
+		FGeneticsStruct geneticToFind;
+		geneticToFind.Type = EGeneticsType::Speed;
+
+		int32 index = Genetics.Find(geneticToFind);
+
+		if (Genetics[index].Grade != EGeneticsGrade::Bad)
+			return;
+
+		Camera->CitizenManager->CreateTimer("Snore", this, time, FTimerDelegate::CreateUObject(this, &ACitizen::Snore, false), true);
+	}
+	else {
+		int32 index = Camera->Grid->Stream.RandRange(0, Snores.Num() - 1);
+
+		Camera->PlayAmbientSound(AmbientAudioComponent, Snores[index]);
+
+		Camera->CitizenManager->UpdateTimerLength("Snore", this, time);
+	}
+}
+
 //
 // Personality
 //

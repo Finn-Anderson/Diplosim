@@ -503,6 +503,11 @@ public:
 	void ApplyTraitAffect(TMap<FString, float> Affects);
 
 	// Sleep
+	void Snore(bool bCreate = false);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+		TArray<USoundBase*> Snores;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Sleep")
 		bool bSleep;
 
