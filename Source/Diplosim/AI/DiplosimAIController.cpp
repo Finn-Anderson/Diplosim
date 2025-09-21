@@ -140,7 +140,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 				location = ChosenBuilding->GetActorLocation();
 			}
 
-			location += FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.RandRange(innerRange, outerRange);
+			location += Async(EAsyncExecution::TaskGraph, [this, innerRange, outerRange]() { return FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.RandRange(innerRange, outerRange); }).Get();
 
 			FNavLocation navLoc;
 			nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));

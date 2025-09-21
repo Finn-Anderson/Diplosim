@@ -432,6 +432,28 @@ struct FGiftStruct
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FAIBuildStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		TSubclassOf<class ABuilding> Building;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		int32 NumCitizens;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		int32 Limit;
+
+	FAIBuildStruct()
+	{
+		Building = nullptr;
+		NumCitizens = 0;
+		Limit = 0;
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UConquestManager : public UActorComponent
 {
@@ -543,7 +565,12 @@ public:
 		void Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts);
 
 	// AI
-	void EvaluateAI(FFactionStruct Faction);
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build")
+		TArray<FAIBuildStruct> AIBuilds;
+
+	void EvaluateAI(FFactionStruct* Faction);
+
+	void AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> Building);
 
 	// UI
 	UFUNCTION(BlueprintCallable)

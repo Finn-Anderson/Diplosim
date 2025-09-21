@@ -652,9 +652,6 @@ void UBuildComponent::Place(bool bQuick)
 	float size = FMath::Sqrt(FMath::Sqrt((dimensions.X * dimensions.Y * dimensions.Z) / 10.0f));
 	float pitch = 1.0f / size;
 
-	Camera->SetInteractAudioSound(PlaceSound, settings->GetMasterVolume() * settings->GetSFXVolume(), pitch);
-	Camera->PlayInteractSound();
-
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
 		ABuilding* building = Buildings[i];
 
@@ -771,6 +768,8 @@ void UBuildComponent::Place(bool bQuick)
 		building->StoreSocketLocations();
 
 		building->Build();
+
+		Camera->PlayAmbientSound(building->AmbientAudioComponent, PlaceSound);
 	}
 
 	if (Camera->Start)

@@ -2164,7 +2164,7 @@ TMap<FFactionStruct*, TArray<FEventStruct*>> UCitizenManager::OngoingEvents()
 	return factionEvents;
 }
 
-void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event)
+void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionStruct* Faction)
 {
 	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event->Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->IsWorking(Citizen)) || (Event->Type == EEventType::Mass && Cast<ABooster>(Event->Building->GetDefaultObject())->DoesPromoteFavouringValues(Citizen) && Citizen->BioStruct.Age >= 18))
 		return;
@@ -2208,63 +2208,67 @@ void UCitizenManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event)
 			return;
 	}
 
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen, Event]() {
-		ABuilding* chosenBuilding = nullptr;
-		ACitizen* chosenOccupant = nullptr;
+	ABuilding* chosenBuilding = nullptr;
+	ACitizen* chosenOccupant = nullptr;
 
-		TArray<AActor*> actors;
+	TArray<AActor*> actors;
 
-		if (IsValid(Event->Building))
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), Event->Building, actors);
-		else if (IsValid(Event->Venue))
-			actors.Add(Event->Venue);
+	if (IsValid(Event->Building)) {
+		if (Faction == nullptr)
+			Faction = Camera->ConquestManager->GetFaction("", Citizen);
 
-		for (AActor* actor : actors) {
-			ABuilding* building = Cast<ABuilding>(actor);
-			ACitizen* occupant = nullptr;
+		for (ABuilding* building : Faction->Buildings)
+			if (building->IsA(Event->Building))
+				actors.Add(building);
+	}
+	else if (IsValid(Event->Venue))
+		actors.Add(Event->Venue);
 
-			if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || (Event->Type == EEventType::Mass && building->GetOccupied().IsEmpty()) || (Event->Type == EEventType::Festival && !Cast<AFestival>(building)->bCanHostFestival))
+	for (AActor* actor : actors) {
+		ABuilding* building = Cast<ABuilding>(actor);
+		ACitizen* occupant = nullptr;
+
+		if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || (Event->Type == EEventType::Mass && building->GetOccupied().IsEmpty()) || (Event->Type == EEventType::Festival && !Cast<AFestival>(building)->bCanHostFestival))
+			continue;
+
+		bool bSpace = false;
+
+		for (ACitizen* occpnt : building->GetOccupied()) {
+			if (building->GetVisitors(occpnt).Num() == building->Space)
 				continue;
 
-			bool bSpace = false;
+			occupant = occpnt;
+			bSpace = true;
 
-			for (ACitizen* occpnt : building->GetOccupied()) {
-				if (building->GetVisitors(occpnt).Num() == building->Space)
-					continue;
+			break;
+		}
 
-				occupant = occpnt;
-				bSpace = true;
+		if (!bSpace)
+			continue;
 
-				break;
-			}
-
-			if (!bSpace)
-				continue;
-
-			if (chosenBuilding == nullptr) {
-				chosenBuilding = building;
-				chosenOccupant = occupant;
-
-				continue;
-			}
-
-			double magnitude = Citizen->AIController->GetClosestActor(400.0f, Camera->GetTargetActorLocation(Citizen), chosenBuilding->GetActorLocation(), building->GetActorLocation());
-
-			if (magnitude <= 0.0f)
-				continue;
-
+		if (chosenBuilding == nullptr) {
 			chosenBuilding = building;
 			chosenOccupant = occupant;
+
+			continue;
 		}
 
-		if (chosenBuilding != nullptr) {
-			Event->Attendees.Add(Citizen);
+		double magnitude = Citizen->AIController->GetClosestActor(400.0f, Camera->GetTargetActorLocation(Citizen), chosenBuilding->GetActorLocation(), building->GetActorLocation());
 
-			chosenBuilding->AddVisitor(chosenOccupant, Citizen);
+		if (magnitude <= 0.0f)
+			continue;
 
-			Citizen->AIController->AIMoveTo(chosenBuilding);
-		}
-	});
+		chosenBuilding = building;
+		chosenOccupant = occupant;
+	}
+
+	if (chosenBuilding != nullptr) {
+		Event->Attendees.Add(Citizen);
+
+		chosenBuilding->AddVisitor(chosenOccupant, Citizen);
+
+		Citizen->AIController->AIMoveTo(chosenBuilding);
+	}
 }
 
 void UCitizenManager::StartEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour)
@@ -2285,7 +2289,7 @@ void UCitizenManager::StartEvent(FFactionStruct* Faction, FEventStruct* Event, i
 		citizens = Event->Whitelist;
 	
 	for (ACitizen* citizen : citizens)
-		GotoEvent(citizen, Event);
+		GotoEvent(citizen, Event, Faction);
 
 	if (Event->Type == EEventType::Protest && GetLawValue(Faction->Name, "Protest Length") > 0) {
 		FPoliceReport report;

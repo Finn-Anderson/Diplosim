@@ -302,7 +302,7 @@ public:
 
 	TMap<FFactionStruct*, TArray<FEventStruct*>> OngoingEvents();
 
-	void GotoEvent(ACitizen* Citizen, FEventStruct* Event);
+	void GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionStruct* Faction = nullptr);
 
 	void StartEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour);
 

@@ -16,6 +16,7 @@
 #include "Universal/HealthComponent.h"
 #include "Buildings/Misc/Portal.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Work/Service/Builder.h"
 
 UConquestManager::UConquestManager()
 {
@@ -256,7 +257,7 @@ void UConquestManager::ComputeAI()
 
 		EvaluateDiplomacy(faction);
 
-		EvaluateAI(faction);
+		EvaluateAI(&faction);
 	}
 
 	for (FFactionStruct faction : FactionsToRemove) {
@@ -714,9 +715,35 @@ void UConquestManager::Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts)
 //
 // AI
 //
-void UConquestManager::EvaluateAI(FFactionStruct Faction)
+void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 {
 	// Use to evaluate where to move the amassed army when at war, and also, where to place which buildings
+	bool bContainsBuilder = false;
+
+	for (ABuilding* building : Faction->Buildings) {
+		if (!building->IsA<ABuilder>())
+			continue;
+
+		bContainsBuilder = true;
+
+		break;
+	}
+
+	if (bContainsBuilder) {
+		for (FAIBuildStruct aibuild : AIBuilds) {
+			if (!aibuild.Building->GetDefaultObject()->IsA<ABuilder>())
+				continue;
+
+			AIBuild(Faction, aibuild.Building);
+
+			return;
+		}
+	}
+}
+
+void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> Building)
+{
+	// Get closest points on collisions. If within 100, deny. Also create overlap check (do not use build component one as that needs a pre-made building or repurpose to use non-made buildings).
 }
 
 //
