@@ -61,7 +61,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class USoundBase* PlaceSound;
 
-	TArray<FHitResult> GetBuildingOverlaps(class ABuilding* Building, float Extent = 1.0f);
+	TArray<FHitResult> GetBuildingOverlaps(class ABuilding* Building, float Extent = 1.0f, FVector Location = FVector::Zero());
 
 	void SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding = false, FVector PrevLocation = FVector::Zero());
 

@@ -739,11 +739,109 @@ void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 			return;
 		}
 	}
+
+	int32 count = 0;
+
+	TArray<TSubclassOf<ABuilding>> buildingsClassList;
+
+	for (FResourceStruct resource : Camera->ResourceManager->ResourceList) {
+		if (resource.Category != "Food" && resource.Category != "Money")
+			continue;
+
+		if (count == 2)
+			break;
+
+		int32 trend = Camera->ResourceManager->GetCategoryTrend(Faction->Name, resource.Category);
+
+		if (trend >= 0)
+			continue;
+
+		TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResourcesFromCategory(resource.Category);
+			
+		for (TSubclassOf<AResource> r : resources) {
+			TArray<TSubclassOf<ABuilding>> buildings;
+			Camera->ResourceManager->GetBuildings(r).GenerateKeyArray(buildings);
+
+			buildingsClassList.Append(buildings);
+		}
+	}
+
+	if (buildingsClassList.IsEmpty()) {
+		for (FAIBuildStruct& aibuild : AIBuilds) {
+			if (Faction->Citizens.Num() < aibuild.NumCitizens || aibuild.CurrentAmount == aibuild.Limit || !AICanAfford(Faction, aibuild.Building))
+				continue;
+
+			if (Camera->Grid->Stream.RandRange(1, 100) < 50) {
+				aibuild.NumCitizens *= 1.1f;
+
+				continue;
+			}
+
+			buildingsClassList.Add(aibuild.Building);
+		}
+	}
+
+	if (buildingsClassList.IsEmpty())
+		return;
+
+	int32 chosenIndex = Camera->Grid->Stream.RandRange(0, buildingsClassList.Num() - 1);
+	TSubclassOf<ABuilding> chosenBuildingClass = buildingsClassList[chosenIndex];
+
+	FAIBuildStruct aibuild;
+	aibuild.Building = chosenBuildingClass;
+
+	int32 i = AIBuilds.Find(aibuild);
+	AIBuilds[i].CurrentAmount++;
+
+	AIBuild(Faction, chosenBuildingClass);
+
+	// Separate part for building roads if necessary/have leftover funds. Also setup building houses for homeless before doign roads.
 }
 
-void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> Building)
+bool UConquestManager::AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, int32 Amount)
 {
-	// Get closest points on collisions. If within 100, deny. Also create overlap check (do not use build component one as that needs a pre-made building or repurpose to use non-made buildings).
+	TArray<FItemStruct> items = Cast<ABuilding>(BuildingClass->GetDefaultObject())->CostList;
+
+	if (Amount > 1)
+		for (FItemStruct& item : items)
+			item.Amount *= Amount;
+
+	for (FItemStruct item : items) {
+		int32 maxAmount = Camera->ResourceManager->GetResourceAmount(Faction->Name, item.Resource);
+
+		if (maxAmount < item.Amount)
+			return false;
+	}
+
+	return true;
+}
+
+void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass)
+{
+	FActorSpawnParameters spawnParams;
+	spawnParams.bNoFail = true;
+
+	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0.0f, 0.0f, -1000.0f), FRotator::ZeroRotator, spawnParams);
+	building->FactionName = Faction->Name;
+
+	FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
+	float extent = size.X / (size.X + 100.0f);
+	float yExtent = size.Y / (size.Y + 100.0f);
+
+	if (yExtent > extent)
+		extent = yExtent;
+
+	if (building->IsA<AExternalProduction>()) {
+
+	}
+	else if (building->IsA<AInternalProduction>()) {
+
+	}
+
+	// Loop through tile locations and do check below. Check if location is reachable + evaluate length?
+	// For resource harvesters, go through resource locations + pick closest one that can be built on and is reachable.
+	FVector location = building->BuildingMesh->GetComponentLocation() + FVector(0.0f, 0.0f, 1000.0f);
+	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(building, extent, location);
 }
 
 //

@@ -444,12 +444,16 @@ struct FAIBuildStruct
 		int32 NumCitizens;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		int32 CurrentAmount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		int32 Limit;
 
 	FAIBuildStruct()
 	{
 		Building = nullptr;
 		NumCitizens = 0;
+		CurrentAmount = 0;
 		Limit = 0;
 	}
 };
@@ -568,9 +572,14 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build")
 		TArray<FAIBuildStruct> AIBuilds;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build")
+		TArray<TSubclassOf<class ABuilding>> Houses;
+
 	void EvaluateAI(FFactionStruct* Faction);
 
-	void AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> Building);
+	bool AICanAfford(FFactionStruct* Faction, TSubclassOf<class ABuilding> BuildingClass, int32 Amount = 1);
+
+	void AIBuild(FFactionStruct* Faction, TSubclassOf<class ABuilding> BuildingClass);
 
 	// UI
 	UFUNCTION(BlueprintCallable)

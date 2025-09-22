@@ -165,7 +165,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 }
 
-TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, float Extent)
+TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, float Extent, FVector Location)
 {
 	TArray<FHitResult> hits;
 
@@ -175,7 +175,8 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 	if (!Buildings.IsEmpty())
 		params.AddIgnoredActor(Buildings[0]);
 
-	FVector location = Building->BuildingMesh->GetComponentLocation();
+	if (Location == FVector::Zero())
+		Location = Building->BuildingMesh->GetComponentLocation();
 
 	FRotator rotation = Building->GetActorRotation();
 
@@ -191,7 +192,7 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 
 	for (FVector point : extremities) {
 		FVector newPoint = rotation.RotateVector(point);
-		newPoint += location;
+		newPoint += Location;
 
 		int32 x = FMath::RoundHalfFromZero(newPoint.X / 100.0f) * 100.0f;
 		int32 y = FMath::RoundHalfFromZero(newPoint.Y / 100.0f) * 100.0f;
