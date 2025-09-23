@@ -2,6 +2,7 @@
 
 #include "Components/WidgetComponent.h"
 #include "Misc/ScopeTryLock.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
@@ -17,6 +18,9 @@
 #include "Buildings/Misc/Portal.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Service/Builder.h"
+#include "Buildings/House.h"
+#include "Buildings/Work/Production/ExternalProduction.h"
+#include "Buildings/Work/Production/InternalProduction.h"
 
 UConquestManager::UConquestManager()
 {
@@ -717,7 +721,23 @@ void UConquestManager::Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts)
 //
 void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 {
-	// Use to evaluate where to move the amassed army when at war, and also, where to place which buildings
+	BuildFirstBuilder(Faction);
+
+	for (ABuilding* building : Faction->RuinedBuildings)
+		building->Rebuild(Faction->Name);
+
+	BuildAIBuild(Faction);
+
+	BuildAIHouse(Faction);
+
+	// Separate part for building roads + walls if necessary/have leftover funds. Walls face away from nearest building (also consider just using towers instead of walls if too much effort).
+	// For ramps, if height change when building roads, make ramp.
+	
+	// Evaluate army (separate function?)
+}
+
+void UConquestManager::BuildFirstBuilder(FFactionStruct* Faction)
+{
 	bool bContainsBuilder = false;
 
 	for (ABuilding* building : Faction->Buildings) {
@@ -734,12 +754,16 @@ void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 			if (!aibuild.Building->GetDefaultObject()->IsA<ABuilder>())
 				continue;
 
+			aibuild.CurrentAmount++;
 			AIBuild(Faction, aibuild.Building);
 
 			return;
 		}
 	}
+}
 
+void UConquestManager::BuildAIBuild(FFactionStruct* Faction)
+{
 	int32 count = 0;
 
 	TArray<TSubclassOf<ABuilding>> buildingsClassList;
@@ -757,7 +781,7 @@ void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 			continue;
 
 		TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResourcesFromCategory(resource.Category);
-			
+
 		for (TSubclassOf<AResource> r : resources) {
 			TArray<TSubclassOf<ABuilding>> buildings;
 			Camera->ResourceManager->GetBuildings(r).GenerateKeyArray(buildings);
@@ -781,21 +805,74 @@ void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 		}
 	}
 
-	if (buildingsClassList.IsEmpty())
+	ChooseBuilding(Faction, buildingsClassList);
+}
+
+void UConquestManager::BuildAIHouse(FFactionStruct* Faction)
+{
+	TArray<TSubclassOf<ABuilding>> buildingsClassList;
+
+	bool bHomeless = false;
+
+	for (ACitizen* citizen : Faction->Citizens) {
+		if (IsValid(citizen->Building.House))
+			continue;
+
+		bHomeless = true;
+
+		break;
+	}
+
+	if (!bHomeless)
 		return;
 
-	int32 chosenIndex = Camera->Grid->Stream.RandRange(0, buildingsClassList.Num() - 1);
-	TSubclassOf<ABuilding> chosenBuildingClass = buildingsClassList[chosenIndex];
+	for (TSubclassOf<class ABuilding> house : Houses) {
+		if (!AICanAfford(Faction, house))
+			continue;
 
-	FAIBuildStruct aibuild;
-	aibuild.Building = chosenBuildingClass;
+		buildingsClassList.Add(house);
+	}
 
-	int32 i = AIBuilds.Find(aibuild);
-	AIBuilds[i].CurrentAmount++;
+	ChooseBuilding(Faction, buildingsClassList);
+}
+
+void UConquestManager::ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses)
+{
+	if (BuildingsClasses.IsEmpty())
+		return;
+
+	int32 chosenIndex = Camera->Grid->Stream.RandRange(0, BuildingsClasses.Num() - 1);
+	TSubclassOf<ABuilding> chosenBuildingClass = BuildingsClasses[chosenIndex];
+
+	if (!Houses.Contains(chosenBuildingClass)) {
+		FAIBuildStruct aibuild;
+		aibuild.Building = chosenBuildingClass;
+
+		int32 i = AIBuilds.Find(aibuild);
+		AIBuilds[i].CurrentAmount++;
+	}
 
 	AIBuild(Faction, chosenBuildingClass);
+}
 
-	// Separate part for building roads if necessary/have leftover funds. Also setup building houses for homeless before doign roads.
+bool UConquestManager::AIValidBuildingLocation(FFactionStruct* Faction, ABuilding* Building, float Extent, FVector Location)
+{
+	if (!Faction->Citizens[0]->AIController->CanMoveTo(Location) || !Camera->BuildComponent->IsValidLocation(Building, Location))
+		return false;
+
+	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(Building, Extent, Location);
+	bool bHitBuilding = false;
+
+	for (FHitResult hit : hits) {
+		if (!hit.GetActor()->IsA<ABuilding>())
+			continue;
+
+		bHitBuilding = true;
+
+		break;
+	}
+
+	return !bHitBuilding;
 }
 
 bool UConquestManager::AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, int32 Amount)
@@ -821,6 +898,8 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 	FActorSpawnParameters spawnParams;
 	spawnParams.bNoFail = true;
 
+	FRotator rotation = FRotator(0.0f, FMath::RoundHalfFromZero(Camera->Grid->Stream.FRandRange(0.0f, 270.0f) / 90.0f) * 90.0f, 0.0f);
+
 	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0.0f, 0.0f, -1000.0f), FRotator::ZeroRotator, spawnParams);
 	building->FactionName = Faction->Name;
 
@@ -831,17 +910,61 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 	if (yExtent > extent)
 		extent = yExtent;
 
+	FVector location = FVector(10000000000.0f);
+	FVector offset = building->BuildingMesh->GetComponentLocation() + FVector(0.0f, 0.0f, 1000.0f);
+
 	if (building->IsA<AExternalProduction>()) {
+		AExternalProduction* externalBuilding = Cast<AExternalProduction>(building);
 
+		for (auto& element : externalBuilding->GetValidResources()) {
+			for (int32 inst : element.Value) {
+				FTransform transform;
+				element.Key->ResourceHISM->GetInstanceTransform(inst, transform);
+
+				transform.SetLocation(transform.GetLocation() + offset);
+
+				if (FVector::Dist(Faction->EggTimer->GetActorLocation(), location) < FVector::Dist(Faction->EggTimer->GetActorLocation(), transform.GetLocation()) || !AIValidBuildingLocation(Faction, building, extent, transform.GetLocation()))
+					continue;
+
+				location = transform.GetLocation();
+			}
+		}
 	}
-	else if (building->IsA<AInternalProduction>()) {
+	else if (building->IsA<AInternalProduction>() && Cast<AInternalProduction>(building)->ResourceToOverlap != nullptr) {
+		AInternalProduction* internalBuilding = Cast<AInternalProduction>(building);
 
+		TArray<FResourceHISMStruct> resourceStructs;
+		resourceStructs.Append(Camera->Grid->MineralStruct);
+
+		for (FResourceHISMStruct resourceStruct : resourceStructs) {
+			if (internalBuilding->ResourceToOverlap != resourceStruct.ResourceClass)
+				continue;
+
+			for (int32 i = 0; i < resourceStruct.Resource->ResourceHISM->GetInstanceCount(); i++) {
+				FTransform transform;
+				resourceStruct.Resource->ResourceHISM->GetInstanceTransform(i, transform);
+
+				if (FVector::Dist(Faction->EggTimer->GetActorLocation(), location) < FVector::Dist(Faction->EggTimer->GetActorLocation(), transform.GetLocation()) || !AIValidBuildingLocation(Faction, building, extent, transform.GetLocation()))
+					continue;
+
+				location = transform.GetLocation();
+			}
+		}
+	}
+	else {
+		// Loop through tiles until nearest valid location is found.
+		// On egg timer place, go through each tile and store distance from egg timer via nav length per ai faction.
+		// Store tiles that cannot be reached to check every time a build is launched to add to the length list.
+		// Remove tiles with buildings obstructing them.
 	}
 
-	// Loop through tile locations and do check below. Check if location is reachable + evaluate length?
-	// For resource harvesters, go through resource locations + pick closest one that can be built on and is reachable.
-	FVector location = building->BuildingMesh->GetComponentLocation() + FVector(0.0f, 0.0f, 1000.0f);
-	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(building, extent, location);
+	if (location == FVector(10000000000.0f)) {
+		building->DestroyBuilding();
+
+		return;
+	}
+
+	building->SetActorLocation(location);
 }
 
 //

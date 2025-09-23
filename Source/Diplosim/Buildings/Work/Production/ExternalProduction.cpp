@@ -123,7 +123,7 @@ TMap<AResource*, TArray<int32>> AExternalProduction::GetValidResources()
 
 	TMap<AResource*, TArray<int32>> validResources;
 
-	for (FResourceHISMStruct resourceStruct : Camera->Grid->TreeStruct) {
+	for (FResourceHISMStruct resourceStruct : resourceStructs) {
 		if (!resources.Contains(resourceStruct.ResourceClass))
 			continue;
 

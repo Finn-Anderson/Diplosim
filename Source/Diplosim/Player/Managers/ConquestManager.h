@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Universal/DiplosimUniversalTypes.h"
 #include "Universal/Resource.h"
+#include "Buildings/Building.h"
 #include "Components/ActorComponent.h"
 #include "ConquestManager.generated.h"
 
@@ -325,7 +326,10 @@ struct FFactionStruct
 		int32 RebelCooldownTimer;
 
 	UPROPERTY()
-		TArray<class ABuilding*> Buildings;
+		TArray<ABuilding*> Buildings;
+
+	UPROPERTY()
+		TArray<ABuilding*> RuinedBuildings;
 
 	UPROPERTY()
 		class ABroch* EggTimer;
@@ -438,7 +442,7 @@ struct FAIBuildStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
-		TSubclassOf<class ABuilding> Building;
+		TSubclassOf<ABuilding> Building;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		int32 NumCitizens;
@@ -455,6 +459,11 @@ struct FAIBuildStruct
 		NumCitizens = 0;
 		CurrentAmount = 0;
 		Limit = 0;
+	}
+
+	bool operator==(const FAIBuildStruct& other) const
+	{
+		return (other.Building == Building);
 	}
 };
 
@@ -477,7 +486,7 @@ public:
 	void FinaliseFactions(class ABroch* EggTimer);
 
 	UFUNCTION(BlueprintCallable)
-		class ABuilding* DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<class ABuilding> BuildingClass);
+		ABuilding* DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<ABuilding> BuildingClass);
 
 	int32 GetFactionIndexFromName(FString FactionName);
 
@@ -577,9 +586,19 @@ public:
 
 	void EvaluateAI(FFactionStruct* Faction);
 
-	bool AICanAfford(FFactionStruct* Faction, TSubclassOf<class ABuilding> BuildingClass, int32 Amount = 1);
+	void BuildFirstBuilder(FFactionStruct* Faction);
 
-	void AIBuild(FFactionStruct* Faction, TSubclassOf<class ABuilding> BuildingClass);
+	void BuildAIBuild(FFactionStruct* Faction);
+
+	void BuildAIHouse(FFactionStruct* Faction);
+
+	void ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses);
+
+	bool AIValidBuildingLocation(FFactionStruct* Faction, ABuilding* Building, float Extent, FVector Location);
+
+	bool AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, int32 Amount = 1);
+
+	void AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass);
 
 	// UI
 	UFUNCTION(BlueprintCallable)

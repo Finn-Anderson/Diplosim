@@ -393,7 +393,8 @@ void ABuilding::Rebuild(FString NewFactionName)
 			int32 amount = Camera->ResourceManager->GetResourceAmount(FactionName, item.Resource);
 
 			if (amount < item.Amount) {
-				Camera->ShowWarning("Cannot afford building");
+				if (FactionName == Camera->ColonyName)
+					Camera->ShowWarning("Cannot afford building");
 
 				return;
 			}

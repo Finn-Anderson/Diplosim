@@ -425,9 +425,9 @@ bool UBuildComponent::CheckBuildCosts()
 	return true;
 }
 
-bool UBuildComponent::IsValidLocation(ABuilding* building)
+bool UBuildComponent::IsValidLocation(ABuilding* building, FVector Location)
 {
-	TArray<FHitResult> hits = GetBuildingOverlaps(building);
+	TArray<FHitResult> hits = GetBuildingOverlaps(building, 1.0f, Location);
 
 	if (hits.IsEmpty())
 		return false;

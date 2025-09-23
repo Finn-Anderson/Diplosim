@@ -166,6 +166,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		building->Storage.Empty();
 
 		faction->Buildings.Remove(building);
+		faction->RuinedBuildings.Add(building);
+
 		Camera->ConstructionManager->RemoveBuilding(building);
 
 		FVector dimensions = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
