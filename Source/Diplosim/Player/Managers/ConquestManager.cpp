@@ -1,8 +1,9 @@
 #include "Player/Managers/ConquestManager.h"
 
 #include "Components/WidgetComponent.h"
-#include "Misc/ScopeTryLock.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "NavigationSystem.h"
+#include "Misc/ScopeTryLock.h"
 
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
@@ -141,6 +142,8 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 		Camera->CitizenManager->Election(&faction);
 
 		SetFactionCulture(&faction);
+
+		InitialiseTileLocationDistances(&faction);
 	}
 
 	Camera->SetFactionsInDiplomacyUI();
@@ -717,10 +720,87 @@ void UConquestManager::Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts)
 }
 
 //
+// Tile Distance Calulation
+//
+
+double UConquestManager::CalculateTileDistance(FVector EggTimerLocation, FVector TileLocation)
+{
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	FNavLocation targetLoc;
+	nav->ProjectPointToNavigation(EggTimerLocation, targetLoc, FVector(20.0f, 20.0f, 20.0f));
+
+	FNavLocation ownerLoc;
+	nav->ProjectPointToNavigation(TileLocation, ownerLoc, FVector(20.0f, 20.0f, 20.0f));
+
+	double length;
+	nav->GetPathLength(GetWorld(), targetLoc.Location, ownerLoc.Location, length);
+
+	return length;
+}
+
+void UConquestManager::InitialiseTileLocationDistances(FFactionStruct* Faction)
+{
+	for (TArray<FTileStruct>& row : Camera->Grid->Storage) {
+		for (FTileStruct& tile : row) {
+			FTransform transform = Camera->Grid->GetTransform(&tile);
+
+			if (Faction->Citizens[0]->AIController->CanMoveTo(transform.GetLocation()))
+				Faction->AccessibleBuildLocations.Add(transform.GetLocation(), CalculateTileDistance(Faction->EggTimer->GetActorLocation(), transform.GetLocation()));
+			else	
+				Faction->InaccessibleBuildLocations.Add(transform.GetLocation());
+		}
+	}
+
+	SortTileDistances(Faction);
+}
+
+void UConquestManager::RecalculateTileLocationDistances(FFactionStruct* Faction)
+{
+	for (int32 i = Faction->InaccessibleBuildLocations.Num() - 1; i > -1; i--) {
+		FVector location = Faction->InaccessibleBuildLocations[i];
+
+		if (!Faction->Citizens[0]->AIController->CanMoveTo(location))
+			continue;
+
+		Faction->AccessibleBuildLocations.Add(location, CalculateTileDistance(Faction->EggTimer->GetActorLocation(), location));
+		Faction->InaccessibleBuildLocations.RemoveAt(i);
+	}
+
+	SortTileDistances(Faction);
+}
+
+void UConquestManager::RemoveTileLocations(FFactionStruct* Faction, ABuilding* Building)
+{
+	TArray<FVector> locations;
+	Faction->AccessibleBuildLocations.GenerateKeyArray(locations);
+
+	for (FVector location : locations) {
+		FVector hitLocation;
+		Building->BuildingMesh->GetClosestPointOnCollision(location, hitLocation);
+
+		if (FVector::Dist(location, hitLocation) < 100.0f)
+			Faction->AccessibleBuildLocations.Remove(location);
+	}
+
+	SortTileDistances(Faction);
+}
+
+void UConquestManager::SortTileDistances(FFactionStruct* Faction)
+{
+	Faction->AccessibleBuildLocations.ValueSort([](double s1, double s2)
+	{
+		return s1 < s2;
+	});
+}
+
+//
 // AI
 //
 void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 {
+	int32 numBuildings = Faction->Buildings.Num();
+
 	BuildFirstBuilder(Faction);
 
 	for (ABuilding* building : Faction->RuinedBuildings)
@@ -730,9 +810,12 @@ void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 
 	BuildAIHouse(Faction);
 
-	// Separate part for building roads + walls if necessary/have leftover funds. Walls face away from nearest building (also consider just using towers instead of walls if too much effort).
-	// For ramps, if height change when building roads, make ramp.
+	// Separate part for building roads.
+	// For ramps, if height change when building roads, make ramp i.e. if adjacent to edge and end location is on different level from start location, make ramp facing edge.
 	
+	if (Faction->Buildings.Num() > numBuildings)
+		RecalculateTileLocationDistances(Faction);
+
 	// Evaluate army (separate function?)
 }
 
@@ -754,8 +837,7 @@ void UConquestManager::BuildFirstBuilder(FFactionStruct* Faction)
 			if (!aibuild.Building->GetDefaultObject()->IsA<ABuilder>())
 				continue;
 
-			aibuild.CurrentAmount++;
-			AIBuild(Faction, aibuild.Building);
+			AIBuild(Faction, aibuild.Building, nullptr);
 
 			return;
 		}
@@ -769,7 +851,7 @@ void UConquestManager::BuildAIBuild(FFactionStruct* Faction)
 	TArray<TSubclassOf<ABuilding>> buildingsClassList;
 
 	for (FResourceStruct resource : Camera->ResourceManager->ResourceList) {
-		if (resource.Category != "Food" && resource.Category != "Money")
+		if (resource.Category != "Food")
 			continue;
 
 		if (count == 2)
@@ -799,6 +881,28 @@ void UConquestManager::BuildAIBuild(FFactionStruct* Faction)
 				aibuild.NumCitizens *= 1.1f;
 
 				continue;
+			}
+
+			if (aibuild.Building->GetDefaultObject()->IsA<AInternalProduction>()) {
+				AInternalProduction* internalBuilding = Cast<AInternalProduction>(aibuild.Building->GetDefaultObject());
+				
+				if (!internalBuilding->Intake.IsEmpty()) {
+					bool bMakesResources = true;
+
+					for (FItemStruct item : internalBuilding->Intake) {
+						int32 trend = Camera->ResourceManager->GetResourceTrend(Faction->Name, item.Resource);
+
+						if (trend > 0.0f)
+							continue;
+
+						bMakesResources = false;
+
+						break;
+					}
+
+					if (!bMakesResources)
+						continue;
+				}
 			}
 
 			buildingsClassList.Add(aibuild.Building);
@@ -844,15 +948,17 @@ void UConquestManager::ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassO
 	int32 chosenIndex = Camera->Grid->Stream.RandRange(0, BuildingsClasses.Num() - 1);
 	TSubclassOf<ABuilding> chosenBuildingClass = BuildingsClasses[chosenIndex];
 
-	if (!Houses.Contains(chosenBuildingClass)) {
-		FAIBuildStruct aibuild;
-		aibuild.Building = chosenBuildingClass;
+	TSubclassOf<AResource> resource = nullptr;
 
-		int32 i = AIBuilds.Find(aibuild);
-		AIBuilds[i].CurrentAmount++;
-	}
+	FAIBuildStruct aibuild;
+	aibuild.Building = chosenBuildingClass;
 
-	AIBuild(Faction, chosenBuildingClass);
+	int32 i = AIBuilds.Find(aibuild);
+
+	if (i != INDEX_NONE)
+		resource = AIBuilds[i].Resource;
+
+	AIBuild(Faction, chosenBuildingClass, resource);
 }
 
 bool UConquestManager::AIValidBuildingLocation(FFactionStruct* Faction, ABuilding* Building, float Extent, FVector Location)
@@ -893,7 +999,7 @@ bool UConquestManager::AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuildin
 	return true;
 }
 
-void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass)
+void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, TSubclassOf<AResource> Resource)
 {
 	FActorSpawnParameters spawnParams;
 	spawnParams.bNoFail = true;
@@ -902,6 +1008,13 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 
 	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0.0f, 0.0f, -1000.0f), FRotator::ZeroRotator, spawnParams);
 	building->FactionName = Faction->Name;
+
+	for (int32 i = 0; i < building->Seeds.Num(); i++) {
+		if (building->Seeds[i].Resource != Resource)
+			continue;
+
+		building->SetSeed(i);
+	}
 
 	FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 	float extent = size.X / (size.X + 100.0f);
@@ -952,10 +1065,14 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 		}
 	}
 	else {
-		// Loop through tiles until nearest valid location is found.
-		// On egg timer place, go through each tile and store distance from egg timer via nav length per ai faction.
-		// Store tiles that cannot be reached to check every time a build is launched to add to the length list.
-		// Remove tiles with buildings obstructing them.
+		for (auto& element : Faction->AccessibleBuildLocations) {
+			if (!AIValidBuildingLocation(Faction, building, extent, element.Key))
+				continue;
+
+			location = element.Key;
+
+			break;
+		}
 	}
 
 	if (location == FVector(10000000000.0f)) {
@@ -965,6 +1082,22 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 	}
 
 	building->SetActorLocation(location);
+
+	RemoveTileLocations(Faction, building);
+
+	if (Houses.Contains(BuildingClass))
+		return;
+
+	FAIBuildStruct aibuild;
+	aibuild.Building = BuildingClass;
+
+	int32 i = AIBuilds.Find(aibuild);
+
+	if (i == INDEX_NONE)
+		return;
+
+	AIBuilds[i].CurrentAmount++;
+	AIBuilds[i].NumCitizens += AIBuilds[i].NumCitizensIncrement;
 }
 
 //

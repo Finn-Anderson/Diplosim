@@ -355,6 +355,12 @@ struct FFactionStruct
 	UPROPERTY()
 		TArray<FFactionResourceStruct> Resources;
 
+	UPROPERTY()
+		TMap<FVector, double> AccessibleBuildLocations;
+
+	UPROPERTY()
+		TArray<FVector> InaccessibleBuildLocations;
+
 	FFactionStruct()
 	{
 		Name = "";
@@ -448,17 +454,25 @@ struct FAIBuildStruct
 		int32 NumCitizens;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		int32 NumCitizensIncrement;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build")
 		int32 CurrentAmount;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		int32 Limit;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		TSubclassOf<class AResource> Resource;
+
 	FAIBuildStruct()
 	{
 		Building = nullptr;
 		NumCitizens = 0;
+		NumCitizensIncrement = 50;
 		CurrentAmount = 0;
 		Limit = 0;
+		Resource = nullptr;
 	}
 
 	bool operator==(const FAIBuildStruct& other) const
@@ -577,11 +591,22 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts);
 
+	// Tile Distance Caluclation
+	double CalculateTileDistance(FVector EggTimerLocation, FVector TileLocation);
+
+	void InitialiseTileLocationDistances(FFactionStruct* Faction);
+
+	void RecalculateTileLocationDistances(FFactionStruct* Faction);
+
+	void RemoveTileLocations(FFactionStruct* Faction, ABuilding* Building);
+
+	void SortTileDistances(FFactionStruct* Faction);
+
 	// AI
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		TArray<FAIBuildStruct> AIBuilds;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		TArray<TSubclassOf<class ABuilding>> Houses;
 
 	void EvaluateAI(FFactionStruct* Faction);
@@ -598,7 +623,7 @@ public:
 
 	bool AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, int32 Amount = 1);
 
-	void AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass);
+	void AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, TSubclassOf<class AResource> Resource);
 
 	// UI
 	UFUNCTION(BlueprintCallable)

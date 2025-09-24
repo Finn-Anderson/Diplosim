@@ -89,24 +89,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (x < 0 || x >= bound || y < 0 || y >= bound)
 			return;
 
-		FHitResult hit2(ForceInit);
-
-		FCollisionQueryParams params;
-		params.AddIgnoredActor(Buildings[0]);
-
-		if (GetWorld()->LineTraceSingleByChannel(hit2, location, FVector(location.X, location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
-			location.Z = FMath::RoundHalfFromZero(hit2.Location.Z);
-
-		if (IsValid(hit2.GetComponent()) && Buildings[0]->IsA(FoundationClass)) {
-			if (hit2.GetComponent() == Camera->Grid->HISMRiver)
-				location.Z -= 55.0f;
-			else if (hit2.GetComponent() == Camera->Grid->HISMSea)
-				location.Z -= 25.0f;
-			else if (hit2.GetComponent() == Camera->Grid->HISMRampGround)
-				location.Z -= 50.0f;
-		}	
-		else if (hit2.GetComponent() == Camera->Grid->HISMRiver && Buildings[0]->IsA<ARoad>())
-			location.Z += 20.0f;
+		GetBuildLocationZ(Buildings[0], location);
 
 		FVector prevLocation = Buildings[0]->GetActorLocation();
 
@@ -163,6 +146,28 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				building->DecalComponent->SetVisibility(true);
 		}
 	}
+}
+
+void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
+{
+	FHitResult hit2(ForceInit);
+
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(Building);
+
+	if (GetWorld()->LineTraceSingleByChannel(hit2, Location, FVector(Location.X, Location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
+		Location.Z = FMath::RoundHalfFromZero(hit2.Location.Z);
+
+	if (IsValid(hit2.GetComponent()) && Building->IsA(FoundationClass)) {
+		if (hit2.GetComponent() == Camera->Grid->HISMRiver)
+			Location.Z -= 55.0f;
+		else if (hit2.GetComponent() == Camera->Grid->HISMSea)
+			Location.Z -= 25.0f;
+		else if (hit2.GetComponent() == Camera->Grid->HISMRampGround)
+			Location.Z -= 50.0f;
+	}
+	else if (hit2.GetComponent() == Camera->Grid->HISMRiver && Building->IsA<ARoad>())
+		Location.Z += 20.0f;
 }
 
 TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, float Extent, FVector Location)

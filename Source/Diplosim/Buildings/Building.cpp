@@ -403,6 +403,11 @@ void ABuilding::Rebuild(FString NewFactionName)
 
 	FactionName = NewFactionName;
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	if (faction->RuinedBuildings.Contains(this))
+		faction->RuinedBuildings.Remove(this);
+
 	Build(true);
 
 	BuildingMesh->SetCustomPrimitiveDataFloat(8, 0.0f);
@@ -599,8 +604,8 @@ void ABuilding::OnBuilt()
 
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
-	int32 factionIndex = Camera->ConquestManager->GetFactionIndexFromName(FactionName);
-	Camera->ConquestManager->Factions[factionIndex].Buildings.Add(this);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+	faction->Buildings.Add(this);
 
 	if (bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Activate();
