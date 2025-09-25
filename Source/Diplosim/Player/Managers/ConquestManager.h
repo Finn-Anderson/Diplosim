@@ -611,11 +611,15 @@ public:
 
 	void EvaluateAI(FFactionStruct* Faction);
 
+	void AITrade(FFactionStruct* Faction);
+
 	void BuildFirstBuilder(FFactionStruct* Faction);
 
 	void BuildAIBuild(FFactionStruct* Faction);
 
 	void BuildAIHouse(FFactionStruct* Faction);
+
+	void BuildAIRoads(FFactionStruct* Faction);
 
 	void ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses);
 

@@ -430,9 +430,9 @@ bool UBuildComponent::CheckBuildCosts()
 	return true;
 }
 
-bool UBuildComponent::IsValidLocation(ABuilding* building, FVector Location)
+bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector Location)
 {
-	TArray<FHitResult> hits = GetBuildingOverlaps(building, 1.0f, Location);
+	TArray<FHitResult> hits = GetBuildingOverlaps(Building, Extent, Location);
 
 	if (hits.IsEmpty())
 		return false;
@@ -444,11 +444,11 @@ bool UBuildComponent::IsValidLocation(ABuilding* building, FVector Location)
 		if (hit.GetActor()->IsHidden() || hit.GetComponent() == Camera->Grid->HISMWall || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
 
-		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !(building->IsA(FoundationClass) || building->IsA(RampClass))))
+		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !(Building->IsA(FoundationClass) || Building->IsA(RampClass))))
 			return false;
 
 		if (hit.GetComponent() == Camera->Grid->HISMSea) {
-			if (building->IsA(FoundationClass))
+			if (Building->IsA(FoundationClass))
 				continue;
 
 			return false;
@@ -462,8 +462,8 @@ bool UBuildComponent::IsValidLocation(ABuilding* building, FVector Location)
 			transform = hit.GetActor()->GetTransform();
 
 		if (hit.GetComponent() == Camera->Grid->HISMRiver && Camera->Grid->HISMRiver->PerInstanceSMCustomData[hit.Item * 4] == 1.0f) {
-			if (building->IsA<ARoad>()) {
-				ARoad* road = Cast<ARoad>(building);
+			if (Building->IsA<ARoad>()) {
+				ARoad* road = Cast<ARoad>(Building);
 				road->SetTier(road->GetTier());
 
 				if (road->BuildingMesh->GetStaticMesh() == road->RoadMeshes[0])
@@ -471,42 +471,42 @@ bool UBuildComponent::IsValidLocation(ABuilding* building, FVector Location)
 
 				return true;
 			}
-			else if (building->IsA(FoundationClass)) {
+			else if (Building->IsA(FoundationClass)) {
 				return true;
 			}
 		}
 
-		if (building->GetClass() == hit.GetActor()->GetClass() && building->GetActorLocation() == hit.GetActor()->GetActorLocation()) {
-			if (building->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum)
+		if (Building->GetClass() == hit.GetActor()->GetClass() && Building->GetActorLocation() == hit.GetActor()->GetActorLocation()) {
+			if (Building->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum)
 				return false;
 			else
 				continue;
 		}
 
-		if (building->IsA<ARoad>() && hit.GetActor()->IsA<ARoad>())
+		if (Building->IsA<ARoad>() && hit.GetActor()->IsA<ARoad>())
 			continue;
 
-		if (building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(building)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
-			if (hit.GetActor()->IsA(Cast<AInternalProduction>(building)->ResourceToOverlap))
+		if (Building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Building)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
+			if (hit.GetActor()->IsA(Cast<AInternalProduction>(Building)->ResourceToOverlap))
 				bResource = true;
 
-			if (transform.GetLocation().X != building->GetActorLocation().X || transform.GetLocation().Y != building->GetActorLocation().Y)
+			if (transform.GetLocation().X != Building->GetActorLocation().X || transform.GetLocation().Y != Building->GetActorLocation().Y)
 				return false;
 		}
-		else if (transform.GetLocation().Z != FMath::Floor(building->GetActorLocation().Z) - 100.0f || hit.GetComponent() == Camera->Grid->HISMRiver) {
-			if ((building->IsA(FoundationClass) && (hit.GetActor()->IsA(FoundationClass) || hit.GetActor()->IsA<AGrid>())) || (building->IsA(RampClass) && (hit.GetActor()->IsA(RampClass) || hit.GetActor()->IsA<AGrid>())))
+		else if (transform.GetLocation().Z != FMath::Floor(Building->GetActorLocation().Z) - 100.0f || hit.GetComponent() == Camera->Grid->HISMRiver) {
+			if ((Building->IsA(FoundationClass) && (hit.GetActor()->IsA(FoundationClass) || hit.GetActor()->IsA<AGrid>())) || (Building->IsA(RampClass) && (hit.GetActor()->IsA(RampClass) || hit.GetActor()->IsA<AGrid>())))
 				continue;
 
-			FRotator rotation = (building->GetActorLocation() - transform.GetLocation()).Rotation();
+			FRotator rotation = (Building->GetActorLocation() - transform.GetLocation()).Rotation();
 
-			if (building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(building->GetActorRotation().Yaw - 90.0f)))
+			if (Building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(Building->GetActorRotation().Yaw - 90.0f)))
 				bCoast = true;
 			else if (!hit.GetActor()->IsHidden())
 				return false;
 		}
 	}
 
-	if ((!bCoast && building->bCoastal) || (!bResource && building->IsA<AInternalProduction>() && !building->IsA<ASpecial>()))
+	if ((!bCoast && Building->bCoastal) || (!bResource && Building->IsA<AInternalProduction>() && !Building->IsA<ASpecial>()))
 		return false;
 
 	return true;

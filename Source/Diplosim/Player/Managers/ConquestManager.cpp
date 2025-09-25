@@ -22,6 +22,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Work/Production/InternalProduction.h"
+#include "Buildings/Work/Service/Trader.h"
 
 UConquestManager::UConquestManager()
 {
@@ -801,6 +802,8 @@ void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 {
 	int32 numBuildings = Faction->Buildings.Num();
 
+	AITrade(Faction);
+
 	BuildFirstBuilder(Faction);
 
 	for (ABuilding* building : Faction->RuinedBuildings)
@@ -810,13 +813,49 @@ void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 
 	BuildAIHouse(Faction);
 
-	// Separate part for building roads.
-	// For ramps, if height change when building roads, make ramp i.e. if adjacent to edge and end location is on different level from start location, make ramp facing edge.
+	BuildAIRoads(Faction);
 	
 	if (Faction->Buildings.Num() > numBuildings)
 		RecalculateTileLocationDistances(Faction);
 
 	// Evaluate army (separate function?)
+}
+
+void UConquestManager::AITrade(FFactionStruct* Faction)
+{
+	ATrader* trader = nullptr;
+
+	for (ABuilding* building : Faction->Buildings) {
+		if (!building->IsA<ATrader>())
+			continue;
+
+		trader = Cast<ATrader>(building);
+
+		break;
+	}
+
+	if (!IsValid(trader) || !trader->Orders.IsEmpty())
+		return;
+
+	FQueueStruct order;
+
+	for (FFactionResourceStruct resourceStruct : Faction->Resources) {
+		if (resourceStruct.Type == Camera->ResourceManager->Money)
+			continue;
+
+		int32 amount = Camera->ResourceManager->GetResourceAmount(Faction->Name, resourceStruct.Type);
+
+		if (amount <= 100)
+			continue;
+
+		FItemStruct item;
+		item.Resource = resourceStruct.Type;
+		item.Amount = amount - 100;
+
+		order.SellingItems.Add(item);
+	}
+
+	trader->SetNewOrder(order);
 }
 
 void UConquestManager::BuildFirstBuilder(FFactionStruct* Faction)
@@ -940,6 +979,17 @@ void UConquestManager::BuildAIHouse(FFactionStruct* Faction)
 	ChooseBuilding(Faction, buildingsClassList);
 }
 
+void UConquestManager::BuildAIRoads(FFactionStruct* Faction)
+{
+	if (Camera->ResourceManager->GetResourceAmount(Faction->Name, Camera->ResourceManager->Money) <= 100)
+		return;
+
+	// Find path between entrance and either nearest road or broch.
+	// Check if building doesn't have road next to it.
+	// 
+	// For ramps, if height change when building roads, make ramp i.e. if adjacent to edge and end location is on different level from start location, make ramp facing edge.
+}
+
 void UConquestManager::ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses)
 {
 	if (BuildingsClasses.IsEmpty())
@@ -963,22 +1013,10 @@ void UConquestManager::ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassO
 
 bool UConquestManager::AIValidBuildingLocation(FFactionStruct* Faction, ABuilding* Building, float Extent, FVector Location)
 {
-	if (!Faction->Citizens[0]->AIController->CanMoveTo(Location) || !Camera->BuildComponent->IsValidLocation(Building, Location))
+	if (!Faction->Citizens[0]->AIController->CanMoveTo(Location) || !Camera->BuildComponent->IsValidLocation(Building, Extent, Location))
 		return false;
 
-	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(Building, Extent, Location);
-	bool bHitBuilding = false;
-
-	for (FHitResult hit : hits) {
-		if (!hit.GetActor()->IsA<ABuilding>())
-			continue;
-
-		bHitBuilding = true;
-
-		break;
-	}
-
-	return !bHitBuilding;
+	return true;
 }
 
 bool UConquestManager::AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, int32 Amount)
@@ -1010,10 +1048,24 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 	building->FactionName = Faction->Name;
 
 	for (int32 i = 0; i < building->Seeds.Num(); i++) {
-		if (building->Seeds[i].Resource != Resource)
-			continue;
+		if (Resource != nullptr) {
+			if (building->Seeds[i].Resource != Resource)
+				continue;
 
-		building->SetSeed(i);
+			building->SetSeed(i);
+
+			break;
+		}
+		else if (!building->Seeds[i].Cost.IsEmpty()) {
+			bool bCanAfford = true;
+
+			for (FItemStruct item : building->Seeds[i].Cost)
+				if (item.Amount > Camera->ResourceManager->GetResourceAmount(Faction->Name, item.Resource))
+					bCanAfford = false;
+
+			if (bCanAfford)
+				building->SetSeed(i);
+		}
 	}
 
 	FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
@@ -1081,7 +1133,9 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 		return;
 	}
 
+	Camera->BuildComponent->GetBuildLocationZ(building, location);
 	building->SetActorLocation(location);
+	building->Build();
 
 	RemoveTileLocations(Faction, building);
 

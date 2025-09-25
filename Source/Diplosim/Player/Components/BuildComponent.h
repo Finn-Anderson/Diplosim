@@ -73,7 +73,7 @@ public:
 
 	TArray<FVector> CalculatePath(struct FTileStruct* StartTile, struct FTileStruct* EndTile);
 
-	bool IsValidLocation(ABuilding* building, FVector Location = FVector::Zero());
+	bool IsValidLocation(ABuilding* Building, float Extent = 1.0f, FVector Location = FVector::Zero());
 
 	UFUNCTION(BlueprintCallable)
 		TArray<struct FItemStruct> GetBuildCosts();
