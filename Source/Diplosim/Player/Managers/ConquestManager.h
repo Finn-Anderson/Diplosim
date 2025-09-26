@@ -361,6 +361,9 @@ struct FFactionStruct
 	UPROPERTY()
 		TArray<FVector> InaccessibleBuildLocations;
 
+	UPROPERTY()
+		TArray<FVector> RoadBuildLocations;
+
 	FFactionStruct()
 	{
 		Name = "";
@@ -607,7 +610,13 @@ public:
 		TArray<FAIBuildStruct> AIBuilds;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
-		TArray<TSubclassOf<class ABuilding>> Houses;
+		TArray<TSubclassOf<ABuilding>> Houses;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		TArray<TSubclassOf<ABuilding>> MiscBuilds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		TSubclassOf<ABuilding> RoadClass;
 
 	void EvaluateAI(FFactionStruct* Faction);
 
@@ -620,6 +629,8 @@ public:
 	void BuildAIHouse(FFactionStruct* Faction);
 
 	void BuildAIRoads(FFactionStruct* Faction);
+
+	void BuildMiscBuild(FFactionStruct* Faction);
 
 	void ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses);
 

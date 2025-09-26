@@ -454,6 +454,9 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			return false;
 		}
 
+		if (Camera->Grid->GetTileFromLocation(hit.Location)->bMineral && Building->FactionName != Camera->ColonyName && (!Building->IsA<AInternalProduction>() || Cast<AInternalProduction>(Building)->ResourceToOverlap == nullptr))
+			return false;
+
 		FTransform transform;
 
 		if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>())

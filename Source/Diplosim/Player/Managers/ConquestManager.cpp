@@ -23,6 +23,7 @@
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Buildings/Work/Service/Trader.h"
+#include "Buildings/Misc/Road.h"
 
 UConquestManager::UConquestManager()
 {
@@ -744,6 +745,9 @@ void UConquestManager::InitialiseTileLocationDistances(FFactionStruct* Faction)
 {
 	for (TArray<FTileStruct>& row : Camera->Grid->Storage) {
 		for (FTileStruct& tile : row) {
+			if (tile.bMineral || tile.bRamp)
+				continue;
+
 			FTransform transform = Camera->Grid->GetTransform(&tile);
 
 			if (Faction->Citizens[0]->AIController->CanMoveTo(transform.GetLocation()))
@@ -752,6 +756,8 @@ void UConquestManager::InitialiseTileLocationDistances(FFactionStruct* Faction)
 				Faction->InaccessibleBuildLocations.Add(transform.GetLocation());
 		}
 	}
+
+	RemoveTileLocations(Faction, Faction->EggTimer);
 
 	SortTileDistances(Faction);
 }
@@ -780,8 +786,14 @@ void UConquestManager::RemoveTileLocations(FFactionStruct* Faction, ABuilding* B
 		FVector hitLocation;
 		Building->BuildingMesh->GetClosestPointOnCollision(location, hitLocation);
 
-		if (FVector::Dist(location, hitLocation) < 100.0f)
+		double distance = FVector::Dist(location, hitLocation);
+
+		if (distance < 100.0f) {
 			Faction->AccessibleBuildLocations.Remove(location);
+
+			if (distance > 40.0f)
+				Faction->RoadBuildLocations.Add(location);
+		}
 	}
 
 	SortTileDistances(Faction);
@@ -969,7 +981,7 @@ void UConquestManager::BuildAIHouse(FFactionStruct* Faction)
 	if (!bHomeless)
 		return;
 
-	for (TSubclassOf<class ABuilding> house : Houses) {
+	for (TSubclassOf<ABuilding> house : Houses) {
 		if (!AICanAfford(Faction, house))
 			continue;
 
@@ -981,13 +993,40 @@ void UConquestManager::BuildAIHouse(FFactionStruct* Faction)
 
 void UConquestManager::BuildAIRoads(FFactionStruct* Faction)
 {
-	if (Camera->ResourceManager->GetResourceAmount(Faction->Name, Camera->ResourceManager->Money) <= 100)
+	if (Faction->RoadBuildLocations.IsEmpty())
 		return;
 
-	// Find path between entrance and either nearest road or broch.
-	// Check if building doesn't have road next to it.
-	// 
-	// For ramps, if height change when building roads, make ramp i.e. if adjacent to edge and end location is on different level from start location, make ramp facing edge.
+	int32 amount = Camera->ResourceManager->GetResourceAmount(Faction->Name, Camera->ResourceManager->Money);
+
+	if (amount <= 100)
+		return;
+
+	int32 cost = Cast<ABuilding>(RoadClass->GetDefaultObject())->CostList[0].Amount;
+	int32 numRoads = FMath::CeilToInt((amount - 100.0f) / cost);
+
+	for (int32 i = 0; i < numRoads; i++) {
+		if (Faction->RoadBuildLocations.IsEmpty())
+			return;
+
+		AIBuild(Faction, RoadClass, nullptr);
+	}
+}
+
+void UConquestManager::BuildMiscBuild(FFactionStruct* Faction)
+{
+	if (Camera->Grid->Stream.RandRange(1, 100) != 100)
+		return;
+
+	TArray<TSubclassOf<ABuilding>> buildingsClassList;
+
+	for (TSubclassOf<ABuilding> misc : MiscBuilds) {
+		if (!AICanAfford(Faction, misc))
+			continue;
+
+		buildingsClassList.Add(misc);
+	}
+
+	ChooseBuilding(Faction, buildingsClassList);
 }
 
 void UConquestManager::ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses)
@@ -1066,6 +1105,11 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 			if (bCanAfford)
 				building->SetSeed(i);
 		}
+		else {
+			building->SetSeed(Camera->Grid->Stream.RandRange(0, building->Seeds.Num() - 1));
+
+			break;
+		}
 	}
 
 	FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
@@ -1115,6 +1159,13 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 				location = transform.GetLocation();
 			}
 		}
+	}
+	else if (building->IsA<ARoad>()) {
+		int32 index = Camera->Grid->Stream.RandRange(0, Faction->RoadBuildLocations.Num() - 1);
+		
+		location = Faction->RoadBuildLocations[index];
+
+		Faction->RoadBuildLocations.RemoveAt(index);
 	}
 	else {
 		for (auto& element : Faction->AccessibleBuildLocations) {
