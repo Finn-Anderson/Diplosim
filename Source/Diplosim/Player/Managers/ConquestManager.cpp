@@ -779,6 +779,8 @@ void UConquestManager::RecalculateTileLocationDistances(FFactionStruct* Faction)
 
 void UConquestManager::RemoveTileLocations(FFactionStruct* Faction, ABuilding* Building)
 {
+	TArray<FVector> roadLocations;
+
 	TArray<FVector> locations;
 	Faction->AccessibleBuildLocations.GenerateKeyArray(locations);
 
@@ -792,8 +794,47 @@ void UConquestManager::RemoveTileLocations(FFactionStruct* Faction, ABuilding* B
 			Faction->AccessibleBuildLocations.Remove(location);
 
 			if (distance > 40.0f)
-				Faction->RoadBuildLocations.Add(location);
+				roadLocations.Add(location);
 		}
+	}
+
+	FVector closestCurrentRoad = FVector::Zero();
+	for (FVector location : Faction->RoadBuildLocations) {
+		if (closestCurrentRoad == FVector::Zero()) {
+			closestCurrentRoad = location;
+
+			continue;
+		}
+
+		if (FVector::Dist(Building->GetActorLocation(), location) > FVector::Dist(Building->GetActorLocation(), closestCurrentRoad))
+			continue;
+
+		closestCurrentRoad = location;
+	}
+
+	FVector closestNewRoad = FVector::Zero();
+	for (FVector location : roadLocations) {
+		if (closestNewRoad == FVector::Zero()) {
+			closestNewRoad = location;
+
+			continue;
+		}
+
+		if (FVector::Dist(closestCurrentRoad, location) > FVector::Dist(closestCurrentRoad, closestNewRoad))
+			continue;
+
+		closestNewRoad = location;
+	}
+
+	FTileStruct* tile = Camera->Grid->GetTileFromLocation(closestNewRoad);
+
+	roadLocations.Append(ConnectRoadTiles(Faction, tile, closestCurrentRoad));
+
+	for (FVector location : roadLocations) {
+		if (Faction->RoadBuildLocations.Contains(location))
+			continue;
+
+		Faction->RoadBuildLocations.Add(location);
 	}
 
 	SortTileDistances(Faction);
@@ -805,6 +846,40 @@ void UConquestManager::SortTileDistances(FFactionStruct* Faction)
 	{
 		return s1 < s2;
 	});
+}
+
+TArray<FVector> UConquestManager::ConnectRoadTiles(FFactionStruct* Faction, FTileStruct* Tile, FVector Location)
+{
+	TArray<FVector> locations;
+
+	FTransform transform = Camera->Grid->GetTransform(Tile);
+
+	if (transform.GetLocation() == Location)
+		return locations;
+
+	locations.Add(transform.GetLocation());
+
+	FTileStruct* closestTile = nullptr;
+
+	for (auto& element : Tile->AdjacentTiles) {
+		if (closestTile == nullptr) {
+			closestTile = element.Value;
+
+			continue;
+		}
+
+		FTransform closestTransform = Camera->Grid->GetTransform(closestTile);
+		FTransform newTransform = Camera->Grid->GetTransform(element.Value);
+
+		if (FVector::Dist(Location, newTransform.GetLocation()) > FVector::Dist(Location, closestTransform.GetLocation()))
+			continue;
+
+		closestTile = element.Value;
+	}
+
+	locations.Append(ConnectRoadTiles(Faction, closestTile, Location));
+
+	return locations;
 }
 
 //

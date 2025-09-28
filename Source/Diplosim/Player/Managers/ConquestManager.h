@@ -605,6 +605,8 @@ public:
 
 	void SortTileDistances(FFactionStruct* Faction);
 
+	TArray<FVector> ConnectRoadTiles(FFactionStruct* Faction, struct FTileStruct* Tile, FVector Location);
+
 	// AI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		TArray<FAIBuildStruct> AIBuilds;
