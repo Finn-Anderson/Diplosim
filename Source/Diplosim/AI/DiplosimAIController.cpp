@@ -47,6 +47,10 @@ void ADiplosimAIController::DefaultAction()
 		ACitizen* citizen = Cast<ACitizen>(AI);
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
+		for (FArmyStruct army : faction->Armies)
+			if (army.Citizens.Contains(citizen))
+				return;
+
 		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bEmergency) {
 			AIMoveTo(citizen->Building.Employment);
 		}

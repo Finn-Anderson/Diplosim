@@ -59,35 +59,8 @@ void AAI::MoveToBroch()
 {
 	ABuilding* target = nullptr;
 
-	for (FFactionStruct faction : Camera->ConquestManager->Factions) {
-		for (ABuilding* building : faction.Buildings) {
-			if (!IsValid(building) || building->HealthComponent == 0 || !AIController->CanMoveTo(building->GetActorLocation()))
-				continue;
-
-			if (!IsValid(target)) {
-				target = building;
-
-				if (building->IsA<ABroch>())
-					break;
-				else
-					continue;
-			}
-
-			int32 targetValue = 1.0f;
-			int32 buildingValue = 1.0f;
-
-			if (target->IsA<ABroch>())
-				targetValue = 5.0f;
-
-			if (building->IsA<ABroch>())
-				buildingValue = 5.0f;
-
-			double magnitude = AIController->GetClosestActor(400.0f, MovementComponent->Transform.GetLocation(), target->GetActorLocation(), building->GetActorLocation(), true, targetValue, buildingValue);
-
-			if (magnitude > 0.0f)
-				target = building;
-		}
-	}
+	for (FFactionStruct& faction : Camera->ConquestManager->Factions)
+		target = Camera->ConquestManager->MoveArmyMember(&faction, this, true);
 
 	AIController->AIMoveTo(target);
 }

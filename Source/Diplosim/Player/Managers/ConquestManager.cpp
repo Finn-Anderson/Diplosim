@@ -15,6 +15,7 @@
 #include "AI/Clone.h"
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/AIMovementComponent.h"
 #include "Universal/HealthComponent.h"
 #include "Buildings/Misc/Portal.h"
 #include "Buildings/Misc/Broch.h"
@@ -31,6 +32,7 @@ UConquestManager::UConquestManager()
 
 	AINum = 2;
 	MaxAINum = 2;
+	FailedBuild = 0;
 }
 
 void UConquestManager::BeginPlay()
@@ -266,7 +268,9 @@ void UConquestManager::ComputeAI()
 
 		EvaluateDiplomacy(faction);
 
-		EvaluateAI(&faction);
+		EvaluateAIBuild(&faction);
+
+		EvaluateAIArmy(&faction);
 	}
 
 	for (FFactionStruct faction : FactionsToRemove) {
@@ -285,16 +289,6 @@ void UConquestManager::ComputeAI()
 
 		Factions.RemoveAt(index);
 	}
-}
-
-bool UConquestManager::CanJoinArmy(class ACitizen* Citizen)
-{
-	FFactionStruct faction = GetCitizenFaction(Citizen);
-
-	if (Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork())
-		return false;
-
-	return true;
 }
 
 FFactionStruct UConquestManager::GetCitizenFaction(ACitizen* Citizen)
@@ -774,6 +768,8 @@ void UConquestManager::RecalculateTileLocationDistances(FFactionStruct* Faction)
 		Faction->InaccessibleBuildLocations.RemoveAt(i);
 	}
 
+	FailedBuild = 0;
+
 	SortTileDistances(Faction);
 }
 
@@ -883,9 +879,9 @@ TArray<FVector> UConquestManager::ConnectRoadTiles(FFactionStruct* Faction, FTil
 }
 
 //
-// AI
+// Building
 //
-void UConquestManager::EvaluateAI(FFactionStruct* Faction)
+void UConquestManager::EvaluateAIBuild(FFactionStruct* Faction)
 {
 	int32 numBuildings = Faction->Buildings.Num();
 
@@ -904,8 +900,10 @@ void UConquestManager::EvaluateAI(FFactionStruct* Faction)
 	
 	if (Faction->Buildings.Num() > numBuildings)
 		RecalculateTileLocationDistances(Faction);
+	else
+		FailedBuild++;
 
-	// Evaluate army (separate function?)
+	BuildAIAccessibility(Faction);
 }
 
 void UConquestManager::AITrade(FFactionStruct* Faction)
@@ -1104,6 +1102,54 @@ void UConquestManager::BuildMiscBuild(FFactionStruct* Faction)
 	ChooseBuilding(Faction, buildingsClassList);
 }
 
+void UConquestManager::BuildAIAccessibility(FFactionStruct* Faction)
+{
+	bool bCanAffordRamp = AICanAfford(Faction, RampClass);
+	bool bCanAffordRoad = AICanAfford(Faction, RoadClass);
+
+	if (FailedBuild <= 3 || Faction->AccessibleBuildLocations.Num() > 50 || (!bCanAffordRamp && !bCanAffordRoad))
+		return;
+
+	TSubclassOf<ABuilding> chosenClass = nullptr;
+
+	FTileStruct* chosenTile = nullptr;
+	FRotator rotation = FRotator::ZeroRotator;
+
+	if (bCanAffordRamp) {
+		for (auto& element : Faction->AccessibleBuildLocations) {
+			if (chosenTile != nullptr && FVector::Dist(Faction->EggTimer->GetActorLocation(), element.Key) > FVector::Dist(Faction->EggTimer->GetActorLocation(), Camera->Grid->GetTransform(chosenTile).GetLocation()))
+				continue;
+
+			FTileStruct* tile = Camera->Grid->GetTileFromLocation(element.Key);
+			bool bValid = false;
+
+			for (auto& e : tile->AdjacentTiles) {
+				if (!Faction->InaccessibleBuildLocations.Contains(Camera->Grid->GetTransform(e.Value).GetLocation()))
+					continue;
+
+				bValid = true;
+			}
+
+			if (!bValid)
+				continue;
+
+			chosenTile = tile;
+		}
+	}
+
+	if (chosenTile == nullptr) {
+		if (!bCanAffordRoad)
+			return;
+
+		chosenClass = RoadClass;
+	}
+	else {
+		chosenClass = RampClass;
+	}
+
+	AIBuild(Faction, chosenClass, nullptr, true, chosenTile);
+}
+
 void UConquestManager::ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses)
 {
 	if (BuildingsClasses.IsEmpty())
@@ -1151,7 +1197,7 @@ bool UConquestManager::AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuildin
 	return true;
 }
 
-void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, TSubclassOf<AResource> Resource)
+void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, TSubclassOf<AResource> Resource, bool bAccessibility, FTileStruct* Tile)
 {
 	FActorSpawnParameters spawnParams;
 	spawnParams.bNoFail = true;
@@ -1197,6 +1243,53 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 	FVector location = FVector(10000000000.0f);
 	FVector offset = building->BuildingMesh->GetComponentLocation() + FVector(0.0f, 0.0f, 1000.0f);
 
+	if (bAccessibility) {
+		if (BuildingClass == RoadClass) {
+			for (int32 i = 0; i < Camera->Grid->HISMRiver->GetInstanceCount(); i++) {
+				FTransform transform;
+				Camera->Grid->HISMRiver->GetInstanceTransform(i, transform);
+
+				bool bClose = false;
+				for (ABuilding* b : Faction->Buildings) {
+					if (FVector::Dist(b->GetActorLocation(), transform.GetLocation()) > 500.0f)
+						continue;
+
+					bClose = true;
+				}
+
+				FTileStruct* tile = Camera->Grid->GetTileFromLocation(transform.GetLocation());
+
+				if (AIValidBuildingLocation(Faction, building, 2.0f, transform.GetLocation()))
+					continue;
+
+				Tile = tile;
+
+				break;
+			}
+		}
+		else {
+			FTileStruct* chosenInaccessibleTile = nullptr;
+
+			for (auto& e : Tile->AdjacentTiles) {
+				if (!Faction->InaccessibleBuildLocations.Contains(Camera->Grid->GetTransform(e.Value).GetLocation()))
+					continue;
+
+				chosenInaccessibleTile = e.Value;
+
+				break;
+			}
+
+			if (Tile->Level > chosenInaccessibleTile->Level) {
+				rotation = (Camera->Grid->GetTransform(chosenInaccessibleTile).GetLocation() - Camera->Grid->GetTransform(Tile).GetLocation()).Rotation();
+
+				Tile = chosenInaccessibleTile;
+			}
+			else
+				rotation = (Camera->Grid->GetTransform(Tile).GetLocation() - Camera->Grid->GetTransform(chosenInaccessibleTile).GetLocation()).Rotation();
+		}
+
+		location = Camera->Grid->GetTransform(Tile).GetLocation();
+	}
 	if (building->IsA<AExternalProduction>()) {
 		AExternalProduction* externalBuilding = Cast<AExternalProduction>(building);
 
@@ -1260,12 +1353,16 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 	}
 
 	Camera->BuildComponent->GetBuildLocationZ(building, location);
+	building->SetActorRotation(rotation);
 	building->SetActorLocation(location);
 	building->Build();
 
+	if (building->IsA<ARoad>())
+		Cast<ARoad>(building)->RegenerateMesh();
+
 	RemoveTileLocations(Faction, building);
 
-	if (Houses.Contains(BuildingClass))
+	if (Houses.Contains(BuildingClass) || MiscBuilds.Contains(BuildingClass) || RoadClass == BuildingClass || RampClass == BuildingClass)
 		return;
 
 	FAIBuildStruct aibuild;
@@ -1278,6 +1375,194 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 
 	AIBuilds[i].CurrentAmount++;
 	AIBuilds[i].NumCitizens += AIBuilds[i].NumCitizensIncrement;
+}
+
+//
+// Army
+//
+bool UConquestManager::CanJoinArmy(ACitizen* Citizen)
+{
+	FFactionStruct faction = GetCitizenFaction(Citizen);
+
+	if (Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork() || IsCitizenInAnArmy(Citizen))
+		return false;
+
+	return true;
+}
+
+void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizens)
+{
+	if (Citizens.IsEmpty())
+		return;
+
+	FFactionStruct* faction = GetFaction(FactionName);
+
+	FArmyStruct army;
+	int32 index = faction->Armies.Add(army);
+
+	AddToArmy(index, Citizens);
+
+	UWidgetComponent* widgetComponent = NewObject<UWidgetComponent>(this, UWidgetComponent::StaticClass());
+	widgetComponent->SetupAttachment(Camera->Grid->GetRootComponent());
+	widgetComponent->SetRelativeLocation(Camera->GetTargetActorLocation(Citizens[0]) + FVector(0.0f, 0.0f, 300.0f));
+	widgetComponent->SetWidgetClass(ArmyUI);
+	widgetComponent->RegisterComponent();
+
+	faction->Armies[index].WidgetComponent = widgetComponent;
+
+	Camera->SetArmyWidgetUI(FactionName, widgetComponent->GetWidget());
+}
+
+void UConquestManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens)
+{
+	if (Citizens.IsEmpty())
+		return;
+
+	FFactionStruct* faction = GetFaction("", Citizens[0]);
+
+	faction->Armies[Index].Citizens.Append(Citizens);
+
+	int32 index = Camera->Grid->Stream.RandRange(0, faction->AtWar.Num() - 1);
+	ABuilding* target = MoveArmyMember(GetFaction(faction->AtWar[index]), Citizens[0], true);
+
+	for (ACitizen* citizen : Citizens)
+		citizen->AIController->AIMoveTo(target);
+}
+
+void UConquestManager::RemoveFromArmy(ACitizen* Citizen)
+{
+	FFactionStruct* faction = GetFaction("", Citizen);
+
+	for (int32 i = faction->Armies.Num() - 1; i > -1; i--) {
+		if (!faction->Armies[i].Citizens.Contains(Citizen))
+			continue;
+
+		faction->Armies[i].Citizens.Remove(Citizen);
+
+		if (faction->Armies[i].Citizens.IsEmpty())
+			faction->Armies.RemoveAt(i);
+
+		break;
+	}
+}
+
+bool UConquestManager::IsCitizenInAnArmy(ACitizen* Citizen)
+{
+	FFactionStruct faction = GetCitizenFaction(Citizen);
+
+	for (FArmyStruct army : faction.Armies)
+		if (army.Citizens.Contains(Citizen))
+			return true;
+
+	return false;
+}
+
+void UConquestManager::DestroyArmy(FString FactionName, int32 Index)
+{
+	FFactionStruct* faction = GetFaction(FactionName);
+
+	faction->Armies[Index].WidgetComponent->DestroyComponent();
+	faction->Armies.RemoveAt(Index);
+}
+
+void UConquestManager::EvaluateAIArmy(FFactionStruct* Faction)
+{
+	if (Faction->AtWar.IsEmpty()) {
+		if (!Faction->Armies.IsEmpty())
+			for (int32 i = Faction->Armies.Num() - 1; i > -1; i--)
+				DestroyArmy(Faction->Name, i);
+
+		return;
+	}
+
+	int32 currentCitizens = Faction->Citizens.Num();
+	int32 enemyCitizens = 0;
+
+	for (FString name : Faction->AtWar) {
+		FFactionStruct* f = GetFaction(name);
+		enemyCitizens += f->Citizens.Num();
+	}
+
+	int32 diff = currentCitizens - enemyCitizens;
+
+	TArray<ACitizen*> availableCitizens;
+	TArray<ACitizen*> chosenCitizens;
+
+	for (ACitizen* citizen : Faction->Citizens) {
+		if (!CanJoinArmy(citizen))
+			continue;
+
+		availableCitizens.Add(citizen);
+	}
+
+	for (int32 i = 0; i < diff; i++) {
+		int32 index = Camera->Grid->Stream.RandRange(0, availableCitizens.Num() - 1);
+
+		chosenCitizens.Add(availableCitizens[index]);
+		availableCitizens.RemoveAt(index);
+	}
+
+	if (currentCitizens > enemyCitizens) {
+		if (diff < 20 && !Faction->Armies.IsEmpty()) {
+			int32 index = Camera->Grid->Stream.RandRange(0, Faction->Armies.Num() - 1);
+
+			AddToArmy(index, chosenCitizens);
+		}
+	}
+	else {
+		CreateArmy(Faction->Name, chosenCitizens);
+	}
+
+	for (FArmyStruct army : Faction->Armies) {
+		for (ACitizen* citizen : army.Citizens) {
+			if (IsValid(citizen->AIController->MoveRequest.GetGoalActor()) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
+				continue;
+
+			int32 index = Camera->Grid->Stream.RandRange(0, Faction->AtWar.Num() - 1);
+
+			MoveArmyMember(GetFaction(Faction->AtWar[index]), citizen);
+		}
+	}
+}
+
+ABuilding* UConquestManager::MoveArmyMember(FFactionStruct* Faction, AAI* AI, bool bReturn)
+{
+	ABuilding* target = nullptr;
+
+	for (ABuilding* building : Faction->Buildings) {
+		if (!IsValid(building) || building->HealthComponent == 0 || !AI->AIController->CanMoveTo(building->GetActorLocation()))
+			continue;
+
+		if (!IsValid(target)) {
+			target = building;
+
+			if (building->IsA<ABroch>())
+				break;
+			else
+				continue;
+		}
+
+		int32 targetValue = 1.0f;
+		int32 buildingValue = 1.0f;
+
+		if (target->IsA<ABroch>())
+			targetValue = 5.0f;
+
+		if (building->IsA<ABroch>())
+			buildingValue = 5.0f;
+
+		double magnitude = AI->AIController->GetClosestActor(400.0f, AI->MovementComponent->Transform.GetLocation(), target->GetActorLocation(), building->GetActorLocation(), true, targetValue, buildingValue);
+
+		if (magnitude > 0.0f)
+			target = building;
+	}
+
+	if (bReturn)
+		return target;
+	else
+		AI->AIController->AIMoveTo(target);
+
+	return nullptr;
 }
 
 //

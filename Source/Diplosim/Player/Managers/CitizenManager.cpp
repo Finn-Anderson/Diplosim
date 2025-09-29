@@ -1003,9 +1003,9 @@ void UCitizenManager::UpdateRent(FString FactionName, TSubclassOf<class AHouse> 
 //
 void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 {
-	FFactionStruct faction = Camera->ConquestManager->GetCitizenFaction(Citizen);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
 
-	for (FPartyStruct& party : faction.Politics.Parties) {
+	for (FPartyStruct& party : faction->Politics.Parties) {
 		if (!party.Members.Contains(Citizen))
 			continue;
 
@@ -1048,6 +1048,8 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen))
 		if (personality->Citizens.Contains(Citizen))
 			personality->Citizens.Remove(Citizen);
+
+	Camera->ConquestManager->RemoveFromArmy(Citizen);
 }
 
 //

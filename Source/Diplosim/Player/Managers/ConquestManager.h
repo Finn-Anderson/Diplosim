@@ -288,6 +288,23 @@ struct FFactionHappinessStruct
 };
 
 USTRUCT(BlueprintType)
+struct FArmyStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
+		TArray<class ACitizen*> Citizens;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
+		class UWidgetComponent* WidgetComponent;
+
+	FArmyStruct()
+	{
+		WidgetComponent = nullptr;
+	}
+};
+
+USTRUCT(BlueprintType)
 struct FFactionStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -364,6 +381,9 @@ struct FFactionStruct
 	UPROPERTY()
 		TArray<FVector> RoadBuildLocations;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Army")
+		TArray<FArmyStruct> Armies;
+
 	FFactionStruct()
 	{
 		Name = "";
@@ -402,28 +422,6 @@ struct FCultureImageStruct
 	bool operator==(const FCultureImageStruct& other) const
 	{
 		return (other.Type == Type);
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FArmyStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Raiding")
-		FString Owner;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Raiding")
-		TMap<class ACitizen*, int32> Raiders;
-
-	FArmyStruct()
-	{
-		Owner = "";
-	}
-
-	bool operator==(const FArmyStruct& other) const
-	{
-		return (other.Owner == Owner);
 	}
 };
 
@@ -531,9 +529,6 @@ public:
 	void ComputeAI();
 
 	UFUNCTION(BlueprintCallable)
-		bool CanJoinArmy(class ACitizen* Citizen);
-
-	UFUNCTION(BlueprintCallable)
 		FFactionStruct GetCitizenFaction(class ACitizen* Citizen);
 
 	FFactionStruct* GetFaction(FString Name = "", AActor* Actor = nullptr);
@@ -607,7 +602,7 @@ public:
 
 	TArray<FVector> ConnectRoadTiles(FFactionStruct* Faction, struct FTileStruct* Tile, FVector Location);
 
-	// AI
+	// AI Building
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		TArray<FAIBuildStruct> AIBuilds;
 
@@ -620,7 +615,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		TSubclassOf<ABuilding> RoadClass;
 
-	void EvaluateAI(FFactionStruct* Faction);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		TSubclassOf<ABuilding> RampClass;
+
+	UPROPERTY()
+		int32 FailedBuild;
+
+	void EvaluateAIBuild(FFactionStruct* Faction);
 
 	void AITrade(FFactionStruct* Faction);
 
@@ -634,13 +635,42 @@ public:
 
 	void BuildMiscBuild(FFactionStruct* Faction);
 
+	void BuildAIAccessibility(FFactionStruct* Faction);
+
 	void ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses);
 
 	bool AIValidBuildingLocation(FFactionStruct* Faction, ABuilding* Building, float Extent, FVector Location);
 
 	bool AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, int32 Amount = 1);
 
-	void AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, TSubclassOf<class AResource> Resource);
+	void AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, TSubclassOf<class AResource> Resource, bool bAccessibility = false, FTileStruct* Tile = nullptr);
+
+	// AI Army
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> ArmyUI;
+
+	UFUNCTION(BlueprintCallable)
+		bool CanJoinArmy(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		void CreateArmy(FString FactionName, TArray<class ACitizen*> Citizens);
+
+	UFUNCTION(BlueprintCallable)
+		void AddToArmy(int32 Index, TArray<ACitizen*> Citizens);
+
+	UFUNCTION(BlueprintCallable)
+		void RemoveFromArmy(ACitizen* Citizen);
+
+
+	UFUNCTION(BlueprintCallable)
+		bool IsCitizenInAnArmy(ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		void DestroyArmy(FString FactionName, int32 Index);
+
+	void EvaluateAIArmy(FFactionStruct* Faction);
+
+	class ABuilding* MoveArmyMember(FFactionStruct* Faction, class AAI* AI, bool bReturn = false);
 
 	// UI
 	UFUNCTION(BlueprintCallable)

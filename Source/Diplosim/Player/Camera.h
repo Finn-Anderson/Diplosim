@@ -130,6 +130,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateLoadingText(const FString& Message);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void SetArmyWidgetUI(const FString& FactionName, class UUserWidget* Widget);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;

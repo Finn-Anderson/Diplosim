@@ -203,6 +203,8 @@ public:
 
 	void ActivateTorch(int32 Hour, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
 
+	void UpdateArmyVisuals(class ACamera* Camera, class ACitizen* Citizen);
+
 	FVector AddHarvestVisual(class AAI* AI, FLinearColor Colour);
 
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);

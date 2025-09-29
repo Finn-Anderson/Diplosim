@@ -1,6 +1,7 @@
 #include "Map/AIVisualiser.h"
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -215,6 +216,8 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						SetInstanceTransform(hism, j, citizen->MovementComponent->Transform);
 
 						UpdateCitizenVisuals(hism, Camera, citizen, j);
+
+						UpdateArmyVisuals(Camera, citizen);
 					}
 
 					if (i == 0 && HISMCitizen->bIsOutOfDate)
@@ -410,6 +413,20 @@ void UAIVisualiser::ActivateTorch(int32 Hour, UHierarchicalInstancedStaticMeshCo
 		value = 1.0f;
 
 	UpdateInstanceCustomData(HISM, Instance, 11, value);
+}
+
+void UAIVisualiser::UpdateArmyVisuals(ACamera* Camera, ACitizen* Citizen)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
+
+	for (FArmyStruct& army : faction->Armies) {
+		if (army.Citizens.IsEmpty() || army.Citizens[0] != Citizen)
+			continue;
+
+		army.WidgetComponent->SetRelativeLocation(Camera->GetTargetActorLocation(Citizen) + FVector(0.0f, 0.0f, 300.0f));
+
+		break;
+	}
 }
 
 FVector UAIVisualiser::AddHarvestVisual(class AAI* AI, FLinearColor Colour)
