@@ -312,6 +312,12 @@ struct FFactionStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
 		FString Name;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		UTexture2D* Flag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FLinearColor FlagColour;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
 		TArray<FString> AtWar;
 
@@ -407,21 +413,24 @@ struct FCultureImageStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
-		FString Type;
+		FString Party;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FString Religion;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
 		UTexture2D* Texture;
 
 	FCultureImageStruct()
 	{
-		Type = "";
+		Party = "";
+		Religion = "";
 		Texture = nullptr;
 	}
 
 	bool operator==(const FCultureImageStruct& other) const
 	{
-		return (other.Type == Type);
+		return (other.Party == Party && other.Religion == Religion);
 	}
 };
 
@@ -511,8 +520,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 		TArray<ACitizen*> GetCitizensFromFactionName(FString FactionName);
 
-	UFUNCTION(BlueprintCallable)
-		UTexture2D* GetTextureFromCulture(FString Type);
+	void SetFactionFlagColour(FFactionStruct* Faction);
+
+	UTexture2D* GetTextureFromCulture(FString Party, FString Religion);
 
 	UFUNCTION(BlueprintCallable)
 		FPoliticsStruct GetFactionPoliticsStruct(FString FactionName);
@@ -565,6 +575,8 @@ public:
 	void SetFactionsHappiness(FFactionStruct Faction);
 
 	void EvaluateDiplomacy(FFactionStruct Faction);
+
+	int32 GetStrengthScore(FFactionStruct Faction);
 
 	TTuple<bool, bool> IsWarWinnable(FFactionStruct Faction, FFactionStruct& Target);
 

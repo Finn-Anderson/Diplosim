@@ -786,7 +786,7 @@ void ACitizen::LoseEnergy()
 
 	MovementComponent->SetMaxSpeed(Energy);
 
-	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && (Building.Employment->IsWorking(this) || Camera->CitizenManager->Healing.Contains(this))))
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && (Building.Employment->IsWorking(this) || Camera->CitizenManager->Healing.Contains(this))) || Camera->ConquestManager->IsCitizenInAnArmy(this))
 		return;
 
 	ABuilding* target = nullptr;

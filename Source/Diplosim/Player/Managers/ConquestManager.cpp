@@ -145,6 +145,7 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 
 		Camera->CitizenManager->Election(&faction);
 
+		SetFactionFlagColour(&faction);
 		SetFactionCulture(&faction);
 
 		InitialiseTileLocationDistances(&faction);
@@ -189,12 +190,20 @@ TArray<ACitizen*> UConquestManager::GetCitizensFromFactionName(FString FactionNa
 	return GetFactionFromName(FactionName).Citizens;
 }
 
-UTexture2D* UConquestManager::GetTextureFromCulture(FString Type)
+void UConquestManager::SetFactionFlagColour(FFactionStruct* Faction)
+{
+	FTileStruct* tile = Camera->Grid->GetTileFromLocation(Faction->EggTimer->GetActorLocation());
+	auto bound = Camera->Grid->GetMapBounds();
+
+	Faction->FlagColour = FLinearColor(tile->X / bound, FMath::Abs(tile->Y / bound - 1.0f), tile->Level / Camera->Grid->MaxLevel);
+}
+
+UTexture2D* UConquestManager::GetTextureFromCulture(FString Party, FString Religion)
 {
 	UTexture2D* texture = nullptr;
 
 	for (FCultureImageStruct culture : CultureTextureList) {
-		if (culture.Type != Type)
+		if (culture.Party != Party || culture.Religion != Religion)
 			continue;
 
 		texture = culture.Texture;
@@ -380,6 +389,8 @@ void UConquestManager::SetFactionCulture(FFactionStruct* Faction)
 	Faction->PartyInPower = biggestParty.Key;
 	Faction->LargestReligion = biggestReligion.Key;
 
+	Faction->Flag = GetTextureFromCulture(Faction->PartyInPower, Faction->LargestReligion);
+
 	Camera->UpdateFactionIcons(Factions.Find(*Faction));
 }
 
@@ -530,10 +541,23 @@ void UConquestManager::SetFactionsHappiness(FFactionStruct Faction)
 
 		bool bTooClose = false;
 
-		// Loop through factions buildings
+		for (ABuilding* building : Factions[i].Buildings) {
+			TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(building, 3.0f);
 
-		if (!bTooClose && Factions[i].Happiness[index].Contains(f.Name + "settled on island close to capital"))
-			Factions[i].Happiness[index].RemoveValue(f.Name + "settled on island close to capital");
+			for (FHitResult hit : hits) {
+				if (!hit.GetActor()->IsA<ABuilding>() || Cast<ABuilding>(hit.GetActor())->FactionName != Faction.Name)
+					continue;
+
+				bTooClose = true;
+
+				break;
+			}
+		}
+
+		if (!bTooClose && Factions[i].Happiness[index].Contains(f.Name + "is too close to settlement"))
+			Factions[i].Happiness[index].RemoveValue(f.Name + "is too close to settlement");
+		else if (bTooClose)
+			Factions[i].Happiness[index].SetValue(f.Name + "is too close to settlement", -6);
 	}
 }
 
@@ -621,22 +645,39 @@ void UConquestManager::EvaluateDiplomacy(FFactionStruct Faction)
 	}
 }
 
+int32 UConquestManager::GetStrengthScore(FFactionStruct Faction)
+{
+	int32 value = 0;
+
+	for (ACitizen* citizen : Faction.Citizens)
+		value += (citizen->HealthComponent->GetHealth() + citizen->AttackComponent->Damage);
+
+	for (ACitizen* citizen : Faction.Rebels)
+		value -= (citizen->HealthComponent->GetHealth() + citizen->AttackComponent->Damage);
+
+	if (!Camera->CitizenManager->Enemies.IsEmpty()) {
+		AAI* enemy = Camera->CitizenManager->Enemies[0];
+
+		value -= (Camera->CitizenManager->Enemies.Num() * enemy->HealthComponent->GetHealth() + Camera->CitizenManager->Enemies.Num() * enemy->AttackComponent->Damage);
+	}
+
+	return value;
+}
+
 TTuple<bool, bool> UConquestManager::IsWarWinnable(FFactionStruct Faction, FFactionStruct& Target)
 {
-	int32 factionCitizens = 0;
-	int32 targetCitizens = 0;
+	int32 factionStrength = GetStrengthScore(Faction);
+	int32 targetStrength = GetStrengthScore(Faction);
 
-	// Get citizens arrays from Faction and Target then compare strength AND health.
-
-	int32 total = FMath::Max(factionCitizens + targetCitizens, 1.0f);
+	int32 total = FMath::Max(factionStrength + targetStrength, 1.0f);
 
 	bool bFactionCanWin = false;
 	bool bTargetCanWin = false;
 
-	if (factionCitizens / total > 0.4f)
+	if (factionStrength / total > 0.4f)
 		bFactionCanWin = true;
 
-	if (targetCitizens / total > 0.4f)
+	if (targetStrength / total > 0.4f)
 		bTargetCanWin = true;
 
 	return TTuple<bool, bool>(bFactionCanWin, bTargetCanWin);
@@ -676,6 +717,13 @@ void UConquestManager::DeclareWar(FFactionStruct Faction1, FFactionStruct Factio
 
 	Factions[i1].AtWar.Add(Factions[i2].Name);
 	Factions[i2].AtWar.Add(Factions[i1].Name);
+
+	if (Faction1.Name == Camera->ColonyName)
+		for (FArmyStruct army : Faction2.Armies)
+			Camera->SetArmyWidgetUI(Faction2.Name, army.WidgetComponent->GetWidget());
+	else if (Faction2.Name == Camera->ColonyName)
+		for (FArmyStruct army : Faction1.Armies)
+			Camera->SetArmyWidgetUI(Faction1.Name, army.WidgetComponent->GetWidget());
 }
 
 void UConquestManager::Insult(FFactionStruct Faction, FFactionStruct Target)
@@ -1405,6 +1453,8 @@ void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizen
 	UWidgetComponent* widgetComponent = NewObject<UWidgetComponent>(this, UWidgetComponent::StaticClass());
 	widgetComponent->SetupAttachment(Camera->Grid->GetRootComponent());
 	widgetComponent->SetRelativeLocation(Camera->GetTargetActorLocation(Citizens[0]) + FVector(0.0f, 0.0f, 300.0f));
+	widgetComponent->SetWidgetSpace(EWidgetSpace::World);
+	widgetComponent->SetDrawSize(FVector2D(0.0f));
 	widgetComponent->SetWidgetClass(ArmyUI);
 	widgetComponent->RegisterComponent();
 
@@ -1427,6 +1477,8 @@ void UConquestManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens)
 
 	for (ACitizen* citizen : Citizens)
 		citizen->AIController->AIMoveTo(target);
+
+	Camera->UpdateArmyCountUI(Index, faction->Armies[Index].Citizens.Num());
 }
 
 void UConquestManager::RemoveFromArmy(ACitizen* Citizen)
@@ -1438,6 +1490,8 @@ void UConquestManager::RemoveFromArmy(ACitizen* Citizen)
 			continue;
 
 		faction->Armies[i].Citizens.Remove(Citizen);
+
+		Camera->UpdateArmyCountUI(i, faction->Armies[i].Citizens.Num());
 
 		if (faction->Armies[i].Citizens.IsEmpty())
 			faction->Armies.RemoveAt(i);
@@ -1503,14 +1557,14 @@ void UConquestManager::EvaluateAIArmy(FFactionStruct* Faction)
 	}
 
 	if (currentCitizens > enemyCitizens) {
-		if (diff < 20 && !Faction->Armies.IsEmpty()) {
+		if (Faction->Armies.Num() == 5 || (diff < 20 && !Faction->Armies.IsEmpty())) {
 			int32 index = Camera->Grid->Stream.RandRange(0, Faction->Armies.Num() - 1);
 
 			AddToArmy(index, chosenCitizens);
 		}
-	}
-	else {
-		CreateArmy(Faction->Name, chosenCitizens);
+		else {
+			CreateArmy(Faction->Name, chosenCitizens);
+		}
 	}
 
 	for (FArmyStruct army : Faction->Armies) {

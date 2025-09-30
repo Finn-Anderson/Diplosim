@@ -1987,7 +1987,7 @@ TArray<ACitizen*> UCitizenManager::GetAvailableHealers(FFactionStruct* Faction)
 		AClinic* clinic = Cast<AClinic>(building);
 
 		for (ACitizen* citizen : clinic->GetOccupied()) {
-			if (!clinic->IsWorking(citizen) || Healing.Contains(citizen))
+			if (!clinic->IsWorking(citizen) || Healing.Contains(citizen) || Camera->ConquestManager->IsCitizenInAnArmy(citizen))
 				continue;
 
 			healers.Add(citizen);
@@ -2004,7 +2004,7 @@ void UCitizenManager::PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Hea
 
 	TArray<ACitizen*> healers;
 
-	if (IsValid(Healer))
+	if (IsValid(Healer) && !Camera->ConquestManager->IsCitizenInAnArmy(Healer))
 		healers.Add(Healer);
 	else
 		healers.Append(GetAvailableHealers(Faction));
@@ -2121,6 +2121,9 @@ void UCitizenManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 
 bool UCitizenManager::IsAttendingEvent(ACitizen* Citizen)
 {
+	if (Camera->ConquestManager->IsCitizenInAnArmy(Citizen))
+		return true;
+
 	for (auto &element : OngoingEvents())
 		for (FEventStruct* event : element.Value)
 			if (event->Attendees.Contains(Citizen))

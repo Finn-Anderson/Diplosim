@@ -133,6 +133,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void SetArmyWidgetUI(const FString& FactionName, class UUserWidget* Widget);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateArmyCountUI(int32 Index, int32 Amount);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
