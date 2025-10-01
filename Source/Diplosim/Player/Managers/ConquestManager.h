@@ -298,9 +298,13 @@ struct FArmyStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
 		class UWidgetComponent* WidgetComponent;
 
+	UPROPERTY()
+		bool bGroup;
+
 	FArmyStruct()
 	{
 		WidgetComponent = nullptr;
+		bGroup = false;
 	}
 };
 
@@ -673,12 +677,20 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void RemoveFromArmy(ACitizen* Citizen);
 
+	UFUNCTION(BlueprintCallable)
+		void UpdateArmy(FString FactionName, int32 Index, TArray<ACitizen*> AlteredCitizens);
 
 	UFUNCTION(BlueprintCallable)
 		bool IsCitizenInAnArmy(ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
 		void DestroyArmy(FString FactionName, int32 Index);
+
+	TArray<ABuilding*> GetReachableTargets(FFactionStruct* Faction, class ACitizen* Citizen);
+
+	void MoveToTarget(FFactionStruct* Faction, class TArray<ACitizen*> Citizens);
+
+	void StartRaid(FFactionStruct* Faction, int32 Index);
 
 	void EvaluateAIArmy(FFactionStruct* Faction);
 

@@ -1432,7 +1432,7 @@ bool UConquestManager::CanJoinArmy(ACitizen* Citizen)
 {
 	FFactionStruct faction = GetCitizenFaction(Citizen);
 
-	if (Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork() || IsCitizenInAnArmy(Citizen))
+	if (Citizen->HealthComponent->GetHealth() == 0 || Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork() || IsCitizenInAnArmy(Citizen))
 		return false;
 
 	return true;
@@ -1446,6 +1446,7 @@ void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizen
 	FFactionStruct* faction = GetFaction(FactionName);
 
 	FArmyStruct army;
+	army.bGroup = true;
 	int32 index = faction->Armies.Add(army);
 
 	AddToArmy(index, Citizens);
@@ -1461,6 +1462,12 @@ void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizen
 	faction->Armies[index].WidgetComponent = widgetComponent;
 
 	Camera->SetArmyWidgetUI(FactionName, widgetComponent->GetWidget());
+
+	if (FactionName != Camera->ColonyName) {
+		FString id = FactionName + FString::FromInt(index) + "ArmyRaidTimer";
+
+		Camera->CitizenManager->CreateTimer(id, Camera, 60.0f, FTimerDelegate::CreateUObject(this, &UConquestManager::StartRaid, faction, index), false);
+	}
 }
 
 void UConquestManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens)
@@ -1472,11 +1479,11 @@ void UConquestManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens)
 
 	faction->Armies[Index].Citizens.Append(Citizens);
 
-	int32 index = Camera->Grid->Stream.RandRange(0, faction->AtWar.Num() - 1);
-	ABuilding* target = MoveArmyMember(GetFaction(faction->AtWar[index]), Citizens[0], true);
-
-	for (ACitizen* citizen : Citizens)
-		citizen->AIController->AIMoveTo(target);
+	if (faction->Armies[Index].bGroup)
+		for (ACitizen* citizen : Citizens)
+			citizen->AIController->AIMoveTo(faction->EggTimer);
+	else
+		MoveToTarget(faction, Citizens);
 
 	Camera->UpdateArmyCountUI(Index, faction->Armies[Index].Citizens.Num());
 }
@@ -1500,6 +1507,24 @@ void UConquestManager::RemoveFromArmy(ACitizen* Citizen)
 	}
 }
 
+void UConquestManager::UpdateArmy(FString FactionName, int32 Index, TArray<ACitizen*> AlteredCitizens)
+{
+	if (AlteredCitizens.IsEmpty())
+		return;
+
+	FFactionStruct* faction = GetFaction(FactionName);
+
+	for (ACitizen* citizen : AlteredCitizens) {
+		if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() == 0)
+			return;
+
+		if (faction->Armies[Index].Citizens.Contains(citizen))
+			faction->Armies[Index].Citizens.Remove(citizen);
+		else
+			faction->Armies[Index].Citizens.Add(citizen);
+	}
+}
+
 bool UConquestManager::IsCitizenInAnArmy(ACitizen* Citizen)
 {
 	FFactionStruct faction = GetCitizenFaction(Citizen);
@@ -1519,6 +1544,44 @@ void UConquestManager::DestroyArmy(FString FactionName, int32 Index)
 	faction->Armies.RemoveAt(Index);
 }
 
+TArray<ABuilding*> UConquestManager::GetReachableTargets(FFactionStruct* Faction, ACitizen* Citizen)
+{
+	TArray<ABuilding*> targets;
+
+	for (FString name : Faction->AtWar) {
+		FFactionStruct* f = GetFaction(name);
+
+		ABuilding* building = MoveArmyMember(f, Citizen, true);
+
+		if (IsValid(building))
+			targets.Add(building);
+	}
+
+	return targets;
+}
+
+void UConquestManager::MoveToTarget(FFactionStruct* Faction, TArray<ACitizen*> Citizens)
+{
+	TArray<ABuilding*> targets = GetReachableTargets(Faction, Citizens[0]);
+
+	if (targets.IsEmpty()) {
+		for (ACitizen* citizen : Citizens)
+			RemoveFromArmy(citizen);
+
+		return;
+	}
+
+	int32 index = Camera->Grid->Stream.RandRange(0, targets.Num() - 1);
+
+	for (ACitizen* citizen : Citizens)
+		citizen->AIController->AIMoveTo(targets[index]);
+}
+
+void UConquestManager::StartRaid(FFactionStruct* Faction, int32 Index)
+{
+	MoveToTarget(Faction, Faction->Armies[Index].Citizens);
+}
+
 void UConquestManager::EvaluateAIArmy(FFactionStruct* Faction)
 {
 	if (Faction->AtWar.IsEmpty()) {
@@ -1534,6 +1597,7 @@ void UConquestManager::EvaluateAIArmy(FFactionStruct* Faction)
 
 	for (FString name : Faction->AtWar) {
 		FFactionStruct* f = GetFaction(name);
+
 		enemyCitizens += f->Citizens.Num();
 	}
 
@@ -1543,27 +1607,29 @@ void UConquestManager::EvaluateAIArmy(FFactionStruct* Faction)
 	TArray<ACitizen*> chosenCitizens;
 
 	for (ACitizen* citizen : Faction->Citizens) {
-		if (!CanJoinArmy(citizen))
+		if (!CanJoinArmy(citizen) || GetReachableTargets(Faction, citizen).IsEmpty())
 			continue;
 
 		availableCitizens.Add(citizen);
 	}
 
-	for (int32 i = 0; i < diff; i++) {
-		int32 index = Camera->Grid->Stream.RandRange(0, availableCitizens.Num() - 1);
+	if (!availableCitizens.IsEmpty()) {
+		for (int32 i = 0; i < diff; i++) {
+			int32 index = Camera->Grid->Stream.RandRange(0, availableCitizens.Num() - 1);
 
-		chosenCitizens.Add(availableCitizens[index]);
-		availableCitizens.RemoveAt(index);
-	}
-
-	if (currentCitizens > enemyCitizens) {
-		if (Faction->Armies.Num() == 5 || (diff < 20 && !Faction->Armies.IsEmpty())) {
-			int32 index = Camera->Grid->Stream.RandRange(0, Faction->Armies.Num() - 1);
-
-			AddToArmy(index, chosenCitizens);
+			chosenCitizens.Add(availableCitizens[index]);
+			availableCitizens.RemoveAt(index);
 		}
-		else {
-			CreateArmy(Faction->Name, chosenCitizens);
+
+		if (currentCitizens > enemyCitizens) {
+			if (Faction->Armies.Num() == 5 || (diff < 20 && !Faction->Armies.IsEmpty())) {
+				int32 index = Camera->Grid->Stream.RandRange(0, Faction->Armies.Num() - 1);
+
+				AddToArmy(index, chosenCitizens);
+			}
+			else {
+				CreateArmy(Faction->Name, chosenCitizens);
+			}
 		}
 	}
 
@@ -1572,9 +1638,7 @@ void UConquestManager::EvaluateAIArmy(FFactionStruct* Faction)
 			if (IsValid(citizen->AIController->MoveRequest.GetGoalActor()) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 				continue;
 
-			int32 index = Camera->Grid->Stream.RandRange(0, Faction->AtWar.Num() - 1);
-
-			MoveArmyMember(GetFaction(Faction->AtWar[index]), citizen);
+			MoveToTarget(Faction, { citizen });
 		}
 	}
 }
@@ -1613,8 +1677,11 @@ ABuilding* UConquestManager::MoveArmyMember(FFactionStruct* Faction, AAI* AI, bo
 
 	if (bReturn)
 		return target;
-	else
+	else if (IsValid(target))
 		AI->AIController->AIMoveTo(target);
+
+	if (AI->IsA<ACitizen>())
+		RemoveFromArmy(Cast<ACitizen>(AI));
 
 	return nullptr;
 }

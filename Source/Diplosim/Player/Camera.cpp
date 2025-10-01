@@ -199,6 +199,8 @@ void ACamera::BeginPlay()
 
 	LogUIInstance = CreateWidget<UUserWidget>(PController, LogUI);
 
+	ArmyEditorUIInstance = CreateWidget<UUserWidget>(PController, ArmyEditorUI);
+
 	if (GetWorld()->GetMapName() == "Map")
 		Grid->Load();
 }
