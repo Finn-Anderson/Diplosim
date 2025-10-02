@@ -78,7 +78,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 		}
 		else {
 			TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
-			info.Key->SetCustomDataValue(info.Value, 8, opacity);
+			info.Key->SetCustomDataValue(info.Value, 9, opacity);
 		}
 
 		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("RemoveDamageOverlay", GetOwner());

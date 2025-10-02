@@ -41,7 +41,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMCitizen->SetGenerateOverlapEvents(false);
 	HISMCitizen->bWorldPositionOffsetWritesVelocity = false;
 	HISMCitizen->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMCitizen->NumCustomDataFloats = 14;
+	HISMCitizen->NumCustomDataFloats = 15;
 
 	HISMClone = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClone"));
 	HISMClone->SetupAttachment(AIContainer);
@@ -52,7 +52,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMClone->SetGenerateOverlapEvents(false);
 	HISMClone->bWorldPositionOffsetWritesVelocity = false;
 	HISMClone->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMClone->NumCustomDataFloats = 9;
+	HISMClone->NumCustomDataFloats = 10;
 
 	HISMRebel = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRebel"));
 	HISMRebel->SetupAttachment(AIContainer);
@@ -63,7 +63,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMRebel->SetGenerateOverlapEvents(false);
 	HISMRebel->bWorldPositionOffsetWritesVelocity = false;
 	HISMRebel->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMRebel->NumCustomDataFloats = 13;
+	HISMRebel->NumCustomDataFloats = 14;
 
 	HISMEnemy = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMEnemy"));
 	HISMEnemy->SetupAttachment(AIContainer);
@@ -131,9 +131,12 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			else
 				colour = FLinearColor(Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f));
 
-			pending.HISM->PerInstanceSMCustomData[instance * pending.HISM->NumCustomDataFloats + 1] = colour.R;
-			pending.HISM->PerInstanceSMCustomData[instance * pending.HISM->NumCustomDataFloats + 2] = colour.G;
-			pending.HISM->PerInstanceSMCustomData[instance * pending.HISM->NumCustomDataFloats + 3] = colour.B;
+			if (pending.HISM == HISMClone)
+				UpdateInstanceCustomData(pending.HISM, instance, 1, 3.0f);
+
+			UpdateInstanceCustomData(pending.HISM, instance, 2, colour.R);
+			UpdateInstanceCustomData(pending.HISM, instance, 3, colour.G);
+			UpdateInstanceCustomData(pending.HISM, instance, 4, colour.B);
 
 			pending.AI->AIController->DefaultAction();
 		}
@@ -206,7 +209,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 							if (IsValid(citizen->Building.BuildingAt))
 								opacity = 0.0f;
 
-							UpdateInstanceCustomData(HISMCitizen, j, 13, opacity);
+							UpdateInstanceCustomData(HISMCitizen, j, 14, opacity);
 
 							hism = HISMCitizen;
 						}
@@ -388,19 +391,19 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 void UAIVisualiser::UpdateCitizenVisuals(UHierarchicalInstancedStaticMeshComponent* HISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
 	if (Camera->CitizenManager->Injured.Contains(Citizen))
-		UpdateInstanceCustomData(HISM, Instance, 9, 1.0f);
+		UpdateInstanceCustomData(HISM, Instance, 10, 1.0f);
 	else
-		UpdateInstanceCustomData(HISM, Instance, 9, 0.0f);
+		UpdateInstanceCustomData(HISM, Instance, 10, 0.0f);
 
 	if (Citizen->bGlasses)
-		UpdateInstanceCustomData(HISM, Instance, 10, 1.0f);
+		UpdateInstanceCustomData(HISM, Instance, 11, 1.0f);
 
 	ActivateTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour, HISM, Instance);
 
 	if (Camera->CitizenManager->Infected.Contains(Citizen))
-		UpdateInstanceCustomData(HISM, Instance, 12, 1.0f);
+		UpdateInstanceCustomData(HISM, Instance, 13, 1.0f);
 	else
-		UpdateInstanceCustomData(HISM, Instance, 12, 0.0f);
+		UpdateInstanceCustomData(HISM, Instance, 13, 0.0f);
 }
 
 void UAIVisualiser::ActivateTorch(int32 Hour, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
@@ -521,10 +524,10 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 	if (!IsValid(info.Key) || info.Key->GetNumInstances() == 0)
 		return transform;
 
-	position.X = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 4];
-	position.Y = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 5];
-	position.Z = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 6];
-	rotation.Pitch = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7];
+	position.X = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 5];
+	position.Y = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 6];
+	position.Z = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7];
+	rotation.Pitch = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 8];
 
 	transform.SetLocation(position);
 	transform.SetRotation(rotation.Quaternion());
@@ -541,10 +544,10 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 	if (!IsValid(info.Key) || info.Value == -1)
 		return;
 
-	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 4] = Transform.GetLocation().X;
-	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 5] = Transform.GetLocation().Y;
-	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 6] = Transform.GetLocation().Z;
-	info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 7] = Transform.GetRotation().Rotator().Pitch;
+	UpdateInstanceCustomData(info.Key, info.Value, 5, Transform.GetLocation().X);
+	UpdateInstanceCustomData(info.Key, info.Value, 6, Transform.GetLocation().Y);
+	UpdateInstanceCustomData(info.Key, info.Value, 7, Transform.GetLocation().Z);
+	UpdateInstanceCustomData(info.Key, info.Value, 8, Transform.GetRotation().Rotator().Pitch);
 }
 
 TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction, FVector Location)

@@ -665,6 +665,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> ArmyUI;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
+		int32 PlayerSelectedArmyIndex;
+
 	UFUNCTION(BlueprintCallable)
 		bool CanJoinArmy(class ACitizen* Citizen);
 
@@ -695,6 +698,11 @@ public:
 	void EvaluateAIArmy(FFactionStruct* Faction);
 
 	class ABuilding* MoveArmyMember(FFactionStruct* Faction, class AAI* AI, bool bReturn = false);
+
+	UFUNCTION(BlueprintCallable)
+		void SetSelectedArmy(int32 Index);
+
+	void PlayerMoveArmy(FVector Location);
 
 	// UI
 	UFUNCTION(BlueprintCallable)

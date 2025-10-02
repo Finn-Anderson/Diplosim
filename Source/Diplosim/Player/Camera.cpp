@@ -737,6 +737,8 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 			return;
 		}
 
+		ConquestManager->SetSelectedArmy(INDEX_NONE);
+
 		if (!IsValid(HoveredActor.Actor))
 			return;
 
@@ -769,6 +771,8 @@ void ACamera::Cancel()
 		bBulldoze = false;
 	else if (BuildComponent->IsComponentTickEnabled())
 		BuildComponent->RemoveBuilding();
+	else if (ConquestManager->PlayerSelectedArmyIndex > -1)
+		ConquestManager->PlayerMoveArmy(MouseHitLocation);
 }
 
 void ACamera::NewMap()

@@ -11,6 +11,7 @@
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "AI/Citizen.h"
 #include "AI/Clone.h"
 #include "AI/AttackComponent.h"
@@ -33,6 +34,7 @@ UConquestManager::UConquestManager()
 	AINum = 2;
 	MaxAINum = 2;
 	FailedBuild = 0;
+	PlayerSelectedArmyIndex = -1;
 }
 
 void UConquestManager::BeginPlay()
@@ -719,11 +721,11 @@ void UConquestManager::DeclareWar(FFactionStruct Faction1, FFactionStruct Factio
 	Factions[i2].AtWar.Add(Factions[i1].Name);
 
 	if (Faction1.Name == Camera->ColonyName)
-		for (FArmyStruct army : Faction2.Armies)
-			Camera->SetArmyWidgetUI(Faction2.Name, army.WidgetComponent->GetWidget());
+		for (int32 i = 0; i < Faction2.Armies.Num(); i++)
+			Camera->SetArmyWidgetUI(Faction2.Name, Faction2.Armies[i].WidgetComponent->GetWidget(), i);
 	else if (Faction2.Name == Camera->ColonyName)
-		for (FArmyStruct army : Faction1.Armies)
-			Camera->SetArmyWidgetUI(Faction1.Name, army.WidgetComponent->GetWidget());
+		for (int32 i = 0; i < Faction1.Armies.Num(); i++)
+			Camera->SetArmyWidgetUI(Faction1.Name, Faction1.Armies[i].WidgetComponent->GetWidget(), i);
 }
 
 void UConquestManager::Insult(FFactionStruct Faction, FFactionStruct Target)
@@ -1461,7 +1463,7 @@ void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizen
 
 	faction->Armies[index].WidgetComponent = widgetComponent;
 
-	Camera->SetArmyWidgetUI(FactionName, widgetComponent->GetWidget());
+	Camera->SetArmyWidgetUI(FactionName, widgetComponent->GetWidget(), index);
 
 	if (FactionName != Camera->ColonyName) {
 		FString id = FactionName + FString::FromInt(index) + "ArmyRaidTimer";
@@ -1542,6 +1544,9 @@ void UConquestManager::DestroyArmy(FString FactionName, int32 Index)
 
 	faction->Armies[Index].WidgetComponent->DestroyComponent();
 	faction->Armies.RemoveAt(Index);
+
+	if (PlayerSelectedArmyIndex == Index)
+		SetSelectedArmy(INDEX_NONE);
 }
 
 TArray<ABuilding*> UConquestManager::GetReachableTargets(FFactionStruct* Faction, ACitizen* Citizen)
@@ -1684,6 +1689,55 @@ ABuilding* UConquestManager::MoveArmyMember(FFactionStruct* Faction, AAI* AI, bo
 		RemoveFromArmy(Cast<ACitizen>(AI));
 
 	return nullptr;
+}
+
+void UConquestManager::SetSelectedArmy(int32 Index)
+{
+	FFactionStruct* faction = nullptr;
+	FArmyStruct* army = nullptr;
+
+	if (PlayerSelectedArmyIndex != INDEX_NONE) {
+		faction = GetFaction(Camera->ColonyName);
+		army = &faction->Armies[PlayerSelectedArmyIndex];
+
+		Camera->UpdateArmyWidgetSelectionUI(army->WidgetComponent->GetWidget(), false);
+
+		for (ACitizen* citizen : army->Citizens) {
+			auto aihism = Camera->Grid->AIVisualiser->GetAIHISM(citizen);
+
+			Camera->Grid->AIVisualiser->UpdateInstanceCustomData(aihism.Key, aihism.Value, 1, 0.0f);
+		}
+	}
+
+	PlayerSelectedArmyIndex = Index;
+
+	if (Index == INDEX_NONE)
+		return;
+
+	if (faction == nullptr)
+		faction = GetFaction(Camera->ColonyName);
+
+	army = &faction->Armies[PlayerSelectedArmyIndex];
+
+	Camera->UpdateArmyWidgetSelectionUI(army->WidgetComponent->GetWidget(), true);
+	
+	for (ACitizen* citizen : army->Citizens) {
+		auto aihism = Camera->Grid->AIVisualiser->GetAIHISM(citizen);
+
+		Camera->Grid->AIVisualiser->UpdateInstanceCustomData(aihism.Key, aihism.Value, 1, 1.0f);
+	}
+}
+
+void UConquestManager::PlayerMoveArmy(FVector Location)
+{
+	FFactionStruct* faction = GetFaction(Camera->ColonyName);
+
+	for (ACitizen* citizen : faction->Armies[PlayerSelectedArmyIndex].Citizens) {
+		if (!citizen->AIController->CanMoveTo(Location))
+			continue;
+
+		citizen->AIController->AIMoveTo(Camera->Grid, Location);
+	}
 }
 
 //
