@@ -780,7 +780,10 @@ double UConquestManager::CalculateTileDistance(FVector EggTimerLocation, FVector
 	nav->ProjectPointToNavigation(TileLocation, ownerLoc, FVector(20.0f, 20.0f, 20.0f));
 
 	double length;
-	nav->GetPathLength(GetWorld(), targetLoc.Location, ownerLoc.Location, length);
+	ENavigationQueryResult::Type result = nav->GetPathLength(GetWorld(), targetLoc.Location, ownerLoc.Location, length);
+
+	if (result != ENavigationQueryResult::Success)
+		return 100000000000.0f;
 
 	return length;
 }
@@ -803,7 +806,7 @@ void UConquestManager::InitialiseTileLocationDistances(FFactionStruct* Faction)
 
 	RemoveTileLocations(Faction, Faction->EggTimer);
 
-	SortTileDistances(Faction);
+	SortTileDistances(Faction->AccessibleBuildLocations);
 }
 
 void UConquestManager::RecalculateTileLocationDistances(FFactionStruct* Faction)
@@ -820,7 +823,7 @@ void UConquestManager::RecalculateTileLocationDistances(FFactionStruct* Faction)
 
 	FailedBuild = 0;
 
-	SortTileDistances(Faction);
+	SortTileDistances(Faction->AccessibleBuildLocations);
 }
 
 void UConquestManager::RemoveTileLocations(FFactionStruct* Faction, ABuilding* Building)
@@ -883,12 +886,12 @@ void UConquestManager::RemoveTileLocations(FFactionStruct* Faction, ABuilding* B
 		Faction->RoadBuildLocations.Add(location);
 	}
 
-	SortTileDistances(Faction);
+	SortTileDistances(Faction->AccessibleBuildLocations);
 }
 
-void UConquestManager::SortTileDistances(FFactionStruct* Faction)
+void UConquestManager::SortTileDistances(TMap<FVector, double>& Locations)
 {
-	Faction->AccessibleBuildLocations.ValueSort([](double s1, double s2)
+	Locations.ValueSort([](double s1, double s2)
 	{
 		return s1 < s2;
 	});
@@ -1732,11 +1735,39 @@ void UConquestManager::PlayerMoveArmy(FVector Location)
 {
 	FFactionStruct* faction = GetFaction(Camera->ColonyName);
 
+	TMap<FVector, double> locations;
+
+	for (TArray<FTileStruct>& row : Camera->Grid->Storage) {
+		for (FTileStruct& tile : row) {
+			if (tile.bMineral)
+				continue;
+
+			FTransform transform = Camera->Grid->GetTransform(&tile);
+
+			for (int32 x = -1; x < 2; x += 2) {
+				for (int32 y = -1; y < 2; y += 2) {
+					FVector offset = FVector(x * 25.0f, y * 25.0f, 0.0f);
+					FVector loc = transform.GetLocation() + offset;
+
+					locations.Add(loc, CalculateTileDistance(Location, loc));
+				}
+			}
+
+		}
+	}
+
+	SortTileDistances(locations);
+
+	TArray<FVector> locs;
+	locations.GenerateKeyArray(locs);
+
 	for (ACitizen* citizen : faction->Armies[PlayerSelectedArmyIndex].Citizens) {
-		if (!citizen->AIController->CanMoveTo(Location))
+		if (!citizen->AIController->CanMoveTo(locs[0]))
 			continue;
 
-		citizen->AIController->AIMoveTo(Camera->Grid, Location);
+		citizen->AIController->AIMoveTo(Camera->Grid, locs[0]);
+
+		locs.RemoveAt(0);
 	}
 }
 

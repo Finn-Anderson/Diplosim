@@ -614,7 +614,7 @@ public:
 
 	void RemoveTileLocations(FFactionStruct* Faction, ABuilding* Building);
 
-	void SortTileDistances(FFactionStruct* Faction);
+	void SortTileDistances(TMap<FVector, double>& Locations);
 
 	TArray<FVector> ConnectRoadTiles(FFactionStruct* Faction, struct FTileStruct* Tile, FVector Location);
 
