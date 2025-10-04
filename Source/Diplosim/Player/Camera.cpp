@@ -129,6 +129,7 @@ ACamera::ACamera()
 	HoveredWidget = nullptr;
 
 	PController = nullptr;
+	Settings = nullptr;
 }
 
 void ACamera::BeginPlay()
@@ -137,10 +138,10 @@ void ACamera::BeginPlay()
 
 	CitizenManager->Camera = this;
 
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-	settings->Camera = this;
-	settings->SetVignette(settings->GetVignette());
-	settings->SetSSAO(settings->GetSSAO());
+	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	Settings->Camera = this;
+	Settings->SetVignette(Settings->GetVignette());
+	Settings->SetSSAO(Settings->GetSSAO());
 
 	ResourceManager->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
@@ -217,8 +218,6 @@ void ACamera::Tick(float DeltaTime)
 
 	if (bMouseCapture)
 		PController->SetMouseLocation(MousePosition.X, MousePosition.Y);
-
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
 	FHitResult hit(ForceInit);
 
@@ -397,8 +396,6 @@ void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Soun
 		return;
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this, AudioComponent, Sound, Pitch]() {
-		UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-
 		float pitch = Pitch;
 
 		if (pitch == -1.0f)
@@ -406,20 +403,17 @@ void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Soun
 
 		AudioComponent->SetSound(Sound);
 		AudioComponent->SetPitchMultiplier(pitch);
-		AudioComponent->SetVolumeMultiplier(settings->GetAmbientVolume() * settings->GetMasterVolume());
+		AudioComponent->SetVolumeMultiplier(Settings->GetAmbientVolume() * Settings->GetMasterVolume());
 		AudioComponent->Play();
 	});
 }
 
-void ACamera::SetInteractAudioSound(USoundBase* Sound, float Volume, float Pitch)
+void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
 {
 	InteractAudioComponent->SetSound(Sound);
-	InteractAudioComponent->SetVolumeMultiplier(Volume);
-	InteractAudioComponent->SetPitchMultiplier(Pitch);
-}
+	InteractAudioComponent->SetVolumeMultiplier(Settings->GetMasterVolume() * Settings->GetSFXVolume());
+	InteractAudioComponent->SetPitchMultiplier(Pitch * Grid->Stream.RandRange(0.95f, 1.05f));
 
-void ACamera::PlayInteractSound()
-{
 	InteractAudioComponent->Play();
 }
 
@@ -427,9 +421,7 @@ void ACamera::DisplayBuildUI()
 {
 	bBlockPause = false;
 
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-
-	if (settings->GetShowLog())
+	if (Settings->GetShowLog())
 		LogUIInstance->AddToViewport();
 
 	BuildUIInstance->AddToViewport();
@@ -525,6 +517,8 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 
 	if (!IsValid(Component))
 		Component = Actor->GetRootComponent();
+
+	PlayInteractSound(InteractSound);
 	
 	SetInteractableText(Actor, Instance);
 
@@ -754,10 +748,7 @@ void ACamera::Bulldoze()
 	if (Grid->LoadUIInstance->IsInViewport() || !bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy)
 		return;
 
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-
-	SetInteractAudioSound(BuildComponent->PlaceSound, settings->GetMasterVolume() * settings->GetSFXVolume());
-	PlayInteractSound();
+	PlayInteractSound(BuildComponent->PlaceSound);
 
 	Cast<ABuilding>(HoveredActor.Actor)->DestroyBuilding();
 }
@@ -773,6 +764,8 @@ void ACamera::Cancel()
 		BuildComponent->RemoveBuilding();
 	else if (ConquestManager->PlayerSelectedArmyIndex > -1)
 		ConquestManager->PlayerMoveArmy(MouseHitLocation);
+
+	PlayInteractSound(InteractSound);
 }
 
 void ACamera::NewMap()
@@ -833,7 +826,7 @@ void ACamera::Menu()
 
 	if (bInMenu) {
 		if (SettingsUIInstance->IsInViewport())
-			UDiplosimUserSettings::GetDiplosimUserSettings()->SaveIniSettings();
+			Settings->SaveIniSettings();
 
 		SettingsUIInstance->RemoveFromParent();
 		WikiUIInstance->RemoveFromParent();

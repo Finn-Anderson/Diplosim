@@ -170,6 +170,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 		class AGrid* Grid;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Settings")
+		class UDiplosimUserSettings* Settings;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colony")
 		FString ColonyName;
 
@@ -202,11 +205,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* MusicAudioComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class USoundBase* InteractSound;
+
 	void PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch = -1.0f);
 
-	void SetInteractAudioSound(USoundBase* Sound, float Volume, float Pitch = 1.0f);
-
-	void PlayInteractSound();
+	UFUNCTION(BlueprintCallable)
+		void PlayInteractSound(USoundBase* Sound, float Pitch = 1.0f);
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")

@@ -150,7 +150,8 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 		SetFactionFlagColour(&faction);
 		SetFactionCulture(&faction);
 
-		InitialiseTileLocationDistances(&faction);
+		if (faction.Name != Camera->ColonyName)
+			InitialiseTileLocationDistances(&faction);
 	}
 
 	Camera->SetFactionsInDiplomacyUI();
