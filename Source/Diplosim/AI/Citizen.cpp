@@ -1796,6 +1796,27 @@ void ACitizen::SetHappiness()
 	}
 }
 
+void ACitizen::SetEyesVisuals(int32 HappinessValue)
+{
+	UAIVisualiser* aivisualiser = Camera->Grid->AIVisualiser;
+	auto element = aivisualiser->GetAIHISM(this);
+
+	float val15 = 0.0f;
+	float val16 = 0.0f;
+	float val17 = 0.0f;
+
+	if (!AttackComponent->OverlappingEnemies.IsEmpty())
+		val16 = 1.0f;
+	else if (Camera->CitizenManager->Infected.Contains(this) || Camera->CitizenManager->Injured.Contains(this) || HappinessValue < 35)
+		val17 = 1.0f;
+	else if (HappinessValue > 65)
+		val15 = 1.0f;
+
+	aivisualiser->UpdateInstanceCustomData(element.Key, element.Value, 15, val15);
+	aivisualiser->UpdateInstanceCustomData(element.Key, element.Value, 16, val16);
+	aivisualiser->UpdateInstanceCustomData(element.Key, element.Value, 17, val17);
+}
+
 //
 // Genetics
 //

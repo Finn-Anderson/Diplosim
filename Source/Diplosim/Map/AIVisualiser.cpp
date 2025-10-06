@@ -41,7 +41,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMCitizen->SetGenerateOverlapEvents(false);
 	HISMCitizen->bWorldPositionOffsetWritesVelocity = false;
 	HISMCitizen->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMCitizen->NumCustomDataFloats = 15;
+	HISMCitizen->NumCustomDataFloats = 18;
 
 	HISMClone = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClone"));
 	HISMClone->SetupAttachment(AIContainer);

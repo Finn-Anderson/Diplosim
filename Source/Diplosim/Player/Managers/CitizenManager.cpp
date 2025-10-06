@@ -351,7 +351,11 @@ void UCitizenManager::CitizenGeneralLoop()
 				}
 
 				citizen->SetHappiness();
-				happinessCount += citizen->GetHappiness();
+
+				int32 happiness = citizen->GetHappiness();
+				citizen->SetEyesVisuals(happiness);
+
+				happinessCount += happiness;
 
 				if (GetMembersParty(citizen) != nullptr && GetMembersParty(citizen)->Party == "Shell Breakers")
 					rebelCount++;

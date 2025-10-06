@@ -486,6 +486,8 @@ public:
 
 	void SetHappiness();
 
+	void SetEyesVisuals(int32 HappinessValue);
+
 	// Genetics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Genetics")
 		TArray<FGeneticsStruct> Genetics;
