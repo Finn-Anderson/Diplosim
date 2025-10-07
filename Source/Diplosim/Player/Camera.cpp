@@ -797,6 +797,8 @@ void ACamera::Menu()
 	if (Grid->LoadUIInstance->IsInViewport() || bLost || MainMenuUIInstance->IsInViewport())
 		return;
 
+	PlayInteractSound(InteractSound);
+
 	if (!WidgetComponent->bHiddenInGame && !BuildComponent->IsComponentTickEnabled()) {
 		SetInteractStatus(WidgetComponent->GetAttachmentRootActor(), false);
 
@@ -820,6 +822,11 @@ void ACamera::Menu()
 		ResearchUIInstance->RemoveFromParent();
 
 		ResearchHoverUIInstance->RemoveFromParent();
+
+		return;
+	}
+	else if (DiplomacyUIInstance->IsInViewport()) {
+		DiplomacyUIInstance->RemoveFromParent();
 
 		return;
 	}

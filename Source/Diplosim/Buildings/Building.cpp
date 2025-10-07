@@ -212,7 +212,8 @@ void ABuilding::SetSeed(int32 Seed)
 	if (Seeds.IsEmpty())
 		return;
 
-	Camera->SetInteractStatus(this, false);
+	if (FactionName == Camera->ColonyName)
+		Camera->SetInteractStatus(this, false);
 
 	if (bAffectBuildingMesh) {
 		if (!Seeds[Seed].Meshes.IsEmpty()) {
@@ -334,7 +335,8 @@ void ABuilding::SetSeed(int32 Seed)
 
 	SeedNum = Seed;
 
-	Camera->DisplayInteract(this);
+	if (FactionName == Camera->ColonyName)
+		Camera->DisplayInteract(this);
 }
 
 int32 ABuilding::GetTier()

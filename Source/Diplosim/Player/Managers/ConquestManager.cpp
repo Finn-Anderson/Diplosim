@@ -137,7 +137,10 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 		eggTimer->SetActorLocation(Camera->Grid->GetTransform(chosenTile).GetLocation());
 		eggTimer->FactionName = f.Name;
 
+		Camera->BuildComponent->SetTreeStatus(eggTimer, true);
+
 		f.EggTimer = eggTimer;
+		f.Buildings.Add(eggTimer);
 
 		Factions.Add(f);
 	}
@@ -150,8 +153,15 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 		SetFactionFlagColour(&faction);
 		SetFactionCulture(&faction);
 
-		if (faction.Name != Camera->ColonyName)
+		FString type = "Good";
+
+		if (faction.Name != Camera->ColonyName) {
 			InitialiseTileLocationDistances(&faction);
+
+			type = "Neutral";
+		}
+
+		Camera->NotifyLog(type, faction.Name + " was just founded", faction.Name);
 	}
 
 	Camera->SetFactionsInDiplomacyUI();
@@ -236,7 +246,7 @@ FFactionStruct UConquestManager::GetFactionFromActor(AActor* Actor)
 	FFactionStruct faction;
 
 	for (FFactionStruct f : Factions) {
-		if (!DoesFactionContainActor(faction.Name, Actor))
+		if (!DoesFactionContainActor(f.Name, Actor))
 			continue;
 
 		faction = f;
@@ -848,37 +858,39 @@ void UConquestManager::RemoveTileLocations(FFactionStruct* Faction, ABuilding* B
 		}
 	}
 
-	FVector closestCurrentRoad = FVector::Zero();
-	for (FVector location : Faction->RoadBuildLocations) {
-		if (closestCurrentRoad == FVector::Zero()) {
+	if (!Faction->RoadBuildLocations.IsEmpty()) {
+		FVector closestCurrentRoad = FVector::Zero();
+		for (FVector location : Faction->RoadBuildLocations) {
+			if (closestCurrentRoad == FVector::Zero()) {
+				closestCurrentRoad = location;
+
+				continue;
+			}
+
+			if (FVector::Dist(Building->GetActorLocation(), location) > FVector::Dist(Building->GetActorLocation(), closestCurrentRoad))
+				continue;
+
 			closestCurrentRoad = location;
-
-			continue;
 		}
 
-		if (FVector::Dist(Building->GetActorLocation(), location) > FVector::Dist(Building->GetActorLocation(), closestCurrentRoad))
-			continue;
+		FVector closestNewRoad = FVector::Zero();
+		for (FVector location : roadLocations) {
+			if (closestNewRoad == FVector::Zero()) {
+				closestNewRoad = location;
 
-		closestCurrentRoad = location;
-	}
+				continue;
+			}
 
-	FVector closestNewRoad = FVector::Zero();
-	for (FVector location : roadLocations) {
-		if (closestNewRoad == FVector::Zero()) {
+			if (FVector::Dist(closestCurrentRoad, location) > FVector::Dist(closestCurrentRoad, closestNewRoad))
+				continue;
+
 			closestNewRoad = location;
-
-			continue;
 		}
 
-		if (FVector::Dist(closestCurrentRoad, location) > FVector::Dist(closestCurrentRoad, closestNewRoad))
-			continue;
+		FTileStruct* tile = Camera->Grid->GetTileFromLocation(closestNewRoad);
 
-		closestNewRoad = location;
+		roadLocations.Append(ConnectRoadTiles(Faction, tile, closestCurrentRoad));
 	}
-
-	FTileStruct* tile = Camera->Grid->GetTileFromLocation(closestNewRoad);
-
-	roadLocations.Append(ConnectRoadTiles(Faction, tile, closestCurrentRoad));
 
 	for (FVector location : roadLocations) {
 		if (Faction->RoadBuildLocations.Contains(location))
@@ -1410,6 +1422,8 @@ void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> B
 	building->SetActorRotation(rotation);
 	building->SetActorLocation(location);
 	building->Build();
+
+	Camera->BuildComponent->SetTreeStatus(building, true);
 
 	if (building->IsA<ARoad>())
 		Cast<ARoad>(building)->RegenerateMesh();
