@@ -254,7 +254,7 @@ void ACamera::Tick(float DeltaTime)
 
 		ais.Append(CitizenManager->Enemies);
 
-		FVector chosenLocation = FVector::Zero();
+		FVector chosenLocation = FVector(1000000000000000.0f);
 
 		for (AAI* ai : ais) {
 			if (!IsValid(ai) || ai->HealthComponent->GetHealth() == 0)
@@ -267,7 +267,7 @@ void ACamera::Tick(float DeltaTime)
 			if (ai->IsA<ACitizen>())
 				size = Cast<ACitizen>(ai)->ReachMultiplier;
 
-			if (distance > 12.0f * size || (chosenLocation != FVector::Zero() && FVector::Dist(mouseLoc, chosenLocation) < FVector::Dist(mouseLoc, aiLoc)))
+			if (distance > 12.0f * size || (chosenLocation != FVector(1000000000000000.0f) && FVector::Dist(mouseLoc, chosenLocation) < FVector::Dist(mouseLoc, aiLoc)))
 				continue;
 
 			HoveredActor.Actor = ai;
@@ -1060,9 +1060,14 @@ void ACamera::SetEvent(FString Type, FString Period, int32 Day, int32 StartHour,
 
 void ACamera::DamageActor(int32 Amount)
 {
-	if (!IsValid(HoveredActor.Actor) || !(HoveredActor.Actor->IsA<AAI>() && HoveredActor.Actor->IsA<ABuilding>()))
+	AActor* actor = WidgetComponent->GetAttachParentActor();
+
+	if (IsValid(FocusedCitizen))
+		actor = FocusedCitizen;
+
+	if (!IsValid(actor) || (!actor->IsA<AAI>() && !actor->IsA<ABuilding>()))
 		return;
 
-	UHealthComponent* healthComp = HoveredActor.Actor->GetComponentByClass<UHealthComponent>();
-	healthComp->TakeHealth(Amount, HoveredActor.Actor);
+	UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+	healthComp->TakeHealth(Amount, this);
 }

@@ -9,6 +9,7 @@
 #include "Player/Camera.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
+#include "Universal/HealthComponent.h"
 
 UAIMovementComponent::UAIMovementComponent()
 {
@@ -82,7 +83,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		bSetPoints = false;
 	}
 
-	if (Points.IsEmpty())
+	if (Points.IsEmpty() || AI->HealthComponent->GetHealth() == 0)
 		return;
 
 	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);

@@ -146,13 +146,6 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 	}
 
 	for (FFactionStruct& faction : Factions) {
-		faction.EggTimer->SpawnCitizens();
-
-		Camera->CitizenManager->Election(&faction);
-
-		SetFactionFlagColour(&faction);
-		SetFactionCulture(&faction);
-
 		FString type = "Good";
 
 		if (faction.Name != Camera->ColonyName) {
@@ -162,6 +155,13 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 		}
 
 		Camera->NotifyLog(type, faction.Name + " was just founded", faction.Name);
+
+		faction.EggTimer->SpawnCitizens();
+
+		Camera->CitizenManager->Election(&faction);
+
+		SetFactionFlagColour(&faction);
+		SetFactionCulture(&faction);
 	}
 
 	Camera->SetFactionsInDiplomacyUI();

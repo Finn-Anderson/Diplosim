@@ -197,10 +197,13 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 					for (int32 j = (citizens[i].Num() * k) / 2; j < citizens[i].Num() / (2 - k); j++) {
 						ACitizen* citizen = citizens[i][j];
 
-						if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() == 0)
+						if (!IsValid(citizen))
 							continue;
 
 						citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
+
+						if (citizen->HealthComponent->GetHealth() == 0)
+							continue;
 
 						UHierarchicalInstancedStaticMeshComponent* hism = nullptr;
 
@@ -261,10 +264,13 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 			for (int32 j = 0; j < ais[i].Num(); j++) {
 				AAI* ai = ais[i][j];
 
-				if (!IsValid(ai) || ai->HealthComponent->GetHealth() == 0)
+				if (!IsValid(ai))
 					continue;
 
 				ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
+
+				if (ai->HealthComponent->GetHealth() == 0)
+					continue;
 
 				if (i == 0)
 					SetInstanceTransform(HISMClone, j, ai->MovementComponent->Transform);
@@ -547,7 +553,7 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 	UpdateInstanceCustomData(info.Key, info.Value, 5, Transform.GetLocation().X);
 	UpdateInstanceCustomData(info.Key, info.Value, 6, Transform.GetLocation().Y);
 	UpdateInstanceCustomData(info.Key, info.Value, 7, Transform.GetLocation().Z);
-	UpdateInstanceCustomData(info.Key, info.Value, 8, Transform.GetRotation().Rotator().Pitch);
+	UpdateInstanceCustomData(info.Key, info.Value, 8, Transform.GetRotation().Rotator().Pitch / 360.0f);
 }
 
 TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction, FVector Location)
