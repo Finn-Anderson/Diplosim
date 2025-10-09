@@ -782,7 +782,7 @@ void UBuildComponent::Place(bool bQuick)
 	}
 
 	if (Camera->Start)
-		Camera->OnBrochPlace(Buildings[0]);
+		Camera->OnEggTimerPlace(Buildings[0]);
 
 	if (bQuick)
 		ResetBuilding(b);

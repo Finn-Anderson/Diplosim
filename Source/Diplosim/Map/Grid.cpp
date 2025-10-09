@@ -1501,6 +1501,25 @@ void AGrid::Clear()
 		Camera->SetPause(false, false);
 }
 
+void AGrid::RebuildAll()
+{
+	TArray<FResourceHISMStruct> resourceList;
+	resourceList.Append(TreeStruct);
+	resourceList.Append(FlowerStruct);
+	resourceList.Append(MineralStruct);
+
+	for (FResourceHISMStruct& ResourceStruct : resourceList)
+		ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
+
+	HISMLava->BuildTreeIfOutdated(true, true);
+	HISMSea->BuildTreeIfOutdated(true, true);
+	HISMGround->BuildTreeIfOutdated(true, true);
+	HISMFlatGround->BuildTreeIfOutdated(true, true);
+	HISMRampGround->BuildTreeIfOutdated(true, true);
+	HISMRiver->BuildTreeIfOutdated(true, true);
+	HISMWall->BuildTreeIfOutdated(true, true);
+}
+
 FTileStruct* AGrid::GetTileFromLocation(FVector WorldLocation)
 {
 	auto bound = GetMapBounds();

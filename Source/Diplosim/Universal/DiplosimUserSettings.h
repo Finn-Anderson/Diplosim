@@ -94,6 +94,9 @@ protected:
 	UPROPERTY(Config)
 		bool bShowLog;
 
+	UPROPERTY(Config)
+		int32 AutosaveTimer;
+
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
@@ -274,6 +277,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Accessibility")
 		bool GetShowLog() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Accessibility")
+		void SetAutosaveTimer(int32 Value);
+
+	UFUNCTION(BlueprintPure, Category = "Accessibility")
+		int32 GetAutosaveTimer() const;
 
 	void UpdateAmbientVolume();
 

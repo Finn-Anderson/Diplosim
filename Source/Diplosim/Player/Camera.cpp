@@ -20,6 +20,7 @@
 #include "Map/Resources/Vegetation.h"
 #include "Components/BuildComponent.h"
 #include "Components/CameraMovementComponent.h"
+#include "Components/SaveGameComponent.h"
 #include "Managers/ResourceManager.h"
 #include "Managers/ConstructionManager.h"
 #include "Managers/CitizenManager.h"
@@ -84,6 +85,8 @@ ACamera::ACamera()
 
 	ConquestManager = CreateDefaultSubobject<UConquestManager>(TEXT("ConquestManager"));
 
+	SaveGameComponent = CreateDefaultSubobject<USaveGameComponent>(TEXT("SaveGameComponent"));
+
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
 	WidgetComponent->SetupAttachment(RootComponent);
 	WidgetComponent->SetTickableWhenPaused(true);
@@ -137,6 +140,7 @@ void ACamera::BeginPlay()
 	Super::BeginPlay();
 
 	CitizenManager->Camera = this;
+	SaveGameComponent->Camera = this;
 
 	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	Settings->Camera = this;
@@ -343,7 +347,7 @@ void ACamera::StartGame()
 	Grid->MapUIInstance->AddToViewport();
 }
 
-void ACamera::OnBrochPlace(ABuilding* EggTimer)
+void ACamera::OnEggTimerPlace(ABuilding* EggTimer)
 {
 	if (PauseUIInstance->IsInViewport())
 		Pause();
@@ -373,6 +377,8 @@ void ACamera::OnBrochPlace(ABuilding* EggTimer)
 	ConquestManager->FinaliseFactions(Cast<ABroch>(EggTimer));
 
 	Start = false;
+
+	SaveGameComponent->StartNewSave();
 
 	DisplayEvent("Welcome to", ColonyName);
 

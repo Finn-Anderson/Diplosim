@@ -167,6 +167,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement")
 		class UCameraMovementComponent* MovementComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Game")
+		class USaveGameComponent* SaveGameComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 		class AGrid* Grid;
 
@@ -193,7 +196,7 @@ public:
 
 	void Tick(float DeltaTime) override;
 
-	void OnBrochPlace(class ABuilding* Broch);
+	void OnEggTimerPlace(class ABuilding* EggTimer);
 
 	UFUNCTION(BlueprintCallable)
 		void Quit(bool bMenu);

@@ -18,6 +18,7 @@
 #include "DiplosimGameModeBase.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Components/SaveGameComponent.h"
 #include "AI/Citizen.h"
 #include "AI/AIMovementComponent.h"
 #include "Buildings/Building.h"
@@ -174,6 +175,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetUIScale(FCString::Atof(Value));
 	else if (FString("bShowLog").Equals(Key))
 		SetShowLog(value.ToBool());
+	else if (FString("AutosaveTimer").Equals(Key))
+		SetAutosaveTimer(FCString::Atoi(Value));
 }
 
 void UDiplosimUserSettings::LoadIniSettings()
@@ -232,6 +235,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetFloat(*Section, TEXT("AmbientVolume"), GetAmbientVolume(), Filename);
 	GConfig->SetFloat(*Section, TEXT("UIScale"), GetUIScale(), Filename);
 	GConfig->SetBool(*Section, TEXT("bShowLog"), GetShowLog(), Filename);
+	GConfig->SetInt(*Section, TEXT("AutosaveTimer"), GetAutosaveTimer(), Filename);
 
 	GConfig->Flush(false, Filename);
 }
@@ -715,6 +719,24 @@ void UDiplosimUserSettings::SetShowLog(bool Value)
 bool UDiplosimUserSettings::GetShowLog() const
 {
 	return bShowLog;
+}
+
+void UDiplosimUserSettings::SetAutosaveTimer(int32 Value)
+{
+	if (AutosaveTimer == Value)
+		return;
+
+	AutosaveTimer = Value;
+
+	if (!IsValid(Camera))
+		return;
+
+	Camera->SaveGameComponent->UpdateAutosave(AutosaveTimer * 60);
+}
+
+int32 UDiplosimUserSettings::GetAutosaveTimer() const
+{
+	return AutosaveTimer;
 }
 
 void UDiplosimUserSettings::UpdateAmbientVolume()

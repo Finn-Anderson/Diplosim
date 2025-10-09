@@ -228,6 +228,8 @@ public:
 
 	void Clear();
 
+	void RebuildAll();
+
 	FTileStruct* GetTileFromLocation(FVector WorldLocation);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crystal")
