@@ -20,10 +20,7 @@ public:
 	UPROPERTY()
 		FString CurrentID;
 
-	UPROPERTY()
-		int32 AutosaveNum;
-
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
 		class UDiplosimSaveGame* CurrentSaveGame;
 
 	UPROPERTY()
@@ -33,12 +30,17 @@ public:
 		void StartNewSave();
 
 	UFUNCTION(BlueprintCallable)
-		void SaveGameSave(bool bAutosave = false);
+		void SaveGameSave(FString Name, bool bAutosave = false);
 
 	UFUNCTION(BlueprintCallable)
-		void LoadGameSave(FString SlotName);
+		void LoadGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index);
 
-	FString GetSlotName(bool bAutosave);
+	UFUNCTION(BlueprintCallable)
+		TMap<FString, class UDiplosimSaveGame*> LoadAllSavedGames();
+
+	FSave* CreateNewSaveStruct(FString Name, bool bAutosave);
+
+	void CapAutosaves();
 
 	void StartAutosaveTimer();
 

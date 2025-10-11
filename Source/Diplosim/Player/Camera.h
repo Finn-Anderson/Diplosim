@@ -254,6 +254,12 @@ public:
 		class UUserWidget* SettingsUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> SaveLoadGameUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* SaveLoadGameUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> WikiUI;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")

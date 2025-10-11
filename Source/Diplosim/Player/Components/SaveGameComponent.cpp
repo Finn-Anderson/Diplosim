@@ -9,13 +9,13 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 
 USaveGameComponent::USaveGameComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
 	CurrentID = "";
-	AutosaveNum = 1;
 	CurrentSaveGame = nullptr;
 
 	Camera = nullptr;
@@ -31,11 +31,12 @@ void USaveGameComponent::BeginPlay()
 void USaveGameComponent::StartNewSave()
 {
 	CurrentSaveGame = Cast<UDiplosimSaveGame>(UGameplayStatics::CreateSaveGameObject(USaveGame::StaticClass()));
+	CurrentSaveGame->LastTimeUpdated = FDateTime::Now();
 
 	StartAutosaveTimer();
 }
 
-void USaveGameComponent::SaveGameSave(bool bAutosave)
+void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 {
 	TArray<FActorSaveData> allNewActorData;
 
@@ -60,17 +61,46 @@ void USaveGameComponent::SaveGameSave(bool bAutosave)
 		allNewActorData.Add(actorData);
 	}
 
-	CurrentSaveGame->SavedActors.Empty();
-	CurrentSaveGame->SavedActors.Append(allNewActorData);
+	FSave* save;
 
-	UGameplayStatics::AsyncSaveGameToSlot(CurrentSaveGame, GetSlotName(bAutosave), 0);
+	if (Name == "") {
+		save = CreateNewSaveStruct(Name, bAutosave);
+
+		if (bAutosave)
+			CapAutosaves();
+	}
+	else {
+		FSave s;
+		s.SaveName = Name;
+
+		int32 index = CurrentSaveGame->Saves.Find(s);
+
+		if (index == INDEX_NONE) {
+			save = CreateNewSaveStruct(Name, bAutosave);
+		}
+		else {
+			save = &CurrentSaveGame->Saves[index];
+
+			save->bAutosave = bAutosave;
+		}
+	}
+
+	save->SavedActors.Empty();
+	save->SavedActors.Append(allNewActorData);
+
+	UGameplayStatics::AsyncSaveGameToSlot(CurrentSaveGame, CurrentID, 0);
+
+	if (bAutosave)
+		StartAutosaveTimer();
 }
 
-void USaveGameComponent::LoadGameSave(FString SlotName)
+void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index)
 {
-	CurrentSaveGame = Cast<UDiplosimSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+	CurrentID = SlotName;
+	CurrentSaveGame = SaveGame;
+	CurrentSaveGame->LastTimeUpdated = FDateTime::Now();
 
-	for (FActorSaveData actorData : CurrentSaveGame->SavedActors) {
+	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
 		TArray<AActor*> foundActors;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), actorData.Class, foundActors);
 
@@ -103,24 +133,83 @@ void USaveGameComponent::LoadGameSave(FString SlotName)
 	StartAutosaveTimer();
 }
 
-FString USaveGameComponent::GetSlotName(bool bAutosave)
+TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()
 {
-	FString slotName = CurrentID;
+	TMap<FString, class UDiplosimSaveGame*> gameSavesList;
 
-	if (bAutosave) {
-		slotName += FString::FromInt(AutosaveNum);
+	const FString& saveDir = UKismetSystemLibrary::GetProjectSavedDirectory() / "SaveGames";
 
-		AutosaveNum++;
+	TArray<FString> foundFiles;
+	const FString& ext = ".sav";
 
-		if (AutosaveNum > 3)
-			AutosaveNum -= 3;
+	IFileManager::Get().FindFiles(foundFiles, *saveDir, *ext);
 
-		StartAutosaveTimer();
+	TArray<FString> fileNames;
+	for (const FString& name : foundFiles)
+		fileNames.AddUnique(name.LeftChop(4));
+
+	TArray<UDiplosimSaveGame*> sortedGames;
+	TArray<FString> sortedNames;
+	for (const FString& name : fileNames) {
+		UDiplosimSaveGame* gameSave = Cast<UDiplosimSaveGame>(UGameplayStatics::LoadGameFromSlot(name, 0));
+
+		int32 index = 0;
+
+		for (int32 i = 0; i < sortedGames.Num(); i++) {
+			index = i;
+
+			if (gameSave->LastTimeUpdated > sortedGames[i]->LastTimeUpdated)
+				break;
+		}
+
+		sortedGames.Insert(gameSave, index);
+		sortedNames.Insert(name, index);
 	}
-	else
-		slotName += FDateTime::Now().ToString();
 
-	return slotName;
+	for (int32 i = 0; i < sortedGames.Num(); i++)
+		gameSavesList.Add(sortedNames[i], sortedGames[i]);
+
+	return gameSavesList;
+}
+
+FSave* USaveGameComponent::CreateNewSaveStruct(FString Name, bool bAutosave)
+{
+	FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
+
+	FSave save;
+	save.Period = calendar.Period;
+	save.Day = calendar.Days[calendar.Index];
+	save.Hour = calendar.Hour;
+
+	if (Name == "")
+		save.SaveName = save.Period + "-" + FString::FromInt(save.Day) + "-" + FString::FromInt(save.Hour);
+
+	save.bAutosave = bAutosave;
+
+	int32 index = CurrentSaveGame->Saves.Add(save);
+
+	return &CurrentSaveGame->Saves[index];
+}
+
+void USaveGameComponent::CapAutosaves()
+{
+	int32 firstAutosaveIndex = INDEX_NONE;
+	int32 count = 0;
+
+	for (int32 i = 0; i < CurrentSaveGame->Saves.Num(); i++) {
+		if (!CurrentSaveGame->Saves[i].bAutosave)
+			continue;
+
+		if (firstAutosaveIndex == INDEX_NONE)
+			firstAutosaveIndex = i;
+
+		count++;
+	}
+
+	if (count <= 3)
+		return;
+
+	CurrentSaveGame->Saves.RemoveAt(firstAutosaveIndex);
 }
 
 void USaveGameComponent::StartAutosaveTimer()
@@ -130,7 +219,7 @@ void USaveGameComponent::StartAutosaveTimer()
 	if (timer == 0)
 		return;
 
-	Camera->CitizenManager->CreateTimer("AutosaveTimer", Camera, timer * 60.0f, FTimerDelegate::CreateUObject(this, &USaveGameComponent::SaveGameSave, true), false, true);
+	Camera->CitizenManager->CreateTimer("AutosaveTimer", Camera, timer * 60.0f, FTimerDelegate::CreateUObject(this, &USaveGameComponent::SaveGameSave, FString(""), true), false, true);
 }
 
 void USaveGameComponent::UpdateAutosave(int32 NewTime)

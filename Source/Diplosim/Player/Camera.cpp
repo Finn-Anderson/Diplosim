@@ -174,6 +174,7 @@ void ACamera::BeginPlay()
 	LostUIInstance = CreateWidget<UUserWidget>(PController, LostUI);
 
 	SettingsUIInstance = CreateWidget<UUserWidget>(PController, SettingsUI);
+	SaveLoadGameUIInstance = CreateWidget<UUserWidget>(PController, SaveLoadGameUI);
 	WikiUIInstance = CreateWidget<UUserWidget>(PController, WikiUI);
 
 	EventUIInstance = CreateWidget<UUserWidget>(PController, EventUI);

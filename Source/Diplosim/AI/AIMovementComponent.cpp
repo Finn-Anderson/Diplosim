@@ -20,7 +20,7 @@ UAIMovementComponent::UAIMovementComponent()
 	SpeedMultiplier = 1.0f;
 
 	LastUpdatedTime = 0.0f;
-	Transform = FTransform(FQuat::Identity, FVector(0, 0, 0));
+	Transform = FTransform(FQuat::Identity, FVector(0.0f));
 
 	ActorToLookAt = nullptr;
 	bSetPoints = false;
