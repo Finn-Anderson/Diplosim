@@ -31,9 +31,8 @@ void USaveGameComponent::BeginPlay()
 void USaveGameComponent::StartNewSave()
 {
 	CurrentSaveGame = Cast<UDiplosimSaveGame>(UGameplayStatics::CreateSaveGameObject(USaveGame::StaticClass()));
-	CurrentSaveGame->LastTimeUpdated = FDateTime::Now();
 
-	StartAutosaveTimer();
+	SaveGameSave("", true);
 }
 
 void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
@@ -88,6 +87,8 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 	save->SavedActors.Empty();
 	save->SavedActors.Append(allNewActorData);
 
+	CurrentSaveGame->LastTimeUpdated = FDateTime::Now();
+
 	UGameplayStatics::AsyncSaveGameToSlot(CurrentSaveGame, CurrentID, 0);
 
 	if (bAutosave)
@@ -131,6 +132,14 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	Camera->Grid->RebuildAll();
 
 	StartAutosaveTimer();
+}
+
+void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot)
+{
+	if (bSlot)
+		UGameplayStatics::DeleteGameInSlot(SlotName, 0);
+	else
+		SaveGame->Saves.RemoveAt(Index);
 }
 
 TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()

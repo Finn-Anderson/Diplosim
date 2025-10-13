@@ -36,6 +36,9 @@ public:
 		void LoadGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index);
 
 	UFUNCTION(BlueprintCallable)
+		void DeleteGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot);
+
+	UFUNCTION(BlueprintCallable)
 		TMap<FString, class UDiplosimSaveGame*> LoadAllSavedGames();
 
 	FSave* CreateNewSaveStruct(FString Name, bool bAutosave);
