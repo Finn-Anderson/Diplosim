@@ -66,6 +66,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	AmbientVolume = 1.0f;
 
 	UIScale = 1.0f;
+	AutosaveTimer = 30;
 
 	Atmosphere = nullptr;
 	Clouds = nullptr;

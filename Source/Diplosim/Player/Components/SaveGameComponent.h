@@ -17,7 +17,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
 		FString CurrentID;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")

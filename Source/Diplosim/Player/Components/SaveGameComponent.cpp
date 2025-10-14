@@ -30,7 +30,7 @@ void USaveGameComponent::BeginPlay()
 
 void USaveGameComponent::StartNewSave()
 {
-	CurrentSaveGame = Cast<UDiplosimSaveGame>(UGameplayStatics::CreateSaveGameObject(USaveGame::StaticClass()));
+	CurrentSaveGame = Cast<UDiplosimSaveGame>(UGameplayStatics::CreateSaveGameObject(UDiplosimSaveGame::StaticClass()));
 
 	SaveGameSave("", true);
 }
@@ -186,12 +186,13 @@ FSave* USaveGameComponent::CreateNewSaveStruct(FString Name, bool bAutosave)
 	FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
 
 	FSave save;
+	save.SaveName = Name;
 	save.Period = calendar.Period;
 	save.Day = calendar.Days[calendar.Index];
 	save.Hour = calendar.Hour;
 
 	if (Name == "")
-		save.SaveName = save.Period + "-" + FString::FromInt(save.Day) + "-" + FString::FromInt(save.Hour);
+		save.SaveName = FDateTime::Now().ToString();
 
 	save.bAutosave = bAutosave;
 
@@ -223,12 +224,17 @@ void USaveGameComponent::CapAutosaves()
 
 void USaveGameComponent::StartAutosaveTimer()
 {
-	int32 timer = Camera->Settings->GetAutosaveTimer();
+	int32 time = Camera->Settings->GetAutosaveTimer();
 
-	if (timer == 0)
+	if (time == 0)
 		return;
 
-	Camera->CitizenManager->CreateTimer("AutosaveTimer", Camera, timer * 60.0f, FTimerDelegate::CreateUObject(this, &USaveGameComponent::SaveGameSave, FString(""), true), false, true);
+	FTimerStruct* timer = Camera->CitizenManager->FindTimer("AutosaveTimer", Camera);
+
+	if (timer == nullptr)
+		Camera->CitizenManager->CreateTimer("AutosaveTimer", Camera, time * 60.0f, FTimerDelegate::CreateUObject(this, &USaveGameComponent::SaveGameSave, FString(""), true), false, true);
+	else
+		timer->Timer = 0.0f;
 }
 
 void USaveGameComponent::UpdateAutosave(int32 NewTime)

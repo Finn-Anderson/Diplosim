@@ -844,6 +844,7 @@ void ACamera::Menu()
 
 		SettingsUIInstance->RemoveFromParent();
 		WikiUIInstance->RemoveFromParent();
+		SaveLoadGameUIInstance->RemoveFromParent();
 
 		if (bStartMenu) {
 			MainMenuUIInstance->AddToViewport();
