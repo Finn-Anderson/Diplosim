@@ -2,7 +2,86 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "Map/Grid.h"
 #include "DiplosimSaveGame.generated.h"
+
+USTRUCT()
+struct FTileData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		int32 Level;
+
+	UPROPERTY()
+		int32 Fertility;
+
+	UPROPERTY()
+		int32 X;
+
+	UPROPERTY()
+		int32 Y;
+
+	UPROPERTY()
+		FQuat Rotation;
+
+	UPROPERTY()
+		bool bRamp;
+
+	UPROPERTY()
+		bool bRiver;
+
+	UPROPERTY()
+		bool bEdge;
+
+	UPROPERTY()
+		bool bMineral;
+
+	UPROPERTY()
+		bool bUnique;
+
+	FTileData() {
+		Level = -1;
+		Instance = 0;
+		Fertility = -1;
+		X = 0;
+		Y = 0;
+		Rotation = FRotator(0.0f, 0.0f, 0.0f).Quaternion();
+		bRamp = false;
+		bRiver = false;
+		bEdge = false;
+		bMineral = false;
+		bUnique = false;
+	}
+};
+
+USTRUCT()
+struct FWorldSaveData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FTileData> Tiles;
+
+	UPROPERTY()
+		int32 Size;
+
+	UPROPERTY()
+		int32 Chunks;
+
+	UPROPERTY()
+		FRandomStream Stream;
+		
+	UPROPERTY()
+		TArray<FVector> LavaSpawnLocations;
+
+	FWorldSaveData()
+	{
+		Stream = FRandomStream();
+		Size = 0;
+		Chunks = 0;
+	}
+};
 
 USTRUCT()
 struct FActorSaveData
@@ -16,7 +95,7 @@ struct FActorSaveData
 		FTransform Transform;
 
 	UPROPERTY()
-		TArray<uint8> ByteData;
+		FWorldSaveData WorldSaveData;
 
 	FActorSaveData()
 	{

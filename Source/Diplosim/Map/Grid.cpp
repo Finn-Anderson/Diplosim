@@ -241,15 +241,11 @@ void AGrid::Load()
 	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupMap, 0.001, false);
 }
 
-void AGrid::SetupMap()
+void AGrid::InitialiseStorage()
 {
-	// Set map limts
-	FTransform seaTransform;
-	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
-	HISMSea->AddInstance(seaTransform);
-	HISMSea->BuildTreeIfOutdated(true, true);
-
 	auto bound = GetMapBounds();
+
+	Storage.Empty();
 
 	for (int32 x = 0; x < bound; x++) {
 		auto& row = Storage.Emplace_GetRef();
@@ -263,10 +259,6 @@ void AGrid::SetupMap()
 			row.Add(tile);
 		}
 	}
-
-	// Set Conquest max AI
-	Camera->ConquestManager->AINum = Storage.Num() * PercentageGround / 5000;
-	Camera->UpdateMapAIUI();
 
 	// Set adjacent tile information
 	for (int32 x = 0; x < bound; x++) {
@@ -291,6 +283,23 @@ void AGrid::SetupMap()
 				tile->AdjacentTiles.Add(element.Key, element.Value);
 		}
 	}
+}
+
+void AGrid::SetupMap()
+{
+	// Set map limts
+	FTransform seaTransform;
+	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
+	HISMSea->AddInstance(seaTransform);
+	HISMSea->BuildTreeIfOutdated(true, true);
+
+	auto bound = GetMapBounds();
+
+	InitialiseStorage();
+
+	// Set Conquest max AI
+	Camera->ConquestManager->AINum = Storage.Num() * PercentageGround / 5000;
+	Camera->UpdateMapAIUI();
 
 	PeaksList.Empty();
 
@@ -584,10 +593,10 @@ void AGrid::PaveRivers()
 	Camera->UpdateLoadingText("Spawning Tiles");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnTiles, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, FTimerDelegate::CreateUObject(this, &AGrid::SpawnTiles, false), 0.001, false);
 }
 
-void AGrid::SpawnTiles()
+void AGrid::SpawnTiles(bool bLoad)
 {
 	ResourceTiles.Empty();
 	CalculatedTiles.Empty();
@@ -605,6 +614,9 @@ void AGrid::SpawnTiles()
 	}
 
 	GenerateTiles();
+
+	if (bLoad)
+		return;
 
 	Camera->UpdateLoadingText("Spawning Minerals");
 
@@ -1476,8 +1488,6 @@ void AGrid::Clear()
 		ResourceStruct.Resource->ResourceHISM->GetStaticMesh()->Sockets.Empty();
 	}
 
-	Storage.Empty();
-
 	LavaComponent->Deactivate();
 	LavaSpawnLocations.Empty();
 
@@ -1499,25 +1509,6 @@ void AGrid::Clear()
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(false, false);
-}
-
-void AGrid::RebuildAll()
-{
-	TArray<FResourceHISMStruct> resourceList;
-	resourceList.Append(TreeStruct);
-	resourceList.Append(FlowerStruct);
-	resourceList.Append(MineralStruct);
-
-	for (FResourceHISMStruct& ResourceStruct : resourceList)
-		ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
-
-	HISMLava->BuildTreeIfOutdated(true, true);
-	HISMSea->BuildTreeIfOutdated(true, true);
-	HISMGround->BuildTreeIfOutdated(true, true);
-	HISMFlatGround->BuildTreeIfOutdated(true, true);
-	HISMRampGround->BuildTreeIfOutdated(true, true);
-	HISMRiver->BuildTreeIfOutdated(true, true);
-	HISMWall->BuildTreeIfOutdated(true, true);
 }
 
 FTileStruct* AGrid::GetTileFromLocation(FVector WorldLocation)

@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SaveGame.h"
 #include "Serialization/ObjectAndNameAsStringProxyArchive.h"
+#include "Serialization/BufferArchive.h"
 #include "EngineUtils.h"
 
 #include "Player/Camera.h"
@@ -50,12 +51,34 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 		actorData.Class = actor->GetClass();
 		actorData.Transform = actor->GetActorTransform();
 
-		FMemoryWriter MemWriter(actorData.ByteData);
+		if (actor->IsA<AGrid>()) {
+			actorData.WorldSaveData.Size = Camera->Grid->Size;
+			actorData.WorldSaveData.Chunks = Camera->Grid->Chunks;
 
-		FObjectAndNameAsStringProxyArchive ar(MemWriter, true);
-		ar.ArIsSaveGame = false;
+			actorData.WorldSaveData.Stream = Camera->Grid->Stream;
 
-		actor->Serialize(ar);
+			actorData.WorldSaveData.LavaSpawnLocations = Camera->Grid->LavaSpawnLocations;
+
+			actorData.WorldSaveData.Tiles.Empty();
+
+			for (TArray<FTileStruct>& row : Camera->Grid->Storage) {
+				for (FTileStruct& tile : row) {
+					FTileData t;
+					t.Level = tile.Level;
+					t.Fertility = tile.Fertility;
+					t.X = tile.X;
+					t.Y = tile.Y;
+					t.Rotation = tile.Rotation;
+					t.bRamp = tile.bRamp;
+					t.bRiver = tile.bRiver;
+					t.bEdge = tile.bEdge;
+					t.bMineral = tile.bMineral;
+					t.bUnique = tile.bUnique;
+
+					actorData.WorldSaveData.Tiles.Add(t);
+				}
+			}
+		}
 
 		allNewActorData.Add(actorData);
 	}
@@ -119,17 +142,36 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			actor = GetWorld()->SpawnActor<AActor>(actorData.Class, actorData.Transform, params);
 		}
 
-		FMemoryReader MemReader(actorData.ByteData);
+		if (actor->IsA<AGrid>()) {
+			Camera->Grid->Size = actorData.WorldSaveData.Size;
+			Camera->Grid->Chunks = actorData.WorldSaveData.Chunks;
 
-		FObjectAndNameAsStringProxyArchive ar(MemReader, true);
-		ar.ArIsSaveGame = false;
+			Camera->Grid->Stream = actorData.WorldSaveData.Stream;
 
-		actor->Serialize(ar);
+			Camera->Grid->LavaSpawnLocations = actorData.WorldSaveData.LavaSpawnLocations;
 
-		break;
+			Camera->Grid->Clear();
+
+			Camera->Grid->InitialiseStorage();
+			auto bound = Camera->Grid->GetMapBounds();
+
+			for (FTileData t : actorData.WorldSaveData.Tiles) {
+				FTileStruct* tile = &Camera->Grid->Storage[t.X + (bound / 2)][t.Y + (bound / 2)];
+				tile->Level = t.Level;
+				tile->Fertility = t.Fertility;
+				tile->X = t.X;
+				tile->Y = t.Y;
+				tile->Rotation = t.Rotation;
+				tile->bRamp = t.bRamp;
+				tile->bRiver = t.bRiver;
+				tile->bEdge = t.bEdge;
+				tile->bMineral = t.bMineral;
+				tile->bUnique = t.bUnique;
+			}
+
+			Camera->Grid->SpawnTiles(true);
+		}
 	}
-
-	Camera->Grid->RebuildAll();
 
 	StartAutosaveTimer();
 }
@@ -165,10 +207,10 @@ TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()
 		int32 index = 0;
 
 		for (int32 i = 0; i < sortedGames.Num(); i++) {
-			index = i;
-
 			if (gameSave->LastTimeUpdated > sortedGames[i]->LastTimeUpdated)
 				break;
+
+			index++;
 		}
 
 		sortedGames.Insert(gameSave, index);

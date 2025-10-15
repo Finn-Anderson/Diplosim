@@ -185,6 +185,8 @@ public:
 
 	void Load();
 
+	void InitialiseStorage();
+
 	void SetupMap();
 
 	void CleanupHoles();
@@ -195,7 +197,7 @@ public:
 
 	void PaveRivers();
 
-	void SpawnTiles();
+	void SpawnTiles(bool bLoad = false);
 
 	void SpawnMinerals();
 
@@ -228,17 +230,15 @@ public:
 
 	void Clear();
 
-	void RebuildAll();
-
 	FTileStruct* GetTileFromLocation(FVector WorldLocation);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crystal")
 		class UStaticMeshComponent* CrystalMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Seed");
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Seed")
 		FString Seed;
 
-	UPROPERTY();
+	UPROPERTY()
 		FRandomStream Stream;
 
 	TMap<UHierarchicalInstancedStaticMeshComponent*, TArray<FTransform>> CalculatedTiles;
