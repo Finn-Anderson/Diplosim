@@ -772,7 +772,8 @@ void ACamera::Cancel()
 	else if (ConquestManager->PlayerSelectedArmyIndex > -1)
 		ConquestManager->PlayerMoveArmy(MouseHitLocation);
 
-	PlayInteractSound(InteractSound);
+	if (bBulldoze || BuildComponent->IsComponentTickEnabled() || ConquestManager->PlayerSelectedArmyIndex > -1)
+		PlayInteractSound(InteractSound);
 }
 
 void ACamera::NewMap()

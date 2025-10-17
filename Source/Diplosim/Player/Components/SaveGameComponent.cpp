@@ -2,13 +2,16 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SaveGame.h"
-#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
-#include "Serialization/BufferArchive.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "EngineUtils.h"
+#include "Blueprint/UserWidget.h"
 
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Components/CameraMovementComponent.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "Universal/EggBasket.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 
@@ -48,20 +51,23 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			continue;
 
 		FActorSaveData actorData;
+		actorData.Name = actor->GetName();
 		actorData.Class = actor->GetClass();
 		actorData.Transform = actor->GetActorTransform();
 
 		if (actor->IsA<AGrid>()) {
-			actorData.WorldSaveData.Size = Camera->Grid->Size;
-			actorData.WorldSaveData.Chunks = Camera->Grid->Chunks;
+			AGrid* grid = Cast<AGrid>(actor);
 
-			actorData.WorldSaveData.Stream = Camera->Grid->Stream;
+			actorData.WorldSaveData.Size = grid->Size;
+			actorData.WorldSaveData.Chunks = grid->Chunks;
 
-			actorData.WorldSaveData.LavaSpawnLocations = Camera->Grid->LavaSpawnLocations;
+			actorData.WorldSaveData.Stream = grid->Stream;
+
+			actorData.WorldSaveData.LavaSpawnLocations = grid->LavaSpawnLocations;
 
 			actorData.WorldSaveData.Tiles.Empty();
 
-			for (TArray<FTileStruct>& row : Camera->Grid->Storage) {
+			for (TArray<FTileStruct>& row : grid->Storage) {
 				for (FTileStruct& tile : row) {
 					FTileData t;
 					t.Level = tile.Level;
@@ -78,6 +84,43 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 					actorData.WorldSaveData.Tiles.Add(t);
 				}
 			}
+
+			actorData.WorldSaveData.HISMData.Empty();
+
+			TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea, grid->HISMWall };
+
+			for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
+				FHISMData data;
+				data.Name = hism->GetName();
+
+				for (int32 i = 0; i < hism->GetInstanceCount(); i++) {
+					FTransform transform;
+					hism->GetInstanceTransform(i, transform);
+
+					data.Transforms.Add(transform);
+				}
+				
+				data.CustomDataValues = hism->PerInstanceSMCustomData;
+
+				actorData.WorldSaveData.HISMData.Add(data);
+			}
+		}
+		else if (actor->IsA<AResource>()) {
+			AResource* resource = Cast<AResource>(actor);
+
+			actorData.ResourceData.HISMData.Name = resource->ResourceHISM->GetName(); 
+			
+			actorData.ResourceData.HISMData.Transforms.Empty();
+			for (int32 i = 0; i < resource->ResourceHISM->GetInstanceCount(); i++) {
+				FTransform transform;
+				resource->ResourceHISM->GetInstanceTransform(i, transform);
+
+				actorData.ResourceData.HISMData.Transforms.Add(transform);
+			}
+
+			actorData.ResourceData.HISMData.CustomDataValues = resource->ResourceHISM->PerInstanceSMCustomData;
+
+			actorData.ResourceData.Workers = resource->WorkerStruct;
 		}
 
 		allNewActorData.Add(actorData);
@@ -124,18 +167,32 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	CurrentSaveGame = SaveGame;
 	CurrentSaveGame->LastTimeUpdated = FDateTime::Now();
 
+	Camera->Cancel();
+
 	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
 		TArray<AActor*> foundActors;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), actorData.Class, foundActors);
 
 		AActor* actor = nullptr;
 
-		if (!foundActors.IsEmpty()) {
+		for (AActor* a : foundActors) {
+			if (a->IsA<AEggBasket>() || a->IsA<AAI>() || a->IsA<ABuilding>()) {
+				a->Destroy();
+
+				continue;
+			}
+
+			if (a->GetName() != actorData.Name)
+				continue;
+
 			actor = foundActors[0];
 
 			actor->SetActorTransform(actorData.Transform);
+
+			break;
 		}
-		else {
+
+		if (!IsValid(actor)) {
 			FActorSpawnParameters params;
 			params.bNoFail = true;
 
@@ -143,20 +200,22 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		}
 
 		if (actor->IsA<AGrid>()) {
-			Camera->Grid->Size = actorData.WorldSaveData.Size;
-			Camera->Grid->Chunks = actorData.WorldSaveData.Chunks;
+			AGrid* grid = Cast<AGrid>(actor);
 
-			Camera->Grid->Stream = actorData.WorldSaveData.Stream;
+			grid->Size = actorData.WorldSaveData.Size;
+			grid->Chunks = actorData.WorldSaveData.Chunks;
 
-			Camera->Grid->LavaSpawnLocations = actorData.WorldSaveData.LavaSpawnLocations;
+			grid->Stream = actorData.WorldSaveData.Stream;
 
-			Camera->Grid->Clear();
+			grid->LavaSpawnLocations = actorData.WorldSaveData.LavaSpawnLocations;
 
-			Camera->Grid->InitialiseStorage();
-			auto bound = Camera->Grid->GetMapBounds();
+			grid->Clear();
+
+			grid->InitialiseStorage();
+			auto bound = grid->GetMapBounds();
 
 			for (FTileData t : actorData.WorldSaveData.Tiles) {
-				FTileStruct* tile = &Camera->Grid->Storage[t.X + (bound / 2)][t.Y + (bound / 2)];
+				FTileStruct* tile = &grid->Storage[t.X + (bound / 2)][t.Y + (bound / 2)];
 				tile->Level = t.Level;
 				tile->Fertility = t.Fertility;
 				tile->X = t.X;
@@ -169,9 +228,54 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				tile->bUnique = t.bUnique;
 			}
 
-			Camera->Grid->SpawnTiles(true);
+			grid->SpawnTiles(true);
+
+			TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea, grid->HISMWall };
+			
+			for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
+				FHISMData data;
+				data.Name = hism->GetName();
+
+				int32 index = actorData.WorldSaveData.HISMData.Find(data);
+				hism->PerInstanceSMCustomData = actorData.WorldSaveData.HISMData[index].CustomDataValues;
+
+				hism->BuildTreeIfOutdated(true, true);
+			}
+
+			grid->SetupEnvironment(true);
+		}
+		else if (actor->IsA<AResource>()) {
+			AResource* resource = Cast<AResource>(actor);
+
+			resource->ResourceHISM->AddInstances(actorData.ResourceData.HISMData.Transforms, true, true, false);
+			resource->ResourceHISM->PerInstanceSMCustomData = actorData.ResourceData.HISMData.CustomDataValues;
+
+			resource->WorkerStruct = actorData.ResourceData.Workers;
+
+			resource->ResourceHISM->BuildTreeIfOutdated(true, true);
+		}
+		else if (actor->IsA<AEggBasket>()) {
+			AEggBasket* eggBasket = Cast<AEggBasket>(actor);
+
+			FTileStruct* tile = Camera->Grid->GetTileFromLocation(actorData.Transform.GetLocation());
+
+			eggBasket->Grid = Camera->Grid;
+			eggBasket->Tile = tile;
+
+			Camera->Grid->ResourceTiles.RemoveSingle(tile);
+		}
+		else if (actor->IsA<ACamera>()) {
+			ACamera* camera = Cast<ACamera>(actor);
+
+			Camera->ClearPopupUI();
+			Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
+
+			camera->Detach();
+			camera->MovementComponent->TargetLength = 3000.0f;
 		}
 	}
+
+	Camera->BuildUIInstance->AddToViewport();
 
 	StartAutosaveTimer();
 }

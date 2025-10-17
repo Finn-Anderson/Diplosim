@@ -203,7 +203,7 @@ public:
 
 	void SpawnVegetation();
 
-	void SetupEnvironment();
+	void SetupEnvironment(bool bLoad = false);
 
 	UFUNCTION()
 		void OnNavMeshGenerated();

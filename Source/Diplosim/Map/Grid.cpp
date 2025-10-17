@@ -722,10 +722,10 @@ void AGrid::SpawnVegetation()
 	Camera->UpdateLoadingText("Setting Up Environment");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupEnvironment, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, FTimerDelegate::CreateUObject(this, &AGrid::SetupEnvironment, false), 0.001, false);
 }
 
-void AGrid::SetupEnvironment()
+void AGrid::SetupEnvironment(bool bLoad)
 {
 	auto bound = GetMapBounds();
 
@@ -734,22 +734,25 @@ void AGrid::SetupEnvironment()
 
 	AtmosphereComponent->SetWindDimensions(bound);
 
-	// Spawn clouds
-	AtmosphereComponent->Clouds->ActivateCloud();
-
 	// Set Camera Bounds
 	FVector c1 = FVector(bound * 100.0f, bound * 100.0f, 0);
 	FVector c2 = FVector(-bound * 100.0f, -bound * 100.0f, 0);
 
 	Camera->MovementComponent->SetBounds(c1, c2);
 
-	// Spawn egg basket
-	SpawnEggBasket();
-
 	// Lava Component
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(LavaComponent, TEXT("SpawnLocations"), LavaSpawnLocations);
 	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
 	LavaComponent->Activate();
+
+	if (bLoad)
+		return;
+
+	// Spawn clouds
+	AtmosphereComponent->Clouds->ActivateCloud();
+
+	// Spawn egg basket
+	SpawnEggBasket();
 
 	// Unique Buildings
 	SetSpecialBuildings(ValidMineralTiles);

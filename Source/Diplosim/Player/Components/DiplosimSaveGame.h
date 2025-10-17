@@ -3,7 +3,33 @@
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
 #include "Map/Grid.h"
+#include "Universal/Resource.h"
 #include "DiplosimSaveGame.generated.h"
+
+USTRUCT()
+struct FHISMData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY();
+		FString Name;
+
+	UPROPERTY();
+		TArray<FTransform> Transforms;
+
+	UPROPERTY();
+		TArray<float> CustomDataValues;
+
+	FHISMData()
+	{
+		Name = "";
+	}
+
+	bool operator==(const FHISMData& other) const
+	{
+		return (other.Name == Name);
+	}
+};
 
 USTRUCT()
 struct FTileData
@@ -40,9 +66,9 @@ struct FTileData
 	UPROPERTY()
 		bool bUnique;
 
-	FTileData() {
+	FTileData() 
+	{
 		Level = -1;
-		Instance = 0;
 		Fertility = -1;
 		X = 0;
 		Y = 0;
@@ -56,12 +82,32 @@ struct FTileData
 };
 
 USTRUCT()
+struct FResourceData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FHISMData HISMData;
+
+	UPROPERTY()
+		TArray<FWorkerStruct> Workers;
+
+	FResourceData()
+	{
+
+	}
+};
+
+USTRUCT()
 struct FWorldSaveData
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 		TArray<FTileData> Tiles;
+
+	UPROPERTY()
+		TArray<FHISMData> HISMData;
 
 	UPROPERTY()
 		int32 Size;
@@ -89,6 +135,9 @@ struct FActorSaveData
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+		FString Name;
+
+	UPROPERTY()
 		UClass* Class;
 
 	UPROPERTY()
@@ -96,6 +145,9 @@ struct FActorSaveData
 
 	UPROPERTY()
 		FWorldSaveData WorldSaveData;
+
+	UPROPERTY()
+		FResourceData ResourceData;
 
 	FActorSaveData()
 	{
