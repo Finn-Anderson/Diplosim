@@ -1,34 +1,111 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Universal/DiplosimUniversalTypes.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Components/ActorComponent.h"
 #include "CitizenManager.generated.h"
 
+USTRUCT()
+struct FTimerParameterStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		AActor* Actor;
+
+	UPROPERTY()
+		FVector Location;
+
+	UPROPERTY()
+		TArray<FVector> Locations;
+
+	UPROPERTY()
+		FLinearColor Colour;
+
+	UPROPERTY()
+		bool bStatus;
+
+	UPROPERTY()
+		FFactionStruct Faction;
+
+	UPROPERTY()
+		float Value;
+
+	UPROPERTY()
+		TArray<FEarthquakeStruct> EarthquakeStructs;
+
+	UPROPERTY()
+		FString String;
+
+	UPROPERTY()
+		UPrimitiveComponent* Component;
+
+	UPROPERTY()
+		FGuid ID;
+
+	UPROPERTY()
+		FLawStruct Bill;
+
+	FTimerParameterStruct()
+	{
+		Actor = nullptr;
+		Location = FVector::Zero();
+		Colour = FLinearColor();
+		bStatus = false;
+		Faction = nullptr;
+		Value = -1001.23f;
+		String = "wadaddwr";
+		Component = nullptr;
+		ID = FGuid();
+		Bill = FLawStruct();
+	}
+};
+
+USTRUCT()
 struct FTimerStruct
 {
-	FString ID;
+	GENERATED_USTRUCT_BODY()
 
-	AActor* Actor;
+	UPROPERTY()
+		FString ID;
 
-	float Timer;
+	UPROPERTY()
+		AActor* Actor;
 
-	float Target;
+	UPROPERTY()
+		float Timer;
 
-	FTimerDelegate Delegate;
+	UPROPERTY()
+		float Target;
 
-	bool bRepeat;
+	UPROPERTY()
+		AActor* Caller;
 
-	bool bOnGameThread;
+	UPROPERTY()
+		FName FuncName;
 
-	bool bPaused;
+	UPROPERTY()
+		TArray<FTimerParameterStruct> Parameters;
 
-	bool bModifying;
+	UPROPERTY()
+		bool bRepeat;
 
-	bool bDone;
+	UPROPERTY()
+		bool bOnGameThread;
 
-	double LastUpdateTime;
+	UPROPERTY()
+		bool bPaused;
+
+	UPROPERTY()
+		bool bModifying;
+
+	UPROPERTY()
+		bool bDone;
+
+	UPROPERTY()
+		double LastUpdateTime;
 
 	FTimerStruct()
 	{
@@ -42,14 +119,20 @@ struct FTimerStruct
 		bModifying = false;
 		bDone = false;
 		LastUpdateTime = 0.0f;
+
+		Caller = nullptr;
+		FuncName = "";
+		Parameters.Empty();
 	}
 
-	void CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread = false)
+	void CreateTimer(FString Identifier, AActor* Actor, float Time, AActor* Calla, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false)
 	{
 		ID = Identifier;
-		Actor = Caller;
+		Actor = Actor;
 		Target = Time;
-		Delegate = TimerDelegate;
+		Caller = Calla;
+		FuncName = FunctionName;
+		Parameters = Params;
 		bRepeat = Repeat;
 		bOnGameThread = OnGameThread;
 	}
@@ -153,7 +236,7 @@ public:
 		class ACamera* Camera;
 
 	// Timers
-	void CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread = false);
+	void CreateTimer(FString Identifier, AActor* Actor, float Time, AActor* Caller, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false);
 
 	FTimerStruct* FindTimer(FString ID, AActor* Actor);
 
@@ -171,6 +254,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		bool DoesTimerExist(FString ID, AActor* Actor);
+
+	void CallTimerFunction(FTimerStruct* Timer);
 
 	TDoubleLinkedList<FTimerStruct> Timers;
 

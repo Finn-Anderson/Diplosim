@@ -266,18 +266,12 @@ void UCitizenManager::TimerLoop()
 				if (timer.bOnGameThread) {
 					timer.bModifying = true;
 
-					Async(EAsyncExecution::TaskGraphMainTick, [this, &timer]() {
-						timer.Delegate.ExecuteIfBound();
-
-						timer.bDone = true;
-					});
+					Async(EAsyncExecution::TaskGraphMainTick, [this, &timer]() { CallTimerFunction(&timer); });
 				}
 				else {
 					timer.bModifying = true;
 
-					timer.Delegate.ExecuteIfBound();
-
-					timer.bDone = true;
+					CallTimerFunction(&timer);
 				}
 			}
 
@@ -897,12 +891,12 @@ void UCitizenManager::CalculateFighting()
 	});
 }
 
-void UCitizenManager::CreateTimer(FString Identifier, AActor* Caller, float Time, FTimerDelegate TimerDelegate, bool Repeat, bool OnGameThread)
+void UCitizenManager::CreateTimer(FString Identifier, AActor* Actor, float Time, AActor* Caller, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread)
 {
 	FScopeLock lock(&TimerLock);
 
 	FTimerStruct timer;
-	timer.CreateTimer(Identifier, Caller, Time, TimerDelegate, Repeat, OnGameThread);
+	timer.CreateTimer(Identifier, Actor, Time, Caller, FunctionName, Params, Repeat, OnGameThread);
 	timer.LastUpdateTime = GetWorld()->GetTimeSeconds();
 
 	Timers.AddTail(timer);
@@ -975,6 +969,54 @@ bool UCitizenManager::DoesTimerExist(FString ID, AActor* Actor)
 		return false;
 
 	return true;
+}
+
+void UCitizenManager::CallTimerFunction(FTimerStruct* Timer)
+{
+	UFunction* function = Timer->Caller->FindFunction(Timer->FuncName);
+
+	int32 count = 0;
+
+	uint8* buffer = (uint8*)FMemory_Alloca(function->ParmsSize);
+	FMemory::Memzero(buffer, function->ParmsSize);
+
+	for (TFieldIterator<FProperty> it(function); it && it->HasAnyPropertyFlags(CPF_Parm); ++it) {
+		FProperty* functionProperty = *it;
+		FString type = functionProperty->GetCPPType();
+
+		if (type == "AActor*")
+			*functionProperty->ContainerPtrToValuePtr<AActor*>(buffer) = Timer->Parameters[count].Actor;
+		else if (type == "FVector")
+			*functionProperty->ContainerPtrToValuePtr<FVector>(buffer) = Timer->Parameters[count].Location;
+		else if (type == "TArray<FVector>")
+			*functionProperty->ContainerPtrToValuePtr<TArray<FVector>>(buffer) = Timer->Parameters[count].Locations;
+		else if (type == "FLinearColor")
+			*functionProperty->ContainerPtrToValuePtr<FLinearColor>(buffer) = Timer->Parameters[count].Colour;
+		else if (type == "bool")
+			*functionProperty->ContainerPtrToValuePtr<bool>(buffer) = Timer->Parameters[count].bStatus;
+		else if (type == "FFactionStruct*")
+			*functionProperty->ContainerPtrToValuePtr<FFactionStruct*>(buffer) = Camera->ConquestManager->GetFaction(Timer->Parameters[count].Faction.Name);
+		else if (type == "int32")
+			*functionProperty->ContainerPtrToValuePtr<int32>(buffer) = Timer->Parameters[count].Value;
+		else if (type == "float")
+			*functionProperty->ContainerPtrToValuePtr<float>(buffer) = Timer->Parameters[count].Value;
+		else if (type == "TArray<FEarthquakeStruct>")
+			*functionProperty->ContainerPtrToValuePtr<TArray<FEarthquakeStruct>>(buffer) = Timer->Parameters[count].EarthquakeStructs;
+		else if (type == "FString")
+			*functionProperty->ContainerPtrToValuePtr<FString>(buffer) = Timer->Parameters[count].String;
+		else if (type == "UPrimitiveComponent*")
+			*functionProperty->ContainerPtrToValuePtr<UPrimitiveComponent*>(buffer) = Timer->Parameters[count].Component;
+		else if (type == "FGuid")
+			*functionProperty->ContainerPtrToValuePtr<FGuid>(buffer) = Timer->Parameters[count].ID;
+		else if (type == "FLawStruct")
+			*functionProperty->ContainerPtrToValuePtr<FLawStruct>(buffer) = Timer->Parameters[count].Bill;
+
+		count++;
+	}
+
+	Timer->Caller->ProcessEvent(function, buffer);
+
+	Timer->bDone = true;
 }
 
 void UCitizenManager::UpdateTimerLength(FString ID, AActor* Actor, int32 NewTarget)
