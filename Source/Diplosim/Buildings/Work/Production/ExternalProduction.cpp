@@ -105,7 +105,9 @@ void AExternalProduction::Production(ACitizen* Citizen)
 		Citizen->AIController->AIMoveTo(resource, transform.GetLocation(), instance);
 	}
 	else {
-		Camera->CitizenManager->CreateTimer("Production", this, 30, FTimerDelegate::CreateUObject(this, &AExternalProduction::Production, Citizen), false);
+		TArray<FTimerParameterStruct> params;
+		Camera->CitizenManager->SetParameter(Citizen, params);
+		Camera->CitizenManager->CreateTimer("Production", this, 30, this, "Production", params, false);
 	}
 }
 

@@ -377,8 +377,13 @@ void USaveGameComponent::StartAutosaveTimer()
 
 	FTimerStruct* timer = Camera->CitizenManager->FindTimer("AutosaveTimer", Camera);
 
-	if (timer == nullptr)
-		Camera->CitizenManager->CreateTimer("AutosaveTimer", Camera, time * 60.0f, FTimerDelegate::CreateUObject(this, &USaveGameComponent::SaveGameSave, FString(""), true), false, true);
+	if (timer == nullptr) {
+		TArray<FTimerParameterStruct> params;
+		Camera->CitizenManager->SetParameter("", params);
+		Camera->CitizenManager->SetParameter(true, params);
+
+		Camera->CitizenManager->CreateTimer("AutosaveTimer", Camera, time * 60.0f, this, "SaveGameSave", params, false, true);
+	}
 	else
 		timer->Timer = 0.0f;
 }

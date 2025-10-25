@@ -126,14 +126,6 @@ struct FBioStruct
 	}
 };
 
-UENUM(BlueprintType)
-enum class EAttendStatus : uint8
-{
-	Neutral,
-	Attended,
-	Missed
-};
-
 USTRUCT(BlueprintType)
 struct FSpiritualStruct
 {

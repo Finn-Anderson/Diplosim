@@ -1070,7 +1070,9 @@ void ABuilding::AddToBasket(TSubclassOf<AResource> Resource, int32 Amount)
 {
 	FGuid id = FGuid().NewGuid();
 
-	Camera->CitizenManager->CreateTimer("Basket", this, 300.0f, FTimerDelegate::CreateUObject(this, &ABuilding::RemoveFromBasket, id), false);
+	TArray<FTimerParameterStruct> params;
+	Camera->CitizenManager->SetParameter(id, params);
+	Camera->CitizenManager->CreateTimer("Basket", this, 300.0f, this, "RemoveFromBasket", params, false);
 
 	FBasketStruct basketStruct;
 	basketStruct.ID = id;

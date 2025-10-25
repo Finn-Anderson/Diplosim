@@ -501,7 +501,10 @@ void UCitizenManager::CalculateDisease()
 					continue;
 
 				if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && faction.Citizens.Contains(citizen->AIController->MoveRequest.GetGoalActor()) && citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), citizen->Range / 15.0f)) {
-					CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), FTimerDelegate::CreateUObject(citizen, &ACitizen::Heal, Cast<ACitizen>(citizen->AIController->MoveRequest.GetGoalActor())), false);
+					TArray<FTimerParameterStruct> params;
+					SetParameter(citizen->AIController->MoveRequest.GetGoalActor(), params);
+					
+					CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), citizen, "Heal", params, false);
 				}
 				else if (Infectible.Contains(citizen) && Infected.Contains(citizen)) {
 					FOverlapsStruct requestedOverlaps;
@@ -891,7 +894,7 @@ void UCitizenManager::CalculateFighting()
 	});
 }
 
-void UCitizenManager::CreateTimer(FString Identifier, AActor* Actor, float Time, AActor* Caller, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread)
+void UCitizenManager::CreateTimer(FString Identifier, AActor* Actor, float Time, UObject* Caller, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread)
 {
 	FScopeLock lock(&TimerLock);
 
@@ -971,6 +974,10 @@ bool UCitizenManager::DoesTimerExist(FString ID, AActor* Actor)
 	return true;
 }
 
+#define SET_TYPE(type_) \
+	if (type == #type_) \
+		*functionProperty->ContainerPtrToValuePtr<type_>(buffer) = GetParameter<type_>(Timer, count);
+
 void UCitizenManager::CallTimerFunction(FTimerStruct* Timer)
 {
 	UFunction* function = Timer->Caller->FindFunction(Timer->FuncName);
@@ -984,32 +991,28 @@ void UCitizenManager::CallTimerFunction(FTimerStruct* Timer)
 		FProperty* functionProperty = *it;
 		FString type = functionProperty->GetCPPType();
 
-		if (type == "AActor*")
-			*functionProperty->ContainerPtrToValuePtr<AActor*>(buffer) = Timer->Parameters[count].Actor;
-		else if (type == "FVector")
-			*functionProperty->ContainerPtrToValuePtr<FVector>(buffer) = Timer->Parameters[count].Location;
-		else if (type == "TArray<FVector>")
-			*functionProperty->ContainerPtrToValuePtr<TArray<FVector>>(buffer) = Timer->Parameters[count].Locations;
-		else if (type == "FLinearColor")
-			*functionProperty->ContainerPtrToValuePtr<FLinearColor>(buffer) = Timer->Parameters[count].Colour;
-		else if (type == "bool")
-			*functionProperty->ContainerPtrToValuePtr<bool>(buffer) = Timer->Parameters[count].bStatus;
-		else if (type == "FFactionStruct*")
-			*functionProperty->ContainerPtrToValuePtr<FFactionStruct*>(buffer) = Camera->ConquestManager->GetFaction(Timer->Parameters[count].Faction.Name);
-		else if (type == "int32")
-			*functionProperty->ContainerPtrToValuePtr<int32>(buffer) = Timer->Parameters[count].Value;
-		else if (type == "float")
-			*functionProperty->ContainerPtrToValuePtr<float>(buffer) = Timer->Parameters[count].Value;
-		else if (type == "TArray<FEarthquakeStruct>")
-			*functionProperty->ContainerPtrToValuePtr<TArray<FEarthquakeStruct>>(buffer) = Timer->Parameters[count].EarthquakeStructs;
-		else if (type == "FString")
-			*functionProperty->ContainerPtrToValuePtr<FString>(buffer) = Timer->Parameters[count].String;
-		else if (type == "UPrimitiveComponent*")
-			*functionProperty->ContainerPtrToValuePtr<UPrimitiveComponent*>(buffer) = Timer->Parameters[count].Component;
-		else if (type == "FGuid")
-			*functionProperty->ContainerPtrToValuePtr<FGuid>(buffer) = Timer->Parameters[count].ID;
-		else if (type == "FLawStruct")
-			*functionProperty->ContainerPtrToValuePtr<FLawStruct>(buffer) = Timer->Parameters[count].Bill;
+		// Actors
+		SET_TYPE(AActor*);
+		SET_TYPE(ABuilding*);
+		SET_TYPE(ACitizen*);
+
+		// Objects
+		SET_TYPE(USoundBase*);
+		SET_TYPE(UHierarchicalInstancedStaticMeshComponent*);
+
+		// Rest
+		SET_TYPE(FVector);
+		SET_TYPE(TArray<FVector>);
+		SET_TYPE(FLinearColor);
+		SET_TYPE(bool);
+		SET_TYPE(FFactionStruct*);
+		SET_TYPE(int32);
+		SET_TYPE(float);
+		SET_TYPE(TArray<FEarthquakeStruct>);
+		SET_TYPE(FString);
+		SET_TYPE(FGuid);
+		SET_TYPE(FLawStruct);
+		SET_TYPE(TSubclassOf<AResource>);
 
 		count++;
 	}
@@ -1431,10 +1434,15 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 	}
 	
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen1, Citizen2, bInterrogation, convo1, convo2]() {
+		TArray<FTimerParameterStruct> params;
+		SetParameter(*Faction, params);
+		SetParameter(Citizen1, params);
+		SetParameter(Citizen2, params);
+
 		if (bInterrogation)
-			CreateTimer("Interrogate", Citizen1, 6.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::InterrogateWitnesses, Faction, Citizen1, Citizen2), false);
+			CreateTimer("Interrogate", Citizen1, 6.0f, this, "InterrogateWitnesses", params, false);
 		else
-			CreateTimer("Interact", Citizen1, 6.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::Interact, Faction, Citizen1, Citizen2), false);
+			CreateTimer("Interact", Citizen1, 6.0f, this, "Interact", params, false);
 
 		Camera->PlayAmbientSound(Citizen1->AmbientAudioComponent, convo1, Citizen1->VoicePitch);
 		Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);
@@ -1805,7 +1813,12 @@ void UCitizenManager::Arrest(ACitizen* Officer, ACitizen* Citizen)
 
 	UNiagaraFunctionLibrary::SpawnSystemAttached(ArrestSystem, Citizen->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 
-	CreateTimer("Arrest", Citizen, 2.0f, FTimerDelegate::CreateUObject(this, &UCitizenManager::SetInNearestJail, faction, Officer, Citizen), false);
+	TArray<FTimerParameterStruct> params;
+	SetParameter(*faction, params);
+	SetParameter(Officer, params);
+	SetParameter(Citizen, params);
+
+	CreateTimer("Arrest", Citizen, 2.0f, this, "SetInNearestJail", params, false);
 }
 
 void UCitizenManager::SetInNearestJail(FFactionStruct* Faction, ACitizen* Officer, ACitizen* Citizen)
@@ -1935,7 +1948,7 @@ void UCitizenManager::StartDiseaseTimer()
 {
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	CreateTimer("Disease", GetOwner(), Camera->Grid->Stream.RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), FTimerDelegate::CreateUObject(this, &UCitizenManager::SpawnDisease), false);
+	CreateTimer("Disease", GetOwner(), Camera->Grid->Stream.RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), this, "SpawnDisease", {}, false);
 }
 
 void UCitizenManager::SpawnDisease()
@@ -2489,9 +2502,12 @@ void UCitizenManager::StartElectionTimer(FFactionStruct* Faction)
 {
 	RemoveTimer(Faction->Name + " Election", GetOwner());
 	
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed); 
+	
+	TArray<FTimerParameterStruct> params;
+	SetParameter(*Faction, params);
 
-	CreateTimer(Faction->Name + " Election", GetOwner(), timeToCompleteDay * GetLawValue(Faction->Name, "Election Timer"), FTimerDelegate::CreateUObject(this, &UCitizenManager::Election, Faction), false);
+	CreateTimer(Faction->Name + " Election", GetOwner(), timeToCompleteDay * GetLawValue(Faction->Name, "Election Timer"), this, "Election", params, false);
 }
 
 void UCitizenManager::Election(FFactionStruct* Faction)
@@ -2667,7 +2683,11 @@ void UCitizenManager::SetupBill(FFactionStruct* Faction)
 		Faction->Politics.BribeValue.Add(bribe);
 	}
 
-	CreateTimer("Bill", GetOwner(), 60, FTimerDelegate::CreateUObject(this, &UCitizenManager::MotionBill, Faction, Faction->Politics.ProposedBills[0]), false);
+	TArray<FTimerParameterStruct> params;
+	SetParameter(*Faction, params);
+	SetParameter(Faction->Politics.ProposedBills[0], params);
+
+	CreateTimer("Bill", GetOwner(), 60, this, "MotionBill", params, false);
 }
 
 void UCitizenManager::MotionBill(FFactionStruct* Faction, FLawStruct Bill)
@@ -2791,7 +2811,12 @@ void UCitizenManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 		int32 index = Faction->Politics.Laws.Find(Bill);
 
 		if (Faction->Politics.Laws[index].BillType == "Abolish") {
-			CreateTimer("Abolish", GetOwner(), 6, FTimerDelegate::CreateUObject(Faction->EggTimer->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner(), Faction->Citizens[0]->AttackComponent->OnHitSound), false);
+			TArray<FTimerParameterStruct> params;
+			SetParameter(1000, params);
+			SetParameter(Camera, params);
+			SetParameter(Faction->Citizens[0]->AttackComponent->OnHitSound, params);
+
+			CreateTimer("Abolish", Camera, 6, Faction->EggTimer->HealthComponent, "TakeHealth", params, false);
 		}
 		else if (Faction->Politics.Laws[index].BillType == "Election") {
 			Election(Faction);
@@ -2988,7 +3013,12 @@ void UCitizenManager::Pray(FString FactionName)
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, faction, FString("Good"), -1), false);
+	TArray<FTimerParameterStruct> params;
+	SetParameter(*faction, params);
+	SetParameter("Good", params);
+	SetParameter(-1, params);
+
+	CreateTimer("Pray", GetOwner(), timeToCompleteDay, this, "IncrementPray", params, false);
 }
 
 void UCitizenManager::IncrementPray(FFactionStruct* Faction, FString Type, int32 Increment)
@@ -3032,13 +3062,23 @@ void UCitizenManager::Sacrifice(FString FactionName)
 
 	UNiagaraComponent* component = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SacrificeSystem, citizen->MovementComponent->Transform.GetLocation());
 
-	CreateTimer("Sacrifice", citizen, 4.0f, FTimerDelegate::CreateUObject(citizen->HealthComponent, &UHealthComponent::TakeHealth, 1000, GetOwner(), citizen->AttackComponent->OnHitSound), false);
+	TArray<FTimerParameterStruct> params1;
+	SetParameter(1000, params1);
+	SetParameter(Camera, params1);
+	SetParameter(citizen->AttackComponent->OnHitSound, params1);
+
+	CreateTimer("Sacrifice", citizen, 4.0f, citizen->HealthComponent, "TakeHealth", params1, false);
 
 	IncrementPray(faction, "Bad", 1);
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	CreateTimer("Pray", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &UCitizenManager::IncrementPray, faction, FString("Bad"), -1), false);
+	TArray<FTimerParameterStruct> params2;
+	SetParameter(*faction, params2);
+	SetParameter("Bad", params2);
+	SetParameter(-1, params2);
+
+	CreateTimer("Pray", GetOwner(), timeToCompleteDay, this, "IncrementPray", params2, false);
 }
 
 //

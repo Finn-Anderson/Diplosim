@@ -369,9 +369,9 @@ void ACamera::OnEggTimerPlace(ABuilding* EggTimer)
 
 	gamemode->SetWaveTimer();
 
-	CitizenManager->CreateTimer("TradeValue", this, 300, FTimerDelegate::CreateUObject(ResourceManager, &UResourceManager::SetTradeValues), true);
+	CitizenManager->CreateTimer("TradeValue", this, 300, ResourceManager, "SetTradeValues", {}, true);
 
-	CitizenManager->CreateTimer("EggBasket", this, 300, FTimerDelegate::CreateUObject(Grid, &AGrid::SpawnEggBasket), true, true);
+	CitizenManager->CreateTimer("EggBasket", this, 300, Grid, "SpawnEggBasket", {}, true, true);
 
 	CitizenManager->StartDiseaseTimer();
 
@@ -644,7 +644,9 @@ void ACamera::Smite(class AAI* AI)
 
 	int32 timeToCompleteDay = 360 / (24 * Grid->AtmosphereComponent->Speed);
 
-	CitizenManager->CreateTimer("Smite", GetOwner(), timeToCompleteDay, FTimerDelegate::CreateUObject(this, &ACamera::IncrementSmites, -1), false);
+	TArray<FTimerParameterStruct> params;
+	CitizenManager->SetParameter(-1, params);
+	CitizenManager->CreateTimer("Smite", GetOwner(), timeToCompleteDay, this, "IncrementSmites", params, false);
 }
 
 void ACamera::IncrementSmites(int32 Increment)

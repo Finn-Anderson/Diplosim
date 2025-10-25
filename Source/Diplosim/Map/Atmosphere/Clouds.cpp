@@ -192,7 +192,7 @@ void UCloudComponent::ActivateCloud()
 
 	int32 time = Grid->Stream.RandRange(45.0f, 360.0f);
 
-	Grid->Camera->CitizenManager->CreateTimer("Cloud", Grid, time, FTimerDelegate::CreateUObject(this, &UCloudComponent::ActivateCloud), false, true);
+	Grid->Camera->CitizenManager->CreateTimer("Cloud", Grid, time, this, "ActivateCloud", {}, false, true);
 }
 
 FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
@@ -365,7 +365,12 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 			return;
 		}
 		else {
-			Grid->Camera->CitizenManager->CreateTimer(id, Grid, 30, FTimerDelegate::CreateUObject(this, &UCloudComponent::SetRainMaterialEffect, 0.0f, Actor, HISM, Instance), false, true);
+			TArray<FTimerParameterStruct> params;
+			Grid->Camera->CitizenManager->SetParameter(0.0f, params);
+			Grid->Camera->CitizenManager->SetParameter(Actor, params);
+			Grid->Camera->CitizenManager->SetParameter(HISM, params);
+			Grid->Camera->CitizenManager->SetParameter(Instance, params);
+			Grid->Camera->CitizenManager->CreateTimer(id, Grid, 30, this, "SetRainMaterialEffect", params, false, true);
 		}
 	}
 

@@ -196,7 +196,7 @@ void UAtmosphereComponent::ChangeWindDirection()
 
 	int32 time = Grid->Stream.RandRange(180.0f, 600.0f);
 
-	Grid->Camera->CitizenManager->CreateTimer("Wind", Grid, time, FTimerDelegate::CreateUObject(this, &UAtmosphereComponent::ChangeWindDirection), false);
+	Grid->Camera->CitizenManager->CreateTimer("Wind", Grid, time, this, "ChangeWindDirection", {}, false);
 }
 
 void UAtmosphereComponent::SetWindDimensions(int32 Bound)

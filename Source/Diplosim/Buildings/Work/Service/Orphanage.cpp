@@ -134,7 +134,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 
 		child->AIController->AIMoveTo(Citizen->Building.House);
 
-		child->Camera->CitizenManager->CreateTimer("Idle", child, 60.0f, FTimerDelegate::CreateUObject(child->AIController, &ADiplosimAIController::DefaultAction), false, true);
+		child->Camera->CitizenManager->CreateTimer("Idle", child, 60.0f, child->AIController, "DefaultAction", {}, false, true);
 
 		RemoveVisitor(GetOccupant(child), child);
 
@@ -143,5 +143,5 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 
 	Citizen->AIController->AIMoveTo(Citizen->Building.House);
 
-	Citizen->Camera->CitizenManager->CreateTimer("Idle", Citizen, 60.0f, FTimerDelegate::CreateUObject(Citizen->AIController, &ADiplosimAIController::DefaultAction), false, true);
+	Citizen->Camera->CitizenManager->CreateTimer("Idle", Citizen, 60.0f, Citizen->AIController, "DefaultAction", {}, false, true);
 }

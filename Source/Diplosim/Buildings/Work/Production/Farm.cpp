@@ -67,7 +67,9 @@ void AFarm::ProductionDone(ACitizen* Citizen)
 
 void AFarm::StartTimer(ACitizen* Citizen)
 {
-	Camera->CitizenManager->CreateTimer("Farm", this, TimeLength / 10.0f / Citizen->GetProductivity(), FTimerDelegate::CreateUObject(this, &AFarm::Production, Citizen), false, true);
+	TArray<FTimerParameterStruct> params;
+	Camera->CitizenManager->SetParameter(Citizen, params);
+	Camera->CitizenManager->CreateTimer("Farm", this, TimeLength / 10.0f / Citizen->GetProductivity(), this, "Production", params, false, true);
 }
 
 int32 AFarm::GetFertility()

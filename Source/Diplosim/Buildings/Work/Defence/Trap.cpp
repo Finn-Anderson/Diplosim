@@ -40,7 +40,7 @@ void ATrap::ShouldStartTrapTimer(AActor* Actor)
 	if (FuseTime == 0.0f)
 		ActivateTrap();
 	else
-		Camera->CitizenManager->CreateTimer("Trap", this, FuseTime, FTimerDelegate::CreateUObject(this, &ATrap::ActivateTrap), false, true);
+		Camera->CitizenManager->CreateTimer("Trap", this, FuseTime, this, "ActivateTrap", {}, false, true);
 }
 
 void ATrap::ActivateTrap()

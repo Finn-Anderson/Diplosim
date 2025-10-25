@@ -128,7 +128,7 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 		t += 0.02f;
 	}
 
-	TArray<FEarthquakeStruct> EarthquakeStructs;
+	TArray<FEarthquakeStruct> earthquakeStructs;
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
 
@@ -158,10 +158,14 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 			estruct.BuildingsInRange.Add(Cast<ABuilding>(actor), d);
 		}
 
-		EarthquakeStructs.Add(estruct);
+		earthquakeStructs.Add(estruct);
 	}
 
-	Grid->Camera->CitizenManager->CreateTimer("Earthquake", Grid, 4.0f * Magnitude, FTimerDelegate::CreateUObject(this, &UNaturalDisasterComponent::CalculateEarthquakeDamage, EarthquakeStructs, range, Magnitude), true);
+	TArray<FTimerParameterStruct> params;
+	Grid->Camera->CitizenManager->SetParameter(earthquakeStructs, params);
+	Grid->Camera->CitizenManager->SetParameter(range, params);
+	Grid->Camera->CitizenManager->SetParameter(Magnitude, params);
+	Grid->Camera->CitizenManager->CreateTimer("Earthquake", Grid, 4.0f * Magnitude, this, "CalculateEarthquakeDamage", params, true);
 }
 
 void UNaturalDisasterComponent::CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStructs, float Range, float Magnitude)
@@ -204,7 +208,7 @@ void UNaturalDisasterComponent::GenerateRedSun(float Magnitude)
 
 	AlterSunGradually(0.15f, -0.02f);
 
-	Grid->Camera->CitizenManager->CreateTimer("Red Sun", Grid, 120.0f * Magnitude, FTimerDelegate::CreateUObject(this, &UNaturalDisasterComponent::CancelRedSun), false);
+	Grid->Camera->CitizenManager->CreateTimer("Red Sun", Grid, 120.0f * Magnitude, this, "CancelRedSun", {}, false);
 }
 
 void UNaturalDisasterComponent::AlterSunGradually(float Target, float Increment)

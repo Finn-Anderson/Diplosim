@@ -162,7 +162,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 			}
 		}
 
-		Camera->CitizenManager->CreateTimer("Idle", Citizen, time, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::DefaultAction), false);
+		Camera->CitizenManager->CreateTimer("Idle", Citizen, time, this, "DefaultAction", {}, false);
 	}
 }
 
@@ -264,8 +264,11 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 
 	if (target != nullptr)
 		AIMoveTo(target);
-	else
-		Camera->CitizenManager->CreateTimer("FindGatherSite", AI, 30.0f, FTimerDelegate::CreateUObject(this, &ADiplosimAIController::GetGatherSite, Resource), false);
+	else {
+		TArray<FTimerParameterStruct> params;
+		Camera->CitizenManager->SetParameter(Resource, params);
+		Camera->CitizenManager->CreateTimer("FindGatherSite", AI, 30.0f, this, "GetGatherSite", params, false);
+	}
 }
 
 bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCheckForPortals)

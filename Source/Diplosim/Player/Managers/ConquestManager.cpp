@@ -1486,7 +1486,10 @@ void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizen
 	if (FactionName != Camera->ColonyName) {
 		FString id = FactionName + FString::FromInt(index) + "ArmyRaidTimer";
 
-		Camera->CitizenManager->CreateTimer(id, Camera, 60.0f, FTimerDelegate::CreateUObject(this, &UConquestManager::StartRaid, faction, index), false);
+		TArray<FTimerParameterStruct> params;
+		Camera->CitizenManager->SetParameter(*faction, params);
+		Camera->CitizenManager->SetParameter(index, params);
+		Camera->CitizenManager->CreateTimer(id, Camera, 60.0f, this, "StartRaid", params, false);
 	}
 }
 

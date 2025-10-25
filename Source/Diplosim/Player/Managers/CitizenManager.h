@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Player/Camera.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Universal/DiplosimUniversalTypes.h"
 #include "Player/Managers/ConquestManager.h"
@@ -13,7 +14,7 @@ struct FTimerParameterStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-		AActor* Actor;
+		UObject* Object;
 
 	UPROPERTY()
 		FVector Location;
@@ -40,26 +41,29 @@ struct FTimerParameterStruct
 		FString String;
 
 	UPROPERTY()
-		UPrimitiveComponent* Component;
-
-	UPROPERTY()
 		FGuid ID;
 
 	UPROPERTY()
 		FLawStruct Bill;
 
+	UPROPERTY()
+		EAttendStatus AttendStatus;
+
+	UPROPERTY()
+		TSubclassOf<AResource> Resource;
+
 	FTimerParameterStruct()
 	{
-		Actor = nullptr;
+		Object = nullptr;
 		Location = FVector::Zero();
 		Colour = FLinearColor();
 		bStatus = false;
-		Faction = nullptr;
 		Value = -1001.23f;
 		String = "wadaddwr";
-		Component = nullptr;
 		ID = FGuid();
 		Bill = FLawStruct();
+		AttendStatus = EAttendStatus::Neutral;
+		Resource = nullptr;
 	}
 };
 
@@ -81,7 +85,7 @@ struct FTimerStruct
 		float Target;
 
 	UPROPERTY()
-		AActor* Caller;
+		UObject* Caller;
 
 	UPROPERTY()
 		FName FuncName;
@@ -125,10 +129,10 @@ struct FTimerStruct
 		Parameters.Empty();
 	}
 
-	void CreateTimer(FString Identifier, AActor* Actor, float Time, AActor* Calla, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false)
+	void CreateTimer(FString Identifier, AActor* Acta, float Time, UObject* Calla, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false)
 	{
 		ID = Identifier;
-		Actor = Actor;
+		Actor = Acta;
 		Target = Time;
 		Caller = Calla;
 		FuncName = FunctionName;
@@ -236,7 +240,7 @@ public:
 		class ACamera* Camera;
 
 	// Timers
-	void CreateTimer(FString Identifier, AActor* Actor, float Time, AActor* Caller, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false);
+	void CreateTimer(FString Identifier, AActor* Actor, float Time, UObject* Caller, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false);
 
 	FTimerStruct* FindTimer(FString ID, AActor* Actor);
 
@@ -256,6 +260,76 @@ public:
 		bool DoesTimerExist(FString ID, AActor* Actor);
 
 	void CallTimerFunction(FTimerStruct* Timer);
+
+	template<typename T>
+	T GetParameter(FTimerStruct* Timer, int32 Index)
+	{
+		if constexpr (std::is_base_of_v<UObject, std::remove_pointer_t<T>>)
+			return Cast<std::remove_pointer_t<T>>(Timer->Parameters[Index].Object);
+		else if constexpr (std::is_same_v<T, FVector>)
+			return Timer->Parameters[Index].Location;
+		else if constexpr (std::is_same_v<T, TArray<FVector>>)
+			return Timer->Parameters[Index].Locations;
+		else if constexpr (std::is_same_v<T, FLinearColor>)
+			return Timer->Parameters[Index].Colour;
+		else if constexpr (std::is_same_v<T, bool>)
+			return Timer->Parameters[Index].bStatus;
+		else if constexpr (std::is_same_v<T, FFactionStruct*>)
+			return Camera->ConquestManager->GetFaction(Timer->Parameters[Index].Faction.Name);
+		else if constexpr (std::is_same_v<T, int32> || std::is_same_v<T, float>)
+			return Timer->Parameters[Index].Value;
+		else if constexpr (std::is_same_v<T, TArray<FEarthquakeStruct>>)
+			return Timer->Parameters[Index].EarthquakeStructs;
+		else if constexpr (std::is_same_v<T, FString>)
+			return Timer->Parameters[Index].String;
+		else if constexpr (std::is_same_v<T, FGuid>)
+			return Timer->Parameters[Index].ID;
+		else if constexpr (std::is_same_v<T, FLawStruct>)
+			return Timer->Parameters[Index].Bill;
+		else if constexpr (std::is_same_v<T, EAttendStatus>)
+			return Timer->Parameters[Index].AttendStatus;
+		else if constexpr (std::is_same_v<T, TSubclassOf<AResource>>)
+			return Timer->Parameters[Index].Resource;
+		else
+			static_assert(false, "Not a valid type");
+	}
+
+	template<typename T>
+	void SetParameter(T Value, TArray<FTimerParameterStruct>& Array)
+	{
+		FTimerParameterStruct param;
+
+		if constexpr (std::is_base_of_v<UObject, std::remove_pointer_t<T>>)
+			param.Object = Value;
+		else if constexpr (std::is_same_v<T, FVector>)
+			param.Location = Value;
+		else if constexpr (std::is_same_v<T, TArray<FVector>>)
+			param.Locations = Value;
+		else if constexpr (std::is_same_v<T, FLinearColor>)
+			param.Colour = Value;
+		else if constexpr (std::is_same_v<T, bool>)
+			param.bStatus = Value;
+		else if constexpr (std::is_same_v<T, FFactionStruct>)
+			param.Faction = Value;
+		else if constexpr (std::is_same_v<T, int32> || std::is_same_v<T, float>)
+			param.Value = Value;
+		else if constexpr (std::is_same_v<T, TArray<FEarthquakeStruct>>)
+			param.EarthquakeStructs = Value;
+		else if constexpr (std::is_same_v<T, FString> || std::is_same_v<T, const char*>)
+			param.String = Value;
+		else if constexpr (std::is_same_v<T, FGuid>)
+			param.ID = Value;
+		else if constexpr (std::is_same_v<T, FLawStruct>)
+			param.Bill = Value;
+		else if constexpr (std::is_same_v<T, EAttendStatus>)
+			param.AttendStatus = Value;
+		else if constexpr (std::is_same_v<T, TSubclassOf<AResource>>)
+			param.Resource;
+		else
+			static_assert(false, "Not a valid type");
+
+		Array.Add(param);
+	}
 
 	TDoubleLinkedList<FTimerStruct> Timers;
 

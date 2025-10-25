@@ -328,6 +328,14 @@ enum class EEventType : uint8
 	Protest
 };
 
+UENUM(BlueprintType)
+enum class EAttendStatus : uint8
+{
+	Neutral,
+	Attended,
+	Missed
+};
+
 template<typename T>
 FString EnumToString(T EnumValue)
 {

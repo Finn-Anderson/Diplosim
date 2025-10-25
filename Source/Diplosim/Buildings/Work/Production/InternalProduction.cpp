@@ -109,7 +109,9 @@ float AInternalProduction::GetTime()
 
 void AInternalProduction::SetTimer()
 {
-	Camera->CitizenManager->CreateTimer("Internal", this, GetTime(), FTimerDelegate::CreateUObject(this, &AInternalProduction::Production, GetCitizensAtBuilding()[0]), false);
+	TArray<FTimerParameterStruct> params;
+	Camera->CitizenManager->SetParameter(GetCitizensAtBuilding()[0], params);
+	Camera->CitizenManager->CreateTimer("Internal", this, GetTime(), this, "Production", params, false);
 }
 
 void AInternalProduction::AlterTimer()
