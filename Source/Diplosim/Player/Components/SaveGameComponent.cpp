@@ -150,6 +150,9 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 		}
 	}
 
+	for (FTimerStruct timer : Camera->CitizenManager->Timers)
+		save->SavedTimers.Add(timer);
+
 	save->SavedActors.Empty();
 	save->SavedActors.Append(allNewActorData);
 
@@ -168,6 +171,12 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	CurrentSaveGame->LastTimeUpdated = FDateTime::Now();
 
 	Camera->Cancel();
+
+	for (FTimerStruct timer : Camera->CitizenManager->Timers)
+		Camera->CitizenManager->RemoveTimer(timer.ID, timer.Actor);
+
+	for (FTimerStruct timer : CurrentSaveGame->Saves[Index].SavedTimers)
+		Camera->CitizenManager->Timers.AddTail(timer);
 
 	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
 		TArray<AActor*> foundActors;

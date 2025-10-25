@@ -182,6 +182,9 @@ struct FSave
 	UPROPERTY()
 		TArray<FActorSaveData> SavedActors;
 
+	UPROPERTY()
+		TArray<FTimerStruct> SavedTimers;
+
 	FSave()
 	{
 		SaveName = "";
