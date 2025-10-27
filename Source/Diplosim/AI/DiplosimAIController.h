@@ -13,13 +13,17 @@ struct FMoveStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 		AActor* Actor;
 
-	AActor* LinkedPortal;
+	UPROPERTY()
+		AActor* LinkedPortal;
 
-	AActor* UltimateGoal;
+	UPROPERTY()
+		AActor* UltimateGoal;
 
-	int32 Instance;
+	UPROPERTY()
+		int32 Instance;
 
-	FVector Location;
+	UPROPERTY()
+		FVector Location;
 
 	FMoveStruct()
 	{
@@ -86,7 +90,8 @@ class DIPLOSIM_API ADiplosimAIController : public AAIController
 public:
 	ADiplosimAIController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	void DefaultAction();
+	UFUNCTION()
+		void DefaultAction();
 
 	void Idle(FFactionStruct* Faction, class ACitizen* Citizen);
 

@@ -4,6 +4,7 @@
 #include "GameFramework/SaveGame.h"
 #include "Map/Grid.h"
 #include "Universal/Resource.h"
+#include "Player/Managers/CitizenManager.h"
 #include "DiplosimSaveGame.generated.h"
 
 USTRUCT()
@@ -130,6 +131,17 @@ struct FWorldSaveData
 };
 
 USTRUCT()
+struct FAIData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FAIData()
+	{
+
+	}
+};
+
+USTRUCT()
 struct FActorSaveData
 {
 	GENERATED_USTRUCT_BODY()
@@ -148,6 +160,12 @@ struct FActorSaveData
 
 	UPROPERTY()
 		FResourceData ResourceData;
+
+	UPROPERTY()
+		FAIData AIData;
+
+	UPROPERTY()
+		TArray<FTimerStruct> SavedTimers;
 
 	FActorSaveData()
 	{
@@ -181,9 +199,6 @@ struct FSave
 
 	UPROPERTY()
 		TArray<FActorSaveData> SavedActors;
-
-	UPROPERTY()
-		TArray<FTimerStruct> SavedTimers;
 
 	FSave()
 	{

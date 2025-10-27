@@ -93,7 +93,7 @@ void ACitizen::BeginPlay()
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, this, "Birthday", {}, true);
+	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, "Birthday", {}, true);
 
 	float minPitch = 0.8f;
 	float maxPitch = 1.2f;
@@ -122,13 +122,13 @@ void ACitizen::CitizenSetup(FFactionStruct* Faction)
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
-	Camera->CitizenManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, this, "Eat", {}, true);
+	Camera->CitizenManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, "Eat", {}, true);
 
-	Camera->CitizenManager->CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, this, "CheckGainOrLoseEnergy", {}, true);
+	Camera->CitizenManager->CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, "CheckGainOrLoseEnergy", {}, true);
 
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(this, params);
-	Camera->CitizenManager->CreateTimer("ChooseIdleBuilding", this, 60, AIController, "ChooseIdleBuilding", params, true);
+	Camera->CitizenManager->CreateTimer("ChooseIdleBuilding", this, 60, "ChooseIdleBuilding", params, true);
 
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
@@ -862,7 +862,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(Resource, params);
-	Camera->CitizenManager->CreateTimer("Harvest", this, time, this, "HarvestResource", params, false, true);
+	Camera->CitizenManager->CreateTimer("Harvest", this, time, "HarvestResource", params, false, true);
 
 	AIController->StopMovement();
 }
@@ -974,7 +974,7 @@ void ACitizen::Birthday()
 		else {
 			TArray<FTimerParameterStruct> params;
 			Camera->CitizenManager->SetParameter(this, params);
-			Camera->CitizenManager->CreateTimer("Orphanage", this, timeToCompleteDay * 2.0f, Building.Orphanage, "Kickout", params, false);
+			Camera->CitizenManager->CreateTimer("Orphanage", this, timeToCompleteDay * 2.0f, "Kickout", params, false);
 		}
 	}
 
@@ -1513,7 +1513,7 @@ void ACitizen::SetAttendStatus(EAttendStatus Status, bool bMass)
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(EAttendStatus::Neutral, params);
 	Camera->CitizenManager->SetParameter(bMass, params);
-	Camera->CitizenManager->CreateTimer("Mass", this, timeToCompleteDay * 2, this, "SetAttendStatus", params, false);
+	Camera->CitizenManager->CreateTimer("Mass", this, timeToCompleteDay * 2, "SetAttendStatus", params, false);
 }
 
 void ACitizen::SetHolliday(bool bStatus)
@@ -1943,7 +1943,7 @@ void ACitizen::Snore(bool bCreate)
 
 		TArray<FTimerParameterStruct> params;
 		Camera->CitizenManager->SetParameter(false, params);
-		Camera->CitizenManager->CreateTimer("Snore", this, time, this, "Snore", params, true);
+		Camera->CitizenManager->CreateTimer("Snore", this, time, "Snore", params, true);
 	}
 	else {
 		int32 index = Camera->Grid->Stream.RandRange(0, Snores.Num() - 1);

@@ -107,7 +107,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 	else {
 		TArray<FTimerParameterStruct> params;
 		Camera->CitizenManager->SetParameter(Citizen, params);
-		Camera->CitizenManager->CreateTimer("Production", this, 30, this, "Production", params, false);
+		Camera->CitizenManager->CreateTimer("Production", this, 30, "Production", params, false);
 	}
 }
 

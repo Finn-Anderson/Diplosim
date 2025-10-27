@@ -111,7 +111,7 @@ void AInternalProduction::SetTimer()
 {
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(GetCitizensAtBuilding()[0], params);
-	Camera->CitizenManager->CreateTimer("Internal", this, GetTime(), this, "Production", params, false);
+	Camera->CitizenManager->CreateTimer("Internal", this, GetTime(), "Production", params, false);
 }
 
 void AInternalProduction::AlterTimer()

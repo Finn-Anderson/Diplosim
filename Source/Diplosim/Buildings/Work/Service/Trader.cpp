@@ -36,7 +36,7 @@ void ATrader::Enter(ACitizen* Citizen)
 		else {
 			TArray<FTimerParameterStruct> params;
 			Camera->CitizenManager->SetParameter(Citizen, params);
-			Camera->CitizenManager->CreateTimer("Order", this, Orders[0].Wait, this, "SubmitOrder", params, false);
+			Camera->CitizenManager->CreateTimer("Order", this, Orders[0].Wait, "SubmitOrder", params, false);
 		}
 	}
 }

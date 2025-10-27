@@ -162,7 +162,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 			}
 		}
 
-		Camera->CitizenManager->CreateTimer("Idle", Citizen, time, this, "DefaultAction", {}, false);
+		Camera->CitizenManager->CreateTimer("Idle", Citizen, time, "DefaultAction", {}, false);
 	}
 }
 
@@ -267,7 +267,7 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 	else {
 		TArray<FTimerParameterStruct> params;
 		Camera->CitizenManager->SetParameter(Resource, params);
-		Camera->CitizenManager->CreateTimer("FindGatherSite", AI, 30.0f, this, "GetGatherSite", params, false);
+		Camera->CitizenManager->CreateTimer("FindGatherSite", AI, 30.0f, "GetGatherSite", params, false);
 	}
 }
 

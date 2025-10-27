@@ -85,9 +85,6 @@ struct FTimerStruct
 		float Target;
 
 	UPROPERTY()
-		UObject* Caller;
-
-	UPROPERTY()
 		FName FuncName;
 
 	UPROPERTY()
@@ -124,17 +121,15 @@ struct FTimerStruct
 		bDone = false;
 		LastUpdateTime = 0.0f;
 
-		Caller = nullptr;
 		FuncName = "";
 		Parameters.Empty();
 	}
 
-	void CreateTimer(FString Identifier, AActor* Acta, float Time, UObject* Calla, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false)
+	void CreateTimer(FString Identifier, AActor* Acta, float Time, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false)
 	{
 		ID = Identifier;
 		Actor = Acta;
 		Target = Time;
-		Caller = Calla;
 		FuncName = FunctionName;
 		Parameters = Params;
 		bRepeat = Repeat;
@@ -240,7 +235,7 @@ public:
 		class ACamera* Camera;
 
 	// Timers
-	void CreateTimer(FString Identifier, AActor* Actor, float Time, UObject* Caller, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false);
+	void CreateTimer(FString Identifier, AActor* Actor, float Time, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread = false);
 
 	FTimerStruct* FindTimer(FString ID, AActor* Actor);
 
@@ -258,6 +253,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		bool DoesTimerExist(FString ID, AActor* Actor);
+
+	UObject* GetFunctionOwner(FTimerStruct* Timer);
 
 	void CallTimerFunction(FTimerStruct* Timer);
 

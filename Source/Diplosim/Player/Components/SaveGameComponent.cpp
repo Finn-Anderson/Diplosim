@@ -25,16 +25,10 @@ USaveGameComponent::USaveGameComponent()
 	Camera = nullptr;
 }
 
-void USaveGameComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	CurrentID = FGuid::NewGuid().ToString();
-}
-
 void USaveGameComponent::StartNewSave()
 {
 	CurrentSaveGame = Cast<UDiplosimSaveGame>(UGameplayStatics::CreateSaveGameObject(UDiplosimSaveGame::StaticClass()));
+	CurrentID = FGuid::NewGuid().ToString();
 
 	SaveGameSave("", true);
 }
@@ -123,13 +117,15 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			actorData.ResourceData.Workers = resource->WorkerStruct;
 		}
 
+		for (FTimerStruct timer : Camera->CitizenManager->Timers)
+			if (timer.Actor == actor)
+				actorData.SavedTimers.Add(timer);
+
 		allNewActorData.Add(actorData);
 	}
 
-	FSave* save;
-
 	if (Name == "") {
-		save = CreateNewSaveStruct(Name, bAutosave);
+		CreateNewSaveStruct(Name, bAutosave, allNewActorData);
 
 		if (bAutosave)
 			CapAutosaves();
@@ -141,20 +137,13 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 		int32 index = CurrentSaveGame->Saves.Find(s);
 
 		if (index == INDEX_NONE) {
-			save = CreateNewSaveStruct(Name, bAutosave);
+			CreateNewSaveStruct(Name, bAutosave, allNewActorData);
 		}
 		else {
-			save = &CurrentSaveGame->Saves[index];
-
-			save->bAutosave = bAutosave;
+			CurrentSaveGame->Saves[index].SavedActors = allNewActorData;
+			CurrentSaveGame->Saves[index].bAutosave = bAutosave;
 		}
 	}
-
-	for (FTimerStruct timer : Camera->CitizenManager->Timers)
-		save->SavedTimers.Add(timer);
-
-	save->SavedActors.Empty();
-	save->SavedActors.Append(allNewActorData);
 
 	CurrentSaveGame->LastTimeUpdated = FDateTime::Now();
 
@@ -174,9 +163,6 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 	for (FTimerStruct timer : Camera->CitizenManager->Timers)
 		Camera->CitizenManager->RemoveTimer(timer.ID, timer.Actor);
-
-	for (FTimerStruct timer : CurrentSaveGame->Saves[Index].SavedTimers)
-		Camera->CitizenManager->Timers.AddTail(timer);
 
 	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
 		TArray<AActor*> foundActors;
@@ -282,6 +268,12 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			camera->Detach();
 			camera->MovementComponent->TargetLength = 3000.0f;
 		}
+
+		for (FTimerStruct timer : actorData.SavedTimers) {
+			timer.Actor = actor;
+
+			Camera->CitizenManager->Timers.AddTail(timer);
+		}
 	}
 
 	Camera->BuildUIInstance->AddToViewport();
@@ -336,7 +328,7 @@ TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()
 	return gameSavesList;
 }
 
-FSave* USaveGameComponent::CreateNewSaveStruct(FString Name, bool bAutosave)
+void USaveGameComponent::CreateNewSaveStruct(FString Name, bool bAutosave, TArray<FActorSaveData> NewActorData)
 {
 	FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
 
@@ -349,11 +341,10 @@ FSave* USaveGameComponent::CreateNewSaveStruct(FString Name, bool bAutosave)
 	if (Name == "")
 		save.SaveName = FDateTime::Now().ToString();
 
+	//save.SavedActors = NewActorData;
 	save.bAutosave = bAutosave;
 
-	int32 index = CurrentSaveGame->Saves.Add(save);
-
-	return &CurrentSaveGame->Saves[index];
+	CurrentSaveGame->Saves.Add(save);
 }
 
 void USaveGameComponent::CapAutosaves()
@@ -391,7 +382,7 @@ void USaveGameComponent::StartAutosaveTimer()
 		Camera->CitizenManager->SetParameter("", params);
 		Camera->CitizenManager->SetParameter(true, params);
 
-		Camera->CitizenManager->CreateTimer("AutosaveTimer", Camera, time * 60.0f, this, "SaveGameSave", params, false, true);
+		Camera->CitizenManager->CreateTimer("AutosaveTimer", Camera, time * 60.0f, "SaveGameSave", params, false, true);
 	}
 	else
 		timer->Timer = 0.0f;

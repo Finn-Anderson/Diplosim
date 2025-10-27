@@ -13,9 +13,6 @@ class DIPLOSIM_API USaveGameComponent : public UActorComponent
 public:	
 	USaveGameComponent();
 
-protected:
-	virtual void BeginPlay() override;
-
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
 		FString CurrentID;
@@ -41,7 +38,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		TMap<FString, class UDiplosimSaveGame*> LoadAllSavedGames();
 
-	FSave* CreateNewSaveStruct(FString Name, bool bAutosave);
+	void CreateNewSaveStruct(FString Name, bool bAutosave, TArray<FActorSaveData> NewActorData);
 
 	void CapAutosaves();
 

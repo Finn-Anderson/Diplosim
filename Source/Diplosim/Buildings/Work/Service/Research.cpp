@@ -32,7 +32,7 @@ void AResearch::BeginRotation()
 
 	Camera->Grid->AIVisualiser->RotatingBuildings.Add(this);
 
-	Camera->CitizenManager->CreateTimer("Rotate", this, GetTime(Camera->Grid->Stream.RandRange(60, 120)), this, "BeginRotation", {}, false, true);
+	Camera->CitizenManager->CreateTimer("Rotate", this, GetTime(Camera->Grid->Stream.RandRange(60, 120)), "BeginRotation", {}, false, true);
 }
 
 void AResearch::Build(bool bRebuild, bool bUpgrade, int32 Grade)
@@ -114,7 +114,7 @@ void AResearch::SetResearchTimer()
 {
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(GetCitizensAtBuilding()[0], params);
-	Camera->CitizenManager->CreateTimer("Research", this, GetTime(TimeLength), this, "Production", params, true);
+	Camera->CitizenManager->CreateTimer("Research", this, GetTime(TimeLength), "Production", params, true);
 }
 
 void AResearch::UpdateResearchTimer()

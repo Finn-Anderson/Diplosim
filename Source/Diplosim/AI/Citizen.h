@@ -373,13 +373,15 @@ public:
 		FCarryStruct Carrying;
 
 	// Food
-	void Eat();
+	UFUNCTION()
+		void Eat();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Food")
 		int32 Hunger;
 
 	// Energy
-	void CheckGainOrLoseEnergy();
+	UFUNCTION()
+		void CheckGainOrLoseEnergy();
 
 	void LoseEnergy();
 

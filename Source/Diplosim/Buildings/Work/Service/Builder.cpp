@@ -57,7 +57,7 @@ void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 		TArray<FTimerParameterStruct> params;
 		Camera->CitizenManager->SetParameter(Citizen, params);
 		Camera->CitizenManager->SetParameter(Building, params);
-		Camera->CitizenManager->CreateTimer("Construct", GetOwner(), time, this, "AddBuildPercentage", params, true, true);
+		Camera->CitizenManager->CreateTimer("Construct", this, time, "AddBuildPercentage", params, true, true);
 	}
 }
 
@@ -85,7 +85,7 @@ void ABuilder::StartRepairTimer(ACitizen* Citizen, ABuilding* Building)
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(Citizen, params);
 	Camera->CitizenManager->SetParameter(Building, params);
-	Camera->CitizenManager->CreateTimer("Repair", GetOwner(), 0.2f, this, "Repair", params, true, true);
+	Camera->CitizenManager->CreateTimer("Repair", this, 0.2f, "Repair", params, true, true);
 }
 
 void ABuilder::Repair(ACitizen* Citizen, ABuilding* Building)

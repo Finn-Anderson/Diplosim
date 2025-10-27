@@ -39,7 +39,8 @@ public:
 
 	void AddHealth(int32 Amount);
 
-	void TakeHealth(int32 Amount, AActor* Attacker, USoundBase* Sound = nullptr);
+	UFUNCTION()
+		void TakeHealth(int32 Amount, AActor* Attacker, USoundBase* Sound = nullptr);
 
 	bool IsMaxHealth();
 

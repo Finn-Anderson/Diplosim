@@ -307,7 +307,7 @@ void ADiplosimGameModeBase::SetRaidInformation()
 
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(spawnLocations, params);
-	Camera->CitizenManager->CreateTimer("SpawnEnemies", this, time, this, "SpawnAllEnemies", params, false, true);
+	Camera->CitizenManager->CreateTimer("SpawnEnemies", this, time, "SpawnAllEnemies", params, false, true);
 }
 
 void ADiplosimGameModeBase::SpawnAllEnemies(TArray<FVector> SpawnLocations)
@@ -428,7 +428,7 @@ void ADiplosimGameModeBase::SetWaveTimer()
 		}
 	}
 
-	Camera->CitizenManager->CreateTimer("WaveTimer", this, 1680, this, "StartRaid", {}, true, false);
+	Camera->CitizenManager->CreateTimer("WaveTimer", this, 1680, "StartRaid", {}, true, false);
 }
 
 void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)

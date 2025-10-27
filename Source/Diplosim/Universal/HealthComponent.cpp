@@ -84,7 +84,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("RemoveDamageOverlay", GetOwner());
 
 		if (foundTimer == nullptr)
-			Camera->CitizenManager->CreateTimer("RemoveDamageOverlay", GetOwner(), 0.25f, this, "RemoveDamageOverlay", {}, false, true);
+			Camera->CitizenManager->CreateTimer("RemoveDamageOverlay", GetOwner(), 0.25f, "RemoveDamageOverlay", {}, false, true);
 		else
 			Camera->CitizenManager->ResetTimer("RemoveDamageOverlay", GetOwner());
 
@@ -203,7 +203,7 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(*faction, params);
 	Camera->CitizenManager->SetParameter(Attacker, params);
-	Camera->CitizenManager->CreateTimer("Clear Death", GetOwner(), 10.0f, this, "Clear", params, false, true);
+	Camera->CitizenManager->CreateTimer("Clear Death", GetOwner(), 10.0f, "Clear", params, false, true);
 }
 
 void UHealthComponent::Clear(FFactionStruct* Faction, AActor* Attacker)
@@ -335,6 +335,6 @@ void UHealthComponent::OnFire(int32 Counter)
 	if (Counter < 5) {
 		TArray<FTimerParameterStruct> params;
 		Camera->CitizenManager->SetParameter(Counter++, params);
-		Camera->CitizenManager->CreateTimer("OnFire", GetOwner(), 1.0f, this, "OnFire", params, false);
+		Camera->CitizenManager->CreateTimer("OnFire", GetOwner(), 1.0f, "OnFire", params, false);
 	}
 }

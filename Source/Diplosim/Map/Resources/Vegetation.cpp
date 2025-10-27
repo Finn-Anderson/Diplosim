@@ -34,7 +34,7 @@ void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 	GrowingInstances.Add(Instance);
 
 	if (Camera->CitizenManager->FindTimer("Grow", this) == nullptr)
-		Camera->CitizenManager->CreateTimer("Grow", this, TimeLength / 100.0f, this, "Grow", {}, true, true);
+		Camera->CitizenManager->CreateTimer("Grow", this, TimeLength / 100.0f, "Grow", {}, true, true);
 }
 
 void AVegetation::Grow()
@@ -90,5 +90,5 @@ void AVegetation::OnFire(int32 Instance)
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(Instance, params);
 	Camera->CitizenManager->SetParameter(0, params);
-	Camera->CitizenManager->CreateTimer("OnFire", this, 5.0f, this, "YieldStatus", params, false);
+	Camera->CitizenManager->CreateTimer("OnFire", this, 5.0f, "YieldStatus", params, false);
 }
