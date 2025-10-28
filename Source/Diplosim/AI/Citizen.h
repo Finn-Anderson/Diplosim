@@ -342,7 +342,8 @@ public:
 
 	float GetProductivity();
 
-	void Heal(ACitizen* Citizen);
+	UFUNCTION()
+		void Heal(ACitizen* Citizen);
 
 	int32 GetLeftoverMoney();
 
@@ -365,7 +366,8 @@ public:
 	// Resources
 	void StartHarvestTimer(class AResource* Resource);
 
-	void HarvestResource(class AResource* Resource);
+	UFUNCTION()
+		void HarvestResource(class AResource* Resource);
 
 	void Carry(class AResource* Resource, int32 Amount, AActor* Location);
 
@@ -394,7 +396,8 @@ public:
 		bool bGain;
 
 	// Bio
-	void Birthday();
+	UFUNCTION()
+		void Birthday();
 
 	void SetSex(TArray<ACitizen*> Citizens);
 
@@ -467,7 +470,8 @@ public:
 	UPROPERTY()
 		int32 WitnessedDeathHappiness;
 
-	void SetAttendStatus(EAttendStatus Status, bool bMass);
+	UFUNCTION()
+		void SetAttendStatus(EAttendStatus Status, bool bMass);
 
 	void SetHolliday(bool bStatus);
 
@@ -499,7 +503,8 @@ public:
 	void ApplyTraitAffect(TMap<FString, float> Affects);
 
 	// Sleep
-	void Snore(bool bCreate = false);
+	UFUNCTION()
+		void Snore(bool bCreate = false);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		TArray<USoundBase*> Snores;

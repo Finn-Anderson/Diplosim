@@ -20,7 +20,8 @@ public:
 
 	void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor) override;
 
-	void Kickout(class ACitizen* Citizen);
+	UFUNCTION()
+		void Kickout(class ACitizen* Citizen);
 
 	void PickChildren(class ACitizen* Citizen);
 };

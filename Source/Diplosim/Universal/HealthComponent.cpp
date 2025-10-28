@@ -206,9 +206,11 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 	Camera->CitizenManager->CreateTimer("Clear Death", GetOwner(), 10.0f, "Clear", params, false, true);
 }
 
-void UHealthComponent::Clear(FFactionStruct* Faction, AActor* Attacker)
+void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 {
 	AActor* actor = GetOwner();
+
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
@@ -229,8 +231,6 @@ void UHealthComponent::Clear(FFactionStruct* Faction, AActor* Attacker)
 		else {
 			TMap<ACitizen*, int32> favouredChildren;
 			int32 totalCount = 0;
-
-			FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
 			for (ACitizen* c : citizen->BioStruct.Children) {
 				int32 count = 0;
@@ -304,15 +304,15 @@ void UHealthComponent::Clear(FFactionStruct* Faction, AActor* Attacker)
 		if (ai->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(ai);
 
-			if (Faction->Citizens.Contains(citizen))
-				Faction->Citizens.Remove(citizen);
+			if (faction->Citizens.Contains(citizen))
+				faction->Citizens.Remove(citizen);
 			else
-				Faction->Rebels.Remove(citizen);
+				faction->Rebels.Remove(citizen);
 		}
 		else if (ai->IsA<AEnemy>())
 			Camera->CitizenManager->Enemies.Remove(ai);
 		else
-			Faction->Clones.Remove(ai);
+			faction->Clones.Remove(ai);
 
 		ai->Destroy();
 	}

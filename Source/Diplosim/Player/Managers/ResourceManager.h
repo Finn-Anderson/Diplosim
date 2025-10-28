@@ -109,7 +109,8 @@ public:
 	// Trade
 	void RandomiseMarket();
 
-	void SetTradeValues();
+	UFUNCTION()
+		void SetTradeValues();
 
 	UFUNCTION(BlueprintCallable, Category = "Resource")
 		int32 GetStoredOnMarket(TSubclassOf<class AResource> Resource);

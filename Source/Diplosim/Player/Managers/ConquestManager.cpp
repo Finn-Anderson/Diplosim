@@ -158,7 +158,7 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 
 		faction.EggTimer->SpawnCitizens();
 
-		Camera->CitizenManager->Election(&faction);
+		Camera->CitizenManager->Election(faction);
 
 		SetFactionFlagColour(&faction);
 		SetFactionCulture(&faction);
@@ -1603,9 +1603,11 @@ void UConquestManager::MoveToTarget(FFactionStruct* Faction, TArray<ACitizen*> C
 		citizen->AIController->AIMoveTo(targets[index]);
 }
 
-void UConquestManager::StartRaid(FFactionStruct* Faction, int32 Index)
+void UConquestManager::StartRaid(FFactionStruct Faction, int32 Index)
 {
-	MoveToTarget(Faction, Faction->Armies[Index].Citizens);
+	FFactionStruct* faction = GetFaction(Faction.Name);
+
+	MoveToTarget(faction, faction->Armies[Index].Citizens);
 }
 
 void UConquestManager::EvaluateAIArmy(FFactionStruct* Faction)

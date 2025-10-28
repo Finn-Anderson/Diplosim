@@ -33,5 +33,6 @@ public:
 
 	void ShouldStartTrapTimer(AActor* Actor);
 
-	void ActivateTrap();
+	UFUNCTION()
+		void ActivateTrap();
 };

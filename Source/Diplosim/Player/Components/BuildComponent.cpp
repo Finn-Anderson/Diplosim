@@ -758,7 +758,7 @@ void UBuildComponent::Place(bool bQuick)
 				if (citizen->Building.BuildingAt != BuildingToMove || !faction->Police.Arrested.Contains(citizen))
 					continue;
 
-				Camera->CitizenManager->SetInNearestJail(faction, nullptr, citizen);
+				Camera->CitizenManager->SetInNearestJail(*faction, nullptr, citizen);
 			}
 		}
 

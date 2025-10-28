@@ -439,7 +439,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Smite(class AAI* AI);
 
-	void IncrementSmites(int32 Increment);
+	UFUNCTION()
+		void IncrementSmites(int32 Increment);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetSmiteCost();

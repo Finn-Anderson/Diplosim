@@ -95,11 +95,13 @@ public:
 
 	void Idle(FFactionStruct* Faction, class ACitizen* Citizen);
 
-	void ChooseIdleBuilding(class ACitizen* Citizen);
+	UFUNCTION()
+		void ChooseIdleBuilding(class ACitizen* Citizen);
 
 	double GetClosestActor(float Range, FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, bool bProjectLocation = true, int32 CurrentValue = 1, int32 NewValue = 1);
 
-	void GetGatherSite(TSubclassOf<class AResource> Resource);
+	UFUNCTION()
+		void GetGatherSite(TSubclassOf<class AResource> Resource);
 
 	bool CanMoveTo(FVector Location, AActor* Target = nullptr, bool bCheckForPortals = true);
 

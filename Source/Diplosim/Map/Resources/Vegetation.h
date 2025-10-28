@@ -15,11 +15,13 @@ public:
 public:
 	virtual void YieldStatus(int32 Instance, int32 Yield) override;
 
-	void Grow();
+	UFUNCTION()
+		void Grow();
 
 	bool IsHarvestable(int32 Instance, FVector Scale);
 
-	void OnFire(int32 Instance);
+	UFUNCTION()
+		void OnFire(int32 Instance);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
 		int32 TimeLength;

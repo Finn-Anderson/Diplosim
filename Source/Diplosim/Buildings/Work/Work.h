@@ -88,7 +88,8 @@ public:
 	void SetEmergency(bool bStatus);
 
 	// Resources
-	virtual void Production(class ACitizen* Citizen);
+	UFUNCTION()
+		virtual void Production(class ACitizen* Citizen);
 
 	bool IsCapacityFull();
 

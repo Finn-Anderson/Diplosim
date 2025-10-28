@@ -44,14 +44,16 @@ public:
 
 	bool IsMaxHealth();
 
-	void RemoveDamageOverlay();
+	UFUNCTION()
+		void RemoveDamageOverlay();
 
 	int32 GetHealth();
 
 	// Death
 	void Death(AActor* Attacker, int32 Force);
 
-	void Clear(FFactionStruct* Faction, AActor* Attacker);
+	UFUNCTION()
+		void Clear(FFactionStruct Faction, AActor* Attacker);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
@@ -60,5 +62,6 @@ public:
 		class UNiagaraSystem* DeathSystem;
 
 	// Fire
-	void OnFire(int32 Counter = 0);
+	UFUNCTION()
+		void OnFire(int32 Counter = 0);
 };

@@ -110,7 +110,8 @@ public:
 	UPROPERTY()
 		bool bRedSun;
 
-	void ChangeWindDirection();
+	UFUNCTION()
+		void ChangeWindDirection();
 
 	void SetWindDimensions(int32 Size);
 

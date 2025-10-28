@@ -379,5 +379,6 @@ public:
 
 	void AddToBasket(TSubclassOf<class AResource> Resource, int32 Amount);
 
-	void RemoveFromBasket(FGuid ID);
+	UFUNCTION()
+		void RemoveFromBasket(FGuid ID);
 };

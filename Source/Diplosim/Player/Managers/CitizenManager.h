@@ -254,7 +254,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool DoesTimerExist(FString ID, AActor* Actor);
 
-	UObject* GetFunctionOwner(FTimerStruct* Timer);
+	TTuple<UObject*, UFunction*> GetFunction(FTimerStruct* Timer);
 
 	void CallTimerFunction(FTimerStruct* Timer);
 
@@ -271,8 +271,8 @@ public:
 			return Timer->Parameters[Index].Colour;
 		else if constexpr (std::is_same_v<T, bool>)
 			return Timer->Parameters[Index].bStatus;
-		else if constexpr (std::is_same_v<T, FFactionStruct*>)
-			return Camera->ConquestManager->GetFaction(Timer->Parameters[Index].Faction.Name);
+		else if constexpr (std::is_same_v<T, FFactionStruct>)
+			return Timer->Parameters[Index].Faction;
 		else if constexpr (std::is_same_v<T, int32> || std::is_same_v<T, float>)
 			return Timer->Parameters[Index].Value;
 		else if constexpr (std::is_same_v<T, TArray<FEarthquakeStruct>>)
@@ -374,7 +374,8 @@ public:
 
 	void StartConversation(FFactionStruct* Faction, class ACitizen* Citizen1, class ACitizen* Citizen2, bool bInterrogation);
 
-	void Interact(FFactionStruct* Faction, class ACitizen* Citizen1, class ACitizen* Citizen2);
+	UFUNCTION()
+		void Interact(FFactionStruct Faction, class ACitizen* Citizen1, class ACitizen* Citizen2);
 
 	bool IsCarelessWitness(class ACitizen* Citizen);
 
@@ -388,13 +389,15 @@ public:
 
 	void StopFighting(class ACitizen* Citizen);
 
-	void InterrogateWitnesses(FFactionStruct* Faction, class ACitizen* Officer, class ACitizen* Citizen);
+	UFUNCTION()
+		void InterrogateWitnesses(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen);
 
 	void GotoClosestWantedMan(class ACitizen* Officer);
 
 	void Arrest(class ACitizen* Officer, class ACitizen* Citizen);
 
-	void SetInNearestJail(FFactionStruct* Faction, class ACitizen* Officer, class ACitizen* Citizen);
+	UFUNCTION()
+		void SetInNearestJail(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen);
 
 	void ItterateThroughSentences();
 
@@ -411,7 +414,8 @@ public:
 	// Disease & Injuries
 	void StartDiseaseTimer();
 
-	void SpawnDisease();
+	UFUNCTION()
+		void SpawnDisease();
 
 	void Infect(class ACitizen* Citizen);
 
@@ -485,7 +489,8 @@ public:
 
 	void StartElectionTimer(FFactionStruct* Faction);
 
-	void Election(FFactionStruct* Faction);
+	UFUNCTION()
+		void Election(FFactionStruct Faction);
 
 	UFUNCTION(BlueprintCallable)
 		void Bribe(class ACitizen* Representative, bool bAgree);
@@ -497,7 +502,8 @@ public:
 
 	void SetupBill(FFactionStruct* Faction);
 
-	void MotionBill(FFactionStruct* Faction, FLawStruct Bill);
+	UFUNCTION()
+		void MotionBill(FFactionStruct Faction, FLawStruct Bill);
 
 	bool IsInRange(TArray<int32> Range, int32 Value);
 
@@ -537,7 +543,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Pray(FString FactionName);
 
-	void IncrementPray(FFactionStruct* Faction, FString Type, int32 Increment);
+	UFUNCTION()
+		void IncrementPray(FFactionStruct Faction, FString Type, int32 Increment);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetPrayCost(FString FactionName);

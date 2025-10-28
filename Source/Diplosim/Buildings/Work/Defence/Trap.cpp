@@ -85,5 +85,5 @@ void ATrap::ActivateTrap()
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	HealthComponent->Health = 0;
-	HealthComponent->Clear(faction, this);
+	HealthComponent->Clear(*faction, this);
 }

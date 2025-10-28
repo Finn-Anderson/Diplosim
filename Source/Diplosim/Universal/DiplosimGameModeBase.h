@@ -139,11 +139,13 @@ public:
 
 	void SetRaidInformation();
 
-	void SpawnAllEnemies(TArray<FVector> SpawnLocations);
+	UFUNCTION()
+		void SpawnAllEnemies(TArray<FVector> SpawnLocations);
 
 	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour);
 
-	void StartRaid();
+	UFUNCTION()
+		void StartRaid();
 
 	bool CheckEnemiesStatus();
 

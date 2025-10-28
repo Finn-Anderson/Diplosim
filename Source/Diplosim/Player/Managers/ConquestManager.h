@@ -693,7 +693,8 @@ public:
 
 	void MoveToTarget(FFactionStruct* Faction, class TArray<ACitizen*> Citizens);
 
-	void StartRaid(FFactionStruct* Faction, int32 Index);
+	UFUNCTION()
+		void StartRaid(FFactionStruct Faction, int32 Index);
 
 	void EvaluateAIArmy(FFactionStruct* Faction);
 

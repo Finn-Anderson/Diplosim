@@ -43,7 +43,8 @@ public:
 
 	void GenerateEarthquake(float Magnitude);
 
-	void CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStruct, float Range, float Magnitude);
+	UFUNCTION()
+		void CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStruct, float Range, float Magnitude);
 
 	void CancelEarthquake();
 
@@ -53,7 +54,8 @@ public:
 
 	void AlterSunGradually(float Target, float Increment);
 
-	void CancelRedSun();
+	UFUNCTION()
+		void CancelRedSun();
 
 	bool IsProtected(FVector Location);
 

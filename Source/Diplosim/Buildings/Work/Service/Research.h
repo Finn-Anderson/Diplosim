@@ -37,7 +37,8 @@ public:
 	UPROPERTY()
 		double RotationTime;
 
-	void BeginRotation();
+	UFUNCTION()
+		void BeginRotation();
 
 	virtual void Build(bool bRebuild = false, bool bUpgrade = false, int32 Grade = 0) override;
 

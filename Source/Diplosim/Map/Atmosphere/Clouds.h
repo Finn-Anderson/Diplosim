@@ -116,7 +116,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void RainCollisionHandler(FVector CollisionLocation);
 
-	void SetRainMaterialEffect(float Value, class AActor* Actor, class UHierarchicalInstancedStaticMeshComponent* HISM = nullptr, int32 Instance = -1);
+	UFUNCTION()
+		void SetRainMaterialEffect(float Value, class AActor* Actor, class UHierarchicalInstancedStaticMeshComponent* HISM = nullptr, int32 Instance = -1);
 
 	void SetGradualWetness();
 

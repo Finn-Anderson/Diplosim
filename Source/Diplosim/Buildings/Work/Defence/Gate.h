@@ -28,7 +28,8 @@ public:
 
 	void CloseGate();
 
-	void UpdateNavigation();
+	UFUNCTION()
+		void UpdateNavigation();
 
 	void SetTimer();
 

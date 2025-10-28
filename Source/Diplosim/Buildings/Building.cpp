@@ -563,7 +563,7 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 			if (citizen->Building.BuildingAt != this || GetOccupied().Contains(citizen) || !faction->Police.Arrested.Contains(citizen))
 				continue;
 
-			Camera->CitizenManager->SetInNearestJail(faction, nullptr, citizen);
+			Camera->CitizenManager->SetInNearestJail(*faction, nullptr, citizen);
 		}
 	}
 

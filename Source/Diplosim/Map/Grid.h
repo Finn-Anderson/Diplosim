@@ -291,7 +291,8 @@ public:
 		int32 VegetationSizeMultiplier;
 
 	// Egg Basket
-	void SpawnEggBasket();
+	UFUNCTION()
+		void SpawnEggBasket();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Egg Basket")
 		TSubclassOf<class AEggBasket> EggBasketClass;

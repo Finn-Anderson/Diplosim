@@ -17,7 +17,7 @@ void AParliament::OnBuilt()
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	Camera->CitizenManager->Election(faction);
+	Camera->CitizenManager->Election(*faction);
 
 	Camera->CitizenManager->StartElectionTimer(faction);
 }

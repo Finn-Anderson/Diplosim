@@ -18,11 +18,13 @@ public:
 
 	void CheckCosts(class ACitizen* Citizen, class ABuilding* Building);
 
-	void AddBuildPercentage(class ACitizen* Citizen, class ABuilding* Building);
+	UFUNCTION()
+		void AddBuildPercentage(class ACitizen* Citizen, class ABuilding* Building);
 
 	void StartRepairTimer(class ACitizen* Citizen, class ABuilding* Building);
 
-	void Repair(class ACitizen* Citizen, class ABuilding* Building);
+	UFUNCTION()
+		void Repair(class ACitizen* Citizen, class ABuilding* Building);
 
 	void Done(class ACitizen* Citizen, class ABuilding* Building);
 

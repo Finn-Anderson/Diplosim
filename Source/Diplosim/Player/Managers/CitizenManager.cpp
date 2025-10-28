@@ -976,11 +976,14 @@ bool UCitizenManager::DoesTimerExist(FString ID, AActor* Actor)
 }
 
 #define SET_OBJECT(object) \
-	if (object->FindFunction(Timer->FuncName) != nullptr) \
-		return object;
+	function = object->FindFunction(Timer->FuncName); \
+	if (function != nullptr) \
+		return TTuple<UObject*, UFunction*>(object, function);
 
-UObject* UCitizenManager::GetFunctionOwner(FTimerStruct* Timer)
+TTuple<UObject*, UFunction*> UCitizenManager::GetFunction(FTimerStruct* Timer)
 {
+	UFunction* function = nullptr;
+
 	SET_OBJECT(Timer->Actor);
 
 	if (Timer->Actor->IsA<AAI>()) {
@@ -1021,15 +1024,14 @@ UObject* UCitizenManager::GetFunctionOwner(FTimerStruct* Timer)
 
 void UCitizenManager::CallTimerFunction(FTimerStruct* Timer)
 {
-	UObject* object = GetFunctionOwner(Timer);
-	UFunction* function = object->FindFunction(Timer->FuncName);
+	TTuple<UObject*, UFunction*> objFunc = GetFunction(Timer);
 
 	int32 count = 0;
 
-	uint8* buffer = (uint8*)FMemory_Alloca(function->ParmsSize);
-	FMemory::Memzero(buffer, function->ParmsSize);
+	uint8* buffer = (uint8*)FMemory_Alloca(objFunc.Value->ParmsSize);
+	FMemory::Memzero(buffer, objFunc.Value->ParmsSize);
 
-	for (TFieldIterator<FProperty> it(function); it && it->HasAnyPropertyFlags(CPF_Parm); ++it) {
+	for (TFieldIterator<FProperty> it(objFunc.Value); it && it->HasAnyPropertyFlags(CPF_Parm); ++it) {
 		FProperty* functionProperty = *it;
 		FString type = functionProperty->GetCPPType();
 
@@ -1047,7 +1049,7 @@ void UCitizenManager::CallTimerFunction(FTimerStruct* Timer)
 		SET_TYPE(TArray<FVector>);
 		SET_TYPE(FLinearColor);
 		SET_TYPE(bool);
-		SET_TYPE(FFactionStruct*);
+		SET_TYPE(FFactionStruct);
 		SET_TYPE(int32);
 		SET_TYPE(float);
 		SET_TYPE(TArray<FEarthquakeStruct>);
@@ -1059,14 +1061,12 @@ void UCitizenManager::CallTimerFunction(FTimerStruct* Timer)
 		count++;
 	}
 
-	FFrame stack(this, function, buffer, NULL, function->ChildProperties);
+	FFrame stack(objFunc.Key, objFunc.Value, buffer, NULL, objFunc.Value->ChildProperties);
 
-	const bool bHasReturnParam = function->ReturnValueOffset != MAX_uint16;
-	uint8* ReturnValueAddress = bHasReturnParam ? (buffer + function->ReturnValueOffset) : nullptr;
+	const bool bHasReturnParam = objFunc.Value->ReturnValueOffset != MAX_uint16;
+	uint8* ReturnValueAddress = bHasReturnParam ? (buffer + objFunc.Value->ReturnValueOffset) : nullptr;
 
-	function->Invoke(this, stack, nullptr);
-
-	//object->ProcessEvent(function, buffer);
+	objFunc.Value->Invoke(objFunc.Key, stack, nullptr);
 
 	Timer->bDone = true;
 }
@@ -1498,8 +1498,10 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 	});
 }
 
-void UCitizenManager::Interact(FFactionStruct* Faction, ACitizen* Citizen1, ACitizen* Citizen2)
+void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACitizen* Citizen2)
 {
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
+
 	Citizen1->bConversing = false;
 	Citizen2->bConversing = false;
 
@@ -1521,7 +1523,7 @@ void UCitizenManager::Interact(FFactionStruct* Faction, ACitizen* Citizen1, ACit
 		FVector midPoint = (Camera->GetTargetActorLocation(Citizen1) + Camera->GetTargetActorLocation(Citizen2)) / 2;
 		float distance = 1000;
 
-		for (ABuilding* building : Faction->Buildings) {
+		for (ABuilding* building : faction->Buildings) {
 			if (!building->IsA(PoliceStationClass) || building->GetCitizensAtBuilding().IsEmpty())
 				continue;
 
@@ -1564,7 +1566,7 @@ void UCitizenManager::Interact(FFactionStruct* Faction, ACitizen* Citizen1, ACit
 
 			int32 index = INDEX_NONE;
 
-			CreatePoliceReport(Faction, nullptr, Citizen1, EReportType::Fighting, index);
+			CreatePoliceReport(faction, nullptr, Citizen1, EReportType::Fighting, index);
 		}
 	}
 
@@ -1709,9 +1711,11 @@ void UCitizenManager::StopFighting(ACitizen* Citizen)
 	}
 }
 
-void UCitizenManager::InterrogateWitnesses(FFactionStruct* Faction, ACitizen* Officer, ACitizen* Citizen)
+void UCitizenManager::InterrogateWitnesses(FFactionStruct Faction, ACitizen* Officer, ACitizen* Citizen)
 {
-	for (FPoliceReport& report : Faction->Police.PoliceReports) {
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
+
+	for (FPoliceReport& report : faction->Police.PoliceReports) {
 		if (report.RespondingOfficer != Officer)
 			continue;
 
@@ -1870,11 +1874,13 @@ void UCitizenManager::Arrest(ACitizen* Officer, ACitizen* Citizen)
 	CreateTimer("Arrest", Citizen, 2.0f, "SetInNearestJail", params, false);
 }
 
-void UCitizenManager::SetInNearestJail(FFactionStruct* Faction, ACitizen* Officer, ACitizen* Citizen)
+void UCitizenManager::SetInNearestJail(FFactionStruct Faction, ACitizen* Officer, ACitizen* Citizen)
 {	
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
+
 	ABuilding* target = nullptr;
 
-	for (ABuilding* building : Faction->Buildings) {
+	for (ABuilding* building : faction->Buildings) {
 		if (!building->IsA(PoliceStationClass))
 			continue;
 
@@ -1897,7 +1903,7 @@ void UCitizenManager::SetInNearestJail(FFactionStruct* Faction, ACitizen* Office
 	Citizen->Building.BuildingAt = target;
 
 	Citizen->AIController->ChosenBuilding = target;
-	Citizen->AIController->Idle(Faction, Citizen);
+	Citizen->AIController->Idle(faction, Citizen);
 
 	FPartyStruct* party = GetMembersParty(Citizen);
 
@@ -1908,13 +1914,13 @@ void UCitizenManager::SetInNearestJail(FFactionStruct* Faction, ACitizen* Office
 		party->Members.Remove(Citizen);
 	}
 
-	if (Faction->Politics.Representatives.Contains(Citizen))
-		Faction->Politics.Representatives.Remove(Citizen);
+	if (faction->Politics.Representatives.Contains(Citizen))
+		faction->Politics.Representatives.Remove(Citizen);
 
 	if (!IsValid(Officer))
 		return;
 
-	for (FPoliceReport report : Faction->Police.PoliceReports) {
+	for (FPoliceReport report : faction->Police.PoliceReports) {
 		if (report.RespondingOfficer != Officer)
 			continue;
 
@@ -1927,7 +1933,7 @@ void UCitizenManager::SetInNearestJail(FFactionStruct* Faction, ACitizen* Office
 		else if (report.Type == EReportType::Protest)
 			law = "Protest Length";
 
-		Faction->Police.Arrested.Add(Citizen, GetLawValue(Faction->Name, law));
+		faction->Police.Arrested.Add(Citizen, GetLawValue(faction->Name, law));
 
 		break;
 	}
@@ -2559,16 +2565,18 @@ void UCitizenManager::StartElectionTimer(FFactionStruct* Faction)
 	CreateTimer(Faction->Name + " Election", Camera, timeToCompleteDay * GetLawValue(Faction->Name, "Election Timer"), "Election", params, false);
 }
 
-void UCitizenManager::Election(FFactionStruct* Faction)
+void UCitizenManager::Election(FFactionStruct Faction)
 {
-	Faction->Politics.Representatives.Empty();
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
+
+	faction->Politics.Representatives.Empty();
 
 	TMap<FString, TArray<ACitizen*>> tally;
 
-	int32 representativeType = GetLawValue(Faction->Name, "Representative Type");
-	int32 representatives = GetLawValue(Faction->Name, "Representatives");
+	int32 representativeType = GetLawValue(faction->Name, "Representative Type");
+	int32 representatives = GetLawValue(faction->Name, "Representatives");
 
-	for (FPartyStruct party : Faction->Politics.Parties) {
+	for (FPartyStruct party : faction->Politics.Parties) {
 		TArray<ACitizen*> citizens;
 
 		for (TPair<ACitizen*, TEnumAsByte<ESway>> pair : party.Members) {
@@ -2582,9 +2590,9 @@ void UCitizenManager::Election(FFactionStruct* Faction)
 	}
 
 	for (TPair<FString, TArray<ACitizen*>>& pair : tally) {
-		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)Faction->Citizens.Num() * 100.0f / representatives);
+		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)faction->Citizens.Num() * 100.0f / representatives);
 
-		if (number == 0 || Faction->Politics.Representatives.Num() == representatives)
+		if (number == 0 || faction->Politics.Representatives.Num() == representatives)
 			continue;
 
 		number -= 1;
@@ -2592,11 +2600,11 @@ void UCitizenManager::Election(FFactionStruct* Faction)
 		FPartyStruct partyStruct;
 		partyStruct.Party = pair.Key;
 
-		int32 index = Faction->Politics.Parties.Find(partyStruct);
+		int32 index = faction->Politics.Parties.Find(partyStruct);
 
-		FPartyStruct* party = &Faction->Politics.Parties[index];
+		FPartyStruct* party = &faction->Politics.Parties[index];
 
-		Faction->Politics.Representatives.Add(party->Leader);
+		faction->Politics.Representatives.Add(party->Leader);
 
 		pair.Value.Remove(party->Leader);
 
@@ -2608,16 +2616,16 @@ void UCitizenManager::Election(FFactionStruct* Faction)
 
 			ACitizen* citizen = pair.Value[value.Get()];
 
-			Faction->Politics.Representatives.Add(citizen);
+			faction->Politics.Representatives.Add(citizen);
 
 			pair.Value.Remove(citizen);
 
-			if (Faction->Politics.Representatives.Num() == representatives)
+			if (faction->Politics.Representatives.Num() == representatives)
 				break;
 		}
 	}
 
-	StartElectionTimer(Faction);
+	StartElectionTimer(faction);
 }
 
 void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
@@ -2739,23 +2747,25 @@ void UCitizenManager::SetupBill(FFactionStruct* Faction)
 	CreateTimer("Bill", Camera, 60, "MotionBill", params, false);
 }
 
-void UCitizenManager::MotionBill(FFactionStruct* Faction, FLawStruct Bill)
+void UCitizenManager::MotionBill(FFactionStruct Faction, FLawStruct Bill)
 {
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Bill]() {
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
+
 		int32 count = 1;
 
-		for (ACitizen* citizen : Faction->Politics.Representatives) {
-			if (Faction->Politics.Votes.For.Contains(citizen) || Faction->Politics.Votes.Against.Contains(citizen))
+		for (ACitizen* citizen : faction->Politics.Representatives) {
+			if (faction->Politics.Votes.For.Contains(citizen) || faction->Politics.Votes.Against.Contains(citizen))
 				continue;
 
 			FTimerHandle verdictTimer;
-			GetWorld()->GetTimerManager().SetTimer(verdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, Faction, citizen, Bill, false, false), 0.1f * count, false);
+			GetWorld()->GetTimerManager().SetTimer(verdictTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::GetVerdict, faction, citizen, Bill, false, false), 0.1f * count, false);
 
 			count++;
 		}
 
 		FTimerHandle tallyTimer;
-		GetWorld()->GetTimerManager().SetTimer(tallyTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::TallyVotes, Faction, Bill), 0.1f * count + 0.1f, false);
+		GetWorld()->GetTimerManager().SetTimer(tallyTimer, FTimerDelegate::CreateUObject(this, &UCitizenManager::TallyVotes, faction, Bill), 0.1f * count + 0.1f, false);
 	});
 }
 
@@ -2868,7 +2878,7 @@ void UCitizenManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 			CreateTimer("Abolish", Camera, 6.0f, "TakeHealth", params, false);
 		}
 		else if (Faction->Politics.Laws[index].BillType == "Election") {
-			Election(Faction);
+			Election(*Faction);
 		}
 		else {
 			Faction->Politics.Laws[index].Value = Bill.Value;
@@ -3058,7 +3068,7 @@ void UCitizenManager::Pray(FString FactionName)
 		return;
 	}
 
-	IncrementPray(faction, "Good", 1);
+	IncrementPray(*faction, "Good", 1);
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
@@ -3070,12 +3080,14 @@ void UCitizenManager::Pray(FString FactionName)
 	CreateTimer("Pray", Camera, timeToCompleteDay, "IncrementPray", params, false);
 }
 
-void UCitizenManager::IncrementPray(FFactionStruct* Faction, FString Type, int32 Increment)
+void UCitizenManager::IncrementPray(FFactionStruct Faction, FString Type, int32 Increment)
 {
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
+
 	if (Type == "Good")
-		Faction->PrayStruct.Good = FMath::Max(Faction->PrayStruct.Good + Increment, 0);
+		faction->PrayStruct.Good = FMath::Max(faction->PrayStruct.Good + Increment, 0);
 	else
-		Faction->PrayStruct.Bad = FMath::Max(Faction->PrayStruct.Bad + Increment, 0);
+		faction->PrayStruct.Bad = FMath::Max(faction->PrayStruct.Bad + Increment, 0);
 }
 
 int32 UCitizenManager::GetPrayCost(FString FactionName)
@@ -3118,7 +3130,7 @@ void UCitizenManager::Sacrifice(FString FactionName)
 
 	CreateTimer("Sacrifice", citizen, 4.0f, "TakeHealth", params1, false);
 
-	IncrementPray(faction, "Bad", 1);
+	IncrementPray(*faction, "Bad", 1);
 
 	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
