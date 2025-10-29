@@ -5,6 +5,8 @@
 #include "Map/Grid.h"
 #include "Universal/Resource.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Buildings/Work/Work.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "DiplosimSaveGame.generated.h"
 
 USTRUCT()
@@ -29,6 +31,49 @@ struct FHISMData
 	bool operator==(const FHISMData& other) const
 	{
 		return (other.Name == Name);
+	}
+};
+
+USTRUCT()
+struct FAtmosphereData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FCalendarStruct Calendar;
+
+	UPROPERTY()
+		FRotator WindRotation;
+
+	UPROPERTY()
+		bool bRedSun;
+
+	FAtmosphereData()
+	{
+		WindRotation = FRotator::ZeroRotator;
+		bRedSun = false;
+	}
+};
+
+USTRUCT()
+struct FCloudsData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCloudsData()
+	{
+
+	}
+};
+
+USTRUCT()
+struct FNaturalDisasterData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FNaturalDisasterData()
+	{
+
 	}
 };
 
@@ -122,6 +167,15 @@ struct FWorldSaveData
 	UPROPERTY()
 		TArray<FVector> LavaSpawnLocations;
 
+	UPROPERTY()
+		FAtmosphereData AtmosphereData;
+
+	UPROPERTY()
+		FCloudsData	CloudsData;
+
+	UPROPERTY()
+		FNaturalDisasterData NaturalDisasterData;
+
 	FWorldSaveData()
 	{
 		Stream = FRandomStream();
@@ -131,13 +185,89 @@ struct FWorldSaveData
 };
 
 USTRUCT()
+struct FOccupantData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString OccupantName;
+
+	UPROPERTY()
+		TArray<FString> VisitorNames;
+
+	FOccupantData()
+	{
+		OccupantName = "";
+	}
+};
+
+USTRUCT()
+struct FBuildingData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString FactionName;
+
+	UPROPERTY()
+		int32 Capacity;
+
+	UPROPERTY()
+		int32 Seed;
+
+	UPROPERTY()
+		FLinearColor ChosenColour;
+
+	UPROPERTY()
+		int32 Tier;
+
+	UPROPERTY()
+		UStaticMesh* ActualMesh;
+
+	UPROPERTY()
+		TArray<FSocketStruct> SocketList;
+
+	UPROPERTY()
+		TArray<FItemStruct> Storage;
+
+	UPROPERTY()
+		TArray<FBasketStruct> Basket;
+
+	UPROPERTY()
+		double DeathTime;
+
+	UPROPERTY()
+		bool bOperate;
+
+	UPROPERTY()
+		TArray<FWorkHoursStruct> WorkHours;
+
+	UPROPERTY()
+		TArray<FOccupantData> OccupantsData;
+
+	FBuildingData()
+	{
+		FactionName = "";
+		Capacity = 0;
+		Seed = 0;
+		ChosenColour = FLinearColor();
+		Tier = 1;
+		ActualMesh = nullptr;
+		DeathTime = 0.0f;
+		bOperate = true;
+	}
+};
+
+USTRUCT()
 struct FAIData
 {
 	GENERATED_USTRUCT_BODY()
 
+	ACitizen* Citizen;
+
 	FAIData()
 	{
-
+		Citizen = nullptr;
 	}
 };
 
@@ -160,6 +290,9 @@ struct FActorSaveData
 
 	UPROPERTY()
 		FResourceData ResourceData;
+
+	UPROPERTY()
+		FBuildingData BuildingData;
 
 	UPROPERTY()
 		FAIData AIData;
@@ -196,6 +329,9 @@ struct FSave
 
 	UPROPERTY()
 		bool bAutosave;
+
+	UPROPERTY()
+		TArray<FFactionStruct> Factions;
 
 	UPROPERTY()
 		TArray<FActorSaveData> SavedActors;

@@ -343,8 +343,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		TMap<FName, EAnim> AnimSockets;
 
-	FTimerHandle CostTimer;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		int32 Capacity;
 

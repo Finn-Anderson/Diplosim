@@ -14,6 +14,7 @@
 #include "Universal/EggBasket.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "AI/Citizen.h"
 
 USaveGameComponent::USaveGameComponent()
 {
@@ -37,11 +38,25 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 {
 	TArray<FActorSaveData> allNewActorData;
 
-	for (FActorIterator it(GetWorld()); it; ++it)
-	{
-		AActor* actor = *it;
+	TArray<AActor*> foundActors;
 
-		if (actor->IsPendingKillPending())
+	TArray<AActor*> actors = { Camera, Camera->Grid };
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AResource::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEggBasket::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AAI::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	for (AActor* actor : actors)
+	{
+		if (!IsValid(actor) || actor->IsPendingKillPending())
 			continue;
 
 		FActorSaveData actorData;
@@ -98,6 +113,8 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 				actorData.WorldSaveData.HISMData.Add(data);
 			}
+			
+			// Do for atmosphere, clouds and natural disaster components;
 		}
 		else if (actor->IsA<AResource>()) {
 			AResource* resource = Cast<AResource>(actor);
@@ -115,6 +132,40 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			actorData.ResourceData.HISMData.CustomDataValues = resource->ResourceHISM->PerInstanceSMCustomData;
 
 			actorData.ResourceData.Workers = resource->WorkerStruct;
+		}
+		else if (actor->IsA<ABuilding>()) {
+			ABuilding* building = Cast<ABuilding>(actor);
+
+			actorData.BuildingData.FactionName = building->FactionName;
+			actorData.BuildingData.Capacity = building->Capacity;
+
+			actorData.BuildingData.Seed = building->SeedNum;
+			actorData.BuildingData.ChosenColour = building->ChosenColour;
+			actorData.BuildingData.Tier = building->Tier;
+			actorData.BuildingData.ActualMesh = building->ActualMesh;
+
+			actorData.BuildingData.Storage = building->Storage;
+			actorData.BuildingData.Basket = building->Basket;
+
+			actorData.BuildingData.DeathTime = building->DeathTime;
+			actorData.BuildingData.bOperate = building->bOperate;
+
+			if (IsA<AWork>())
+				actorData.BuildingData.WorkHours = Cast<AWork>(building)->WorkHours;
+
+			TArray<FOccupantData> occData;
+
+			for (FOccupantStruct occupant : building->Occupied) {
+				FOccupantData occupantData;
+				occupantData.OccupantName = occupant.Occupant->GetName();
+
+				for (ACitizen* visitor : occupant.Visitors)
+					occupantData.VisitorNames.Add(visitor->GetName());
+
+				occData.Add(occupantData);
+			}
+
+			actorData.BuildingData.OccupantsData = occData;
 		}
 
 		for (FTimerStruct timer : Camera->CitizenManager->Timers)
@@ -164,20 +215,37 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	for (FTimerStruct timer : Camera->CitizenManager->Timers)
 		Camera->CitizenManager->RemoveTimer(timer.ID, timer.Actor);
 
-	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
-		TArray<AActor*> foundActors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), actorData.Class, foundActors);
+	Camera->ConquestManager->Factions = CurrentSaveGame->Saves[Index].Factions;
 
+	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+		faction.Buildings.Empty();
+		faction.Citizens.Empty();
+		faction.Rebels.Empty();
+		faction.Clones.Empty();
+	}
+
+	TArray<AActor*> actors;
+	TArray<AActor*> foundActors;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AAI::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEggBasket::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	for (AActor* a : actors)
+		a->Destroy();
+
+	TMap<FString, FAIData> citizenToName;
+
+	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
 		AActor* actor = nullptr;
 
-		for (AActor* a : foundActors) {
-			if (a->IsA<AEggBasket>() || a->IsA<AAI>() || a->IsA<ABuilding>()) {
-				a->Destroy();
-
-				continue;
-			}
-
-			if (a->GetName() != actorData.Name)
+		if (foundActors.Num() == 1) {
+			if (foundActors[0]->GetName() != actorData.Name)
 				continue;
 
 			actor = foundActors[0];
@@ -237,6 +305,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				hism->BuildTreeIfOutdated(true, true);
 			}
 
+			// Do for atmosphere, clouds and natural disaster components;
+
 			grid->SetupEnvironment(true);
 		}
 		else if (actor->IsA<AResource>()) {
@@ -267,6 +337,63 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			camera->Detach();
 			camera->MovementComponent->TargetLength = 3000.0f;
+		}
+		else if (actor->IsA<ABuilding>()) {
+			ABuilding* building = Cast<ABuilding>(actor);
+
+			building->FactionName = actorData.BuildingData.FactionName;
+			Camera->ConquestManager->GetFaction(building->FactionName)->Buildings.Add(building);
+
+			building->SetSeed(actorData.BuildingData.Seed);
+			building->SetTier(actorData.BuildingData.Tier);
+
+			building->Capacity = actorData.BuildingData.Capacity;
+
+			FLinearColor colour = actorData.BuildingData.ChosenColour;
+			building->SetBuildingColour(colour.R, colour.G, colour.B);
+
+			building->ActualMesh = actorData.BuildingData.ActualMesh;
+			// if construction manager contains building, set mesh to box.
+
+			building->Storage = actorData.BuildingData.Storage;
+			building->Basket = actorData.BuildingData.Basket;
+
+			building->DeathTime = actorData.BuildingData.DeathTime;
+			building->bOperate = actorData.BuildingData.bOperate;
+
+			if (IsA<AWork>())
+				Cast<AWork>(building)->WorkHours = actorData.BuildingData.WorkHours;
+
+			for (FOccupantData data : actorData.BuildingData.OccupantsData) {
+				// Check data for if building name is that same as this building name for if building at. Then set buildings to this.
+
+				FAIData citizenData = *citizenToName.Find(data.OccupantName);
+
+				FOccupantStruct occupant;
+				occupant.Occupant = citizenData.Citizen;
+
+				for (FString name : data.VisitorNames) {
+					FAIData visitorData = *citizenToName.Find(name);
+
+					occupant.Visitors.Add(visitorData.Citizen);
+				}
+
+				building->Occupied.Add(occupant);
+			}
+
+			TArray<FOccupantData> occData;
+
+			for (FOccupantStruct occupant : building->Occupied) {
+				FOccupantData occupantData;
+				occupantData.OccupantName = occupant.Occupant->GetName();
+
+				for (ACitizen* visitor : occupant.Visitors)
+					occupantData.VisitorNames.Add(visitor->GetName());
+
+				occData.Add(occupantData);
+			}
+
+			actorData.BuildingData.OccupantsData = occData;
 		}
 
 		for (FTimerStruct timer : actorData.SavedTimers) {
@@ -341,7 +468,9 @@ void USaveGameComponent::CreateNewSaveStruct(FString Name, bool bAutosave, TArra
 	if (Name == "")
 		save.SaveName = FDateTime::Now().ToString();
 
-	//save.SavedActors = NewActorData;
+	save.Factions = Camera->ConquestManager->Factions;
+	save.SavedActors = NewActorData;
+
 	save.bAutosave = bAutosave;
 
 	CurrentSaveGame->Saves.Add(save);
