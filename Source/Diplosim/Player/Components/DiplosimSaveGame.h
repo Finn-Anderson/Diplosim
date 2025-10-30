@@ -56,13 +56,78 @@ struct FAtmosphereData
 };
 
 USTRUCT()
+struct FWetnessData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FVector Location;
+
+	UPROPERTY()
+		float Value;
+
+	UPROPERTY()
+		float Increment;
+
+	FWetnessData()
+	{
+		Location = FVector::Zero();
+		Value = -1.0f;
+		Increment = 0.0f;
+	}
+};
+
+USTRUCT()
+struct FCloudData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FTransform Transform;
+
+	UPROPERTY()
+		double Distance;
+
+	UPROPERTY()
+		bool bPrecipitation;
+
+	UPROPERTY()
+		bool bHide;
+
+	UPROPERTY()
+		float lightningTimer;
+
+	UPROPERTY()
+		float lightningFrequency;
+
+	FCloudData()
+	{
+		Transform = FTransform();
+		Distance = 0.0f;
+		bPrecipitation = false;
+		bHide = false;
+		lightningTimer = 0.0f;
+		lightningFrequency = 0.0f;
+	}
+};
+
+USTRUCT()
 struct FCloudsData
 {
 	GENERATED_USTRUCT_BODY()
 
+	UPROPERTY()
+		TArray<FWetnessData> WetnessData;
+
+	UPROPERTY()
+		TArray<FCloudData> CloudData;
+
+	UPROPERTY()
+		bool bSnow;
+
 	FCloudsData()
 	{
-
+		bSnow = false;
 	}
 };
 
@@ -71,9 +136,20 @@ struct FNaturalDisasterData
 {
 	GENERATED_USTRUCT_BODY()
 
+	UPROPERTY()
+		float bDisasterChance;
+
+	UPROPERTY()
+		float Intensity;
+
+	UPROPERTY()
+		float Frequency;
+
 	FNaturalDisasterData()
 	{
-
+		bDisasterChance = 0.0f;
+		Intensity = 1.0f;
+		Frequency = 1.0f;
 	}
 };
 
@@ -245,6 +321,9 @@ struct FBuildingData
 	UPROPERTY()
 		TArray<FOccupantData> OccupantsData;
 
+	UPROPERTY()
+		int32 BuildPercentage;
+
 	FBuildingData()
 	{
 		FactionName = "";
@@ -255,6 +334,7 @@ struct FBuildingData
 		ActualMesh = nullptr;
 		DeathTime = 0.0f;
 		bOperate = true;
+		BuildPercentage = 0;
 	}
 };
 
@@ -265,9 +345,13 @@ struct FAIData
 
 	ACitizen* Citizen;
 
+	UPROPERTY()
+		FString BuildingAtName;
+
 	FAIData()
 	{
 		Citizen = nullptr;
+		BuildingAtName = "";
 	}
 };
 

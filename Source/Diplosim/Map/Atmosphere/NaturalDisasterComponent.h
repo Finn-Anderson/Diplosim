@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Map/Grid.h"
 #include "Components/ActorComponent.h"
 #include "NaturalDisasterComponent.generated.h"
 
@@ -42,6 +43,8 @@ public:
 	void ResetDisasterChance();
 
 	void GenerateEarthquake(float Magnitude);
+
+	TArray<FTileStruct> GetEarthquakePoints(float Magnitude);
 
 	UFUNCTION()
 		void CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStruct, float Range, float Magnitude);

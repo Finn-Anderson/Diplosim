@@ -61,9 +61,18 @@ void UNaturalDisasterComponent::ResetDisasterChance()
 
 void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 {
+	float range = 500.0f * Magnitude;
+
+	TArray<FTimerParameterStruct> params;
+	Grid->Camera->CitizenManager->SetParameter(range, params);
+	Grid->Camera->CitizenManager->SetParameter(Magnitude, params);
+	Grid->Camera->CitizenManager->CreateTimer("Earthquake", Grid, 4.0f * Magnitude, "CalculateEarthquakeDamage", params, true);
+}
+
+TArray<FTileStruct> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitude)
+{
 	int32 bounds = Grid->Storage.Num() - 1;
 	int32 distance = Magnitude * 5;
-	float range = 500.0f * Magnitude;
 
 	int32 iX = Grid->Stream.RandRange(0, bounds);
 	int32 iY = Grid->Stream.RandRange(0, bounds);
@@ -128,6 +137,11 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 		t += 0.02f;
 	}
 
+	return points;
+}
+
+void UNaturalDisasterComponent::CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStructs, float Range, float Magnitude)
+{
 	TArray<FEarthquakeStruct> earthquakeStructs;
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
@@ -143,11 +157,11 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 
 	TArray<AActor*> actors;
 
-	for (FTileStruct tile : points) {
+	for (FTileStruct tile : GetEarthquakePoints(Magnitude)) {
 		FEarthquakeStruct estruct;
 		estruct.Point = Grid->GetTransform(&tile).GetLocation();
 
-		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), estruct.Point, range, objects, nullptr, ignore, actors);
+		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), estruct.Point, Range, objects, nullptr, ignore, actors);
 
 		for (AActor* actor : actors) {
 			if (!actor->IsA<ABuilding>() || IsProtected(actor->GetActorLocation()))
@@ -161,15 +175,6 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 		earthquakeStructs.Add(estruct);
 	}
 
-	TArray<FTimerParameterStruct> params;
-	Grid->Camera->CitizenManager->SetParameter(earthquakeStructs, params);
-	Grid->Camera->CitizenManager->SetParameter(range, params);
-	Grid->Camera->CitizenManager->SetParameter(Magnitude, params);
-	Grid->Camera->CitizenManager->CreateTimer("Earthquake", Grid, 4.0f * Magnitude, "CalculateEarthquakeDamage", params, true);
-}
-
-void UNaturalDisasterComponent::CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStructs, float Range, float Magnitude)
-{
 	for (FEarthquakeStruct estruct : EarthquakeStructs) {
 		for (auto& element : estruct.BuildingsInRange) {
 			int32 damage = FMath::Max(1.0f, element.Value / Range / 10.0f * Magnitude);
@@ -215,14 +220,14 @@ void UNaturalDisasterComponent::AlterSunGradually(float Target, float Increment)
 {
 	FLinearColor colour = Grid->AtmosphereComponent->Sun->GetLightColor();
 
-	if (colour.G == Target)
-		return;
-
 	colour.G = FMath::Clamp(colour.G + Increment, 0.15f, 1.0f);
 	colour.B = FMath::Clamp(colour.B + Increment, 0.15f, 1.0f);
 
 	Grid->AtmosphereComponent->Sun->SetLightColor(colour);
 	Grid->AtmosphereComponent->Moon->SetLightColor(colour);
+
+	if (colour.G == Target)
+		return;
 	
 	FTimerHandle sunChangeTimer;
 	GetWorld()->GetTimerManager().SetTimer(sunChangeTimer, FTimerDelegate::CreateUObject(this, &UNaturalDisasterComponent::AlterSunGradually, Target, Increment), 0.02f, false);

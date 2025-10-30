@@ -177,17 +177,6 @@ void UCloudComponent::ActivateCloud()
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);
 	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
 
-	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(0, 0.0f);
-
-	float colour = 0.95f;
-	if (chance > 75)
-		colour = 0.1f;
-
-	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(1, colour);
-	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(2, colour);
-	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(3, colour);
-	cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(4, 0.9f);
-
 	Clouds.Add(cloudStruct);
 
 	int32 time = Grid->Stream.RandRange(45.0f, 360.0f);
@@ -195,7 +184,7 @@ void UCloudComponent::ActivateCloud()
 	Grid->Camera->CitizenManager->CreateTimer("Cloud", Grid, time, "ActivateCloud", {}, false, true);
 }
 
-FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
+FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bool bLoad)
 {
 	UHierarchicalInstancedStaticMeshComponent* cloud = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass());
 	cloud->SetStaticMesh(CloudMesh);
@@ -209,9 +198,6 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	cloud->PrimaryComponentTick.bCanEverTick = false;
 	cloud->bAutoRebuildTreeOnInstanceChanges = false;
 	cloud->RegisterComponent();
-
-	FCloudStruct cloudStruct;
-	cloudStruct.HISMCloud = cloud;
 
 	TArray<FVector> locations;
 	TArray<FTransform> transforms;
@@ -236,12 +222,28 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 	}
 
 	cloud->AddInstances(transforms, false, false, false);
+
+	cloud->SetCustomPrimitiveDataFloat(0, 0.0f);
+
+	float colour = 0.95f;
+	if (Chance > 75)
+		colour = 0.1f;
+
+	cloud->SetCustomPrimitiveDataFloat(1, colour);
+	cloud->SetCustomPrimitiveDataFloat(2, colour);
+	cloud->SetCustomPrimitiveDataFloat(3, colour);
+	cloud->SetCustomPrimitiveDataFloat(4, 0.9f);
+
 	cloud->BuildTreeIfOutdated(true, true);
+
+	FCloudStruct cloudStruct;
+	cloudStruct.HISMCloud = cloud;
 
 	if (Chance <= 75)
 		return cloudStruct;
 
 	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
+	precipitation->SetVariableVec3(TEXT("CloudLocation"), cloud->GetRelativeLocation());
 	precipitation->SetVariableObject(TEXT("Callback"), Grid);
 
 	float spawnRate = 0.0f;
@@ -270,7 +272,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance)
 
 	cloudStruct.Precipitation = precipitation;
 
-	if (NaturalDisasterComponent->ShouldCreateDisaster()) {
+	if (!bLoad && NaturalDisasterComponent->ShouldCreateDisaster()) {
 		cloudStruct.lightningFrequency = Grid->Stream.FRandRange(0.5f, 10.0f) / NaturalDisasterComponent->Intensity;
 
 		NaturalDisasterComponent->ResetDisasterChance();
@@ -319,7 +321,7 @@ void UCloudComponent::UpdateSpawnedClouds()
 	}
 }
 
-void UCloudComponent::RainCollisionHandler(FVector CollisionLocation)
+void UCloudComponent::RainCollisionHandler(FVector CollisionLocation, float Value, float Increment)
 {
 	FHitResult hit(ForceInit);
 
@@ -342,7 +344,14 @@ void UCloudComponent::RainCollisionHandler(FVector CollisionLocation)
 		if (IsValid(rainDrop.HISM) && rainDrop.HISM->NumCustomDataFloats == 0)
 			return;
 
-		ProcessRainEffect.Add(rainDrop);
+		if (Value > -1.0f) {
+			FWetnessStruct wetness;
+			wetness.Create(Value, rainDrop.Actor, rainDrop.HISM, rainDrop.Instance, Increment);
+
+			WetnessStruct.Add(wetness);
+		}
+		else
+			ProcessRainEffect.Add(rainDrop);
 	}
 }
 
@@ -387,12 +396,13 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 	WetnessStruct.Add(wetness);
 }
 
-void UCloudComponent::SetGradualWetness()
+void UCloudComponent::SetGradualWetness(bool bLoad)
 {
 	TArray<UHierarchicalInstancedStaticMeshComponent*> hismsToUpdate;
 
 	for (int32 i = (WetnessStruct.Num() - 1); i > -1; i--) {
-		WetnessStruct[i].Value += WetnessStruct[i].Increment;
+		if (!bLoad)
+			WetnessStruct[i].Value += WetnessStruct[i].Increment;
 
 		if (WetnessStruct[i].Actor != nullptr) {
 			UStaticMeshComponent* meshComp = nullptr;

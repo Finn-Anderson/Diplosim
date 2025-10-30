@@ -45,4 +45,7 @@ public:
 	void StartAutosaveTimer();
 
 	void UpdateAutosave(int32 NewTime);
+
+	// Save Setup
+	void SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FAIData CitizenData, bool bVisitor);
 };

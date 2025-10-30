@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Player/Camera.h"
-#include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Universal/DiplosimUniversalTypes.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Components/ActorComponent.h"
@@ -33,9 +32,6 @@ struct FTimerParameterStruct
 
 	UPROPERTY()
 		float Value;
-
-	UPROPERTY()
-		TArray<FEarthquakeStruct> EarthquakeStructs;
 
 	UPROPERTY()
 		FString String;
@@ -275,8 +271,6 @@ public:
 			return Timer->Parameters[Index].Faction;
 		else if constexpr (std::is_same_v<T, int32> || std::is_same_v<T, float>)
 			return Timer->Parameters[Index].Value;
-		else if constexpr (std::is_same_v<T, TArray<FEarthquakeStruct>>)
-			return Timer->Parameters[Index].EarthquakeStructs;
 		else if constexpr (std::is_same_v<T, FString>)
 			return Timer->Parameters[Index].String;
 		else if constexpr (std::is_same_v<T, FGuid>)
@@ -310,8 +304,6 @@ public:
 			param.Faction = Value;
 		else if constexpr (std::is_same_v<T, int32> || std::is_same_v<T, float>)
 			param.Value = Value;
-		else if constexpr (std::is_same_v<T, TArray<FEarthquakeStruct>>)
-			param.EarthquakeStructs = Value;
 		else if constexpr (std::is_same_v<T, FString> || std::is_same_v<T, const char*>)
 			param.String = Value;
 		else if constexpr (std::is_same_v<T, FGuid>)

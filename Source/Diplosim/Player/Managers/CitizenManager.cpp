@@ -1052,7 +1052,6 @@ void UCitizenManager::CallTimerFunction(FTimerStruct* Timer)
 		SET_TYPE(FFactionStruct);
 		SET_TYPE(int32);
 		SET_TYPE(float);
-		SET_TYPE(TArray<FEarthquakeStruct>);
 		SET_TYPE(FString);
 		SET_TYPE(FGuid);
 		SET_TYPE(FLawStruct);

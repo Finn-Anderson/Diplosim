@@ -14,7 +14,10 @@
 #include "Universal/EggBasket.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
+#include "Map/Atmosphere/Clouds.h"
 #include "AI/Citizen.h"
+#include "Buildings/Work/Service/Builder.h"
 
 USaveGameComponent::USaveGameComponent()
 {
@@ -41,18 +44,21 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 	TArray<AActor*> foundActors;
 
 	TArray<AActor*> actors = { Camera, Camera->Grid };
+	TArray<AActor*> potentialWetActors;
 
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AResource::StaticClass(), foundActors);
 	actors.Append(foundActors);
 
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEggBasket::StaticClass(), foundActors);
 	actors.Append(foundActors);
+	potentialWetActors.Append(foundActors);
 
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AAI::StaticClass(), foundActors);
 	actors.Append(foundActors);
 
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), foundActors);
 	actors.Append(foundActors);
+	potentialWetActors.Append(foundActors);
 
 	for (AActor* actor : actors)
 	{
@@ -95,8 +101,12 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			}
 
 			actorData.WorldSaveData.HISMData.Empty();
+			actorData.WorldSaveData.CloudsData.WetnessData.Empty();
+			actorData.WorldSaveData.CloudsData.CloudData.Empty();
 
 			TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea, grid->HISMWall };
+
+			UCloudComponent* clouds = grid->AtmosphereComponent->Clouds;
 
 			for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
 				FHISMData data;
@@ -107,14 +117,68 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 					hism->GetInstanceTransform(i, transform);
 
 					data.Transforms.Add(transform);
+
+					if (hism == grid->HISMLava || hism == grid->HISMRiver || hism == grid->HISMWall)
+						continue;
+
+					FWetnessStruct wetnessStruct;
+					wetnessStruct.HISM = hism;
+					wetnessStruct.Instance = i;
+
+					int32 index = clouds->WetnessStruct.Find(wetnessStruct);
+
+					if (index == INDEX_NONE)
+						continue;
+
+					FWetnessData wetnessData;
+					wetnessData.Location = transform.GetLocation();
+					wetnessData.Value = clouds->WetnessStruct[index].Value;
+					wetnessData.Increment = clouds->WetnessStruct[index].Increment;
+
+					actorData.WorldSaveData.CloudsData.WetnessData.Add(wetnessData);
 				}
 				
 				data.CustomDataValues = hism->PerInstanceSMCustomData;
 
 				actorData.WorldSaveData.HISMData.Add(data);
 			}
-			
-			// Do for atmosphere, clouds and natural disaster components;
+
+			actorData.WorldSaveData.AtmosphereData.Calendar = grid->AtmosphereComponent->Calendar;
+			actorData.WorldSaveData.AtmosphereData.bRedSun = grid->AtmosphereComponent->bRedSun;
+			actorData.WorldSaveData.AtmosphereData.WindRotation = grid->AtmosphereComponent->WindRotation;
+
+			actorData.WorldSaveData.NaturalDisasterData.bDisasterChance = grid->AtmosphereComponent->NaturalDisasterComponent->bDisasterChance;
+			actorData.WorldSaveData.NaturalDisasterData.Frequency = grid->AtmosphereComponent->NaturalDisasterComponent->Frequency;
+			actorData.WorldSaveData.NaturalDisasterData.Intensity = grid->AtmosphereComponent->NaturalDisasterComponent->Intensity;
+
+			for (AActor* a : potentialWetActors) {
+				FWetnessStruct wetnessStruct;
+				wetnessStruct.Actor = a;
+
+				int32 index = clouds->WetnessStruct.Find(wetnessStruct);
+
+				if (index == INDEX_NONE)
+					continue;
+
+				FWetnessData wetnessData;
+				wetnessData.Location = a->GetActorLocation();
+				wetnessData.Value = clouds->WetnessStruct[index].Value;
+				wetnessData.Increment = clouds->WetnessStruct[index].Increment;
+
+				actorData.WorldSaveData.CloudsData.WetnessData.Add(wetnessData);
+			}
+
+			for (FCloudStruct cloud : Camera->Grid->AtmosphereComponent->Clouds->Clouds) {
+				FCloudData data;
+				data.Transform = cloud.HISMCloud->GetRelativeTransform();
+				data.Distance = cloud.Distance;
+				data.bPrecipitation = cloud.Precipitation != nullptr;
+				data.bHide = cloud.bHide;
+				data.lightningFrequency = cloud.lightningFrequency;
+				data.lightningTimer = cloud.lightningTimer;
+
+				actorData.WorldSaveData.CloudsData.CloudData.Add(data);
+			}
 		}
 		else if (actor->IsA<AResource>()) {
 			AResource* resource = Cast<AResource>(actor);
@@ -150,8 +214,12 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			actorData.BuildingData.DeathTime = building->DeathTime;
 			actorData.BuildingData.bOperate = building->bOperate;
 
-			if (IsA<AWork>())
+			if (IsA<AWork>()) {
 				actorData.BuildingData.WorkHours = Cast<AWork>(building)->WorkHours;
+
+				if (building->IsA<ABuilder>())
+					 actorData.BuildingData.BuildPercentage = Cast<ABuilder>(building)->BuildPercentage;
+			}
 
 			TArray<FOccupantData> occData;
 
@@ -240,6 +308,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		a->Destroy();
 
 	TMap<FString, FAIData> citizenToName;
+	TArray<FWetnessData> wetnessData;
 
 	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
 		AActor* actor = nullptr;
@@ -305,7 +374,28 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				hism->BuildTreeIfOutdated(true, true);
 			}
 
-			// Do for atmosphere, clouds and natural disaster components;
+			grid->AtmosphereComponent->Calendar = actorData.WorldSaveData.AtmosphereData.Calendar;
+			grid->AtmosphereComponent->bRedSun = actorData.WorldSaveData.AtmosphereData.bRedSun;
+			grid->AtmosphereComponent->WindRotation = actorData.WorldSaveData.AtmosphereData.WindRotation;
+
+			if (grid->AtmosphereComponent->bRedSun)
+				grid->AtmosphereComponent->NaturalDisasterComponent->AlterSunGradually(0.15f, -1.00f);
+
+			Camera->Grid->AtmosphereComponent->Clouds->ProcessRainEffect.Empty();
+			Camera->Grid->AtmosphereComponent->Clouds->WetnessStruct.Empty();
+			wetnessData = actorData.WorldSaveData.CloudsData.WetnessData;
+
+			Camera->Grid->AtmosphereComponent->Clouds->Clear();
+			
+			for (FCloudData data : actorData.WorldSaveData.CloudsData.CloudData) {
+				FCloudStruct cloudStruct = Camera->Grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0);
+				cloudStruct.Distance = data.Distance;
+				cloudStruct.bHide = data.bHide;
+				cloudStruct.lightningFrequency = data.lightningFrequency;
+				cloudStruct.lightningTimer = data.lightningTimer;
+
+				Camera->Grid->AtmosphereComponent->Clouds->Clouds.Add(cloudStruct);
+			}
 
 			grid->SetupEnvironment(true);
 		}
@@ -361,13 +451,17 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			building->DeathTime = actorData.BuildingData.DeathTime;
 			building->bOperate = actorData.BuildingData.bOperate;
 
-			if (IsA<AWork>())
+			if (building->IsA<AWork>()) {
 				Cast<AWork>(building)->WorkHours = actorData.BuildingData.WorkHours;
 
-			for (FOccupantData data : actorData.BuildingData.OccupantsData) {
-				// Check data for if building name is that same as this building name for if building at. Then set buildings to this.
+				if (building->IsA<ABuilder>())
+					Cast<ABuilder>(building)->BuildPercentage = actorData.BuildingData.BuildPercentage;
+			}
 
+			for (FOccupantData data : actorData.BuildingData.OccupantsData) {
 				FAIData citizenData = *citizenToName.Find(data.OccupantName);
+
+				SetupCitizenBuilding(actorData.Name, building, citizenData, false);
 
 				FOccupantStruct occupant;
 				occupant.Occupant = citizenData.Citizen;
@@ -376,6 +470,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 					FAIData visitorData = *citizenToName.Find(name);
 
 					occupant.Visitors.Add(visitorData.Citizen);
+
+					SetupCitizenBuilding(actorData.Name, building, visitorData, true);
 				}
 
 				building->Occupied.Add(occupant);
@@ -402,6 +498,9 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			Camera->CitizenManager->Timers.AddTail(timer);
 		}
 	}
+
+	for (FWetnessData data : wetnessData)
+		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(data.Location, data.Value, data.Increment);
 
 	Camera->BuildUIInstance->AddToViewport();
 
@@ -530,4 +629,19 @@ void USaveGameComponent::UpdateAutosave(int32 NewTime)
 		else if (NewTime - timer->Timer > 0.0f)
 			timer->Target = NewTime;
 	}
+}
+
+void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FAIData CitizenData, bool bVisitor)
+{
+	if (Building->IsA<AHouse>())
+		CitizenData.Citizen->Building.House = Cast<AHouse>(Building);
+	else if (Building->IsA<AOrphanage>() && bVisitor)
+		CitizenData.Citizen->Building.Orphanage = Cast<AOrphanage>(Building);
+	else if (Building->IsA<ASchool>() && bVisitor)
+		CitizenData.Citizen->Building.School = Cast<ASchool>(Building);
+	else
+		CitizenData.Citizen->Building.Employment = Cast<AWork>(Building);
+
+	if (CitizenData.BuildingAtName == BuildingName)
+		Building->Enter(CitizenData.Citizen);
 }

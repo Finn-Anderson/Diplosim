@@ -106,7 +106,7 @@ public:
 	UFUNCTION()
 		void ActivateCloud();
 
-	FCloudStruct CreateCloud(FTransform Transform, int32 Chance);
+	FCloudStruct CreateCloud(FTransform Transform, int32 Chance, bool bLoad = false);
 
 	TArray<FVector> SetPrecipitationLocations(FTransform Transform, float Bounds);
 
@@ -114,12 +114,12 @@ public:
 		void UpdateSpawnedClouds();
 
 	UFUNCTION(BlueprintCallable)
-		void RainCollisionHandler(FVector CollisionLocation);
+		void RainCollisionHandler(FVector CollisionLocation, float Value = -1.0f, float Increment = 0.0f);
 
 	UFUNCTION()
-		void SetRainMaterialEffect(float Value, class AActor* Actor, class UHierarchicalInstancedStaticMeshComponent* HISM = nullptr, int32 Instance = -1);
+		void SetRainMaterialEffect(float Value, class AActor* Actor, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
 
-	void SetGradualWetness();
+	void SetGradualWetness(bool bLoad = false);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		UStaticMesh* CloudMesh;
