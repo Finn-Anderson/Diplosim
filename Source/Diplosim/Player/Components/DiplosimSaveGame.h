@@ -360,6 +360,8 @@ struct FActorSaveData
 {
 	GENERATED_USTRUCT_BODY()
 
+	AActor* Actor;
+
 	UPROPERTY()
 		FString Name;
 

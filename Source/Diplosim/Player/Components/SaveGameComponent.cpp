@@ -1,6 +1,7 @@
 #include "Player/Components/SaveGameComponent.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/SaveGame.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
@@ -17,6 +18,7 @@
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Map/Atmosphere/Clouds.h"
 #include "AI/Citizen.h"
+#include "AI/AttackComponent.h"
 #include "Buildings/Work/Service/Builder.h"
 
 USaveGameComponent::USaveGameComponent()
@@ -236,9 +238,20 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			actorData.BuildingData.OccupantsData = occData;
 		}
 
-		for (FTimerStruct timer : Camera->CitizenManager->Timers)
-			if (timer.Actor == actor)
-				actorData.SavedTimers.Add(timer);
+		for (FTimerStruct timer : Camera->CitizenManager->Timers) {
+			if (timer.Actor != actor)
+				continue;
+
+			for (FTimerParameterStruct param : timer.Parameters) {
+				if (!IsValid(param.Object))
+					continue;
+
+				param.ObjectClass = param.Object->GetClass();
+				param.ObjectName = param.Object->GetName();
+			}
+
+			actorData.SavedTimers.Add(timer);
+		}
 
 		allNewActorData.Add(actorData);
 	}
@@ -492,8 +505,47 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			actorData.BuildingData.OccupantsData = occData;
 		}
 
+		actorData.Actor = actor;
+	}
+
+	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
 		for (FTimerStruct timer : actorData.SavedTimers) {
-			timer.Actor = actor;
+			timer.Actor = actorData.Actor;
+
+			for (FTimerParameterStruct params : timer.Parameters) {
+				for (FActorSaveData data : CurrentSaveGame->Saves[Index].SavedActors) {
+					if (params.ObjectClass == USoundBase::StaticClass()) {
+						UAttackComponent* attackComponent = data.Actor->FindComponentByClass<UAttackComponent>();
+
+						if (!attackComponent)
+							continue;
+
+						params.Object = attackComponent->OnHitSound;
+					}
+					else if (timer.Actor->GetClass() == params.ObjectClass) {
+						if (data.Name != params.ObjectName)
+							continue;
+
+						params.Object = data.Actor;
+					}
+					else {
+						TArray<UActorComponent*>components;
+						data.Actor->GetComponents(components);
+
+						for (UActorComponent* component : components) {
+							if (!component->IsA(params.ObjectClass) || params.ObjectName != component->GetName())
+								continue;
+
+							params.Object = component;
+
+							break;
+						}
+					}
+
+					if (IsValid(params.Object))
+						break;
+				}
+			}
 
 			Camera->CitizenManager->Timers.AddTail(timer);
 		}

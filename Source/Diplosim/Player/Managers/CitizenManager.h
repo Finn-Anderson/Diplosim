@@ -12,8 +12,13 @@ struct FTimerParameterStruct
 {
 	GENERATED_USTRUCT_BODY()
 
+	UObject* Object;
+
 	UPROPERTY()
-		UObject* Object;
+		UClass* ObjectClass;
+
+	UPROPERTY()
+		FString ObjectName;
 
 	UPROPERTY()
 		FVector Location;
@@ -51,6 +56,8 @@ struct FTimerParameterStruct
 	FTimerParameterStruct()
 	{
 		Object = nullptr;
+		ObjectClass = nullptr;
+		ObjectName = "";
 		Location = FVector::Zero();
 		Colour = FLinearColor();
 		bStatus = false;

@@ -36,6 +36,7 @@
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
 
 UCitizenManager::UCitizenManager()
@@ -2872,9 +2873,8 @@ void UCitizenManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 			TArray<FTimerParameterStruct> params;
 			SetParameter(1000, params);
 			SetParameter(Camera, params);
-			SetParameter(Faction->Citizens[0]->AttackComponent->OnHitSound, params);
 
-			CreateTimer("Abolish", Camera, 6.0f, "TakeHealth", params, false);
+			CreateTimer("Abolish", Faction->EggTimer, 6.0f, "TakeHealth", params, false);
 		}
 		else if (Faction->Politics.Laws[index].BillType == "Election") {
 			Election(*Faction);

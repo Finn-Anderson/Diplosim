@@ -399,7 +399,7 @@ void ACamera::Quit(bool bMenu)
 
 void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch)
 {
-	if (MainMenuUIInstance->IsInViewport() || Grid->Storage.IsEmpty())
+	if (Sound == nullptr || MainMenuUIInstance->IsInViewport() || Grid->Storage.IsEmpty())
 		return;
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this, AudioComponent, Sound, Pitch]() {
