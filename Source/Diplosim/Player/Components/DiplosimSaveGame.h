@@ -356,6 +356,62 @@ struct FAIData
 };
 
 USTRUCT()
+struct FProjectileData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString OwnerName;
+
+	UPROPERTY()
+		FVector Velocity;
+
+	FProjectileData()
+	{
+			OwnerName = "";
+	}
+};
+
+USTRUCT()
+struct FHealthData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		int32 Health;
+
+	FHealthData()
+	{
+		Health = 0;
+	}
+};
+
+USTRUCT()
+struct FAttackData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FString> ActorNames;
+
+	UPROPERTY()
+		TSubclassOf<class AProjectile> ProjectileClass;
+
+	UPROPERTY()
+		float AttackTimer;
+
+	UPROPERTY()
+		bool bShowMercy;
+
+	FAttackData()
+	{
+		ProjectileClass = nullptr;
+		AttackTimer = 0.0f;
+		bShowMercy = false;
+	}
+};
+
+USTRUCT()
 struct FActorSaveData
 {
 	GENERATED_USTRUCT_BODY()
@@ -384,12 +440,26 @@ struct FActorSaveData
 		FAIData AIData;
 
 	UPROPERTY()
+		FHealthData HealthData;
+
+	UPROPERTY()
+		FAttackData AttackData;
+
+	UPROPERTY()
+		FProjectileData ProjectileData;
+
+	UPROPERTY()
 		TArray<FTimerStruct> SavedTimers;
 
 	FActorSaveData()
 	{
 		Class = nullptr;
 		Transform = FTransform(FQuat::Identity, FVector(0.0f));
+	}
+
+	bool operator==(const FActorSaveData& other) const
+	{
+		return (other.Name == Name);
 	}
 };
 

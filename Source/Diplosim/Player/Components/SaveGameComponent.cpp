@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/SaveGame.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "EngineUtils.h"
@@ -13,12 +14,14 @@
 #include "Player/Components/CameraMovementComponent.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/EggBasket.h"
+#include "Universal/HealthComponent.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Map/Atmosphere/Clouds.h"
 #include "AI/Citizen.h"
 #include "AI/AttackComponent.h"
+#include "AI/Projectile.h"
 #include "Buildings/Work/Service/Builder.h"
 
 USaveGameComponent::USaveGameComponent()
@@ -61,6 +64,9 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), foundActors);
 	actors.Append(foundActors);
 	potentialWetActors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AProjectile::StaticClass(), foundActors);
+	actors.Append(foundActors);
 
 	for (AActor* actor : actors)
 	{
@@ -237,6 +243,12 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 			actorData.BuildingData.OccupantsData = occData;
 		}
+		else if (actor->IsA<AProjectile>()) {
+			AProjectile* projectile = Cast<AProjectile>(actor);
+
+			actorData.ProjectileData.OwnerName = projectile->GetOwner()->GetName();
+			actorData.ProjectileData.Velocity = projectile->ProjectileMovementComponent->Velocity;
+		}
 
 		for (FTimerStruct timer : Camera->CitizenManager->Timers) {
 			if (timer.Actor != actor)
@@ -251,6 +263,20 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			}
 
 			actorData.SavedTimers.Add(timer);
+		}
+
+		UHealthComponent* healthComp = actor->FindComponentByClass<UHealthComponent>();
+		if (healthComp)
+			actorData.HealthData.Health = healthComp->Health;
+
+		UAttackComponent* attackComp = actor->FindComponentByClass<UAttackComponent>();
+		if (attackComp) {
+			actorData.AttackData.ProjectileClass = attackComp->ProjectileClass;
+			actorData.AttackData.AttackTimer = attackComp->AttackTimer;
+			actorData.AttackData.bShowMercy = attackComp->bShowMercy;
+
+			for (AActor* enemies : attackComp->OverlappingEnemies)
+				actorData.AttackData.ActorNames.Add(enemies->GetName());
 		}
 
 		allNewActorData.Add(actorData);
@@ -315,6 +341,9 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	actors.Append(foundActors);
 
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AProjectile::StaticClass(), foundActors);
 	actors.Append(foundActors);
 
 	for (AActor* a : actors)
@@ -504,6 +533,19 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			actorData.BuildingData.OccupantsData = occData;
 		}
+		else if (actor->IsA<AProjectile>()) {
+			AProjectile* projectile = Cast<AProjectile>(actor);
+
+			projectile->ProjectileMovementComponent->Velocity = actorData.ProjectileData.Velocity;
+		}
+
+		UHealthComponent* healthComp = actor->FindComponentByClass<UHealthComponent>();
+		if (healthComp) {
+			healthComp->Health = actorData.HealthData.Health;
+
+			if (healthComp->Health == 0)
+				healthComp->Death(nullptr);
+		}
 
 		actorData.Actor = actor;
 	}
@@ -522,7 +564,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 						params.Object = attackComponent->OnHitSound;
 					}
-					else if (timer.Actor->GetClass() == params.ObjectClass) {
+					else if (params.ObjectClass == timer.Actor->GetClass()) {
 						if (data.Name != params.ObjectName)
 							continue;
 
@@ -547,8 +589,41 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				}
 			}
 
+			if (timer.ID == "RemoveDamageOverlay")
+				timer.Actor->FindComponentByClass<UHealthComponent>()->ApplyDamageOverlay(true);
+
 			Camera->CitizenManager->Timers.AddTail(timer);
 		}
+
+		UAttackComponent* attackComp = actorData.Actor->FindComponentByClass<UAttackComponent>();
+		if (attackComp) {
+			attackComp->ProjectileClass = actorData.AttackData.ProjectileClass;
+			attackComp->AttackTimer = actorData.AttackData.AttackTimer;
+			attackComp->bShowMercy = actorData.AttackData.bShowMercy;
+
+			for (FString name : actorData.AttackData.ActorNames) {
+				FActorSaveData data;
+				data.Name = name;
+
+				int32 i = CurrentSaveGame->Saves[Index].SavedActors.Find(data);
+
+				attackComp->OverlappingEnemies.Add(CurrentSaveGame->Saves[Index].SavedActors[i].Actor);
+			}
+
+			if (!attackComp->OverlappingEnemies.IsEmpty())
+				attackComp->SetComponentTickEnabled(true);
+		}
+
+		if (actorData.Actor->IsA<AProjectile>()) {
+			FActorSaveData data;
+			data.Name = actorData.ProjectileData.OwnerName;
+
+			int32 i = CurrentSaveGame->Saves[Index].SavedActors.Find(data);
+
+			Cast<AProjectile>(actorData.Actor)->SpawnNiagaraSystems(CurrentSaveGame->Saves[Index].SavedActors[i].Actor);
+		}
+
+		// Apply managers stuff here i.e. if citizen, apply relative citizen stuff. If building, apply relative building stuff.
 	}
 
 	for (FWetnessData data : wetnessData)

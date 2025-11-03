@@ -62,24 +62,9 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 		if (GetHealth() == 0)
 			return;
 
-		int32 force = FMath::Max(FMath::Abs(Health - Amount), 1);
-
 		Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
 
-		float opacity = (MaxHealth - Health) / (float)MaxHealth;
-
-		if (GetOwner()->IsA<ABuilding>()) {
-			ABuilding* building = Cast<ABuilding>(GetOwner());
-
-			Camera->ConstructionManager->AddBuilding(building, EBuildStatus::Damaged);
-
-			building->BuildingMesh->SetOverlayMaterial(OnHitEffect);
-			building->BuildingMesh->SetCustomPrimitiveDataFloat(6, opacity);
-		}
-		else {
-			TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
-			info.Key->SetCustomDataValue(info.Value, 9, opacity);
-		}
+		ApplyDamageOverlay();
 
 		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("RemoveDamageOverlay", GetOwner());
 
@@ -89,7 +74,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 			Camera->CitizenManager->ResetTimer("RemoveDamageOverlay", GetOwner());
 
 		if (Health == 0)
-			Death(Attacker, force);
+			Death(Attacker);
 		else if (GetOwner()->IsA<ACitizen>())
 			Camera->CitizenManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Grid->Stream.RandRange(0, 100));
 
@@ -105,6 +90,25 @@ bool UHealthComponent::IsMaxHealth()
 	return true;
 }
 
+void UHealthComponent::ApplyDamageOverlay(bool bLoad)
+{
+	float opacity = (MaxHealth - Health) / (float)MaxHealth;
+
+	if (GetOwner()->IsA<ABuilding>()) {
+		ABuilding* building = Cast<ABuilding>(GetOwner());
+
+		if (!bLoad)
+			Camera->ConstructionManager->AddBuilding(building, EBuildStatus::Damaged);
+
+		building->BuildingMesh->SetOverlayMaterial(OnHitEffect);
+		building->BuildingMesh->SetCustomPrimitiveDataFloat(6, opacity);
+	}
+	else {
+		TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
+		info.Key->SetCustomDataValue(info.Value, 9, opacity);
+	}
+}
+
 void UHealthComponent::RemoveDamageOverlay()
 {
 	if (GetOwner()->IsA<ABuilding>()) {
@@ -117,7 +121,7 @@ void UHealthComponent::RemoveDamageOverlay()
 	}
 }
 
-void UHealthComponent::Death(AActor* Attacker, int32 Force)
+void UHealthComponent::Death(AActor* Attacker)
 {
 	AActor* actor = GetOwner();
 
@@ -149,7 +153,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 			citizen->MovementComponent->SetAnimation(EAnim::Death);
 
-			Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", Camera->ConquestManager->GetCitizenFaction(citizen).Name);
+			if (IsValid(Attacker))
+				Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", Camera->ConquestManager->GetCitizenFaction(citizen).Name);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {
@@ -180,7 +185,8 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 
 		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
 
-		building->DeathTime = GetWorld()->GetTimeSeconds();
+		if (IsValid(Attacker))
+			building->DeathTime = GetWorld()->GetTimeSeconds();
 
 		Camera->Grid->AIVisualiser->DestructingBuildings.Add(building);
 	}
@@ -199,6 +205,9 @@ void UHealthComponent::Death(AActor* Attacker, int32 Force)
 		if (actor->IsA<AEnemy>())
 			deathComp->SetColorParameter("Colour", Cast<AEnemy>(actor)->Colour);
 	}
+
+	if (!IsValid(Attacker))
+		return;
 
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(*faction, params);

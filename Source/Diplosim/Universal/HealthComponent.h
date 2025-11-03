@@ -45,12 +45,15 @@ public:
 	bool IsMaxHealth();
 
 	UFUNCTION()
+		void ApplyDamageOverlay(bool bLoad = false);
+
+	UFUNCTION()
 		void RemoveDamageOverlay();
 
 	int32 GetHealth();
 
 	// Death
-	void Death(AActor* Attacker, int32 Force);
+	void Death(AActor* Attacker);
 
 	UFUNCTION()
 		void Clear(FFactionStruct Faction, AActor* Attacker);
