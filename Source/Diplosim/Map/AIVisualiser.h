@@ -132,10 +132,10 @@ struct FHatsStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
-	class UHierarchicalInstancedStaticMeshComponent* HISMHat;
+		class UHierarchicalInstancedStaticMeshComponent* HISMHat;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
-	TArray<ACitizen*> Citizens;
+		TArray<ACitizen*> Citizens;
 
 	FHatsStruct()
 	{
@@ -181,6 +181,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animations")
 		TArray<FAnimStruct> Animations;
 
+	void ResetToDefaultValues();
+
 	void MainLoop(class ACamera* Camera);
 
 	void CalculateCitizenMovement(class ACamera* Camera);
@@ -219,9 +221,6 @@ public:
 
 	UPROPERTY()
 		TArray<FPendingChangeStruct> PendingChange;
-
-	UPROPERTY()
-		float ToggleTorches;
 
 	UPROPERTY()
 		TArray<class ABuilding*> DestructingBuildings;

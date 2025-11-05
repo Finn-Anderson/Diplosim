@@ -51,4 +51,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
 		class UNiagaraSystem* SpawnSystem;
+
+	UPROPERTY()
+		FLinearColor Colour;
 };

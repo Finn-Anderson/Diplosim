@@ -47,5 +47,5 @@ public:
 	void UpdateAutosave(int32 NewTime);
 
 	// Save Setup
-	void SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FAIData CitizenData, bool bVisitor);
+	void SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData CitizenData, bool bVisitor);
 };

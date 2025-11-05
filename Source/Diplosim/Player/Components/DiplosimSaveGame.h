@@ -339,19 +339,95 @@ struct FBuildingData
 };
 
 USTRUCT()
+struct FAIMovementData
+{
+	GENERATED_USTRUCT_BODY()
+
+	// AI Movement
+	UPROPERTY()
+		TArray<FVector> Points;
+
+	UPROPERTY()
+		FAnimStruct CurrentAnim;
+
+	UPROPERTY()
+		double LastUpdatedTime;
+
+	UPROPERTY()
+		FTransform Transform;
+
+	UPROPERTY()
+		FString ActorToLookAtName;
+
+	UPROPERTY()
+		TArray<FVector> TempPoints;
+
+	UPROPERTY()
+		bool bSetPoints;
+
+	// AI Controller
+	UPROPERTY()
+		FString ChosenBuildingName;
+
+	UPROPERTY()
+		FString ActorName;
+
+	UPROPERTY()
+		FString LinkedPortalName;
+
+	UPROPERTY()
+		FString UltimateGoalName;
+
+	UPROPERTY()
+		int32 Instance;
+
+	UPROPERTY()
+		FVector Location;
+
+	FAIMovementData()
+	{
+		LastUpdatedTime = 0.0f;
+		Transform = FTransform();
+		ActorToLookAtName = "";
+		bSetPoints = false;
+
+		ChosenBuildingName = "";
+		ActorName = "";
+		LinkedPortalName = "";
+		UltimateGoalName = "";
+		Instance = 0;
+		Location = FVector::Zero();
+	}
+};
+
+USTRUCT()
 struct FAIData
 {
 	GENERATED_USTRUCT_BODY()
 
-	ACitizen* Citizen;
+	UPROPERTY()
+		FString FactionName;
 
 	UPROPERTY()
 		FString BuildingAtName;
 
+	UPROPERTY()
+		FAIMovementData MovementData;
+
+	UPROPERTY()
+		FLinearColor Colour;
+
+	UPROPERTY()
+		FVector EnterLocation;
+
+	UPROPERTY()
+		bool bRebel;
+
 	FAIData()
 	{
-		Citizen = nullptr;
+		FactionName = "";
 		BuildingAtName = "";
+		bRebel = false;
 	}
 };
 

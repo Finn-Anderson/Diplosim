@@ -19,9 +19,13 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Map/Atmosphere/Clouds.h"
+#include "Map/AIVisualiser.h"
 #include "AI/Citizen.h"
+#include "AI/Clone.h"
 #include "AI/AttackComponent.h"
 #include "AI/Projectile.h"
+#include "AI/AIMovementComponent.h"
+#include "AI/DiplosimAIController.h"
 #include "Buildings/Work/Service/Builder.h"
 
 USaveGameComponent::USaveGameComponent()
@@ -205,6 +209,39 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 			actorData.ResourceData.Workers = resource->WorkerStruct;
 		}
+		else if (actor->IsA<AAI>()) {
+			AAI* ai = Cast<AAI>(actor);
+
+			FFactionStruct* faction = Camera->ConquestManager->GetFaction("", ai);
+
+			actorData.AIData.MovementData.Points = ai->MovementComponent->Points;
+			actorData.AIData.MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
+			actorData.AIData.MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
+			actorData.AIData.MovementData.Transform = ai->MovementComponent->Transform;
+			actorData.AIData.MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
+			actorData.AIData.MovementData.TempPoints = ai->MovementComponent->TempPoints;
+			actorData.AIData.MovementData.bSetPoints = ai->MovementComponent->bSetPoints;
+
+			actorData.AIData.MovementData.ChosenBuildingName = ai->AIController->ChosenBuilding->GetName();
+			actorData.AIData.MovementData.ActorName = ai->AIController->MoveRequest.GetGoalActor()->GetName();
+			actorData.AIData.MovementData.LinkedPortalName = ai->AIController->MoveRequest.GetLinkedPortal()->GetName();
+			actorData.AIData.MovementData.UltimateGoalName = ai->AIController->MoveRequest.GetUltimateGoalActor()->GetName();
+			actorData.AIData.MovementData.Instance = ai->AIController->MoveRequest.GetGoalInstance();
+			actorData.AIData.MovementData.Location = ai->AIController->MoveRequest.GetLocation();
+
+			if (faction != nullptr) {
+				actorData.AIData.FactionName = faction->Name;
+
+				if (ai->IsA<ACitizen>()) {
+					ACitizen* citizen = Cast<ACitizen>(ai);
+
+					if (faction->Rebels.Contains(citizen))
+						actorData.AIData.bRebel = true;
+					
+					actorData.AIData.EnterLocation = citizen->Building.EnterLocation;
+				}
+			}
+		}
 		else if (actor->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(actor);
 
@@ -349,7 +386,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	for (AActor* a : actors)
 		a->Destroy();
 
-	TMap<FString, FAIData> citizenToName;
+	TMap<FString, FActorSaveData> aiToName;
 	TArray<FWetnessData> wetnessData;
 
 	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
@@ -423,23 +460,24 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			if (grid->AtmosphereComponent->bRedSun)
 				grid->AtmosphereComponent->NaturalDisasterComponent->AlterSunGradually(0.15f, -1.00f);
 
-			Camera->Grid->AtmosphereComponent->Clouds->ProcessRainEffect.Empty();
-			Camera->Grid->AtmosphereComponent->Clouds->WetnessStruct.Empty();
+			grid->AtmosphereComponent->Clouds->ProcessRainEffect.Empty();
+			grid->AtmosphereComponent->Clouds->WetnessStruct.Empty();
 			wetnessData = actorData.WorldSaveData.CloudsData.WetnessData;
 
-			Camera->Grid->AtmosphereComponent->Clouds->Clear();
+			grid->AtmosphereComponent->Clouds->Clear();
 			
 			for (FCloudData data : actorData.WorldSaveData.CloudsData.CloudData) {
-				FCloudStruct cloudStruct = Camera->Grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0);
+				FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0);
 				cloudStruct.Distance = data.Distance;
 				cloudStruct.bHide = data.bHide;
 				cloudStruct.lightningFrequency = data.lightningFrequency;
 				cloudStruct.lightningTimer = data.lightningTimer;
 
-				Camera->Grid->AtmosphereComponent->Clouds->Clouds.Add(cloudStruct);
+				grid->AtmosphereComponent->Clouds->Clouds.Add(cloudStruct);
 			}
 
 			grid->SetupEnvironment(true);
+			grid->AIVisualiser->ResetToDefaultValues();
 		}
 		else if (actor->IsA<AResource>()) {
 			AResource* resource = Cast<AResource>(actor);
@@ -463,12 +501,50 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		}
 		else if (actor->IsA<ACamera>()) {
 			ACamera* camera = Cast<ACamera>(actor);
+			camera->Start = false;
 
-			Camera->ClearPopupUI();
-			Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
+			camera->ClearPopupUI();
+			camera->SetInteractStatus(camera->WidgetComponent->GetAttachmentRootActor(), false);
 
 			camera->Detach();
 			camera->MovementComponent->TargetLength = 3000.0f;
+		}
+		else if (actor->IsA<AAI>()) {
+			AAI* ai = Cast<AAI>(actor);
+
+			aiToName.Add(actorData.Name, actorData);
+
+			UHierarchicalInstancedStaticMeshComponent* hism;
+
+			if (actorData.AIData.FactionName == "") {
+				hism = Camera->Grid->AIVisualiser->HISMEnemy;
+			}
+			else {
+				FFactionStruct* faction = Camera->ConquestManager->GetFaction(actorData.AIData.FactionName);
+
+				if (ai->IsA<AClone>()) {
+					faction->Clones.Add(ai);
+					hism = Camera->Grid->AIVisualiser->HISMClone;
+				}
+				else if (actorData.AIData.bRebel) {
+					faction->Rebels.Add(Cast<ACitizen>(ai));
+					hism = Camera->Grid->AIVisualiser->HISMRebel;
+				}
+				else {
+					faction->Citizens.Add(Cast<ACitizen>(ai));
+					hism = Camera->Grid->AIVisualiser->HISMCitizen;
+				}
+			}
+
+			ai->MovementComponent->Points = actorData.AIData.MovementData.Points;
+			ai->MovementComponent->CurrentAnim = actorData.AIData.MovementData.CurrentAnim;
+			ai->MovementComponent->LastUpdatedTime = actorData.AIData.MovementData.LastUpdatedTime;
+			ai->MovementComponent->Transform = actorData.AIData.MovementData.Transform;
+			ai->MovementComponent->ActorToLookAt->GetName() = actorData.AIData.MovementData.ActorToLookAtName;
+			ai->MovementComponent->TempPoints = actorData.AIData.MovementData.TempPoints;
+			ai->MovementComponent->bSetPoints = actorData.AIData.MovementData.bSetPoints;
+
+			Camera->Grid->AIVisualiser->AddInstance(ai, hism, ai->MovementComponent->Transform);
 		}
 		else if (actor->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(actor);
@@ -501,17 +577,17 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			}
 
 			for (FOccupantData data : actorData.BuildingData.OccupantsData) {
-				FAIData citizenData = *citizenToName.Find(data.OccupantName);
+				FActorSaveData aiData = *aiToName.Find(data.OccupantName);
 
-				SetupCitizenBuilding(actorData.Name, building, citizenData, false);
+				SetupCitizenBuilding(actorData.Name, building, aiData, false);
 
 				FOccupantStruct occupant;
-				occupant.Occupant = citizenData.Citizen;
+				occupant.Occupant = Cast<ACitizen>(aiData.Actor);
 
 				for (FString name : data.VisitorNames) {
-					FAIData visitorData = *citizenToName.Find(name);
+					FActorSaveData visitorData = *aiToName.Find(name);
 
-					occupant.Visitors.Add(visitorData.Citizen);
+					occupant.Visitors.Add(Cast<ACitizen>(visitorData.Actor));
 
 					SetupCitizenBuilding(actorData.Name, building, visitorData, true);
 				}
@@ -595,6 +671,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			Camera->CitizenManager->Timers.AddTail(timer);
 		}
 
+		TArray<FActorSaveData> savedData = CurrentSaveGame->Saves[Index].SavedActors;
+
 		UAttackComponent* attackComp = actorData.Actor->FindComponentByClass<UAttackComponent>();
 		if (attackComp) {
 			attackComp->ProjectileClass = actorData.AttackData.ProjectileClass;
@@ -605,9 +683,9 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				FActorSaveData data;
 				data.Name = name;
 
-				int32 i = CurrentSaveGame->Saves[Index].SavedActors.Find(data);
+				int32 i = savedData.Find(data);
 
-				attackComp->OverlappingEnemies.Add(CurrentSaveGame->Saves[Index].SavedActors[i].Actor);
+				attackComp->OverlappingEnemies.Add(savedData[i].Actor);
 			}
 
 			if (!attackComp->OverlappingEnemies.IsEmpty())
@@ -618,9 +696,37 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			FActorSaveData data;
 			data.Name = actorData.ProjectileData.OwnerName;
 
-			int32 i = CurrentSaveGame->Saves[Index].SavedActors.Find(data);
+			int32 i = savedData.Find(data);
 
-			Cast<AProjectile>(actorData.Actor)->SpawnNiagaraSystems(CurrentSaveGame->Saves[Index].SavedActors[i].Actor);
+			Cast<AProjectile>(actorData.Actor)->SpawnNiagaraSystems(savedData[i].Actor);
+		}
+		else if (actorData.Actor->IsA<AAI>()) {
+			AAI* ai = Cast<AAI>(actorData.Actor);
+
+			FActorSaveData data;
+
+			data.Name = actorData.AIData.MovementData.ChosenBuildingName;
+			int32 i = savedData.Find(data);
+			ai->AIController->ChosenBuilding = Cast<ABuilding>(savedData[i].Actor);
+
+			FMoveStruct moveStruct;
+
+			data.Name = actorData.AIData.MovementData.ActorName;
+			i = savedData.Find(data);
+			moveStruct.Actor = savedData[i].Actor;
+
+			data.Name = actorData.AIData.MovementData.LinkedPortalName;
+			i = savedData.Find(data);
+			moveStruct.LinkedPortal = savedData[i].Actor;
+
+			data.Name = actorData.AIData.MovementData.UltimateGoalName;
+			i = savedData.Find(data);
+			moveStruct.UltimateGoal = savedData[i].Actor;
+
+			moveStruct.Instance = actorData.AIData.MovementData.Instance;
+			moveStruct.Location = actorData.AIData.MovementData.Location;
+
+			ai->AIController->MoveRequest = moveStruct;
 		}
 
 		// Apply managers stuff here i.e. if citizen, apply relative citizen stuff. If building, apply relative building stuff.
@@ -758,17 +864,22 @@ void USaveGameComponent::UpdateAutosave(int32 NewTime)
 	}
 }
 
-void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FAIData CitizenData, bool bVisitor)
+void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData CitizenData, bool bVisitor)
 {
-	if (Building->IsA<AHouse>())
-		CitizenData.Citizen->Building.House = Cast<AHouse>(Building);
-	else if (Building->IsA<AOrphanage>() && bVisitor)
-		CitizenData.Citizen->Building.Orphanage = Cast<AOrphanage>(Building);
-	else if (Building->IsA<ASchool>() && bVisitor)
-		CitizenData.Citizen->Building.School = Cast<ASchool>(Building);
-	else
-		CitizenData.Citizen->Building.Employment = Cast<AWork>(Building);
+	ACitizen* citizen = Cast<ACitizen>(CitizenData.Actor);
 
-	if (CitizenData.BuildingAtName == BuildingName)
-		Building->Enter(CitizenData.Citizen);
+	if (Building->IsA<AHouse>())
+		citizen->Building.House = Cast<AHouse>(Building);
+	else if (Building->IsA<AOrphanage>() && bVisitor)
+		citizen->Building.Orphanage = Cast<AOrphanage>(Building);
+	else if (Building->IsA<ASchool>() && bVisitor)
+		citizen->Building.School = Cast<ASchool>(Building);
+	else
+		citizen->Building.Employment = Cast<AWork>(Building);
+
+	if (CitizenData.AIData.BuildingAtName == BuildingName) {
+		Building->Enter(citizen);
+
+		citizen->Building.EnterLocation = CitizenData.AIData.EnterLocation;
+	}
 }

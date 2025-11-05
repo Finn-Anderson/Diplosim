@@ -11,9 +11,11 @@ struct FCarryStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	class AResource* Type;
+	UPROPERTY()
+		class AResource* Type;
 
-	int32 Amount;
+	UPROPERTY()
+		int32 Amount;
 
 	FCarryStruct()
 	{
@@ -42,7 +44,8 @@ struct FBuildingStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
 		class ABuilding* BuildingAt;
 
-	FVector EnterLocation;
+	UPROPERTY()
+		FVector EnterLocation;
 
 	FBuildingStruct()
 	{
@@ -134,9 +137,11 @@ struct FSpiritualStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")
 		FString Faith;
 
-	FString FathersFaith;
+	UPROPERTY()
+		FString FathersFaith;
 
-	FString MothersFaith;
+	UPROPERTY()
+		FString MothersFaith;
 
 	FSpiritualStruct()
 	{
@@ -156,9 +161,11 @@ struct FCollidingStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	AActor* Actor;
+	UPROPERTY()
+		AActor* Actor;
 
-	int32 Instance;
+	UPROPERTY()
+		int32 Instance;
 
 	FCollidingStruct()
 	{

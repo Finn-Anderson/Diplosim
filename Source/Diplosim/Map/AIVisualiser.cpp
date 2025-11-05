@@ -113,6 +113,27 @@ void UAIVisualiser::BeginPlay()
 	}
 }
 
+void UAIVisualiser::ResetToDefaultValues()
+{
+	PendingChange.Empty();
+
+	for (int32 i = 0; i < HISMCitizen->GetInstanceCount(); i++)
+		RemoveInstance(HISMCitizen, i);
+
+	for (int32 i = 0; i < HISMRebel->GetInstanceCount(); i++)
+		RemoveInstance(HISMRebel, i);
+
+	for (int32 i = 0; i < HISMClone->GetInstanceCount(); i++)
+		RemoveInstance(HISMClone, i);
+
+	for (int32 i = 0; i < HISMEnemy->GetInstanceCount(); i++)
+		RemoveInstance(HISMEnemy, i);
+
+	for (FHatsStruct hat : HISMHats)
+		for (int32 i = 0; i < hat.HISMHat->GetInstanceCount(); i++)
+			RemoveInstance(hat.HISMHat, i);
+}
+
 void UAIVisualiser::MainLoop(ACamera* Camera)
 {
 	for (FPendingChangeStruct pending : PendingChange) {
@@ -122,21 +143,12 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			if (IsValid(pending.AI->SpawnSystem))
 				UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), pending.AI->SpawnSystem, pending.Transform.GetLocation());
 
-			FLinearColor colour;
-			if (pending.AI->IsA<AEnemy>()) {
-				AEnemy* enemy = Cast<AEnemy>(pending.AI);
-
-				colour = enemy->Colour;
-			}
-			else
-				colour = FLinearColor(Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f));
-
 			if (pending.HISM == HISMClone)
 				UpdateInstanceCustomData(pending.HISM, instance, 1, 3.0f);
 
-			UpdateInstanceCustomData(pending.HISM, instance, 2, colour.R);
-			UpdateInstanceCustomData(pending.HISM, instance, 3, colour.G);
-			UpdateInstanceCustomData(pending.HISM, instance, 4, colour.B);
+			UpdateInstanceCustomData(pending.HISM, instance, 2, pending.AI->Colour.R);
+			UpdateInstanceCustomData(pending.HISM, instance, 3, pending.AI->Colour.G);
+			UpdateInstanceCustomData(pending.HISM, instance, 4, pending.AI->Colour.B);
 
 			pending.AI->AIController->DefaultAction();
 		}
