@@ -649,13 +649,15 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				citizen->SadTimer = data->CitizenData.SadTimer;
 				citizen->bHolliday = data->CitizenData.bHolliday;
 				citizen->FestivalStatus = data->CitizenData.FestivalStatus;
-				citizen->bConversing = data->CitizenData.bConversing;
 				citizen->ConversationHappiness = data->CitizenData.ConversationHappiness;
 				citizen->FamilyDeathHappiness = data->CitizenData.FamilyDeathHappiness;
 				citizen->WitnessedDeathHappiness = data->CitizenData.WitnessedDeathHappiness;
 				citizen->Genetics = data->CitizenData.Genetics;
 				citizen->bSleep = data->CitizenData.bSleep;
 				citizen->HoursSleptToday = data->CitizenData.HoursSleptToday;
+
+				if (data->CitizenData.bConversing)
+					Camera->PlayAmbientSound(citizen->AmbientAudioComponent, Camera->CitizenManager->GetConversationSound(citizen), citizen->VoicePitch);
 
 				for (FGeneticsStruct& genetic : citizen->Genetics)
 					citizen->ApplyGeneticAffect(genetic);
