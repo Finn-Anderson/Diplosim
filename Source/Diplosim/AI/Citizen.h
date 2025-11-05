@@ -54,6 +54,7 @@ struct FBuildingStruct
 		School = nullptr;
 		Orphanage = nullptr;
 		BuildingAt = nullptr;
+		EnterLocation = FVector::Zero();
 	}
 };
 
@@ -156,29 +157,6 @@ struct FSpiritualStruct
 	}
 };
 
-USTRUCT()
-struct FCollidingStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-		AActor* Actor;
-
-	UPROPERTY()
-		int32 Instance;
-
-	FCollidingStruct()
-	{
-		Actor = nullptr;
-		Instance = -1;
-	}
-
-	bool operator==(const FCollidingStruct& other) const
-	{
-		return (other.Actor == Actor) && (other.Instance == Instance);
-	}
-};
-
 USTRUCT(BlueprintType)
 struct FHappinessStruct
 {
@@ -249,29 +227,6 @@ struct FGeneticsStruct
 		return (other.Type == Type);
 	}
 };
-
-USTRUCT(BlueprintType)
-struct FWorkHours
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-		class AWork* Work;
-
-	UPROPERTY()
-		TArray<int32> Hours;
-
-	FWorkHours()
-	{
-		Work = nullptr;
-	}
-
-	bool operator==(const FWorkHours& other) const
-	{
-		return (other.Work == Work);
-	}
-};
-
 
 UCLASS()
 class DIPLOSIM_API ACitizen : public AAI
@@ -364,7 +319,7 @@ public:
 		int32 IdealHoursWorkedMax;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Hours")
-		TArray<FWorkHours> HoursWorked;
+		TMap<int32, float> HoursWorked;
 
 	// Buildings
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
@@ -434,7 +389,8 @@ public:
 	// Politics
 	void SetPoliticalLeanings();
 
-	bool bHasBeenLeader;
+	UPROPERTY()
+		bool bHasBeenLeader;
 
 	// Religion
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")

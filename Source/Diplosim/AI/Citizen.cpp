@@ -1647,14 +1647,7 @@ void ACitizen::SetHappiness()
 		else
 			Happiness.SetValue("Employed", 5);
 
-		int32 hours = 0;
-
-		for (int32 i = HoursWorked.Num() - 1; i > -1; i--) {
-			if (Building.Employment != HoursWorked[i].Work && HoursWorked[i].Hours.IsEmpty())
-				HoursWorked.RemoveAt(i);
-			else
-				hours += HoursWorked[i].Hours.Num();
-		}
+		int32 hours = HoursWorked.Num();
 
 		if (hours < IdealHoursWorkedMin || hours > IdealHoursWorkedMax)
 			Happiness.SetValue("Inadequate Hours Worked", -15);

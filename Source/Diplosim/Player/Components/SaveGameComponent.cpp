@@ -209,37 +209,106 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 			actorData.ResourceData.Workers = resource->WorkerStruct;
 		}
+		else if (actor->IsA<ACamera>()) {
+			// Things related to buildings and/or citizens do not need to be saved.
+		}
 		else if (actor->IsA<AAI>()) {
 			AAI* ai = Cast<AAI>(actor);
 
+			FAIData* data = &actorData.AIData;
+
 			FFactionStruct* faction = Camera->ConquestManager->GetFaction("", ai);
 
-			actorData.AIData.MovementData.Points = ai->MovementComponent->Points;
-			actorData.AIData.MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
-			actorData.AIData.MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
-			actorData.AIData.MovementData.Transform = ai->MovementComponent->Transform;
-			actorData.AIData.MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
-			actorData.AIData.MovementData.TempPoints = ai->MovementComponent->TempPoints;
-			actorData.AIData.MovementData.bSetPoints = ai->MovementComponent->bSetPoints;
+			data->MovementData.Points = ai->MovementComponent->Points;
+			data->MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
+			data->MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
+			data->MovementData.Transform = ai->MovementComponent->Transform;
+			data->MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
+			data->MovementData.TempPoints = ai->MovementComponent->TempPoints;
+			data->MovementData.bSetPoints = ai->MovementComponent->bSetPoints;
 
-			actorData.AIData.MovementData.ChosenBuildingName = ai->AIController->ChosenBuilding->GetName();
-			actorData.AIData.MovementData.ActorName = ai->AIController->MoveRequest.GetGoalActor()->GetName();
-			actorData.AIData.MovementData.LinkedPortalName = ai->AIController->MoveRequest.GetLinkedPortal()->GetName();
-			actorData.AIData.MovementData.UltimateGoalName = ai->AIController->MoveRequest.GetUltimateGoalActor()->GetName();
-			actorData.AIData.MovementData.Instance = ai->AIController->MoveRequest.GetGoalInstance();
-			actorData.AIData.MovementData.Location = ai->AIController->MoveRequest.GetLocation();
+			data->MovementData.ChosenBuildingName = ai->AIController->ChosenBuilding->GetName();
+			data->MovementData.ActorName = ai->AIController->MoveRequest.GetGoalActor()->GetName();
+			data->MovementData.LinkedPortalName = ai->AIController->MoveRequest.GetLinkedPortal()->GetName();
+			data->MovementData.UltimateGoalName = ai->AIController->MoveRequest.GetUltimateGoalActor()->GetName();
+			data->MovementData.Instance = ai->AIController->MoveRequest.GetGoalInstance();
+			data->MovementData.Location = ai->AIController->MoveRequest.GetLocation();
 
 			if (faction != nullptr) {
-				actorData.AIData.FactionName = faction->Name;
+				data->FactionName = faction->Name;
 
 				if (ai->IsA<ACitizen>()) {
 					ACitizen* citizen = Cast<ACitizen>(ai);
 
 					if (faction->Rebels.Contains(citizen))
-						actorData.AIData.bRebel = true;
+						data->CitizenData.bRebel = true;
 					
-					actorData.AIData.EnterLocation = citizen->Building.EnterLocation;
+					data->CitizenData.EnterLocation = citizen->Building.EnterLocation;
 				}
+			}
+
+			if (ai->IsA<ACitizen>()) {
+				ACitizen* citizen = Cast<ACitizen>(ai);
+
+				data->CitizenData.ResourceCarryClass = citizen->Carrying.Type->GetClass();
+				data->CitizenData.CarryAmount = citizen->Carrying.Amount;
+
+				if (citizen->BioStruct.Mother != nullptr)
+					data->CitizenData.MothersName = citizen->BioStruct.Mother->GetName();
+
+				if (citizen->BioStruct.Father != nullptr)
+					data->CitizenData.FathersName = citizen->BioStruct.Father->GetName();
+
+				if (citizen->BioStruct.Partner != nullptr)
+					data->CitizenData.PartnersName = citizen->BioStruct.Partner->GetName();
+
+				data->CitizenData.ChildrensNames.Empty();
+				data->CitizenData.SiblingsNames.Empty();
+
+				for (ACitizen* child : citizen->BioStruct.Children)
+					data->CitizenData.ChildrensNames.Add(child->GetName());
+
+				for (ACitizen* sibling : citizen->BioStruct.Siblings)
+					data->CitizenData.SiblingsNames.Add(sibling->GetName());
+
+				data->CitizenData.HoursTogetherWithPartner = citizen->BioStruct.HoursTogetherWithPartner;
+				data->CitizenData.bMarried = citizen->BioStruct.bMarried;
+				data->CitizenData.Sex = citizen->BioStruct.Sex;
+				data->CitizenData.Age = citizen->BioStruct.Age;
+				data->CitizenData.Name = citizen->BioStruct.Name;
+				data->CitizenData.EducationLevel = citizen->BioStruct.EducationLevel;
+				data->CitizenData.EducationProgress = citizen->BioStruct.EducationProgress;
+				data->CitizenData.PaidForEducationLevel = citizen->BioStruct.PaidForEducationLevel;
+				data->CitizenData.bAdopted = citizen->BioStruct.bAdopted;
+
+				data->CitizenData.Spirituality = citizen->Spirituality;
+				data->CitizenData.TimeOfAcquirement = citizen->TimeOfAcquirement;
+				data->CitizenData.VoicePitch = citizen->VoicePitch;
+				data->CitizenData.Balance = citizen->Balance;
+				data->CitizenData.HoursWorked = citizen->HoursWorked;
+				data->CitizenData.Hunger = citizen->Hunger;
+				data->CitizenData.Energy = citizen->Energy;
+				data->CitizenData.bGain = citizen->bGain;
+				data->CitizenData.SpeedBeforeOld = citizen->SpeedBeforeOld;
+				data->CitizenData.MaxHealthBeforeOld = citizen->MaxHealthBeforeOld;
+				data->CitizenData.bHasBeenLeader = citizen->bHasBeenLeader;
+				data->CitizenData.MassStatus = citizen->MassStatus;
+				data->CitizenData.HealthIssues = citizen->HealthIssues;
+				data->CitizenData.Happiness = citizen->Happiness;
+				data->CitizenData.SadTimer = citizen->SadTimer;
+				data->CitizenData.bHolliday = citizen->bHolliday;
+				data->CitizenData.FestivalStatus = citizen->FestivalStatus;
+				data->CitizenData.bConversing = citizen->bConversing;
+				data->CitizenData.ConversationHappiness = citizen->ConversationHappiness;
+				data->CitizenData.FamilyDeathHappiness = citizen->FamilyDeathHappiness;
+				data->CitizenData.WitnessedDeathHappiness = citizen->WitnessedDeathHappiness;
+				data->CitizenData.Genetics = citizen->Genetics;
+				data->CitizenData.bSleep = citizen->bSleep;
+				data->CitizenData.HoursSleptToday = citizen->HoursSleptToday;
+
+				data->CitizenData.PersonalityTraits.Empty();
+				for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
+					data->CitizenData.PersonalityTraits.Add(personality->Trait);
 			}
 		}
 		else if (actor->IsA<ABuilding>()) {
@@ -508,9 +577,13 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			camera->Detach();
 			camera->MovementComponent->TargetLength = 3000.0f;
+
+			// Things related to buildings and/or citizens need to be reset i.e. personalities, factions.
 		}
 		else if (actor->IsA<AAI>()) {
 			AAI* ai = Cast<AAI>(actor);
+
+			FAIData* data = &actorData.AIData;
 
 			aiToName.Add(actorData.Name, actorData);
 
@@ -526,7 +599,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 					faction->Clones.Add(ai);
 					hism = Camera->Grid->AIVisualiser->HISMClone;
 				}
-				else if (actorData.AIData.bRebel) {
+				else if (actorData.AIData.CitizenData.bRebel) {
 					faction->Rebels.Add(Cast<ACitizen>(ai));
 					hism = Camera->Grid->AIVisualiser->HISMRebel;
 				}
@@ -536,13 +609,67 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				}
 			}
 
-			ai->MovementComponent->Points = actorData.AIData.MovementData.Points;
-			ai->MovementComponent->CurrentAnim = actorData.AIData.MovementData.CurrentAnim;
-			ai->MovementComponent->LastUpdatedTime = actorData.AIData.MovementData.LastUpdatedTime;
-			ai->MovementComponent->Transform = actorData.AIData.MovementData.Transform;
-			ai->MovementComponent->ActorToLookAt->GetName() = actorData.AIData.MovementData.ActorToLookAtName;
-			ai->MovementComponent->TempPoints = actorData.AIData.MovementData.TempPoints;
-			ai->MovementComponent->bSetPoints = actorData.AIData.MovementData.bSetPoints;
+			ai->MovementComponent->Points = data->MovementData.Points;
+			ai->MovementComponent->CurrentAnim = data->MovementData.CurrentAnim;
+			ai->MovementComponent->LastUpdatedTime = data->MovementData.LastUpdatedTime;
+			ai->MovementComponent->Transform = data->MovementData.Transform;
+			ai->MovementComponent->TempPoints = data->MovementData.TempPoints;
+			ai->MovementComponent->bSetPoints = data->MovementData.bSetPoints;
+
+			if (ai->IsA<ACitizen>()) {
+				ACitizen* citizen = Cast<ACitizen>(ai);
+
+				citizen->Carrying.Type = Cast<AResource>(data->CitizenData.ResourceCarryClass->GetDefaultObject());
+				citizen->Carrying.Amount = data->CitizenData.CarryAmount;
+
+				citizen->BioStruct.HoursTogetherWithPartner = data->CitizenData.HoursTogetherWithPartner;
+				citizen->BioStruct.bMarried = data->CitizenData.bMarried;
+				citizen->BioStruct.Sex = data->CitizenData.Sex;
+				citizen->BioStruct.Age = data->CitizenData.Age;
+				citizen->BioStruct.Name = data->CitizenData.Name;
+				citizen->BioStruct.EducationLevel = data->CitizenData.EducationLevel;
+				citizen->BioStruct.EducationProgress = data->CitizenData.EducationProgress;
+				citizen->BioStruct.PaidForEducationLevel = data->CitizenData.PaidForEducationLevel;
+				citizen->BioStruct.bAdopted = data->CitizenData.bAdopted;
+
+				citizen->Spirituality = data->CitizenData.Spirituality;
+				citizen->TimeOfAcquirement = data->CitizenData.TimeOfAcquirement;
+				citizen->VoicePitch = data->CitizenData.VoicePitch;
+				citizen->Balance = data->CitizenData.Balance;
+				citizen->HoursWorked = data->CitizenData.HoursWorked;
+				citizen->Hunger = data->CitizenData.Hunger;
+				citizen->Energy = data->CitizenData.Energy;
+				citizen->bGain = data->CitizenData.bGain;
+				citizen->SpeedBeforeOld = data->CitizenData.SpeedBeforeOld;
+				citizen->MaxHealthBeforeOld = data->CitizenData.MaxHealthBeforeOld;
+				citizen->bHasBeenLeader = data->CitizenData.bHasBeenLeader;
+				citizen->MassStatus = data->CitizenData.MassStatus;
+				citizen->HealthIssues = data->CitizenData.HealthIssues;
+				citizen->Happiness = data->CitizenData.Happiness;
+				citizen->SadTimer = data->CitizenData.SadTimer;
+				citizen->bHolliday = data->CitizenData.bHolliday;
+				citizen->FestivalStatus = data->CitizenData.FestivalStatus;
+				citizen->bConversing = data->CitizenData.bConversing;
+				citizen->ConversationHappiness = data->CitizenData.ConversationHappiness;
+				citizen->FamilyDeathHappiness = data->CitizenData.FamilyDeathHappiness;
+				citizen->WitnessedDeathHappiness = data->CitizenData.WitnessedDeathHappiness;
+				citizen->Genetics = data->CitizenData.Genetics;
+				citizen->bSleep = data->CitizenData.bSleep;
+				citizen->HoursSleptToday = data->CitizenData.HoursSleptToday;
+
+				for (FGeneticsStruct& genetic : citizen->Genetics)
+					citizen->ApplyGeneticAffect(genetic);
+
+				for (FString trait : data->CitizenData.PersonalityTraits) {
+					FPersonality personality;
+					personality.Trait = trait;
+
+					int32 index = Camera->CitizenManager->Personalities.Find(personality);
+					Camera->CitizenManager->Personalities[index].Citizens.Add(citizen);
+
+					citizen->ApplyTraitAffect(Camera->CitizenManager->Personalities[index].Affects);
+				}
+			}
 
 			Camera->Grid->AIVisualiser->AddInstance(ai, hism, ai->MovementComponent->Transform);
 		}
@@ -709,6 +836,10 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			int32 i = savedData.Find(data);
 			ai->AIController->ChosenBuilding = Cast<ABuilding>(savedData[i].Actor);
 
+			data.Name = actorData.AIData.MovementData.ActorToLookAtName;
+			i = savedData.Find(data);
+			ai->MovementComponent->ActorToLookAt = savedData[i].Actor;
+
 			FMoveStruct moveStruct;
 
 			data.Name = actorData.AIData.MovementData.ActorName;
@@ -727,9 +858,35 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			moveStruct.Location = actorData.AIData.MovementData.Location;
 
 			ai->AIController->MoveRequest = moveStruct;
-		}
 
-		// Apply managers stuff here i.e. if citizen, apply relative citizen stuff. If building, apply relative building stuff.
+			if (ai->IsA<ACitizen>()) {
+				ACitizen* citizen = Cast<ACitizen>(ai);
+
+				data.Name = actorData.AIData.CitizenData.MothersName;
+				i = savedData.Find(data);
+				citizen->BioStruct.Mother = Cast<ACitizen>(savedData[i].Actor);
+
+				data.Name = actorData.AIData.CitizenData.FathersName;
+				i = savedData.Find(data);
+				citizen->BioStruct.Father = Cast<ACitizen>(savedData[i].Actor);
+
+				data.Name = actorData.AIData.CitizenData.PartnersName;
+				i = savedData.Find(data);
+				citizen->BioStruct.Partner = Cast<ACitizen>(savedData[i].Actor);
+
+				for (FString name : actorData.AIData.CitizenData.ChildrensNames) {
+					data.Name = name;
+					i = savedData.Find(data);
+					citizen->BioStruct.Children.Add(Cast<ACitizen>(savedData[i].Actor));
+				}
+
+				for (FString name : actorData.AIData.CitizenData.SiblingsNames) {
+					data.Name = name;
+					i = savedData.Find(data);
+					citizen->BioStruct.Siblings.Add(Cast<ACitizen>(savedData[i].Actor));
+				}
+			}
+		}
 	}
 
 	for (FWetnessData data : wetnessData)
@@ -880,6 +1037,6 @@ void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* B
 	if (CitizenData.AIData.BuildingAtName == BuildingName) {
 		Building->Enter(citizen);
 
-		citizen->Building.EnterLocation = CitizenData.AIData.EnterLocation;
+		citizen->Building.EnterLocation = CitizenData.AIData.CitizenData.EnterLocation;
 	}
 }

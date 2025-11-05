@@ -397,6 +397,8 @@ struct FFactionStruct
 	FFactionStruct()
 	{
 		Name = "";
+		Flag = nullptr;
+		FlagColour = FLinearColor();
 		WarFatigue = 0;
 		PartyInPower = "";
 		LargestReligion = "";

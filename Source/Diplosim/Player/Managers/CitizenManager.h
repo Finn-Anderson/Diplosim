@@ -371,6 +371,8 @@ public:
 
 	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness);
 
+	USoundBase* GetConversationSound(ACitizen* Citizen);
+
 	void StartConversation(FFactionStruct* Faction, class ACitizen* Citizen1, class ACitizen* Citizen2, bool bInterrogation);
 
 	UFUNCTION()

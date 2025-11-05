@@ -1156,35 +1156,21 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 void UCitizenManager::CheckWorkStatus(int32 Hour)
 {
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+		for (ACitizen* citizen : faction.Citizens) {
+			for (auto element : citizen->HoursWorked) {
+				if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsWorking(citizen, Hour))
+					if (!citizen->HoursWorked.Contains(Hour))
+						citizen->HoursWorked.Add(Hour, citizen->Building.Employment->WagePerHour);
+					else if (citizen->HoursWorked.Contains(Hour))
+						citizen->HoursWorked.Remove(Hour);
+			}
+		}
+
 		for (ABuilding* building : faction.Buildings) {
 			if (!IsValid(building) || !building->IsA<AWork>())
 				continue;
 
-			AWork* work = Cast<AWork>(building);
-
-			for (ACitizen* citizen : work->GetOccupied()) {
-				if (!work->IsWorking(citizen, Hour))
-					continue;
-
-				FWorkHours workHours;
-				workHours.Work = work;
-
-				int32 index = citizen->HoursWorked.Find(workHours);
-
-				if (index == INDEX_NONE) {
-					workHours.Hours.Add(Hour);
-
-					citizen->HoursWorked.Add(workHours);
-				}
-				else {
-					if (citizen->HoursWorked[index].Hours.Contains(Hour))
-						citizen->HoursWorked[index].Hours.Remove(Hour);
-
-					citizen->HoursWorked[index].Hours.Add(Hour);
-				}
-			}
-
-			work->CheckWorkStatus(Hour);
+			Cast<AWork>(building)->CheckWorkStatus(Hour);
 		}
 	}
 }
@@ -1206,12 +1192,12 @@ void UCitizenManager::CheckUpkeepCosts()
 {
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 		for (ACitizen* citizen : faction.Citizens) {
-			int32 amount = 0;
+			float amount = 0.0f;
 
-			for (FWorkHours workHours : citizen->HoursWorked)
-				amount += FMath::RoundHalfFromZero(workHours.Work->WagePerHour * workHours.Hours.Num());
+			for (auto element : citizen->HoursWorked)
+				amount += element.Value;
 
-			citizen->Balance += amount;
+			citizen->Balance += FMath::RoundHalfFromZero(amount);
 			Camera->ResourceManager->TakeUniversalResource(&faction, Camera->ResourceManager->Money, amount, -100000);
 
 			if (IsValid(citizen->Building.House))
@@ -1447,40 +1433,35 @@ void UCitizenManager::PersonalityComparison(ACitizen* Citizen1, ACitizen* Citize
 //
 // Police
 //
+USoundBase* UCitizenManager::GetConversationSound(ACitizen* Citizen)
+{
+	Citizen->bConversing = true;
+	Citizen->AIController->StopMovement();
+
+	int32 index = Camera->Grid->Stream.RandRange(0, Citizen->NormalConversations.Num() - 1);
+	USoundBase* convo = Citizen->NormalConversations[index];
+
+	for (FPersonality* personality : GetCitizensPersonalities(Citizen)) {
+		if (personality->Trait != "Inept")
+			continue;
+
+		index = Camera->Grid->Stream.RandRange(0, Citizen->IneptIdiotConversations.Num() - 1);
+
+		convo = Citizen->IneptIdiotConversations[index];
+
+		break;
+	}
+
+	return convo;
+}
+
 void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citizen1, ACitizen* Citizen2, bool bInterrogation)
 {
-	Citizen1->bConversing = true;
-	Citizen2->bConversing = true;
-
-	Citizen1->AIController->StopMovement();
-	Citizen2->AIController->StopMovement();
-
 	Citizen1->MovementComponent->ActorToLookAt = Citizen2;
 	Citizen2->MovementComponent->ActorToLookAt = Citizen1;
 
-	int32 index1 = Camera->Grid->Stream.RandRange(0, Citizen1->NormalConversations.Num() - 1);
-	int32 index2 = Camera->Grid->Stream.RandRange(0, Citizen2->NormalConversations.Num() - 1);
-
-	USoundBase* convo1 = Citizen1->NormalConversations[index1];
-	USoundBase* convo2 = Citizen2->NormalConversations[index2];
-
-	TArray<ACitizen*> citizens = { Citizen1, Citizen2 };
-
-	for (ACitizen* citizen : citizens) {
-		for (FPersonality* personality : GetCitizensPersonalities(citizen)) {
-			if (personality->Trait != "Inept")
-				continue;
-
-			int32 index = Camera->Grid->Stream.RandRange(0, citizen->IneptIdiotConversations.Num() - 1);
-
-			if (citizen == Citizen1)
-				convo1 = citizen->IneptIdiotConversations[index];
-			else
-				convo2 = citizen->IneptIdiotConversations[index];
-
-			break;
-		}
-	}
+	USoundBase* convo1 = GetConversationSound(Citizen1);
+	USoundBase* convo2 = GetConversationSound(Citizen2);
 	
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen1, Citizen2, bInterrogation, convo1, convo2]() {
 		TArray<FTimerParameterStruct> params;

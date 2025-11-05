@@ -14,9 +14,9 @@
 UAIMovementComponent::UAIMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	
-	MaxSpeed = 200.0f;
+
 	InitialSpeed = 200.0f;
+	MaxSpeed = InitialSpeed;
 	SpeedMultiplier = 1.0f;
 
 	LastUpdatedTime = 0.0f;

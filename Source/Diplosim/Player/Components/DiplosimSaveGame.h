@@ -7,6 +7,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Buildings/Work/Work.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "AI/Citizen.h"
 #include "DiplosimSaveGame.generated.h"
 
 USTRUCT()
@@ -339,6 +340,184 @@ struct FBuildingData
 };
 
 USTRUCT()
+struct FCitizenData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FVector EnterLocation;
+
+	UPROPERTY()
+		bool bRebel;
+
+	// Carrying
+	UPROPERTY()
+		UClass* ResourceCarryClass;
+
+	UPROPERTY()
+		int32 CarryAmount;
+
+	// Bio
+	UPROPERTY()
+		FString MothersName;
+
+	UPROPERTY()
+		FString FathersName;
+
+	UPROPERTY()
+		FString PartnersName;
+
+	UPROPERTY()
+		int32 HoursTogetherWithPartner;
+
+	UPROPERTY()
+		bool bMarried;
+
+	UPROPERTY()
+		ESex Sex;
+
+	UPROPERTY()
+		int32 Age;
+
+	UPROPERTY()
+		FString Name;
+
+	UPROPERTY()
+		int32 EducationLevel;
+
+	UPROPERTY()
+		int32 EducationProgress;
+
+	UPROPERTY()
+		int32 PaidForEducationLevel;
+
+	UPROPERTY()
+		TArray<FString> ChildrensNames;
+
+	UPROPERTY()
+		TArray<FString> SiblingsNames;
+
+	UPROPERTY()
+		bool bAdopted;
+
+	// Misc
+	UPROPERTY()
+		FSpiritualStruct Spirituality;
+
+	UPROPERTY()
+		TArray<float> TimeOfAcquirement;
+
+	UPROPERTY()
+		float VoicePitch;
+
+	UPROPERTY()
+		int32 Balance;
+
+	UPROPERTY()
+		TMap<int32, float> HoursWorked;
+
+	UPROPERTY()
+		int32 Hunger;
+
+	UPROPERTY()
+		int32 Energy;
+
+	UPROPERTY()
+		bool bGain;
+
+	UPROPERTY()
+		float SpeedBeforeOld;
+
+	UPROPERTY()
+		float MaxHealthBeforeOld;
+
+	UPROPERTY()
+		bool bHasBeenLeader;
+
+	UPROPERTY()
+		EAttendStatus MassStatus; 
+		
+	UPROPERTY()
+		TArray<FConditionStruct> HealthIssues;
+
+	UPROPERTY()
+		FHappinessStruct Happiness;
+
+	UPROPERTY()
+		int32 SadTimer;
+
+	UPROPERTY()
+		bool bHolliday;
+
+	UPROPERTY()
+		EAttendStatus FestivalStatus;
+
+	UPROPERTY()
+		bool bConversing;
+
+	UPROPERTY()
+		int32 ConversationHappiness;
+
+	UPROPERTY()
+		int32 FamilyDeathHappiness;
+
+	UPROPERTY()
+		int32 WitnessedDeathHappiness;
+
+	UPROPERTY()
+		TArray<FGeneticsStruct> Genetics;
+
+	UPROPERTY()
+		bool bSleep;
+
+	UPROPERTY()
+		TArray<int32> HoursSleptToday;
+
+	UPROPERTY()
+		TArray<FString> PersonalityTraits;
+
+	FCitizenData()
+	{
+		EnterLocation = FVector::Zero();
+		bRebel = false;
+
+		ResourceCarryClass = nullptr;
+		CarryAmount = 0;
+
+		MothersName = "";
+		FathersName = "";
+		PartnersName = "";
+		HoursTogetherWithPartner = 0;
+		bMarried = false;
+		Sex = ESex::NaN;
+		Age = 0;
+		EducationLevel = 0;
+		EducationProgress = 0;
+		PaidForEducationLevel = 0;
+		Name = "Citizen";
+		bAdopted = false;
+
+		VoicePitch = 1.0f;
+		Balance = 0;
+		Hunger = 100;
+		Energy = 100;
+		bGain = false;
+		SpeedBeforeOld = 200.0f;
+		MaxHealthBeforeOld = 100.0f;
+		bHasBeenLeader = false;
+		MassStatus = EAttendStatus::Neutral;
+		SadTimer = 0;
+		bHolliday = false;
+		FestivalStatus = EAttendStatus::Neutral;
+		bConversing = false;
+		ConversationHappiness = 0;
+		FamilyDeathHappiness = 0;
+		WitnessedDeathHappiness = 0;
+		bSleep = false;
+	}
+};
+
+USTRUCT()
 struct FAIMovementData
 {
 	GENERATED_USTRUCT_BODY()
@@ -418,16 +597,13 @@ struct FAIData
 		FLinearColor Colour;
 
 	UPROPERTY()
-		FVector EnterLocation;
-
-	UPROPERTY()
-		bool bRebel;
+		FCitizenData CitizenData;
 
 	FAIData()
 	{
 		FactionName = "";
 		BuildingAtName = "";
-		bRebel = false;
+		Colour = FLinearColor();
 	}
 };
 
@@ -444,7 +620,8 @@ struct FProjectileData
 
 	FProjectileData()
 	{
-			OwnerName = "";
+		OwnerName = "";
+		Velocity = FVector::Zero();
 	}
 };
 
