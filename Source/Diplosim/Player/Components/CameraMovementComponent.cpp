@@ -39,8 +39,6 @@ void UCameraMovementComponent::BeginPlay()
 
 	Camera = Cast<ACamera>(GetOwner());
 
-	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-
 	PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PController->SetControlRotation(FRotator(-25.0f, 180.0f, 0.0f));
 	PController->SetInputMode(FInputModeGameAndUI());
@@ -59,7 +57,7 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	float armSpeed = CameraSpeed / 3.0f;
 	float movementSpeed = CameraSpeed / 2.0f;
 
-	if (!Settings->GetSmoothCamera()) {
+	if (!Camera->Settings->GetSmoothCamera()) {
 		armSpeed *= 10.0f;
 		movementSpeed *= 10.0f;
 	}

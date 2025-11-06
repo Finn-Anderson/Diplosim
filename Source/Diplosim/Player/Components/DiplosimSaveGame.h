@@ -5,6 +5,7 @@
 #include "Map/Grid.h"
 #include "Universal/Resource.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConstructionManager.h"
 #include "Buildings/Work/Work.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "AI/Citizen.h"
@@ -299,7 +300,7 @@ struct FBuildingData
 		int32 Tier;
 
 	UPROPERTY()
-		UStaticMesh* ActualMesh;
+		TArray<FItemStruct> TargetList;
 
 	UPROPERTY()
 		TArray<FSocketStruct> SocketList;
@@ -322,9 +323,6 @@ struct FBuildingData
 	UPROPERTY()
 		TArray<FOccupantData> OccupantsData;
 
-	UPROPERTY()
-		int32 BuildPercentage;
-
 	FBuildingData()
 	{
 		FactionName = "";
@@ -332,10 +330,8 @@ struct FBuildingData
 		Seed = 0;
 		ChosenColour = FLinearColor();
 		Tier = 1;
-		ActualMesh = nullptr;
 		DeathTime = 0.0f;
 		bOperate = true;
-		BuildPercentage = 0;
 	}
 };
 
@@ -665,6 +661,46 @@ struct FAttackData
 };
 
 USTRUCT()
+struct FConstructionData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString BuildingName;
+
+	UPROPERTY()
+		FString BuilderName;
+
+	UPROPERTY()
+		EBuildStatus Status;
+
+	UPROPERTY()
+		int32 BuildPercentage;
+
+	FConstructionData()
+	{
+		BuildingName = "";
+		BuilderName = "";
+		Status = EBuildStatus::Construction;
+		BuildPercentage = 0;
+	}
+};
+
+USTRUCT()
+struct FCameraData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FConstructionData> ConstructionData;
+
+	FCameraData()
+	{
+		
+	}
+};
+
+USTRUCT()
 struct FActorSaveData
 {
 	GENERATED_USTRUCT_BODY()
@@ -700,6 +736,9 @@ struct FActorSaveData
 
 	UPROPERTY()
 		FProjectileData ProjectileData;
+
+	UPROPERTY()
+		FCameraData CameraData;
 
 	UPROPERTY()
 		TArray<FTimerStruct> SavedTimers;

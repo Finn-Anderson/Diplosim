@@ -324,6 +324,8 @@ public:
 
 	virtual void Build(bool bRebuild = false, bool bUpgrade = false, int32 Grade = 0);
 
+	void SetConstructionMesh();
+
 	virtual void OnBuilt();
 
 	// Upkeep

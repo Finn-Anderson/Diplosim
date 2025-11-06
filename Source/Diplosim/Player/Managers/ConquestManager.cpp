@@ -33,7 +33,6 @@ UConquestManager::UConquestManager()
 
 	AINum = 2;
 	MaxAINum = 2;
-	FailedBuild = 0;
 	PlayerSelectedArmyIndex = -1;
 }
 
@@ -832,7 +831,7 @@ void UConquestManager::RecalculateTileLocationDistances(FFactionStruct* Faction)
 		Faction->InaccessibleBuildLocations.RemoveAt(i);
 	}
 
-	FailedBuild = 0;
+	Faction->FailedBuild = 0;
 
 	SortTileDistances(Faction->AccessibleBuildLocations);
 }
@@ -967,7 +966,7 @@ void UConquestManager::EvaluateAIBuild(FFactionStruct* Faction)
 	if (Faction->Buildings.Num() > numBuildings)
 		RecalculateTileLocationDistances(Faction);
 	else
-		FailedBuild++;
+		Faction->FailedBuild++;
 
 	BuildAIAccessibility(Faction);
 }
@@ -1173,7 +1172,7 @@ void UConquestManager::BuildAIAccessibility(FFactionStruct* Faction)
 	bool bCanAffordRamp = AICanAfford(Faction, RampClass);
 	bool bCanAffordRoad = AICanAfford(Faction, RoadClass);
 
-	if (FailedBuild <= 3 || Faction->AccessibleBuildLocations.Num() > 50 || (!bCanAffordRamp && !bCanAffordRoad))
+	if (Faction->FailedBuild <= 3 || Faction->AccessibleBuildLocations.Num() > 50 || (!bCanAffordRamp && !bCanAffordRoad))
 		return;
 
 	TSubclassOf<ABuilding> chosenClass = nullptr;

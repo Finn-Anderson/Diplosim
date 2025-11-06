@@ -14,8 +14,6 @@ ABuilder::ABuilder()
 {
 	HealthComponent->MaxHealth = 50;
 	HealthComponent->Health = HealthComponent->MaxHealth;
-
-	BuildPercentage = 0;
 }
 
 bool ABuilder::CheckInstant() 
@@ -63,21 +61,15 @@ void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 
 void ABuilder::AddBuildPercentage(ACitizen* Citizen, ABuilding* Building)
 {
-	if (Citizen->Building.BuildingAt != Building)
+	if (Citizen->Building.BuildingAt != Building || !Camera->ConstructionManager->IncrementBuildPercentage(Building))
 		return;
 
-	BuildPercentage += 1;
+	Building->OnBuilt();
 
-	if (BuildPercentage == 100) {
-		Building->OnBuilt();
+	Done(Citizen, Building);
 
-		Done(Citizen, Building);
-
-		BuildPercentage = 0;
-
-		if (Camera->WidgetComponent->GetAttachParent() == GetRootComponent())
-			Camera->DisplayInteract(this);
-	}
+	if (Camera->WidgetComponent->GetAttachParent() == GetRootComponent())
+		Camera->DisplayInteract(this);
 }
 
 void ABuilder::StartRepairTimer(ACitizen* Citizen, ABuilding* Building)

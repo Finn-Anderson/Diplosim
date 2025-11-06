@@ -466,18 +466,23 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 
 		cm->AddBuilding(this, EBuildStatus::Construction);
 
-		ActualMesh = BuildingMesh->GetStaticMesh();
-		FVector bSize = ActualMesh->GetBounds().GetBox().GetSize();
-		FVector cSize = ConstructionMesh->GetBounds().GetBox().GetSize();
-
-		FVector size = bSize / cSize;
-
-		if (size.Z < 0.75f)
-			size.Z = 0.75f;
-
-		BuildingMesh->SetRelativeScale3D(size);
-		BuildingMesh->SetStaticMesh(ConstructionMesh);
+		SetConstructionMesh();
 	}
+}
+
+void ABuilding::SetConstructionMesh()
+{
+	ActualMesh = BuildingMesh->GetStaticMesh();
+	FVector bSize = ActualMesh->GetBounds().GetBox().GetSize();
+	FVector cSize = ConstructionMesh->GetBounds().GetBox().GetSize();
+
+	FVector size = bSize / cSize;
+
+	if (size.Z < 0.75f)
+		size.Z = 0.75f;
+
+	BuildingMesh->SetRelativeScale3D(size);
+	BuildingMesh->SetStaticMesh(ConstructionMesh);
 }
 
 void ABuilding::DestroyBuilding(bool bCheckAbove)

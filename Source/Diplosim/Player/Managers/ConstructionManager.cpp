@@ -190,3 +190,25 @@ ABuilding* UConstructionManager::GetBuilding(class ABuilder* Builder)
 
 	return Construction[index].Building;
 }
+
+bool UConstructionManager::IncrementBuildPercentage(ABuilding* Building)
+{
+	FConstructionStruct constructionStruct;
+	constructionStruct.Building = Building;
+
+	int32 index = Construction.Find(constructionStruct);
+
+	Construction[index].BuildPercentage += 1;
+
+	return Construction[index].BuildPercentage == 100;
+}
+
+int32 UConstructionManager::GetBuildPercentage(ABuilding* Building)
+{
+	FConstructionStruct constructionStruct;
+	constructionStruct.Building = Building;
+
+	int32 index = Construction.Find(constructionStruct);
+
+	return Construction[index].BuildPercentage;
+}

@@ -30,9 +30,11 @@ struct FDiedToStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	TWeakObjectPtr<AActor> Actor;
+	UPROPERTY()
+		TWeakObjectPtr<AActor> Actor;
 
-	int32 Kills;
+	UPROPERTY()
+		int32 Kills;
 
 	FDiedToStruct()
 	{
@@ -51,7 +53,8 @@ struct FThreatsStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	TWeakObjectPtr<AActor> Actor;
+	UPROPERTY()
+		TWeakObjectPtr<AActor> Actor;
 
 	FThreatsStruct()
 	{
@@ -69,15 +72,20 @@ struct FWaveStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	FVector SpawnLocation;
+	UPROPERTY()
+		FVector SpawnLocation;
 
-	TArray<FDiedToStruct> DiedTo;
+	UPROPERTY()
+		TArray<FDiedToStruct> DiedTo;
 
-	TArray<FThreatsStruct> Threats;
+	UPROPERTY()
+		TArray<FThreatsStruct> Threats;
 
-	int32 NumKilled;
+	UPROPERTY()
+		int32 NumKilled;
 
-	int32 TotalEnemies;
+	UPROPERTY()
+		int32 TotalEnemies;
 
 	FWaveStruct()
 	{
@@ -107,7 +115,7 @@ struct FWaveStruct
 
 	bool operator==(const FWaveStruct& other) const
 	{
-		return (other.SpawnLocation == SpawnLocation) && (other.DiedTo == DiedTo) && (other.NumKilled == NumKilled);
+		return (other.SpawnLocation == SpawnLocation && other.DiedTo == DiedTo && other.NumKilled == NumKilled);
 	}
 };
 

@@ -391,6 +391,9 @@ struct FFactionStruct
 	UPROPERTY()
 		TArray<FVector> RoadBuildLocations;
 
+	UPROPERTY()
+		int32 FailedBuild;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Army")
 		TArray<FArmyStruct> Armies;
 
@@ -405,6 +408,7 @@ struct FFactionStruct
 		EggTimer = nullptr;
 		ResearchIndex = 0;
 		RebelCooldownTimer = 0;
+		FailedBuild = 0;
 	}
 
 	bool operator==(const FFactionStruct& other) const
@@ -635,9 +639,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		TSubclassOf<ABuilding> RampClass;
-
-	UPROPERTY()
-		int32 FailedBuild;
 
 	void EvaluateAIBuild(FFactionStruct* Faction);
 

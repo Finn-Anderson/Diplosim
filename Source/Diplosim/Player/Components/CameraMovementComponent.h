@@ -25,9 +25,6 @@ public:
 		class ACamera* Camera;
 
 	UPROPERTY()
-	class UDiplosimUserSettings* Settings;
-
-	UPROPERTY()
 		class APlayerController* PController;
 
 	UPROPERTY()
@@ -77,5 +74,5 @@ public:
 		bool bShake;
 
 	UPROPERTY()
-	double LastScrollTime;
+		double LastScrollTime;
 };

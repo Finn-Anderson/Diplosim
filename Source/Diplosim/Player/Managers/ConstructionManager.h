@@ -16,17 +16,24 @@ struct FConstructionStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	class ABuilding* Building;
+	UPROPERTY()
+		class ABuilding* Building;
 
-	class ABuilder* Builder;
+	UPROPERTY()
+		class ABuilder* Builder;
 
-	EBuildStatus Status;
+	UPROPERTY()
+		EBuildStatus Status;
+
+	UPROPERTY()
+		int32 BuildPercentage;
 
 	FConstructionStruct()
 	{
 		Building = nullptr;
 		Builder = nullptr;
 		Status = EBuildStatus::Construction;
+		BuildPercentage = 0;
 	}
 
 	bool operator==(const FConstructionStruct& other) const
@@ -62,5 +69,11 @@ public:
 
 	class ABuilding* GetBuilding(class ABuilder* Builder);
 
-	TArray<FConstructionStruct> Construction;
+	bool IncrementBuildPercentage(class ABuilding* Building);
+
+	UFUNCTION(BlueprintCallable)
+		int32 GetBuildPercentage(class ABuilding* Building);
+
+	UPROPERTY()
+		TArray<FConstructionStruct> Construction;
 };

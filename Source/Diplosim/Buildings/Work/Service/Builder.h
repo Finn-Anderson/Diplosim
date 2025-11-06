@@ -27,7 +27,4 @@ public:
 		void Repair(class ACitizen* Citizen, class ABuilding* Building);
 
 	void Done(class ACitizen* Citizen, class ABuilding* Building);
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Build Status")
-		int32 BuildPercentage;
 };

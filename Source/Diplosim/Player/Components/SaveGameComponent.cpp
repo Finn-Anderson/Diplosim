@@ -11,7 +11,9 @@
 
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConstructionManager.h"
 #include "Player/Components/CameraMovementComponent.h"
+#include "Player/Components/BuildComponent.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/EggBasket.h"
 #include "Universal/HealthComponent.h"
@@ -180,7 +182,7 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 				actorData.WorldSaveData.CloudsData.WetnessData.Add(wetnessData);
 			}
 
-			for (FCloudStruct cloud : Camera->Grid->AtmosphereComponent->Clouds->Clouds) {
+			for (FCloudStruct cloud : grid->AtmosphereComponent->Clouds->Clouds) {
 				FCloudData data;
 				data.Transform = cloud.HISMCloud->GetRelativeTransform();
 				data.Distance = cloud.Distance;
@@ -210,7 +212,23 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			actorData.ResourceData.Workers = resource->WorkerStruct;
 		}
 		else if (actor->IsA<ACamera>()) {
-			// Things related to buildings and/or citizens do not need to be saved.
+			ACamera* camera = Cast<ACamera>(actor);
+
+			actorData.CameraData.ConstructionData.Empty();
+			for (FConstructionStruct constructionStruct : camera->ConstructionManager->Construction) {
+				FConstructionData data;
+				data.BuildingName = constructionStruct.Building->GetName();
+				data.BuildPercentage = constructionStruct.BuildPercentage;
+				data.Status = constructionStruct.Status;
+
+				if (IsValid(constructionStruct.Builder))
+					data.BuilderName = constructionStruct.Builder->GetName();
+
+				actorData.CameraData.ConstructionData.Add(data);
+			}
+
+			ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+			// gamemode stuff;
 		}
 		else if (actor->IsA<AAI>()) {
 			AAI* ai = Cast<AAI>(actor);
@@ -314,13 +332,17 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 		else if (actor->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(actor);
 
+			if (Camera->BuildComponent->Buildings.Contains(building))
+				continue;
+
 			actorData.BuildingData.FactionName = building->FactionName;
 			actorData.BuildingData.Capacity = building->Capacity;
 
 			actorData.BuildingData.Seed = building->SeedNum;
 			actorData.BuildingData.ChosenColour = building->ChosenColour;
 			actorData.BuildingData.Tier = building->Tier;
-			actorData.BuildingData.ActualMesh = building->ActualMesh;
+
+			actorData.BuildingData.TargetList = building->TargetList;
 
 			actorData.BuildingData.Storage = building->Storage;
 			actorData.BuildingData.Basket = building->Basket;
@@ -328,12 +350,8 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			actorData.BuildingData.DeathTime = building->DeathTime;
 			actorData.BuildingData.bOperate = building->bOperate;
 
-			if (IsA<AWork>()) {
+			if (IsA<AWork>())
 				actorData.BuildingData.WorkHours = Cast<AWork>(building)->WorkHours;
-
-				if (building->IsA<ABuilder>())
-					 actorData.BuildingData.BuildPercentage = Cast<ABuilder>(building)->BuildPercentage;
-			}
 
 			TArray<FOccupantData> occData;
 
@@ -578,6 +596,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			camera->Detach();
 			camera->MovementComponent->TargetLength = 3000.0f;
 
+			camera->ConstructionManager->Construction.Empty();
+
 			// Things related to buildings and/or citizens need to be reset i.e. personalities, factions.
 		}
 		else if (actor->IsA<AAI>()) {
@@ -678,6 +698,9 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		else if (actor->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(actor);
 
+			building->BuildingMesh->SetCanEverAffectNavigation(true);
+			building->BuildingMesh->bReceivesDecals = true;
+
 			building->FactionName = actorData.BuildingData.FactionName;
 			Camera->ConquestManager->GetFaction(building->FactionName)->Buildings.Add(building);
 
@@ -689,8 +712,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			FLinearColor colour = actorData.BuildingData.ChosenColour;
 			building->SetBuildingColour(colour.R, colour.G, colour.B);
 
-			building->ActualMesh = actorData.BuildingData.ActualMesh;
-			// if construction manager contains building, set mesh to box.
+			building->TargetList = actorData.BuildingData.TargetList;
 
 			building->Storage = actorData.BuildingData.Storage;
 			building->Basket = actorData.BuildingData.Basket;
@@ -698,12 +720,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			building->DeathTime = actorData.BuildingData.DeathTime;
 			building->bOperate = actorData.BuildingData.bOperate;
 
-			if (building->IsA<AWork>()) {
+			if (building->IsA<AWork>())
 				Cast<AWork>(building)->WorkHours = actorData.BuildingData.WorkHours;
-
-				if (building->IsA<ABuilder>())
-					Cast<ABuilder>(building)->BuildPercentage = actorData.BuildingData.BuildPercentage;
-			}
 
 			for (FOccupantData data : actorData.BuildingData.OccupantsData) {
 				FActorSaveData aiData = *aiToName.Find(data.OccupantName);
@@ -821,21 +839,19 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				attackComp->SetComponentTickEnabled(true);
 		}
 
+		FActorSaveData data;
+		int32 i = INDEX_NONE;
+
 		if (actorData.Actor->IsA<AProjectile>()) {
-			FActorSaveData data;
 			data.Name = actorData.ProjectileData.OwnerName;
-
-			int32 i = savedData.Find(data);
-
+			i = savedData.Find(data);
 			Cast<AProjectile>(actorData.Actor)->SpawnNiagaraSystems(savedData[i].Actor);
 		}
 		else if (actorData.Actor->IsA<AAI>()) {
 			AAI* ai = Cast<AAI>(actorData.Actor);
 
-			FActorSaveData data;
-
 			data.Name = actorData.AIData.MovementData.ChosenBuildingName;
-			int32 i = savedData.Find(data);
+			i = savedData.Find(data);
 			ai->AIController->ChosenBuilding = Cast<ABuilding>(savedData[i].Actor);
 
 			data.Name = actorData.AIData.MovementData.ActorToLookAtName;
@@ -887,6 +903,30 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 					i = savedData.Find(data);
 					citizen->BioStruct.Siblings.Add(Cast<ACitizen>(savedData[i].Actor));
 				}
+			}
+		}
+		else if (actorData.Actor->IsA<ACamera>()) {
+			ACamera* camera = Cast<ACamera>(actorData.Actor);
+
+			for (FConstructionData constructionData : actorData.CameraData.ConstructionData) {
+				FConstructionStruct constructionStruct;
+				constructionStruct.Status = constructionData.Status;
+				constructionStruct.BuildPercentage = constructionData.BuildPercentage;
+
+				data.Name = constructionData.BuildingName;
+				i = savedData.Find(data);
+				constructionStruct.Building = Cast<ABuilding>(savedData[i].Actor);
+
+				if (constructionStruct.Status == EBuildStatus::Construction)
+					constructionStruct.Building->SetConstructionMesh();
+
+				if (constructionData.BuilderName != "") {
+					data.Name = constructionData.BuilderName;
+					i = savedData.Find(data);
+					constructionStruct.Builder = Cast<ABuilder>(savedData[i].Actor);
+				}
+
+				camera->ConstructionManager->Construction.Add(constructionStruct);
 			}
 		}
 	}
