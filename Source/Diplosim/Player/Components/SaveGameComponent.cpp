@@ -228,7 +228,28 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			}
 
 			ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
-			// gamemode stuff;
+			FGamemodeData* gamemodeData = &actorData.CameraData.GamemodeData;
+
+			gamemodeData->WaveData.Empty();
+			for (FWaveStruct wave : gamemode->WavesData) {
+				FWaveData waveData;
+				waveData.SpawnLocations = wave.SpawnLocations;
+
+				for (FDiedToStruct diedTo : wave.DiedTo)
+					waveData.DiedTo.Add(diedTo.Actor->GetName(), diedTo.Kills);
+
+				for (TWeakObjectPtr<AActor> actor : wave.Threats)
+					waveData.Threats.Add(actor->GetName());
+
+				waveData.NumKilled = wave.NumKilled;
+				waveData.EnemiesData = wave.EnemiesData;
+
+				gamemodeData->WaveData.Add(waveData);
+			}
+			
+			gamemodeData->bOngoingRaid = gamemode->bOngoingRaid;
+			gamemodeData->CrystalOpacity = camera->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0];
+			gamemodeData->TargetOpacity = gamemode->TargetOpacity;
 		}
 		else if (actor->IsA<AAI>()) {
 			AAI* ai = Cast<AAI>(actor);
@@ -455,6 +476,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		faction.Clones.Empty();
 	}
 
+	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+
 	TArray<AActor*> actors;
 	TArray<AActor*> foundActors;
 
@@ -597,6 +620,14 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			camera->MovementComponent->TargetLength = 3000.0f;
 
 			camera->ConstructionManager->Construction.Empty();
+
+			FGamemodeData* gamemodeData = &actorData.CameraData.GamemodeData;
+
+			gamemode->bOngoingRaid = gamemodeData->bOngoingRaid;
+			camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, gamemodeData->CrystalOpacity);
+			gamemode->TargetOpacity = gamemodeData->TargetOpacity;
+
+			gamemode->SetActorTickEnabled(true);
 
 			// Things related to buildings and/or citizens need to be reset i.e. personalities, factions.
 		}
@@ -826,51 +857,28 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			attackComp->AttackTimer = actorData.AttackData.AttackTimer;
 			attackComp->bShowMercy = actorData.AttackData.bShowMercy;
 
-			for (FString name : actorData.AttackData.ActorNames) {
-				FActorSaveData data;
-				data.Name = name;
-
-				int32 i = savedData.Find(data);
-
-				attackComp->OverlappingEnemies.Add(savedData[i].Actor);
-			}
+			for (FString name : actorData.AttackData.ActorNames)
+				attackComp->OverlappingEnemies.Add(GetSaveActorFromName(savedData, name));
 
 			if (!attackComp->OverlappingEnemies.IsEmpty())
 				attackComp->SetComponentTickEnabled(true);
 		}
 
-		FActorSaveData data;
-		int32 i = INDEX_NONE;
-
 		if (actorData.Actor->IsA<AProjectile>()) {
-			data.Name = actorData.ProjectileData.OwnerName;
-			i = savedData.Find(data);
-			Cast<AProjectile>(actorData.Actor)->SpawnNiagaraSystems(savedData[i].Actor);
+			Cast<AProjectile>(actorData.Actor)->SpawnNiagaraSystems(GetSaveActorFromName(savedData, actorData.ProjectileData.OwnerName));
 		}
 		else if (actorData.Actor->IsA<AAI>()) {
 			AAI* ai = Cast<AAI>(actorData.Actor);
+			FAIMovementData* movementData = &actorData.AIData.MovementData;
 
-			data.Name = actorData.AIData.MovementData.ChosenBuildingName;
-			i = savedData.Find(data);
-			ai->AIController->ChosenBuilding = Cast<ABuilding>(savedData[i].Actor);
+			ai->AIController->ChosenBuilding = Cast<ABuilding>(GetSaveActorFromName(savedData, movementData->ChosenBuildingName));
 
-			data.Name = actorData.AIData.MovementData.ActorToLookAtName;
-			i = savedData.Find(data);
-			ai->MovementComponent->ActorToLookAt = savedData[i].Actor;
+			ai->MovementComponent->ActorToLookAt = GetSaveActorFromName(savedData, movementData->ActorToLookAtName);
 
 			FMoveStruct moveStruct;
-
-			data.Name = actorData.AIData.MovementData.ActorName;
-			i = savedData.Find(data);
-			moveStruct.Actor = savedData[i].Actor;
-
-			data.Name = actorData.AIData.MovementData.LinkedPortalName;
-			i = savedData.Find(data);
-			moveStruct.LinkedPortal = savedData[i].Actor;
-
-			data.Name = actorData.AIData.MovementData.UltimateGoalName;
-			i = savedData.Find(data);
-			moveStruct.UltimateGoal = savedData[i].Actor;
+			moveStruct.Actor = GetSaveActorFromName(savedData, movementData->ActorName);
+			moveStruct.LinkedPortal = GetSaveActorFromName(savedData, movementData->LinkedPortalName);
+			moveStruct.UltimateGoal = GetSaveActorFromName(savedData, movementData->UltimateGoalName);
 
 			moveStruct.Instance = actorData.AIData.MovementData.Instance;
 			moveStruct.Location = actorData.AIData.MovementData.Location;
@@ -879,30 +887,19 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			if (ai->IsA<ACitizen>()) {
 				ACitizen* citizen = Cast<ACitizen>(ai);
+				FCitizenData* citizenData = &actorData.AIData.CitizenData;
 
-				data.Name = actorData.AIData.CitizenData.MothersName;
-				i = savedData.Find(data);
-				citizen->BioStruct.Mother = Cast<ACitizen>(savedData[i].Actor);
+				citizen->BioStruct.Mother = Cast<ACitizen>(GetSaveActorFromName(savedData, citizenData->MothersName));
 
-				data.Name = actorData.AIData.CitizenData.FathersName;
-				i = savedData.Find(data);
-				citizen->BioStruct.Father = Cast<ACitizen>(savedData[i].Actor);
+				citizen->BioStruct.Father = Cast<ACitizen>(GetSaveActorFromName(savedData, citizenData->FathersName));
 
-				data.Name = actorData.AIData.CitizenData.PartnersName;
-				i = savedData.Find(data);
-				citizen->BioStruct.Partner = Cast<ACitizen>(savedData[i].Actor);
+				citizen->BioStruct.Partner = Cast<ACitizen>(GetSaveActorFromName(savedData, citizenData->PartnersName));
 
-				for (FString name : actorData.AIData.CitizenData.ChildrensNames) {
-					data.Name = name;
-					i = savedData.Find(data);
-					citizen->BioStruct.Children.Add(Cast<ACitizen>(savedData[i].Actor));
-				}
+				for (FString name : citizenData->ChildrensNames)
+					citizen->BioStruct.Children.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
 
-				for (FString name : actorData.AIData.CitizenData.SiblingsNames) {
-					data.Name = name;
-					i = savedData.Find(data);
-					citizen->BioStruct.Siblings.Add(Cast<ACitizen>(savedData[i].Actor));
-				}
+				for (FString name : citizenData->SiblingsNames)
+					citizen->BioStruct.Siblings.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
 			}
 		}
 		else if (actorData.Actor->IsA<ACamera>()) {
@@ -912,22 +909,42 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				FConstructionStruct constructionStruct;
 				constructionStruct.Status = constructionData.Status;
 				constructionStruct.BuildPercentage = constructionData.BuildPercentage;
-
-				data.Name = constructionData.BuildingName;
-				i = savedData.Find(data);
-				constructionStruct.Building = Cast<ABuilding>(savedData[i].Actor);
+				constructionStruct.Building = Cast<ABuilding>(GetSaveActorFromName(savedData, constructionData.BuildingName));
 
 				if (constructionStruct.Status == EBuildStatus::Construction)
 					constructionStruct.Building->SetConstructionMesh();
 
-				if (constructionData.BuilderName != "") {
-					data.Name = constructionData.BuilderName;
-					i = savedData.Find(data);
-					constructionStruct.Builder = Cast<ABuilder>(savedData[i].Actor);
-				}
+				if (constructionData.BuilderName != "")
+					constructionStruct.Builder = Cast<ABuilder>(GetSaveActorFromName(savedData, constructionData.BuilderName));
 
 				camera->ConstructionManager->Construction.Add(constructionStruct);
 			}
+
+			FGamemodeData* gamemodeData = &actorData.CameraData.GamemodeData;
+
+			for (FWaveData waveData : gamemodeData->WaveData) {
+				FWaveStruct wave;
+				wave.SpawnLocations = waveData.SpawnLocations;
+
+				for (auto element : waveData.DiedTo) {
+					FDiedToStruct diedTo;
+					diedTo.Actor = GetSaveActorFromName(savedData, element.Key);
+					diedTo.Kills = element.Value;
+
+					wave.DiedTo.Add(diedTo);
+				}
+
+				for (FString name : waveData.Threats)
+					wave.Threats.Add(GetSaveActorFromName(savedData, name));
+
+				wave.NumKilled = waveData.NumKilled;
+				wave.EnemiesData = waveData.EnemiesData;
+
+				gamemode->WavesData.Add(wave);
+			}
+
+			if (!gamemode->bSpawnedAllEnemies())
+				gamemode->SpawnAllEnemies();
 		}
 	}
 
@@ -1061,6 +1078,16 @@ void USaveGameComponent::UpdateAutosave(int32 NewTime)
 		else if (NewTime - timer->Timer > 0.0f)
 			timer->Target = NewTime;
 	}
+}
+
+AActor* USaveGameComponent::GetSaveActorFromName(TArray<FActorSaveData> SavedData, FString Name)
+{
+	FActorSaveData data;
+	data.Name = Name;
+
+	int32 i = SavedData.Find(data);
+
+	return SavedData[i].Actor;
 }
 
 void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData CitizenData, bool bVisitor)

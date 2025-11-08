@@ -98,10 +98,7 @@ void ADiplosimGameModeBase::EvaluateThreats()
 		if (threat.Kills < 10)
 			continue;
 
-		FThreatsStruct threatStruct;
-		threatStruct.Actor = threat.Actor;
-
-		WavesData.Last().Threats.Add(threatStruct);
+		WavesData.Last().Threats.Add(threat.Actor);
 
 		int32 chance = Camera->Grid->Stream.RandRange(1, 30);
 		chance -= threat.Kills;
@@ -183,11 +180,15 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	for (int32 i = WavesData.Num() - 1; i > num; i--) {
 		FWaveStruct wave = WavesData[i];
+		int32 kills = 0;
 
-		if (wave.DiedTo.Num() * 0.66f < wave.NumKilled)
-			validTiles.Add(wave.SpawnLocation);
+		for (FDiedToStruct diedTo : wave.DiedTo)
+			kills += diedTo.Kills;
+
+		if (wave.NumKilled * 0.66f > kills)
+			validTiles.Add(wave.SpawnLocations[0]);
 		else
-			validTiles.RemoveSingle(wave.SpawnLocation);
+			validTiles.RemoveSingle(wave.SpawnLocations[0]);
 	}
 
 	if (validTiles.IsEmpty())
@@ -292,39 +293,38 @@ void ADiplosimGameModeBase::SetRaidInformation()
 	FWaveStruct waveStruct;
 	WavesData.Add(waveStruct);
 
-	WavesData.Last().SpawnLocation = spawnLocations[0];
+	WavesData.Last().SpawnLocations = spawnLocations;
+	WavesData.Last().EnemiesData = EnemiesData;
 
 	EvaluateThreats();
 
 	bOngoingRaid = true;
 
-	Async(EAsyncExecution::TaskGraphMainTick, [this, spawnLocations]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocation + FVector(0.0f, 0.0f, 500.0f)); });
+	Async(EAsyncExecution::TaskGraphMainTick, [this]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocations[0] + FVector(0.0f, 0.0f, 500.0f)); });
 
 	int32 time = 120;
 
 	if (Camera->bInstantEnemies)
 		time = 5;
 
-	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(spawnLocations, params);
-	Camera->CitizenManager->CreateTimer("SpawnEnemies", this, time, "SpawnAllEnemies", params, false, true);
+	Camera->CitizenManager->CreateTimer("SpawnEnemies", this, time, "SpawnAllEnemies", {}, false, true);
 }
 
-void ADiplosimGameModeBase::SpawnAllEnemies(TArray<FVector> SpawnLocations)
+void ADiplosimGameModeBase::SpawnAllEnemies()
 {
 	int32 count = 1;
 
-	for (FEnemiesStruct &enemyData : EnemiesData) {
-		int32 num = FMath::Floor(enemyData.Tally / 200.0f);
+	for (int32 i = 0; i < EnemiesData.Num(); i++) {
+		int32 num = FMath::Floor(EnemiesData[i].Tally / 200.0f) - WavesData.Last().EnemiesData[i].Spawned;
 
 		for (int32 i = 0; i < num; i++) {
 			FTimerHandle spawnTimer;
-			GetWorld()->GetTimerManager().SetTimer(spawnTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, SpawnLocations, enemyData.Colour), 0.1f * count, false);
+			GetWorld()->GetTimerManager().SetTimer(spawnTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, WavesData.Last().SpawnLocations, EnemiesData[i].Colour, &WavesData.Last().EnemiesData[i].Spawned), 0.1f * count, false);
 
 			count++;
 		}
 
-		enemyData.Tally = enemyData.Tally % 200;
+		EnemiesData[i].Tally = EnemiesData[i].Tally % 200;
 	}
 
 	FTimerHandle crystalTimer;
@@ -342,7 +342,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies(TArray<FVector> SpawnLocations)
 	Camera->DisplayEvent("Event", "Raid");
 }
 
-void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour)
+void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour, int32* Spawned)
 {
 	int32 index = Camera->Grid->Stream.RandRange(0, spawnLocations.Num() - 1);
 
@@ -366,7 +366,30 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations,
 
 	enemy->MoveToBroch();
 
-	WavesData.Last().TotalEnemies++;
+	Spawned++;
+}
+
+int32 ADiplosimGameModeBase::GetTotalSpawnedEnemies()
+{
+	int32 count = 0;
+
+	for (int32 i = 0; i < WavesData.Last().EnemiesData.Num(); i++)
+		count += WavesData.Last().EnemiesData[i].Spawned;
+
+	return count;
+}
+
+bool ADiplosimGameModeBase::bSpawnedAllEnemies()
+{
+	int32 total = 0;
+	int32 spawned = 0;
+
+	for (int32 i = 0; i < WavesData.Last().EnemiesData.Num(); i++) {
+		total = FMath::Floor(WavesData.Last().EnemiesData[i].Tally / 200.0f);
+		spawned = WavesData.Last().EnemiesData[i].Spawned;
+	}
+
+	return total == spawned;
 }
 
 void ADiplosimGameModeBase::StartRaid()
@@ -406,7 +429,7 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 		for (FDiedToStruct death : WavesData.Last().DiedTo)
 			tally += death.Kills; 
 
-		if (tally != WavesData.Last().TotalEnemies)
+		if (tally != GetTotalSpawnedEnemies())
 			return false;
 
 		bOngoingRaid = false;
@@ -418,8 +441,8 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 void ADiplosimGameModeBase::SetWaveTimer()
 {
 	if (!WavesData.IsEmpty()) {
-		for (FThreatsStruct threat : WavesData.Last().Threats) {
-			AWall* wall = Cast<AWall>(threat.Actor);
+		for (TWeakObjectPtr<AActor> threat : WavesData.Last().Threats) {
+			AWall* wall = Cast<AWall>(threat);
 
 			if (!wall->RangeComponent->CanEverAffectNavigation())
 				continue;

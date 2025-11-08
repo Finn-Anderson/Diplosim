@@ -18,9 +18,13 @@ struct FEnemiesStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		FLinearColor Colour;
 
+	UPROPERTY()
+		int32 Spawned;
+
 	FEnemiesStruct()
 	{
 		Tally = 0;
+		Spawned = 0;
 		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
 	}
 };
@@ -49,51 +53,32 @@ struct FDiedToStruct
 };
 
 USTRUCT(BlueprintType)
-struct FThreatsStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-		TWeakObjectPtr<AActor> Actor;
-
-	FThreatsStruct()
-	{
-		Actor = nullptr;
-	}
-
-	bool operator==(const FThreatsStruct& other) const
-	{
-		return (other.Actor == Actor);
-	}
-};
-
-USTRUCT(BlueprintType)
 struct FWaveStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-		FVector SpawnLocation;
+		TArray<FVector> SpawnLocations;
 
 	UPROPERTY()
 		TArray<FDiedToStruct> DiedTo;
 
 	UPROPERTY()
-		TArray<FThreatsStruct> Threats;
+		TArray<TWeakObjectPtr<AActor>> Threats;
 
 	UPROPERTY()
 		int32 NumKilled;
 
 	UPROPERTY()
-		int32 TotalEnemies;
+		TArray<FEnemiesStruct> EnemiesData;
 
 	FWaveStruct()
 	{
-		SpawnLocation = FVector(0.0f, 0.0f, 0.0f);
+		SpawnLocations = {};
 		DiedTo = {};
 		Threats = {};
 		NumKilled = 0;
-		TotalEnemies = 0;
+		EnemiesData = {};
 	}
 
 	void SetDiedTo(AActor* Attacker)
@@ -115,7 +100,7 @@ struct FWaveStruct
 
 	bool operator==(const FWaveStruct& other) const
 	{
-		return (other.SpawnLocation == SpawnLocation && other.DiedTo == DiedTo && other.NumKilled == NumKilled);
+		return (other.SpawnLocations == SpawnLocations && other.DiedTo == DiedTo && other.NumKilled == NumKilled);
 	}
 };
 
@@ -148,9 +133,13 @@ public:
 	void SetRaidInformation();
 
 	UFUNCTION()
-		void SpawnAllEnemies(TArray<FVector> SpawnLocations);
+		void SpawnAllEnemies();
 
-	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour);
+	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour, int32* Spawned);
+
+	int32 GetTotalSpawnedEnemies();
+
+	bool bSpawnedAllEnemies();
 
 	UFUNCTION()
 		void StartRaid();
@@ -186,5 +175,5 @@ public:
 		bool bOngoingRaid;
 
 	UPROPERTY()
-		bool TargetOpacity;
+		float TargetOpacity;
 };

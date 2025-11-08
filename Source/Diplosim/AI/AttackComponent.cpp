@@ -86,19 +86,16 @@ void UAttackComponent::PickTarget()
 			continue;
 		}
 
-		FThreatsStruct threatStruct;
-		threatStruct.Actor = target;
-
-		TArray<FThreatsStruct> threats;
+		TArray<TWeakObjectPtr<AActor>> threats;
 
 		if (GetOwner()->IsA<AEnemy>())
 			threats = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats;
 
-		if (!threats.IsEmpty() && threats.Contains(threatStruct)) {
-			if (threatStruct.Actor->IsA<AWall>() && Cast<AWall>(threatStruct.Actor)->RangeComponent->CanEverAffectNavigation() == true)
+		if (!threats.IsEmpty() && threats.Contains(target)) {
+			if (target->IsA<AWall>() && Cast<AWall>(target)->RangeComponent->CanEverAffectNavigation() == true)
 				continue;
 
-			favoured = Cast<AActor>(threatStruct.Actor);
+			favoured = target;
 
 			break;
 		}

@@ -46,6 +46,8 @@ public:
 
 	void UpdateAutosave(int32 NewTime);
 
+	AActor* GetSaveActorFromName(TArray<FActorSaveData> SavedData, FString Name);
+
 	// Save Setup
 	void SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData CitizenData, bool bVisitor);
 };

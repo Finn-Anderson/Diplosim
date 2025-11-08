@@ -4,6 +4,7 @@
 #include "GameFramework/SaveGame.h"
 #include "Map/Grid.h"
 #include "Universal/Resource.h"
+#include "Universal/DiplosimGameModeBase.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Buildings/Work/Work.h"
@@ -687,12 +688,70 @@ struct FConstructionData
 };
 
 USTRUCT()
+struct FWaveData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FVector> SpawnLocations;
+
+	UPROPERTY()
+		TMap<FString, int32> DiedTo;
+
+	UPROPERTY()
+		TArray<FString> Threats;
+
+	UPROPERTY()
+		int32 NumKilled;
+
+	UPROPERTY()
+		TArray<FEnemiesStruct> EnemiesData;
+
+	FWaveData()
+	{
+		SpawnLocations = {};
+		DiedTo = {};
+		Threats = {};
+		NumKilled = 0;
+		EnemiesData = {};
+	}
+};
+
+USTRUCT()
+struct FGamemodeData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FWaveData> WaveData;
+
+	UPROPERTY()
+		bool bOngoingRaid;
+
+	UPROPERTY()
+		float CrystalOpacity;
+
+	UPROPERTY()
+		float TargetOpacity;
+	
+	FGamemodeData()
+	{
+		bOngoingRaid = false;
+		CrystalOpacity = 0.0f;
+		TargetOpacity = 0.0f;
+	}
+};
+
+USTRUCT()
 struct FCameraData
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 		TArray<FConstructionData> ConstructionData;
+
+	UPROPERTY()
+		FGamemodeData GamemodeData;
 
 	FCameraData()
 	{
