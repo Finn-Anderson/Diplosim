@@ -626,7 +626,6 @@ float ACitizen::GetProductivity()
 void ACitizen::Heal(ACitizen* Citizen)
 {		
 	Camera->CitizenManager->Cure(Citizen);
-	Camera->CitizenManager->Healing.Remove(this);
 
 	Camera->CitizenManager->PairCitizenToHealer(Camera->ConquestManager->GetFaction("", this), this);
 }
@@ -788,7 +787,7 @@ void ACitizen::LoseEnergy()
 
 	MovementComponent->SetMaxSpeed(Energy);
 
-	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && (Building.Employment->IsWorking(this) || Camera->CitizenManager->Healing.Contains(this))) || Camera->ConquestManager->IsCitizenInAnArmy(this))
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && Building.Employment->IsWorking(this)) || Camera->ConquestManager->IsCitizenInAnArmy(this))
 		return;
 
 	ABuilding* target = nullptr;

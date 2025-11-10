@@ -506,7 +506,7 @@ void UCitizenManager::CalculateDisease()
 					TArray<FTimerParameterStruct> params;
 					SetParameter(citizen->AIController->MoveRequest.GetGoalActor(), params);
 					
-					CreateTimer("Healing", citizen, 2.0f / citizen->GetProductivity(), "Heal", params, false);
+					CreateTimer("Healing", citizen, 1.0f / citizen->GetProductivity(), "Heal", params, false);
 				}
 				else if (Infectible.Contains(citizen) && Infected.Contains(citizen)) {
 					FOverlapsStruct requestedOverlaps;
@@ -2071,7 +2071,7 @@ void UCitizenManager::UpdateHealthText(ACitizen* Citizen)
 		Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen]() { Camera->UpdateHealthIssues(); });
 }
 
-TArray<ACitizen*> UCitizenManager::GetAvailableHealers(FFactionStruct* Faction)
+TArray<ACitizen*> UCitizenManager::GetAvailableHealers(FFactionStruct* Faction, TArray<ACitizen*>& Ill, ACitizen* Target)
 {
 	TArray<ACitizen*> healers;
 
@@ -2082,7 +2082,14 @@ TArray<ACitizen*> UCitizenManager::GetAvailableHealers(FFactionStruct* Faction)
 		AClinic* clinic = Cast<AClinic>(building);
 
 		for (ACitizen* citizen : clinic->GetOccupied()) {
-			if (!clinic->IsWorking(citizen) || Healing.Contains(citizen) || Camera->ConquestManager->IsCitizenInAnArmy(citizen))
+			if (!clinic->IsWorking(citizen) || Camera->ConquestManager->IsCitizenInAnArmy(citizen))
+				continue;
+
+			AActor* goal = citizen->AIController->MoveRequest.GetGoalActor();
+			if (goal->IsA<ACitizen>() && Ill.Contains(Cast<ACitizen>(goal)))
+				Ill.Remove(Cast<ACitizen>(goal));
+
+			if (IsValid(Target) && Target != citizen)
 				continue;
 
 			healers.Add(citizen);
@@ -2096,25 +2103,12 @@ void UCitizenManager::PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Hea
 {
 	TArray<ACitizen*> ill;
 	ill.Append(Infected);
+	ill.Append(Injured);
 
 	TArray<ACitizen*> healers;
-
-	if (IsValid(Healer) && !Camera->ConquestManager->IsCitizenInAnArmy(Healer))
-		healers.Add(Healer);
-	else
-		healers.Append(GetAvailableHealers(Faction));
-
-	TArray<ACitizen*> beingHealed;
-	Healing.GenerateValueArray(beingHealed);
+	healers.Append(GetAvailableHealers(Faction, ill, Healer));
 
 	for (ACitizen* healer : healers) {
-		if (ill.IsEmpty()) {
-			ill.Append(Injured);
-
-			if (ill.IsEmpty())
-				break;
-		}
-
 		ACitizen* chosenPatient = nullptr;
 		FVector location = Camera->GetTargetActorLocation(healer);
 
@@ -2128,27 +2122,23 @@ void UCitizenManager::PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Hea
 				continue;
 			}
 
-			double magnitude = healer->AIController->GetClosestActor(50.0f, Camera->GetTargetActorLocation(healer), Camera->GetTargetActorLocation(chosenPatient), Camera->GetTargetActorLocation(citizen));
+			int32 curValue = Infected.Contains(chosenPatient) ? 3.0f : 1.0f;
+			int32 newValue = Infected.Contains(citizen) ? 3.0f : 1.0f;
+
+			double magnitude = healer->AIController->GetClosestActor(50.0f, Camera->GetTargetActorLocation(healer), Camera->GetTargetActorLocation(chosenPatient), Camera->GetTargetActorLocation(citizen), true, curValue, newValue);
 
 			if (magnitude > 0.0f)
 				chosenPatient = citizen;
 		}
 
 		if (IsValid(chosenPatient)) {
-			GotoHealCitizen(healer, chosenPatient);
+			healer->AIController->AIMoveTo(chosenPatient);
 
 			ill.Remove(chosenPatient);
 		}
 		else
 			healer->AIController->DefaultAction();
 	}
-}
-
-void UCitizenManager::GotoHealCitizen(ACitizen* Healer, ACitizen* Citizen)
-{
-	Healing.Add(Healer, Citizen);
-
-	Healer->AIController->AIMoveTo(Citizen);
 }
 
 //

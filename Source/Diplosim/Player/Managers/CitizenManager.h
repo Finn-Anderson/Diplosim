@@ -426,11 +426,9 @@ public:
 
 	void UpdateHealthText(class ACitizen* Citizen);
 
-	TArray<ACitizen*> GetAvailableHealers(FFactionStruct* Faction);
+	TArray<ACitizen*> GetAvailableHealers(FFactionStruct* Faction, TArray<ACitizen*>& Ill, ACitizen* Target);
 
 	void PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Healer = nullptr);
-
-	void GotoHealCitizen(class ACitizen* Healer, class ACitizen* Citizen);
 
 	UPROPERTY()
 		TArray<class ACitizen*> Infectible;
@@ -446,9 +444,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		TArray<FConditionStruct> Injuries;
-
-	UPROPERTY()
-		TMap<ACitizen*, ACitizen*> Healing;
 
 	// Events
 	UFUNCTION(BlueprintCallable)

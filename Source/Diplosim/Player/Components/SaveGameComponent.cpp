@@ -227,6 +227,34 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 				actorData.CameraData.ConstructionData.Add(data);
 			}
 
+			FCitizenManagerData cmData;
+
+			for (FPersonality personality : camera->CitizenManager->Personalities) {
+				FPersonalityData data;
+				data.Trait = personality.Trait;
+
+				for (ACitizen* citizen : personality.Citizens)
+					data.CitizenNames.Add(citizen->GetName());
+
+				cmData.PersonalitiesData.Add(data);
+			}
+
+			for (ACitizen* citizen : camera->CitizenManager->Infectible)
+				cmData.InfectibleNames.Add(citizen->GetName());
+
+			for (ACitizen* citizen : camera->CitizenManager->Infected)
+				cmData.InfectedNames.Add(citizen->GetName());
+
+			for (ACitizen* citizen : camera->CitizenManager->Injured)
+				cmData.InjuredNames.Add(citizen->GetName());
+
+			for (AAI* enemy : camera->CitizenManager->Enemies)
+				cmData.EnemyNames.Add(enemy->GetName());
+
+			cmData.IssuePensionHour = camera->CitizenManager->IssuePensionHour;
+
+			actorData.CameraData.CitizenManagerData = cmData;
+			
 			ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 			FGamemodeData* gamemodeData = &actorData.CameraData.GamemodeData;
 
@@ -612,6 +640,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		else if (actor->IsA<ACamera>()) {
 			ACamera* camera = Cast<ACamera>(actor);
 			camera->Start = false;
+			camera->Cancel();
 
 			camera->ClearPopupUI();
 			camera->SetInteractStatus(camera->WidgetComponent->GetAttachmentRootActor(), false);
@@ -620,6 +649,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			camera->MovementComponent->TargetLength = 3000.0f;
 
 			camera->ConstructionManager->Construction.Empty();
+
+			camera->CitizenManager->IssuePensionHour = actorData.CameraData.CitizenManagerData.IssuePensionHour;
 
 			FGamemodeData* gamemodeData = &actorData.CameraData.GamemodeData;
 
@@ -919,6 +950,30 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 				camera->ConstructionManager->Construction.Add(constructionStruct);
 			}
+
+			FCitizenManagerData cmData = actorData.CameraData.CitizenManagerData;
+
+			for (FPersonalityData personalityData : cmData.PersonalitiesData) {
+				FPersonality personality;
+				personality.Trait = personalityData.Trait;
+
+				int32 index = camera->CitizenManager->Personalities.Find(personality);
+
+				for (FString name : personalityData.CitizenNames)
+					camera->CitizenManager->Personalities[index].Citizens.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+			}
+
+			for (FString name : cmData.InfectibleNames)
+				camera->CitizenManager->Infectible.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+			for (FString name : cmData.InfectedNames)
+				camera->CitizenManager->Infected.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+			for (FString name : cmData.InjuredNames)
+				camera->CitizenManager->Injured.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+			for (FString name : cmData.EnemyNames)
+				camera->CitizenManager->Enemies.Add(Cast<AAI>(GetSaveActorFromName(savedData, name)));
 
 			FGamemodeData* gamemodeData = &actorData.CameraData.GamemodeData;
 

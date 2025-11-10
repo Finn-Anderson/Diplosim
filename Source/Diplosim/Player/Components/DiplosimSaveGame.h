@@ -742,6 +742,52 @@ struct FGamemodeData
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FPersonalityData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString Trait;
+
+	UPROPERTY()
+		TArray<FString> CitizenNames;
+
+	FPersonalityData()
+	{
+		Trait = "";
+	}
+};
+
+USTRUCT()
+struct FCitizenManagerData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FPersonalityData> PersonalitiesData;
+
+	UPROPERTY()
+		TArray<FString> InfectibleNames;
+
+	UPROPERTY()
+		TArray<FString> InfectedNames;
+
+	UPROPERTY()
+		TArray<FString> InjuredNames;
+
+	UPROPERTY()
+		TArray<FString> EnemyNames;
+
+	UPROPERTY()
+		int32 IssuePensionHour;
+
+	FCitizenManagerData()
+	{
+		IssuePensionHour = 18;
+	}
+};
+
 USTRUCT()
 struct FCameraData
 {
@@ -752,6 +798,9 @@ struct FCameraData
 
 	UPROPERTY()
 		FGamemodeData GamemodeData;
+
+	UPROPERTY()
+		FCitizenManagerData CitizenManagerData;
 
 	FCameraData()
 	{
