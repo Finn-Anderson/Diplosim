@@ -28,6 +28,7 @@
 #include "AI/Projectile.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
+#include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Service/Builder.h"
 
 USaveGameComponent::USaveGameComponent()
@@ -254,6 +255,144 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			cmData.IssuePensionHour = camera->CitizenManager->IssuePensionHour;
 
 			actorData.CameraData.CitizenManagerData = cmData;
+
+			actorData.CameraData.FactionData.Empty();
+			for (FFactionStruct faction : camera->ConquestManager->Factions) {
+				FFactionData data;
+				data.Name = faction.Name;
+				data.Flag = faction.Flag;
+				data.FlagColour = faction.FlagColour;
+				data.AtWar = faction.AtWar;
+				data.Allies = faction.Allies;
+				data.Happiness = faction.Happiness;
+				data.WarFatigue = faction.WarFatigue;
+				data.PartyInPower = faction.PartyInPower;
+				data.LargestReligion = faction.LargestReligion;
+				data.RebelCooldownTimer = faction.RebelCooldownTimer;
+				data.ResearchStruct = faction.ResearchStruct;
+				data.ResearchIndex = faction.ResearchIndex;
+				data.PrayStruct = faction.PrayStruct;
+				data.Resources = faction.Resources;
+				data.AccessibleBuildLocations = faction.AccessibleBuildLocations;
+				data.InaccessibleBuildLocations = faction.InaccessibleBuildLocations;
+				data.RoadBuildLocations = faction.RoadBuildLocations;
+				data.FailedBuild = faction.FailedBuild;
+
+				FPoliticsData politicsData;
+				for (FPartyStruct party : faction.Politics.Parties) {
+					FPartyData partyData;
+					partyData.Party = party.Party;
+					partyData.Agreeable = party.Agreeable;
+
+					for (auto element : party.Members)
+						partyData.MembersName.Add(element.Key->GetName(), element.Value);
+
+					if (IsValid(party.Leader))
+						partyData.LeaderName = party.Leader->GetName();
+
+					politicsData.PartiesData.Add(partyData);
+				}
+				
+				for (ACitizen* citizen : faction.Politics.Representatives)
+					politicsData.RepresentativesNames.Add(citizen->GetName());
+
+				for (ACitizen* citizen : faction.Politics.Votes.For)
+					politicsData.VotesData.ForNames.Add(citizen->GetName());
+
+				for (ACitizen* citizen : faction.Politics.Votes.Against)
+					politicsData.VotesData.AgainstNames.Add(citizen->GetName());
+
+				for (ACitizen* citizen : faction.Politics.Predictions.For)
+					politicsData.PredictionsData.ForNames.Add(citizen->GetName());
+
+				for (ACitizen* citizen : faction.Politics.Predictions.Against)
+					politicsData.PredictionsData.AgainstNames.Add(citizen->GetName());
+
+				politicsData.BribeValue = faction.Politics.BribeValue;
+				politicsData.Laws = faction.Politics.Laws;
+				politicsData.ProposedBills = faction.Politics.ProposedBills;
+
+				data.PoliticsData = politicsData;
+
+				FPoliceData policeData;
+				for (auto element : faction.Police.Arrested)
+					policeData.ArrestedNames.Add(element.Key->GetName(), element.Value);
+
+				for (FPoliceReport report : faction.Police.PoliceReports) {
+					FPoliceReportData reportData;
+					reportData.Type = report.Type;
+					reportData.Location = report.Location;
+
+					if (IsValid(report.Team1.Instigator))
+						reportData.Team1.InstigatorName = report.Team1.Instigator->GetName();
+
+					for (ACitizen* citizen : report.Team1.Assistors)
+						reportData.Team1.AssistorsNames.Add(citizen->GetName());
+
+					if (IsValid(report.Team2.Instigator))
+						reportData.Team2.InstigatorName = report.Team2.Instigator->GetName();
+
+					for (ACitizen* citizen : report.Team2.Assistors)
+						reportData.Team2.AssistorsNames.Add(citizen->GetName());
+
+					for (auto element : report.Witnesses)
+						reportData.WitnessesNames.Add(element.Key->GetName(), element.Value);
+
+					if (IsValid(report.RespondingOfficer))
+						reportData.RespondingOfficerName = report.RespondingOfficer->GetName();
+
+					for (ACitizen* citizen : report.AcussesTeam1)
+						reportData.AcussesTeam1Names.Add(citizen->GetName());
+
+					for (ACitizen* citizen : report.Impartial)
+						reportData.ImpartialNames.Add(citizen->GetName());
+
+					for (ACitizen* citizen : report.AcussesTeam2)
+						reportData.AcussesTeam2Names.Add(citizen->GetName());
+
+					policeData.PoliceReportsData.Add(reportData);
+				}
+
+				data.PoliceData = policeData;
+
+				data.EventsData.Empty();
+				for (FEventStruct event : faction.Events) {
+					FEventData eventData;
+					eventData.Type = event.Type;
+					eventData.Period = event.Period;
+					eventData.Day = event.Day;
+					eventData.Hours = event.Hours;
+					eventData.bRecurring = event.bRecurring;
+					eventData.bFireFestival = event.bFireFestival;
+					eventData.bStarted = event.bStarted;
+					eventData.Building = event.Building;
+					eventData.Location = event.Location;
+
+					if (IsValid(event.Venue))
+						eventData.VenueName = event.Venue->GetName();
+
+					for (ACitizen* citizen : event.Whitelist)
+						eventData.WhitelistNames.Add(citizen->GetName());
+
+					for (ACitizen* citizen : event.Attendees)
+						eventData.AttendeesNames.Add(citizen->GetName());
+
+					data.EventsData.Add(eventData);
+				}
+
+				data.ArmiesData.Empty();
+				for (FArmyStruct army : faction.Armies) {
+					FArmyData armyData;
+					armyData.bGroup = army.bGroup;
+
+					for (ACitizen* citizen : army.Citizens)
+						armyData.CitizensNames.Add(citizen->GetName());
+
+					data.ArmiesData.Add(armyData);
+				}
+
+				actorData.CameraData.FactionData.Add(data);
+			}
 			
 			ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 			FGamemodeData* gamemodeData = &actorData.CameraData.GamemodeData;
@@ -266,8 +405,8 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 				for (FDiedToStruct diedTo : wave.DiedTo)
 					waveData.DiedTo.Add(diedTo.Actor->GetName(), diedTo.Kills);
 
-				for (TWeakObjectPtr<AActor> actor : wave.Threats)
-					waveData.Threats.Add(actor->GetName());
+				for (TWeakObjectPtr<AActor> threat : wave.Threats)
+					waveData.Threats.Add(threat->GetName());
 
 				waveData.NumKilled = wave.NumKilled;
 				waveData.EnemiesData = wave.EnemiesData;
@@ -652,6 +791,31 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			camera->CitizenManager->IssuePensionHour = actorData.CameraData.CitizenManagerData.IssuePensionHour;
 
+			camera->ConquestManager->FactionsToRemove.Append(camera->ConquestManager->Factions);
+			for (FFactionData data : actorData.CameraData.FactionData) {
+				FFactionStruct faction;
+				faction.Name = data.Name;
+				faction.Flag = data.Flag;
+				faction.FlagColour = data.FlagColour;
+				faction.AtWar = data.AtWar;
+				faction.Allies = data.Allies;
+				faction.Happiness = data.Happiness;
+				faction.WarFatigue = data.WarFatigue;
+				faction.PartyInPower = data.PartyInPower;
+				faction.LargestReligion = data.LargestReligion;
+				faction.RebelCooldownTimer = data.RebelCooldownTimer;
+				faction.ResearchStruct = data.ResearchStruct;
+				faction.ResearchIndex = data.ResearchIndex;
+				faction.PrayStruct = data.PrayStruct;
+				faction.Resources = data.Resources;
+				faction.AccessibleBuildLocations = data.AccessibleBuildLocations;
+				faction.InaccessibleBuildLocations = data.InaccessibleBuildLocations;
+				faction.RoadBuildLocations = data.RoadBuildLocations;
+				faction.FailedBuild = data.FailedBuild;
+
+				camera->ConquestManager->Factions.Add(faction);
+			}
+
 			FGamemodeData* gamemodeData = &actorData.CameraData.GamemodeData;
 
 			gamemode->bOngoingRaid = gamemodeData->bOngoingRaid;
@@ -659,8 +823,6 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			gamemode->TargetOpacity = gamemodeData->TargetOpacity;
 
 			gamemode->SetActorTickEnabled(true);
-
-			// Things related to buildings and/or citizens need to be reset i.e. personalities, factions.
 		}
 		else if (actor->IsA<AAI>()) {
 			AAI* ai = Cast<AAI>(actor);
@@ -764,7 +926,12 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			building->BuildingMesh->bReceivesDecals = true;
 
 			building->FactionName = actorData.BuildingData.FactionName;
-			Camera->ConquestManager->GetFaction(building->FactionName)->Buildings.Add(building);
+
+			FFactionStruct* faction = Camera->ConquestManager->GetFaction(building->FactionName);
+			faction->Buildings.Add(building);
+
+			if (building->IsA<ABroch>())
+				faction->EggTimer = Cast<ABroch>(building);
 
 			building->SetSeed(actorData.BuildingData.Seed);
 			building->SetTier(actorData.BuildingData.Tier);
@@ -974,6 +1141,114 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			for (FString name : cmData.EnemyNames)
 				camera->CitizenManager->Enemies.Add(Cast<AAI>(GetSaveActorFromName(savedData, name)));
+
+			for (FFactionData data : actorData.CameraData.FactionData) {
+				FFactionStruct* faction = camera->ConquestManager->GetFaction(data.Name);
+
+				for (FPartyData partyData : data.PoliticsData.PartiesData) {
+					FPartyStruct party;
+
+					party.Party = partyData.Party;
+					party.Agreeable = partyData.Agreeable;
+
+					for (auto element : partyData.MembersName)
+						party.Members.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, element.Key)), element.Value);
+
+					if (partyData.LeaderName != "")
+						party.Leader = Cast<ACitizen>(GetSaveActorFromName(savedData, partyData.LeaderName));
+
+					faction->Politics.Parties.Add(party);
+				}
+
+				for (FString name : data.PoliticsData.RepresentativesNames)
+					faction->Politics.Representatives.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+				for (FString name : data.PoliticsData.VotesData.ForNames)
+					faction->Politics.Votes.For.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+				for (FString name : data.PoliticsData.VotesData.AgainstNames)
+					faction->Politics.Votes.Against.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+				for (FString name : data.PoliticsData.PredictionsData.ForNames)
+					faction->Politics.Predictions.For.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+				for (FString name : data.PoliticsData.PredictionsData.AgainstNames)
+					faction->Politics.Predictions.Against.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+				faction->Politics.BribeValue = data.PoliticsData.BribeValue;
+				faction->Politics.Laws = data.PoliticsData.Laws;
+				faction->Politics.ProposedBills = data.PoliticsData.ProposedBills;
+
+				for (auto element : data.PoliceData.ArrestedNames)
+					faction->Police.Arrested.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, element.Key)), element.Value);
+
+				for (FPoliceReportData reportData : data.PoliceData.PoliceReportsData) {
+					FPoliceReport report;
+					report.Type = reportData.Type;
+					report.Location = reportData.Location;
+
+					if (reportData.Team1.InstigatorName != "")
+						report.Team1.Instigator = Cast<ACitizen>(GetSaveActorFromName(savedData, reportData.Team1.InstigatorName));
+
+					for (FString name : reportData.Team1.AssistorsNames)
+						report.Team1.Assistors.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+					if (reportData.Team2.InstigatorName != "")
+						report.Team2.Instigator = Cast<ACitizen>(GetSaveActorFromName(savedData, reportData.Team2.InstigatorName));
+
+					for (FString name : reportData.Team2.AssistorsNames)
+						report.Team2.Assistors.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+					for (auto element : reportData.WitnessesNames)
+						report.Witnesses.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, element.Key)), element.Value);
+
+					if (reportData.RespondingOfficerName != "")
+						report.RespondingOfficer = Cast<ACitizen>(GetSaveActorFromName(savedData, reportData.RespondingOfficerName));
+
+					for (FString name : reportData.AcussesTeam1Names)
+						report.AcussesTeam1.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+					for (FString name : reportData.ImpartialNames)
+						report.Impartial.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+					for (FString name : reportData.AcussesTeam2Names)
+						report.AcussesTeam2.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+					faction->Police.PoliceReports.Add(report);
+				}
+
+				for (FEventData eventData : data.EventsData) {
+					FEventStruct event;
+					event.Type = eventData.Type;
+					event.Period = eventData.Period;
+					event.Day = eventData.Day;
+					event.Hours = eventData.Hours;
+					event.bRecurring = eventData.bRecurring;
+					event.bFireFestival = eventData.bFireFestival;
+					event.bStarted = eventData.bStarted;
+					event.Building = eventData.Building;
+					event.Location = eventData.Location;
+
+					if (eventData.VenueName != "")
+						event.Venue = Cast<ABuilding>(GetSaveActorFromName(savedData, eventData.VenueName));
+
+					for (FString name : eventData.WhitelistNames)
+						event.Whitelist.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+					for (FString name : eventData.AttendeesNames)
+						event.Attendees.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+					faction->Events.Add(event);
+				}
+
+				for (FArmyData armyData : data.ArmiesData) {
+					TArray<ACitizen*> citizens;
+					for (FString name : armyData.CitizensNames)
+						citizens.Add(Cast<ACitizen>(GetSaveActorFromName(savedData, name)));
+
+					camera->ConquestManager->CreateArmy(data.Name, citizens, armyData.bGroup, true);
+				}
+			}
 
 			FGamemodeData* gamemodeData = &actorData.CameraData.GamemodeData;
 

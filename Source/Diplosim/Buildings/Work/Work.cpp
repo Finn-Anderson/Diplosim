@@ -135,7 +135,7 @@ void AWork::CheckWorkStatus(int32 Hour)
 	for (ACitizen* citizen : GetOccupied()) {
 		bool isWorkingNow = IsWorking(citizen, Hour);
 
-		if ((isWorkingNow && !IsAtWork(citizen)) || (!isWorkingNow && IsAtWork(citizen) && !Camera->CitizenManager->Healing.Contains(citizen)))
+		if ((isWorkingNow && !IsAtWork(citizen)) || (!isWorkingNow && IsAtWork(citizen)))
 			citizen->AIController->DefaultAction();
 	}
 }

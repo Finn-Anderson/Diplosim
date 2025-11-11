@@ -37,8 +37,6 @@ bool AClinic::RemoveCitizen(ACitizen* Citizen)
 
 	Camera->CitizenManager->Infectible.Add(Citizen);
 
-	Camera->CitizenManager->Healing.Remove(Citizen);
-
 	Camera->CitizenManager->RemoveTimer("Healing", Citizen);
 
 	return true;

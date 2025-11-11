@@ -283,22 +283,22 @@ struct FResearchStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-	FString ResearchName;
+		FString ResearchName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-	int32 Level;
+		int32 Level;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-	int32 MaxLevel;
+		int32 MaxLevel;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-	float AmountResearched;
+		float AmountResearched;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-	int32 Target;
+		int32 Target;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
-	TMap<FString, float> Modifiers;
+		TMap<FString, float> Modifiers;
 
 	FResearchStruct()
 	{
@@ -411,9 +411,11 @@ struct FPrayStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	int32 Good;
+	UPROPERTY()
+		int32 Good;
 
-	int32 Bad;
+	UPROPERTY()
+		int32 Bad;
 
 	FPrayStruct()
 	{

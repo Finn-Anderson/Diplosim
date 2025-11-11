@@ -317,7 +317,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 	for (int32 i = 0; i < EnemiesData.Num(); i++) {
 		int32 num = FMath::Floor(EnemiesData[i].Tally / 200.0f) - WavesData.Last().EnemiesData[i].Spawned;
 
-		for (int32 i = 0; i < num; i++) {
+		for (int32 j = 0; j < num; j++) {
 			FTimerHandle spawnTimer;
 			GetWorld()->GetTimerManager().SetTimer(spawnTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, WavesData.Last().SpawnLocations, EnemiesData[i].Colour, &WavesData.Last().EnemiesData[i].Spawned), 0.1f * count, false);
 

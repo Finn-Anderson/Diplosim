@@ -789,6 +789,310 @@ struct FCitizenManagerData
 };
 
 USTRUCT()
+struct FPartyData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString Party;
+
+	UPROPERTY()
+		TArray<FString> Agreeable;
+
+	UPROPERTY()
+		TMap<FString, TEnumAsByte<ESway>> MembersName;
+
+	UPROPERTY()
+		FString LeaderName;
+
+	FPartyData()
+	{
+		Party = "";
+		LeaderName = "";
+	}
+};
+
+USTRUCT()
+struct FVoteData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FString> ForNames;
+
+	UPROPERTY()
+		TArray<FString> AgainstNames;
+
+	FVoteData()
+	{
+
+	}
+};
+
+USTRUCT()
+struct FPoliticsData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FPartyData> PartiesData;
+
+	UPROPERTY()
+		TArray<FString> RepresentativesNames;
+
+	UPROPERTY()
+		TArray<int32> BribeValue;
+
+	UPROPERTY()
+		TArray<FLawStruct> Laws;
+
+	UPROPERTY()
+		FVoteData VotesData;
+
+	UPROPERTY()
+		FVoteData PredictionsData;
+
+	UPROPERTY()
+		TArray<FLawStruct> ProposedBills;
+
+	FPoliticsData()
+	{
+
+	}
+};
+
+USTRUCT()
+struct FFightTeamData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString InstigatorName;
+
+	UPROPERTY()
+		TArray<FString> AssistorsNames;
+
+	FFightTeamData()
+	{
+		InstigatorName = "";
+	}
+};
+
+USTRUCT()
+struct FPoliceReportData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		EReportType Type;
+
+	UPROPERTY()
+		FVector Location;
+
+	UPROPERTY()
+		FFightTeamData Team1;
+
+	UPROPERTY()
+		FFightTeamData Team2;
+
+	UPROPERTY()
+		TMap<FString, float> WitnessesNames;
+
+	UPROPERTY()
+		FString RespondingOfficerName;
+
+	UPROPERTY()
+		TArray<FString> AcussesTeam1Names;
+
+	UPROPERTY()
+		TArray<FString> ImpartialNames;
+
+	UPROPERTY()
+		TArray<FString> AcussesTeam2Names;
+
+	FPoliceReportData()
+	{
+		Type = EReportType::Fighting;
+		Location = FVector::Zero();
+		RespondingOfficerName = "";
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FPoliceData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FPoliceReportData> PoliceReportsData;
+
+	UPROPERTY()
+		TMap<FString, int32> ArrestedNames;
+
+	FPoliceData()
+	{
+
+	}
+};
+
+USTRUCT()
+struct FEventData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		EEventType Type;
+
+	UPROPERTY()
+		FString Period;
+
+	UPROPERTY()
+		int32 Day;
+
+	UPROPERTY()
+		TArray<int32> Hours;
+
+	UPROPERTY()
+		bool bRecurring;
+
+	UPROPERTY()
+		bool bFireFestival;
+
+	UPROPERTY()
+		bool bStarted;
+
+	UPROPERTY()
+		TSubclassOf<class ABuilding> Building;
+
+	UPROPERTY()
+		FString VenueName;
+
+	UPROPERTY()
+		TArray<FString> WhitelistNames;
+
+	UPROPERTY()
+		TArray<FString> AttendeesNames;
+
+	UPROPERTY()
+		FVector Location;
+
+	FEventData()
+	{
+		Type = EEventType::Holliday;
+		Period = "";
+		Day = 0;
+		bRecurring = false;
+		bStarted = false;
+		bFireFestival = false;
+		Building = nullptr;
+		VenueName = "";
+		Location = FVector::Zero();
+	}
+};
+
+USTRUCT()
+struct FArmyData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FString> CitizensNames;
+
+	UPROPERTY()
+		bool bGroup;
+
+	FArmyData()
+	{
+		bGroup = false;
+	}
+};
+
+USTRUCT()
+struct FFactionData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString Name;
+
+	UPROPERTY()
+		UTexture2D* Flag;
+
+	UPROPERTY()
+		FLinearColor FlagColour;
+
+	UPROPERTY()
+		TArray<FString> AtWar;
+
+	UPROPERTY()
+		TArray<FString> Allies;
+
+	UPROPERTY()
+		TArray<FFactionHappinessStruct> Happiness;
+
+	UPROPERTY()
+		int32 WarFatigue;
+
+	UPROPERTY()
+		FString PartyInPower;
+
+	UPROPERTY()
+		FString LargestReligion;
+
+	UPROPERTY()
+		int32 RebelCooldownTimer;
+
+	UPROPERTY()
+		TArray<FResearchStruct> ResearchStruct;
+
+	UPROPERTY()
+		int32 ResearchIndex;
+
+	UPROPERTY()
+		FPoliticsData PoliticsData;
+
+	UPROPERTY()
+		FPoliceData PoliceData;
+
+	UPROPERTY()
+		TArray<FEventData> EventsData;
+
+	UPROPERTY()
+		FPrayStruct PrayStruct;
+
+	UPROPERTY()
+		TArray<FFactionResourceStruct> Resources;
+
+	UPROPERTY()
+		TMap<FVector, double> AccessibleBuildLocations;
+
+	UPROPERTY()
+		TArray<FVector> InaccessibleBuildLocations;
+
+	UPROPERTY()
+		TArray<FVector> RoadBuildLocations;
+
+	UPROPERTY()
+		int32 FailedBuild;
+
+	UPROPERTY()
+		TArray<FArmyData> ArmiesData;
+
+	FFactionData()
+	{
+		Name = "";
+		Flag = nullptr;
+		FlagColour = FLinearColor();
+		WarFatigue = 0;
+		PartyInPower = "";
+		LargestReligion = "";
+		ResearchIndex = 0;
+		RebelCooldownTimer = 0;
+		FailedBuild = 0;
+	}
+};
+
+USTRUCT()
 struct FCameraData
 {
 	GENERATED_USTRUCT_BODY()
@@ -801,6 +1105,9 @@ struct FCameraData
 
 	UPROPERTY()
 		FCitizenManagerData CitizenManagerData;
+
+	UPROPERTY()
+		TArray<FFactionData> FactionData;
 
 	FCameraData()
 	{

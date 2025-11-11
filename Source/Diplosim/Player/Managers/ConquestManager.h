@@ -234,10 +234,12 @@ struct FFactionHappinessStruct
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Happiness")
 		TMap<FString, int32> Modifiers;
 
-	int32 ProposalTimer;
+	UPROPERTY()
+		int32 ProposalTimer;
 
 	FFactionHappinessStruct()
 	{
+		Owner = "";
 		ClearValues();
 		ProposalTimer = 0;
 	}
@@ -675,7 +677,7 @@ public:
 		bool CanJoinArmy(class ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
-		void CreateArmy(FString FactionName, TArray<class ACitizen*> Citizens);
+		void CreateArmy(FString FactionName, TArray<class ACitizen*> Citizens, bool bGroup = true, bool bLoad = false);
 
 	UFUNCTION(BlueprintCallable)
 		void AddToArmy(int32 Index, TArray<ACitizen*> Citizens);

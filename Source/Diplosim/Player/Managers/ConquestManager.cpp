@@ -273,6 +273,9 @@ void UConquestManager::ComputeAI()
 		return;
 
 	for (FFactionStruct& faction : Factions) {
+		if (FactionsToRemove.Contains(faction))
+			continue;
+
 		if (faction.AtWar.IsEmpty() && faction.WarFatigue > 0)
 			faction.WarFatigue--;
 		else if (!faction.AtWar.IsEmpty())
@@ -1457,7 +1460,7 @@ bool UConquestManager::CanJoinArmy(ACitizen* Citizen)
 	return true;
 }
 
-void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizens)
+void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizens, bool bGroup, bool bLoad)
 {
 	if (Citizens.IsEmpty())
 		return;
@@ -1465,7 +1468,7 @@ void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizen
 	FFactionStruct* faction = GetFaction(FactionName);
 
 	FArmyStruct army;
-	army.bGroup = true;
+	army.bGroup = bGroup;
 	int32 index = faction->Armies.Add(army);
 
 	AddToArmy(index, Citizens);
@@ -1482,7 +1485,7 @@ void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizen
 
 	Camera->SetArmyWidgetUI(FactionName, widgetComponent->GetWidget(), index);
 
-	if (FactionName != Camera->ColonyName) {
+	if (FactionName != Camera->ColonyName && !bLoad) {
 		FString id = FactionName + FString::FromInt(index) + "ArmyRaidTimer";
 
 		TArray<FTimerParameterStruct> params;
