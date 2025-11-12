@@ -533,8 +533,6 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 
 	if (!building->Seeds.IsEmpty())
 		Camera->SetSeedVisibility(true);
-
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, building->GetName());
 }
 
 void UBuildComponent::ResetBuilding(ABuilding* Building)

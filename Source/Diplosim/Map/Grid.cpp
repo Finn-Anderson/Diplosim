@@ -243,6 +243,11 @@ void AGrid::Load()
 
 void AGrid::InitialiseStorage()
 {
+	FTransform seaTransform;
+	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
+	HISMSea->AddInstance(seaTransform);
+	HISMSea->BuildTreeIfOutdated(true, true);
+
 	auto bound = GetMapBounds();
 
 	Storage.Empty();
@@ -288,11 +293,6 @@ void AGrid::InitialiseStorage()
 void AGrid::SetupMap()
 {
 	// Set map limts
-	FTransform seaTransform;
-	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
-	HISMSea->AddInstance(seaTransform);
-	HISMSea->BuildTreeIfOutdated(true, true);
-
 	auto bound = GetMapBounds();
 
 	InitialiseStorage();
@@ -1227,7 +1227,7 @@ void AGrid::GenerateTiles()
 		}
 
 		element.Key->PartialNavigationUpdates({ element.Value });
-		element.Key->BuildTreeIfOutdated(true, true);
+		element.Key->BuildTreeIfOutdated(false, true);
 	}
 
 	CalculatedTiles.Empty();
@@ -1565,6 +1565,7 @@ void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 		SetSeasonValues(Values);
 
 		Values.Remove(0.0f);
+		Values.Remove(1.0f);
 
 		Async(EAsyncExecution::TaskGraphMainTick, [this, Values, Period, Increment]() {
 			TArray<FResourceHISMStruct> resourceList;
@@ -1578,7 +1579,7 @@ void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
 			HISMFlatGround->BuildTreeIfOutdated(true, true);
 			HISMRampGround->BuildTreeIfOutdated(true, true);
 
-			if (Values.Contains(1.0f) || Values.IsEmpty())
+			if (Values.IsEmpty())
 				return;
 
 			FTimerHandle seasonChangeTimer;
@@ -1605,7 +1606,7 @@ void AGrid::SetSeasonValues(TArray<float> Values)
 		for (int32 inst = 0; inst < hism->GetInstanceCount(); inst++) {
 			if (hism->IsAttachedTo(GetRootComponent())) {
 				FTransform transform;
-				HISMGround->GetInstanceTransform(inst, transform);
+				hism->GetInstanceTransform(inst, transform);
 
 				FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
 

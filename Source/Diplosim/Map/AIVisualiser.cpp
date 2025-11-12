@@ -149,8 +149,6 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 			UpdateInstanceCustomData(pending.HISM, instance, 2, pending.AI->Colour.R);
 			UpdateInstanceCustomData(pending.HISM, instance, 3, pending.AI->Colour.G);
 			UpdateInstanceCustomData(pending.HISM, instance, 4, pending.AI->Colour.B);
-
-			pending.AI->AIController->DefaultAction();
 		}
 		else
 			pending.HISM->RemoveInstance(pending.Instance);

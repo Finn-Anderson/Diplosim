@@ -1194,9 +1194,6 @@ struct FSave
 		bool bAutosave;
 
 	UPROPERTY()
-		TArray<FFactionStruct> Factions;
-
-	UPROPERTY()
 		TArray<FActorSaveData> SavedActors;
 
 	FSave()

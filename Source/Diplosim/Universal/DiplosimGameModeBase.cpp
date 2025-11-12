@@ -381,6 +381,9 @@ int32 ADiplosimGameModeBase::GetTotalSpawnedEnemies()
 
 bool ADiplosimGameModeBase::bSpawnedAllEnemies()
 {
+	if (WavesData.IsEmpty())
+		return true;
+
 	int32 total = 0;
 	int32 spawned = 0;
 

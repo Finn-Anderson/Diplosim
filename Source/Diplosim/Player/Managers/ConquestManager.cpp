@@ -157,8 +157,6 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 
 		faction.EggTimer->SpawnCitizens();
 
-		Camera->CitizenManager->Election(faction);
-
 		SetFactionFlagColour(&faction);
 		SetFactionCulture(&faction);
 	}
@@ -336,7 +334,7 @@ FFactionStruct* UConquestManager::GetFaction(FString Name, AActor* Actor)
 	FFactionStruct* faction = nullptr;
 
 	for (FFactionStruct& f : Factions) {
-		if (f.Name != Name && !f.Citizens.Contains(Actor) && !f.Buildings.Contains(Actor) && !f.Rebels.Contains(Actor))
+		if (f.Name != Name && !f.Citizens.Contains(Actor) && !f.Buildings.Contains(Actor) && !f.Rebels.Contains(Actor) && !f.Clones.Contains(Actor))
 			continue;
 
 		faction = &f;

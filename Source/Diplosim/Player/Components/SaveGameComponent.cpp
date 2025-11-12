@@ -77,7 +77,7 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 	for (AActor* actor : actors)
 	{
-		if (!IsValid(actor) || actor->IsPendingKillPending())
+		if (!IsValid(actor) || actor->IsPendingKillPending() || Camera->BuildComponent->Buildings.Contains(actor))
 			continue;
 
 		FActorSaveData actorData;
@@ -294,7 +294,8 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 				}
 				
 				for (ACitizen* citizen : faction.Politics.Representatives)
-					politicsData.RepresentativesNames.Add(citizen->GetName());
+					if (IsValid(citizen))
+						politicsData.RepresentativesNames.Add(citizen->GetName());
 
 				for (ACitizen* citizen : faction.Politics.Votes.For)
 					politicsData.VotesData.ForNames.Add(citizen->GetName());
@@ -429,14 +430,25 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			data->MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
 			data->MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
 			data->MovementData.Transform = ai->MovementComponent->Transform;
-			data->MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
+
+			if (IsValid(ai->MovementComponent->ActorToLookAt))
+				data->MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
+
 			data->MovementData.TempPoints = ai->MovementComponent->TempPoints;
 			data->MovementData.bSetPoints = ai->MovementComponent->bSetPoints;
 
-			data->MovementData.ChosenBuildingName = ai->AIController->ChosenBuilding->GetName();
-			data->MovementData.ActorName = ai->AIController->MoveRequest.GetGoalActor()->GetName();
-			data->MovementData.LinkedPortalName = ai->AIController->MoveRequest.GetLinkedPortal()->GetName();
-			data->MovementData.UltimateGoalName = ai->AIController->MoveRequest.GetUltimateGoalActor()->GetName();
+			if (IsValid(ai->AIController->ChosenBuilding))
+				data->MovementData.ChosenBuildingName = ai->AIController->ChosenBuilding->GetName();
+
+			if (IsValid(ai->AIController->MoveRequest.GetGoalActor()))
+				data->MovementData.ActorName = ai->AIController->MoveRequest.GetGoalActor()->GetName();
+
+			if (IsValid(ai->AIController->MoveRequest.GetLinkedPortal()))
+				data->MovementData.LinkedPortalName = ai->AIController->MoveRequest.GetLinkedPortal()->GetName();
+
+			if (IsValid(ai->AIController->MoveRequest.GetUltimateGoalActor()))
+				data->MovementData.UltimateGoalName = ai->AIController->MoveRequest.GetUltimateGoalActor()->GetName();
+
 			data->MovementData.Instance = ai->AIController->MoveRequest.GetGoalInstance();
 			data->MovementData.Location = ai->AIController->MoveRequest.GetLocation();
 
@@ -456,8 +468,10 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			if (ai->IsA<ACitizen>()) {
 				ACitizen* citizen = Cast<ACitizen>(ai);
 
-				data->CitizenData.ResourceCarryClass = citizen->Carrying.Type->GetClass();
-				data->CitizenData.CarryAmount = citizen->Carrying.Amount;
+				if (IsValid(citizen->Carrying.Type)) {
+					data->CitizenData.ResourceCarryClass = citizen->Carrying.Type->GetClass();
+					data->CitizenData.CarryAmount = citizen->Carrying.Amount;
+				}
 
 				if (citizen->BioStruct.Mother != nullptr)
 					data->CitizenData.MothersName = citizen->BioStruct.Mother->GetName();
@@ -519,9 +533,6 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 		}
 		else if (actor->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(actor);
-
-			if (Camera->BuildComponent->Buildings.Contains(building))
-				continue;
 
 			actorData.BuildingData.FactionName = building->FactionName;
 			actorData.BuildingData.Capacity = building->Capacity;
@@ -634,15 +645,6 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	for (FTimerStruct timer : Camera->CitizenManager->Timers)
 		Camera->CitizenManager->RemoveTimer(timer.ID, timer.Actor);
 
-	Camera->ConquestManager->Factions = CurrentSaveGame->Saves[Index].Factions;
-
-	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-		faction.Buildings.Empty();
-		faction.Citizens.Empty();
-		faction.Rebels.Empty();
-		faction.Clones.Empty();
-	}
-
 	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 	TArray<AActor*> actors;
@@ -666,21 +668,17 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	TMap<FString, FActorSaveData> aiToName;
 	TArray<FWetnessData> wetnessData;
 
-	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
+	for (FActorSaveData& actorData : CurrentSaveGame->Saves[Index].SavedActors) {
 		AActor* actor = nullptr;
 
-		if (foundActors.Num() == 1) {
-			if (foundActors[0]->GetName() != actorData.Name)
-				continue;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), actorData.Class, foundActors);
 
+		if (foundActors.Num() == 1) {
 			actor = foundActors[0];
 
 			actor->SetActorTransform(actorData.Transform);
-
-			break;
 		}
-
-		if (!IsValid(actor)) {
+		else {
 			FActorSpawnParameters params;
 			params.bNoFail = true;
 
@@ -720,15 +718,15 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea, grid->HISMWall };
 			
-			for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
+			/*for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
 				FHISMData data;
 				data.Name = hism->GetName();
 
 				int32 index = actorData.WorldSaveData.HISMData.Find(data);
 				hism->PerInstanceSMCustomData = actorData.WorldSaveData.HISMData[index].CustomDataValues;
 
-				hism->BuildTreeIfOutdated(true, true);
-			}
+				hism->BuildTreeIfOutdated(false, true);
+			}*/
 
 			grid->AtmosphereComponent->Calendar = actorData.WorldSaveData.AtmosphereData.Calendar;
 			grid->AtmosphereComponent->bRedSun = actorData.WorldSaveData.AtmosphereData.bRedSun;
@@ -792,6 +790,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			camera->CitizenManager->IssuePensionHour = actorData.CameraData.CitizenManagerData.IssuePensionHour;
 
 			camera->ConquestManager->FactionsToRemove.Append(camera->ConquestManager->Factions);
+			camera->ConquestManager->Factions.Empty();
 			for (FFactionData data : actorData.CameraData.FactionData) {
 				FFactionStruct faction;
 				faction.Name = data.Name;
@@ -822,7 +821,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, gamemodeData->CrystalOpacity);
 			gamemode->TargetOpacity = gamemodeData->TargetOpacity;
 
-			gamemode->SetActorTickEnabled(true);
+			if (gamemodeData->CrystalOpacity != gamemode->TargetOpacity)
+				gamemode->SetActorTickEnabled(true);
 		}
 		else if (actor->IsA<AAI>()) {
 			AAI* ai = Cast<AAI>(actor);
@@ -833,17 +833,17 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			UHierarchicalInstancedStaticMeshComponent* hism;
 
-			if (actorData.AIData.FactionName == "") {
+			if (data->FactionName == "") {
 				hism = Camera->Grid->AIVisualiser->HISMEnemy;
 			}
 			else {
-				FFactionStruct* faction = Camera->ConquestManager->GetFaction(actorData.AIData.FactionName);
+				FFactionStruct* faction = Camera->ConquestManager->GetFaction(data->FactionName);
 
 				if (ai->IsA<AClone>()) {
 					faction->Clones.Add(ai);
 					hism = Camera->Grid->AIVisualiser->HISMClone;
 				}
-				else if (actorData.AIData.CitizenData.bRebel) {
+				else if (data->CitizenData.bRebel) {
 					faction->Rebels.Add(Cast<ACitizen>(ai));
 					hism = Camera->Grid->AIVisualiser->HISMRebel;
 				}
@@ -863,8 +863,10 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			if (ai->IsA<ACitizen>()) {
 				ACitizen* citizen = Cast<ACitizen>(ai);
 
-				citizen->Carrying.Type = Cast<AResource>(data->CitizenData.ResourceCarryClass->GetDefaultObject());
-				citizen->Carrying.Amount = data->CitizenData.CarryAmount;
+				if (IsValid(data->CitizenData.ResourceCarryClass)) {
+					citizen->Carrying.Type = Cast<AResource>(data->CitizenData.ResourceCarryClass->GetDefaultObject());
+					citizen->Carrying.Amount = data->CitizenData.CarryAmount;
+				}
 
 				citizen->BioStruct.HoursTogetherWithPartner = data->CitizenData.HoursTogetherWithPartner;
 				citizen->BioStruct.bMarried = data->CitizenData.bMarried;
@@ -928,10 +930,12 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			building->FactionName = actorData.BuildingData.FactionName;
 
 			FFactionStruct* faction = Camera->ConquestManager->GetFaction(building->FactionName);
-			faction->Buildings.Add(building);
+			if (faction != nullptr) {
+				faction->Buildings.Add(building);
 
-			if (building->IsA<ABroch>())
-				faction->EggTimer = Cast<ABroch>(building);
+				if (building->IsA<ABroch>())
+					faction->EggTimer = Cast<ABroch>(building);
+			}
 
 			building->SetSeed(actorData.BuildingData.Seed);
 			building->SetTier(actorData.BuildingData.Tier);
@@ -995,7 +999,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		if (healthComp) {
 			healthComp->Health = actorData.HealthData.Health;
 
-			if (healthComp->Health == 0)
+			if (healthComp->Health == 0 && !(actor->IsA<ABuilding>() && Cast<ABuilding>(actor)->FactionName == ""))
 				healthComp->Death(nullptr);
 		}
 
@@ -1016,7 +1020,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 						params.Object = attackComponent->OnHitSound;
 					}
-					else if (params.ObjectClass == timer.Actor->GetClass()) {
+					else if (params.ObjectClass == data.Actor->GetClass()) {
 						if (data.Name != params.ObjectName)
 							continue;
 
@@ -1284,6 +1288,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	Camera->BuildUIInstance->AddToViewport();
 
 	StartAutosaveTimer();
+
+	Camera->SetMouseCapture(true);
 }
 
 void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot)
@@ -1346,7 +1352,6 @@ void USaveGameComponent::CreateNewSaveStruct(FString Name, bool bAutosave, TArra
 	if (Name == "")
 		save.SaveName = FDateTime::Now().ToString();
 
-	save.Factions = Camera->ConquestManager->Factions;
 	save.SavedActors = NewActorData;
 
 	save.bAutosave = bAutosave;
@@ -1412,10 +1417,16 @@ void USaveGameComponent::UpdateAutosave(int32 NewTime)
 
 AActor* USaveGameComponent::GetSaveActorFromName(TArray<FActorSaveData> SavedData, FString Name)
 {
+	if (Name == "")
+		return nullptr;
+
 	FActorSaveData data;
 	data.Name = Name;
 
 	int32 i = SavedData.Find(data);
+
+	if (i == INDEX_NONE)
+		return nullptr;
 
 	return SavedData[i].Actor;
 }
