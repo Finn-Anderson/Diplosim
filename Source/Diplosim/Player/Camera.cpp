@@ -355,8 +355,6 @@ void ACamera::OnEggTimerPlace(ABuilding* EggTimer)
 
 	ColonyName = TypedColonyName;
 
-	bBlockPause = true;
-
 	Grid->BuildSpecialBuildings();
 
 	Grid->MapUIInstance->RemoveFromParent();
@@ -380,6 +378,13 @@ void ACamera::OnEggTimerPlace(ABuilding* EggTimer)
 	Start = false;
 
 	SaveGameComponent->StartNewSave();
+
+	IntroUI();
+}
+
+void ACamera::IntroUI()
+{
+	bBlockPause = true;
 
 	DisplayEvent("Welcome to", ColonyName);
 

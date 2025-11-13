@@ -305,12 +305,14 @@ void UConquestManager::ComputeAI()
 					f.Happiness.RemoveAt(i);
 		}
 
-		int32 index = GetFactionIndexFromName(faction.Name);
+		int32 index = Factions.Find(faction);
 
 		Camera->RemoveFactionBtn(index);
 
 		Factions.RemoveAt(index);
 	}
+
+	FactionsToRemove.Empty();
 }
 
 FFactionStruct UConquestManager::GetCitizenFaction(ACitizen* Citizen)
@@ -437,7 +439,7 @@ int32 UConquestManager::GetHappinessValue(FFactionHappinessStruct Happiness)
 void UConquestManager::SetFactionsHappiness(FFactionStruct Faction)
 {
 	for (FFactionStruct& f : Factions) {
-		if (f.Name == Faction.Name)
+		if (FactionsToRemove.Contains(f) || f == Faction)
 			continue;
 
 		int32 i = Factions.Find(Faction);

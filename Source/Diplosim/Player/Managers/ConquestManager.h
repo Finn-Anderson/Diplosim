@@ -415,7 +415,7 @@ struct FFactionStruct
 
 	bool operator==(const FFactionStruct& other) const
 	{
-		return (other.Name == Name);
+		return (other.Name == Name && other.EggTimer == EggTimer);
 	}
 };
 

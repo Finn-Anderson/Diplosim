@@ -197,7 +197,7 @@ public:
 
 	void PaveRivers();
 
-	void SpawnTiles(bool bLoad = false);
+	void SpawnTiles();
 
 	void SpawnMinerals();
 

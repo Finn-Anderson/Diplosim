@@ -384,6 +384,9 @@ void UAIVisualiser::RemoveInstance(UHierarchicalInstancedStaticMeshComponent* HI
 
 void UAIVisualiser::UpdateInstanceCustomData(UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, int32 Index, float Value)
 {
+	if (!IsValid(HISM))
+		return;
+
 	if (HISM->PerInstanceSMCustomData[Instance * HISM->NumCustomDataFloats + Index] == Value)
 		return;
 

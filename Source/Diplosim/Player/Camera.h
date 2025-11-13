@@ -198,6 +198,8 @@ public:
 
 	void OnEggTimerPlace(class ABuilding* EggTimer);
 
+	void IntroUI();
+
 	UFUNCTION(BlueprintCallable)
 		void Quit(bool bMenu);
 

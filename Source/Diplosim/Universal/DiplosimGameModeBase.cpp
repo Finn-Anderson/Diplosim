@@ -454,7 +454,7 @@ void ADiplosimGameModeBase::SetWaveTimer()
 		}
 	}
 
-	Camera->CitizenManager->CreateTimer("WaveTimer", this, 1680, "StartRaid", {}, true, false);
+	Camera->CitizenManager->CreateTimer("WaveTimer", Camera, 1680, "StartRaid", {}, true, false);
 }
 
 void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)

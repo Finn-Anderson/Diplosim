@@ -77,7 +77,7 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 	for (AActor* actor : actors)
 	{
-		if (!IsValid(actor) || actor->IsPendingKillPending() || Camera->BuildComponent->Buildings.Contains(actor))
+		if (!IsValid(actor) || actor->IsPendingKillPending() || (Camera->BuildComponent->Buildings.Contains(actor) && !actor->IsA<ABroch>()))
 			continue;
 
 		FActorSaveData actorData;
@@ -214,6 +214,7 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 		}
 		else if (actor->IsA<ACamera>()) {
 			ACamera* camera = Cast<ACamera>(actor);
+			actorData.CameraData.ColonyName = camera->ColonyName;
 
 			actorData.CameraData.ConstructionData.Empty();
 			for (FConstructionStruct constructionStruct : camera->ConstructionManager->Construction) {
@@ -636,6 +637,9 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index)
 {
+	Camera->SetPause(true);
+	Camera->BuildUIInstance->RemoveFromParent();
+
 	CurrentID = SlotName;
 	CurrentSaveGame = SaveGame;
 	CurrentSaveGame->LastTimeUpdated = FDateTime::Now();
@@ -650,17 +654,12 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	TArray<AActor*> actors;
 	TArray<AActor*> foundActors;
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AAI::StaticClass(), foundActors);
-	actors.Append(foundActors);
+	TArray<UClass*> classes = { AAI::StaticClass(), AEggBasket::StaticClass(), ABuilding::StaticClass(), AProjectile::StaticClass() };
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEggBasket::StaticClass(), foundActors);
-	actors.Append(foundActors);
-
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), foundActors);
-	actors.Append(foundActors);
-
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AProjectile::StaticClass(), foundActors);
-	actors.Append(foundActors);
+	for (UClass* clss : classes) {
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), clss, foundActors);
+		actors.Append(foundActors);
+	}
 
 	for (AActor* a : actors)
 		a->Destroy();
@@ -673,7 +672,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), actorData.Class, foundActors);
 
-		if (foundActors.Num() == 1) {
+		if (foundActors.Num() == 1 && (foundActors[0]->IsA<ACamera>() || foundActors[0]->IsA<AGrid>() || foundActors[0]->IsA<AResource>())) {
 			actor = foundActors[0];
 
 			actor->SetActorTransform(actorData.Transform);
@@ -714,19 +713,18 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				tile->bUnique = t.bUnique;
 			}
 
-			grid->SpawnTiles(true);
-
 			TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea, grid->HISMWall };
 			
-			/*for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
+			for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
 				FHISMData data;
 				data.Name = hism->GetName();
 
 				int32 index = actorData.WorldSaveData.HISMData.Find(data);
-				hism->PerInstanceSMCustomData = actorData.WorldSaveData.HISMData[index].CustomDataValues;
 
-				hism->BuildTreeIfOutdated(false, true);
-			}*/
+				hism->AddInstances(actorData.WorldSaveData.HISMData[index].Transforms, false, true, true);
+				hism->PerInstanceSMCustomData = actorData.WorldSaveData.HISMData[index].CustomDataValues;
+				hism->BuildTreeIfOutdated(true, true);
+			}
 
 			grid->AtmosphereComponent->Calendar = actorData.WorldSaveData.AtmosphereData.Calendar;
 			grid->AtmosphereComponent->bRedSun = actorData.WorldSaveData.AtmosphereData.bRedSun;
@@ -738,8 +736,6 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			grid->AtmosphereComponent->Clouds->ProcessRainEffect.Empty();
 			grid->AtmosphereComponent->Clouds->WetnessStruct.Empty();
 			wetnessData = actorData.WorldSaveData.CloudsData.WetnessData;
-
-			grid->AtmosphereComponent->Clouds->Clear();
 			
 			for (FCloudData data : actorData.WorldSaveData.CloudsData.CloudData) {
 				FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0);
@@ -757,7 +753,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		else if (actor->IsA<AResource>()) {
 			AResource* resource = Cast<AResource>(actor);
 
-			resource->ResourceHISM->AddInstances(actorData.ResourceData.HISMData.Transforms, true, true, false);
+			resource->ResourceHISM->AddInstances(actorData.ResourceData.HISMData.Transforms, false, true, true);
 			resource->ResourceHISM->PerInstanceSMCustomData = actorData.ResourceData.HISMData.CustomDataValues;
 
 			resource->WorkerStruct = actorData.ResourceData.Workers;
@@ -776,6 +772,8 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		}
 		else if (actor->IsA<ACamera>()) {
 			ACamera* camera = Cast<ACamera>(actor);
+			camera->ColonyName = actorData.CameraData.ColonyName;
+
 			camera->Start = false;
 			camera->Cancel();
 
@@ -784,13 +782,13 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			camera->Detach();
 			camera->MovementComponent->TargetLength = 3000.0f;
+			camera->MovementComponent->MovementLocation = actorData.Transform.GetLocation();
 
 			camera->ConstructionManager->Construction.Empty();
 
 			camera->CitizenManager->IssuePensionHour = actorData.CameraData.CitizenManagerData.IssuePensionHour;
 
 			camera->ConquestManager->FactionsToRemove.Append(camera->ConquestManager->Factions);
-			camera->ConquestManager->Factions.Empty();
 			for (FFactionData data : actorData.CameraData.FactionData) {
 				FFactionStruct faction;
 				faction.Name = data.Name;
@@ -835,9 +833,14 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			if (data->FactionName == "") {
 				hism = Camera->Grid->AIVisualiser->HISMEnemy;
+
+				UE_LOGFMT(LogTemp, Fatal, "No faction");
 			}
 			else {
 				FFactionStruct* faction = Camera->ConquestManager->GetFaction(data->FactionName);
+
+				if (faction == nullptr)
+					UE_LOGFMT(LogTemp, Fatal, "No faction");
 
 				if (ai->IsA<AClone>()) {
 					faction->Clones.Add(ai);
@@ -1285,11 +1288,14 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	for (FWetnessData data : wetnessData)
 		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(data.Location, data.Value, data.Increment);
 
-	Camera->BuildUIInstance->AddToViewport();
+	Camera->Grid->AIVisualiser->MainLoop(Camera);
 
 	StartAutosaveTimer();
 
-	Camera->SetMouseCapture(true);
+	Camera->BuildUIInstance->AddToViewport();
+
+	Camera->SetMouseCapture(false, false, true);
+	Camera->bInMenu = false;
 }
 
 void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot)

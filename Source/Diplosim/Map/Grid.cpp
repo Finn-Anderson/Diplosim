@@ -243,11 +243,6 @@ void AGrid::Load()
 
 void AGrid::InitialiseStorage()
 {
-	FTransform seaTransform;
-	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
-	HISMSea->AddInstance(seaTransform);
-	HISMSea->BuildTreeIfOutdated(true, true);
-
 	auto bound = GetMapBounds();
 
 	Storage.Empty();
@@ -292,6 +287,11 @@ void AGrid::InitialiseStorage()
 
 void AGrid::SetupMap()
 {
+	FTransform seaTransform;
+	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
+	HISMSea->AddInstance(seaTransform);
+	HISMSea->BuildTreeIfOutdated(true, true);
+
 	// Set map limts
 	auto bound = GetMapBounds();
 
@@ -593,10 +593,10 @@ void AGrid::PaveRivers()
 	Camera->UpdateLoadingText("Spawning Tiles");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, FTimerDelegate::CreateUObject(this, &AGrid::SpawnTiles, false), 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnTiles, 0.001, false);
 }
 
-void AGrid::SpawnTiles(bool bLoad)
+void AGrid::SpawnTiles()
 {
 	ResourceTiles.Empty();
 	CalculatedTiles.Empty();
@@ -614,9 +614,6 @@ void AGrid::SpawnTiles(bool bLoad)
 	}
 
 	GenerateTiles();
-
-	if (bLoad)
-		return;
 
 	Camera->UpdateLoadingText("Spawning Minerals");
 

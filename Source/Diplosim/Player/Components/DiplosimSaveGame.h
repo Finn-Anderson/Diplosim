@@ -1098,6 +1098,9 @@ struct FCameraData
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+		FString ColonyName;
+
+	UPROPERTY()
 		TArray<FConstructionData> ConstructionData;
 
 	UPROPERTY()
@@ -1111,7 +1114,7 @@ struct FCameraData
 
 	FCameraData()
 	{
-		
+		ColonyName = "";
 	}
 };
 

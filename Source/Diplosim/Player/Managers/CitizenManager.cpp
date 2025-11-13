@@ -1012,6 +1012,7 @@ TTuple<UObject*, UFunction*> UCitizenManager::GetFunction(FTimerStruct* Timer)
 		SET_OBJECT(Camera->SaveGameComponent);
 		SET_OBJECT(Camera->ConquestManager);
 		SET_OBJECT(Camera->ResourceManager);
+		SET_OBJECT(Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode()));
 	}
 
 	SET_OBJECT(this);
