@@ -427,6 +427,8 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 			FFactionStruct* faction = Camera->ConquestManager->GetFaction("", ai);
 
+			data->Colour = ai->Colour;
+
 			data->MovementData.Points = ai->MovementComponent->Points;
 			data->MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
 			data->MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
@@ -637,12 +639,42 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index)
 {
-	Camera->SetPause(true);
-	Camera->BuildUIInstance->RemoveFromParent();
+	Camera->bInMenu = false;
+	Camera->SetPause(false);
 
 	CurrentID = SlotName;
 	CurrentSaveGame = SaveGame;
-	CurrentSaveGame->LastTimeUpdated = FDateTime::Now();
+	CurrentIndex = Index;
+
+	Camera->BuildUIInstance->RemoveFromParent();
+
+	Checklist.Reset();
+
+	Camera->Grid->LoadUIInstance->AddToViewport();
+	Camera->UpdateLoadingText("Loading...");
+}
+
+bool USaveGameComponent::IsLoading()
+{
+	return Checklist.bLoad;
+}
+
+void USaveGameComponent::LoadGameCallback(EAsyncLoop Loop)
+{
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Loop]() {
+		if (*Checklist.CheckLoop.Find(Loop))
+			return;
+
+		Checklist.CheckLoop.Add(Loop, true);
+
+		if (Checklist.bIsAllChecked())
+			LoadSave();
+	});
+}
+
+void USaveGameComponent::LoadSave()
+{
+	Camera->SetPause(true, false);
 
 	Camera->Cancel();
 
@@ -667,7 +699,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	TMap<FString, FActorSaveData> aiToName;
 	TArray<FWetnessData> wetnessData;
 
-	for (FActorSaveData& actorData : CurrentSaveGame->Saves[Index].SavedActors) {
+	for (FActorSaveData& actorData : CurrentSaveGame->Saves[CurrentIndex].SavedActors) {
 		AActor* actor = nullptr;
 
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), actorData.Class, foundActors);
@@ -714,7 +746,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			}
 
 			TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea, grid->HISMWall };
-			
+
 			for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
 				FHISMData data;
 				data.Name = hism->GetName();
@@ -736,7 +768,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			grid->AtmosphereComponent->Clouds->ProcessRainEffect.Empty();
 			grid->AtmosphereComponent->Clouds->WetnessStruct.Empty();
 			wetnessData = actorData.WorldSaveData.CloudsData.WetnessData;
-			
+
 			for (FCloudData data : actorData.WorldSaveData.CloudsData.CloudData) {
 				FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0);
 				cloudStruct.Distance = data.Distance;
@@ -788,7 +820,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			camera->CitizenManager->IssuePensionHour = actorData.CameraData.CitizenManagerData.IssuePensionHour;
 
-			camera->ConquestManager->FactionsToRemove.Append(camera->ConquestManager->Factions);
+			camera->ConquestManager->Factions.Empty();
 			for (FFactionData data : actorData.CameraData.FactionData) {
 				FFactionStruct faction;
 				faction.Name = data.Name;
@@ -833,14 +865,9 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 
 			if (data->FactionName == "") {
 				hism = Camera->Grid->AIVisualiser->HISMEnemy;
-
-				UE_LOGFMT(LogTemp, Fatal, "No faction");
 			}
 			else {
 				FFactionStruct* faction = Camera->ConquestManager->GetFaction(data->FactionName);
-
-				if (faction == nullptr)
-					UE_LOGFMT(LogTemp, Fatal, "No faction");
 
 				if (ai->IsA<AClone>()) {
 					faction->Clones.Add(ai);
@@ -856,10 +883,11 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				}
 			}
 
+			ai->Colour = data->Colour;
+
 			ai->MovementComponent->Points = data->MovementData.Points;
 			ai->MovementComponent->CurrentAnim = data->MovementData.CurrentAnim;
 			ai->MovementComponent->LastUpdatedTime = data->MovementData.LastUpdatedTime;
-			ai->MovementComponent->Transform = data->MovementData.Transform;
 			ai->MovementComponent->TempPoints = data->MovementData.TempPoints;
 			ai->MovementComponent->bSetPoints = data->MovementData.bSetPoints;
 
@@ -922,7 +950,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 				}
 			}
 
-			Camera->Grid->AIVisualiser->AddInstance(ai, hism, ai->MovementComponent->Transform);
+			Camera->Grid->AIVisualiser->AddInstance(ai, hism, data->MovementData.Transform);
 		}
 		else if (actor->IsA<ABuilding>()) {
 			ABuilding* building = Cast<ABuilding>(actor);
@@ -1009,12 +1037,12 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 		actorData.Actor = actor;
 	}
 
-	for (FActorSaveData actorData : CurrentSaveGame->Saves[Index].SavedActors) {
+	for (FActorSaveData actorData : CurrentSaveGame->Saves[CurrentIndex].SavedActors) {
 		for (FTimerStruct timer : actorData.SavedTimers) {
 			timer.Actor = actorData.Actor;
 
 			for (FTimerParameterStruct params : timer.Parameters) {
-				for (FActorSaveData data : CurrentSaveGame->Saves[Index].SavedActors) {
+				for (FActorSaveData data : CurrentSaveGame->Saves[CurrentIndex].SavedActors) {
 					if (params.ObjectClass == USoundBase::StaticClass()) {
 						UAttackComponent* attackComponent = data.Actor->FindComponentByClass<UAttackComponent>();
 
@@ -1054,7 +1082,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 			Camera->CitizenManager->Timers.AddTail(timer);
 		}
 
-		TArray<FActorSaveData> savedData = CurrentSaveGame->Saves[Index].SavedActors;
+		TArray<FActorSaveData> savedData = CurrentSaveGame->Saves[CurrentIndex].SavedActors;
 
 		UAttackComponent* attackComp = actorData.Actor->FindComponentByClass<UAttackComponent>();
 		if (attackComp) {
@@ -1288,14 +1316,16 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	for (FWetnessData data : wetnessData)
 		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(data.Location, data.Value, data.Increment);
 
-	Camera->Grid->AIVisualiser->MainLoop(Camera);
-
 	StartAutosaveTimer();
 
-	Camera->BuildUIInstance->AddToViewport();
+	Checklist.bLoad = false;
+	Camera->Grid->AIVisualiser->MainLoop(Camera);
 
 	Camera->SetMouseCapture(false, false, true);
-	Camera->bInMenu = false;
+
+	Camera->Grid->LoadUIInstance->RemoveFromParent();
+	Camera->PauseUIInstance->AddToViewport();
+	Camera->BuildUIInstance->AddToViewport();
 }
 
 void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot)

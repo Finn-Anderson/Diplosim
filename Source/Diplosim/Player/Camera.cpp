@@ -218,7 +218,7 @@ void ACamera::Tick(float DeltaTime)
 	if (DeltaTime > 1.0f)
 		return;
 
-	if (CustomTimeDilation <= 1.0f && !Start)
+	if (CustomTimeDilation <= 1.0f)
 		Grid->AIVisualiser->MainLoop(this);
 
 	if (bMouseCapture)

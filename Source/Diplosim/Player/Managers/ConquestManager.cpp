@@ -271,9 +271,6 @@ void UConquestManager::ComputeAI()
 		return;
 
 	for (FFactionStruct& faction : Factions) {
-		if (FactionsToRemove.Contains(faction))
-			continue;
-
 		if (faction.AtWar.IsEmpty() && faction.WarFatigue > 0)
 			faction.WarFatigue--;
 		else if (!faction.AtWar.IsEmpty())

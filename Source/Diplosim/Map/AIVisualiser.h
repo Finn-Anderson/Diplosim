@@ -189,9 +189,9 @@ public:
 
 	void CalculateAIMovement(class ACamera* Camera);
 
-	void CalculateBuildingDeath();
+	void CalculateBuildingDeath(ACamera* Camera);
 
-	void CalculateBuildingRotation();
+	void CalculateBuildingRotation(ACamera* Camera);
 
 	void AddInstance(class AAI* AI, class UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
 
@@ -234,18 +234,9 @@ public:
 
 	FCriticalSection AIMovementLock;
 
-	UPROPERTY()
-		bool bAIMoving;
-
 	FCriticalSection BuildingDeathLock;
 
-	UPROPERTY()
-		bool bBuildingsDying;
-
 	FCriticalSection BuildingRotationLock;
-
-	UPROPERTY()
-		bool bBuildingsRotating;
 
 	// Hats
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
@@ -273,7 +264,4 @@ public:
 		int32 hatsNum;
 
 	FCriticalSection HatLock;
-
-	UPROPERTY()
-		bool bHatsMoving;
 };

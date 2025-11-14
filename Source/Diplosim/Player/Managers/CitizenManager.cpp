@@ -231,19 +231,44 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	CalculateCitizenInteractions();
 	
 	CalculateFighting();
+
+	if (Camera->SaveGameComponent->IsLoading()) {
+		FScopeTryLock lock(&Camera->ConquestManager->ConquestLock);
+		if (!lock.IsLocked())
+			return;
+
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Faction);
+
+			return;
+		}
+	}
 }
 
 void UCitizenManager::TimerLoop()
 {
-	if (Timers.IsEmpty())
+	if (Timers.IsEmpty()) {
+		if (Camera->SaveGameComponent->IsLoading())
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Timer);
+
 		return;
+	}
 
 	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock loopLock(&TimerLoopLock);
 		if (!loopLock.IsLocked())
 			return;
 
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Timer);
+
+			return;
+		}
+
 		for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
+			if (Camera->SaveGameComponent->IsLoading())
+				return;
+
 			FTimerStruct& timer = node->GetValue();
 
 			if (!IsValid(this))
@@ -300,6 +325,12 @@ void UCitizenManager::CitizenGeneralLoop()
 		if (!lock.IsLocked())
 			return;
 
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::CitizenLoop);
+
+			return;
+		}
+
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			if (faction.Citizens.IsEmpty())
 				continue;
@@ -324,6 +355,9 @@ void UCitizenManager::CitizenGeneralLoop()
 			int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 
 			for (ACitizen* citizen : faction.Citizens) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() == 0)
 					continue;
 
@@ -332,6 +366,9 @@ void UCitizenManager::CitizenGeneralLoop()
 
 				if (citizen->CanFindAnything(timeToCompleteDay, &faction)) {
 					for (ABuilding* building : faction.Buildings) {
+						if (Camera->SaveGameComponent->IsLoading())
+							return;
+
 						if (!IsValid(building) || building->HealthComponent->GetHealth() == 0 || citizen->AllocatedBuildings.Contains(building) || (!building->IsA<AWork>() && !building->IsA<AHouse>()) || building->GetOccupied().Num() == building->Capacity || !citizen->AIController->CanMoveTo(building->GetActorLocation()))
 							continue;
 
@@ -367,6 +404,9 @@ void UCitizenManager::CitizenGeneralLoop()
 
 			if (!faction.Police.PoliceReports.IsEmpty() && faction.Rebels.IsEmpty() && Enemies.IsEmpty()) {
 				for (int32 i = faction.Police.PoliceReports.Num() - 1; i > -1; i--) {
+					if (Camera->SaveGameComponent->IsLoading())
+						return;
+
 					FPoliceReport report = faction.Police.PoliceReports[i];
 
 					if (report.Witnesses.IsEmpty()) {
@@ -381,7 +421,13 @@ void UCitizenManager::CitizenGeneralLoop()
 						team1.Append(report.Team2.Assistors);
 
 						for (ACitizen* citizen : team1) {
+							if (Camera->SaveGameComponent->IsLoading())
+								return;
+
 							for (ACitizen* c : team2) {
+								if (Camera->SaveGameComponent->IsLoading())
+									return;
+
 								if (!citizen->AttackComponent->OverlappingEnemies.Contains(c))
 									continue;
 
@@ -417,6 +463,9 @@ void UCitizenManager::CitizenGeneralLoop()
 					ACitizen* officer = nullptr;
 
 					for (ABuilding* building : faction.Buildings) {
+						if (Camera->SaveGameComponent->IsLoading())
+							return;
+
 						if (!building->IsA(PoliceStationClass) || building->GetCitizensAtBuilding().IsEmpty())
 							continue;
 
@@ -475,13 +524,23 @@ void UCitizenManager::CitizenGeneralLoop()
 
 void UCitizenManager::CalculateDisease()
 {
-	if (Infected.IsEmpty() && Injured.IsEmpty())
+	if (Infected.IsEmpty() && Injured.IsEmpty()) {
+		if (Camera->SaveGameComponent->IsLoading())
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Disease);
+
 		return;
+	}
 
 	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&DiseaseSpreadLock);
 		if (!lock.IsLocked())
 			return;
+
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Disease);
+
+			return;
+		}
 
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens;
@@ -489,6 +548,9 @@ void UCitizenManager::CalculateDisease()
 			citizens.Append(faction.Rebels);
 
 			for (ACitizen* citizen : citizens) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen))
 					continue;
 
@@ -558,10 +620,19 @@ void UCitizenManager::CalculateCitizenInteractions()
 		if (!lock.IsLocked())
 			return;
 
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Interactions);
+
+			return;
+		}
+
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens = faction.Citizens;
 
 			for (ACitizen* citizen : citizens) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 					continue;
 
@@ -576,6 +647,9 @@ void UCitizenManager::CalculateCitizenInteractions()
 				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, reach, requestedOverlaps, EFactionType::Same, &faction);
 
 				for (AActor* actor : actors) {
+					if (Camera->SaveGameComponent->IsLoading())
+						return;
+
 					if (citizen->AIController->MoveRequest.GetGoalActor() != actor || !citizen->CanReach(actor, reach, citizen->AIController->MoveRequest.GetGoalInstance()))
 						continue;
 
@@ -603,6 +677,12 @@ void UCitizenManager::CalculateCitizenInteractions()
 		if (!lock.IsLocked())
 			return;
 
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Conversations);
+
+			return;
+		}
+
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens = faction.Citizens;
 
@@ -610,6 +690,9 @@ void UCitizenManager::CalculateCitizenInteractions()
 				continue;
 
 			for (ACitizen* citizen : citizens) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 					continue;
 
@@ -629,6 +712,9 @@ void UCitizenManager::CalculateCitizenInteractions()
 					bool bInterrogate = true;
 
 					for (FPoliceReport report : faction.Police.PoliceReports) {
+						if (Camera->SaveGameComponent->IsLoading())
+							return;
+
 						if (report.RespondingOfficer != citizen)
 							continue;
 
@@ -656,6 +742,9 @@ void UCitizenManager::CalculateCitizenInteractions()
 					TArray<ACitizen*> citizensToTalkTo;
 
 					for (AActor* actor : actors) {
+						if (Camera->SaveGameComponent->IsLoading())
+							return;
+
 						ACitizen* c = Cast<ACitizen>(actor);
 
 						if (!c->bConversing && !c->bSleep && c->AttackComponent->OverlappingEnemies.IsEmpty() && !bCitizenInReport && !IsInAPoliceReport(c, &faction))
@@ -680,6 +769,12 @@ void UCitizenManager::CalculateCitizenInteractions()
 		if (!lock.IsLocked())
 			return;
 
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Vandalism);
+
+			return;
+		}
+
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens = faction.Citizens;
 
@@ -687,6 +782,9 @@ void UCitizenManager::CalculateCitizenInteractions()
 				continue;
 
 			for (ACitizen* citizen : citizens) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 					continue;
 
@@ -702,6 +800,9 @@ void UCitizenManager::CalculateCitizenInteractions()
 				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, reach, requestedOverlaps, EFactionType::Same, &faction);
 
 				for (AActor* actor : actors) {
+					if (Camera->SaveGameComponent->IsLoading())
+						return;
+
 					if (actor->IsA<ABroch>())
 						continue;
 
@@ -726,6 +827,9 @@ void UCitizenManager::CalculateCitizenInteractions()
 					TArray<AActor*> actrs = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range, rqstdOvrlps, EFactionType::Same, &faction);
 
 					for (AActor* a : actrs) {
+						if (Camera->SaveGameComponent->IsLoading())
+							return;
+
 						ACitizen* witness = Cast<ACitizen>(a);
 
 						if (witness->Building.BuildingAt == actor || witness->Building.House == actor) {
@@ -758,8 +862,17 @@ void UCitizenManager::CalculateCitizenInteractions()
 		if (!lock.IsLocked())
 			return;
 
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Report);
+
+			return;
+		}
+
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			for (int32 i = 0; i < faction.Police.PoliceReports.Num(); i++) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
 				FPoliceReport report = faction.Police.PoliceReports[i];
 
 				FOverlapsStruct requestedOverlaps;
@@ -768,6 +881,9 @@ void UCitizenManager::CalculateCitizenInteractions()
 				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, report.Team1.Instigator, report.Team1.Instigator->InitialRange, requestedOverlaps, EFactionType::Same, &faction, report.Location);
 
 				for (AActor* actor : actors) {
+					if (Camera->SaveGameComponent->IsLoading())
+						return;
+
 					ACitizen* citizen = Cast<ACitizen>(actor);
 
 					if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || faction.Police.Arrested.Contains(citizen) || IsCarelessWitness(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || IsInAPoliceReport(citizen, &faction))
@@ -826,6 +942,12 @@ void UCitizenManager::CalculateFighting()
 		if (!lock.IsLocked())
 			return;
 
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Fighting);
+
+			return;
+		}
+
 		bool bEnemies = false;
 
 		TMap<FString, TArray<AAI*>> ais;
@@ -862,7 +984,13 @@ void UCitizenManager::CalculateFighting()
 			return;
 
 		for (auto& element : ais) {
+			if (Camera->SaveGameComponent->IsLoading())
+				return;
+
 			for (AAI* ai : element.Value) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
 				if (!IsValid(ai) || ai->HealthComponent->GetHealth() <= 0)
 					continue;
 
@@ -878,6 +1006,9 @@ void UCitizenManager::CalculateFighting()
 				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range, requestedOverlaps, EFactionType::Both);
 
 				for (AActor* actor : actors) {
+					if (Camera->SaveGameComponent->IsLoading())
+						return;
+
 					if (!IsValid(actor) || ai->AttackComponent->OverlappingEnemies.Contains(actor))
 						continue;
 
