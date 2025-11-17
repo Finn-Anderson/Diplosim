@@ -26,7 +26,7 @@ public:
 
 	virtual void SetBuildingColour(float R, float G, float B) override;
 
-	virtual void DestroyBuilding(bool bCheckAbove = true) override;
+	virtual void DestroyBuilding(bool bCheckAbove = true, bool bMove = true) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Navigation")
 		class UBoxComponent* BoxAreaAffect;

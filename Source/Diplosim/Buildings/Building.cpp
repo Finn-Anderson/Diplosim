@@ -485,12 +485,21 @@ void ABuilding::SetConstructionMesh()
 	BuildingMesh->SetStaticMesh(ConstructionMesh);
 }
 
-void ABuilding::DestroyBuilding(bool bCheckAbove)
+void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 {
-	UResourceManager* rm = Camera->ResourceManager;
-	UConstructionManager* cm = Camera->ConstructionManager;
+	if (bMove) {
+		Destroy();
+
+		return;
+	}
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	if (faction->Buildings.Contains(this))
+		faction->Buildings.Remove(this);
+
+	UResourceManager* rm = Camera->ResourceManager;
+	UConstructionManager* cm = Camera->ConstructionManager;
 
 	if (cm->IsBeingConstructed(this, nullptr)) {
 		for (FItemStruct items : CostList) {
@@ -498,6 +507,8 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 
 			rm->TakeCommittedResource(faction, items.Resource, items.Amount - items.Stored);
 		}
+
+		cm->RemoveBuilding(this);
 	}
 	else {
 		for (FItemStruct items : CostList)
@@ -515,8 +526,6 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 
 	for (TSubclassOf<AResource> resource : resources)
 		rm->TakeLocalResource(resource, this, Capacity);
-
-	cm->RemoveBuilding(this);
 
 	for (ACitizen* citizen : GetOccupied()) {
 		if (!IsValid(citizen))
@@ -559,9 +568,6 @@ void ABuilding::DestroyBuilding(bool bCheckAbove)
 
 		Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 	}
-
-	if (faction->Buildings.Contains(this))
-		faction->Buildings.Remove(this);
 
 	if (IsA(Camera->CitizenManager->PoliceStationClass)) {
 		for (ACitizen* citizen : faction->Citizens) {

@@ -424,7 +424,7 @@ void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
 {
 	InteractAudioComponent->SetSound(Sound);
 	InteractAudioComponent->SetVolumeMultiplier(Settings->GetMasterVolume() * Settings->GetSFXVolume());
-	InteractAudioComponent->SetPitchMultiplier(Pitch * Grid->Stream.RandRange(0.95f, 1.05f));
+	InteractAudioComponent->SetPitchMultiplier(Pitch * Grid->Stream.RandRange(0.99f, 1.01f));
 
 	InteractAudioComponent->Play();
 }

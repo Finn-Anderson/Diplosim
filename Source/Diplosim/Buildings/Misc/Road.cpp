@@ -74,7 +74,7 @@ void ARoad::SetBuildingColour(float R, float G, float B)
 	HISMRoad->SetCustomPrimitiveDataFloat(3, B);
 }
 
-void ARoad::DestroyBuilding(bool bCheckAbove)
+void ARoad::DestroyBuilding(bool bCheckAbove, bool bMove)
 {
 	Super::DestroyBuilding(bCheckAbove);
 

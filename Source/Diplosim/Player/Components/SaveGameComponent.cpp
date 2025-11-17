@@ -646,6 +646,7 @@ void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame*
 	CurrentSaveGame = SaveGame;
 	CurrentIndex = Index;
 
+	Camera->Grid->MapUIInstance->RemoveFromParent();
 	Camera->BuildUIInstance->RemoveFromParent();
 
 	Checklist.Reset();
@@ -807,6 +808,7 @@ void USaveGameComponent::LoadSave()
 			camera->ColonyName = actorData.CameraData.ColonyName;
 
 			camera->Start = false;
+			camera->bStartMenu = false;
 			camera->Cancel();
 
 			camera->ClearPopupUI();

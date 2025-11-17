@@ -555,6 +555,7 @@ void UBuildComponent::DetachBuilding()
 	SetComponentTickEnabled(false);
 
 	Buildings.Empty();
+	BuildingToMove = nullptr;
 
 	Camera->SetSeedVisibility(false);
 }
@@ -569,7 +570,7 @@ void UBuildComponent::RemoveBuilding()
 
 		SetTreeStatus(building, false, true);
 
-		building->DestroyBuilding();
+		building->DestroyBuilding(true, IsValid(BuildingToMove));
 	}
 
 	DetachBuilding();
