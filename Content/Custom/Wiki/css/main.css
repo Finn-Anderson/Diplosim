@@ -29,7 +29,7 @@
 	background-clip: padding-box;
 }
 
-p, h1, h2, a {
+p, h1, h2, a, li {
 	font-family: "Roboto";
 }
 
@@ -45,7 +45,7 @@ p a:hover {
 	text-decoration: underline;
 }
 
-p, a, h2 {
+p, a, h2, li {
 	color: #FFF5ED;
 	text-decoration: none;
 	margin: 0px;
@@ -103,14 +103,15 @@ nav::-webkit-scrollbar-track, nav::-webkit-scrollbar-thumb {
 main {
 	grid-column: line2 / span line3;
 	grid-row: row1 / span row2;
+	padding: 4px;
 	margin: 0px;
 	margin-right: 0px;
 	overflow-y: auto;
 	max-height: 100vh;
 }
 
-main p {
-	margin: 4px;
+main p, main li {
+	margin: 0px;
 }
 
 #info {
