@@ -1333,7 +1333,14 @@ void UCitizenManager::CheckUpkeepCosts()
 			Camera->ResourceManager->TakeUniversalResource(&faction, Camera->ResourceManager->Money, amount, -100000);
 
 			if (IsValid(citizen->Building.House))
-				citizen->Building.House->GetRent(citizen);
+				citizen->Building.House->GetRent(&faction, citizen);
+		}
+
+		for (ABuilding* building : faction.Buildings) {
+			if (!building->IsA<AHouse>())
+				continue;
+
+			Cast<AHouse>(building)->GetMaintenance(&faction);
 		}
 	}
 }

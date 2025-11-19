@@ -490,8 +490,19 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			continue;
 
 		if (Building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Building)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
-			if (hit.GetActor()->IsA(Cast<AInternalProduction>(Building)->ResourceToOverlap))
+			if (hit.GetActor()->IsA(Cast<AInternalProduction>(Building)->ResourceToOverlap)) {
 				bResource = true;
+			}
+			else {
+				for (int32 i = 0; i < Building->Seeds.Num(); i++) {
+					if (!hit.GetActor()->IsA(Building->Seeds[i].Resource))
+						continue;
+
+					Building->SetSeed(i); 
+					
+					break;
+				}
+			}
 
 			if (transform.GetLocation().X != Building->GetActorLocation().X || transform.GetLocation().Y != Building->GetActorLocation().Y)
 				return false;
@@ -511,6 +522,17 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 
 	if ((!bCoast && Building->bCoastal) || (!bResource && Building->IsA<AInternalProduction>() && !Building->IsA<ASpecial>()))
 		return false;
+
+	if (Camera->ConquestManager->Factions.Num() > 1) {
+		for (FFactionStruct faction : Camera->ConquestManager->Factions) {
+			if (faction.Name == Building->FactionName)
+				continue;
+
+			for (ABuilding* building : faction.Buildings)
+				if (FVector::Dist(Building->GetActorLocation(), building->GetActorLocation()) < 500.0f)
+					return false;
+		}
+	}
 
 	return true;
 }

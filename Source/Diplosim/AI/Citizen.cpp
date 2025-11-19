@@ -1581,6 +1581,15 @@ void ACitizen::SetHappiness()
 
 		Happiness.SetValue(message, quality);
 
+		int32 variance = Building.House->GetMaintenanceVariance() * 5;
+
+		if (variance > 0)
+			message = "Cheap Rent";
+		else if (variance < 0)
+			message = "Expensive Rent";
+
+		Happiness.SetValue(message, variance);
+
 		bool bIsCruel = false;
 
 		for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this))

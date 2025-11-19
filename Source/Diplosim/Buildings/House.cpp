@@ -13,16 +13,29 @@
 AHouse::AHouse()
 {
 	Rent = 0;
+	Maintenance = Rent - 1;
 
 	QualityCap = 70;
 }
 
 int32 AHouse::GetQuality()
 {
-	return FMath::Clamp(Rent * 12, 0, QualityCap);
+	return FMath::Clamp(Maintenance * 12, 0, QualityCap);
 }
 
-void AHouse::GetRent(ACitizen* Citizen)
+int32 AHouse::GetMaintenanceVariance()
+{
+	int32 value = 0;
+
+	if (Maintenance > Rent * 2)
+		value = Maintenance - (Rent * 2);
+	else if (Maintenance < Rent)
+		value = Maintenance - Rent;
+
+	return value;
+}
+
+void AHouse::GetRent(FFactionStruct* Faction, ACitizen* Citizen)
 {
 	TArray<ACitizen*> family;
 	int32 total = Citizen->Balance;
@@ -67,10 +80,13 @@ void AHouse::GetRent(ACitizen* Citizen)
 			}
 		}
 
-		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
-
-		Camera->ResourceManager->AddUniversalResource(faction, Camera->ResourceManager->Money, Rent);
+		Camera->ResourceManager->AddUniversalResource(Faction, Camera->ResourceManager->Money, Rent);
 	}
+}
+
+void AHouse::GetMaintenance(FFactionStruct* Faction)
+{
+	Camera->ResourceManager->TakeUniversalResource(Faction, Camera->ResourceManager->Money, Maintenance * Capacity, -100000000);
 }
 
 void AHouse::Enter(ACitizen* Citizen)
