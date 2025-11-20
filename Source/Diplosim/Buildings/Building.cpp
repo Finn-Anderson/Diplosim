@@ -225,6 +225,13 @@ void ABuilding::SetSeed(int32 Seed)
 
 			if (IsA<AFestival>())
 				Cast<AFestival>(this)->BoxAreaAffect->SetBoxExtent(FVector(size.X / 2.0f, size.Y / 2.0f, 20.0f));
+			else if (IsA<AFort>()) {
+				AFort* fort = Cast<AFort>(this);
+				int32 range = fort->GetZ() * 400.0f;
+
+				fort->DecalComponent->DecalSize = FVector(range);
+				fort->RangeComponent->SetSphereRadius(range);
+			}
 		}
 
 		if (Seeds[Seed].Health != -1) {

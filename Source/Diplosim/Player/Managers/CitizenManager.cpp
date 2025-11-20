@@ -21,6 +21,8 @@
 #include "Buildings/Misc/Special/CloneLab.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Defence/Trap.h"
+#include "Buildings/Work/Defence/Gate.h"
+#include "Buildings/Work/Defence/Tower.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
@@ -1024,6 +1026,74 @@ void UCitizenManager::CalculateFighting()
 				}
 			}
 		}
+
+		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+			for (ABuilding* building : faction.Buildings) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
+				if (!building->IsA<AGate>() && !building->IsA<ATower>() && !building->IsA<ATrap>())
+					continue;
+
+				UHealthComponent* healthComp = building->GetComponentByClass<UHealthComponent>();
+
+				if (healthComp->GetHealth() <= 0)
+					continue;
+
+				if (building->IsA<ATrap>()) {
+					ATrap* trap = Cast<ATrap>(building);
+
+					if (Camera->CitizenManager->DoesTimerExist("Trap", trap))
+						continue;
+
+					FOverlapsStruct requestedOverlaps;
+					requestedOverlaps.GetCitizenEnemies();
+
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, trap->ActivateRange, requestedOverlaps, EFactionType::Both);
+
+					if (!actors.IsEmpty())
+						trap->StartTrapFuse();
+				}
+				else {
+					USphereComponent* rangeComp = building->GetComponentByClass<USphereComponent>();
+
+					FOverlapsStruct requestedOverlaps;
+					requestedOverlaps.GetCitizenEnemies();
+
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, rangeComp->GetUnscaledSphereRadius(), requestedOverlaps, EFactionType::Both);
+
+					if (building->IsA<AGate>()) {
+						AGate* gate = Cast<AGate>(building);
+
+						if (actors.IsEmpty())
+							gate->OpenGate();
+						else
+							gate->CloseGate();
+					}
+					else {
+						ATower* tower = Cast<ATower>(building);
+
+						for (AActor* actor : actors) {
+							if (Camera->SaveGameComponent->IsLoading())
+								return;
+
+							if (!IsValid(actor) || tower->AttackComponent->OverlappingEnemies.Contains(actor))
+								continue;
+
+							UHealthComponent* hpComp = actor->GetComponentByClass<UHealthComponent>();
+
+							if (hpComp && hpComp->GetHealth() <= 0)
+								continue;
+
+							tower->AttackComponent->OverlappingEnemies.Add(actor);
+
+							if (tower->AttackComponent->OverlappingEnemies.Num() == 1)
+								tower->AttackComponent->SetComponentTickEnabled(true);
+						}
+					}
+				}
+			}
+		}
 	});
 }
 
@@ -1334,13 +1404,6 @@ void UCitizenManager::CheckUpkeepCosts()
 
 			if (IsValid(citizen->Building.House))
 				citizen->Building.House->GetRent(&faction, citizen);
-		}
-
-		for (ABuilding* building : faction.Buildings) {
-			if (!building->IsA<AHouse>())
-				continue;
-
-			Cast<AHouse>(building)->GetMaintenance(&faction);
 		}
 	}
 }

@@ -14,6 +14,7 @@ AWall::AWall()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
 
 	RangeComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RangeComponent"));
+	RangeComponent->SetupAttachment(BuildingMesh);
 	RangeComponent->SetGenerateOverlapEvents(false);
 	RangeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	RangeComponent->SetCollisionResponseToAllChannels(ECR_Ignore);

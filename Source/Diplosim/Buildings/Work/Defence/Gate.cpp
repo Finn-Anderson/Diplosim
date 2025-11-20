@@ -10,15 +10,6 @@ AGate::AGate()
 {
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = false;
 
-	EnemyDetectionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("EnemyDetectionComponent"));
-	EnemyDetectionComponent->SetCollisionProfileName("Spectator", true);
-	EnemyDetectionComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	EnemyDetectionComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	EnemyDetectionComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
-	EnemyDetectionComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	EnemyDetectionComponent->SetSphereRadius(400.0f);
-	EnemyDetectionComponent->SetupAttachment(RootComponent);
-
 	RightGate = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightGate"));
 	RightGate->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	RightGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
@@ -41,33 +32,7 @@ AGate::AGate()
 	LeftGate->SetupAttachment(BuildingMesh, "LeftGateSocket");
 	LeftGate->SetCanEverAffectNavigation(true);
 
-	Enemies = 0;
-
 	bOpen = false;
-}
-
-void AGate::BeginPlay()
-{
-	Super::BeginPlay();
-
-	EnemyDetectionComponent->OnComponentBeginOverlap.AddDynamic(this, &AGate::OnGateBeginOverlap);
-}
-
-void AGate::OnGateBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (!OtherActor->IsA<AEnemy>() || GetCitizensAtBuilding().IsEmpty())
-		return;
-
-	Enemies++;
-
-	CloseGate();
-}
-
-void AGate::OnGateEndOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	Enemies--;
-
-	OpenGate();
 }
 
 void AGate::Enter(ACitizen* Citizen)
@@ -79,10 +44,7 @@ void AGate::Enter(ACitizen* Citizen)
 
 void AGate::OpenGate()
 {
-	if (GetCitizensAtBuilding().IsEmpty())
-		return;
-
-	if (Enemies > 0 || bOpen)
+	if (bOpen || GetCitizensAtBuilding().IsEmpty())
 		return;
 
 	RightGate->PlayAnimation(OpenAnim, false);
@@ -95,10 +57,7 @@ void AGate::OpenGate()
 
 void AGate::CloseGate()
 {
-	if (GetCitizensAtBuilding().IsEmpty())
-		return;
-
-	if (Enemies != 1 || !bOpen)
+	if (!bOpen || GetCitizensAtBuilding().IsEmpty())
 		return;
 
 	RightGate->PlayAnimation(CloseAnim, false);
@@ -117,5 +76,8 @@ void AGate::UpdateNavigation()
 
 void AGate::SetTimer()
 {
-	Camera->CitizenManager->CreateTimer("Gate", this, 3.0f, "UpdateNavigation", {}, false);
+	if (Camera->CitizenManager->DoesTimerExist("Gate", this))
+		Camera->CitizenManager->UpdateTimerLength("Gate", this, 3.0f);
+	else
+		Camera->CitizenManager->CreateTimer("Gate", this, 3.0f, "UpdateNavigation", {}, false);
 }

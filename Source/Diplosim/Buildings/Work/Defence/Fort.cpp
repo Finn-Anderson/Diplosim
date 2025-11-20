@@ -9,6 +9,11 @@ AFort::AFort()
 
 }
 
+int32 AFort::GetZ()
+{
+	return FMath::Clamp(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 100.0f, 1, 5);
+}
+
 void AFort::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
@@ -16,9 +21,7 @@ void AFort::Enter(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen))
 		return;
 
-	int32 z = FMath::Clamp(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 100.0f, 1, 5);
-
-	Citizen->Range *= z;
+	Citizen->Range *= GetZ();
 }
 
 void AFort::Leave(ACitizen* Citizen)
@@ -28,7 +31,5 @@ void AFort::Leave(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen))
 		return;
 
-	int32 z = FMath::Clamp(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 100.0f, 1, 5);
-
-	Citizen->Range /= z;
+	Citizen->Range /= GetZ();
 }

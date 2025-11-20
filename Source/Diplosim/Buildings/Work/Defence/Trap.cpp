@@ -27,16 +27,8 @@ ATrap::ATrap()
 	bExplode = false;
 }
 
-void ATrap::ShouldStartTrapTimer(AActor* Actor)
+void ATrap::StartTrapFuse()
 {
-	if (Camera->CitizenManager->DoesTimerExist("Trap", this))
-		return;
-
-	float distance = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
-
-	if (distance > ActivateRange)
-		return;
-
 	if (FuseTime == 0.0f)
 		ActivateTrap();
 	else

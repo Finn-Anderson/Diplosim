@@ -17,18 +17,11 @@ public:
 		int32 Rent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "House")
-		int32 Maintenance;
+		int32 BaseRent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "House")
-		int32 QualityCap;
-
-	int32 GetQuality();
-
-	int32 GetMaintenanceVariance();
+	int32 GetSatisfactionLevel();
 
 	void GetRent(FFactionStruct* Faction, ACitizen* Citizen);
-
-	void GetMaintenance(FFactionStruct* Faction);
 
 	virtual void Enter(class ACitizen* Citizen) override;
 

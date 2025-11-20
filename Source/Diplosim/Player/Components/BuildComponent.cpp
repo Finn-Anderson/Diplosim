@@ -794,8 +794,8 @@ void UBuildComponent::Place(bool bQuick)
 		TArray<UDecalComponent*> decalComponents;
 		building->GetComponents<UDecalComponent>(decalComponents);
 
-		if (decalComponents.Num() >= 2)
-			decalComponents[1]->SetVisibility(false);
+		for (UDecalComponent* decalComp : decalComponents)
+			decalComp->SetVisibility(false);
 
 		building->StoreSocketLocations();
 

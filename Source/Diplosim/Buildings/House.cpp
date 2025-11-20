@@ -13,26 +13,15 @@
 AHouse::AHouse()
 {
 	Rent = 0;
-	Maintenance = Rent - 1;
-
-	QualityCap = 70;
+	BaseRent = Rent;
 }
 
-int32 AHouse::GetQuality()
+int32 AHouse::GetSatisfactionLevel()
 {
-	return FMath::Clamp(Maintenance * 12, 0, QualityCap);
-}
+	int32 difference = BaseRent - Rent;
+	int32 percentage = difference * (50.0f / (BaseRent / 2.0f)) + 50;
 
-int32 AHouse::GetMaintenanceVariance()
-{
-	int32 value = 0;
-
-	if (Maintenance > Rent * 2)
-		value = Maintenance - (Rent * 2);
-	else if (Maintenance < Rent)
-		value = Maintenance - Rent;
-
-	return value;
+	return FMath::Clamp(percentage, 0, 100);
 }
 
 void AHouse::GetRent(FFactionStruct* Faction, ACitizen* Citizen)
@@ -82,11 +71,6 @@ void AHouse::GetRent(FFactionStruct* Faction, ACitizen* Citizen)
 
 		Camera->ResourceManager->AddUniversalResource(Faction, Camera->ResourceManager->Money, Rent);
 	}
-}
-
-void AHouse::GetMaintenance(FFactionStruct* Faction)
-{
-	Camera->ResourceManager->TakeUniversalResource(Faction, Camera->ResourceManager->Money, Maintenance * Capacity, -100000000);
 }
 
 void AHouse::Enter(ACitizen* Citizen)

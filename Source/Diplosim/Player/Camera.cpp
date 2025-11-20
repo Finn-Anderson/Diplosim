@@ -530,7 +530,8 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 	if (!IsValid(Component))
 		Component = Actor->GetRootComponent();
 
-	PlayInteractSound(InteractSound);
+	if (!BuildComponent->IsComponentTickEnabled())
+		PlayInteractSound(InteractSound);
 	
 	SetInteractableText(Actor, Instance);
 

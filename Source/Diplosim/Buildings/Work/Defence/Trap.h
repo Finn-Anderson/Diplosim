@@ -31,7 +31,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
 
-	void ShouldStartTrapTimer(AActor* Actor);
+	void StartTrapFuse();
 
 	UFUNCTION()
 		void ActivateTrap();

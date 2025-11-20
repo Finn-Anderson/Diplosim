@@ -343,8 +343,8 @@ void ACitizen::FindHouse(class AHouse* House, int32 TimeToCompleteDay)
 		wages -= chosenHouse->Rent;
 		wages *= 50;
 
-		int32 currentValue = FMath::Max(chosenHouse->GetQuality() + wages, 0);
-		int32 newValue = FMath::Max(House->GetQuality() + newLeftoverMoney, 0);
+		int32 currentValue = FMath::Max(chosenHouse->GetSatisfactionLevel() / 10 + chosenHouse->BaseRent + wages, 0);
+		int32 newValue = FMath::Max(House->GetSatisfactionLevel() / 10 + House->BaseRent + newLeftoverMoney, 0);
 
 		FVector workLocation = MovementComponent->Transform.GetLocation();
 
@@ -1102,8 +1102,8 @@ void ACitizen::FindPartner()
 		bool bThisHouse = true;
 
 		if (IsValid(Building.House) && IsValid(citizen->Building.House)) {
-			int32 h1 = Building.House->GetQuality() / 10 + Building.House->Space;
-			int32 h2 = citizen->Building.House->GetQuality() / 10 + citizen->Building.House->Space;
+			int32 h1 = Building.House->GetSatisfactionLevel() / 10 + Building.House->Space + Building.House->BaseRent;
+			int32 h2 = citizen->Building.House->GetSatisfactionLevel() / 10 + citizen->Building.House->Space + citizen->Building.House->BaseRent;
 
 			if (h2 > h1)
 				bThisHouse = false;
@@ -1563,32 +1563,24 @@ void ACitizen::SetHappiness()
 	else {
 		Happiness.SetValue("Housed", 10);
 
-		int32 quality = (Building.House->GetQuality() / 5 - 10) * 2;
+		int32 satisfaction = Building.House->GetSatisfactionLevel();
+		int32 level = (Building.House->GetSatisfactionLevel() / 5 - 10) * 2;
 
-		if (quality > 0)
-			quality *= 0.75f;
+		if (level > 0)
+			level *= 0.75f;
 
 		FString message = "";
 
-		if (Building.House->GetQuality() < 25)
-			message = "Awful Housing Quality";
-		else if (Building.House->GetQuality() < 50)
-			message = "Substandard Housing";
-		else if (Building.House->GetQuality() > 50)
-			message = "Quality Housing";
-		else if (Building.House->GetQuality() > 75)
-			message = "High-Quality Housing";
+		if (satisfaction < 25)
+			message = "Awful Housing Satisfaction";
+		else if (satisfaction < 50)
+			message = "Substandard Housing Satisfaction";
+		else if (satisfaction > 50)
+			message = "Good Housing Satisfaction";
+		else if (satisfaction > 75)
+			message = "Very High Housing Satisfaction";
 
-		Happiness.SetValue(message, quality);
-
-		int32 variance = Building.House->GetMaintenanceVariance() * 5;
-
-		if (variance > 0)
-			message = "Cheap Rent";
-		else if (variance < 0)
-			message = "Expensive Rent";
-
-		Happiness.SetValue(message, variance);
+		Happiness.SetValue(message, level);
 
 		bool bIsCruel = false;
 

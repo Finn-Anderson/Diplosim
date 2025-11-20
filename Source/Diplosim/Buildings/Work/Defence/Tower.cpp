@@ -13,10 +13,7 @@ ATower::ATower()
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 	AttackComponent->AttackTime = 5.0f;
 
-	RangeComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	RangeComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Overlap);
-	RangeComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Overlap);
+	RangeComponent->SetSphereRadius(1000.0f);
 }
 
 void ATower::BeginPlay()
@@ -29,21 +26,4 @@ void ATower::BeginPlay()
 	BuildingMesh->GetMaterial(0)->GetVectorParameterValue(matInfo, Colour);
 
 	AttackComponent->Camera = Camera;
-
-	RangeComponent->OnComponentBeginOverlap.AddDynamic(this, &ATower::OnTowerOverlapBegin);
-	RangeComponent->OnComponentEndOverlap.AddDynamic(this, &ATower::OnTowerOverlapEnd);
-}
-
-void ATower::OnTowerOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	AttackComponent->OverlappingEnemies.Add(OtherActor);
-
-	if (AttackComponent->OverlappingEnemies.Num() == 1)
-		AttackComponent->SetComponentTickEnabled(true);
-}
-
-void ATower::OnTowerOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (AttackComponent->OverlappingEnemies.Contains(OtherActor))
-		AttackComponent->OverlappingEnemies.Remove(OtherActor);
 }

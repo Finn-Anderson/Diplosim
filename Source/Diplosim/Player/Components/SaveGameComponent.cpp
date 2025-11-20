@@ -753,10 +753,13 @@ void USaveGameComponent::LoadSave()
 				data.Name = hism->GetName();
 
 				int32 index = actorData.WorldSaveData.HISMData.Find(data);
+				TArray<FTransform> transforms = actorData.WorldSaveData.HISMData[index].Transforms;
 
-				hism->AddInstances(actorData.WorldSaveData.HISMData[index].Transforms, false, true, true);
+				hism->AddInstances(transforms, false, true, true);
 				hism->PerInstanceSMCustomData = actorData.WorldSaveData.HISMData[index].CustomDataValues;
 				hism->BuildTreeIfOutdated(true, true);
+
+				hism->PartialNavigationUpdates(transforms);
 			}
 
 			grid->AtmosphereComponent->Calendar = actorData.WorldSaveData.AtmosphereData.Calendar;
