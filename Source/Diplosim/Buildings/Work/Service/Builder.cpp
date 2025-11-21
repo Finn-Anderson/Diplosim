@@ -21,7 +21,7 @@ bool ABuilder::CheckInstant()
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	for (const ABuilding* building : faction->Buildings) {
-		if (!building->IsA<ABuilder>())
+		if (!building->IsA<ABuilder>() || building->HealthComponent->GetHealth() <= 0)
 			continue;
 
 		return false;

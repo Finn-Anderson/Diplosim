@@ -9,7 +9,6 @@ ASchool::ASchool()
 	MaxCapacity = 3;
 	
 	Space = 30;
-	MaxSpace = 50;
 }
 
 void ASchool::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
@@ -28,17 +27,15 @@ void ASchool::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 	Super::RemoveVisitor(Occupant, Visitor);
 }
 
-TArray<ACitizen*> ASchool::GetStudentsAtSchool()
+TArray<ACitizen*> ASchool::GetStudentsAtSchool(ACitizen* Occupant)
 {
 	TArray<ACitizen*> citizens;
 
-	for (ACitizen* occupant : GetOccupied()) {
-		for (ACitizen* student : GetVisitors(occupant)) {
-			if (student->Building.BuildingAt != this)
-				continue;
+	for (ACitizen* student : GetVisitors(Occupant)) {
+		if (student->Building.BuildingAt != this)
+			continue;
 
-			citizens.Add(student);
-		}
+		citizens.Add(student);
 	}
 
 	return citizens;
@@ -46,12 +43,17 @@ TArray<ACitizen*> ASchool::GetStudentsAtSchool()
 
 void ASchool::AddProgress()
 {
-	TArray<ACitizen*> citizens = GetStudentsAtSchool();
+	TArray<ACitizen*> citizens;
+	float efficiency = 0.0f;
 
-	float efficiency = GetOccupied().Num() * (1.0f - (0.5f * ((citizens.Num() - 1) / (MaxSpace - 1))));
+	for (ACitizen* occupant : GetCitizensAtBuilding()) {
+		TArray<ACitizen*> students = GetStudentsAtSchool(occupant);
+		citizens.Append(students);
 
-	for (ACitizen* citizen : GetCitizensAtBuilding())
-		efficiency *= citizen->GetProductivity();
+		efficiency += occupant->GetProductivity() - (0.5f * (students.Num() / Space));
+	}
+
+	efficiency /= GetOccupied().Num();
 
 	for (int32 i = citizens.Num(); i > -1; i--) {
 		ACitizen* citizen = citizens[i];
