@@ -384,13 +384,11 @@ void ABuilding::SetBuildingColour(float R, float G, float B)
 
 TArray<FItemStruct> ABuilding::GetRebuildCost()
 {
-	TArray<FItemStruct> items;
-
-	for (FItemStruct item : CostList) {
-		item.Amount = FMath::CeilToInt(item.Amount / 3.0f);
-
-		items.Add(item);
-	}
+	TArray<FItemStruct> items = CostList;
+	
+	if (!IsA<ASpecial>())
+		for (FItemStruct& item : CostList)
+			item.Amount = FMath::CeilToInt(item.Amount / 3.0f);
 
 	return items;
 }
