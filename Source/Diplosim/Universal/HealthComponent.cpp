@@ -23,6 +23,7 @@
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Misc/Parliament.h"
 #include "DiplosimGameModeBase.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
@@ -189,6 +190,16 @@ void UHealthComponent::Death(AActor* Attacker)
 			building->DeathTime = GetWorld()->GetTimeSeconds();
 
 		Camera->Grid->AIVisualiser->DestructingBuildings.Add(building);
+
+		if (building->IsA<AParliament>()) {
+			faction->Politics.Representatives.Empty();
+
+			Camera->CitizenManager->RemoveTimer(faction->Name + " Election", Camera);
+			Camera->CitizenManager->RemoveTimer(faction->Name + " Bill", Camera);
+
+			Camera->BribeUIInstance->RemoveFromParent();
+			Camera->ParliamentUIInstance->RemoveFromParent();
+		}
 	}
 
 	if (DeathSystem != nullptr) {

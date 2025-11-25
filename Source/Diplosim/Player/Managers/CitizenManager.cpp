@@ -2799,6 +2799,7 @@ void UCitizenManager::Election(FFactionStruct Faction)
 	}
 
 	StartElectionTimer(faction);
+	SetupBill(faction);
 }
 
 void UCitizenManager::Bribe(class ACitizen* Representative, bool bAgree)
@@ -2917,7 +2918,7 @@ void UCitizenManager::SetupBill(FFactionStruct* Faction)
 	SetParameter(*Faction, params);
 	SetParameter(Faction->Politics.ProposedBills[0], params);
 
-	CreateTimer("Bill", Camera, 60, "MotionBill", params, false);
+	CreateTimer(Faction->Name + " Bill", Camera, 60, "MotionBill", params, false);
 }
 
 void UCitizenManager::MotionBill(FFactionStruct Faction, FLawStruct Bill)
