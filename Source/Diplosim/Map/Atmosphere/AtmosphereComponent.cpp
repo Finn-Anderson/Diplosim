@@ -215,7 +215,7 @@ void UAtmosphereComponent::SetDisplayText(int32 Hour)
 		Calendar.NextDay();
 
 	if (period != Calendar.Period) {
-		Grid->Camera->DisplayEvent("Season", Calendar.Period);
+		Grid->Camera->ShowEvent("Season", Calendar.Period);
 
 		Grid->SetSeasonAffect(Calendar.Period, 0.02f);
 	}

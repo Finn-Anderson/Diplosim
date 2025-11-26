@@ -277,7 +277,7 @@ void ADiplosimGameModeBase::ShowRaidCrystal(bool bShow, FVector Location)
 	Camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(3, b);
 	Camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(5, count / 10.0f);
 
-	Camera->DisplayEvent("Upcoming", "Raid");
+	Camera->ShowEvent("Upcoming", "Raid");
 }
 
 void ADiplosimGameModeBase::SetRaidInformation()
@@ -339,7 +339,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 		break;
 	}
 
-	Camera->DisplayEvent("Event", "Raid");
+	Camera->ShowEvent("Event", "Raid");
 }
 
 void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour, int32* Spawned)

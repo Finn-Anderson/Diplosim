@@ -213,6 +213,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class USoundBase* InteractSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class USoundBase* EventSound;
+
 	void PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch = -1.0f);
 
 	UFUNCTION(BlueprintCallable)
@@ -397,6 +400,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void ShowWarning(FString Warning);
+
+	UFUNCTION(BlueprintCallable)
+		void ShowEvent(FString Descriptor, FString Event);
 
 	UFUNCTION(BlueprintCallable)
 		void NotifyLog(FString Type, FString Message, FString IslandName);

@@ -386,7 +386,7 @@ void ACamera::IntroUI()
 {
 	bBlockPause = true;
 
-	DisplayEvent("Welcome to", ColonyName);
+	ShowEvent("Welcome to", ColonyName);
 
 	FTimerHandle displayBuildUITimer;
 	GetWorld()->GetTimerManager().SetTimer(displayBuildUITimer, this, &ACamera::DisplayBuildUI, 2.7f, false);
@@ -442,6 +442,13 @@ void ACamera::DisplayBuildUI()
 void ACamera::ShowWarning(FString Warning)
 {
 	DisplayWarning(Warning);
+}
+
+void ACamera::ShowEvent(FString Descriptor, FString Event)
+{
+	PlayInteractSound(EventSound);
+
+	DisplayEvent(Descriptor, Event);
 }
 
 void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)

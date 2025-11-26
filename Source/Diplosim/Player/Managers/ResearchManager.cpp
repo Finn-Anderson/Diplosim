@@ -132,7 +132,7 @@ void UResearchManager::Research(float Amount, FString FactionName)
 			citizen->ApplyToMultiplier(element.Key, element.Value);
 
 	if (FactionName == camera->ColonyName)
-		camera->DisplayEvent(research->ResearchName, "Research Complete");
+		camera->ShowEvent(research->ResearchName, "Research Complete");
 
 	faction->ResearchIndex = INDEX_NONE;
 }

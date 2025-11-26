@@ -2593,7 +2593,7 @@ void UCitizenManager::StartEvent(FFactionStruct* Faction, FEventStruct* Event, i
 		Faction->Police.PoliceReports.Add(report);
 	}
 
-	Camera->DisplayEvent("Event", EnumToString<EEventType>(Event->Type));
+	Camera->ShowEvent("Event", EnumToString<EEventType>(Event->Type));
 }
 
 void UCitizenManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour)
