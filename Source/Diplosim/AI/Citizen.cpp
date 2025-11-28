@@ -954,14 +954,17 @@ void ACitizen::Birthday()
 	else if (BioStruct.Partner != nullptr && BioStruct.Sex == ESex::Female)
 		AsyncTask(ENamedThreads::GameThread, [this]() { HaveChild(); });
 
-	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
-		FindPartner();
-
 	if (faction == nullptr)
 		return;
 
-	if (BioStruct.Age == 18)
-		SetReligion();
+	if (BioStruct.Age == 18) {
+		SetSexuality(faction->Citizens);
+
+		SetReligion(faction);
+	}
+
+	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
+		FindPartner(faction);
 
 	if (BioStruct.Age == Camera->CitizenManager->GetLawValue(faction->Name, "Work Age") && IsValid(Building.Orphanage)) {
 		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
@@ -1042,22 +1045,56 @@ void ACitizen::SetName()
 	BioStruct.Name = parsed[index];
 }
 
-void ACitizen::FindPartner()
+void ACitizen::SetSexuality(TArray<ACitizen*> Citizens)
 {
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
+	if (Citizens.Num() <= 10) {
+		BioStruct.Sexuality = ESexuality::Straight;
 
+		return;
+	}
+
+	int32 gays = 0;
+
+	Citizens.Remove(this);
+
+	for (ACitizen* citizen : Citizens)
+		if (citizen->BioStruct.Sexuality != ESexuality::NaN && citizen->BioStruct.Sexuality != ESexuality::Straight)
+			gays++;
+
+	float percentageGay = gays / (float)Citizens.Num();
+
+	if (percentageGay > 0.1f)
+		return;
+
+	int32 chance = Camera->Grid->Stream.RandRange(1, 100);
+
+	if (chance > 90) {
+		if (chance > 95) {
+			BioStruct.Sexuality = ESexuality::Homosexual;
+
+			Fertility *= 0.5f;
+		}
+		else {
+			BioStruct.Sexuality = ESexuality::Bisexual;
+		}
+	}
+	else {
+		BioStruct.Sexuality = ESexuality::Straight;
+	}
+}
+
+void ACitizen::FindPartner(FFactionStruct* Faction)
+{
 	ACitizen* citizen = nullptr;
 	int32 curCount = 1;
 
-	TArray<class ACitizen*> citizens;
+	for (ACitizen* c : Faction->Citizens) {
+		if (!IsValid(c) || c == this || c->HealthComponent->GetHealth() == 0 || c->IsPendingKillPending() || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
+			continue;
 
-	if (faction != nullptr)
-		citizens = faction->Citizens;
+		int32 value = Camera->CitizenManager->GetLawValue(Faction->Name, "Same-Sex Laws");
 
-	citizens.Remove(this);
-
-	for (ACitizen* c : citizens) {
-		if (!IsValid(c) || c->HealthComponent->GetHealth() == 0 || c->IsPendingKillPending() || c->BioStruct.Sex == BioStruct.Sex || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
+		if (((BioStruct.Sexuality == ESexuality::Straight || value == 0) && c->BioStruct.Sex == BioStruct.Sex) || (BioStruct.Sexuality != ESexuality::Straight && value != 0 && c->BioStruct.Sex != BioStruct.Sex))
 			continue;
 
 		int32 count = 0;
@@ -1137,6 +1174,29 @@ void ACitizen::SetPartner(ACitizen* Citizen)
 {
 	BioStruct.Partner = Citizen;
 	BioStruct.HoursTogetherWithPartner = 0;
+}
+
+void ACitizen::RemoveMarriage()
+{
+	if (BioStruct.Partner == nullptr)
+		return;
+
+	BioStruct.bMarried = false;
+	DivorceHappiness = -20;
+
+	BioStruct.Partner->BioStruct.bMarried = false;
+	BioStruct.Partner->DivorceHappiness = -20;
+}
+
+void ACitizen::RemovePartner()
+{
+	if (BioStruct.Partner == nullptr)
+		return;
+
+	RemoveMarriage();
+
+	BioStruct.Partner->BioStruct.Partner = nullptr;
+	BioStruct.Partner = nullptr;
 }
 
 void ACitizen::IncrementHoursTogetherWithPartner()
@@ -1428,10 +1488,8 @@ void ACitizen::SetPoliticalLeanings()
 //
 // Religion
 //
-void ACitizen::SetReligion()
+void ACitizen::SetReligion(FFactionStruct* Faction)
 {
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
-
 	TArray<FString> religionList;
 
 	if (BioStruct.Father != nullptr) {
@@ -1452,7 +1510,7 @@ void ACitizen::SetReligion()
 	religionList.Add(Spirituality.Faith);
 
 	if (IsValid(Building.House)) {
-		for (ABuilding* building : faction->Buildings) {
+		for (ABuilding* building : Faction->Buildings) {
 			if (!building->IsA<ABooster>())
 				continue;
 
@@ -1494,7 +1552,7 @@ void ACitizen::SetReligion()
 
 	Spirituality.Faith = religionList[index];
 
-	Camera->NotifyLog("Neutral", BioStruct.Name + " set their faith as " + Spirituality.Faith, faction->Name);
+	Camera->NotifyLog("Neutral", BioStruct.Name + " set their faith as " + Spirituality.Faith, Faction->Name);
 }
 
 //
@@ -1529,7 +1587,7 @@ void ACitizen::SetDecayHappiness(int32* HappinessToDecay, int32 Amount, int32 Mi
 
 void ACitizen::DecayHappiness()
 {
-	TArray<int32*> happinessToDecay = {&ConversationHappiness, &FamilyDeathHappiness, &WitnessedDeathHappiness};
+	TArray<int32*> happinessToDecay = {&ConversationHappiness, &FamilyDeathHappiness, &WitnessedDeathHappiness, &DivorceHappiness};
 
 	for (int32* happiness : happinessToDecay) {
 		if (*happiness < 0)
@@ -1684,6 +1742,20 @@ void ACitizen::SetHappiness()
 		}
 	}
 
+	if (BioStruct.Sexuality == ESexuality::Homosexual || BioStruct.Sexuality == ESexuality::Bisexual) {
+		int32 lawValue = Camera->CitizenManager->GetLawValue(faction->Name, "Same-Sex Laws");
+		int32 sameSexHappiness = -20 + 10 * (lawValue + FMath::Floor(lawValue / 2));
+
+		if (BioStruct.Sexuality == ESexuality::Bisexual) {
+			if (sameSexHappiness < 0)
+				sameSexHappiness += 5;
+			else
+				sameSexHappiness -= 5;
+		}
+
+		Happiness.SetValue("Same-Sex Laws", sameSexHappiness);
+	}
+
 	if (Hunger < 20)
 		Happiness.SetValue("Hungry", -30);
 	else if (Hunger > 70)
@@ -1773,6 +1845,9 @@ void ACitizen::SetHappiness()
 
 	if (WitnessedDeathHappiness != 0)
 		Happiness.SetValue("Witnessed death", WitnessedDeathHappiness);
+
+	if (DivorceHappiness != 0)
+		Happiness.SetValue("Recently divorced", DivorceHappiness);
 
 	if (Camera->ConquestManager->GetCitizenFaction(this).WarFatigue >= 120)
 		Happiness.SetValue("High War Fatigue", -15);

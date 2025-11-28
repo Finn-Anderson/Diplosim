@@ -1317,8 +1317,14 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		break;
 	}
 
-	for (ACitizen* citizen : Citizen->GetLikedFamily(false))
-		citizen->SetDecayHappiness(&citizen->FamilyDeathHappiness, -12);
+	for (ACitizen* citizen : Citizen->GetLikedFamily(false)) {
+		int32 value = -12;
+
+		if (citizen->BioStruct.Partner == Citizen)
+			value = -20;
+
+		citizen->SetDecayHappiness(&citizen->FamilyDeathHappiness, value);
+	}
 
 	FOverlapsStruct requestedOverlaps;
 	requestedOverlaps.GetCitizenInteractions(false, false);
@@ -1448,8 +1454,9 @@ void UCitizenManager::CheckForWeddings(int32 Hour)
 
 		for (int32 i = citizens.Num() - 1; i > -1; i--) {
 			ACitizen* citizen = citizens[i];
+			int32 lawValue = Camera->CitizenManager->GetLawValue(faction.Name, "Same-Sex Laws");
 
-			if (citizen->BioStruct.Partner == nullptr || citizen->BioStruct.bMarried || checked.Contains(citizen))
+			if (citizen->BioStruct.Partner == nullptr || citizen->BioStruct.bMarried || checked.Contains(citizen) || (lawValue != 2 && citizen->BioStruct.Sex == citizen->BioStruct.Partner->BioStruct.Sex))
 				continue;
 
 			ACitizen* partner = Cast<ACitizen>(citizen->BioStruct.Partner);
@@ -3073,6 +3080,17 @@ void UCitizenManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 						continue;
 
 					party->Members.Remove(citizen);
+				}
+			}
+			else if (Faction->Politics.Laws[index].BillType == "Same-Sex Laws" && Bill.Value != 2) {
+				for (ACitizen* citizen : Faction->Citizens) {
+					if (citizen->BioStruct.Partner == nullptr || citizen->BioStruct.Sex != citizen->BioStruct.Partner->BioStruct.Sex)
+						continue;
+
+					if (Bill.Value == 0)
+						citizen->RemovePartner();
+					else
+						citizen->RemoveMarriage();
 				}
 			}
 		}

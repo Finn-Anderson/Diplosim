@@ -66,6 +66,15 @@ enum class ESex : uint8
 	Female
 };
 
+UENUM()
+enum class ESexuality : uint8
+{
+	NaN,
+	Straight,
+	Homosexual,
+	Bisexual
+};
+
 USTRUCT(BlueprintType)
 struct FBioStruct
 {
@@ -88,6 +97,9 @@ struct FBioStruct
 
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		ESex Sex;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		ESexuality Sexuality;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		int32 Age;
@@ -121,6 +133,7 @@ struct FBioStruct
 		HoursTogetherWithPartner = 0;
 		bMarried = false;
 		Sex = ESex::NaN;
+		Sexuality = ESexuality::NaN;
 		Age = 0;
 		EducationLevel = 0;
 		EducationProgress = 0;
@@ -365,9 +378,15 @@ public:
 
 	void SetName();
 
-	void FindPartner();
+	void SetSexuality(TArray<ACitizen*> Citizens);
+
+	void FindPartner(FFactionStruct* Faction);
 
 	void SetPartner(ACitizen* Citizen);
+	
+	void RemoveMarriage();
+
+	void RemovePartner();
 
 	void IncrementHoursTogetherWithPartner();
 
@@ -402,7 +421,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Religion")
 		EAttendStatus MassStatus;
 
-	void SetReligion();
+	void SetReligion(FFactionStruct* Faction);
 
 	// Status
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
@@ -432,6 +451,9 @@ public:
 
 	UPROPERTY()
 		int32 WitnessedDeathHappiness;
+
+	UPROPERTY()
+		int32 DivorceHappiness;
 
 	UFUNCTION()
 		void SetAttendStatus(EAttendStatus Status, bool bMass);

@@ -813,11 +813,79 @@
 			}
 		},
 		{
+			"BillType": "Same-Sex Laws",
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Strictly prohibited",
+						"Min": 0,
+						"Max": 0
+					},
+					{
+						"Description": "Allowed without marriage",
+						"Min": 1,
+						"Max": 1
+					},
+					{
+						"Description": "Allowed",
+						"Min": 2,
+						"Max": 2
+					}
+				],
+				"Warning": "",
+				"Value": 1,
+				"Parties": [
+					{
+						"Party": "Chicken Winged",
+						"ForRange": [ 1, 2 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Free Range",
+						"ForRange": [ 1, 2 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "The Scrambled Coalition",
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 2 ]
+					},
+					{
+						"Party": "Golden Yolk",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 2 ]
+					},
+					{
+						"Party": "Shell Breakers",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 2 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": "Evil",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 2 ]
+					},
+					{
+						"Personality": "Conscientious",
+						"ForRange": [ 1, 2 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": "Kind",
+						"ForRange": [ 1, 2 ],
+						"AgainstRange": [ 0, 0 ]
+					}
+				]
+			}
+		},
+		{
 			"BillType": "Fighting Length",
 			"Bills": {
 				"Descriptions": [
 					{
-						"Description": "Set fighting jail lentgh to X hours",
+						"Description": "Set fighting jail length to X hours",
 						"Min": 0,
 						"Max": 600
 					}

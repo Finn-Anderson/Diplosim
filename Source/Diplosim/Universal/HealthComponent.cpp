@@ -237,6 +237,8 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
+		citizen->RemovePartner();
+
 		if (citizen->BioStruct.Mother != nullptr)
 			citizen->BioStruct.Mother->BioStruct.Children.Remove(citizen);
 
