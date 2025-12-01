@@ -98,6 +98,9 @@ public:
 		void ResearchComplete(int32 Index);
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void SetCurrentResearchUI();
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateMapSeed(const FString& Seed);
 
 	UFUNCTION(BlueprintImplementableEvent)

@@ -141,6 +141,7 @@ void ACamera::BeginPlay()
 
 	CitizenManager->Camera = this;
 	SaveGameComponent->Camera = this;
+	ResearchManager->Camera = this;
 
 	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	Settings->Camera = this;

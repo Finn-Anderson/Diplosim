@@ -234,17 +234,7 @@ void ADiplosimGameModeBase::ShowRaidCrystal(bool bShow, FVector Location)
 {
 	SetActorTickEnabled(true);
 
-	if (bShow) {
-		TargetOpacity = 1.0f;
-	}
-	else {
-		TargetOpacity = 0.0f;
-
-		Camera->bInstantEnemies = false;
-
-		for (FFactionStruct& faction : Camera->ConquestManager->Factions)
-			Camera->CitizenManager->CeaseAllInternalFighting(&faction);
-	}
+	TargetOpacity = bShow ? 1.0f : 0.0f;
 
 	Camera->Grid->CrystalMesh->SetRelativeLocation(Location);
 
@@ -302,16 +292,18 @@ void ADiplosimGameModeBase::SetRaidInformation()
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocations[0] + FVector(0.0f, 0.0f, 500.0f)); });
 
-	int32 time = 120;
-
-	if (Camera->bInstantEnemies)
-		time = 5;
+	int32 time = Camera->bInstantEnemies ? 5 : 120;
 
 	Camera->CitizenManager->CreateTimer("SpawnEnemies", this, time, "SpawnAllEnemies", {}, false, true);
 }
 
 void ADiplosimGameModeBase::SpawnAllEnemies()
 {
+	Camera->bInstantEnemies = false;
+
+	for (FFactionStruct& faction : Camera->ConquestManager->Factions)
+		Camera->CitizenManager->CeaseAllInternalFighting(&faction);
+
 	int32 count = 1;
 
 	for (int32 i = 0; i < EnemiesData.Num(); i++) {

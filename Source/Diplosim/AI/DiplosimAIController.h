@@ -88,7 +88,7 @@ class DIPLOSIM_API ADiplosimAIController : public AAIController
 	GENERATED_BODY()
 	
 public:
-	ADiplosimAIController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	ADiplosimAIController();
 
 	UFUNCTION()
 		void DefaultAction();

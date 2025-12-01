@@ -85,10 +85,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 
 bool UHealthComponent::IsMaxHealth()
 {
-	if (Health != MaxHealth)
-		return false;
-
-	return true;
+	return Health == MaxHealth;
 }
 
 void UHealthComponent::ApplyDamageOverlay(bool bLoad)

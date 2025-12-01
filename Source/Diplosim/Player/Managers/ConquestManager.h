@@ -2,8 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Universal/DiplosimUniversalTypes.h"
-#include "Universal/Resource.h"
-#include "Buildings/Building.h"
 #include "Components/ActorComponent.h"
 #include "ConquestManager.generated.h"
 
@@ -355,10 +353,10 @@ struct FFactionStruct
 		int32 RebelCooldownTimer;
 
 	UPROPERTY()
-		TArray<ABuilding*> Buildings;
+		TArray<class ABuilding*> Buildings;
 
 	UPROPERTY()
-		TArray<ABuilding*> RuinedBuildings;
+		TArray<class ABuilding*> RuinedBuildings;
 
 	UPROPERTY()
 		class ABroch* EggTimer;
@@ -367,7 +365,7 @@ struct FFactionStruct
 		TArray<FResearchStruct> ResearchStruct;
 
 	UPROPERTY()
-		int32 ResearchIndex;
+		TArray<int32> ResearchIndices;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
 		FPoliticsStruct Politics;
@@ -408,7 +406,6 @@ struct FFactionStruct
 		PartyInPower = "";
 		LargestReligion = "";
 		EggTimer = nullptr;
-		ResearchIndex = 0;
 		RebelCooldownTimer = 0;
 		FailedBuild = 0;
 	}
@@ -470,7 +467,7 @@ struct FAIBuildStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
-		TSubclassOf<ABuilding> Building;
+		TSubclassOf<class ABuilding> Building;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		int32 NumCitizens;
@@ -522,7 +519,7 @@ public:
 	void FinaliseFactions(class ABroch* EggTimer);
 
 	UFUNCTION(BlueprintCallable)
-		ABuilding* DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<ABuilding> BuildingClass);
+		class ABuilding* DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<class ABuilding> BuildingClass);
 
 	int32 GetFactionIndexFromName(FString FactionName);
 
@@ -620,7 +617,7 @@ public:
 
 	void RecalculateTileLocationDistances(FFactionStruct* Faction);
 
-	void RemoveTileLocations(FFactionStruct* Faction, ABuilding* Building);
+	void RemoveTileLocations(FFactionStruct* Faction, class ABuilding* Building);
 
 	void SortTileDistances(TMap<FVector, double>& Locations);
 
@@ -631,16 +628,16 @@ public:
 		TArray<FAIBuildStruct> AIBuilds;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
-		TArray<TSubclassOf<ABuilding>> Houses;
+		TArray<TSubclassOf<class ABuilding>> Houses;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
-		TArray<TSubclassOf<ABuilding>> MiscBuilds;
+		TArray<TSubclassOf<class ABuilding>> MiscBuilds;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
-		TSubclassOf<ABuilding> RoadClass;
+		TSubclassOf<class ABuilding> RoadClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
-		TSubclassOf<ABuilding> RampClass;
+		TSubclassOf<class ABuilding> RampClass;
 
 	void EvaluateAIBuild(FFactionStruct* Faction);
 
@@ -658,13 +655,13 @@ public:
 
 	void BuildAIAccessibility(FFactionStruct* Faction);
 
-	void ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses);
+	void ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<class ABuilding>> BuildingsClasses);
 
-	bool AIValidBuildingLocation(FFactionStruct* Faction, ABuilding* Building, float Extent, FVector Location);
+	bool AIValidBuildingLocation(FFactionStruct* Faction, class ABuilding* Building, float Extent, FVector Location);
 
-	bool AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, int32 Amount = 1);
+	bool AICanAfford(FFactionStruct* Faction, TSubclassOf<class ABuilding> BuildingClass, int32 Amount = 1);
 
-	void AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, TSubclassOf<class AResource> Resource, bool bAccessibility = false, FTileStruct* Tile = nullptr);
+	void AIBuild(FFactionStruct* Faction, TSubclassOf<class ABuilding> BuildingClass, TSubclassOf<class AResource> Resource, bool bAccessibility = false, FTileStruct* Tile = nullptr);
 
 	// AI Army
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -694,7 +691,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void DestroyArmy(FString FactionName, int32 Index);
 
-	TArray<ABuilding*> GetReachableTargets(FFactionStruct* Faction, class ACitizen* Citizen);
+	TArray<class ABuilding*> GetReachableTargets(FFactionStruct* Faction, class ACitizen* Citizen);
 
 	void MoveToTarget(FFactionStruct* Faction, class TArray<ACitizen*> Citizens);
 

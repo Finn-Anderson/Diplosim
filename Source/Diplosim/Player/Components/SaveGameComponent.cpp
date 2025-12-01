@@ -271,7 +271,7 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 				data.LargestReligion = faction.LargestReligion;
 				data.RebelCooldownTimer = faction.RebelCooldownTimer;
 				data.ResearchStruct = faction.ResearchStruct;
-				data.ResearchIndex = faction.ResearchIndex;
+				data.ResearchIndices = faction.ResearchIndices;
 				data.PrayStruct = faction.PrayStruct;
 				data.Resources = faction.Resources;
 				data.AccessibleBuildLocations = faction.AccessibleBuildLocations;
@@ -839,7 +839,7 @@ void USaveGameComponent::LoadSave()
 				faction.LargestReligion = data.LargestReligion;
 				faction.RebelCooldownTimer = data.RebelCooldownTimer;
 				faction.ResearchStruct = data.ResearchStruct;
-				faction.ResearchIndex = data.ResearchIndex;
+				faction.ResearchIndices = data.ResearchIndices;
 				faction.PrayStruct = data.PrayStruct;
 				faction.Resources = data.Resources;
 				faction.AccessibleBuildLocations = data.AccessibleBuildLocations;

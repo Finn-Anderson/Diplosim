@@ -1046,7 +1046,7 @@ struct FFactionData
 		TArray<FResearchStruct> ResearchStruct;
 
 	UPROPERTY()
-		int32 ResearchIndex;
+		TArray<int32> ResearchIndices;
 
 	UPROPERTY()
 		FPoliticsData PoliticsData;
@@ -1086,7 +1086,6 @@ struct FFactionData
 		WarFatigue = 0;
 		PartyInPower = "";
 		LargestReligion = "";
-		ResearchIndex = 0;
 		RebelCooldownTimer = 0;
 		FailedBuild = 0;
 	}

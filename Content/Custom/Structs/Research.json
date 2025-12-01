@@ -2,6 +2,7 @@
   "Research": [
     {
       "Name": "Satiate more hunger per food",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {
@@ -12,6 +13,7 @@
     },
     {
       "Name": "Increase damage",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {
@@ -22,6 +24,7 @@
     },
     {
       "Name": "Increase reach",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {
@@ -32,6 +35,7 @@
     },
     {
       "Name": "Increase health",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {
@@ -42,6 +46,7 @@
     },
     {
       "Name": "Increase fertility",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {
@@ -52,6 +57,7 @@
     },
     {
       "Name": "Increase Awareness",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {
@@ -62,6 +68,7 @@
     },
     {
       "Name": "Unlock ancient buildings",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 960,
       "Modifiers": [
         {
@@ -72,6 +79,7 @@
     },
     {
       "Name": "Extend hunger time",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {
@@ -82,6 +90,7 @@
     },
     {
       "Name": "Extend energy time",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {
@@ -92,6 +101,7 @@
     },
     {
       "Name": "Increase Speed",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {
@@ -102,6 +112,7 @@
     },
     {
       "Name": "Increase Productivity",
+      "Image": "/Content/Custom/Structs/ResearchIcons/...",
       "Target": 120,
       "Modifiers": [
         {

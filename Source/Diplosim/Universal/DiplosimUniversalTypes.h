@@ -285,6 +285,9 @@ struct FResearchStruct
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
 		FString ResearchName;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		UTexture2D* Texture;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
 		int32 Level;
 
@@ -303,6 +306,7 @@ struct FResearchStruct
 	FResearchStruct()
 	{
 		ResearchName = "";
+		Texture = nullptr;
 		Level = 0;
 		MaxLevel = 20;
 		AmountResearched = 0;

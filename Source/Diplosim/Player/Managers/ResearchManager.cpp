@@ -1,10 +1,9 @@
 #include "Player/Managers/ResearchManager.h"
 
+#include "ImageUtils.h"
+
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
-#include "Player/Managers/ConquestManager.h"
 #include "AI/Citizen.h"
-#include "ConquestManager.h"
 
 UResearchManager::UResearchManager()
 {
@@ -34,7 +33,10 @@ void UResearchManager::ReadJSONFile(FString Path)
 							for (auto& bev : ev->AsObject()->Values)
 									research.Modifiers.Add(bev.Key, FCString::Atof(*bev.Value->AsString()));
 					else if (v.Value->Type == EJson::String)
-						research.ResearchName = v.Value->AsString();
+						if (v.Key == "Name")
+							research.ResearchName = v.Value->AsString();
+						else
+							research.Texture = FImageUtils::ImportFileAsTexture2D(FPaths::ProjectDir() + v.Value->AsString());
 					else {
 						int32 value = FCString::Atoi(*v.Value->AsString());
 
@@ -59,9 +61,7 @@ bool UResearchManager::IsReseached(FString Name, FString FactionName)
 	FResearchStruct r;
 	r.ResearchName = Name;
 
-	ACamera* camera = Cast<ACamera>(GetOwner());
-
-	FFactionStruct* faction = camera->ConquestManager->GetFaction(FactionName);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 	int32 index = faction->ResearchStruct.Find(r);
 
 	return faction->ResearchStruct[index].Level == faction->ResearchStruct[index].MaxLevel;
@@ -79,16 +79,24 @@ bool UResearchManager::IsBeingResearched(int32 Index, FString FactionName)
 
 int32 UResearchManager::GetCurrentResearchIndex(FString FactionName)
 {
-	ACamera* camera = Cast<ACamera>(GetOwner());
-	FFactionStruct* faction = camera->ConquestManager->GetFaction(FactionName);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	return faction->ResearchIndex;
+	return faction->ResearchIndices.IsEmpty() ? INDEX_NONE : faction->ResearchIndices[0];
+}
+
+FResearchStruct UResearchManager::GetCurrentResearch(FString FactionName)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	FResearchStruct defaultStruct;
+	defaultStruct.Texture = DefaultTexture;
+
+	return faction->ResearchIndices.IsEmpty() ? defaultStruct : faction->ResearchStruct[faction->ResearchIndices[0]];
 }
 
 void UResearchManager::GetResearchAmount(int32 Index, FString FactionName, float& Amount, int32& Target)
 {
-	ACamera* camera = Cast<ACamera>(GetOwner());
-	FFactionStruct* faction = camera->ConquestManager->GetFaction(FactionName);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	Amount = faction->ResearchStruct[Index].AmountResearched;
 	Target = faction->ResearchStruct[Index].Target;
@@ -96,43 +104,64 @@ void UResearchManager::GetResearchAmount(int32 Index, FString FactionName, float
 
 void UResearchManager::SetResearch(int32 Index, FString FactionName)
 {
-	ACamera* camera = Cast<ACamera>(GetOwner());
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	FFactionStruct* faction = camera->ConquestManager->GetFaction(FactionName);
+	faction->ResearchIndices.Add(Index);
 
-	faction->ResearchIndex = Index;
+	Camera->SetCurrentResearchUI();
+}
+
+void UResearchManager::RemoveResearch(int32 Index, FString FactionName)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	faction->ResearchIndices.RemoveAt(Index);
+
+	Camera->SetCurrentResearchUI();
+}
+
+void UResearchManager::ReorderResearch(int32 OldIndex, int32 NewIndex, FString FactionName)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	faction->ResearchIndices.Swap(OldIndex, NewIndex);
+
+	Camera->SetCurrentResearchUI();
 }
 
 void UResearchManager::Research(float Amount, FString FactionName)
 {
-	ACamera* camera = Cast<ACamera>(GetOwner());
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	FFactionStruct* faction = camera->ConquestManager->GetFaction(FactionName);
-	int32 currentIndex = faction->ResearchIndex;
-
-	if (currentIndex == INDEX_NONE)
+	if (faction->ResearchIndices.IsEmpty())
 		return;
+
+	int32 currentIndex = faction->ResearchIndices[0];
 
 	FResearchStruct* research = &faction->ResearchStruct[currentIndex];
 	
 	research->AmountResearched += Amount;
 
-	if (research->AmountResearched < research->Target)
+	if (research->AmountResearched < research->Target) {
+		Camera->SetCurrentResearchUI();
+
 		return;
+	}
+
+	faction->ResearchIndices.RemoveAt(0);
+	Camera->SetCurrentResearchUI();
 
 	research->Level++;
 
 	if (research->Level != research->MaxLevel)
 		research->Target *= 1.25f;
-	else if (FactionName == camera->ColonyName)
-		camera->ResearchComplete(currentIndex);
+	else if (FactionName == Camera->ColonyName)
+		Camera->ResearchComplete(currentIndex);
 
 	for (auto& element : research->Modifiers)
 		for (ACitizen* citizen : faction->Citizens)
 			citizen->ApplyToMultiplier(element.Key, element.Value);
 
-	if (FactionName == camera->ColonyName)
-		camera->ShowEvent(research->ResearchName, "Research Complete");
-
-	faction->ResearchIndex = INDEX_NONE;
+	if (FactionName == Camera->ColonyName)
+		Camera->NotifyLog("Good", "Research Complete: " + research->ResearchName, faction->Name);
 }

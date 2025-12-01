@@ -1,11 +1,8 @@
 #include "AI/DiplosimAIController.h"
 
-#include "Navigation/CrowdFollowingComponent.h"
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
-#include "Kismet/GameplayStatics.h"
 #include "NavFilters/NavigationQueryFilter.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI.h"
 #include "Citizen.h"
@@ -29,11 +26,9 @@
 #include "AIMovementComponent.h"
 #include "Map/Grid.h"
 
-ADiplosimAIController::ADiplosimAIController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
+ADiplosimAIController::ADiplosimAIController()
 {
 	PrimaryActorTick.bCanEverTick = false;
-
-	GetPathFollowingComponent()->PrimaryComponentTick.bCanEverTick = false;
 
 	Camera = nullptr;
 }
