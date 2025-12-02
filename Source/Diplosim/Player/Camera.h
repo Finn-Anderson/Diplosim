@@ -95,9 +95,6 @@ public:
 		void UpdateSpeedUI(float Speed);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void ResearchComplete(int32 Index);
-
-	UFUNCTION(BlueprintImplementableEvent)
 		void SetCurrentResearchUI();
 
 	UFUNCTION(BlueprintImplementableEvent)
@@ -314,12 +311,6 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* ResearchUIInstance;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-		TSubclassOf<class UUserWidget> ResearchHoverUI;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-		class UUserWidget* ResearchHoverUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> DiplomacyUI;

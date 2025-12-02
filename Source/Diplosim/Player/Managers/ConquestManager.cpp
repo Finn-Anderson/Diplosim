@@ -231,13 +231,6 @@ FPoliticsStruct UConquestManager::GetFactionPoliticsStruct(FString FactionName)
 	return faction.Politics;
 }
 
-TArray<FResearchStruct> UConquestManager::GetFactionResearch(FString FactionName)
-{
-	FFactionStruct faction = GetFactionFromName(FactionName);
-
-	return faction.ResearchStruct;
-}
-
 FFactionStruct UConquestManager::GetFactionFromActor(AActor* Actor)
 {
 	FFactionStruct faction;

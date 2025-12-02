@@ -194,8 +194,6 @@ void ACamera::BeginPlay()
 
 	ResearchUIInstance = CreateWidget<UUserWidget>(PController, ResearchUI);
 
-	ResearchHoverUIInstance = CreateWidget<UUserWidget>(PController, ResearchHoverUI);
-
 	DiplomacyUIInstance = CreateWidget<UUserWidget>(PController, DiplomacyUI);
 
 	HoursUIInstance = CreateWidget<UUserWidget>(PController, HoursUI);
@@ -459,7 +457,7 @@ void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
 
 void ACamera::ClearPopupUI()
 {
-	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, ResearchUIInstance, ResearchHoverUIInstance, BuildingColourUIInstance, HoursUIInstance };
+	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, ResearchUIInstance, BuildingColourUIInstance, HoursUIInstance };
 
 	if (widgets.Contains(HoveredWidget))
 		widgets.Remove(HoveredWidget);
@@ -844,8 +842,6 @@ void ACamera::Menu()
 	}
 	else if (ResearchUIInstance->IsInViewport()) {
 		ResearchUIInstance->RemoveFromParent();
-
-		ResearchHoverUIInstance->RemoveFromParent();
 
 		return;
 	}

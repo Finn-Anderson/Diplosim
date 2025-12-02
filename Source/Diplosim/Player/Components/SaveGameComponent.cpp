@@ -1328,6 +1328,8 @@ void USaveGameComponent::LoadSave()
 
 	Camera->SetMouseCapture(false, false, true);
 
+	Camera->SetCurrentResearchUI();
+
 	Camera->Grid->LoadUIInstance->RemoveFromParent();
 	Camera->PauseUIInstance->AddToViewport();
 	Camera->BuildUIInstance->AddToViewport();

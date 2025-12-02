@@ -537,9 +537,6 @@ public:
 		FPoliticsStruct GetFactionPoliticsStruct(FString FactionName);
 
 	UFUNCTION(BlueprintCallable)
-		TArray<FResearchStruct> GetFactionResearch(FString FactionName);
-
-	UFUNCTION(BlueprintCallable)
 		FFactionStruct GetFactionFromActor(AActor* Actor);
 
 	UFUNCTION(BlueprintCallable)
