@@ -476,6 +476,9 @@ public:
 		class UInputAction* InputCancel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+		class UInputAction* InputSpan;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputRender;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")

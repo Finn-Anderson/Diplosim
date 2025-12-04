@@ -159,9 +159,12 @@ void ACamera::BeginPlay()
 
 	GetWorld()->bIsCameraMoveableWhenPaused = false;
 
+	FModifyContextOptions options;
+	options.bNotifyUserSettings = true;
+
 	UEnhancedInputLocalPlayerSubsystem* inputSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PController->GetLocalPlayer());
-	inputSystem->AddMappingContext(MouseInputMapping, 0);
-	inputSystem->AddMappingContext(MovementInputMapping, 1);
+	inputSystem->AddMappingContext(MouseInputMapping, 0, options);
+	inputSystem->AddMappingContext(MovementInputMapping, 1, options);
 
 	MainMenuUIInstance = CreateWidget<UUserWidget>(PController, MainMenuUI);
 	MainMenuUIInstance->AddToViewport();
