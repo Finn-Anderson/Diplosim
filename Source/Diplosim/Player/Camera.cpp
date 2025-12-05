@@ -911,7 +911,7 @@ void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 
 void ACamera::Look(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport() || bInMenu || !bMouseCapture)
+	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
 		return;
 
 	MovementComponent->Look(Instance);
