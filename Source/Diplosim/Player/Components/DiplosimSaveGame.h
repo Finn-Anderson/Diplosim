@@ -1228,4 +1228,53 @@ public:
 
 	UPROPERTY()
 		FDateTime LastTimeUpdated;
+
+	// Saving
+	void SaveGame(class ACamera* Camera, int32 Index, FString ID);
+
+	void SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArray<AActor*> PotentialWetActors);
+
+	void SaveResource(FActorSaveData& ActorData, AActor* Actor);
+
+	void SaveCamera(FActorSaveData& ActorData, AActor* Actor);
+	void SaveCitizenManager(FActorSaveData& ActorData, AActor* Actor);
+	void SaveFactions(FActorSaveData& ActorData, AActor* Actor);
+	void SaveGamemode(FActorSaveData& ActorData, AActor* Actor);
+
+	void SaveAI(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
+	void SaveCitizen(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
+
+	void SaveBuilding(FActorSaveData& ActorData, AActor* Actor);
+
+	void SaveProjectile(FActorSaveData& ActorData, AActor* Actor);
+
+	void SaveTimers(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
+
+	void SaveComponents(FActorSaveData& ActorData, AActor* Actor);
+
+	// Loading
+	void LoadGame(class ACamera* Camera, int32 Index);
+
+	void LoadWorld(FActorSaveData& ActorData, AActor* Actor, TArray<FWetnessData>& WetnessData);
+
+	void LoadResource(FActorSaveData& ActorData, AActor* Actor);
+
+	void LoadEggBasket(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
+
+	void LoadCamera(FActorSaveData& ActorData, AActor* Actor);
+	void LoadFactions(FActorSaveData& ActorData, AActor* Actor);
+	void LoadGamemode(class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, AActor* Actor);
+
+	void LoadAI(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData>& AIToName);
+	void LoadCitizen(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
+
+	void LoadBuilding(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData>& AIToName);
+
+	void LoadProjectile(FActorSaveData& ActorData, AActor* Actor);
+
+	void LoadComponents(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TArray<FActorSaveData> SavedData);
+
+	void LoadTimers(class ACamera* Camera, int32 Index, FActorSaveData& ActorData);
+
+	void InitialiseObjects(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
 };

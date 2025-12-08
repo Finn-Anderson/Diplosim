@@ -106,7 +106,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		TMap<FString, class UDiplosimSaveGame*> LoadAllSavedGames();
 
-	void CreateNewSaveStruct(FString Name, bool bAutosave, TArray<FActorSaveData> NewActorData);
+	void CreateNewSaveStruct(FString Name, bool bAutosave);
 
 	void CapAutosaves();
 
