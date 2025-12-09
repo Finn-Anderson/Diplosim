@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Resource.h"
 #include "DiplosimUniversalTypes.generated.h"
 
 //
@@ -425,6 +426,412 @@ struct FPrayStruct
 	{
 		Good = 0;
 		Bad = 0;
+	}
+};
+
+//
+// Factions
+//
+// Politics
+USTRUCT(BlueprintType)
+struct FVoteStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<class ACitizen*> For;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<class ACitizen*> Against;
+
+	FVoteStruct()
+	{
+
+	}
+
+	void Clear()
+	{
+		For.Empty();
+		Against.Empty();
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FPoliticsStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<FPartyStruct> Parties;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
+		TArray<class ACitizen*> Representatives;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
+		TArray<int32> BribeValue;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<FLawStruct> Laws;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
+		FVoteStruct Votes;
+
+	UPROPERTY()
+		FVoteStruct Predictions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		TArray<FLawStruct> ProposedBills;
+
+	FPoliticsStruct()
+	{
+
+	}
+};
+
+// Police
+UENUM()
+enum class EReportType : uint8
+{
+	Fighting,
+	Murder,
+	Vandalism,
+	Protest
+};
+
+USTRUCT()
+struct FFightTeam
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		class ACitizen* Instigator;
+
+	UPROPERTY()
+		TArray<class ACitizen*> Assistors;
+
+	FFightTeam()
+	{
+		Instigator = nullptr;
+	}
+
+	TArray<class ACitizen*> GetTeam()
+	{
+		TArray<class ACitizen*> team = Assistors;
+		team.Add(Instigator);
+
+		return team;
+	}
+
+	bool HasCitizen(class ACitizen* Citizen)
+	{
+		if (Instigator == Citizen || Assistors.Contains(Citizen))
+			return true;
+
+		return false;
+	}
+
+	bool operator==(const FFightTeam& other) const
+	{
+		return (other.Instigator == Instigator);
+	}
+};
+
+USTRUCT()
+struct FPoliceReport
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		EReportType Type;
+
+	UPROPERTY()
+		FVector Location;
+
+	UPROPERTY()
+		FFightTeam Team1;
+
+	UPROPERTY()
+		FFightTeam Team2;
+
+	UPROPERTY()
+		TMap<class ACitizen*, float> Witnesses;
+
+	UPROPERTY()
+		class ACitizen* RespondingOfficer;
+
+	UPROPERTY()
+		TArray<class ACitizen*> AcussesTeam1;
+
+	UPROPERTY()
+		TArray<class ACitizen*> Impartial;
+
+	UPROPERTY()
+		TArray<class ACitizen*> AcussesTeam2;
+
+	FPoliceReport()
+	{
+		Type = EReportType::Fighting;
+		Location = FVector::Zero();
+		RespondingOfficer = nullptr;
+	}
+
+	bool Contains(class ACitizen* Citizen)
+	{
+		if (Team1.Instigator == Citizen || Team1.Assistors.Contains(Citizen) || Team2.Instigator == Citizen || Team2.Assistors.Contains(Citizen))
+			return true;
+
+		return false;
+	}
+
+	bool operator==(const FPoliceReport& other) const
+	{
+		return (other.Team1 == Team1 && other.Team2 == Team2);
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FPoliceStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FPoliceReport> PoliceReports;
+
+	UPROPERTY()
+		TMap<ACitizen*, int32> Arrested;
+
+	FPoliceStruct()
+	{
+
+	}
+};
+
+// Resources
+USTRUCT(BlueprintType)
+struct FFactionResourceStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TSubclassOf<class AResource> Type;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 Committed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int32 LastHourAmount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		TMap<int32, int32> HourlyTrend;
+
+	FFactionResourceStruct()
+	{
+		Type = nullptr;
+		Committed = 0;
+		LastHourAmount = 0;
+		for (int32 i = 0; i < 24; i++)
+			HourlyTrend.Add(i, 0);
+	}
+
+	bool operator==(const FFactionResourceStruct& other) const
+	{
+		return (other.Type == Type);
+	}
+};
+
+// Faction
+USTRUCT(BlueprintType)
+struct FFactionHappinessStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Happiness")
+		FString Owner;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Happiness")
+		TMap<FString, int32> Modifiers;
+
+	UPROPERTY()
+		int32 ProposalTimer;
+
+	FFactionHappinessStruct()
+	{
+		Owner = "";
+		ClearValues();
+		ProposalTimer = 0;
+	}
+
+	void ClearValues()
+	{
+		Modifiers.Empty();
+	}
+
+	bool Contains(FString Key)
+	{
+		return Modifiers.Contains(Key);
+	}
+
+	int32 GetValue(FString Key)
+	{
+		return *Modifiers.Find(Key);
+	}
+
+	void SetValue(FString Key, int32 Value)
+	{
+		Modifiers.Add(Key, Value);
+	}
+
+	void RemoveValue(FString Key)
+	{
+		Modifiers.Remove(Key);
+	}
+
+	void Decay(FString Key) {
+		int32 value = GetValue(Key);
+
+		if (value < 0)
+			value++;
+		else
+			value--;
+
+		if (value != 0)
+			SetValue(Key, value);
+		else
+			RemoveValue(Key);
+	}
+
+	bool operator==(const FFactionHappinessStruct& other) const
+	{
+		return (other.Owner == Owner);
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FArmyStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
+		TArray<class ACitizen*> Citizens;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
+		class UWidgetComponent* WidgetComponent;
+
+	UPROPERTY()
+		bool bGroup;
+
+	FArmyStruct()
+	{
+		WidgetComponent = nullptr;
+		bGroup = false;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FFactionStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FString Name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		UTexture2D* Flag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FLinearColor FlagColour;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		TArray<FString> AtWar;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		TArray<FString> Allies;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		TArray<FFactionHappinessStruct> Happiness;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		int32 WarFatigue;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FString PartyInPower;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FString LargestReligion;
+
+	UPROPERTY()
+		TArray<class ACitizen*> Citizens;
+
+	UPROPERTY()
+		TArray<class AAI*> Clones;
+
+	UPROPERTY()
+		TArray<class ACitizen*> Rebels;
+
+	UPROPERTY()
+		int32 RebelCooldownTimer;
+
+	UPROPERTY()
+		TArray<class ABuilding*> Buildings;
+
+	UPROPERTY()
+		TArray<class ABuilding*> RuinedBuildings;
+
+	UPROPERTY()
+		class ABroch* EggTimer;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		TArray<FResearchStruct> ResearchStruct;
+
+	UPROPERTY()
+		TArray<int32> ResearchIndices;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
+		FPoliticsStruct Politics;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+		FPoliceStruct Police;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+		TArray<FEventStruct> Events;
+
+	UPROPERTY()
+		FPrayStruct PrayStruct;
+
+	UPROPERTY()
+		TArray<FFactionResourceStruct> Resources;
+
+	UPROPERTY()
+		TMap<FVector, double> AccessibleBuildLocations;
+
+	UPROPERTY()
+		TArray<FVector> InaccessibleBuildLocations;
+
+	UPROPERTY()
+		TArray<FVector> RoadBuildLocations;
+
+	UPROPERTY()
+		int32 FailedBuild;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Army")
+		TArray<FArmyStruct> Armies;
+
+	FFactionStruct()
+	{
+		Name = "";
+		Flag = nullptr;
+		FlagColour = FLinearColor();
+		WarFatigue = 0;
+		PartyInPower = "";
+		LargestReligion = "";
+		EggTimer = nullptr;
+		RebelCooldownTimer = 0;
+		FailedBuild = 0;
+	}
+
+	bool operator==(const FFactionStruct& other) const
+	{
+		return (other.Name == Name && other.EggTimer == EggTimer);
 	}
 };
 

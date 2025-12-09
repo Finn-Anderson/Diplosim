@@ -7,6 +7,7 @@
 #include "Player/Components/BuildComponent.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConstructionManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Stockpile.h"
 #include "Buildings/House.h"

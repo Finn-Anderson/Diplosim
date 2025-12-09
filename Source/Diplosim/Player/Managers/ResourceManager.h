@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Player/Managers/ConquestManager.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "Components/ActorComponent.h"
 #include "ResourceManager.generated.h"
 

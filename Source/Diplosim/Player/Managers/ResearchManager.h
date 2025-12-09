@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Universal/DiplosimUniversalTypes.h"
-#include "ConquestManager.h"
 #include "Components/ActorComponent.h"
 #include "ResearchManager.generated.h"
 

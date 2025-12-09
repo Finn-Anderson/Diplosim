@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Universal/Resource.h"
 #include "Universal/DiplosimUniversalTypes.h"
 #include "GameFramework/Actor.h"
 #include "Building.generated.h"

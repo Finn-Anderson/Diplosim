@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Player/Managers/ConquestManager.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "Components/ActorComponent.h"
 #include "HealthComponent.generated.h"
 
@@ -44,13 +44,13 @@ public:
 
 	bool IsMaxHealth();
 
+	int32 GetHealth();
+
 	UFUNCTION()
 		void ApplyDamageOverlay(bool bLoad = false);
 
 	UFUNCTION()
 		void RemoveDamageOverlay();
-
-	int32 GetHealth();
 
 	// Death
 	void Death(AActor* Attacker);

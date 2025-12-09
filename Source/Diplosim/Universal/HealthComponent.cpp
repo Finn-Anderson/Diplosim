@@ -88,6 +88,11 @@ bool UHealthComponent::IsMaxHealth()
 	return Health == MaxHealth;
 }
 
+int32 UHealthComponent::GetHealth()
+{
+	return Health;
+}
+
 void UHealthComponent::ApplyDamageOverlay(bool bLoad)
 {
 	float opacity = (MaxHealth - Health) / (float)MaxHealth;
@@ -335,11 +340,6 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 
 		ai->Destroy();
 	}
-}
-
-int32 UHealthComponent::GetHealth()
-{
-	return Health;
 }
 
 void UHealthComponent::OnFire(int32 Counter)

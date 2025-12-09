@@ -1229,9 +1229,12 @@ public:
 	UPROPERTY()
 		FDateTime LastTimeUpdated;
 
-	// Saving
 	void SaveGame(class ACamera* Camera, int32 Index, FString ID);
 
+	void LoadGame(class ACamera* Camera, int32 Index);
+
+private:
+	// Saving
 	void SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArray<AActor*> PotentialWetActors);
 
 	void SaveResource(FActorSaveData& ActorData, AActor* Actor);
@@ -1253,8 +1256,6 @@ public:
 	void SaveComponents(FActorSaveData& ActorData, AActor* Actor);
 
 	// Loading
-	void LoadGame(class ACamera* Camera, int32 Index);
-
 	void LoadWorld(FActorSaveData& ActorData, AActor* Actor, TArray<FWetnessData>& WetnessData);
 
 	void LoadResource(FActorSaveData& ActorData, AActor* Actor);
@@ -1277,4 +1278,12 @@ public:
 	void LoadTimers(class ACamera* Camera, int32 Index, FActorSaveData& ActorData);
 
 	void InitialiseObjects(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
+
+	void InitialiseAI(class ACamera* Camera, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
+	void InitialiseCitizen(class ACamera* Camera, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
+
+	void InitialiseConstructionManager(class ACamera* Camera, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
+	void InitialiseCitizenManager(class ACamera* Camera, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
+	void InitialiseFactions(class ACamera* Camera, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
+	void InitialiseGamemode(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
 };

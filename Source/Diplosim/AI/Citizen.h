@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Universal/DiplosimUniversalTypes.h"
-#include "Player/Managers/ConquestManager.h"
 #include "AI/AI.h"
 #include "Citizen.generated.h"
 

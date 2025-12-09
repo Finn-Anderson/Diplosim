@@ -1,9 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Player/Camera.h"
 #include "Universal/DiplosimUniversalTypes.h"
-#include "Player/Managers/ConquestManager.h"
 #include "Components/ActorComponent.h"
 #include "CitizenManager.generated.h"
 

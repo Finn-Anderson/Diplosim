@@ -1,9 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
-#include "Player/Managers/ConquestManager.h"
 #include "Universal/DiplosimUniversalTypes.h"
+#include "Components/ActorComponent.h"
 #include "AIVisualiser.generated.h"
 
 USTRUCT()
