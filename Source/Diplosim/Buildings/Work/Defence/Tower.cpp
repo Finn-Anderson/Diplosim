@@ -20,10 +20,5 @@ void ATower::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FHashedMaterialParameterInfo matInfo;
-	matInfo.Name = FScriptName("Colour");
-
-	BuildingMesh->GetMaterial(0)->GetVectorParameterValue(matInfo, Colour);
-
 	AttackComponent->Camera = Camera;
 }

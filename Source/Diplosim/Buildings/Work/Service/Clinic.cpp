@@ -1,8 +1,5 @@
 #include "Buildings/Work/Service/Clinic.h"
 
-#include "NiagaraComponent.h"
-#include "Components/WidgetComponent.h"
-
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"

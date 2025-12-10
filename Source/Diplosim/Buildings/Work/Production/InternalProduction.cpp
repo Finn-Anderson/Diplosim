@@ -1,12 +1,10 @@
 #include "InternalProduction.h"
 
-#include "GameFramework/CharacterMovementComponent.h"
-
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
-#include "AI/AIMovementComponent.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 
 AInternalProduction::AInternalProduction()

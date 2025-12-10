@@ -27,29 +27,8 @@ public:
 	UPROPERTY()
 		class APlayerController* PController;
 
-	UPROPERTY()
-		float CameraSpeed;
-
-	UPROPERTY()
-		float MovementSpeed;
-
-	UPROPERTY()
-		float Sensitivity;
-
 	// Map Bounds
 	void SetBounds(FVector start, FVector end);
-
-	UPROPERTY()
-		float MaxXBounds;
-
-	UPROPERTY()
-		float MinXBounds;
-
-	UPROPERTY()
-		float MaxYBounds;
-
-	UPROPERTY()
-		float MinYBounds;
 
 	// Movement Functions
 	void Look(const struct FInputActionInstance& Instance);
@@ -66,12 +45,33 @@ public:
 	UPROPERTY()
 		FVector MovementLocation;
 
-	// Build Camera Shake
-	UPROPERTY()
-		float Runtime;
-
 	UPROPERTY()
 		bool bShake;
+
+protected:
+	UPROPERTY()
+		float CameraSpeed;
+
+	UPROPERTY()
+		float MovementSpeed;
+
+	UPROPERTY()
+		float Sensitivity;
+
+	UPROPERTY()
+		float MaxXBounds;
+
+	UPROPERTY()
+		float MinXBounds;
+
+	UPROPERTY()
+		float MaxYBounds;
+
+	UPROPERTY()
+		float MinYBounds;
+
+	UPROPERTY()
+		float Runtime;
 
 	UPROPERTY()
 		double LastScrollTime;

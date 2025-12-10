@@ -4,16 +4,13 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
 #include "Camera/CameraComponent.h"
-#include "GameFramework/PawnMovementComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Player/Camera.h"
 #include "Universal/DiplosimUserSettings.h"
-#include "AI/AI.h"
 #include "Buildings/Building.h"
 #include "Map/Grid.h"
-#include "Map/AIVisualiser.h"
 
 UCameraMovementComponent::UCameraMovementComponent()
 {

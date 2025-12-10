@@ -1,8 +1,6 @@
 #include "AtmosphereComponent.h"
-#include "Engine/DirectionalLight.h"
 
-#include "Kismet/KismetSystemLibrary.h"
-#include "Kismet/GameplayStatics.h"
+#include "Engine/DirectionalLight.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SkyAtmosphereComponent.h"
@@ -13,7 +11,6 @@
 #include "NiagaraComponent.h"
 
 #include "Map/Grid.h"
-#include "Map/AIVisualiser.h"
 #include "Map/Resources/Vegetation.h"
 #include "AI/Citizen.h"
 #include "Player/Camera.h"

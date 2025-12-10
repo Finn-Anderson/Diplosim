@@ -3,7 +3,6 @@
 #include "Components/BoxComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
-#include "Components/CapsuleComponent.h"
 
 #include "AI/AIMovementComponent.h"
 #include "AI/Citizen.h"

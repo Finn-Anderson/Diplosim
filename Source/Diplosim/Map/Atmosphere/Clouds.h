@@ -106,10 +106,6 @@ public:
 	UFUNCTION()
 		void ActivateCloud();
 
-	FCloudStruct CreateCloud(FTransform Transform, int32 Chance, bool bLoad = false);
-
-	TArray<FVector> SetPrecipitationLocations(FTransform Transform, float Bounds);
-
 	UFUNCTION()
 		void UpdateSpawnedClouds();
 
@@ -119,7 +115,7 @@ public:
 	UFUNCTION()
 		void SetRainMaterialEffect(float Value, class AActor* Actor, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
 
-	void SetGradualWetness(bool bLoad = false);
+	FCloudStruct CreateCloud(FTransform Transform, int32 Chance, bool bLoad = false);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		UStaticMesh* CloudMesh;
@@ -134,25 +130,30 @@ public:
 		float Height;
 
 	UPROPERTY()
-		class UDiplosimUserSettings* Settings;
-
-	UPROPERTY()
-		TArray<FCloudStruct> Clouds;
-
-	UPROPERTY()
 		bool bSnow;
-
-	UPROPERTY()
-		TArray<FWetnessStruct> WetnessStruct;
 
 	UPROPERTY()
 		class AGrid* Grid;
 
 	UPROPERTY()
-		class UNaturalDisasterComponent* NaturalDisasterComponent;
+		TArray<FCloudStruct> Clouds;
+
+	UPROPERTY()
+		TArray<FWetnessStruct> WetnessStruct;
 
 	UPROPERTY()
 		TArray<FWetnessStruct> ProcessRainEffect;
 
+	UPROPERTY()
+		class UNaturalDisasterComponent* NaturalDisasterComponent;
+
+	UPROPERTY()
+		class UDiplosimUserSettings* Settings;
+
+private:
 	FCriticalSection RainLock;
+
+	TArray<FVector> SetPrecipitationLocations(FTransform Transform, float Bounds);
+
+	void SetGradualWetness(bool bLoad = false);
 };

@@ -18,14 +18,6 @@ public:
 
 	virtual void Production(class ACitizen* Citizen) override;
 
-	float GetTime();
-
-	virtual void SetTimer();
-
-	void AlterTimer();
-
-	void PauseTimer(bool bPause);
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")
 		float MinYield;
 
@@ -46,4 +38,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap")
 		TSubclassOf<AResource> ResourceToOverlap;
+
+protected:
+	float GetTime();
+
+	virtual void SetTimer();
+
+	void AlterTimer();
+
+	void PauseTimer(bool bPause);
 };

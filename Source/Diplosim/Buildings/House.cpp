@@ -1,7 +1,5 @@
 #include "House.h"
 
-#include "Kismet/GameplayStatics.h"
-
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"

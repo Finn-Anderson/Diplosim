@@ -1,6 +1,5 @@
 #include "Buildings/Misc/Special/PowerPlant.h"
 
-#include "NiagaraComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 
 APowerPlant::APowerPlant()

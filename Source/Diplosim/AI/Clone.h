@@ -4,7 +4,6 @@
 #include "AI/AI.h"
 #include "Clone.generated.h"
 
-
 UCLASS()
 class DIPLOSIM_API AClone : public AAI
 {

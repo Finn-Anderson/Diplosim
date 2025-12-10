@@ -21,8 +21,6 @@ public:
 	UFUNCTION()
 		void UpdateNavigation();
 
-	void SetTimer();
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate")
 		class USkeletalMeshComponent* RightGate;
 
@@ -35,6 +33,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate")
 		class UAnimationAsset* OpenAnim;
 
+protected:
 	UPROPERTY()
 		bool bOpen;
+
+	void SetTimer();
 };

@@ -1,8 +1,5 @@
 #include "Buildings/Work/Defence/Gate.h"
 
-#include "Components/SphereComponent.h"
-
-#include "AI/Enemy.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 

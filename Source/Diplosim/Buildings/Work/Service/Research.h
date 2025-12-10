@@ -12,7 +12,6 @@ class DIPLOSIM_API AResearch : public AWork
 public:
 	AResearch();
 
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* TurretMesh;
 
@@ -48,11 +47,12 @@ public:
 
 	virtual void Leave(class ACitizen* Citizen) override;
 
+	virtual void Production(class ACitizen* Citizen) override;
+
+private:
 	float GetTime(int32 time);
 
 	void SetResearchTimer();
 
 	void UpdateResearchTimer();
-
-	virtual void Production(class ACitizen* Citizen) override;
 };

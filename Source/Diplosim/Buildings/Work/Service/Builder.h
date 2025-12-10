@@ -12,8 +12,6 @@ class DIPLOSIM_API ABuilder : public AWork
 public:
 	ABuilder();
 
-	virtual bool CheckInstant() override;
-
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	void CheckCosts(class ACitizen* Citizen, class ABuilding* Building);
@@ -25,6 +23,9 @@ public:
 
 	UFUNCTION()
 		void Repair(class ACitizen* Citizen, class ABuilding* Building);
+
+protected:
+	virtual bool CheckInstant() override;
 
 	void Done(class ACitizen* Citizen, class ABuilding* Building);
 };

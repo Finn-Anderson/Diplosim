@@ -30,10 +30,6 @@ class DIPLOSIM_API AFestival : public ABuilding
 public:
 	AFestival();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* FestivalMesh;
 
@@ -54,11 +50,14 @@ public:
 	UFUNCTION()
 		void OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void OnBuilt() override;
-
-	virtual void StoreSocketLocations() override;
-
 	void StartFestival(bool bFireFestival);
 
 	void StopFestival();
+
+	void OnBuilt() override;
+
+protected:
+	virtual void BeginPlay() override;
+
+	virtual void StoreSocketLocations() override;
 };

@@ -6,7 +6,6 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "Misc/ScopeTryLock.h"
-#include "EngineUtils.h"
 
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -17,7 +16,6 @@
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
 #include "AI/AIMovementComponent.h"
-#include "AI/DiplosimAIController.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"

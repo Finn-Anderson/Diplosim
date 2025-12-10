@@ -1,7 +1,6 @@
 #include "Buildings/Work/Service/School.h"
 
 #include "AI/Citizen.h"
-#include "AI/DiplosimAIController.h"
 
 ASchool::ASchool()
 {

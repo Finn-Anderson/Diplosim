@@ -6,7 +6,6 @@
 
 #include "AI.h"
 #include "Citizen.h"
-#include "Enemy.h"
 #include "Universal/HealthComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/House.h"
@@ -16,7 +15,6 @@
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Misc/Portal.h"
-#include "Universal/DiplosimGameModeBase.h"
 #include "Universal/Resource.h"
 #include "AttackComponent.h"
 #include "Player/Camera.h"

@@ -12,11 +12,8 @@ class DIPLOSIM_API ABroch : public ABuilding
 public:
 	ABroch();
 
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizens")
 		TSubclassOf<class ACitizen> CitizenClass;
-
-	TArray<TTuple<int32, int32>> Tiles;
 
 	void SpawnCitizens();
 };

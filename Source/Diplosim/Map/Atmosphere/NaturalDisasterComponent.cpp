@@ -7,6 +7,7 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
 #include "Universal/Resource.h"

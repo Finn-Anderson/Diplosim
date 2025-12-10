@@ -8,6 +8,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConstructionManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Player/Components/BuildComponent.h"
 #include "Player/Components/SaveGameComponent.h"
@@ -473,16 +474,17 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, AActo
 
 	data->Colour = ai->Colour;
 
-	data->MovementData.Points = ai->MovementComponent->Points;
+	if (ai->MovementComponent->bSetPoints)
+		data->MovementData.Points = ai->MovementComponent->TempPoints;
+	else
+		data->MovementData.Points = ai->MovementComponent->Points;
+
 	data->MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
 	data->MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
 	data->MovementData.Transform = ai->MovementComponent->Transform;
 
 	if (IsValid(ai->MovementComponent->ActorToLookAt))
 		data->MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
-
-	data->MovementData.TempPoints = ai->MovementComponent->TempPoints;
-	data->MovementData.bSetPoints = ai->MovementComponent->bSetPoints;
 
 	if (IsValid(ai->AIController->ChosenBuilding))
 		data->MovementData.ChosenBuildingName = ai->AIController->ChosenBuilding->GetName();
@@ -935,8 +937,6 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, FActorSaveData& ActorData, AActo
 	ai->MovementComponent->Points = data->MovementData.Points;
 	ai->MovementComponent->CurrentAnim = data->MovementData.CurrentAnim;
 	ai->MovementComponent->LastUpdatedTime = data->MovementData.LastUpdatedTime;
-	ai->MovementComponent->TempPoints = data->MovementData.TempPoints;
-	ai->MovementComponent->bSetPoints = data->MovementData.bSetPoints;
 
 	Camera->Grid->AIVisualiser->AddInstance(ai, hism, data->MovementData.Transform);
 }

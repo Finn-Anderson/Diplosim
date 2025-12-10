@@ -2,6 +2,7 @@
 
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "AI/Citizen.h"
 
 AGMLab::AGMLab()

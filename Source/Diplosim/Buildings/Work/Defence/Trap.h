@@ -12,7 +12,6 @@ class DIPLOSIM_API ATrap : public ABuilding
 public:
 	ATrap();
 
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trap")
 		float FuseTime;
 

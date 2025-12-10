@@ -9,6 +9,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "AI/DiplosimAIController.h"
 #include "Universal/HealthComponent.h"
 

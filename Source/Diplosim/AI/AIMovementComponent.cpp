@@ -1,13 +1,10 @@
 #include "AI/AIMovementComponent.h"
 
-#include "NavigationSystem.h"
-
 #include "AI.h"
 #include "Citizen.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
 #include "Player/Camera.h"
-#include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Universal/HealthComponent.h"
 
@@ -35,46 +32,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 	AActor* goal = AI->AIController->MoveRequest.GetGoalActor();
 
-	if (CurrentAnim.bPlay) {
-		CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
-
-		FTransform transform;
-		transform.SetLocation(FMath::Lerp(CurrentAnim.StartTransform.GetLocation(), CurrentAnim.EndTransform.GetLocation(), CurrentAnim.Alpha));
-		transform.SetRotation(FMath::Lerp(CurrentAnim.StartTransform.GetRotation(), CurrentAnim.EndTransform.GetRotation(), CurrentAnim.Alpha));
-
-		AIVisualiser->SetAnimationPoint(AI, transform);
-
-		if (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f) {
-			CurrentAnim.Speed *= -1.0f;
-
-			CurrentAnim.StartTransform = FTransform();
-
-			if (CurrentAnim.StartTransform.GetLocation() == CurrentAnim.EndTransform.GetLocation() || (CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat))
-				CurrentAnim.bPlay = false;
-
-			if (CurrentAnim.Alpha == 1.0f && (CurrentAnim.Type == EAnim::Melee || CurrentAnim.Type == EAnim::Throw)) {
-				if (CurrentAnim.Type == EAnim::Melee) {
-					if (goal->IsA<AResource>())
-						Cast<ACitizen>(AI)->SetHarvestVisuals(Cast<AResource>(goal));
-					else
-						AI->AttackComponent->Melee();
-				}
-				else
-					AI->AttackComponent->Throw();
-			}
-		}
-
-		if (IsValid(ActorToLookAt)) {
-			FRotator rotation = (AI->Camera->GetTargetActorLocation(ActorToLookAt) - Transform.GetLocation()).Rotation() * CurrentAnim.Alpha;
-			rotation.Pitch = 0.0f;
-			rotation.Roll = 0.0f;
-
-			Transform.SetRotation((Transform.GetRotation() + rotation.Quaternion()).GetNormalized());
-
-			if (CurrentAnim.Alpha == 1.0f)
-				ActorToLookAt = nullptr;
-		}
-	}
+	ComputeCurrentAnimation(goal, DeltaTime);
 
 	if (bSetPoints) {
 		Points = TempPoints;
@@ -124,6 +82,51 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	}
 	else if (CurrentAnim.Type == EAnim::Move)
 		AI->AIController->StopMovement();
+}
+
+void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime)
+{
+	if (!CurrentAnim.bPlay)
+		return;
+
+	CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
+
+	FTransform transform;
+	transform.SetLocation(FMath::Lerp(CurrentAnim.StartTransform.GetLocation(), CurrentAnim.EndTransform.GetLocation(), CurrentAnim.Alpha));
+	transform.SetRotation(FMath::Lerp(CurrentAnim.StartTransform.GetRotation(), CurrentAnim.EndTransform.GetRotation(), CurrentAnim.Alpha));
+
+	AIVisualiser->SetAnimationPoint(AI, transform);
+
+	if (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f) {
+		CurrentAnim.Speed *= -1.0f;
+
+		CurrentAnim.StartTransform = FTransform();
+
+		if (CurrentAnim.StartTransform.GetLocation() == CurrentAnim.EndTransform.GetLocation() || (CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat))
+			CurrentAnim.bPlay = false;
+
+		if (CurrentAnim.Alpha == 1.0f && (CurrentAnim.Type == EAnim::Melee || CurrentAnim.Type == EAnim::Throw)) {
+			if (CurrentAnim.Type == EAnim::Melee) {
+				if (Goal->IsA<AResource>())
+					Cast<ACitizen>(AI)->SetHarvestVisuals(Cast<AResource>(Goal));
+				else
+					AI->AttackComponent->Melee();
+			}
+			else
+				AI->AttackComponent->Throw();
+		}
+	}
+
+	if (IsValid(ActorToLookAt)) {
+		FRotator rotation = (AI->Camera->GetTargetActorLocation(ActorToLookAt) - Transform.GetLocation()).Rotation() * CurrentAnim.Alpha;
+		rotation.Pitch = 0.0f;
+		rotation.Roll = 0.0f;
+
+		Transform.SetRotation((Transform.GetRotation() + rotation.Quaternion()).GetNormalized());
+
+		if (CurrentAnim.Alpha == 1.0f)
+			ActorToLookAt = nullptr;
+	}
 }
 
 FVector UAIMovementComponent::CalculateVelocity(FVector Vector)

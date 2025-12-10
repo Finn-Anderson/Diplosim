@@ -184,27 +184,11 @@ public:
 
 	void MainLoop(class ACamera* Camera);
 
-	void CalculateCitizenMovement(class ACamera* Camera);
-
-	void CalculateAIMovement(class ACamera* Camera);
-
-	void CalculateBuildingDeath(ACamera* Camera);
-
-	void CalculateBuildingRotation(ACamera* Camera);
-
 	void AddInstance(class AAI* AI, class UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
 
 	void RemoveInstance(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
 
 	void UpdateInstanceCustomData(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, int32 Index, float Value);
-
-	void SetInstanceTransform(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform);
-
-	void UpdateCitizenVisuals(class UHierarchicalInstancedStaticMeshComponent* HISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
-
-	void ActivateTorch(int32 Hour, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
-
-	void UpdateArmyVisuals(class ACamera* Camera, class ACitizen* Citizen);
 
 	FVector AddHarvestVisual(class AAI* AI, FLinearColor Colour);
 
@@ -227,16 +211,6 @@ public:
 	UPROPERTY()
 		TArray<class AResearch*> RotatingBuildings;
 
-	FCriticalSection CitizenMovementLock;
-	FCriticalSection CitizenMovementLock1;
-	FCriticalSection CitizenMovementLock2;
-
-	FCriticalSection AIMovementLock;
-
-	FCriticalSection BuildingDeathLock;
-
-	FCriticalSection BuildingRotationLock;
-
 	// Hats
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class USceneComponent* HatsContainer;
@@ -247,13 +221,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
 		TMap<UStaticMesh*, int32> HatsMeshesList;
 
-	FTransform GetHatTransform(ACitizen* Citizen);
-
 	void AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh);
 
 	void RemoveCitizenFromHISMHat(ACitizen* Citizen);
-
-	void UpdateHatsTransforms(ACamera* Camera);
 
 	bool DoesCitizenHaveHat(ACitizen* Citizen);
 
@@ -261,6 +231,37 @@ public:
 
 	UPROPERTY()
 		int32 hatsNum;
+
+private:
+	void CalculateCitizenMovement(class ACamera* Camera);
+
+	void CalculateAIMovement(class ACamera* Camera);
+
+	void CalculateBuildingDeath(ACamera* Camera);
+
+	void CalculateBuildingRotation(ACamera* Camera);
+
+	void SetInstanceTransform(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform);
+
+	void UpdateCitizenVisuals(class UHierarchicalInstancedStaticMeshComponent* HISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
+
+	void ActivateTorch(int32 Hour, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
+
+	void UpdateArmyVisuals(class ACamera* Camera, class ACitizen* Citizen);
+
+	FTransform GetHatTransform(ACitizen* Citizen);
+
+	void UpdateHatsTransforms(ACamera* Camera);
+
+	FCriticalSection CitizenMovementLock;
+	FCriticalSection CitizenMovementLock1;
+	FCriticalSection CitizenMovementLock2;
+
+	FCriticalSection AIMovementLock;
+
+	FCriticalSection BuildingDeathLock;
+
+	FCriticalSection BuildingRotationLock;
 
 	FCriticalSection HatLock;
 };

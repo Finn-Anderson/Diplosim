@@ -27,17 +27,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
 		bool bAffectedByFerility;
 
-	virtual void Enter(class ACitizen* Citizen) override;
-
-	virtual void Production(class ACitizen* Citizen) override;
-
-	void ProductionDone(class ACitizen* Citizen);
-
-	void StartTimer(class ACitizen* Citizen);
-
 	UFUNCTION(BlueprintCallable)
 		int32 GetFertility();
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetYield();
+
+	virtual void Enter(class ACitizen* Citizen) override;
+
+	virtual void Production(class ACitizen* Citizen) override;
+
+protected:
+	void StartTimer(class ACitizen* Citizen);
+
+	void ProductionDone(class ACitizen* Citizen);
 };

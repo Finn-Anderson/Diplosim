@@ -535,12 +535,6 @@ struct FAIMovementData
 	UPROPERTY()
 		FString ActorToLookAtName;
 
-	UPROPERTY()
-		TArray<FVector> TempPoints;
-
-	UPROPERTY()
-		bool bSetPoints;
-
 	// AI Controller
 	UPROPERTY()
 		FString ChosenBuildingName;
@@ -565,7 +559,6 @@ struct FAIMovementData
 		LastUpdatedTime = 0.0f;
 		Transform = FTransform();
 		ActorToLookAtName = "";
-		bSetPoints = false;
 
 		ChosenBuildingName = "";
 		ActorName = "";

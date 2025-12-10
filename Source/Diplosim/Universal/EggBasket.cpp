@@ -5,6 +5,7 @@
 #include "Map/Grid.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Buildings/Building.h"
 
 AEggBasket::AEggBasket()

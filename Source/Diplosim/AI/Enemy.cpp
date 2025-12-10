@@ -4,7 +4,6 @@
 #include "NiagaraComponent.h"
 
 #include "Universal/HealthComponent.h"
-#include "AttackComponent.h"
 #include "AIMovementComponent.h"
 #include "Player/Camera.h"
 #include "Map/Grid.h"
@@ -18,11 +17,6 @@ AEnemy::AEnemy()
 	ZapComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ZapComponent"));
 	ZapComponent->SetupAttachment(RootComponent, "ParticleSocket");
 	ZapComponent->SetAutoActivate(false);
-}
-
-void AEnemy::BeginPlay()
-{
-	Super::BeginPlay();
 }
 
 void AEnemy::Zap(FVector Location)

@@ -1,14 +1,13 @@
 #include "Buildings/Work/Defence/Trap.h"
 
-#include "Components/SphereComponent.h"
 #include "NiagaraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/DecalComponent.h"
 
-#include "AI/Enemy.h"
 #include "Universal/HealthComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 

@@ -30,8 +30,6 @@ public:
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
-	void ShowBoxesInStockpile();
-
 	bool DoesStoreResource(TSubclassOf<class AResource> Resource);
 
 	void SetItemToGather(TSubclassOf<class AResource> Resource, ACitizen* Citizen, ABuilding* Building);
@@ -40,4 +38,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetStoredResourceAmount(TSubclassOf<class AResource> Resource);
+
+private:
+	void ShowBoxesInStockpile();
 };

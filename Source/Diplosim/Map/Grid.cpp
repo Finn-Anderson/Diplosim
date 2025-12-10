@@ -18,6 +18,7 @@
 #include "Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Player/Components/BuildComponent.h"
 #include "Universal/EggBasket.h"

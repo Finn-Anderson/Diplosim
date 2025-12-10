@@ -1,8 +1,6 @@
 #include "ExternalProduction.h"
 
 #include "Components/DecalComponent.h"
-#include "Components/SphereComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "AI/Citizen.h"
@@ -12,7 +10,6 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Map/Grid.h"
-#include "Map/Resources/Vegetation.h"
 
 AExternalProduction::AExternalProduction()
 {

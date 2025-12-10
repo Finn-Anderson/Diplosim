@@ -31,22 +31,15 @@ class DIPLOSIM_API UAttackComponent : public UActorComponent
 public:	
 	UAttackComponent();
 
-public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void SetProjectileClass(TSubclassOf<class AProjectile> OtherClass);
 
-	void PickTarget();
-
-	FFavourabilityStruct GetActorFavourability(AActor* Actor);
-
-	void Attack();
+	void ClearAttacks();
 
 	void Throw();
 
 	void Melee();
-
-	void ClearAttacks();
 
 	UPROPERTY()
 		TArray<AActor*> OverlappingEnemies;
@@ -80,4 +73,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class USoundBase* ZapSound;
+
+private:
+	void PickTarget();
+
+	FFavourabilityStruct GetActorFavourability(AActor* Actor);
+
+	void Attack();
 };

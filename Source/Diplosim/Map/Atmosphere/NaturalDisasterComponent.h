@@ -35,25 +35,14 @@ class DIPLOSIM_API UNaturalDisasterComponent : public UActorComponent
 public:	
 	UNaturalDisasterComponent();
 
-public:	
 	bool ShouldCreateDisaster();
 
 	void IncrementDisasterChance();
 
 	void ResetDisasterChance();
 
-	void GenerateEarthquake(float Magnitude);
-
-	TArray<FTileStruct> GetEarthquakePoints(float Magnitude);
-
 	UFUNCTION()
 		void CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStruct, float Range, float Magnitude);
-
-	void CancelEarthquake();
-
-	void GeneratePurifier(float Magnitude);
-
-	void GenerateRedSun(float Magnitude);
 
 	void AlterSunGradually(float Target, float Increment);
 
@@ -79,4 +68,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Purifier")
 		TSubclassOf<class AProjectile> PurifierClass;
+
+private:
+	void GenerateEarthquake(float Magnitude);
+
+	TArray<FTileStruct> GetEarthquakePoints(float Magnitude);
+
+	void CancelEarthquake();
+
+	void GeneratePurifier(float Magnitude);
+
+	void GenerateRedSun(float Magnitude);
+
 };

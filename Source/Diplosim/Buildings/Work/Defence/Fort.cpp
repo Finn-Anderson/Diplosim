@@ -1,7 +1,5 @@
 #include "Buildings/Work/Defence/Fort.h"
 
-#include "AI/AttackComponent.h"
-#include "Components/SphereComponent.h"
 #include "AI/Citizen.h"
 
 AFort::AFort()

@@ -1,14 +1,13 @@
 #include "Buildings/Work/Service/Builder.h"
 
-#include "Kismet/GameplayStatics.h"
-
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
+#include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/CitizenManager.h"
 #include "Components/WidgetComponent.h"
 #include "Universal/HealthComponent.h"
-#include "Player/Managers/CitizenManager.h"
 
 ABuilder::ABuilder()
 {

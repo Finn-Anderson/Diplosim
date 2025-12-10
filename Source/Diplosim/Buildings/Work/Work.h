@@ -68,7 +68,8 @@ public:
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
-	void AddToWorkHours(class ACitizen* Citizen, bool bAdd);
+	UFUNCTION()
+		virtual void Production(class ACitizen* Citizen);
 
 	void CheckWorkStatus(int32 Hour);
 
@@ -88,15 +89,16 @@ public:
 	void SetEmergency(bool bStatus);
 
 	// Resources
-	UFUNCTION()
-		virtual void Production(class ACitizen* Citizen);
-
-	bool IsCapacityFull();
-
 	UPROPERTY()
 		int32 Boosters;
 
 	// Forcefield
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Forcefield")
 		int32 ForcefieldRange;
+
+protected:
+	bool IsCapacityFull();
+
+private:
+	void AddToWorkHours(class ACitizen* Citizen, bool bAdd);
 };

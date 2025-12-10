@@ -5,9 +5,6 @@
 #include "Components/ActorComponent.h"
 #include "ConquestManager.generated.h"
 
-//
-// Factions
-//
 USTRUCT(BlueprintType)
 struct FCultureImageStruct
 {

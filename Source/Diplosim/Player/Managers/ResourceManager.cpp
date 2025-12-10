@@ -1,7 +1,5 @@
 #include "ResourceManager.h"
 
-#include "Kismet/GameplayStatics.h"
-
 #include "Universal/Resource.h"
 #include "Player/Camera.h"
 #include "Player/Components/BuildComponent.h"

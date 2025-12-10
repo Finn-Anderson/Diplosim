@@ -1,9 +1,10 @@
 #include "Buildings/Work/Booster.h"
 
-#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "AI/Citizen.h"
 

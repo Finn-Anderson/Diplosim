@@ -1,8 +1,5 @@
 #include "Work.h"
 
-#include "Kismet/GameplayStatics.h"
-#include "Components/DecalComponent.h"
-#include "Components/SphereComponent.h"
 #include "Blueprint/UserWidget.h"
 
 #include "AI/Citizen.h"
@@ -10,8 +7,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
-#include "Buildings/House.h"
-#include "Buildings/Work/Service/Clinic.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Work/Booster.h"

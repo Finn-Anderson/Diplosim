@@ -1,7 +1,6 @@
 #include "Buildings/Misc/Broch.h"
 
 #include "Components/DecalComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
@@ -10,7 +9,6 @@
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
-#include "Map/Resources/Mineral.h"
 
 ABroch::ABroch()
 {

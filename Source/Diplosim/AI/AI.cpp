@@ -1,9 +1,6 @@
 #include "AI/AI.h"
 
-#include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Navigation/PathFollowingComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/AudioComponent.h"
 
@@ -11,11 +8,10 @@
 #include "AIMovementComponent.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
-#include "Enemy.h"
-#include "Buildings/Misc/Broch.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
+#include "Buildings/Building.h"
 
 AAI::AAI()
 {

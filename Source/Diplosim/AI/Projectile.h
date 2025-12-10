@@ -47,4 +47,9 @@ public:
 		void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	void SpawnNiagaraSystems(AActor* Launcher);
+
+private:
+	void Explode();
+
+	void HitActor(AActor* Actor);
 };

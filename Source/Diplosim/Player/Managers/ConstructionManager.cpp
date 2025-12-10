@@ -1,12 +1,12 @@
 #include "ConstructionManager.h"
 
 #include "Components/WidgetComponent.h"
-#include "Kismet/GameplayStatics.h"
 
 #include "Buildings/Work/Service/Builder.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Buildings/Misc/Broch.h"
 
 UConstructionManager::UConstructionManager()

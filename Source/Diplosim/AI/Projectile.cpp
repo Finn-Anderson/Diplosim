@@ -7,7 +7,6 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "Universal/HealthComponent.h"
-#include "Enemy.h"
 #include "Buildings/Work/Defence/Tower.h"
 #include "AttackComponent.h"
 #include "Player/Camera.h"
@@ -59,7 +58,7 @@ void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
 		trail = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailSystem, ProjectileMesh, FName("Trail1"), FVector(0.0f), FRotator(0.0f), EAttachLocation::Type::KeepRelativeOffset, true);
 
 	if (Launcher->IsA<ATower>()) {
-		FLinearColor colour = Cast<ATower>(Launcher)->Colour;
+		FLinearColor colour = Cast<ATower>(Launcher)->ChosenColour;
 
 		ProjectileMesh->SetCustomPrimitiveDataFloat(0, colour.R);
 		ProjectileMesh->SetCustomPrimitiveDataFloat(1, colour.G);
@@ -75,13 +74,16 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 	if (OtherActor == GetOwner())
 		return;
 
-	int32 multiplier = 1.0f; 
+	if (bExplode)
+		Explode();
+	else
+		HitActor(OtherActor);
 
-	UAttackComponent* attackComponent = GetOwner()->FindComponentByClass<UAttackComponent>();
-	
-	if (attackComponent)
-		multiplier = attackComponent->DamageMultiplier;
+	Destroy();
+}
 
+void AProjectile::Explode()
+{
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	ACamera* camera = PController->GetPawn<ACamera>();
 
@@ -102,52 +104,46 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 		ignore.Append(faction->Buildings);
 
 	TArray<AActor*> actors;
-
 	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), Radius, objects, nullptr, ignore, actors);
 
-	UHealthComponent* healthComp = nullptr;
+	for (AActor* actor : actors) {
+		if (GetOwner()->IsA<UNaturalDisasterComponent>() && camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(actor->GetActorLocation()))
+			continue;
 
+		HitActor(actor);
+	}
+
+	UNiagaraComponent* explosion = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionSystem, GetActorLocation());
+
+	if (GetOwner()->IsA<ATower>())
+		explosion->SetVariableLinearColor(TEXT("Colour"), Cast<ATower>(GetOwner())->ChosenColour);
+
+	UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, Radius * 6, 1.0f);
+}
+
+void AProjectile::HitActor(AActor* Actor)
+{
+	UHealthComponent* healthComponent = Actor->GetComponentByClass<UHealthComponent>();
+
+	if (!healthComponent || healthComponent->GetHealth() == 0)
+		return;
+
+	int32 multiplier = 1.0f;
+	int32 dmg = Damage;
 	USoundBase* sound = nullptr;
 
-	if (attackComponent)
+	UAttackComponent* attackComponent = GetOwner()->FindComponentByClass<UAttackComponent>();
+
+	if (attackComponent) {
+		multiplier = attackComponent->DamageMultiplier;
 		sound = attackComponent->OnHitSound;
-
-	if (bExplode) {
-		for (AActor* actor : actors) {
-			if (actor->IsA<ABuilding>())
-				continue;
-
-			healthComp = actor->GetComponentByClass<UHealthComponent>();
-
-			if (!healthComp || healthComp->GetHealth() == 0)
-				continue;
-
-			int32 dmg = Damage * multiplier;
-
-			if (bDamageFallOff) {
-				float distance = FVector::Dist(GetActorLocation(), actor->GetActorLocation());
-
-				dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
-			}
-			else if (GetOwner()->IsA<UNaturalDisasterComponent>() && camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(actor->GetActorLocation()))
-				continue;
-
-			healthComp->TakeHealth(dmg, this, sound);
-		}
-
-		UNiagaraComponent* explosion = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionSystem, GetActorLocation());
-
-		if (GetOwner()->IsA<ATower>())
-			explosion->SetVariableLinearColor(TEXT("Colour"), Cast<ATower>(GetOwner())->Colour);
-
-		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, Radius * 6, 1.0f);
-	}
-	else {
-		healthComp = OtherActor->GetComponentByClass<UHealthComponent>();
-
-		if (healthComp)
-			healthComp->TakeHealth(Damage * multiplier, this, sound);
 	}
 
-	Destroy();
+	if (bDamageFallOff) {
+		float distance = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
+
+		dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
+	}
+
+	healthComponent->TakeHealth(dmg * multiplier, this, sound);
 }

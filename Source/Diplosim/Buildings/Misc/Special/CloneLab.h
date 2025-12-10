@@ -12,7 +12,6 @@ class DIPLOSIM_API ACloneLab : public ASpecial
 public:
 	ACloneLab();
 
-public:
 	void StartCloneLab();
 
 	virtual void Production(class ACitizen* Citizen) override;

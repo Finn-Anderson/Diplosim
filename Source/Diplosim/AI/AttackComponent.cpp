@@ -2,11 +2,8 @@
 
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
-#include "AIController.h"
 
 #include "AI.h"
 #include "Universal/HealthComponent.h"

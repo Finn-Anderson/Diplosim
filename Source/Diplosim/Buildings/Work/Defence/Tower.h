@@ -18,7 +18,4 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		class UAttackComponent* AttackComponent;
-
-	UPROPERTY()
-		FLinearColor Colour;
 };

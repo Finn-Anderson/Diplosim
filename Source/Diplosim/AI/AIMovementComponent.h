@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/PawnMovementComponent.h"
 #include "Universal/DiplosimUniversalTypes.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "AIMovementComponent.generated.h"
 
 UCLASS()
@@ -13,10 +13,7 @@ class DIPLOSIM_API UAIMovementComponent : public UPawnMovementComponent
 public:
 	UAIMovementComponent();
 
-public:
 	void ComputeMovement(float DeltaTime);
-
-	FVector CalculateVelocity(FVector Vector);
 
 	void SetPoints(TArray<FVector> VectorPoints);
 
@@ -39,19 +36,10 @@ public:
 		float SpeedMultiplier;
 
 	UPROPERTY()
-		TArray<FVector> Points;
-
-	UPROPERTY()
-		FAnimStruct CurrentAnim;
-
-	UPROPERTY()
 		class AAI* AI;
 
 	UPROPERTY()
 		class UAIVisualiser* AIVisualiser;
-
-	UPROPERTY()
-		double LastUpdatedTime;
 
 	UPROPERTY()
 		FTransform Transform;
@@ -60,8 +48,22 @@ public:
 		class AActor* ActorToLookAt;
 
 	UPROPERTY()
+		TArray<FVector> Points;
+
+	UPROPERTY()
+		double LastUpdatedTime;
+
+	UPROPERTY()
+		FAnimStruct CurrentAnim;
+
+	UPROPERTY()
 		TArray<FVector> TempPoints;
 
 	UPROPERTY()
 		bool bSetPoints;
+
+private:
+	void ComputeCurrentAnimation(AActor* Goal, float DeltaTime);
+
+	FVector CalculateVelocity(FVector Vector);
 };

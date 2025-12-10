@@ -1,16 +1,11 @@
 #include "DiplosimGameModeBase.h"
 
-#include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "NavigationSystem.h"
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraComponent.h"
 
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
-#include "AI/AttackComponent.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Buildings/Misc/Broch.h"

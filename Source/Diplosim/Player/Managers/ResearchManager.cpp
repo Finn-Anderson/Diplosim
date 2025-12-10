@@ -3,6 +3,7 @@
 #include "ImageUtils.h"
 
 #include "Player/Camera.h"
+#include "Player/Managers/ConquestManager.h"
 #include "AI/Citizen.h"
 
 UResearchManager::UResearchManager()

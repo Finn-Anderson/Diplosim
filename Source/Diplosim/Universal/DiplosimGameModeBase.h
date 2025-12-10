@@ -118,26 +118,8 @@ protected:
 public:
 	void Tick(float DeltaTime) override;
 
-	void EvaluateThreats();
-
-	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
-
-	TArray<FVector> GetSpawnPoints();
-
-	TArray<FVector> PickSpawnPoints();
-
-	TArray<FVector> GetValidLocations(class UHierarchicalInstancedStaticMeshComponent* HISMComponent, TArray<int32> Instances, TArray<FVector> ValidTiles);
-
-	void ShowRaidCrystal(bool bShow, FVector Location = FVector(0.0f, 0.0f, -1000.0f));
-
-	void SetRaidInformation();
-
 	UFUNCTION()
 		void SpawnAllEnemies();
-
-	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour, int32* Spawned);
-
-	int32 GetTotalSpawnedEnemies();
 
 	bool bSpawnedAllEnemies();
 
@@ -176,4 +158,23 @@ public:
 
 	UPROPERTY()
 		float TargetOpacity;
+
+private:
+	void EvaluateThreats();
+
+	bool PathToBuilding(FVector Location, class UNavigationSystemV1* Nav, const class ANavigationData* NavData);
+
+	TArray<FVector> GetSpawnPoints();
+
+	TArray<FVector> PickSpawnPoints();
+
+	TArray<FVector> GetValidLocations(class UHierarchicalInstancedStaticMeshComponent* HISMComponent, TArray<int32> Instances, TArray<FVector> ValidTiles);
+
+	void ShowRaidCrystal(bool bShow, FVector Location = FVector(0.0f, 0.0f, -1000.0f));
+
+	void SetRaidInformation();
+
+	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour, int32* Spawned);
+
+	int32 GetTotalSpawnedEnemies();
 };

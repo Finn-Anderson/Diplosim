@@ -1,8 +1,6 @@
 #include "Buildings/Misc/Portal.h"
 
 #include "Universal/HealthComponent.h"
-#include "Player/Camera.h"
-#include "Player/Managers/ConquestManager.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"

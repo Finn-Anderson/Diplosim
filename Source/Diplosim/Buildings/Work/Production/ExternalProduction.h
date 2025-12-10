@@ -19,8 +19,8 @@ public:
 
 	virtual void Production(class ACitizen* Citizen) override;
 
-	TMap<AResource*, TArray<int32>> GetValidResources();
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boost")
 		int32 Range;
+
+	TMap<AResource*, TArray<int32>> GetValidResources();
 };
