@@ -504,32 +504,40 @@ public:
 	UPROPERTY()
 		FHoverStruct HoveredActor;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
+		bool bQuick;
+
+	UPROPERTY()
+		bool bBlockPause;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+		TSubclassOf<class ABuilding> StartBuilding;
+
+	UPROPERTY()
+		int32 GameSpeedCounter;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loop")
+		float LoopInterval;
+
+	UPROPERTY()
+		float LoopCount;
+
+	void Cancel();
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+		void Menu();
+
+private:
 	// Commands
 	void Action(const struct FInputActionInstance& Instance);
 
 	void Bulldoze();
 
-	void Cancel();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
-		bool bQuick;
-
-	// Map
-	void NewMap();
-
-	// Other
-	UPROPERTY()
-		bool bBlockPause;
-
 	void Pause();
 
-	UFUNCTION(BlueprintCallable, Category = "UI")
-		void Menu();
+	void NewMap();
 
 	// Building
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
-		TSubclassOf<class ABuilding> StartBuilding;
-
 	void Rotate(const struct FInputActionInstance& Instance);
 
 	// Camera Movement
@@ -538,7 +546,7 @@ public:
 	void Look(const struct FInputActionInstance& Instance);
 
 	void Move(const struct FInputActionInstance& Instance);
-	
+
 	void Speed(const struct FInputActionInstance& Instance);
 
 	void Scroll(const struct FInputActionInstance& Instance);
@@ -549,38 +557,4 @@ public:
 	void ResetGameSpeedCounter();
 
 	void DirectSetGameSpeed(const struct FInputActionInstance& Instance);
-
-	UPROPERTY()
-		int32 GameSpeedCounter;
-
-	// Debugging
-	UFUNCTION(Exec)
-		void SpawnEnemies();
-
-	UFUNCTION(Exec)
-		void AddEnemies(FString Category, int32 Amount);
-
-	UFUNCTION(Exec)
-		void ChangeSeasonAffect(FString Season);
-
-	UFUNCTION(Exec)
-		void CompleteResearch();
-
-	UFUNCTION(Exec)
-		void TurnOnInstantBuild(bool Value);
-
-	UFUNCTION(Exec)
-		void SpawnCitizen(int32 Amount, bool bAdult);
-
-	UFUNCTION(Exec)
-		void SetEvent(FString Type, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring, bool bFireFestival = false);
-
-	UFUNCTION(Exec)
-		void DamageActor(int32 Amount);
-
-	UPROPERTY()
-		bool bInstantBuildCheat;
-
-	UPROPERTY()
-		bool bInstantEnemies;
 };

@@ -139,7 +139,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 	ActorData.WorldSaveData.CloudsData.WetnessData.Empty();
 	ActorData.WorldSaveData.CloudsData.CloudData.Empty();
 
-	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea, grid->HISMWall };
+	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
 
 	UCloudComponent* clouds = grid->AtmosphereComponent->Clouds;
 
@@ -153,7 +153,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 
 			data.Transforms.Add(transform);
 
-			if (hism == grid->HISMLava || hism == grid->HISMRiver || hism == grid->HISMWall)
+			if (hism == grid->HISMLava || hism == grid->HISMRiver)
 				continue;
 
 			FWetnessStruct wetnessStruct;
@@ -440,7 +440,7 @@ void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor)
 {
 	ACamera* camera = Cast<ACamera>(Actor);
 
-	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+	ADiplosimGameModeBase* gamemode = camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 	FGamemodeData* gamemodeData = &ActorData.CameraData.GamemodeData;
 
 	gamemodeData->WaveData.Empty();
@@ -772,7 +772,7 @@ void UDiplosimSaveGame::LoadWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 		tile->bUnique = t.bUnique;
 	}
 
-	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea, grid->HISMWall };
+	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
 
 	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
 		FHISMData data;

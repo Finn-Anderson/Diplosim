@@ -40,6 +40,7 @@
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Misc/Festival.h"
 #include "Universal/EggBasket.h"
+#include "DebugManager.h"
 
 ABuilding::ABuilding()
 {
@@ -395,7 +396,7 @@ TArray<FItemStruct> ABuilding::GetRebuildCost()
 
 void ABuilding::Rebuild(FString NewFactionName)
 {
-	if (!Camera->bInstantBuildCheat) {
+	if (!Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat) {
 		for (FItemStruct item : GetRebuildCost()) {
 			int32 amount = Camera->ResourceManager->GetResourceAmount(FactionName, item.Resource);
 
@@ -460,7 +461,7 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 	if (CheckInstant()) {
 		OnBuilt();
 
-		if (Camera->bInstantBuildCheat)
+		if (Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat)
 			return;
 
 		for (FItemStruct item : TargetList)
@@ -557,21 +558,12 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 			}
 		}
 
-		Camera->BuildComponent->RemoveWalls(this);
-
 		FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorLocation());
 
 		if (IsA(Camera->BuildComponent->FoundationClass))
 			tile->Level--;
 		else if (IsA(Camera->BuildComponent->RampClass))
 			tile->bRamp = false;
-
-		for (auto &element : tile->AdjacentTiles)
-			Camera->Grid->CreateEdgeWalls(element.Value);
-
-		Camera->Grid->CreateEdgeWalls(tile);
-
-		Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 	}
 
 	if (IsA(Camera->CitizenManager->PoliceStationClass)) {
@@ -936,7 +928,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 
 bool ABuilding::CheckInstant()
 {
-	if (Camera->bInstantBuildCheat)
+	if (Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat)
 		bInstantConstruction = true;
 
 	return bInstantConstruction;

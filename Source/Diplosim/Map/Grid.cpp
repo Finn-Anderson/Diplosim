@@ -47,95 +47,46 @@ AGrid::AGrid()
 	WorldContainer->SetMobility(EComponentMobility::Static);
 	RootComponent = WorldContainer;
 
-	HISMLava = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMLava"));
-	HISMLava->SetupAttachment(GetRootComponent());
-	HISMLava->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	HISMLava->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMLava->SetCollisionResponseToChannels(response);
-	HISMLava->SetCanEverAffectNavigation(false);
-	HISMLava->SetCastShadow(false);
-	HISMLava->SetEvaluateWorldPositionOffset(false);
-	HISMLava->SetGenerateOverlapEvents(false);
-	HISMLava->bWorldPositionOffsetWritesVelocity = false;
-	HISMLava->bAutoRebuildTreeOnInstanceChanges = false;
+	TMap<UHierarchicalInstancedStaticMeshComponent**, FName> hisms;
+	hisms.Add(&HISMLava, TEXT("HISMLava"));
+	hisms.Add(&HISMSea, TEXT("HISMSea"));
+	hisms.Add(&HISMGround, TEXT("HISMGround"));
+	hisms.Add(&HISMFlatGround, TEXT("HISMFlatGround"));
+	hisms.Add(&HISMRampGround, TEXT("HISMRampGround"));
+	hisms.Add(&HISMRiver, TEXT("HISMRiver"));
 
-	HISMSea = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMSea"));
-	HISMSea->SetupAttachment(GetRootComponent());
-	HISMSea->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	HISMSea->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMSea->SetCollisionResponseToChannels(response);
-	HISMSea->SetCanEverAffectNavigation(false);
-	HISMSea->SetGenerateOverlapEvents(false);
-	HISMSea->bAutoRebuildTreeOnInstanceChanges = false;
+	for (auto& element : hisms) {
+		auto hism = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(element.Value);
+		*element.Key = hism;
+		hism->SetupAttachment(GetRootComponent());
+		hism->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		hism->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+		hism->SetCollisionResponseToChannels(response);
+		hism->SetGenerateOverlapEvents(false);
+		hism->bAutoRebuildTreeOnInstanceChanges = false;
+		hism->bWorldPositionOffsetWritesVelocity = false;
 
-	HISMGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMGround"));
-	HISMGround->SetupAttachment(GetRootComponent());
-	HISMGround->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	HISMGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMGround->SetCollisionResponseToChannels(response);
-	HISMGround->SetEvaluateWorldPositionOffset(false);
-	HISMGround->SetGenerateOverlapEvents(false);
-	HISMGround->bWorldPositionOffsetWritesVelocity = false;
-	HISMGround->NumCustomDataFloats = 8;
-	HISMGround->bAutoRebuildTreeOnInstanceChanges = false;
+		bool bwpo = false;
+		if (hism == HISMSea || hism == HISMRiver)
+			bwpo = true;
+
+		hism->SetEvaluateWorldPositionOffset(bwpo);
+
+		if (hism == HISMLava || hism == HISMSea || hism == HISMRiver)
+			hism->SetCanEverAffectNavigation(false);
+
+		if (hism == HISMLava || hism == HISMFlatGround)
+			hism->SetCastShadow(false);
+
+		if (hism == HISMGround || hism == HISMFlatGround || hism == HISMRampGround)
+			hism->NumCustomDataFloats = 8;
+		else if (hism == HISMRiver)
+			hism->NumCustomDataFloats = 4;
+	}
+
 	HISMGround->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
 
-	HISMFlatGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMFlatGround"));
-	HISMFlatGround->SetupAttachment(GetRootComponent());
-	HISMFlatGround->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	HISMFlatGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMFlatGround->SetCollisionResponseToChannels(response);
-	HISMFlatGround->SetCastShadow(false);
-	HISMFlatGround->SetEvaluateWorldPositionOffset(false);
-	HISMFlatGround->SetGenerateOverlapEvents(false);
-	HISMFlatGround->bWorldPositionOffsetWritesVelocity = false;
-	HISMFlatGround->NumCustomDataFloats = 8;
-	HISMFlatGround->bAutoRebuildTreeOnInstanceChanges = false;
-
-	HISMRampGround = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRampGround"));
-	HISMRampGround->SetupAttachment(GetRootComponent());
-	HISMRampGround->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	HISMRampGround->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMRampGround->SetCollisionResponseToChannels(response);
-	HISMRampGround->SetEvaluateWorldPositionOffset(false);
-	HISMRampGround->SetGenerateOverlapEvents(false);
-	HISMRampGround->bWorldPositionOffsetWritesVelocity = false;
-	HISMRampGround->NumCustomDataFloats = 8;
-	HISMRampGround->bAutoRebuildTreeOnInstanceChanges = false;
-
-	HISMRiver = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRiver"));
-	HISMRiver->SetupAttachment(GetRootComponent());
-	HISMRiver->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	HISMRiver->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMRiver->SetCollisionResponseToChannels(response);
-	HISMRiver->SetCanEverAffectNavigation(false);
-	HISMRiver->SetGenerateOverlapEvents(false);
 	HISMRiver->SetWorldPositionOffsetDisableDistance(5000);
-	HISMRiver->bWorldPositionOffsetWritesVelocity = false;
-	HISMRiver->NumCustomDataFloats = 4;
-	HISMRiver->bAutoRebuildTreeOnInstanceChanges = false;
-
-	HISMWall = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMWall"));
-	HISMWall->SetupAttachment(GetRootComponent());
-	HISMWall->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	HISMWall->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	HISMWall->SetCollisionResponseToChannels(response);
-	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Ignore);
-	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
-	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
-	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Vehicle, ECollisionResponse::ECR_Ignore);
-	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel2, ECollisionResponse::ECR_Block);
-	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Block);
-	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel4, ECollisionResponse::ECR_Block);
-	HISMWall->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Block);
-	HISMWall->SetCanEverAffectNavigation(true);
-	HISMWall->SetHiddenInGame(true);
-	HISMWall->SetCastShadow(false);
-	HISMWall->SetEvaluateWorldPositionOffset(false);
-	HISMWall->SetGenerateOverlapEvents(false);
-	HISMWall->bWorldPositionOffsetWritesVelocity = false;
-	HISMWall->bAutoRebuildTreeOnInstanceChanges = false;
 
 	LavaComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("LavaComponent"));
 	LavaComponent->SetupAttachment(GetRootComponent());
@@ -171,6 +122,9 @@ AGrid::AGrid()
 	VegetationSizeMultiplier = 5;
 
 	bRandSpecialBuildings = true;
+
+	TreeColours = { FLinearColor(53.0f, 90.0f, 32.0f), FLinearColor(54.0f, 79.0f, 38.0f), FLinearColor(32.0f, 90.0f, 40.0f), FLinearColor(38.0f, 79.0f, 43.0f), FLinearColor(82.0f, 90.0f, 32.0f) };
+	GroundColours = { FLinearColor(30.0f, 20.0f, 13.0f), FLinearColor(255.0f, 225.0f, 45.0f), FLinearColor(152.0f, 192.0f, 100.0f), FLinearColor(86.0f, 228.0f, 68.0f), FLinearColor(52.0f, 213.0f, 31.0f), FLinearColor(36.0f, 146.0f, 21.0f) };
 }
 
 void AGrid::BeginPlay()
@@ -191,7 +145,7 @@ void AGrid::BeginPlay()
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	HISMRiver->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
 
-	for (FResourceHISMStruct &ResourceStruct : TreeStruct) {
+	for (FResourceHISMStruct& ResourceStruct : TreeStruct) {
 		ResourceStruct.Resource = GetWorld()->SpawnActor<AResource>(ResourceStruct.ResourceClass, FVector::Zero(), FRotator(0.0f));
 		ResourceStruct.Resource->ResourceHISM->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
 	}
@@ -222,7 +176,6 @@ int32 AGrid::GetMapBounds()
 
 void AGrid::Load()
 {
-	// Add loading screen
 	LoadUIInstance->AddToViewport();
 
 	Stream.Initialize(*Seed);
@@ -261,7 +214,6 @@ void AGrid::InitialiseStorage()
 		}
 	}
 
-	// Set adjacent tile information
 	for (int32 x = 0; x < bound; x++) {
 		for (int32 y = 0; y < bound; y++) {
 			FTileStruct* tile = &Storage[x][y];
@@ -293,12 +245,10 @@ void AGrid::SetupMap()
 	HISMSea->AddInstance(seaTransform);
 	HISMSea->BuildTreeIfOutdated(true, true);
 
-	// Set map limts
 	auto bound = GetMapBounds();
 
 	InitialiseStorage();
 
-	// Set Conquest max AI
 	Camera->ConquestManager->AINum = Storage.Num() * PercentageGround / 5000;
 	Camera->UpdateMapAIUI();
 
@@ -325,9 +275,7 @@ void AGrid::SetupMap()
 		totalPercentage += percentage;
 	}
 
-	// Set tile information based on adjacent tile types until all tile struct choices are set
 	while (true) {
-		// Set current level
 		if (levelCount <= 0) {
 			level--;
 
@@ -343,7 +291,6 @@ void AGrid::SetupMap()
 			levelCount = FMath::Clamp(percentage * levelTotal, 0, levelTotal);
 		}
 
-		// Get Tile and adjacent tiles
 		FTileStruct* chosenTile = nullptr;
 
 		if (PeaksList.Num() < Peaks * Chunks) {
@@ -453,10 +400,8 @@ void AGrid::SetupMap()
 			}
 		}
 
-		// Set level
 		chosenTile->Level = level;
 
-		// Set adjacent tiles to choose from
 		for (auto& element : chosenTile->AdjacentTiles)
 			if (!chooseableTiles.Contains(element.Value) && element.Value->Level < 0)
 				chooseableTiles.Add(element.Value);
@@ -605,7 +550,6 @@ void AGrid::SpawnTiles()
 	for (TArray<FTileStruct>& row : Storage) {
 		for (FTileStruct& tile : row) {
 			CalculateTile(&tile);
-			CreateEdgeWalls(&tile);
 
 			if (tile.Level < 0 || tile.Level > 4 || tile.bRiver || tile.bRamp)
 				continue;
@@ -727,18 +671,14 @@ void AGrid::SetupEnvironment(bool bLoad)
 {
 	auto bound = GetMapBounds();
 
-	// Set Atmosphere Affects
-	SetSeasonAffect(AtmosphereComponent->Calendar.Period, 1.0f);
-
+	AtmosphereComponent->SetSeasonAffect(AtmosphereComponent->Calendar.Period, 1.0f);
 	AtmosphereComponent->SetWindDimensions(bound);
 
-	// Set Camera Bounds
 	FVector c1 = FVector(bound * 100.0f, bound * 100.0f, 0);
 	FVector c2 = FVector(-bound * 100.0f, -bound * 100.0f, 0);
 
 	Camera->MovementComponent->SetBounds(c1, c2);
 
-	// Lava Component
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(LavaComponent, TEXT("SpawnLocations"), LavaSpawnLocations);
 	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
 	LavaComponent->Activate();
@@ -746,13 +686,10 @@ void AGrid::SetupEnvironment(bool bLoad)
 	if (bLoad)
 		return;
 
-	// Spawn clouds
 	AtmosphereComponent->Clouds->ActivateCloud();
 
-	// Spawn egg basket
 	SpawnEggBasket();
 
-	// Unique Buildings
 	SetSpecialBuildings(ValidMineralTiles);
 
 	if (Camera->PauseUIInstance->IsInViewport())
@@ -761,7 +698,6 @@ void AGrid::SetupEnvironment(bool bLoad)
 
 void AGrid::OnNavMeshGenerated()
 {
-	// Remove loading screen
 	LoadUIInstance->RemoveFromParent();
 }
 
@@ -820,12 +756,10 @@ void AGrid::FillHoles(FTileStruct* Tile)
 
 void AGrid::SetTileDetails(FTileStruct* Tile)
 {
-	// Set Rotation
 	int32 rand = Stream.RandRange(0, 3);
 
 	Tile->Rotation = (FRotator(0.0f, 90.0f, 0.0f) * rand).Quaternion();
 
-	// Set fertility
 	if ((bLava && Tile->Level == MaxLevel) || Tile->Level < 0)
 		return;
 
@@ -1077,9 +1011,7 @@ void AGrid::GenerateTiles()
 			FTransform transform;
 			element.Key->GetInstanceTransform(inst, transform);
 
-			float r = 0.0f;
-			float g = 0.0f;
-			float b = 0.0f;
+			FLinearColor colour = FLinearColor(Stream.FRandRange(0.0f, 1.0f), Stream.FRandRange(0.0f, 1.0f), Stream.FRandRange(0.0f, 1.0f));
 
 			if (element.Key->GetOwner()->IsA<AResource>()) {
 				if (element.Key->GetOwner()->IsA<AVegetation>()) {
@@ -1095,59 +1027,25 @@ void AGrid::GenerateTiles()
 					}
 
 					if (bTree) {
-						int32 colour = Stream.RandRange(0, 3);
+						int32 colourIndex = FMath::Floor(Stream.RandRange(0, 20) / 4.0f);
 
-						if (colour == 0) {
-							r = 53.0f;
-							g = 90.0f;
-							b = 32.0f;
-						}
-						else if (colour == 1) {
-							r = 54.0f;
-							g = 79.0f;
-							b = 38.0f;
-						}
-						else if (colour == 2) {
-							r = 32.0f;
-							g = 90.0f;
-							b = 40.0f;
-						}
-						else {
-							r = 38.0f;
-							g = 79.0f;
-							b = 43.0f;
-						}
+						colour = TreeColours[colourIndex];
 
 						int32 dyingChance = Stream.RandRange(0, 100);
-
-						if (dyingChance >= 97) {
-							r = 82.0f;
-							g = 90.0f;
-							b = 32.0f;
-						}
 
 						if (dyingChance == 100)
 							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
 						else
 							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 0.0f;
 
-						r /= 255.0f;
-						g /= 255.0f;
-						b /= 255.0f;
-
 						element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 9] = transform.GetScale3D().Z;
-					}
-					else {
-						r = Stream.FRandRange(0.0f, 1.0f);
-						g = Stream.FRandRange(0.0f, 1.0f);
-						b = Stream.FRandRange(0.0f, 1.0f);
 					}
 
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = r;
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = g;
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = b;
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = colour.R;
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = colour.G;
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = colour.B;
 				}
 				else {
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
@@ -1156,18 +1054,18 @@ void AGrid::GenerateTiles()
 			else if (element.Key == HISMRiver) {
 				int32 level = FMath::RoundHalfFromZero(transform.GetLocation().Z / 75.0f);
 
-				r = 0.0f + (76.0f / 5.0f * (5.0f - level));
-				g = 99.0f + (80.0f / 5.0f * (5.0f - level));
-				b = 255.0f;
+				colour.R = 0.0f + (76.0f / 5.0f * (5.0f - level));
+				colour.G = 99.0f + (80.0f / 5.0f * (5.0f - level));
+				colour.B = 255.0f;
 
-				r /= 255.0f;
-				g /= 255.0f;
-				b /= 255.0f;
+				colour.R /= 255.0f;
+				colour.G /= 255.0f;
+				colour.B /= 255.0f;
 
 				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats] = 1.0f;
-				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 1] = r;
-				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 2] = g;
-				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 3] = b;
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 1] = colour.R;
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 2] = colour.G;
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 3] = colour.B;
 			}
 
 			if ((int32)transform.GetLocation().X % 100 != 0 || (int32)transform.GetLocation().Y % 100 != 0)
@@ -1179,46 +1077,13 @@ void AGrid::GenerateTiles()
 				continue;
 
 			if (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround) {
-				if (tile->Fertility == 0) {
-					r = 30.0f;
-					g = 20.0f;
-					b = 13.0f;
-				}
-				else if (tile->Fertility == 1) {
-					r = 255.0f;
-					g = 225.0f;
-					b = 45.0f;
-				}
-				else if (tile->Fertility == 2) {
-					r = 152.0f;
-					g = 191.0f;
-					b = 100.0f;
-				}
-				else if (tile->Fertility == 3) {
-					r = 86.0f;
-					g = 228.0f;
-					b = 68.0f;
-				}
-				else if (tile->Fertility == 4) {
-					r = 52.0f;
-					g = 213.0f;
-					b = 31.0f;
-				}
-				else {
-					r = 36.0f;
-					g = 146.0f;
-					b = 21.0f;
-				}
-
-				r /= 255.0f;
-				g /= 255.0f;
-				b /= 255.0f;
+				colour = GroundColours[tile->Fertility];
 
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
-				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = r;
-				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = g;
-				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = b;
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = colour.R;
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = colour.G;
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = colour.B;
 			}
 
 			tile->Instance = inst;
@@ -1229,77 +1094,6 @@ void AGrid::GenerateTiles()
 	}
 
 	CalculatedTiles.Empty();
-}
-
-void AGrid::CreateEdgeWalls(FTileStruct* Tile)
-{
-	if (Tile->Level < 0 || Tile->bRiver)
-		return;
-
-	TArray<FVector2D> xy;
-
-	if (Tile->AdjacentTiles.Num() < 4) {
-		if (!Tile->AdjacentTiles.Find("Left"))
-			xy.Add(FVector2D(Tile->X - 1, Tile->Y));
-
-		if (!Tile->AdjacentTiles.Find("Right"))
-			xy.Add(FVector2D(Tile->X + 1, Tile->Y));
-
-		if (!Tile->AdjacentTiles.Find("Below"))
-			xy.Add(FVector2D(Tile->X, Tile->Y - 1));
-
-		if (!Tile->AdjacentTiles.Find("Above"))
-			xy.Add(FVector2D(Tile->X, Tile->Y + 1));
-	}
-
-	for (auto& element : Tile->AdjacentTiles) {
-		if ((!Tile->bRamp && element.Value->Level == Tile->Level && !element.Value->bRiver) || element.Value->bRamp || element.Value->Level > Tile->Level)
-			continue;
-
-		xy.Add(FVector2D(element.Value->X, element.Value->Y));
-	}
-
-	for (FVector2D coord : xy) {
-		float x = Tile->X + (coord.X - Tile->X) / 2.0f;
-		float y = Tile->Y + (coord.Y - Tile->Y) / 2.0f;
-
-		int32 level = Tile->Level;
-
-		if (level == 7)
-			level = 6;
-
-		FTransform transform;
-		transform.SetLocation(FVector(x * 100.0f, y * 100.0f, level * 75.0f + 100.0f));
-
-		if (y != Tile->Y)
-			transform.SetRotation(FRotator(0.0f, 90.0f, 0.0f).Quaternion());
-
-		if (Tile->bRamp) {
-			if (FMath::Abs(FMath::RoundHalfFromZero(Tile->Rotation.Rotator().Yaw)) == 90.0f || FMath::Abs(FMath::RoundHalfFromZero(Tile->Rotation.Rotator().Yaw)) == 270.0f) {
-				if (y != Tile->Y)
-					continue;
-			}
-			else if (x != Tile->X)
-				continue;
-		}
-
-		bool bExists = false;
-
-		for (int32 i = 0; i < HISMWall->GetInstanceCount(); i++) {
-			FTransform tf;
-			HISMWall->GetInstanceTransform(i, tf);
-
-			if (tf.GetLocation() != transform.GetLocation())
-				continue;
-
-			bExists = true;
-
-			break;
-		}
-
-		if (!bExists)
-			AddCalculatedTile(HISMWall, transform);
-	}
 }
 
 void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis)
@@ -1320,6 +1114,9 @@ void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAx
 	}
 }
 
+//
+// Resources
+//
 void AGrid::SetMineralMultiplier(TSubclassOf<class AMineral> MineralClass, int32 Multiplier)
 {
 	for (FResourceHISMStruct& mineral : MineralStruct) {
@@ -1506,7 +1303,6 @@ void AGrid::Clear()
 	HISMFlatGround->ClearInstances();
 	HISMRampGround->ClearInstances();
 	HISMRiver->ClearInstances();
-	HISMWall->ClearInstances();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(false, false);
@@ -1523,100 +1319,6 @@ FTileStruct* AGrid::GetTileFromLocation(FVector WorldLocation)
 		return nullptr;
 
 	return &Storage[x][y];
-}
-
-void AGrid::SetSeasonAffect(FString Period, float Increment)
-{
-	if (Period == "Winter")
-		AtmosphereComponent->Clouds->bSnow = true;
-	else
-		AtmosphereComponent->Clouds->bSnow = false;
-
-	AlterSeasonAffectGradually(Period, Increment);
-
-	AtmosphereComponent->Clouds->UpdateSpawnedClouds();
-}
-
-void AGrid::AlterSeasonAffectGradually(FString Period, float Increment)
-{
-	Async(EAsyncExecution::TaskGraph, [this, Period, Increment]() {
-		TArray<float> Values;
-		Values.Add(HISMGround->PerInstanceSMCustomData[5]);
-		Values.Add(HISMGround->PerInstanceSMCustomData[6]);
-		Values.Add(HISMGround->PerInstanceSMCustomData[7]);
-
-		if (Period == "Spring")
-			Values[0] = FMath::Clamp(Values[0] + Increment, 0.0f, 1.0f);
-		else
-			Values[0] = FMath::Clamp(Values[0] - Increment, 0.0f, 1.0f);
-
-		if (Period == "Autumn")
-			Values[1] = FMath::Clamp(Values[1] + Increment, 0.0f, 1.0f);
-		else
-			Values[1] = FMath::Clamp(Values[1] - Increment, 0.0f, 1.0f);
-
-		if (Period == "Winter")
-			Values[2] = FMath::Clamp(Values[2] + Increment, 0.0f, 1.0f);
-		else
-			Values[2] = FMath::Clamp(Values[2] - Increment, 0.0f, 1.0f);
-
-		SetSeasonValues(Values);
-
-		Values.Remove(0.0f);
-		Values.Remove(1.0f);
-
-		Async(EAsyncExecution::TaskGraphMainTick, [this, Values, Period, Increment]() {
-			TArray<FResourceHISMStruct> resourceList;
-			resourceList.Append(TreeStruct);
-			resourceList.Append(FlowerStruct);
-
-			for (FResourceHISMStruct& ResourceStruct : resourceList)
-				ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
-
-			HISMGround->BuildTreeIfOutdated(true, true);
-			HISMFlatGround->BuildTreeIfOutdated(true, true);
-			HISMRampGround->BuildTreeIfOutdated(true, true);
-
-			if (Values.IsEmpty())
-				return;
-
-			FTimerHandle seasonChangeTimer;
-			GetWorldTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &AGrid::AlterSeasonAffectGradually, Period, Increment), 0.02f, false);
-		});
-	});
-}
-
-void AGrid::SetSeasonValues(TArray<float> Values)
-{
-	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms;
-	hisms.Add(HISMGround);
-	hisms.Add(HISMFlatGround);
-	hisms.Add(HISMRampGround);
-
-	TArray<FResourceHISMStruct> resourceList;
-	resourceList.Append(TreeStruct);
-	resourceList.Append(FlowerStruct);
-
-	for (FResourceHISMStruct& resourceStruct : resourceList)
-		hisms.Add(resourceStruct.Resource->ResourceHISM);
-
-	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
-		for (int32 inst = 0; inst < hism->GetInstanceCount(); inst++) {
-			if (hism->IsAttachedTo(GetRootComponent())) {
-				FTransform transform;
-				hism->GetInstanceTransform(inst, transform);
-
-				FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
-
-				if (tile == nullptr || tile->Fertility == 0.0f)
-					continue;
-			}
-
-			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 5] = Values[0];
-			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 6] = Values[1];
-			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 7] = Values[2];
-		}
-	}
 }
 
 //

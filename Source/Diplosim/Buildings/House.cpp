@@ -86,7 +86,7 @@ void AHouse::Leave(ACitizen* Citizen)
 
 	Citizen->bGain = false;
 
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 	Camera->CitizenManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * Citizen->EnergyMultiplier);
 }
 

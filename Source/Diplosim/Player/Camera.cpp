@@ -11,13 +11,9 @@
 #include "Components/DecalComponent.h"
 #include "Components/AudioComponent.h"
 #include "NiagaraComponent.h"
-#include "Engine/ScopedMovementUpdate.h"
-#include "Misc/ScopeTryLock.h"
 
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
-#include "Map/Resources/Mineral.h"
-#include "Map/Resources/Vegetation.h"
 #include "Components/BuildComponent.h"
 #include "Components/CameraMovementComponent.h"
 #include "Components/SaveGameComponent.h"
@@ -27,11 +23,7 @@
 #include "Managers/ResearchManager.h"
 #include "Managers/ConquestManager.h"
 #include "Buildings/Building.h"
-#include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
-#include "Buildings/Misc/Festival.h"
-#include "Buildings/Work/Booster.h"
-#include "Buildings/Misc/Special/Special.h"
 #include "AI/AI.h"
 #include "AI/Citizen.h"
 #include "AI/AIMovementComponent.h"
@@ -40,6 +32,7 @@
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/HealthComponent.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "DebugManager.h"
 
 ACamera::ACamera()
 {
@@ -120,9 +113,6 @@ ACamera::ACamera()
 
 	bBlockPause = false;
 
-	bInstantBuildCheat = false;
-	bInstantEnemies = false;
-
 	bWasClosingWindow = false;
 
 	GameSpeed = 1.0f;
@@ -133,6 +123,9 @@ ACamera::ACamera()
 
 	PController = nullptr;
 	Settings = nullptr;
+
+	LoopInterval = 0.2f;
+	LoopCount = 0.0f;
 }
 
 void ACamera::BeginPlay()
@@ -152,6 +145,8 @@ void ACamera::BeginPlay()
 
 	PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PController->bEnableClickEvents = true;
+
+	PController->CheatManager = NewObject<UDebugManager>(PController, TEXT("DebugManager"));
 
 	ConquestManager->CreatePlayerFaction();
 
@@ -220,8 +215,15 @@ void ACamera::Tick(float DeltaTime)
 	if (DeltaTime > 1.0f)
 		return;
 
-	if (CustomTimeDilation <= 1.0f)
+	if (CustomTimeDilation <= 1.0f) {
 		Grid->AIVisualiser->MainLoop(this);
+
+		LoopCount += DeltaTime;
+
+		if (LoopCount > LoopInterval) {
+			// loop for citizen manager;
+		}
+	}
 
 	if (bMouseCapture)
 		PController->SetMouseLocation(MousePosition.X, MousePosition.Y);
@@ -466,11 +468,12 @@ void ACamera::ClearPopupUI()
 		widgets.Remove(HoveredWidget);
 
 	for (UUserWidget* widget : widgets) {
-		if (widget->IsInViewport()) {
-			widget->RemoveFromParent();
+		if (!widget->IsInViewport())
+			continue;
 
-			bWasClosingWindow = true;
-		}
+		widget->RemoveFromParent();
+
+		bWasClosingWindow = true;
 	}
 }
 
@@ -657,7 +660,7 @@ void ACamera::Smite(class AAI* AI)
 
 	IncrementSmites(1);
 
-	int32 timeToCompleteDay = 360 / (24 * Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	TArray<FTimerParameterStruct> params;
 	CitizenManager->SetParameter(-1, params);
@@ -974,124 +977,4 @@ void ACamera::DirectSetGameSpeed(const FInputActionInstance& Instance)
 	SetGameSpeed(value);
 
 	UpdateSpeedUI(GameSpeed);
-}
-
-//
-// Debugging
-//
-void ACamera::SpawnEnemies()
-{
-	if (bInMenu)
-		return;
-
-	bInstantEnemies = true;
-
-	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-	gamemode->StartRaid();
-}
-
-void ACamera::AddEnemies(FString Category, int32 Amount)
-{
-	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-
-	TSubclassOf<AResource> resource;
-
-	for (FResourceStruct resourceStruct : ResourceManager->ResourceList) {
-		if (resourceStruct.Category != Category)
-			continue;
-
-		resource = resourceStruct.Type;
-
-		break;
-	}
-
-	gamemode->TallyEnemyData(resource, Amount * 200);
-}
-
-void ACamera::ChangeSeasonAffect(FString Season)
-{
-	if (bInMenu)
-		return;
-
-	Grid->SetSeasonAffect(Season, 0.02f);
-}
-
-void ACamera::CompleteResearch()
-{
-	if (bInMenu)
-		return;
-
-	ResearchManager->Research(100000000000.0f, ColonyName);
-}
-
-void ACamera::TurnOnInstantBuild(bool Value)
-{
-	if (bInMenu)
-		return;
-
-	bInstantBuildCheat = Value;
-}
-
-void ACamera::SpawnCitizen(int32 Amount, bool bAdult)
-{
-	if (bInMenu)
-		return;
-
-	FFactionStruct* faction = ConquestManager->GetFaction(ColonyName);
-
-	for (int32 i = 0; i < Amount; i++) {
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(Cast<ABroch>(faction->EggTimer)->CitizenClass, MouseHitLocation, FRotator(0.0f));
-		citizen->CitizenSetup(faction);
-
-		if (!bAdult || !IsValid(citizen))
-			continue;
-
-		for (int32 j = 0; j < 2; j++)
-			citizen->GivePersonalityTrait();
-
-		citizen->BioStruct.Age = 17;
-		citizen->Birthday();
-
-		citizen->HealthComponent->AddHealth(100);
-	}
-}
-
-void ACamera::SetEvent(FString Type, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring, bool bFireFestival)
-{
-	if (bInMenu)
-		return;
-	
-	EEventType type;
-	TSubclassOf<ABuilding> building = nullptr;
-
-	if (Type == "Holliday")
-		type = EEventType::Holliday;
-	else if (Type == "Festival") {
-		type = EEventType::Festival;
-		building = AFestival::StaticClass();
-	}
-	else if (Type == "Mass")
-		type = EEventType::Mass;
-	else
-		type = EEventType::Protest;
-
-	TArray<int32> hours;
-	for (int32 i = StartHour; i < EndHour; i++)
-		hours.Add(i);
-
-	CitizenManager->CreateEvent(ColonyName, type, building, nullptr, Period, Day, hours, bRecurring, {}, bFireFestival);
-}
-
-void ACamera::DamageActor(int32 Amount)
-{
-	AActor* actor = WidgetComponent->GetAttachParentActor();
-
-	if (IsValid(FocusedCitizen))
-		actor = FocusedCitizen;
-
-	if (!IsValid(actor) || (!actor->IsA<AAI>() && !actor->IsA<ABuilding>()))
-		return;
-
-	UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
-	healthComp->TakeHealth(Amount, this);
 }

@@ -15,6 +15,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "DiplosimUserSettings.h"
+#include "DebugManager.h"
 
 ADiplosimGameModeBase::ADiplosimGameModeBase()
 {
@@ -287,14 +288,14 @@ void ADiplosimGameModeBase::SetRaidInformation()
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocations[0] + FVector(0.0f, 0.0f, 500.0f)); });
 
-	int32 time = Camera->bInstantEnemies ? 5 : 120;
+	int32 time = Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantEnemies ? 5 : 120;
 
 	Camera->CitizenManager->CreateTimer("SpawnEnemies", this, time, "SpawnAllEnemies", {}, false, true);
 }
 
 void ADiplosimGameModeBase::SpawnAllEnemies()
 {
-	Camera->bInstantEnemies = false;
+	Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantEnemies = false;
 
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions)
 		Camera->CitizenManager->CeaseAllInternalFighting(&faction);

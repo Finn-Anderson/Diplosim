@@ -91,7 +91,7 @@ void ACitizen::BeginPlay()
 {
 	Super::BeginPlay();
 
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, "Birthday", {}, true);
 
@@ -120,7 +120,7 @@ void ACitizen::CitizenSetup(FFactionStruct* Faction)
 	Faction->Citizens.Add(this);
 	Camera->CitizenManager->Infectible.Add(this);
 
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	Camera->CitizenManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, "Eat", {}, true);
 
@@ -967,7 +967,7 @@ void ACitizen::Birthday()
 		FindPartner(faction);
 
 	if (BioStruct.Age == Camera->CitizenManager->GetLawValue(faction->Name, "Work Age") && IsValid(Building.Orphanage)) {
-		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+		int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("Orphanage", this);
 
@@ -1565,7 +1565,7 @@ void ACitizen::SetAttendStatus(EAttendStatus Status, bool bMass)
 	else
 		FestivalStatus = Status;
 
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	TArray<FTimerParameterStruct> params;
 	Camera->CitizenManager->SetParameter(EAttendStatus::Neutral, params);
@@ -2078,6 +2078,10 @@ void ACitizen::ApplyTraitAffect(TMap<FString, float> Affects)
 void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 {
 	Amount = Amount - 1.0f;
+
+	int32 timeToCompleteDay = 0; 
+	if (Affect == "Hunger" || Affect == "Energy")
+		timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 	
 	if (Affect == "Damage") {
 		AttackComponent->DamageMultiplier += Amount;
@@ -2117,13 +2121,11 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 	else if (Affect == "Hunger") {
 		HungerMultiplier += Amount;
 
-		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 		Camera->CitizenManager->UpdateTimerLength("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier);
 	}
 	else if (Affect == "Energy") {
 		EnergyMultiplier += Amount;
 
-		int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
 		Camera->CitizenManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier);
 	}
 	else if (Affect == "Ideal Hours Slept") {

@@ -214,7 +214,7 @@ void UAtmosphereComponent::SetDisplayText(int32 Hour)
 	if (period != Calendar.Period) {
 		Grid->Camera->ShowEvent("Season", Calendar.Period);
 
-		Grid->SetSeasonAffect(Calendar.Period, 0.02f);
+		SetSeasonAffect(Calendar.Period, 0.02f);
 	}
 
 	Grid->Camera->CitizenManager->ExecuteEvent(Calendar.Period, Calendar.Days[Calendar.Index], Calendar.Hour);
@@ -259,5 +259,107 @@ void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Index)
 		fire->SetVariableStaticMesh("Fire Mesh", mesh);
 
 		fire->Activate();
+	}
+}
+
+int32 UAtmosphereComponent::GetTimeToCompleteDay()
+{
+	return 360 / (24 * Grid->AtmosphereComponent->Speed);
+}
+
+//
+// Seasons
+//
+void UAtmosphereComponent::SetSeasonAffect(FString Period, float Increment)
+{
+	if (Period == "Winter")
+		Clouds->bSnow = true;
+	else
+		Clouds->bSnow = false;
+
+	AlterSeasonAffectGradually(Period, Increment);
+
+	Clouds->UpdateSpawnedClouds();
+}
+
+void UAtmosphereComponent::AlterSeasonAffectGradually(FString Period, float Increment)
+{
+	Async(EAsyncExecution::TaskGraph, [this, Period, Increment]() {
+		TArray<float> Values;
+		Values.Add(Grid->HISMGround->PerInstanceSMCustomData[5]);
+		Values.Add(Grid->HISMGround->PerInstanceSMCustomData[6]);
+		Values.Add(Grid->HISMGround->PerInstanceSMCustomData[7]);
+
+		if (Period == "Spring")
+			Values[0] = FMath::Clamp(Values[0] + Increment, 0.0f, 1.0f);
+		else
+			Values[0] = FMath::Clamp(Values[0] - Increment, 0.0f, 1.0f);
+
+		if (Period == "Autumn")
+			Values[1] = FMath::Clamp(Values[1] + Increment, 0.0f, 1.0f);
+		else
+			Values[1] = FMath::Clamp(Values[1] - Increment, 0.0f, 1.0f);
+
+		if (Period == "Winter")
+			Values[2] = FMath::Clamp(Values[2] + Increment, 0.0f, 1.0f);
+		else
+			Values[2] = FMath::Clamp(Values[2] - Increment, 0.0f, 1.0f);
+
+		SetSeasonValues(Values);
+
+		Values.Remove(0.0f);
+		Values.Remove(1.0f);
+
+		Async(EAsyncExecution::TaskGraphMainTick, [this, Values, Period, Increment]() {
+			TArray<FResourceHISMStruct> resourceList;
+			resourceList.Append(Grid->TreeStruct);
+			resourceList.Append(Grid->FlowerStruct);
+
+			for (FResourceHISMStruct& ResourceStruct : resourceList)
+				ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
+
+			Grid->HISMGround->BuildTreeIfOutdated(true, true);
+			Grid->HISMFlatGround->BuildTreeIfOutdated(true, true);
+			Grid->HISMRampGround->BuildTreeIfOutdated(true, true);
+
+			if (Values.IsEmpty())
+				return;
+
+			FTimerHandle seasonChangeTimer;
+			GetWorld()->GetTimerManager().SetTimer(seasonChangeTimer, FTimerDelegate::CreateUObject(this, &UAtmosphereComponent::AlterSeasonAffectGradually, Period, Increment), 0.02f, false);
+		});
+	});
+}
+
+void UAtmosphereComponent::SetSeasonValues(TArray<float> Values)
+{
+	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms;
+	hisms.Add(Grid->HISMGround);
+	hisms.Add(Grid->HISMFlatGround);
+	hisms.Add(Grid->HISMRampGround);
+
+	TArray<FResourceHISMStruct> resourceList;
+	resourceList.Append(Grid->TreeStruct);
+	resourceList.Append(Grid->FlowerStruct);
+
+	for (FResourceHISMStruct& resourceStruct : resourceList)
+		hisms.Add(resourceStruct.Resource->ResourceHISM);
+
+	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
+		for (int32 inst = 0; inst < hism->GetInstanceCount(); inst++) {
+			if (hism->IsAttachedTo(Grid->GetRootComponent())) {
+				FTransform transform;
+				hism->GetInstanceTransform(inst, transform);
+
+				FTileStruct* tile = Grid->GetTileFromLocation(transform.GetLocation());
+
+				if (tile == nullptr || tile->Fertility == 0.0f)
+					continue;
+			}
+
+			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 5] = Values[0];
+			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 6] = Values[1];
+			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 7] = Values[2];
+		}
 	}
 }

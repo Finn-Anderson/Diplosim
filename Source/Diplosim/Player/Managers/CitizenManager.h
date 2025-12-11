@@ -363,12 +363,7 @@ public:
 
 	void CheckForWeddings(int32 Hour);
 
-	float GetAggressiveness(class ACitizen* Citizen);
-
-	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness);
-
-	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness);
-
+	// Conversations
 	USoundBase* GetConversationSound(ACitizen* Citizen);
 
 	void StartConversation(FFactionStruct* Faction, class ACitizen* Citizen1, class ACitizen* Citizen2, bool bInterrogation);
@@ -376,6 +371,7 @@ public:
 	UFUNCTION()
 		void Interact(FFactionStruct Faction, class ACitizen* Citizen1, class ACitizen* Citizen2);
 
+	// Police
 	bool IsCarelessWitness(class ACitizen* Citizen);
 
 	void CreatePoliceReport(FFactionStruct* Faction, class ACitizen* Witness, class ACitizen* Accused, EReportType ReportType, int32& Index);
@@ -537,14 +533,16 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Pray(FString FactionName);
 
-	UFUNCTION()
-		void IncrementPray(FFactionStruct Faction, FString Type, int32 Increment);
-
 	UFUNCTION(BlueprintCallable)
 		int32 GetPrayCost(FString FactionName);
 
 	UFUNCTION(BlueprintCallable)
 		void Sacrifice(FString FactionName);
+
+	UFUNCTION()
+		void IncrementPray(FFactionStruct Faction, FString Type, int32 Increment);
+
+	void SetPrayTimer(FFactionStruct Faction, FString Type);
 
 	// Religion
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
@@ -555,4 +553,10 @@ public:
 		TArray<FPersonality> Personalities;
 
 	TArray<FPersonality*> GetCitizensPersonalities(class ACitizen* Citizen);
+
+	float GetAggressiveness(class ACitizen* Citizen);
+
+	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness);
+
+	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness);
 };

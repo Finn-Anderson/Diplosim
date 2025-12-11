@@ -23,6 +23,7 @@
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "DebugManager.h"
 
 UBuildComponent::UBuildComponent()
 {
@@ -369,7 +370,7 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 {
 	TArray<FItemStruct> items;
 
-	if (Buildings.IsEmpty() || Camera->bInstantBuildCheat)
+	if (Buildings.IsEmpty())
 		return items;
 
 	int32 count = 0;
@@ -409,7 +410,7 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 
 bool UBuildComponent::CheckBuildCosts()
 {
-	if (Camera->bInstantBuildCheat)
+	if (Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat)
 		return true;
 	
 	UResourceManager* rm = Camera->ResourceManager;
@@ -437,7 +438,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 	bool bResource = false;
 
 	for (FHitResult hit : hits) {
-		if (hit.GetActor()->IsHidden() || hit.GetComponent() == Camera->Grid->HISMWall || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
+		if (hit.GetActor()->IsHidden() || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
 
 		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !(Building->IsA(FoundationClass) || Building->IsA(RampClass))))
@@ -716,9 +717,6 @@ void UBuildComponent::Place(bool bQuick)
 	}
 
 	if (!Buildings.IsEmpty() && (Buildings[0]->IsA(FoundationClass) || Buildings[0]->IsA(RampClass) || Buildings[0]->IsA<ARoad>())) {
-		for (ABuilding* building : Buildings)
-			RemoveWalls(building);
-
 		if (!Buildings[0]->IsA<ARoad>()) {
 			for (ABuilding* building : Buildings) {
 				FTileStruct* tile = Camera->Grid->GetTileFromLocation(building->GetActorLocation());
@@ -729,12 +727,8 @@ void UBuildComponent::Place(bool bQuick)
 					tile->bRamp = true;
 
 				tile->Rotation = (building->GetActorRotation() + FRotator(0.0f, 90.0f, 0.0f)).Quaternion();
-
-				Camera->Grid->CreateEdgeWalls(tile);
 			}
 		}
-
-		Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 	}
 
 	if (IsValid(BuildingToMove)) {
@@ -818,45 +812,4 @@ void UBuildComponent::QuickPlace()
 	}
 
 	Place(true);
-}
-
-void UBuildComponent::RemoveWalls(ABuilding* Building)
-{
-	int32 buildingX = FMath::RoundHalfFromZero(Building->GetActorLocation().X);
-	int32 buildingY = FMath::RoundHalfFromZero(Building->GetActorLocation().Y);
-
-	TArray<FVector> ends;
-	ends.Add(Building->GetActorLocation() + FVector(60.0f, 0.0f, 75.0f));
-	ends.Add(Building->GetActorLocation() + FVector(-60.0f, 0.0f, 75.0f));
-	ends.Add(Building->GetActorLocation() + FVector(0.0f, 60.0f, 75.0f));
-	ends.Add(Building->GetActorLocation() + FVector(0.0f, -60.0f, 75.0f));
-
-	FCollisionQueryParams params;
-	params.AddIgnoredActor(Building);
-
-	FHitResult hit(ForceInit);
-
-	for (FVector end : ends) {
-		if (!GetWorld()->LineTraceSingleByChannel(hit, Building->GetActorLocation() + FVector(0.0f, 0.0f, 75.0f), end, ECollisionChannel::ECC_Destructible, params) || hit.GetComponent() != Camera->Grid->HISMWall)
-			continue;
-
-		if (Building->IsA(RampClass)) {
-			FTransform transform;
-			Camera->Grid->HISMWall->GetInstanceTransform(hit.Item, transform);
-
-			if (transform.GetLocation().Z > Building->GetActorLocation().Z && FMath::RoundHalfFromZero(Building->GetActorRotation().Yaw - 90.0f) != FMath::RoundHalfFromZero((transform.GetLocation() - Building->GetActorLocation()).Rotation().Yaw))
-				continue;
-		}
-
-		Camera->Grid->HISMWall->RemoveInstance(hit.Item);
-	}
-
-	if (IsA(Camera->BuildComponent->FoundationClass)) {
-		FTileStruct* tile = Camera->Grid->GetTileFromLocation(Building->GetActorLocation());
-
-		if (tile->bRiver)
-			Camera->Grid->HISMRiver->PerInstanceSMCustomData[tile->Instance * 4] = 0.0f;
-	}
-
-	Camera->Grid->HISMWall->BuildTreeIfOutdated(true, false);
 }

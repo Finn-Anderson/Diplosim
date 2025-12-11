@@ -143,9 +143,6 @@ public:
 		class UHierarchicalInstancedStaticMeshComponent* HISMRiver;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMWall;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMSea;
 
 	// Dimensions
@@ -224,8 +221,6 @@ public:
 
 	void GenerateTiles();
 
-	void CreateEdgeWalls(FTileStruct* Tile);
-
 	void CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis);
 
 	void Clear();
@@ -237,6 +232,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Seed")
 		FString Seed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colours")
+		TArray<FLinearColor> TreeColours;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colours")
+		TArray<FLinearColor> GroundColours;
 
 	UPROPERTY()
 		FRandomStream Stream;
@@ -296,13 +297,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Egg Basket")
 		TSubclassOf<class AEggBasket> EggBasketClass;
-
-	// Seasons
-	void SetSeasonAffect(FString Period, float Increment);
-
-	void AlterSeasonAffectGradually(FString Period, float Increment);
-
-	void SetSeasonValues(TArray<float> Values);
 
 	// Unique Buildings
 	void SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles);

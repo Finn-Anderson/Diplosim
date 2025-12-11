@@ -354,7 +354,7 @@ void UCitizenManager::CitizenGeneralLoop()
 			int32 rebelCount = 0;
 			int32 happinessCount = 0;
 
-			int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+			int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 			for (ACitizen* citizen : faction.Citizens) {
 				if (Camera->SaveGameComponent->IsLoading())
@@ -1590,57 +1590,8 @@ void UCitizenManager::CheckForWeddings(int32 Hour)
 	}
 }
 
-float UCitizenManager::GetAggressiveness(ACitizen* Citizen)
-{
-	TArray<FPersonality*> citizenPersonalities = GetCitizensPersonalities(Citizen);
-	float citizenAggressiveness = 0;
-
-	for (FPersonality* personality : citizenPersonalities)
-		citizenAggressiveness += personality->Aggressiveness / citizenPersonalities.Num();
-
-	return citizenAggressiveness;
-}
-
-void UCitizenManager::PersonalityComparison(ACitizen* Citizen1, ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness)
-{
-	TArray<FPersonality*> citizen1Personalities = GetCitizensPersonalities(Citizen1);
-	TArray<FPersonality*> citizen2Personalities = GetCitizensPersonalities(Citizen2);
-
-	for (FPersonality* personality : citizen1Personalities) {
-		Citizen1Aggressiveness += personality->Aggressiveness / citizen1Personalities.Num();
-
-		for (FPersonality* p : citizen2Personalities) {
-			Citizen2Aggressiveness += p->Aggressiveness / citizen2Personalities.Num();
-
-			if (personality->Trait == p->Trait)
-				Likeness += 2;
-			else if (personality->Likes.Contains(p->Trait))
-				Likeness++;
-			else if (personality->Dislikes.Contains(p->Trait))
-				Likeness--;
-		}
-	}
-}
-
-void UCitizenManager::PersonalityComparison(ACitizen* Citizen1, ACitizen* Citizen2, int32& Likeness)
-{
-	TArray<FPersonality*> citizen1Personalities = GetCitizensPersonalities(Citizen1);
-	TArray<FPersonality*> citizen2Personalities = GetCitizensPersonalities(Citizen2);
-
-	for (FPersonality* personality : citizen1Personalities) {
-		for (FPersonality* p : citizen2Personalities) {
-			if (personality->Trait == p->Trait)
-				Likeness += 2;
-			else if (personality->Likes.Contains(p->Trait))
-				Likeness++;
-			else if (personality->Dislikes.Contains(p->Trait))
-				Likeness--;
-		}
-	}
-}
-
 //
-// Police
+// Conversations
 //
 USoundBase* UCitizenManager::GetConversationSound(ACitizen* Citizen)
 {
@@ -1769,6 +1720,9 @@ void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACiti
 	}
 }
 
+//
+// Police
+//
 bool UCitizenManager::IsCarelessWitness(ACitizen* Citizen)
 {
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen))
@@ -2191,7 +2145,7 @@ int32 UCitizenManager::GetPoliceReportIndex(ACitizen* Citizen)
 //
 void UCitizenManager::StartDiseaseTimer()
 {
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	CreateTimer("Disease", Camera, Camera->Grid->Stream.RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), "SpawnDisease", {}, false);
 }
@@ -2737,7 +2691,7 @@ void UCitizenManager::StartElectionTimer(FFactionStruct* Faction)
 {
 	RemoveTimer(Faction->Name + " Election", GetOwner());
 	
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed); 
+	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 	
 	TArray<FTimerParameterStruct> params;
 	SetParameter(*Faction, params);
@@ -2857,9 +2811,7 @@ void UCitizenManager::ProposeBill(FString FactionName, FLawStruct Bill)
 
 	faction->Politics.ProposedBills.Add(Bill);
 
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
-
-	faction->Politics.Laws[index].Cooldown = timeToCompleteDay;
+	faction->Politics.Laws[index].Cooldown = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	Camera->DisplayNewBill();
 
@@ -3260,25 +3212,6 @@ void UCitizenManager::Pray(FString FactionName)
 	}
 
 	IncrementPray(*faction, "Good", 1);
-
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
-
-	TArray<FTimerParameterStruct> params;
-	SetParameter(*faction, params);
-	SetParameter("Good", params);
-	SetParameter(-1, params);
-
-	CreateTimer("Pray", Camera, timeToCompleteDay, "IncrementPray", params, false);
-}
-
-void UCitizenManager::IncrementPray(FFactionStruct Faction, FString Type, int32 Increment)
-{
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
-
-	if (Type == "Good")
-		faction->PrayStruct.Good = FMath::Max(faction->PrayStruct.Good + Increment, 0);
-	else
-		faction->PrayStruct.Bad = FMath::Max(faction->PrayStruct.Bad + Increment, 0);
 }
 
 int32 UCitizenManager::GetPrayCost(FString FactionName)
@@ -3322,15 +3255,31 @@ void UCitizenManager::Sacrifice(FString FactionName)
 	CreateTimer("Sacrifice", citizen, 4.0f, "TakeHealth", params1, false);
 
 	IncrementPray(*faction, "Bad", 1);
+}
 
-	int32 timeToCompleteDay = 360 / (24 * Camera->Grid->AtmosphereComponent->Speed);
+void UCitizenManager::IncrementPray(FFactionStruct Faction, FString Type, int32 Increment)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
 
-	TArray<FTimerParameterStruct> params2;
-	SetParameter(*faction, params2);
-	SetParameter("Bad", params2);
-	SetParameter(-1, params2);
+	if (Type == "Good")
+		faction->PrayStruct.Good = FMath::Max(faction->PrayStruct.Good + Increment, 0);
+	else
+		faction->PrayStruct.Bad = FMath::Max(faction->PrayStruct.Bad + Increment, 0);
 
-	CreateTimer("Pray", Camera, timeToCompleteDay, "IncrementPray", params2, false);
+	if (Increment != -1)
+		SetPrayTimer(Faction, Type);
+}
+
+void UCitizenManager::SetPrayTimer(FFactionStruct Faction, FString Type)
+{
+	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
+
+	TArray<FTimerParameterStruct> params;
+	SetParameter(Faction, params);
+	SetParameter(Type, params);
+	SetParameter(-1, params);
+
+	CreateTimer("Pray", Camera, timeToCompleteDay, "IncrementPray", params, false);
 }
 
 //
@@ -3348,4 +3297,53 @@ TArray<FPersonality*> UCitizenManager::GetCitizensPersonalities(class ACitizen* 
 	}
 
 	return personalities;
+}
+
+float UCitizenManager::GetAggressiveness(ACitizen* Citizen)
+{
+	TArray<FPersonality*> citizenPersonalities = GetCitizensPersonalities(Citizen);
+	float citizenAggressiveness = 0;
+
+	for (FPersonality* personality : citizenPersonalities)
+		citizenAggressiveness += personality->Aggressiveness / citizenPersonalities.Num();
+
+	return citizenAggressiveness;
+}
+
+void UCitizenManager::PersonalityComparison(ACitizen* Citizen1, ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness)
+{
+	TArray<FPersonality*> citizen1Personalities = GetCitizensPersonalities(Citizen1);
+	TArray<FPersonality*> citizen2Personalities = GetCitizensPersonalities(Citizen2);
+
+	for (FPersonality* personality : citizen1Personalities) {
+		Citizen1Aggressiveness += personality->Aggressiveness / citizen1Personalities.Num();
+
+		for (FPersonality* p : citizen2Personalities) {
+			Citizen2Aggressiveness += p->Aggressiveness / citizen2Personalities.Num();
+
+			if (personality->Trait == p->Trait)
+				Likeness += 2;
+			else if (personality->Likes.Contains(p->Trait))
+				Likeness++;
+			else if (personality->Dislikes.Contains(p->Trait))
+				Likeness--;
+		}
+	}
+}
+
+void UCitizenManager::PersonalityComparison(ACitizen* Citizen1, ACitizen* Citizen2, int32& Likeness)
+{
+	TArray<FPersonality*> citizen1Personalities = GetCitizensPersonalities(Citizen1);
+	TArray<FPersonality*> citizen2Personalities = GetCitizensPersonalities(Citizen2);
+
+	for (FPersonality* personality : citizen1Personalities) {
+		for (FPersonality* p : citizen2Personalities) {
+			if (personality->Trait == p->Trait)
+				Likeness += 2;
+			else if (personality->Likes.Contains(p->Trait))
+				Likeness++;
+			else if (personality->Dislikes.Contains(p->Trait))
+				Likeness--;
+		}
+	}
 }

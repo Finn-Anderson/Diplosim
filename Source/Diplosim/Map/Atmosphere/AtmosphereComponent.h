@@ -118,4 +118,13 @@ public:
 	void SetDisplayText(int32 Hour);
 
 	void SetOnFire(AActor* Actor, int32 Index = -1);
+
+	int32 GetTimeToCompleteDay();
+
+	// Seasons
+	void SetSeasonAffect(FString Period, float Increment);
+
+	void AlterSeasonAffectGradually(FString Period, float Increment);
+
+	void SetSeasonValues(TArray<float> Values);
 };
