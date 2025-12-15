@@ -3,7 +3,7 @@
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 
@@ -39,7 +39,7 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 		}
 	}
 
-	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Internal", this);
+	FTimerStruct* timer = Camera->TimerManager->FindTimer("Internal", this);
 
 	if (timer == nullptr)
 		SetTimer();
@@ -108,13 +108,13 @@ float AInternalProduction::GetTime()
 void AInternalProduction::SetTimer()
 {
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(GetCitizensAtBuilding()[0], params);
-	Camera->CitizenManager->CreateTimer("Internal", this, GetTime(), "Production", params, false);
+	Camera->TimerManager->SetParameter(GetCitizensAtBuilding()[0], params);
+	Camera->TimerManager->CreateTimer("Internal", this, GetTime(), "Production", params, false);
 }
 
 void AInternalProduction::AlterTimer()
 {
-	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Internal", this);
+	FTimerStruct* timer = Camera->TimerManager->FindTimer("Internal", this);
 
 	if (timer == nullptr)
 		return;
@@ -124,7 +124,7 @@ void AInternalProduction::AlterTimer()
 
 void AInternalProduction::PauseTimer(bool bPause)
 {
-	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Internal", this);
+	FTimerStruct* timer = Camera->TimerManager->FindTimer("Internal", this);
 
 	if (timer == nullptr)
 		return;

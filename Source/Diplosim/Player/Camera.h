@@ -155,6 +155,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen Manager")
 		class UCitizenManager* CitizenManager;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer Manager")
+		class UDiplosimTimerManager* TimerManager;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease Manager")
+		class UDiseaseManager* DiseaseManager;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Research Manager")
 		class UResearchManager* ResearchManager;
 

@@ -133,6 +133,8 @@ public:
 
 	void ComputeAI();
 
+	void CheckLoadFactionLock();
+
 	UFUNCTION(BlueprintCallable)
 		FFactionStruct GetCitizenFaction(class ACitizen* Citizen);
 

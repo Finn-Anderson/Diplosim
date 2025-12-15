@@ -3,7 +3,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Map/Grid.h"
 
 AVegetation::AVegetation()
@@ -33,8 +33,8 @@ void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 
 	GrowingInstances.Add(Instance);
 
-	if (Camera->CitizenManager->FindTimer("Grow", this) == nullptr)
-		Camera->CitizenManager->CreateTimer("Grow", this, TimeLength / 100.0f, "Grow", {}, true, true);
+	if (Camera->TimerManager->FindTimer("Grow", this) == nullptr)
+		Camera->TimerManager->CreateTimer("Grow", this, TimeLength / 100.0f, "Grow", {}, true, true);
 }
 
 void AVegetation::Grow()
@@ -74,7 +74,7 @@ void AVegetation::Grow()
 	}
 
 	if (GrowingInstances.IsEmpty())
-		Camera->CitizenManager->RemoveTimer("Grow", this);
+		Camera->TimerManager->RemoveTimer("Grow", this);
 }
 
 bool AVegetation::IsHarvestable(int32 Instance, FVector Scale)
@@ -88,7 +88,7 @@ bool AVegetation::IsHarvestable(int32 Instance, FVector Scale)
 void AVegetation::OnFire(int32 Instance)
 {
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(Instance, params);
-	Camera->CitizenManager->SetParameter(0, params);
-	Camera->CitizenManager->CreateTimer("OnFire", this, 5.0f, "YieldStatus", params, false);
+	Camera->TimerManager->SetParameter(Instance, params);
+	Camera->TimerManager->SetParameter(0, params);
+	Camera->TimerManager->CreateTimer("OnFire", this, 5.0f, "YieldStatus", params, false);
 }

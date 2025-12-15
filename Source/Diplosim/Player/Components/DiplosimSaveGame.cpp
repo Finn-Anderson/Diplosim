@@ -9,6 +9,8 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
+#include "Player/Managers/DiseaseManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Player/Components/BuildComponent.h"
 #include "Player/Components/SaveGameComponent.h"
@@ -270,13 +272,13 @@ void UDiplosimSaveGame::SaveCitizenManager(FActorSaveData& ActorData, AActor* Ac
 		cmData.PersonalitiesData.Add(data);
 	}
 
-	for (ACitizen* citizen : camera->CitizenManager->Infectible)
+	for (ACitizen* citizen : camera->DiseaseManager->Infectible)
 		cmData.InfectibleNames.Add(citizen->GetName());
 
-	for (ACitizen* citizen : camera->CitizenManager->Infected)
+	for (ACitizen* citizen : camera->DiseaseManager->Infected)
 		cmData.InfectedNames.Add(citizen->GetName());
 
-	for (ACitizen* citizen : camera->CitizenManager->Injured)
+	for (ACitizen* citizen : camera->DiseaseManager->Injured)
 		cmData.InjuredNames.Add(citizen->GetName());
 
 	for (AAI* enemy : camera->CitizenManager->Enemies)
@@ -629,7 +631,7 @@ void UDiplosimSaveGame::SaveProjectile(FActorSaveData& ActorData, AActor* Actor)
 
 void UDiplosimSaveGame::SaveTimers(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
 {
-	for (FTimerStruct timer : Camera->CitizenManager->Timers) {
+	for (FTimerStruct timer : Camera->TimerManager->Timers) {
 		if (timer.Actor != Actor)
 			continue;
 
@@ -1147,7 +1149,7 @@ void UDiplosimSaveGame::LoadTimers(ACamera* Camera, int32 Index, FActorSaveData&
 		if (timer.ID == "RemoveDamageOverlay")
 			timer.Actor->FindComponentByClass<UHealthComponent>()->ApplyDamageOverlay(true);
 
-		Camera->CitizenManager->Timers.AddTail(timer);
+		Camera->TimerManager->Timers.AddTail(timer);
 	}
 }
 
@@ -1246,13 +1248,13 @@ void UDiplosimSaveGame::InitialiseCitizenManager(ACamera* Camera, FActorSaveData
 	}
 
 	for (FString name : cmData.InfectibleNames)
-		Camera->CitizenManager->Infectible.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
+		Camera->DiseaseManager->Infectible.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
 
 	for (FString name : cmData.InfectedNames)
-		Camera->CitizenManager->Infected.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
+		Camera->DiseaseManager->Infected.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
 
 	for (FString name : cmData.InjuredNames)
-		Camera->CitizenManager->Injured.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
+		Camera->DiseaseManager->Injured.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
 
 	for (FString name : cmData.EnemyNames)
 		Camera->CitizenManager->Enemies.Add(Cast<AAI>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));

@@ -8,7 +8,7 @@
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "AI/DiplosimAIController.h"
 #include "Universal/HealthComponent.h"
@@ -36,8 +36,8 @@ void ATrader::Enter(ACitizen* Citizen)
 			SubmitOrder(Citizen);
 		else {
 			TArray<FTimerParameterStruct> params;
-			Camera->CitizenManager->SetParameter(Citizen, params);
-			Camera->CitizenManager->CreateTimer("Order", this, Orders[0].Wait, "SubmitOrder", params, false);
+			Camera->TimerManager->SetParameter(Citizen, params);
+			Camera->TimerManager->CreateTimer("Order", this, Orders[0].Wait, "SubmitOrder", params, false);
 		}
 	}
 }

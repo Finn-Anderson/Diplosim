@@ -20,6 +20,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "AIMovementComponent.h"
 #include "Map/Grid.h"
@@ -155,7 +156,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 			}
 		}
 
-		Camera->CitizenManager->CreateTimer("Idle", Citizen, time, "DefaultAction", {}, false);
+		Camera->TimerManager->CreateTimer("Idle", Citizen, time, "DefaultAction", {}, false);
 	}
 }
 
@@ -259,8 +260,8 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 		AIMoveTo(target);
 	else {
 		TArray<FTimerParameterStruct> params;
-		Camera->CitizenManager->SetParameter(Resource, params);
-		Camera->CitizenManager->CreateTimer("FindGatherSite", AI, 30.0f, "GetGatherSite", params, false);
+		Camera->TimerManager->SetParameter(Resource, params);
+		Camera->TimerManager->CreateTimer("FindGatherSite", AI, 30.0f, "GetGatherSite", params, false);
 	}
 }
 
@@ -421,7 +422,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	ACitizen* citizen = Cast<ACitizen>(AI);
 
-	Camera->CitizenManager->RemoveTimer("Idle", citizen);
+	Camera->TimerManager->RemoveTimer("Idle", citizen);
 
 	if (citizen->Building.BuildingAt != nullptr)
 		Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { citizen->Building.BuildingAt->Leave(citizen); });

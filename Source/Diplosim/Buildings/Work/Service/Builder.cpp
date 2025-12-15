@@ -5,7 +5,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Components/WidgetComponent.h"
 #include "Universal/HealthComponent.h"
 
@@ -52,9 +52,9 @@ void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 		float time = (size.X + size.Y + size.Z) / 500.0f * 0.2f / Citizen->GetProductivity();
 
 		TArray<FTimerParameterStruct> params;
-		Camera->CitizenManager->SetParameter(Citizen, params);
-		Camera->CitizenManager->SetParameter(Building, params);
-		Camera->CitizenManager->CreateTimer("Construct", this, time, "AddBuildPercentage", params, true, true);
+		Camera->TimerManager->SetParameter(Citizen, params);
+		Camera->TimerManager->SetParameter(Building, params);
+		Camera->TimerManager->CreateTimer("Construct", this, time, "AddBuildPercentage", params, true, true);
 	}
 }
 
@@ -74,9 +74,9 @@ void ABuilder::AddBuildPercentage(ACitizen* Citizen, ABuilding* Building)
 void ABuilder::StartRepairTimer(ACitizen* Citizen, ABuilding* Building)
 {
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(Citizen, params);
-	Camera->CitizenManager->SetParameter(Building, params);
-	Camera->CitizenManager->CreateTimer("Repair", this, 0.2f, "Repair", params, true, true);
+	Camera->TimerManager->SetParameter(Citizen, params);
+	Camera->TimerManager->SetParameter(Building, params);
+	Camera->TimerManager->CreateTimer("Repair", this, 0.2f, "Repair", params, true, true);
 }
 
 void ABuilder::Repair(ACitizen* Citizen, ABuilding* Building)
@@ -92,7 +92,7 @@ void ABuilder::Repair(ACitizen* Citizen, ABuilding* Building)
 
 void ABuilder::Done(ACitizen* Citizen, ABuilding* Building)
 {
-	Camera->CitizenManager->RemoveTimer("Repair", GetOwner());
+	Camera->TimerManager->RemoveTimer("Repair", GetOwner());
 
 	Camera->ConstructionManager->RemoveBuilding(Building);
 }

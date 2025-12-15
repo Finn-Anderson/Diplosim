@@ -5,7 +5,7 @@
 #include "Blueprint/UserWidget.h"
 
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -94,8 +94,8 @@ void USaveGameComponent::LoadSave()
 
 	Camera->Cancel();
 
-	for (FTimerStruct timer : Camera->CitizenManager->Timers)
-		Camera->CitizenManager->RemoveTimer(timer.ID, timer.Actor);
+	for (FTimerStruct timer : Camera->TimerManager->Timers)
+		Camera->TimerManager->RemoveTimer(timer.ID, timer.Actor);
 	
 	CurrentSaveGame->LoadGame(Camera, CurrentIndex);
 
@@ -206,14 +206,14 @@ void USaveGameComponent::StartAutosaveTimer()
 	if (time == 0)
 		return;
 
-	FTimerStruct* timer = Camera->CitizenManager->FindTimer("AutosaveTimer", Camera);
+	FTimerStruct* timer = Camera->TimerManager->FindTimer("AutosaveTimer", Camera);
 
 	if (timer == nullptr) {
 		TArray<FTimerParameterStruct> params;
-		Camera->CitizenManager->SetParameter("", params);
-		Camera->CitizenManager->SetParameter(true, params);
+		Camera->TimerManager->SetParameter("", params);
+		Camera->TimerManager->SetParameter(true, params);
 
-		Camera->CitizenManager->CreateTimer("AutosaveTimer", Camera, time * 60.0f, "SaveGameSave", params, false, true);
+		Camera->TimerManager->CreateTimer("AutosaveTimer", Camera, time * 60.0f, "SaveGameSave", params, false, true);
 	}
 	else
 		timer->Timer = 0.0f;
@@ -222,10 +222,10 @@ void USaveGameComponent::StartAutosaveTimer()
 void USaveGameComponent::UpdateAutosave(int32 NewTime)
 {
 	if (NewTime == 0) {
-		Camera->CitizenManager->RemoveTimer("AutosaveTimer", Camera);
+		Camera->TimerManager->RemoveTimer("AutosaveTimer", Camera);
 	}
 	else {
-		FTimerStruct* timer = Camera->CitizenManager->FindTimer("AutosaveTimer", Camera);
+		FTimerStruct* timer = Camera->TimerManager->FindTimer("AutosaveTimer", Camera);
 
 		if (timer == nullptr)
 			StartAutosaveTimer();

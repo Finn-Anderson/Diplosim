@@ -11,6 +11,7 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Components/SaveGameComponent.h"
 #include "AI/Citizen.h"
@@ -437,7 +438,7 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 
 void UAIVisualiser::UpdateCitizenVisuals(UHierarchicalInstancedStaticMeshComponent* HISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
-	if (Camera->CitizenManager->Injured.Contains(Citizen))
+	if (Camera->DiseaseManager->Injured.Contains(Citizen))
 		UpdateInstanceCustomData(HISM, Instance, 10, 1.0f);
 	else
 		UpdateInstanceCustomData(HISM, Instance, 10, 0.0f);
@@ -447,7 +448,7 @@ void UAIVisualiser::UpdateCitizenVisuals(UHierarchicalInstancedStaticMeshCompone
 
 	ActivateTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour, HISM, Instance);
 
-	if (Camera->CitizenManager->Infected.Contains(Citizen))
+	if (Camera->DiseaseManager->Infected.Contains(Citizen))
 		UpdateInstanceCustomData(HISM, Instance, 13, 1.0f);
 	else
 		UpdateInstanceCustomData(HISM, Instance, 13, 0.0f);

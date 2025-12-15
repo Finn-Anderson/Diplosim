@@ -14,6 +14,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "DiplosimUserSettings.h"
 #include "DebugManager.h"
 
@@ -290,7 +291,7 @@ void ADiplosimGameModeBase::SetRaidInformation()
 
 	int32 time = Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantEnemies ? 5 : 120;
 
-	Camera->CitizenManager->CreateTimer("SpawnEnemies", this, time, "SpawnAllEnemies", {}, false, true);
+	Camera->TimerManager->CreateTimer("SpawnEnemies", this, time, "SpawnAllEnemies", {}, false, true);
 }
 
 void ADiplosimGameModeBase::SpawnAllEnemies()
@@ -404,14 +405,14 @@ void ADiplosimGameModeBase::StartRaid()
 	if (!bEnemies)
 		return;
 
-	Camera->CitizenManager->RemoveTimer("WaveTimer", this);
+	Camera->TimerManager->RemoveTimer("WaveTimer", this);
 
 	SetRaidInformation();
 }
 
 bool ADiplosimGameModeBase::CheckEnemiesStatus()
 {
-	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies() || Camera->CitizenManager->FindTimer("SpawnEnemies", this) != nullptr)
+	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies() || Camera->TimerManager->FindTimer("SpawnEnemies", this) != nullptr)
 		return false;
 	
 	if (bOngoingRaid) {
@@ -442,7 +443,7 @@ void ADiplosimGameModeBase::SetWaveTimer()
 		}
 	}
 
-	Camera->CitizenManager->CreateTimer("WaveTimer", Camera, 1680, "StartRaid", {}, true, false);
+	Camera->TimerManager->CreateTimer("WaveTimer", Camera, 1680, "StartRaid", {}, true, false);
 }
 
 void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)

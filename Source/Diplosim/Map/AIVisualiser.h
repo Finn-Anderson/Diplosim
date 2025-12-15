@@ -117,14 +117,6 @@ struct FOverlapsStruct
 	}
 };
 
-UENUM()
-enum class EFactionType : uint8
-{
-	Both,
-	Different,
-	Same
-};
-
 USTRUCT(BlueprintType)
 struct FHatsStruct
 {

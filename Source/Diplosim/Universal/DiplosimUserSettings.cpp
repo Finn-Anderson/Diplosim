@@ -17,7 +17,8 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "DiplosimGameModeBase.h"
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Player/Components/SaveGameComponent.h"
 #include "AI/Citizen.h"
 #include "AI/AIMovementComponent.h"
@@ -248,7 +249,7 @@ void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
 	if (!IsValid(GameMode) || !IsValid(Camera) || !IsValid(Camera->CitizenManager))
 		return;
 
-	Camera->CitizenManager->ResetTimer("WaveTimer", GameMode);
+	Camera->TimerManager->ResetTimer("WaveTimer", GameMode);
 }
 
 bool UDiplosimUserSettings::GetSpawnEnemies() const

@@ -2,7 +2,8 @@
 
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiseaseManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/HealthComponent.h"
 
 AClinic::AClinic()
@@ -18,9 +19,9 @@ bool AClinic::AddCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	Camera->CitizenManager->Cure(Citizen);
+	Camera->DiseaseManager->Cure(Citizen);
 
-	Camera->CitizenManager->Infectible.Remove(Citizen);
+	Camera->DiseaseManager->Infectible.Remove(Citizen);
 
 	return true;
 }
@@ -32,9 +33,9 @@ bool AClinic::RemoveCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	Camera->CitizenManager->Infectible.Add(Citizen);
+	Camera->DiseaseManager->Infectible.Add(Citizen);
 
-	Camera->CitizenManager->RemoveTimer("Healing", Citizen);
+	Camera->TimerManager->RemoveTimer("Healing", Citizen);
 
 	return true;
 }

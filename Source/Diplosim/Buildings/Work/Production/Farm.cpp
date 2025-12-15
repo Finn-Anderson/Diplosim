@@ -3,7 +3,7 @@
 #include "Map/Grid.h"
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/HealthComponent.h"
 
 AFarm::AFarm()
@@ -22,7 +22,7 @@ void AFarm::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!GetOccupied().Contains(Citizen) || Camera->CitizenManager->FindTimer("Farm", this))
+	if (!GetOccupied().Contains(Citizen) || Camera->TimerManager->FindTimer("Farm", this))
 		return;
 
 	if (CropMeshes[0]->GetRelativeScale3D().Z == 1.0f)
@@ -65,8 +65,8 @@ void AFarm::ProductionDone(ACitizen* Citizen)
 void AFarm::StartTimer(ACitizen* Citizen)
 {
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(Citizen, params);
-	Camera->CitizenManager->CreateTimer("Farm", this, TimeLength / 10.0f / Citizen->GetProductivity(), "Production", params, false, true);
+	Camera->TimerManager->SetParameter(Citizen, params);
+	Camera->TimerManager->CreateTimer("Farm", this, TimeLength / 10.0f / Citizen->GetProductivity(), "Production", params, false, true);
 }
 
 int32 AFarm::GetFertility()

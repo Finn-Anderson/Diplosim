@@ -4,7 +4,7 @@
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 
@@ -77,7 +77,7 @@ void AHouse::Enter(ACitizen* Citizen)
 
 	Citizen->bGain = true;
 
-	Camera->CitizenManager->UpdateTimerLength("Energy", this, 1);
+	Camera->TimerManager->UpdateTimerLength("Energy", this, 1);
 }
 
 void AHouse::Leave(ACitizen* Citizen)
@@ -87,7 +87,7 @@ void AHouse::Leave(ACitizen* Citizen)
 	Citizen->bGain = false;
 
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
-	Camera->CitizenManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * Citizen->EnergyMultiplier);
+	Camera->TimerManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * Citizen->EnergyMultiplier);
 }
 
 bool AHouse::AddCitizen(ACitizen* Citizen)

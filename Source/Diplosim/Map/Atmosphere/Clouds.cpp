@@ -13,7 +13,7 @@
 #include "Buildings/Building.h"
 #include "Buildings/Misc/Road.h"
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "AI/Citizen.h"
 #include "Universal/EggBasket.h"
 
@@ -140,7 +140,7 @@ void UCloudComponent::Clear()
 
 	Clouds.Empty();
 
-	Grid->Camera->CitizenManager->RemoveTimer("Cloud", Grid);
+	Grid->Camera->TimerManager->RemoveTimer("Cloud", Grid);
 }
 
 void UCloudComponent::ActivateCloud()
@@ -180,7 +180,7 @@ void UCloudComponent::ActivateCloud()
 
 	int32 time = Grid->Stream.RandRange(45.0f, 360.0f);
 
-	Grid->Camera->CitizenManager->CreateTimer("Cloud", Grid, time, "ActivateCloud", {}, false, true);
+	Grid->Camera->TimerManager->CreateTimer("Cloud", Grid, time, "ActivateCloud", {}, false, true);
 }
 
 FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bool bLoad)
@@ -367,18 +367,18 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		else
 			id += FString::FromInt(HISM->GetUniqueID()) + FString::FromInt(Instance);
 
-		if (Grid->Camera->CitizenManager->FindTimer(id, Grid) != nullptr) {
-			Grid->Camera->CitizenManager->ResetTimer(id, Grid);
+		if (Grid->Camera->TimerManager->FindTimer(id, Grid) != nullptr) {
+			Grid->Camera->TimerManager->ResetTimer(id, Grid);
 
 			return;
 		}
 		else {
 			TArray<FTimerParameterStruct> params;
-			Grid->Camera->CitizenManager->SetParameter(0.0f, params);
-			Grid->Camera->CitizenManager->SetParameter(Actor, params);
-			Grid->Camera->CitizenManager->SetParameter(HISM, params);
-			Grid->Camera->CitizenManager->SetParameter(Instance, params);
-			Grid->Camera->CitizenManager->CreateTimer(id, Grid, 30, "SetRainMaterialEffect", params, false, true);
+			Grid->Camera->TimerManager->SetParameter(0.0f, params);
+			Grid->Camera->TimerManager->SetParameter(Actor, params);
+			Grid->Camera->TimerManager->SetParameter(HISM, params);
+			Grid->Camera->TimerManager->SetParameter(Instance, params);
+			Grid->Camera->TimerManager->CreateTimer(id, Grid, 30, "SetRainMaterialEffect", params, false, true);
 		}
 	}
 

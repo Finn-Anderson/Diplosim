@@ -8,8 +8,11 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
+#include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Components/BuildComponent.h"
+#include "Player/Components/SaveGameComponent.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "AI/Citizen.h"
@@ -303,6 +306,21 @@ void UConquestManager::ComputeAI()
 	}
 
 	FactionsToRemove.Empty();
+}
+
+void UConquestManager::CheckLoadFactionLock()
+{
+	if (Camera->SaveGameComponent->IsLoading()) {
+		FScopeTryLock lock(&Camera->ConquestManager->ConquestLock);
+		if (!lock.IsLocked())
+			return;
+
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Faction);
+
+			return;
+		}
+	}
 }
 
 FFactionStruct UConquestManager::GetCitizenFaction(ACitizen* Citizen)
@@ -1444,7 +1462,7 @@ bool UConquestManager::CanJoinArmy(ACitizen* Citizen)
 {
 	FFactionStruct faction = GetCitizenFaction(Citizen);
 
-	if (Citizen->HealthComponent->GetHealth() == 0 || Camera->CitizenManager->Injured.Contains(Citizen) || Camera->CitizenManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork() || IsCitizenInAnArmy(Citizen))
+	if (Citizen->HealthComponent->GetHealth() == 0 || Camera->DiseaseManager->Injured.Contains(Citizen) || Camera->DiseaseManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork() || IsCitizenInAnArmy(Citizen))
 		return false;
 
 	return true;
@@ -1479,9 +1497,9 @@ void UConquestManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizen
 		FString id = FactionName + FString::FromInt(index) + "ArmyRaidTimer";
 
 		TArray<FTimerParameterStruct> params;
-		Camera->CitizenManager->SetParameter(*faction, params);
-		Camera->CitizenManager->SetParameter(index, params);
-		Camera->CitizenManager->CreateTimer(id, Camera, 60.0f, "StartRaid", params, false);
+		Camera->TimerManager->SetParameter(*faction, params);
+		Camera->TimerManager->SetParameter(index, params);
+		Camera->TimerManager->CreateTimer(id, Camera, 60.0f, "StartRaid", params, false);
 	}
 }
 

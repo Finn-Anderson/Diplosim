@@ -34,6 +34,8 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Components/SaveGameComponent.h"
+#include "DiplosimTimerManager.h"
+#include "DiseaseManager.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/Clouds.h"
@@ -43,8 +45,7 @@
 
 UCitizenManager::UCitizenManager()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	SetComponentTickInterval(0.2f);
+	PrimaryComponentTick.bCanEverTick = false;
 
 	IssuePensionHour = 18;
 
@@ -55,8 +56,6 @@ UCitizenManager::UCitizenManager()
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Laws.json");
 
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Religions.json");
-
-	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Conditions.json");
 }
 
 void UCitizenManager::ReadJSONFile(FString path)
@@ -74,7 +73,6 @@ void UCitizenManager::ReadJSONFile(FString path)
 				FPartyStruct party;
 				FLawStruct law;
 				FReligionStruct religion;
-				FConditionStruct condition;
 
 				for (auto& v : e->AsObject()->Values) {
 					uint8 index = 0;
@@ -155,20 +153,8 @@ void UCitizenManager::ReadJSONFile(FString path)
 							else if (element.Key == "Parties") {
 								party.Agreeable.Add(ev->AsString());
 							}
-							else if (element.Key == "Religions") {
-								religion.Agreeable.Add(ev->AsString());
-							}
 							else {
-								FAffectStruct affect;
-
-								for (auto& bv : ev->AsObject()->Values) {
-									if (bv.Key == "Affect")
-										affect.Affect = EAffect(FCString::Atoi(*bv.Value->AsString()));
-									else
-										affect.Amount = bv.Value->AsNumber();
-								}
-
-								condition.Affects.Add(affect);
+								religion.Agreeable.Add(ev->AsString());
 							}
 						}
 					}
@@ -181,24 +167,11 @@ void UCitizenManager::ReadJSONFile(FString path)
 							party.Party = value;
 						else if (element.Key == "Religions")
 							religion.Faith = value;
-						else if (element.Key == "Laws")
-							law.BillType = value;
 						else
-							condition.Name = value;
+							law.BillType = value;
 					}
 					else {
-						index = FCString::Atoi(*v.Value->AsString());
-
-						if (v.Key == "Aggressiveness")
-							personality.Aggressiveness = v.Value->AsNumber();
-						else if (v.Key == "Grade")
-							condition.Grade = EGrade(index);
-						else if (v.Key == "Spreadability")
-							condition.Spreadability = index;
-						else if (v.Key == "Level")
-							condition.Level = index;
-						else
-							condition.DeathLevel = index;
+						personality.Aggressiveness = v.Value->AsNumber();
 					}
 				}
 
@@ -208,12 +181,8 @@ void UCitizenManager::ReadJSONFile(FString path)
 					InitParties.Add(party);
 				else if (element.Key == "Religions")
 					Religions.Add(religion);
-				else if (element.Key == "Laws")
-					InitLaws.Add(law);
-				else if (element.Key == "Injuries")
-					Injuries.Add(condition);
 				else
-					Diseases.Add(condition);
+					InitLaws.Add(law);
 			}
 		}
 	}
@@ -226,98 +195,10 @@ void UCitizenManager::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	if (DeltaTime < 0.005f || DeltaTime > 1.0f)
 		return;
 
-	TimerLoop();
-
 	CitizenGeneralLoop();
-	CalculateDisease();
 	CalculateCitizenInteractions();
 	
 	CalculateFighting();
-
-	if (Camera->SaveGameComponent->IsLoading()) {
-		FScopeTryLock lock(&Camera->ConquestManager->ConquestLock);
-		if (!lock.IsLocked())
-			return;
-
-		if (Camera->SaveGameComponent->IsLoading()) {
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Faction);
-
-			return;
-		}
-	}
-}
-
-void UCitizenManager::TimerLoop()
-{
-	if (Timers.IsEmpty()) {
-		if (Camera->SaveGameComponent->IsLoading())
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Timer);
-
-		return;
-	}
-
-	Async(EAsyncExecution::TaskGraph, [this]() {
-		FScopeTryLock loopLock(&TimerLoopLock);
-		if (!loopLock.IsLocked())
-			return;
-
-		if (Camera->SaveGameComponent->IsLoading()) {
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Timer);
-
-			return;
-		}
-
-		for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
-			if (Camera->SaveGameComponent->IsLoading())
-				return;
-
-			FTimerStruct& timer = node->GetValue();
-
-			if (!IsValid(this))
-				return;
-
-			if (!IsValid(timer.Actor)) {
-				FScopeLock lock(&TimerLock);
-				Timers.RemoveNode(node);
-
-				continue;
-			}
-
-			if (timer.bPaused)
-				continue;
-
-			double currentTime = GetWorld()->GetTimeSeconds();
-
-			timer.Timer += (currentTime - timer.LastUpdateTime);
-			timer.LastUpdateTime = currentTime;
-
-			if (timer.Timer >= timer.Target && !timer.bModifying) {
-				if (timer.bOnGameThread) {
-					timer.bModifying = true;
-
-					Async(EAsyncExecution::TaskGraphMainTick, [this, &timer]() { CallTimerFunction(&timer); });
-				}
-				else {
-					timer.bModifying = true;
-
-					CallTimerFunction(&timer);
-				}
-			}
-
-			if (!timer.bDone)
-				continue;
-
-			if (timer.bRepeat) {
-				timer.Timer = 0;
-				timer.bModifying = false;
-				timer.bDone = false;
-			}
-			else {
-				FScopeLock lock(&TimerLock);
-				Timers.RemoveNode(node);
-			} 
-		}
-	});
 }
 
 void UCitizenManager::CitizenGeneralLoop()
@@ -401,7 +282,7 @@ void UCitizenManager::CitizenGeneralLoop()
 				if (citizen->Building.Employment->IsA<AWall>())
 					Cast<AWall>(citizen->Building.Employment)->SetEmergency(!Enemies.IsEmpty() || !faction.Rebels.IsEmpty());
 				else if (citizen->Building.Employment->IsA<AClinic>())
-					Cast<AClinic>(citizen->Building.Employment)->SetEmergency(!Infected.IsEmpty());
+					Cast<AClinic>(citizen->Building.Employment)->SetEmergency(!Camera->DiseaseManager->Infected.IsEmpty());
 			}
 
 			if (!faction.Police.PoliceReports.IsEmpty() && faction.Rebels.IsEmpty() && Enemies.IsEmpty()) {
@@ -524,97 +405,6 @@ void UCitizenManager::CitizenGeneralLoop()
 	});
 }
 
-void UCitizenManager::CalculateDisease()
-{
-	if (Infected.IsEmpty() && Injured.IsEmpty()) {
-		if (Camera->SaveGameComponent->IsLoading())
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Disease);
-
-		return;
-	}
-
-	Async(EAsyncExecution::TaskGraph, [this]() {
-		FScopeTryLock lock(&DiseaseSpreadLock);
-		if (!lock.IsLocked())
-			return;
-
-		if (Camera->SaveGameComponent->IsLoading()) {
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Disease);
-
-			return;
-		}
-
-		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-			TArray<ACitizen*> citizens;
-			citizens.Append(faction.Citizens);
-			citizens.Append(faction.Rebels);
-
-			for (ACitizen* citizen : citizens) {
-				if (Camera->SaveGameComponent->IsLoading())
-					return;
-
-				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen))
-					continue;
-
-				for (FConditionStruct& condition : citizen->HealthIssues) {
-					condition.Level++;
-
-					if (condition.Level == condition.DeathLevel)
-						citizen->HealthComponent->TakeHealth(1000, citizen);
-				}
-
-				if (citizen->HealthComponent->GetHealth() <= 0 || (!Infected.Contains(citizen) && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->IsA<AClinic>())))
-					continue;
-
-				if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && faction.Citizens.Contains(citizen->AIController->MoveRequest.GetGoalActor()) && citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), citizen->Range / 15.0f)) {
-					TArray<FTimerParameterStruct> params;
-					SetParameter(citizen->AIController->MoveRequest.GetGoalActor(), params);
-					
-					CreateTimer("Healing", citizen, 1.0f / citizen->GetProductivity(), "Heal", params, false);
-				}
-				else if (Infectible.Contains(citizen) && Infected.Contains(citizen)) {
-					FOverlapsStruct requestedOverlaps;
-					requestedOverlaps.GetCitizenInteractions(false, true);
-
-					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range / 15.0f, requestedOverlaps, EFactionType::Both);
-
-					for (AActor* actor : actors) {
-						if (!IsValid(actor))
-							continue;
-
-						ACitizen* c = Cast<ACitizen>(actor);
-
-						if (c->HealthComponent->GetHealth() <= 0 || !Infectible.Contains(c))
-							continue;
-
-						bool bInfected = false;
-
-						for (FConditionStruct condition : citizen->HealthIssues) {
-							if (c->HealthIssues.Contains(condition))
-								continue;
-
-							int32 chance = Camera->Grid->Stream.RandRange(1, 100);
-
-							if (chance <= condition.Spreadability) {
-								c->HealthIssues.Add(condition);
-
-								bInfected = true;
-
-								Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + condition.Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
-							}
-						}
-
-						if (bInfected && !Infected.Contains(c))
-							Infect(c);
-					}
-				}
-			}
-
-			PairCitizenToHealer(&faction);
-		}
-	});
-}
-
 void UCitizenManager::CalculateCitizenInteractions()
 {
 	Async(EAsyncExecution::TaskGraph, [this]() {
@@ -656,7 +446,7 @@ void UCitizenManager::CalculateCitizenInteractions()
 						continue;
 
 					Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() {
-						if (actor->IsA<AResource>() && FindTimer("Harvest", citizen) == nullptr) {
+						if (actor->IsA<AResource>() && Camera->TimerManager->FindTimer("Harvest", citizen) == nullptr) {
 							AResource* r = Cast<AResource>(actor);
 
 							citizen->StartHarvestTimer(r);
@@ -1043,7 +833,7 @@ void UCitizenManager::CalculateFighting()
 				if (building->IsA<ATrap>()) {
 					ATrap* trap = Cast<ATrap>(building);
 
-					if (Camera->CitizenManager->DoesTimerExist("Trap", trap))
+					if (Camera->TimerManager->DoesTimerExist("Trap", trap))
 						continue;
 
 					FOverlapsStruct requestedOverlaps;
@@ -1095,192 +885,6 @@ void UCitizenManager::CalculateFighting()
 			}
 		}
 	});
-}
-
-void UCitizenManager::CreateTimer(FString Identifier, AActor* Actor, float Time, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread)
-{
-	FScopeLock lock(&TimerLock);
-
-	FTimerStruct timer;
-	timer.CreateTimer(Identifier, Actor, Time, FunctionName, Params, Repeat, OnGameThread);
-	timer.LastUpdateTime = GetWorld()->GetTimeSeconds();
-
-	Timers.AddTail(timer);
-}
-
-FTimerStruct* UCitizenManager::FindTimer(FString ID, AActor* Actor)
-{
-	FScopeLock lock(&TimerLock);
-
-	if (!IsValid(Actor))
-		return nullptr;
-	
-	FTimerStruct timer;
-	timer.ID = ID;
-	timer.Actor = Actor;
-
-	auto node = Timers.FindNode(timer);
-
-	if (node == nullptr)
-		return nullptr;
-
-	return &node->GetValue();
-}
-
-void UCitizenManager::RemoveTimer(FString ID, AActor* Actor)
-{
-	FTimerStruct* timer = FindTimer(ID, Actor);
-
-	if (timer == nullptr)
-		return;
-
-	timer->Actor = nullptr;
-}
-
-void UCitizenManager::ResetTimer(FString ID, AActor* Actor)
-{
-	FTimerStruct* timer = FindTimer(ID, Actor);
-
-	if (timer == nullptr)
-		return;
-
-	timer->Timer = 0;
-}
-
-int32 UCitizenManager::GetElapsedTime(FString ID, AActor* Actor)
-{
-	FTimerStruct* timer = FindTimer(ID, Actor);
-
-	if (timer == nullptr)
-		return 0;
-
-	return timer->Target - timer->Timer;
-}
-
-float UCitizenManager::GetElapsedPercentage(FString ID, AActor* Actor)
-{
-	FTimerStruct* timer = FindTimer(ID, Actor);
-
-	if (timer == nullptr)
-		return 0.0f;
-
-	return (timer->Target - timer->Timer) / timer->Target;
-}
-
-bool UCitizenManager::DoesTimerExist(FString ID, AActor* Actor)
-{
-	FTimerStruct* timer = FindTimer(ID, Actor);
-
-	if (timer == nullptr)
-		return false;
-
-	return true;
-}
-
-#define SET_OBJECT(object) \
-	function = object->FindFunction(Timer->FuncName); \
-	if (function != nullptr) \
-		return TTuple<UObject*, UFunction*>(object, function);
-
-TTuple<UObject*, UFunction*> UCitizenManager::GetFunction(FTimerStruct* Timer)
-{
-	UFunction* function = nullptr;
-
-	SET_OBJECT(Timer->Actor);
-
-	if (Timer->Actor->IsA<AAI>()) {
-		AAI* ai = Cast<AAI>(Timer->Actor);
-
-		SET_OBJECT(ai->AIController);
-
-		if (ai->IsA<ACitizen>() && IsValid(Cast<ACitizen>(ai)->Building.Orphanage))
-			SET_OBJECT(Cast<ACitizen>(ai)->Building.Orphanage);
-	}
-
-	UHealthComponent* healthComp = Timer->Actor->FindComponentByClass<UHealthComponent>();
-	if (healthComp)
-		SET_OBJECT(healthComp);
-
-	if (Timer->Actor->IsA<AGrid>()) {
-		AGrid* grid = Cast<AGrid>(Timer->Actor);
-
-		SET_OBJECT(grid->AtmosphereComponent);
-		SET_OBJECT(grid->AtmosphereComponent->Clouds);
-		SET_OBJECT(grid->AtmosphereComponent->NaturalDisasterComponent);
-	}
-
-	if (Timer->Actor->IsA<ACamera>()) {
-		SET_OBJECT(Camera->SaveGameComponent);
-		SET_OBJECT(Camera->ConquestManager);
-		SET_OBJECT(Camera->ResourceManager);
-		SET_OBJECT(Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode()));
-	}
-
-	SET_OBJECT(this);
-
-	UE_LOGFMT(LogTemp, Fatal, "Function '{name}' not found with '{actor}'", Timer->FuncName.ToString(), Timer->Actor->GetName());
-}
-
-#define SET_TYPE(type_) \
-	if (type == #type_) \
-		*functionProperty->ContainerPtrToValuePtr<type_>(buffer) = GetParameter<type_>(Timer, count);
-
-void UCitizenManager::CallTimerFunction(FTimerStruct* Timer)
-{
-	TTuple<UObject*, UFunction*> objFunc = GetFunction(Timer);
-
-	int32 count = 0;
-
-	uint8* buffer = (uint8*)FMemory_Alloca(objFunc.Value->ParmsSize);
-	FMemory::Memzero(buffer, objFunc.Value->ParmsSize);
-
-	for (TFieldIterator<FProperty> it(objFunc.Value); it && it->HasAnyPropertyFlags(CPF_Parm); ++it) {
-		FProperty* functionProperty = *it;
-		FString type = functionProperty->GetCPPType();
-
-		// Actors
-		SET_TYPE(AActor*);
-		SET_TYPE(ABuilding*);
-		SET_TYPE(ACitizen*);
-
-		// Objects
-		SET_TYPE(USoundBase*);
-		SET_TYPE(UHierarchicalInstancedStaticMeshComponent*);
-
-		// Rest
-		SET_TYPE(FVector);
-		SET_TYPE(TArray<FVector>);
-		SET_TYPE(FLinearColor);
-		SET_TYPE(bool);
-		SET_TYPE(FFactionStruct);
-		SET_TYPE(int32);
-		SET_TYPE(float);
-		SET_TYPE(FString);
-		SET_TYPE(FGuid);
-		SET_TYPE(FLawStruct);
-		SET_TYPE(TSubclassOf<AResource>);
-
-		count++;
-	}
-
-	FFrame stack(objFunc.Key, objFunc.Value, buffer, NULL, objFunc.Value->ChildProperties);
-
-	const bool bHasReturnParam = objFunc.Value->ReturnValueOffset != MAX_uint16;
-	uint8* ReturnValueAddress = bHasReturnParam ? (buffer + objFunc.Value->ReturnValueOffset) : nullptr;
-
-	objFunc.Value->Invoke(objFunc.Key, stack, nullptr);
-
-	Timer->bDone = true;
-}
-
-void UCitizenManager::UpdateTimerLength(FString ID, AActor* Actor, int32 NewTarget)
-{
-	FTimerStruct* timer = FindTimer(ID, Actor);
-
-	if (timer == nullptr)
-		return;
-
-	timer->Target = NewTarget;
 }
 
 //
@@ -1432,7 +1036,7 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 			else if (citizen->bSleep && citizen->HoursSleptToday.Num() >= citizen->IdealHoursSlept) {
 				citizen->bSleep = false;
 
-				FTimerStruct* timer = FindTimer("Snore", citizen);
+				FTimerStruct* timer = Camera->TimerManager->FindTimer("Snore", citizen);
 
 				if (timer != nullptr)
 					timer->Actor = nullptr;
@@ -1625,14 +1229,14 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 	
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen1, Citizen2, bInterrogation, convo1, convo2]() {
 		TArray<FTimerParameterStruct> params;
-		SetParameter(*Faction, params);
-		SetParameter(Citizen1, params);
-		SetParameter(Citizen2, params);
+		Camera->TimerManager->SetParameter(*Faction, params);
+		Camera->TimerManager->SetParameter(Citizen1, params);
+		Camera->TimerManager->SetParameter(Citizen2, params);
 
 		if (bInterrogation)
-			CreateTimer("Interrogate", Citizen1, 6.0f, "InterrogateWitnesses", params, false);
+			Camera->TimerManager->CreateTimer("Interrogate", Citizen1, 6.0f, "InterrogateWitnesses", params, false);
 		else
-			CreateTimer("Interact", Citizen1, 6.0f, "Interact", params, false);
+			Camera->TimerManager->CreateTimer("Interact", Citizen1, 6.0f, "Interact", params, false);
 
 		Camera->PlayAmbientSound(Citizen1->AmbientAudioComponent, convo1, Citizen1->VoicePitch);
 		Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);
@@ -1960,10 +1564,10 @@ void UCitizenManager::Arrest(ACitizen* Officer, ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
 
-	Infectible.Remove(Citizen);
+	Camera->DiseaseManager->Infectible.Remove(Citizen);
 
-	if (Infected.Contains(Citizen) || Injured.Contains(Citizen))
-		Cure(Citizen);
+	if (Camera->DiseaseManager->Infected.Contains(Citizen) || Camera->DiseaseManager->Injured.Contains(Citizen))
+		Camera->DiseaseManager->Cure(Citizen);
 
 	if (IsValid(Citizen->Building.Employment))
 		Citizen->Building.Employment->RemoveCitizen(Citizen);
@@ -2011,11 +1615,11 @@ void UCitizenManager::Arrest(ACitizen* Officer, ACitizen* Citizen)
 	UNiagaraFunctionLibrary::SpawnSystemAttached(ArrestSystem, Citizen->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 
 	TArray<FTimerParameterStruct> params;
-	SetParameter(*faction, params);
-	SetParameter(Officer, params);
-	SetParameter(Citizen, params);
+	Camera->TimerManager->SetParameter(*faction, params);
+	Camera->TimerManager->SetParameter(Officer, params);
+	Camera->TimerManager->SetParameter(Citizen, params);
 
-	CreateTimer("Arrest", Citizen, 2.0f, "SetInNearestJail", params, false);
+	Camera->TimerManager->CreateTimer("Arrest", Citizen, 2.0f, "SetInNearestJail", params, false);
 }
 
 void UCitizenManager::SetInNearestJail(FFactionStruct Faction, ACitizen* Officer, ACitizen* Citizen)
@@ -2101,7 +1705,7 @@ void UCitizenManager::ItterateThroughSentences()
 
 		for (ACitizen* citizen : served) {
 			faction.Police.Arrested.Remove(citizen);
-			Infectible.Add(citizen);
+			Camera->DiseaseManager->Infectible.Add(citizen);
 
 			citizen->MovementComponent->Transform.SetLocation(citizen->Building.BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 		}
@@ -2138,170 +1742,6 @@ int32 UCitizenManager::GetPoliceReportIndex(ACitizen* Citizen)
 	}
 
 	return INDEX_NONE;
-}
-
-//
-// Health
-//
-void UCitizenManager::StartDiseaseTimer()
-{
-	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
-
-	CreateTimer("Disease", Camera, Camera->Grid->Stream.RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), "SpawnDisease", {}, false);
-}
-
-void UCitizenManager::SpawnDisease()
-{
-	int32 index = Camera->Grid->Stream.RandRange(0, Infectible.Num() - 1);
-	ACitizen* citizen = Infectible[index];
-
-	index = Camera->Grid->Stream.RandRange(0, Diseases.Num() - 1);
-	citizen->HealthIssues.Add(Diseases[index]);
-
-	Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + Diseases[index].Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
-
-	Infect(citizen);
-
-	StartDiseaseTimer();
-}
-
-void UCitizenManager::Infect(ACitizen* Citizen)
-{
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen]() {
-		Infected.Add(Citizen);
-
-		UpdateHealthText(Citizen);
-	});
-}
-
-void UCitizenManager::Injure(ACitizen* Citizen, int32 Odds)
-{
-	int32 index = Camera->Grid->Stream.RandRange(1, 10);
-
-	if (index < Odds)
-		return;
-
-	TArray<FConditionStruct> conditions = Injuries;
-
-	for (FConditionStruct condition : Citizen->HealthIssues)
-		conditions.Remove(condition);
-
-	index = Camera->Grid->Stream.RandRange(0, conditions.Num() - 1);
-	Citizen->HealthIssues.Add(conditions[index]);
-
-	for (FAffectStruct affect : conditions[index].Affects) {
-		if (affect.Affect == EAffect::Movement)
-			Citizen->ApplyToMultiplier("Speed", affect.Amount);
-		else if (affect.Affect == EAffect::Damage)
-			Citizen->ApplyToMultiplier("Damage", affect.Amount);
-		else
-			Citizen->ApplyToMultiplier("Health", affect.Amount);
-	}
-
-	Camera->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + conditions[index].Name, Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
-
-	Injured.Add(Citizen);
-
-	UpdateHealthText(Citizen);
-}
-
-void UCitizenManager::Cure(ACitizen* Citizen)
-{
-	for (FConditionStruct condition : Citizen->HealthIssues) {
-		for (FAffectStruct affect : condition.Affects) {
-			if (affect.Affect == EAffect::Movement)
-				Citizen->ApplyToMultiplier("Speed", 1.0f + (1.0f - affect.Amount));
-			else if (affect.Affect == EAffect::Damage)
-				Citizen->ApplyToMultiplier("Damage", 1.0f + (1.0f - affect.Amount));
-			else
-				Citizen->ApplyToMultiplier("Health", 1.0f + (1.0f - affect.Amount));
-		}
-	}
-
-	Citizen->HealthIssues.Empty();
-
-	Infected.Remove(Citizen);
-	Injured.Remove(Citizen);
-
-	Camera->NotifyLog("Good", Citizen->BioStruct.Name + " has been healed", Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
-
-	UpdateHealthText(Citizen);
-}
-
-void UCitizenManager::UpdateHealthText(ACitizen* Citizen)
-{
-	if (Camera->WidgetComponent->IsAttachedTo(Citizen->GetRootComponent()))
-		Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen]() { Camera->UpdateHealthIssues(); });
-}
-
-TArray<ACitizen*> UCitizenManager::GetAvailableHealers(FFactionStruct* Faction, TArray<ACitizen*>& Ill, ACitizen* Target)
-{
-	TArray<ACitizen*> healers;
-
-	for (ABuilding* building : Faction->Buildings) {
-		if (!building->IsA<AClinic>())
-			continue;
-
-		AClinic* clinic = Cast<AClinic>(building);
-
-		for (ACitizen* citizen : clinic->GetOccupied()) {
-			if (!clinic->IsWorking(citizen) || Camera->ConquestManager->IsCitizenInAnArmy(citizen))
-				continue;
-
-			AActor* goal = citizen->AIController->MoveRequest.GetGoalActor();
-			if (goal->IsA<ACitizen>() && Ill.Contains(Cast<ACitizen>(goal)))
-				Ill.Remove(Cast<ACitizen>(goal));
-
-			if (IsValid(Target) && Target != citizen)
-				continue;
-
-			healers.Add(citizen);
-		}
-	}
-
-	return healers;
-}
-
-void UCitizenManager::PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Healer)
-{
-	TArray<ACitizen*> ill;
-	ill.Append(Infected);
-	ill.Append(Injured);
-
-	TArray<ACitizen*> healers;
-	healers.Append(GetAvailableHealers(Faction, ill, Healer));
-
-	for (ACitizen* healer : healers) {
-		ACitizen* chosenPatient = nullptr;
-		FVector location = Camera->GetTargetActorLocation(healer);
-
-		for (ACitizen* citizen : ill) {
-			if (!citizen->AIController->CanMoveTo(location))
-				continue;
-
-			if (!IsValid(chosenPatient)) {
-				chosenPatient = citizen;
-
-				continue;
-			}
-
-			int32 curValue = Infected.Contains(chosenPatient) ? 3.0f : 1.0f;
-			int32 newValue = Infected.Contains(citizen) ? 3.0f : 1.0f;
-
-			double magnitude = healer->AIController->GetClosestActor(50.0f, Camera->GetTargetActorLocation(healer), Camera->GetTargetActorLocation(chosenPatient), Camera->GetTargetActorLocation(citizen), true, curValue, newValue);
-
-			if (magnitude > 0.0f)
-				chosenPatient = citizen;
-		}
-
-		if (IsValid(chosenPatient)) {
-			healer->AIController->AIMoveTo(chosenPatient);
-
-			ill.Remove(chosenPatient);
-		}
-		else
-			healer->AIController->DefaultAction();
-	}
 }
 
 //
@@ -2689,14 +2129,14 @@ void UCitizenManager::SelectNewLeader(FPartyStruct* Party)
 
 void UCitizenManager::StartElectionTimer(FFactionStruct* Faction)
 {
-	RemoveTimer(Faction->Name + " Election", GetOwner());
+	Camera->TimerManager->RemoveTimer(Faction->Name + " Election", GetOwner());
 	
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 	
 	TArray<FTimerParameterStruct> params;
-	SetParameter(*Faction, params);
+	Camera->TimerManager->SetParameter(*Faction, params);
 
-	CreateTimer(Faction->Name + " Election", Camera, timeToCompleteDay * GetLawValue(Faction->Name, "Election Timer"), "Election", params, false);
+	Camera->TimerManager->CreateTimer(Faction->Name + " Election", Camera, timeToCompleteDay * GetLawValue(Faction->Name, "Election Timer"), "Election", params, false);
 }
 
 void UCitizenManager::Election(FFactionStruct Faction)
@@ -2874,10 +2314,10 @@ void UCitizenManager::SetupBill(FFactionStruct* Faction)
 	}
 
 	TArray<FTimerParameterStruct> params;
-	SetParameter(*Faction, params);
-	SetParameter(Faction->Politics.ProposedBills[0], params);
+	Camera->TimerManager->SetParameter(*Faction, params);
+	Camera->TimerManager->SetParameter(Faction->Politics.ProposedBills[0], params);
 
-	CreateTimer(Faction->Name + " Bill", Camera, 60, "MotionBill", params, false);
+	Camera->TimerManager->CreateTimer(Faction->Name + " Bill", Camera, 60, "MotionBill", params, false);
 }
 
 void UCitizenManager::MotionBill(FFactionStruct Faction, FLawStruct Bill)
@@ -3004,10 +2444,10 @@ void UCitizenManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 
 		if (Faction->Politics.Laws[index].BillType == "Abolish") {
 			TArray<FTimerParameterStruct> params;
-			SetParameter(1000, params);
-			SetParameter(Camera, params);
+			Camera->TimerManager->SetParameter(1000, params);
+			Camera->TimerManager->SetParameter(Camera, params);
 
-			CreateTimer("Abolish", Faction->EggTimer, 6.0f, "TakeHealth", params, false);
+			Camera->TimerManager->CreateTimer("Abolish", Faction->EggTimer, 6.0f, "TakeHealth", params, false);
 		}
 		else if (Faction->Politics.Laws[index].BillType == "Election") {
 			Election(*Faction);
@@ -3239,8 +2679,8 @@ void UCitizenManager::Sacrifice(FString FactionName)
 	int32 index = Camera->Grid->Stream.RandRange(0, faction->Citizens.Num() - 1);
 	ACitizen* citizen = faction->Citizens[index];
 
-	RemoveTimer("Energy", citizen);
-	RemoveTimer("Eat", citizen);
+	Camera->TimerManager->RemoveTimer("Energy", citizen);
+	Camera->TimerManager->RemoveTimer("Eat", citizen);
 
 	citizen->AIController->StopMovement();
 	citizen->MovementComponent->SetMaxSpeed(0.0f);
@@ -3248,11 +2688,11 @@ void UCitizenManager::Sacrifice(FString FactionName)
 	UNiagaraComponent* component = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SacrificeSystem, citizen->MovementComponent->Transform.GetLocation());
 
 	TArray<FTimerParameterStruct> params1;
-	SetParameter(1000, params1);
-	SetParameter(Camera, params1);
-	SetParameter(citizen->AttackComponent->OnHitSound, params1);
+	Camera->TimerManager->SetParameter(1000, params1);
+	Camera->TimerManager->SetParameter(Camera, params1);
+	Camera->TimerManager->SetParameter(citizen->AttackComponent->OnHitSound, params1);
 
-	CreateTimer("Sacrifice", citizen, 4.0f, "TakeHealth", params1, false);
+	Camera->TimerManager->CreateTimer("Sacrifice", citizen, 4.0f, "TakeHealth", params1, false);
 
 	IncrementPray(*faction, "Bad", 1);
 }
@@ -3275,11 +2715,11 @@ void UCitizenManager::SetPrayTimer(FFactionStruct Faction, FString Type)
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	TArray<FTimerParameterStruct> params;
-	SetParameter(Faction, params);
-	SetParameter(Type, params);
-	SetParameter(-1, params);
+	Camera->TimerManager->SetParameter(Faction, params);
+	Camera->TimerManager->SetParameter(Type, params);
+	Camera->TimerManager->SetParameter(-1, params);
 
-	CreateTimer("Pray", Camera, timeToCompleteDay, "IncrementPray", params, false);
+	Camera->TimerManager->CreateTimer("Pray", Camera, timeToCompleteDay, "IncrementPray", params, false);
 }
 
 //

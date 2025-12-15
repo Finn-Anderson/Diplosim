@@ -6,7 +6,7 @@
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
@@ -65,9 +65,9 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 	float range = 500.0f * Magnitude;
 
 	TArray<FTimerParameterStruct> params;
-	Grid->Camera->CitizenManager->SetParameter(range, params);
-	Grid->Camera->CitizenManager->SetParameter(Magnitude, params);
-	Grid->Camera->CitizenManager->CreateTimer("Earthquake", Grid, 4.0f * Magnitude, "CalculateEarthquakeDamage", params, true);
+	Grid->Camera->TimerManager->SetParameter(range, params);
+	Grid->Camera->TimerManager->SetParameter(Magnitude, params);
+	Grid->Camera->TimerManager->CreateTimer("Earthquake", Grid, 4.0f * Magnitude, "CalculateEarthquakeDamage", params, true);
 }
 
 TArray<FTileStruct> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitude)
@@ -189,7 +189,7 @@ void UNaturalDisasterComponent::CalculateEarthquakeDamage(TArray<FEarthquakeStru
 
 void UNaturalDisasterComponent::CancelEarthquake()
 {
-	Grid->Camera->CitizenManager->RemoveTimer("Earthquake", Grid);
+	Grid->Camera->TimerManager->RemoveTimer("Earthquake", Grid);
 }
 
 void UNaturalDisasterComponent::GeneratePurifier(float Magnitude)
@@ -214,7 +214,7 @@ void UNaturalDisasterComponent::GenerateRedSun(float Magnitude)
 
 	AlterSunGradually(0.15f, -0.02f);
 
-	Grid->Camera->CitizenManager->CreateTimer("Red Sun", Grid, 120.0f * Magnitude, "CancelRedSun", {}, false);
+	Grid->Camera->TimerManager->CreateTimer("Red Sun", Grid, 120.0f * Magnitude, "CancelRedSun", {}, false);
 }
 
 void UNaturalDisasterComponent::AlterSunGradually(float Target, float Increment)

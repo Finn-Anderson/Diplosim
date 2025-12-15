@@ -6,6 +6,7 @@
 #include "Universal/Resource.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Buildings/Work/Work.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"

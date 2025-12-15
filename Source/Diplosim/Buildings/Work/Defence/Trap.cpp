@@ -6,7 +6,7 @@
 
 #include "Universal/HealthComponent.h"
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -31,7 +31,7 @@ void ATrap::StartTrapFuse()
 	if (FuseTime == 0.0f)
 		ActivateTrap();
 	else
-		Camera->CitizenManager->CreateTimer("Trap", this, FuseTime, "ActivateTrap", {}, false, true);
+		Camera->TimerManager->CreateTimer("Trap", this, FuseTime, "ActivateTrap", {}, false, true);
 }
 
 void ATrap::ActivateTrap()

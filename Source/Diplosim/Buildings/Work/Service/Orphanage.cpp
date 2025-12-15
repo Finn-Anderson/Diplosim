@@ -3,6 +3,7 @@
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -21,7 +22,7 @@ void AOrphanage::Enter(ACitizen* Citizen)
 	if (IsValid(GetOccupant(Citizen))) {
 		Citizen->bGain = true;
 
-		Camera->CitizenManager->UpdateTimerLength("Energy", this, 1);
+		Camera->TimerManager->UpdateTimerLength("Energy", this, 1);
 	}
 	else {
 		PickChildren(Citizen);
@@ -38,7 +39,7 @@ void AOrphanage::Leave(ACitizen* Citizen)
 	Citizen->bGain = false;
 
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
-	Camera->CitizenManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * Citizen->EnergyMultiplier);
+	Camera->TimerManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * Citizen->EnergyMultiplier);
 }
 
 void AOrphanage::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
@@ -52,7 +53,7 @@ void AOrphanage::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
 	Visitor->Building.Orphanage = nullptr;
 
-	Camera->CitizenManager->RemoveTimer("Orphanage", Visitor);
+	Camera->TimerManager->RemoveTimer("Orphanage", Visitor);
 
 	Super::RemoveVisitor(Occupant, Visitor);
 }
@@ -135,7 +136,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 
 		child->AIController->AIMoveTo(Citizen->Building.House);
 
-		child->Camera->CitizenManager->CreateTimer("Idle", child, 60.0f, "DefaultAction", {}, false, true);
+		child->Camera->TimerManager->CreateTimer("Idle", child, 60.0f, "DefaultAction", {}, false, true);
 
 		RemoveVisitor(GetOccupant(child), child);
 
@@ -144,5 +145,5 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 
 	Citizen->AIController->AIMoveTo(Citizen->Building.House);
 
-	Citizen->Camera->CitizenManager->CreateTimer("Idle", Citizen, 60.0f, "DefaultAction", {}, false, true);
+	Citizen->Camera->TimerManager->CreateTimer("Idle", Citizen, 60.0f, "DefaultAction", {}, false, true);
 }

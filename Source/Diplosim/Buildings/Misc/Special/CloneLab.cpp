@@ -3,6 +3,7 @@
 #include "AI/Clone.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -14,7 +15,7 @@ ACloneLab::ACloneLab()
 
 void ACloneLab::StartCloneLab()
 {
-	if (FactionName == "" || Camera->CitizenManager->DoesTimerExist("Internal", this))
+	if (FactionName == "" || Camera->TimerManager->DoesTimerExist("Internal", this))
 		return;
 
 	SetTimer();

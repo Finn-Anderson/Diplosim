@@ -835,6 +835,17 @@ struct FFactionStruct
 	}
 };
 
+//
+// AIVisualiser
+//
+UENUM()
+enum class EFactionType : uint8
+{
+	Both,
+	Different,
+	Same
+};
+
 class DIPLOSIM_API DiplosimUniversalTypes
 {
 public:

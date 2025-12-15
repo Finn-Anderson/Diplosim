@@ -1,7 +1,7 @@
 #include "Buildings/Work/Defence/Gate.h"
 
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 
 AGate::AGate()
 {
@@ -73,8 +73,8 @@ void AGate::UpdateNavigation()
 
 void AGate::SetTimer()
 {
-	if (Camera->CitizenManager->DoesTimerExist("Gate", this))
-		Camera->CitizenManager->UpdateTimerLength("Gate", this, 3.0f);
+	if (Camera->TimerManager->DoesTimerExist("Gate", this))
+		Camera->TimerManager->UpdateTimerLength("Gate", this, 3.0f);
 	else
-		Camera->CitizenManager->CreateTimer("Gate", this, 3.0f, "UpdateNavigation", {}, false);
+		Camera->TimerManager->CreateTimer("Gate", this, 3.0f, "UpdateNavigation", {}, false);
 }

@@ -2,7 +2,7 @@
 
 #include "Player/Camera.h"
 #include "Player/Managers/ResearchManager.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "AI/Citizen.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -32,7 +32,7 @@ void AResearch::BeginRotation()
 
 	Camera->Grid->AIVisualiser->RotatingBuildings.Add(this);
 
-	Camera->CitizenManager->CreateTimer("Rotate", this, GetTime(Camera->Grid->Stream.RandRange(60, 120)), "BeginRotation", {}, false, true);
+	Camera->TimerManager->CreateTimer("Rotate", this, GetTime(Camera->Grid->Stream.RandRange(60, 120)), "BeginRotation", {}, false, true);
 }
 
 void AResearch::Build(bool bRebuild, bool bUpgrade, int32 Grade)
@@ -76,7 +76,7 @@ void AResearch::Enter(class ACitizen* Citizen)
 	if (GetCitizensAtBuilding().Num() == 1)
 		BeginRotation();
 
-	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Research", this);
+	FTimerStruct* timer = Camera->TimerManager->FindTimer("Research", this);
 
 	if (timer == nullptr)
 		SetResearchTimer();
@@ -92,12 +92,12 @@ void AResearch::Leave(class ACitizen* Citizen)
 		return;
 
 	if (GetCitizensAtBuilding().IsEmpty()) {
-		Camera->CitizenManager->RemoveTimer("Rotate", this);
+		Camera->TimerManager->RemoveTimer("Rotate", this);
 
 		SetActorTickEnabled(false);
 	}
 
-	Camera->CitizenManager->RemoveTimer("Research", this);
+	Camera->TimerManager->RemoveTimer("Research", this);
 }
 
 float AResearch::GetTime(int32 Time)
@@ -113,13 +113,13 @@ float AResearch::GetTime(int32 Time)
 void AResearch::SetResearchTimer()
 {
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(GetCitizensAtBuilding()[0], params);
-	Camera->CitizenManager->CreateTimer("Research", this, GetTime(TimeLength), "Production", params, true);
+	Camera->TimerManager->SetParameter(GetCitizensAtBuilding()[0], params);
+	Camera->TimerManager->CreateTimer("Research", this, GetTime(TimeLength), "Production", params, true);
 }
 
 void AResearch::UpdateResearchTimer()
 {
-	FTimerStruct* timer = Camera->CitizenManager->FindTimer("Research", this);
+	FTimerStruct* timer = Camera->TimerManager->FindTimer("Research", this);
 
 	if (timer == nullptr)
 		return;

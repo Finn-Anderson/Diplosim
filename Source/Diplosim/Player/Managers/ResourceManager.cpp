@@ -6,6 +6,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Stockpile.h"
 #include "Buildings/House.h"
@@ -27,7 +28,7 @@ void UResourceManager::StoreBasket(TSubclassOf<AResource> Resource, ABuilding* B
 		if (product.Item.Resource != Resource)
 			continue;
 
-		Building->Camera->CitizenManager->RemoveTimer("Basket", Building);
+		Building->Camera->TimerManager->RemoveTimer("Basket", Building);
 
 		int32 extra = AddLocalResource(Resource, Building, product.Item.Amount);
 

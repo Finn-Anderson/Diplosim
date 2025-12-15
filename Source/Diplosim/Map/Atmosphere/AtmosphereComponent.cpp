@@ -15,6 +15,7 @@
 #include "AI/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -193,7 +194,7 @@ void UAtmosphereComponent::ChangeWindDirection()
 
 	int32 time = Grid->Stream.RandRange(180.0f, 600.0f);
 
-	Grid->Camera->CitizenManager->CreateTimer("Wind", Grid, time, "ChangeWindDirection", {}, false);
+	Grid->Camera->TimerManager->CreateTimer("Wind", Grid, time, "ChangeWindDirection", {}, false);
 }
 
 void UAtmosphereComponent::SetWindDimensions(int32 Bound)

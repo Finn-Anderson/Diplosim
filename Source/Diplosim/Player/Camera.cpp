@@ -20,6 +20,8 @@
 #include "Managers/ResourceManager.h"
 #include "Managers/ConstructionManager.h"
 #include "Managers/CitizenManager.h"
+#include "Managers/DiplosimTimerManager.h"
+#include "Managers/DiseaseManager.h"
 #include "Managers/ResearchManager.h"
 #include "Managers/ConquestManager.h"
 #include "Buildings/Building.h"
@@ -73,6 +75,10 @@ ACamera::ACamera()
 	ConstructionManager = CreateDefaultSubobject<UConstructionManager>(TEXT("ConstructionManager"));
 
 	CitizenManager = CreateDefaultSubobject<UCitizenManager>(TEXT("CitizenManager"));
+
+	TimerManager = CreateDefaultSubobject<UDiplosimTimerManager>(TEXT("TimerManager"));
+
+	DiseaseManager = CreateDefaultSubobject<UDiseaseManager>(TEXT("DiseaseManager"));
 
 	ResearchManager = CreateDefaultSubobject<UResearchManager>(TEXT("ResearchManager"));
 
@@ -221,7 +227,10 @@ void ACamera::Tick(float DeltaTime)
 		LoopCount += DeltaTime;
 
 		if (LoopCount > LoopInterval) {
-			// loop for citizen manager;
+			TimerManager->TimerLoop(this);
+			DiseaseManager->CalculateDisease(this);
+
+			ConquestManager->CheckLoadFactionLock();
 		}
 	}
 
@@ -371,11 +380,11 @@ void ACamera::OnEggTimerPlace(ABuilding* EggTimer)
 
 	gamemode->SetWaveTimer();
 
-	CitizenManager->CreateTimer("TradeValue", this, 300, "SetTradeValues", {}, true);
+	TimerManager->CreateTimer("TradeValue", this, 300, "SetTradeValues", {}, true);
 
-	CitizenManager->CreateTimer("EggBasket", Grid, 300, "SpawnEggBasket", {}, true, true);
+	TimerManager->CreateTimer("EggBasket", Grid, 300, "SpawnEggBasket", {}, true, true);
 
-	CitizenManager->StartDiseaseTimer();
+	DiseaseManager->StartDiseaseTimer(this);
 
 	ConquestManager->FinaliseFactions(Cast<ABroch>(EggTimer));
 
@@ -663,8 +672,8 @@ void ACamera::Smite(class AAI* AI)
 	int32 timeToCompleteDay = Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	TArray<FTimerParameterStruct> params;
-	CitizenManager->SetParameter(-1, params);
-	CitizenManager->CreateTimer("Smite", this, timeToCompleteDay, "IncrementSmites", params, false);
+	TimerManager->SetParameter(-1, params);
+	TimerManager->CreateTimer("Smite", this, timeToCompleteDay, "IncrementSmites", params, false);
 }
 
 void ACamera::IncrementSmites(int32 Increment)

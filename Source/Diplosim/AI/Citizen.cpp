@@ -14,6 +14,8 @@
 #include "DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
+#include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ResearchManager.h"
@@ -93,7 +95,7 @@ void ACitizen::BeginPlay()
 
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
-	Camera->CitizenManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, "Birthday", {}, true);
+	Camera->TimerManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, "Birthday", {}, true);
 
 	float minPitch = 0.8f;
 	float maxPitch = 1.2f;
@@ -118,17 +120,17 @@ void ACitizen::BeginPlay()
 void ACitizen::CitizenSetup(FFactionStruct* Faction)
 {
 	Faction->Citizens.Add(this);
-	Camera->CitizenManager->Infectible.Add(this);
+	Camera->DiseaseManager->Infectible.Add(this);
 
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
-	Camera->CitizenManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, "Eat", {}, true);
+	Camera->TimerManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, "Eat", {}, true);
 
-	Camera->CitizenManager->CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, "CheckGainOrLoseEnergy", {}, true);
+	Camera->TimerManager->CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, "CheckGainOrLoseEnergy", {}, true);
 
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(this, params);
-	Camera->CitizenManager->CreateTimer("ChooseIdleBuilding", this, 60, "ChooseIdleBuilding", params, true);
+	Camera->TimerManager->SetParameter(this, params);
+	Camera->TimerManager->CreateTimer("ChooseIdleBuilding", this, 60, "ChooseIdleBuilding", params, true);
 
 	if (BioStruct.Mother != nullptr && BioStruct.Mother->Building.BuildingAt != nullptr)
 		BioStruct.Mother->Building.BuildingAt->Enter(this);
@@ -625,9 +627,9 @@ float ACitizen::GetProductivity()
 
 void ACitizen::Heal(ACitizen* Citizen)
 {		
-	Camera->CitizenManager->Cure(Citizen);
+	Camera->DiseaseManager->Cure(Citizen);
 
-	Camera->CitizenManager->PairCitizenToHealer(Camera->ConquestManager->GetFaction("", this), this);
+	Camera->DiseaseManager->PairCitizenToHealer(Camera->ConquestManager->GetFaction("", this), this);
 }
 
 int32 ACitizen::GetLeftoverMoney()
@@ -860,8 +862,8 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 	MovementComponent->SetAnimation(EAnim::Melee, true);
 
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(Resource, params);
-	Camera->CitizenManager->CreateTimer("Harvest", this, time, "HarvestResource", params, false, true);
+	Camera->TimerManager->SetParameter(Resource, params);
+	Camera->TimerManager->CreateTimer("Harvest", this, time, "HarvestResource", params, false, true);
 
 	AIController->StopMovement();
 }
@@ -872,7 +874,7 @@ void ACitizen::HarvestResource(AResource* Resource)
 	
 	AResource* resource = Resource->GetHarvestedResource();
 
-	Camera->CitizenManager->Injure(this, 99);
+	Camera->DiseaseManager->Injure(this, 99);
 
 	LoseEnergy();
 
@@ -969,14 +971,14 @@ void ACitizen::Birthday()
 	if (BioStruct.Age == Camera->CitizenManager->GetLawValue(faction->Name, "Work Age") && IsValid(Building.Orphanage)) {
 		int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
-		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("Orphanage", this);
+		FTimerStruct* foundTimer = Camera->TimerManager->FindTimer("Orphanage", this);
 
 		if (foundTimer != nullptr)
-			Camera->CitizenManager->ResetTimer("Orphanage", this);
+			Camera->TimerManager->ResetTimer("Orphanage", this);
 		else {
 			TArray<FTimerParameterStruct> params;
-			Camera->CitizenManager->SetParameter(this, params);
-			Camera->CitizenManager->CreateTimer("Orphanage", this, timeToCompleteDay * 2.0f, "Kickout", params, false);
+			Camera->TimerManager->SetParameter(this, params);
+			Camera->TimerManager->CreateTimer("Orphanage", this, timeToCompleteDay * 2.0f, "Kickout", params, false);
 		}
 	}
 
@@ -1568,9 +1570,9 @@ void ACitizen::SetAttendStatus(EAttendStatus Status, bool bMass)
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(EAttendStatus::Neutral, params);
-	Camera->CitizenManager->SetParameter(bMass, params);
-	Camera->CitizenManager->CreateTimer("Mass", this, timeToCompleteDay * 2, "SetAttendStatus", params, false);
+	Camera->TimerManager->SetParameter(EAttendStatus::Neutral, params);
+	Camera->TimerManager->SetParameter(bMass, params);
+	Camera->TimerManager->CreateTimer("Mass", this, timeToCompleteDay * 2, "SetAttendStatus", params, false);
 }
 
 void ACitizen::SetHolliday(bool bStatus)
@@ -1885,7 +1887,7 @@ void ACitizen::SetEyesVisuals(int32 HappinessValue)
 
 	if (!AttackComponent->OverlappingEnemies.IsEmpty())
 		val16 = 1.0f;
-	else if (Camera->CitizenManager->Infected.Contains(this) || Camera->CitizenManager->Injured.Contains(this) || HappinessValue < 35)
+	else if (Camera->DiseaseManager->Infected.Contains(this) || Camera->DiseaseManager->Injured.Contains(this) || HappinessValue < 35)
 		val17 = 1.0f;
 	else if (HappinessValue > 65)
 		val15 = 1.0f;
@@ -2010,15 +2012,15 @@ void ACitizen::Snore(bool bCreate)
 			return;
 
 		TArray<FTimerParameterStruct> params;
-		Camera->CitizenManager->SetParameter(false, params);
-		Camera->CitizenManager->CreateTimer("Snore", this, time, "Snore", params, true);
+		Camera->TimerManager->SetParameter(false, params);
+		Camera->TimerManager->CreateTimer("Snore", this, time, "Snore", params, true);
 	}
 	else {
 		int32 index = Camera->Grid->Stream.RandRange(0, Snores.Num() - 1);
 
 		Camera->PlayAmbientSound(AmbientAudioComponent, Snores[index]);
 
-		Camera->CitizenManager->UpdateTimerLength("Snore", this, time);
+		Camera->TimerManager->UpdateTimerLength("Snore", this, time);
 	}
 }
 
@@ -2121,12 +2123,12 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 	else if (Affect == "Hunger") {
 		HungerMultiplier += Amount;
 
-		Camera->CitizenManager->UpdateTimerLength("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier);
+		Camera->TimerManager->UpdateTimerLength("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier);
 	}
 	else if (Affect == "Energy") {
 		EnergyMultiplier += Amount;
 
-		Camera->CitizenManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier);
+		Camera->TimerManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier);
 	}
 	else if (Affect == "Ideal Hours Slept") {
 		IdealHoursSlept = Amount;

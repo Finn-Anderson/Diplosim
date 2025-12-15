@@ -22,6 +22,8 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
+#include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
@@ -61,17 +63,17 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 
 		ApplyDamageOverlay();
 
-		FTimerStruct* foundTimer = Camera->CitizenManager->FindTimer("RemoveDamageOverlay", GetOwner());
+		FTimerStruct* foundTimer = Camera->TimerManager->FindTimer("RemoveDamageOverlay", GetOwner());
 
 		if (foundTimer == nullptr)
-			Camera->CitizenManager->CreateTimer("RemoveDamageOverlay", GetOwner(), 0.25f, "RemoveDamageOverlay", {}, false, true);
+			Camera->TimerManager->CreateTimer("RemoveDamageOverlay", GetOwner(), 0.25f, "RemoveDamageOverlay", {}, false, true);
 		else
-			Camera->CitizenManager->ResetTimer("RemoveDamageOverlay", GetOwner());
+			Camera->TimerManager->ResetTimer("RemoveDamageOverlay", GetOwner());
 
 		if (Health == 0)
 			Death(Attacker);
 		else if (GetOwner()->IsA<ACitizen>())
-			Camera->CitizenManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Grid->Stream.RandRange(0, 100));
+			Camera->DiseaseManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Grid->Stream.RandRange(0, 100));
 
 		Camera->PlayAmbientSound(HitAudioComponent, Sound);
 	});
@@ -141,7 +143,7 @@ void UHealthComponent::Death(AActor* Attacker)
 		attackComp->ClearAttacks();
 
 		Cast<AAI>(actor)->AIController->StopMovement();
-		Camera->CitizenManager->RemoveTimer("Idle", actor);
+		Camera->TimerManager->RemoveTimer("Idle", actor);
 
 		if (actor->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(actor);
@@ -190,8 +192,8 @@ void UHealthComponent::Death(AActor* Attacker)
 		if (building->IsA<AParliament>()) {
 			faction->Politics.Representatives.Empty();
 
-			Camera->CitizenManager->RemoveTimer(faction->Name + " Election", Camera);
-			Camera->CitizenManager->RemoveTimer(faction->Name + " Bill", Camera);
+			Camera->TimerManager->RemoveTimer(faction->Name + " Election", Camera);
+			Camera->TimerManager->RemoveTimer(faction->Name + " Bill", Camera);
 
 			Camera->BribeUIInstance->RemoveFromParent();
 			Camera->ParliamentUIInstance->RemoveFromParent();
@@ -217,9 +219,9 @@ void UHealthComponent::Death(AActor* Attacker)
 		return;
 
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(*faction, params);
-	Camera->CitizenManager->SetParameter(Attacker, params);
-	Camera->CitizenManager->CreateTimer("Clear Death", GetOwner(), 10.0f, "Clear", params, false, true);
+	Camera->TimerManager->SetParameter(*faction, params);
+	Camera->TimerManager->SetParameter(Attacker, params);
+	Camera->TimerManager->CreateTimer("Clear Death", GetOwner(), 10.0f, "Clear", params, false, true);
 }
 
 void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
@@ -347,7 +349,7 @@ void UHealthComponent::OnFire(int32 Counter)
 
 	if (Counter < 5) {
 		TArray<FTimerParameterStruct> params;
-		Camera->CitizenManager->SetParameter(Counter++, params);
-		Camera->CitizenManager->CreateTimer("OnFire", GetOwner(), 1.0f, "OnFire", params, false);
+		Camera->TimerManager->SetParameter(Counter++, params);
+		Camera->TimerManager->CreateTimer("OnFire", GetOwner(), 1.0f, "OnFire", params, false);
 	}
 }

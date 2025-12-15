@@ -22,6 +22,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Map/Resources/Vegetation.h"
@@ -1079,8 +1080,8 @@ void ABuilding::AddToBasket(TSubclassOf<AResource> Resource, int32 Amount)
 	FGuid id = FGuid().NewGuid();
 
 	TArray<FTimerParameterStruct> params;
-	Camera->CitizenManager->SetParameter(id, params);
-	Camera->CitizenManager->CreateTimer("Basket", this, 300.0f, "RemoveFromBasket", params, false);
+	Camera->TimerManager->SetParameter(id, params);
+	Camera->TimerManager->CreateTimer("Basket", this, 300.0f, "RemoveFromBasket", params, false);
 
 	FBasketStruct basketStruct;
 	basketStruct.ID = id;
