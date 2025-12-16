@@ -161,6 +161,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disease Manager")
 		class UDiseaseManager* DiseaseManager;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Events Manager")
+		class UEventsManager* EventsManager;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics Manager")
+		class UPoliticsManager* PoliticsManager;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Police Manager")
+		class UPoliceManager* PoliceManager;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Research Manager")
 		class UResearchManager* ResearchManager;
 

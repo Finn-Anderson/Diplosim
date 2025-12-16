@@ -6,7 +6,8 @@
 #include "AI/DiplosimAIController.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/EventsManager.h"
+#include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
@@ -63,12 +64,12 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 	AddToWorkHours(Citizen, true);
 
 	if (IsWorking(Citizen)) {
-		bool bAttendingEvent = Camera->CitizenManager->IsAttendingEvent(Citizen);
+		bool bAttendingEvent = Camera->EventsManager->IsAttendingEvent(Citizen);
 
 		if (bCanAttendEvents && bAttendingEvent)
 			return true;
 		else if (bAttendingEvent)
-			Camera->CitizenManager->RemoveFromEvent(Citizen);
+			Camera->EventsManager->RemoveFromEvent(Citizen);
 
 		Citizen->AIController->DefaultAction();
 	}
@@ -148,7 +149,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 	EWorkType type = *WorkHours[index].WorkHours.Find(Hour);
 
-	if ((type == EWorkType::Work && Camera->CitizenManager->GetRaidPolicyStatus(Citizen) == ERaidPolicy::Default && !Camera->CitizenManager->IsAttendingEvent(Citizen) && !Citizen->bHolliday) || bEmergency)
+	if ((type == EWorkType::Work && Camera->PoliticsManager->GetRaidPolicyStatus(Citizen) == ERaidPolicy::Default && !Camera->EventsManager->IsAttendingEvent(Citizen) && !Citizen->bHolliday) || bEmergency)
 		return true;
 
 	return false;

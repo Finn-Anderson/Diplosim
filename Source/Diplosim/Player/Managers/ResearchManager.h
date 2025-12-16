@@ -20,7 +20,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
 		TArray<FResearchStruct> InitResearchStruct;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Research")
 		UTexture2D* DefaultTexture;
 
 	UPROPERTY()

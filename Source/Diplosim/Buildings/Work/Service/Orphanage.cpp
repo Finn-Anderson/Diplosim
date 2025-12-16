@@ -5,6 +5,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/PoliticsManager.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Buildings/House.h"
@@ -62,7 +63,7 @@ void AOrphanage::Kickout(ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	if (Camera->CitizenManager->GetLawValue(faction->Name, "Work Age") > Citizen->BioStruct.Age && IsValid(GetOccupant(Citizen)))
+	if (Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") > Citizen->BioStruct.Age && IsValid(GetOccupant(Citizen)))
 		return;
 
 	RemoveVisitor(GetOccupant(Citizen), Citizen);
@@ -102,7 +103,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	int32 maxF = FMath::CeilToInt((100 - Citizen->Hunger) / (25.0f * Citizen->FoodMultiplier));
-	int32 cost = Camera->CitizenManager->GetLawValue(faction->Name, "Food Cost");
+	int32 cost = Camera->PoliticsManager->GetLawValue(faction->Name, "Food Cost");
 
 	int32 amount = FMath::Min(Citizen->Building.House->Space - Citizen->Building.House->GetVisitors(Citizen->Building.House->GetOccupant(Citizen)).Num(), money / (maxF * cost));
 

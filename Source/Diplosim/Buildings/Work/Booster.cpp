@@ -5,6 +5,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/PoliticsManager.h"
 #include "Map/Grid.h"
 #include "AI/Citizen.h"
 
@@ -108,7 +109,7 @@ bool ABooster::DoesPromoteFavouringValues(ACitizen* Citizen)
 
 		bool bContainsParty = faction->Politics.Parties.Contains(party);
 
-		if ((!Camera->CitizenManager->Religions.Contains(religion) && !bContainsParty) || element.Value == Citizen->Spirituality.Faith || (bContainsParty && element.Value == Camera->CitizenManager->GetMembersParty(Citizen)->Party))
+		if ((!Camera->CitizenManager->Religions.Contains(religion) && !bContainsParty) || element.Value == Citizen->Spirituality.Faith || (bContainsParty && element.Value == Camera->PoliticsManager->GetMembersParty(Citizen)->Party))
 			continue;
 
 		bFavouring = false;

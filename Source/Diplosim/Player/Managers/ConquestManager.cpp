@@ -11,6 +11,8 @@
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ResearchManager.h"
+#include "Player/Managers/EventsManager.h"
+#include "Player/Managers/PoliticsManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Player/Components/SaveGameComponent.h"
 #include "Map/Grid.h"
@@ -53,9 +55,9 @@ FFactionStruct UConquestManager::InitialiseFaction(FString Name)
 
 	faction.ResearchStruct = Camera->ResearchManager->InitResearchStruct;
 
-	faction.Politics.Parties = Camera->CitizenManager->InitParties;
-	faction.Politics.Laws = Camera->CitizenManager->InitLaws;
-	faction.Events = Camera->CitizenManager->InitEvents;
+	faction.Politics.Parties = Camera->PoliticsManager->InitParties;
+	faction.Politics.Laws = Camera->PoliticsManager->InitLaws;
+	faction.Events = Camera->EventsManager->InitEvents;
 
 	for (FResourceStruct resource : Camera->ResourceManager->ResourceList) {
 		FFactionResourceStruct factionResource;
@@ -363,7 +365,7 @@ void UConquestManager::SetFactionCulture(FFactionStruct* Faction)
 	TMap<FString, int32> partyCount;
 
 	for (ACitizen* Citizen : Faction->Politics.Representatives) {
-		FString party = Camera->CitizenManager->GetCitizenParty(Citizen);
+		FString party = Camera->PoliticsManager->GetCitizenParty(Citizen);
 
 		if (partyCount.Contains(party)) {
 			int32* count = partyCount.Find(party);
@@ -1462,7 +1464,7 @@ bool UConquestManager::CanJoinArmy(ACitizen* Citizen)
 {
 	FFactionStruct faction = GetCitizenFaction(Citizen);
 
-	if (Citizen->HealthComponent->GetHealth() == 0 || Camera->DiseaseManager->Injured.Contains(Citizen) || Camera->DiseaseManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->CitizenManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork() || IsCitizenInAnArmy(Citizen))
+	if (Citizen->HealthComponent->GetHealth() == 0 || Camera->DiseaseManager->Injured.Contains(Citizen) || Camera->DiseaseManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->PoliticsManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork() || IsCitizenInAnArmy(Citizen))
 		return false;
 
 	return true;

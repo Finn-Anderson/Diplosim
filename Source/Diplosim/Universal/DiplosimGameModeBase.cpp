@@ -15,6 +15,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
+#include "Player/Managers/PoliceManager.h"
 #include "DiplosimUserSettings.h"
 #include "DebugManager.h"
 
@@ -299,7 +300,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 	Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantEnemies = false;
 
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions)
-		Camera->CitizenManager->CeaseAllInternalFighting(&faction);
+		Camera->PoliceManager->CeaseAllInternalFighting(&faction);
 
 	int32 count = 1;
 

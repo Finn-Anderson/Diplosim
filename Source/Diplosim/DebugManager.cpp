@@ -6,7 +6,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/EventsManager.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/HealthComponent.h"
 #include "Map/Grid.h"
@@ -135,7 +135,7 @@ void UDebugManager::SetEvent(FString Type, FString Period, int32 Day, int32 Star
 	for (int32 i = StartHour; i < EndHour; i++)
 		hours.Add(i);
 
-	camera->CitizenManager->CreateEvent(camera->ColonyName, type, building, nullptr, Period, Day, hours, bRecurring, {}, bFireFestival);
+	camera->EventsManager->CreateEvent(camera->ColonyName, type, building, nullptr, Period, Day, hours, bRecurring, {}, bFireFestival);
 }
 
 void UDebugManager::DamageActor(int32 Amount)

@@ -6,9 +6,9 @@
 
 #include "AI/AIMovementComponent.h"
 #include "AI/Citizen.h"
-#include "Universal/HealthComponent.h"
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/EventsManager.h"
+#include "Universal/HealthComponent.h"
 
 AFestival::AFestival()
 {
@@ -103,7 +103,7 @@ void AFestival::OnBuilt()
 {
 	Super::OnBuilt();
 
-	for (auto& element : Camera->CitizenManager->OngoingEvents()) {
+	for (auto& element : Camera->EventsManager->OngoingEvents()) {
 		for (FEventStruct* event : element.Value) {
 			if (event->Type != EEventType::Festival)
 				continue;

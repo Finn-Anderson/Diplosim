@@ -18,6 +18,8 @@
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/EventsManager.h"
+#include "Player/Managers/PoliceManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/HealthComponent.h"
 #include "Buildings/Building.h"
@@ -171,7 +173,8 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		Grid->Camera->CitizenManager->CheckWorkStatus(hour);
 		Grid->Camera->CitizenManager->CheckCitizenStatus(hour);
 		Grid->Camera->CitizenManager->IssuePensions(hour);
-		Grid->Camera->CitizenManager->ItterateThroughSentences();
+
+		Grid->Camera->PoliceManager->ItterateThroughSentences();
 
 		if (hour == 6)
 			Grid->Camera->CitizenManager->CheckUpkeepCosts();
@@ -218,7 +221,7 @@ void UAtmosphereComponent::SetDisplayText(int32 Hour)
 		SetSeasonAffect(Calendar.Period, 0.02f);
 	}
 
-	Grid->Camera->CitizenManager->ExecuteEvent(Calendar.Period, Calendar.Days[Calendar.Index], Calendar.Hour);
+	Grid->Camera->EventsManager->ExecuteEvent(Calendar.Period, Calendar.Days[Calendar.Index], Calendar.Hour);
 
 	Grid->Camera->UpdateDayText();
 }

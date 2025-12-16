@@ -22,6 +22,9 @@
 #include "Managers/CitizenManager.h"
 #include "Managers/DiplosimTimerManager.h"
 #include "Managers/DiseaseManager.h"
+#include "Managers/EventsManager.h"
+#include "Managers/PoliticsManager.h"
+#include "Managers/PoliceManager.h"
 #include "Managers/ResearchManager.h"
 #include "Managers/ConquestManager.h"
 #include "Buildings/Building.h"
@@ -79,6 +82,12 @@ ACamera::ACamera()
 	TimerManager = CreateDefaultSubobject<UDiplosimTimerManager>(TEXT("TimerManager"));
 
 	DiseaseManager = CreateDefaultSubobject<UDiseaseManager>(TEXT("DiseaseManager"));
+
+	EventsManager = CreateDefaultSubobject<UEventsManager>(TEXT("EventsManager"));
+
+	PoliticsManager = CreateDefaultSubobject<UPoliticsManager>(TEXT("PoliticsManager"));
+
+	PoliceManager = CreateDefaultSubobject<UPoliceManager>(TEXT("PoliceManager"));
 
 	ResearchManager = CreateDefaultSubobject<UResearchManager>(TEXT("ResearchManager"));
 
@@ -141,6 +150,9 @@ void ACamera::BeginPlay()
 	CitizenManager->Camera = this;
 	SaveGameComponent->Camera = this;
 	ResearchManager->Camera = this;
+	EventsManager->Camera = this;
+	PoliticsManager->Camera = this;
+	PoliceManager->Camera = this;
 
 	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	Settings->Camera = this;
@@ -227,8 +239,19 @@ void ACamera::Tick(float DeltaTime)
 		LoopCount += DeltaTime;
 
 		if (LoopCount > LoopInterval) {
+			CitizenManager->CitizenGeneralLoop();
+			CitizenManager->CalculateGoalInteractions();
+			CitizenManager->CalculateConversationInteractions();
+
+			CitizenManager->CalculateAIFighting();
+			CitizenManager->CalculateBuildingFighting();
+
 			TimerManager->TimerLoop(this);
+
 			DiseaseManager->CalculateDisease(this);
+
+			PoliceManager->CalculateVandalism();
+			PoliceManager->ProcessReports();
 
 			ConquestManager->CheckLoadFactionLock();
 		}

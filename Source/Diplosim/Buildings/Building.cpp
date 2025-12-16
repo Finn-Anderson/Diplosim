@@ -21,9 +21,9 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConstructionManager.h"
-#include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/PoliceManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Map/Resources/Vegetation.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -567,12 +567,12 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 			tile->bRamp = false;
 	}
 
-	if (IsA(Camera->CitizenManager->PoliceStationClass)) {
+	if (IsA(Camera->PoliceManager->PoliceStationClass)) {
 		for (ACitizen* citizen : faction->Citizens) {
 			if (citizen->Building.BuildingAt != this || GetOccupied().Contains(citizen) || !faction->Police.Arrested.Contains(citizen))
 				continue;
 
-			Camera->CitizenManager->SetInNearestJail(*faction, nullptr, citizen);
+			Camera->PoliceManager->SetInNearestJail(*faction, nullptr, citizen);
 		}
 	}
 

@@ -19,9 +19,12 @@
 #include "AttackComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
-#include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/EventsManager.h"
+#include "Player/Managers/PoliticsManager.h"
+#include "Player/Managers/PoliceManager.h"
 #include "AIMovementComponent.h"
 #include "Map/Grid.h"
 
@@ -49,7 +52,7 @@ void ADiplosimAIController::DefaultAction()
 			AIMoveTo(citizen->Building.Employment);
 		}
 		else if (!Camera->CitizenManager->Enemies.IsEmpty()) {
-			ERaidPolicy raidPolicy = Camera->CitizenManager->GetRaidPolicyStatus(citizen);
+			ERaidPolicy raidPolicy = Camera->PoliticsManager->GetRaidPolicyStatus(citizen);
 
 			if (raidPolicy != ERaidPolicy::Default) {
 				if (raidPolicy == ERaidPolicy::Home)
@@ -61,17 +64,17 @@ void ADiplosimAIController::DefaultAction()
 			}
 		}
 
-		if (citizen->bConversing || Camera->CitizenManager->IsInAPoliceReport(citizen, faction) || citizen->AttackComponent->IsComponentTickEnabled() || Camera->CitizenManager->IsAttendingEvent(citizen))
+		if (citizen->bConversing || Camera->PoliceManager->IsInAPoliceReport(citizen, faction) || citizen->AttackComponent->IsComponentTickEnabled() || Camera->EventsManager->IsAttendingEvent(citizen))
 			return;
 
-		for (auto& element : Camera->CitizenManager->OngoingEvents()) {
+		for (auto& element : Camera->EventsManager->OngoingEvents()) {
 			if (element.Key->Name != faction->Name)
 				continue;
 
 			for (FEventStruct* event : element.Value) {
-				Camera->CitizenManager->GotoEvent(citizen, event);
+				Camera->EventsManager->GotoEvent(citizen, event);
 
-				if (Camera->CitizenManager->IsAttendingEvent(citizen))
+				if (Camera->EventsManager->IsAttendingEvent(citizen))
 					return;
 			}
 

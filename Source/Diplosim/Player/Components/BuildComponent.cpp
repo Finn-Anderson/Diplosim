@@ -8,7 +8,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ResourceManager.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/PoliceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Buildings/Building.h"
@@ -762,14 +762,14 @@ void UBuildComponent::Place(bool bQuick)
 				builder->GetOccupied()[0]->AIController->RecalculateMovement(BuildingToMove);
 		}
 
-		if (BuildingToMove->IsA(Camera->CitizenManager->PoliceStationClass)) {
+		if (BuildingToMove->IsA(Camera->PoliceManager->PoliceStationClass)) {
 			FFactionStruct* faction = Camera->ConquestManager->GetFaction(BuildingToMove->FactionName);
 
 			for (ACitizen* citizen : faction->Citizens) {
 				if (citizen->Building.BuildingAt != BuildingToMove || !faction->Police.Arrested.Contains(citizen))
 					continue;
 
-				Camera->CitizenManager->SetInNearestJail(*faction, nullptr, citizen);
+				Camera->PoliceManager->SetInNearestJail(*faction, nullptr, citizen);
 			}
 		}
 

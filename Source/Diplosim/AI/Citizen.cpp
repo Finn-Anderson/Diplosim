@@ -20,6 +20,8 @@
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/EventsManager.h"
+#include "Player/Managers/PoliticsManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Misc/Broch.h"
@@ -175,7 +177,7 @@ void ACitizen::ClearCitizen()
 		BioStruct.Partner = nullptr;
 	}
 
-	Camera->CitizenManager->RemoveFromEvent(this);
+	Camera->EventsManager->RemoveFromEvent(this);
 }
 
 void ACitizen::ApplyResearch(FFactionStruct* Faction)
@@ -196,7 +198,7 @@ void ACitizen::FindEducation(class ASchool* Education, int32 TimeToCompleteDay)
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 	
-	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(0) + TimeToCompleteDay || BioStruct.Age >= Camera->CitizenManager->GetLawValue(faction->Name, "Work Age") || BioStruct.Age < Camera->CitizenManager->GetLawValue(faction->Name, "Education Age") || BioStruct.EducationLevel == 5 || !CanAffordEducationLevel() || Education->GetOccupied().IsEmpty())
+	if (GetWorld()->GetTimeSeconds() < GetAcquiredTime(0) + TimeToCompleteDay || BioStruct.Age >= Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") || BioStruct.Age < Camera->PoliticsManager->GetLawValue(faction->Name, "Education Age") || BioStruct.EducationLevel == 5 || !CanAffordEducationLevel() || Education->GetOccupied().IsEmpty())
 		return;
 
 	ABuilding* chosenSchool = AllocatedBuildings[0];
@@ -510,7 +512,7 @@ bool ACitizen::CanAffordEducationLevel()
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 
-	if (money < Camera->CitizenManager->GetLawValue(faction->Name, "Education Cost"))
+	if (money < Camera->PoliticsManager->GetLawValue(faction->Name, "Education Cost"))
 		return false;
 
 	if (IsValid(Building.School))
@@ -527,7 +529,7 @@ void ACitizen::PayForEducationLevels()
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 
 	TMap<ACitizen*, int32> wallet;
-	int32 cost = Camera->CitizenManager->GetLawValue(faction->Name, "Education Cost");
+	int32 cost = Camera->PoliticsManager->GetLawValue(faction->Name, "Education Cost");
 
 	int32 leftoverMoney = GetLeftoverMoney();
 
@@ -575,7 +577,7 @@ bool ACitizen::CanWork(ABuilding* WorkBuilding)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 
-	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(faction->Name, "Work Age"))
+	if (BioStruct.Age < Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age"))
 		return false;
 
 	if (WorkBuilding->IsA<ABooster>() && !Cast<ABooster>(WorkBuilding)->DoesPromoteFavouringValues(this))
@@ -588,12 +590,12 @@ bool ACitizen::WillWork()
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 
-	int32 pensionAge = Camera->CitizenManager->GetLawValue(faction->Name, "Pension Age");
+	int32 pensionAge = Camera->PoliticsManager->GetLawValue(faction->Name, "Pension Age");
 
 	if (BioStruct.Age < pensionAge)
 		return true;
 
-	int32 pension = Camera->CitizenManager->GetLawValue(faction->Name, "Pension");
+	int32 pension = Camera->PoliticsManager->GetLawValue(faction->Name, "Pension");
 
 	if (IsValid(AllocatedBuildings[2]) && pension >= Cast<AHouse>(AllocatedBuildings[2])->Rent)
 		return false;
@@ -640,7 +642,7 @@ int32 ACitizen::GetLeftoverMoney()
 		money -= Building.House->Rent;
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
-	int32 cost = Camera->CitizenManager->GetLawValue(faction->Name, "Food Cost");
+	int32 cost = Camera->PoliticsManager->GetLawValue(faction->Name, "Food Cost");
 
 	for (ACitizen* child : BioStruct.Children) {
 		int32 maxF = FMath::CeilToInt((100 - child->Hunger) / (25.0f * child->FoodMultiplier));
@@ -686,7 +688,7 @@ void ACitizen::Eat()
 		totalAmount += curAmount;
 	}
 
-	int32 cost = Camera->CitizenManager->GetLawValue(faction->Name, "Food Cost");
+	int32 cost = Camera->PoliticsManager->GetLawValue(faction->Name, "Food Cost");
 
 	int32 maxF = FMath::CeilToInt((100 - Hunger) / (25.0f * FoodMultiplier));
 	int32 quantity = FMath::Clamp(totalAmount, 0, maxF);
@@ -968,7 +970,7 @@ void ACitizen::Birthday()
 	if (BioStruct.Age >= 18 && BioStruct.Partner == nullptr)
 		FindPartner(faction);
 
-	if (BioStruct.Age == Camera->CitizenManager->GetLawValue(faction->Name, "Work Age") && IsValid(Building.Orphanage)) {
+	if (BioStruct.Age == Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") && IsValid(Building.Orphanage)) {
 		int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 		FTimerStruct* foundTimer = Camera->TimerManager->FindTimer("Orphanage", this);
@@ -982,10 +984,10 @@ void ACitizen::Birthday()
 		}
 	}
 
-	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(faction->Name, "Vote Age"))
+	if (BioStruct.Age >= Camera->PoliticsManager->GetLawValue(faction->Name, "Vote Age"))
 		SetPoliticalLeanings();
 
-	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(faction->Name, "Work Age")) {
+	if (BioStruct.Age >= Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age")) {
 		if (IsValid(Building.House)) {
 			ACitizen* occupant = Building.House->GetOccupant(this);
 
@@ -1094,7 +1096,7 @@ void ACitizen::FindPartner(FFactionStruct* Faction)
 		if (!IsValid(c) || c == this || c->HealthComponent->GetHealth() == 0 || c->IsPendingKillPending() || c->BioStruct.Partner != nullptr || c->BioStruct.Age < 18)
 			continue;
 
-		int32 value = Camera->CitizenManager->GetLawValue(Faction->Name, "Same-Sex Laws");
+		int32 value = Camera->PoliticsManager->GetLawValue(Faction->Name, "Same-Sex Laws");
 
 		if (((BioStruct.Sexuality == ESexuality::Straight || value == 0) && c->BioStruct.Sex == BioStruct.Sex) || (BioStruct.Sexuality != ESexuality::Straight && value != 0 && c->BioStruct.Sex != BioStruct.Sex))
 			continue;
@@ -1213,7 +1215,7 @@ void ACitizen::HaveChild()
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 
-	if (!IsValid(Building.House) || BioStruct.Children.Num() >= Camera->CitizenManager->GetLawValue(faction->Name, "Child Policy"))
+	if (!IsValid(Building.House) || BioStruct.Children.Num() >= Camera->PoliticsManager->GetLawValue(faction->Name, "Child Policy"))
 		return;
 
 	ACitizen* occupant = nullptr;
@@ -1288,7 +1290,7 @@ void ACitizen::RemoveFromHouse()
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 
-	if (BioStruct.Age < Camera->CitizenManager->GetLawValue(faction->Name, "Work Age")) {
+	if (BioStruct.Age < Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age")) {
 		for (ABuilding* building : faction->Buildings) {
 			if (!building->IsA<AOrphanage>())
 				continue;
@@ -1348,7 +1350,7 @@ TArray<ACitizen*> ACitizen::GetLikedFamily(bool bFactorAge)
 		if (IsValid(sibling) && sibling->HealthComponent->GetHealth() != 0)
 			family.Add(sibling);
 
-	if (bFactorAge && BioStruct.Age < Camera->CitizenManager->GetLawValue(faction->Name, "Work Age"))
+	if (bFactorAge && BioStruct.Age < Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age"))
 		return family;
 
 	for (int32 i = (family.Num() - 1); i > -1; i--) {
@@ -1378,7 +1380,7 @@ void ACitizen::SetPoliticalLeanings()
 
 	TEnumAsByte<ESway>* sway = nullptr;
 
-	FPartyStruct* party = Camera->CitizenManager->GetMembersParty(this);
+	FPartyStruct* party = Camera->PoliticsManager->GetMembersParty(this);
 
 	if (party != nullptr)
 		sway = party->Members.Find(this);
@@ -1476,8 +1478,8 @@ void ACitizen::SetPoliticalLeanings()
 			party->Members.Add(this, ESway::Moderate);
 			sway = party->Members.Find(this);
 
-			if (party->Party == "Shell Breakers" && Camera->CitizenManager->IsRebellion(faction))
-				Camera->CitizenManager->SetupRebel(faction, this);
+			if (party->Party == "Shell Breakers" && Camera->PoliticsManager->IsRebellion(faction))
+				Camera->PoliticsManager->SetupRebel(faction, this);
 		}
 
 		bLog = true;
@@ -1701,7 +1703,7 @@ void ACitizen::SetHappiness()
 		}
 	}
 
-	if (BioStruct.Age >= Camera->CitizenManager->GetLawValue(faction->Name, "Work Age")) {
+	if (BioStruct.Age >= Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age")) {
 		if (Building.Employment == nullptr)
 			Happiness.SetValue("Unemployed", -10);
 		else
@@ -1745,7 +1747,7 @@ void ACitizen::SetHappiness()
 	}
 
 	if (BioStruct.Sexuality == ESexuality::Homosexual || BioStruct.Sexuality == ESexuality::Bisexual) {
-		int32 lawValue = Camera->CitizenManager->GetLawValue(faction->Name, "Same-Sex Laws");
+		int32 lawValue = Camera->PoliticsManager->GetLawValue(faction->Name, "Same-Sex Laws");
 		int32 sameSexHappiness = -20 + 10 * (lawValue + FMath::Floor(lawValue / 2));
 
 		if (BioStruct.Sexuality == ESexuality::Bisexual) {
@@ -1791,7 +1793,7 @@ void ACitizen::SetHappiness()
 	else if (ConversationHappiness > 0)
 		Happiness.SetValue("Recent conversations", ConversationHappiness);
 
-	FString party = Camera->CitizenManager->GetCitizenParty(this);
+	FString party = Camera->PoliticsManager->GetCitizenParty(this);
 
 	if (party != "Undecided") {
 		int32 lawTally = 0;
@@ -1810,9 +1812,9 @@ void ACitizen::SetHappiness()
 			if (index == INDEX_NONE)
 				continue;
 
-			if (!law.Lean[index].ForRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].ForRange, law.Value))
+			if (!law.Lean[index].ForRange.IsEmpty() && Camera->PoliticsManager->IsInRange(law.Lean[index].ForRange, law.Value))
 				count++;
-			else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
+			else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->PoliticsManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
 				count--;
 
 			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(this)) {
@@ -1824,9 +1826,9 @@ void ACitizen::SetHappiness()
 				if (index == INDEX_NONE)
 					continue;
 
-				if (!law.Lean[index].ForRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].ForRange, law.Value))
+				if (!law.Lean[index].ForRange.IsEmpty() && Camera->PoliticsManager->IsInRange(law.Lean[index].ForRange, law.Value))
 					count++;
-				else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->CitizenManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
+				else if (!law.Lean[index].AgainstRange.IsEmpty() && Camera->PoliticsManager->IsInRange(law.Lean[index].AgainstRange, law.Value))
 					count--;
 			}
 
@@ -1864,7 +1866,7 @@ void ACitizen::SetHappiness()
 		SadTimer = 0;
 	}
 
-	if (SadTimer == 300 && !Camera->CitizenManager->UpcomingProtest(faction)) {
+	if (SadTimer == 300 && !Camera->EventsManager->UpcomingProtest(faction)) {
 		int32 startHour = Camera->Grid->Stream.RandRange(6, 9);
 		int32 endHour = Camera->Grid->Stream.RandRange(12, 18);
 
@@ -1872,7 +1874,7 @@ void ACitizen::SetHappiness()
 		for (int32 i = startHour; i < endHour; i++)
 			hours.Add(i);
 
-		Camera->CitizenManager->CreateEvent(faction->Name, EEventType::Protest, nullptr, nullptr, "", 0, hours, false, {});
+		Camera->EventsManager->CreateEvent(faction->Name, EEventType::Protest, nullptr, nullptr, "", 0, hours, false, {});
 	}
 }
 

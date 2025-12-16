@@ -18,7 +18,7 @@
 #include "Universal/DiplosimGameModeBase.h"
 #include "AIMovementComponent.h"
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/PoliceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -240,9 +240,9 @@ void UAttackComponent::Attack()
 		return;
 
 	if (bShowMercy && healthComp->Health < 25)
-		Camera->CitizenManager->StopFighting(Cast<ACitizen>(GetOwner()));
+		Camera->PoliceManager->StopFighting(Cast<ACitizen>(GetOwner()));
 	else if (healthComp->Health == 0)
-		Camera->CitizenManager->ChangeReportToMurder(Cast<ACitizen>(GetOwner()));
+		Camera->PoliceManager->ChangeReportToMurder(Cast<ACitizen>(GetOwner()));
 }
 
 void UAttackComponent::Throw()

@@ -1,7 +1,7 @@
 #include "Buildings/Misc/Parliament.h"
 
 #include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Universal/HealthComponent.h"
 
@@ -17,7 +17,7 @@ void AParliament::OnBuilt()
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	Camera->CitizenManager->Election(*faction);
+	Camera->PoliticsManager->Election(*faction);
 
-	Camera->CitizenManager->StartElectionTimer(faction);
+	Camera->PoliticsManager->StartElectionTimer(faction);
 }
