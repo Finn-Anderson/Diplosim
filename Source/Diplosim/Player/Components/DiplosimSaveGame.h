@@ -720,6 +720,9 @@ struct FGamemodeData
 		TArray<FWaveData> WaveData;
 
 	UPROPERTY()
+		TArray<FString> EnemyNames;
+
+	UPROPERTY()
 		bool bOngoingRaid;
 
 	UPROPERTY()
@@ -769,9 +772,6 @@ struct FCitizenManagerData
 
 	UPROPERTY()
 		TArray<FString> InjuredNames;
-
-	UPROPERTY()
-		TArray<FString> EnemyNames;
 
 	UPROPERTY()
 		int32 IssuePensionHour;

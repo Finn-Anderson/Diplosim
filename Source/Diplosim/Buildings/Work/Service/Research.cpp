@@ -1,11 +1,11 @@
 #include "Buildings/Work/Service/Research.h"
 
-#include "Player/Camera.h"
-#include "Player/Managers/ResearchManager.h"
-#include "Player/Managers/DiplosimTimerManager.h"
 #include "AI/Citizen.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
+#include "Player/Camera.h"
+#include "Player/Managers/ResearchManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 
 AResearch::AResearch()
 {
@@ -25,14 +25,14 @@ void AResearch::BeginRotation()
 	PrevTurretTargetYaw = TurretTargetYaw;
 	PrevTelescopeTargetPitch = TelescopeTargetPitch;
 
-	TurretTargetYaw = Camera->Grid->Stream.RandRange(0, 359) / 360.0f;
-	TelescopeTargetPitch = Camera->Grid->Stream.RandRange(-15, 15) / 360.0f;
+	TurretTargetYaw = Camera->Stream.RandRange(0, 359) / 360.0f;
+	TelescopeTargetPitch = Camera->Stream.RandRange(-15, 15) / 360.0f;
 
 	RotationTime = GetWorld()->GetTimeSeconds();
 
 	Camera->Grid->AIVisualiser->RotatingBuildings.Add(this);
 
-	Camera->TimerManager->CreateTimer("Rotate", this, GetTime(Camera->Grid->Stream.RandRange(60, 120)), "BeginRotation", {}, false, true);
+	Camera->TimerManager->CreateTimer("Rotate", this, GetTime(Camera->Stream.RandRange(60, 120)), "BeginRotation", {}, false, true);
 }
 
 void AResearch::Build(bool bRebuild, bool bUpgrade, int32 Grade)

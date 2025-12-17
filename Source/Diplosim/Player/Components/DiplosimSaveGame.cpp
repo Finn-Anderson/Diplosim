@@ -5,6 +5,19 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/WidgetComponent.h"
 
+#include "AI/Citizen.h"
+#include "AI/Clone.h"
+#include "AI/AttackComponent.h"
+#include "AI/Projectile.h"
+#include "AI/AIMovementComponent.h"
+#include "AI/DiplosimAIController.h"
+#include "Buildings/Misc/Broch.h"
+#include "Buildings/Work/Service/Builder.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
+#include "Map/Atmosphere/Clouds.h"
+#include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConstructionManager.h"
@@ -16,19 +29,6 @@
 #include "Player/Components/SaveGameComponent.h"
 #include "Universal/EggBasket.h"
 #include "Universal/HealthComponent.h"
-#include "Map/Grid.h"
-#include "Map/Atmosphere/AtmosphereComponent.h"
-#include "Map/Atmosphere/NaturalDisasterComponent.h"
-#include "Map/Atmosphere/Clouds.h"
-#include "Map/AIVisualiser.h"
-#include "AI/Citizen.h"
-#include "AI/Clone.h"
-#include "AI/AttackComponent.h"
-#include "AI/Projectile.h"
-#include "AI/AIMovementComponent.h"
-#include "AI/DiplosimAIController.h"
-#include "Buildings/Misc/Broch.h"
-#include "Buildings/Work/Service/Builder.h"
 
 //
 // Saving
@@ -113,7 +113,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 	ActorData.WorldSaveData.Size = grid->Size;
 	ActorData.WorldSaveData.Chunks = grid->Chunks;
 
-	ActorData.WorldSaveData.Stream = grid->Stream;
+	ActorData.WorldSaveData.Stream = grid->Camera->Stream;
 
 	ActorData.WorldSaveData.LavaSpawnLocations = grid->LavaSpawnLocations;
 
@@ -280,9 +280,6 @@ void UDiplosimSaveGame::SaveCitizenManager(FActorSaveData& ActorData, AActor* Ac
 
 	for (ACitizen* citizen : camera->DiseaseManager->Injured)
 		cmData.InjuredNames.Add(citizen->GetName());
-
-	for (AAI* enemy : camera->CitizenManager->Enemies)
-		cmData.EnemyNames.Add(enemy->GetName());
 
 	cmData.IssuePensionHour = camera->CitizenManager->IssuePensionHour;
 
@@ -461,6 +458,9 @@ void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor)
 
 		gamemodeData->WaveData.Add(waveData);
 	}
+
+	for (AAI* enemy : gamemode->Enemies)
+		gamemodeData->EnemyNames.Add(enemy->GetName());
 
 	gamemodeData->bOngoingRaid = gamemode->bOngoingRaid;
 	gamemodeData->CrystalOpacity = camera->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0];
@@ -751,7 +751,7 @@ void UDiplosimSaveGame::LoadWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 	grid->Size = ActorData.WorldSaveData.Size;
 	grid->Chunks = ActorData.WorldSaveData.Chunks;
 
-	grid->Stream = ActorData.WorldSaveData.Stream;
+	grid->Camera->Stream = ActorData.WorldSaveData.Stream;
 
 	grid->LavaSpawnLocations = ActorData.WorldSaveData.LavaSpawnLocations;
 
@@ -1255,9 +1255,6 @@ void UDiplosimSaveGame::InitialiseCitizenManager(ACamera* Camera, FActorSaveData
 
 	for (FString name : cmData.InjuredNames)
 		Camera->DiseaseManager->Injured.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
-
-	for (FString name : cmData.EnemyNames)
-		Camera->CitizenManager->Enemies.Add(Cast<AAI>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
 }
 
 void UDiplosimSaveGame::InitialiseFactions(ACamera* Camera, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData)
@@ -1399,6 +1396,9 @@ void UDiplosimSaveGame::InitialiseGamemode(ACamera* Camera, ADiplosimGameModeBas
 
 		Gamemode->WavesData.Add(wave);
 	}
+
+	for (FString name : gamemodeData->EnemyNames)
+		Gamemode->Enemies.Add(Cast<AAI>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
 
 	if (!Gamemode->bSpawnedAllEnemies())
 		Gamemode->SpawnAllEnemies();

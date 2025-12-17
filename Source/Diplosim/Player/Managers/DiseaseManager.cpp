@@ -144,7 +144,7 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 							if (c->HealthIssues.Contains(condition))
 								continue;
 
-							int32 chance = Camera->Grid->Stream.RandRange(1, 100);
+							int32 chance = Camera->Stream.RandRange(1, 100);
 
 							if (chance <= condition.Spreadability) {
 								c->HealthIssues.Add(condition);
@@ -173,15 +173,15 @@ void UDiseaseManager::StartDiseaseTimer(ACamera* Camera)
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(Camera, params);
 
-	Camera->TimerManager->CreateTimer("Disease", Camera, Camera->Grid->Stream.RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), "SpawnDisease", params, false);
+	Camera->TimerManager->CreateTimer("Disease", Camera, Camera->Stream.RandRange(timeToCompleteDay / 2, timeToCompleteDay * 3), "SpawnDisease", params, false);
 }
 
 void UDiseaseManager::SpawnDisease(ACamera* Camera)
 {
-	int32 index = Camera->Grid->Stream.RandRange(0, Infectible.Num() - 1);
+	int32 index = Camera->Stream.RandRange(0, Infectible.Num() - 1);
 	ACitizen* citizen = Infectible[index];
 
-	index = Camera->Grid->Stream.RandRange(0, Diseases.Num() - 1);
+	index = Camera->Stream.RandRange(0, Diseases.Num() - 1);
 	citizen->HealthIssues.Add(Diseases[index]);
 
 	Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + Diseases[index].Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
@@ -202,7 +202,7 @@ void UDiseaseManager::Infect(ACitizen* Citizen)
 
 void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
 {
-	int32 index = Citizen->Camera->Grid->Stream.RandRange(1, 10);
+	int32 index = Citizen->Camera->Stream.RandRange(1, 10);
 
 	if (index < Odds)
 		return;
@@ -212,7 +212,7 @@ void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
 	for (FConditionStruct condition : Citizen->HealthIssues)
 		conditions.Remove(condition);
 
-	index = Citizen->Camera->Grid->Stream.RandRange(0, conditions.Num() - 1);
+	index = Citizen->Camera->Stream.RandRange(0, conditions.Num() - 1);
 	Citizen->HealthIssues.Add(conditions[index]);
 
 	for (FAffectStruct affect : conditions[index].Affects) {

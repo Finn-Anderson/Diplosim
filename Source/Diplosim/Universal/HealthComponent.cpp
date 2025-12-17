@@ -18,7 +18,8 @@
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Parliament.h"
-#include "DiplosimGameModeBase.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/CitizenManager.h"
@@ -26,8 +27,7 @@
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Map/Grid.h"
-#include "Map/AIVisualiser.h"
+#include "DiplosimGameModeBase.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -73,7 +73,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 		if (Health == 0)
 			Death(Attacker);
 		else if (GetOwner()->IsA<ACitizen>())
-			Camera->DiseaseManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Grid->Stream.RandRange(0, 100));
+			Camera->DiseaseManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Stream.RandRange(0, 100));
 
 		Camera->PlayAmbientSound(HitAudioComponent, Sound);
 	});
@@ -330,7 +330,7 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 				faction->Rebels.Remove(citizen);
 		}
 		else if (ai->IsA<AEnemy>())
-			Camera->CitizenManager->Enemies.Remove(ai);
+			GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.Remove(ai);
 		else
 			faction->Clones.Remove(ai);
 

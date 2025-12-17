@@ -98,7 +98,7 @@ void ADiplosimGameModeBase::EvaluateThreats()
 
 		WavesData.Last().Threats.Add(threat.Actor);
 
-		int32 chance = Camera->Grid->Stream.RandRange(1, 30);
+		int32 chance = Camera->Stream.RandRange(1, 30);
 		chance -= threat.Kills;
 
 		if (chance > 15 || Cast<AWall>(threat.Actor)->GetOccupied().IsEmpty())
@@ -197,7 +197,7 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	TArray<FVector> spawnLocations;
 
-	auto index = Async(EAsyncExecution::TaskGraph, [this, validTiles]() { return Camera->Grid->Stream.RandRange(0, validTiles.Num() - 1); });
+	auto index = Async(EAsyncExecution::TaskGraph, [this, validTiles]() { return Camera->Stream.RandRange(0, validTiles.Num() - 1); });
 	FVector startLocation = validTiles[index.Get()];
 
 	spawnLocations.Add(startLocation);
@@ -334,7 +334,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 
 void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour, int32* Spawned)
 {
-	int32 index = Camera->Grid->Stream.RandRange(0, spawnLocations.Num() - 1);
+	int32 index = Camera->Stream.RandRange(0, spawnLocations.Num() - 1);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
@@ -351,7 +351,7 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations,
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, FVector::Zero(), FRotator(0.0f), params);
 	enemy->Colour = Colour;
 
-	Camera->CitizenManager->Enemies.Add(enemy);
+	Enemies.Add(enemy);
 	Grid->AIVisualiser->AddInstance(enemy, Grid->AIVisualiser->HISMEnemy, transform);
 
 	enemy->MoveToBroch();

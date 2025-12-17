@@ -18,6 +18,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/PoliceManager.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 UPoliticsManager::UPoliticsManager()
 {
@@ -194,7 +195,7 @@ void UPoliticsManager::SelectNewLeader(FPartyStruct* Party)
 	if (candidates.IsEmpty())
 		return;
 
-	auto value = Async(EAsyncExecution::TaskGraph, [this, candidates]() { return Camera->Grid->Stream.RandRange(0, candidates.Num() - 1); });
+	auto value = Async(EAsyncExecution::TaskGraph, [this, candidates]() { return Camera->Stream.RandRange(0, candidates.Num() - 1); });
 
 	ACitizen* chosen = candidates[value.Get()];
 
@@ -263,7 +264,7 @@ void UPoliticsManager::Election(FFactionStruct Faction)
 			if (pair.Value.IsEmpty())
 				continue;
 
-			auto value = Async(EAsyncExecution::TaskGraph, [this, pair]() { return Camera->Grid->Stream.RandRange(0, pair.Value.Num() - 1); });
+			auto value = Async(EAsyncExecution::TaskGraph, [this, pair]() { return Camera->Stream.RandRange(0, pair.Value.Num() - 1); });
 
 			ACitizen* citizen = pair.Value[value.Get()];
 
@@ -380,7 +381,7 @@ void UPoliticsManager::SetupBill(FFactionStruct* Faction)
 		GetVerdict(Faction, citizen, Faction->Politics.ProposedBills[0], true, false);
 
 	for (ACitizen* citizen : Faction->Politics.Representatives) {
-		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return Camera->Grid->Stream.RandRange(2, 20); }).Get();
+		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return Camera->Stream.RandRange(2, 20); }).Get();
 
 		if (Faction->Politics.Votes.For.Contains(citizen) || Faction->Politics.Votes.Against.Contains(citizen))
 			bribe *= 4;
@@ -494,7 +495,7 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 
-	auto value = Async(EAsyncExecution::TaskGraph, [this, verdict]() { return Camera->Grid->Stream.RandRange(0, verdict.Num() - 1); });
+	auto value = Async(EAsyncExecution::TaskGraph, [this, verdict]() { return Camera->Stream.RandRange(0, verdict.Num() - 1); });
 
 	FString result = verdict[value.Get()];
 
@@ -657,7 +658,7 @@ ERaidPolicy UPoliticsManager::GetRaidPolicyStatus(ACitizen* Citizen)
 {
 	ERaidPolicy policy = ERaidPolicy::Default;
 
-	if (!Camera->CitizenManager->Enemies.IsEmpty())
+	if (!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty())
 		policy = ERaidPolicy(GetLawValue(Camera->ConquestManager->GetCitizenFaction(Citizen).Name, "Raid Policy"));
 
 	return policy;
@@ -674,7 +675,7 @@ void UPoliticsManager::ChooseRebellionType(FFactionStruct* Faction)
 	Faction->RebelCooldownTimer--;
 
 	if (Faction->RebelCooldownTimer < 1) {
-		int32 value = Camera->Grid->Stream.RandRange(1, 3);
+		int32 value = Camera->Stream.RandRange(1, 3);
 
 		if (value == 3) {
 			Overthrow(Faction);

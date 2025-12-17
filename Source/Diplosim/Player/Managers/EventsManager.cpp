@@ -41,7 +41,7 @@ void UEventsManager::CreateEvent(FString FactionName, EEventType Type, TSubclass
 		if (faction->Buildings.IsEmpty())
 			return;
 
-		ABuilding* building = faction->Buildings[Camera->Grid->Stream.RandRange(0, faction->Buildings.Num() - 1)];
+		ABuilding* building = faction->Buildings[Camera->Stream.RandRange(0, faction->Buildings.Num() - 1)];
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
@@ -362,7 +362,7 @@ void UEventsManager::CreateWedding(int32 Hour)
 				if (personality->Affects.Contains("Marriage"))
 					likelihood += *personality->Affects.Find("Marriage");
 
-			int32 chance = Camera->Grid->Stream.RandRange(80, 150);
+			int32 chance = Camera->Stream.RandRange(80, 150);
 			int32 likelihoodChance = likelihood * 10 + citizen->BioStruct.HoursTogetherWithPartner * 5;
 
 			if (likelihoodChance < chance)
@@ -379,7 +379,7 @@ void UEventsManager::CreateWedding(int32 Hour)
 			if (faiths.IsEmpty())
 				faiths.Append({ "Chicken", "Egg" });
 
-			int32 index = Camera->Grid->Stream.RandRange(0, faiths.Num() - 1);
+			int32 index = Camera->Stream.RandRange(0, faiths.Num() - 1);
 			FString chosenFaith = faiths[index];
 
 			ABooster* chosenChurch = nullptr;

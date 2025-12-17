@@ -4,17 +4,17 @@
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
-#include "Player/Camera.h"
-#include "Player/Managers/ResourceManager.h"
-#include "Player/Managers/EventsManager.h"
-#include "Player/Managers/PoliticsManager.h"
-#include "Player/Managers/ConquestManager.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Work/Booster.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Player/Camera.h"
+#include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/EventsManager.h"
+#include "Player/Managers/PoliticsManager.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Universal/HealthComponent.h"
 
 AWork::AWork()
@@ -230,7 +230,7 @@ void AWork::Production(ACitizen* Citizen)
 	TArray<ACitizen*> citizens = GetCitizensAtBuilding();
 
 	for (ACitizen* citizen : citizens) {
-		int32 chance = Camera->Grid->Stream.RandRange(1, 100);
+		int32 chance = Camera->Stream.RandRange(1, 100);
 
 		if (chance > 98)
 			continue;

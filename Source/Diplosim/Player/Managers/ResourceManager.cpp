@@ -492,7 +492,7 @@ TArray<TSubclassOf<AResource>> UResourceManager::GetResourcesFromCategory(FStrin
 void UResourceManager::RandomiseMarket()
 {
 	for (FResourceStruct& resource : ResourceList) {
-		int32 value = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(50, 5000);
+		int32 value = Cast<ACamera>(GetOwner())->Stream.RandRange(50, 5000);
 
 		resource.Stored = value;
 		resource.Value = 1 / FMath::Min(resource.Stored / 5000.0f, 1.0f);
@@ -502,7 +502,7 @@ void UResourceManager::RandomiseMarket()
 void UResourceManager::SetTradeValues()
 {
 	for (FResourceStruct& resource : ResourceList) {
-		int32 gain = Cast<ACamera>(GetOwner())->Grid->Stream.RandRange(-resource.Stored * 0.1f, resource.Stored * 0.1f + 10);
+		int32 gain = Cast<ACamera>(GetOwner())->Stream.RandRange(-resource.Stored * 0.1f, resource.Stored * 0.1f + 10);
 
 		resource.Stored += gain;
 		resource.Value = 1 / FMath::Min(resource.Stored / 5000.0f, 1.0f);

@@ -10,9 +10,12 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
+#include "AI/Citizen.h"
+#include "Buildings/Building.h"
 #include "Map/Grid.h"
 #include "Map/Resources/Vegetation.h"
-#include "AI/Citizen.h"
+#include "Map/Atmosphere/Clouds.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -22,9 +25,6 @@
 #include "Player/Managers/PoliceManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/HealthComponent.h"
-#include "Buildings/Building.h"
-#include "Clouds.h"
-#include "NaturalDisasterComponent.h"
 
 UAtmosphereComponent::UAtmosphereComponent()
 {
@@ -189,13 +189,13 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 void UAtmosphereComponent::ChangeWindDirection()
 {
-	float yaw = Grid->Stream.FRandRange(0.0f, 360.0f);
+	float yaw = Grid->Camera->Stream.FRandRange(0.0f, 360.0f);
 
 	WindRotation = FRotator(0.0f, yaw, 0.0f);
 
 	WindComponent->SetRelativeRotation(WindRotation + FRotator(0.0f, 180.0f, 0.0f));
 
-	int32 time = Grid->Stream.RandRange(180.0f, 600.0f);
+	int32 time = Grid->Camera->Stream.RandRange(180.0f, 600.0f);
 
 	Grid->Camera->TimerManager->CreateTimer("Wind", Grid, time, "ChangeWindDirection", {}, false);
 }

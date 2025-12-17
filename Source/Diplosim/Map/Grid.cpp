@@ -178,12 +178,12 @@ void AGrid::Load()
 {
 	LoadUIInstance->AddToViewport();
 
-	Stream.Initialize(*Seed);
+	Camera->Stream.Initialize(*Seed);
 
 	FString s = Seed;
 
 	if (s == "")
-		s = FString::FromInt(Stream.GetCurrentSeed());
+		s = FString::FromInt(Camera->Stream.GetCurrentSeed());
 
 	Camera->UpdateMapSeed(s);
 
@@ -296,8 +296,8 @@ void AGrid::SetupMap()
 		if (PeaksList.Num() < Peaks * Chunks) {
 			int32 range = bound / 4;
 
-			int32 chosenX = Stream.RandRange(range, bound - 1 - range);
-			int32 chosenY = Stream.RandRange(range, bound - 1 - range);
+			int32 chosenX = Camera->Stream.RandRange(range, bound - 1 - range);
+			int32 chosenY = Camera->Stream.RandRange(range, bound - 1 - range);
 
 			chosenTile = &Storage[chosenX][chosenY];
 
@@ -324,8 +324,8 @@ void AGrid::SetupMap()
 
 				float variance = distance * 0.66f;
 
-				p1 = FVector2D(Stream.RandRange(p0.X, pHalf.X) + Stream.RandRange(-variance, variance), Stream.RandRange(p0.Y, pHalf.Y) + Stream.RandRange(-variance, variance));
-				p2 = FVector2D(Stream.RandRange(pHalf.X, p3.X) + Stream.RandRange(-variance, variance), Stream.RandRange(pHalf.Y, p3.Y) + Stream.RandRange(-variance, variance));
+				p1 = FVector2D(Camera->Stream.RandRange(p0.X, pHalf.X) + Camera->Stream.RandRange(-variance, variance), Camera->Stream.RandRange(p0.Y, pHalf.Y) + Camera->Stream.RandRange(-variance, variance));
+				p2 = FVector2D(Camera->Stream.RandRange(pHalf.X, p3.X) + Camera->Stream.RandRange(-variance, variance), Camera->Stream.RandRange(pHalf.Y, p3.Y) + Camera->Stream.RandRange(-variance, variance));
 
 				double t = 0.0f;
 
@@ -373,7 +373,7 @@ void AGrid::SetupMap()
 			if (chooseableTiles.IsEmpty())
 				break;
 
-			int32 chosenNum = Stream.RandRange(0, chooseableTiles.Num() - 1);
+			int32 chosenNum = Camera->Stream.RandRange(0, chooseableTiles.Num() - 1);
 			chosenTile = chooseableTiles[chosenNum];
 
 			for (FTileStruct* tile : chooseableTiles) {
@@ -500,7 +500,7 @@ void AGrid::PaveRivers()
 		if (riverStartTiles.IsEmpty())
 			break;
 
-		int32 chosenNum = Stream.RandRange(0, riverStartTiles.Num() - 1);
+		int32 chosenNum = Camera->Stream.RandRange(0, riverStartTiles.Num() - 1);
 		FTileStruct* chosenTile = riverStartTiles[chosenNum];
 
 		FTileStruct* closestPeak = nullptr;
@@ -586,7 +586,7 @@ void AGrid::SpawnMinerals()
 
 	for (FResourceHISMStruct& ResourceStruct : MineralStruct) {
 		for (int32 i = 0; i < (num * ResourceStruct.Multiplier); i++) {
-			int32 chosenNum = Stream.RandRange(0, ValidMineralTiles.Num() - 1);
+			int32 chosenNum = Camera->Stream.RandRange(0, ValidMineralTiles.Num() - 1);
 			TArray<FTileStruct*> chosenTiles = ValidMineralTiles[chosenNum];
 
 			GenerateMinerals(chosenTiles[0], ResourceStruct.Resource);
@@ -631,10 +631,10 @@ void AGrid::SpawnVegetation()
 		}
 
 		for (int32 i = 0; i < iterations; i++) {
-			int32 chosenNum = Stream.RandRange(0, ResourceTiles.Num() - 1);
+			int32 chosenNum = Camera->Stream.RandRange(0, ResourceTiles.Num() - 1);
 			FTileStruct* chosenTile = ResourceTiles[chosenNum];
 
-			int32 amount = Stream.RandRange(min, max);
+			int32 amount = Camera->Stream.RandRange(min, max);
 
 			bool bTree = false;
 
@@ -756,14 +756,14 @@ void AGrid::FillHoles(FTileStruct* Tile)
 
 void AGrid::SetTileDetails(FTileStruct* Tile)
 {
-	int32 rand = Stream.RandRange(0, 3);
+	int32 rand = Camera->Stream.RandRange(0, 3);
 
 	Tile->Rotation = (FRotator(0.0f, 90.0f, 0.0f) * rand).Quaternion();
 
 	if ((bLava && Tile->Level == MaxLevel) || Tile->Level < 0)
 		return;
 
-	int32 value = Stream.RandRange(-1, 1);
+	int32 value = Camera->Stream.RandRange(-1, 1);
 
 	int32 fTile = 0;
 	int32 count = 0;
@@ -840,7 +840,7 @@ TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
 	}
 
 	if (!twoMostOuterTiles.IsEmpty()) {
-		int32 index = Stream.RandRange(0, twoMostOuterTiles.Num() - 1);
+		int32 index = Camera->Stream.RandRange(0, twoMostOuterTiles.Num() - 1);
 		FTileStruct* chosenTile = twoMostOuterTiles[index];
 
 		chosenTile->bRiver = true;
@@ -934,7 +934,7 @@ void AGrid::CalculateTile(FTileStruct* Tile)
 			AddCalculatedTile(HISMGround, transform);
 		}
 		else {
-			int32 chance = Stream.RandRange(1, 100);
+			int32 chance = Camera->Stream.RandRange(1, 100);
 
 			bool canUseRamp = true;
 
@@ -1011,7 +1011,7 @@ void AGrid::GenerateTiles()
 			FTransform transform;
 			element.Key->GetInstanceTransform(inst, transform);
 
-			FLinearColor colour = FLinearColor(Stream.FRandRange(0.0f, 1.0f), Stream.FRandRange(0.0f, 1.0f), Stream.FRandRange(0.0f, 1.0f));
+			FLinearColor colour = FLinearColor(Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f));
 
 			if (element.Key->GetOwner()->IsA<AResource>()) {
 				if (element.Key->GetOwner()->IsA<AVegetation>()) {
@@ -1027,11 +1027,11 @@ void AGrid::GenerateTiles()
 					}
 
 					if (bTree) {
-						int32 colourIndex = FMath::Floor(Stream.RandRange(0, 20) / 4.0f);
+						int32 colourIndex = FMath::Floor(Camera->Stream.RandRange(0, 20) / 4.0f);
 
 						colour = TreeColours[colourIndex];
 
-						int32 dyingChance = Stream.RandRange(0, 100);
+						int32 dyingChance = Camera->Stream.RandRange(0, 100);
 
 						if (dyingChance == 100)
 							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
@@ -1169,7 +1169,7 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 		if (distanceFromStart > dist * 2 * VegetationSizeMultiplier)
 			Amount -= 1;
 		else
-			Amount = Stream.RandRange(Amount - 1, Amount);
+			Amount = Camera->Stream.RandRange(Amount - 1, Amount);
 	}
 
 	if (Amount == 0 || Tile->Fertility == 0 || !ResourceTiles.Contains(Tile) || VegetationTiles.Contains(Tile) || Tile->bRiver || Tile->Level < 0 || GetTransform(Tile).GetLocation().Z < 0.0f)
@@ -1181,7 +1181,7 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 	int32 num = Amount;
 
 	if (!bTree)
-		num *= Stream.RandRange(10, 20);
+		num *= Camera->Stream.RandRange(10, 20);
 
 	for (int32 i = 0; i < num; i++) {
 		bool validXY = false;
@@ -1189,8 +1189,8 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 		int32 y = 0;
 
 		while (!validXY) {
-			x = Stream.RandRange(-40, 40);
-			y = Stream.RandRange(-40, 40);
+			x = Camera->Stream.RandRange(-40, 40);
+			y = Camera->Stream.RandRange(-40, 40);
 
 			if (!usedX.Contains(x) && !usedY.Contains(y))
 				validXY = true;
@@ -1199,12 +1199,12 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 		FTransform transform;
 		transform.SetLocation(GetTransform(Tile).GetLocation() + FVector(x, y, 0.0f));
 
-		float size = Stream.FRandRange(1.0f / Scale, Scale);
+		float size = Camera->Stream.FRandRange(1.0f / Scale, Scale);
 		transform.SetScale3D(FVector(size));
 
-		transform.SetRotation(FRotator(0.0f, Stream.RandRange(0, 360), 0.0f).Quaternion());
+		transform.SetRotation(FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Quaternion());
 
-		int32 index = Stream.RandRange(0, Vegetation.Num() - 1);
+		int32 index = Camera->Stream.RandRange(0, Vegetation.Num() - 1);
 
 		AVegetation* resource = Cast<AVegetation>(Vegetation[index].Resource);
 
@@ -1241,7 +1241,7 @@ void AGrid::RemoveTree(AResource* Resource, int32 Instance)
 
 void AGrid::SpawnEggBasket()
 {
-	int32 index = Stream.RandRange(0, ResourceTiles.Num() - 1);
+	int32 index = Camera->Stream.RandRange(0, ResourceTiles.Num() - 1);
 
 	if (index == INDEX_NONE)
 		return;
@@ -1328,7 +1328,7 @@ void AGrid::SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles)
 {
 	for (ASpecial* building : SpecialBuildings) {
 		if (bRandSpecialBuildings) {
-			int32 value = Stream.RandRange(0, 1);
+			int32 value = Camera->Stream.RandRange(0, 1);
 
 			if (value == 0)
 				building->SetActorHiddenInGame(true);
@@ -1336,7 +1336,7 @@ void AGrid::SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles)
 				building->SetActorHiddenInGame(false);
 		}
 
-		float yaw = Stream.RandRange(0, 3) * 90.0f;
+		float yaw = Camera->Stream.RandRange(0, 3) * 90.0f;
 
 		building->SetActorRotation(building->GetActorRotation() + FRotator(0.0f, yaw, 0.0f));
 
@@ -1357,7 +1357,7 @@ void AGrid::SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles)
 			building->SetActorHiddenInGame(true);
 		}
 		else {
-			int32 chosenLocation = Stream.RandRange(0, validLocations.Num() - 1);
+			int32 chosenLocation = Camera->Stream.RandRange(0, validLocations.Num() - 1);
 			building->SetActorLocation(GetTransform(validLocations[chosenLocation]).GetLocation());
 
 			validLocations[chosenLocation]->bUnique = true;

@@ -2,12 +2,22 @@
 
 #include "Components/WidgetComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "NavigationSystem.h"
+#include "Components/SphereComponent.h"
 #include "Misc/ScopeTryLock.h"
 
+#include "AI/Citizen.h"
+#include "AI/Clone.h"
+#include "AI/AttackComponent.h"
+#include "AI/DiplosimAIController.h"
+#include "AI/AIMovementComponent.h"
+#include "Buildings/Misc/Broch.h"
+#include "Buildings/Work/Defence/Trap.h"
+#include "Buildings/Work/Defence/Gate.h"
+#include "Buildings/Work/Defence/Tower.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
-#include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ResearchManager.h"
@@ -15,37 +25,21 @@
 #include "Player/Managers/PoliticsManager.h"
 #include "Player/Components/BuildComponent.h"
 #include "Player/Components/SaveGameComponent.h"
-#include "Map/Grid.h"
-#include "Map/AIVisualiser.h"
-#include "AI/Citizen.h"
-#include "AI/Clone.h"
-#include "AI/AttackComponent.h"
-#include "AI/DiplosimAIController.h"
-#include "AI/AIMovementComponent.h"
+#include "Player/Components/AIBuildComponent.h"
+#include "Player/Components/DiplomacyComponent.h"
 #include "Universal/HealthComponent.h"
-#include "Buildings/Misc/Portal.h"
-#include "Buildings/Misc/Broch.h"
-#include "Buildings/Work/Service/Builder.h"
-#include "Buildings/House.h"
-#include "Buildings/Work/Production/ExternalProduction.h"
-#include "Buildings/Work/Production/InternalProduction.h"
-#include "Buildings/Work/Service/Trader.h"
-#include "Buildings/Misc/Road.h"
 
 UConquestManager::UConquestManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
+	AIBuildComponent = CreateDefaultSubobject<UAIBuildComponent>(TEXT("AIBuildComponent"));
+
+	DiplomacyComponent = CreateDefaultSubobject<UDiplomacyComponent>(TEXT("DiplomacyComponent"));
+
 	AINum = 2;
 	MaxAINum = 2;
 	PlayerSelectedArmyIndex = -1;
-}
-
-void UConquestManager::BeginPlay()
-{
-	Super::BeginPlay();
-	
-	Camera = Cast<ACamera>(GetOwner());
 }
 
 FFactionStruct UConquestManager::InitialiseFaction(FString Name)
@@ -95,7 +89,7 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 	TArray<FTileStruct*> validLocations;
 
 	for (int32 i = 0; i < AINum; i++) {
-		int32 index = Camera->Grid->Stream.RandRange(0, factionsParsed.Num() - 1);
+		int32 index = Camera->Stream.RandRange(0, factionsParsed.Num() - 1);
 		factions.Add(factionsParsed[index]);
 
 		if (factionsParsed[index] != "")
@@ -135,7 +129,7 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 				validLocations.Add(tile);
 		}
 
-		int32 index = Camera->Grid->Stream.RandRange(0, validLocations.Num() - 1);
+		int32 index = Camera->Stream.RandRange(0, validLocations.Num() - 1);
 		FTileStruct* chosenTile = validLocations[index];
 
 		eggTimer->SetActorLocation(Camera->Grid->GetTransform(chosenTile).GetLocation());
@@ -153,7 +147,7 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 		FString type = "Good";
 
 		if (faction.Name != Camera->ColonyName) {
-			InitialiseTileLocationDistances(&faction);
+			AIBuildComponent->InitialiseTileLocationDistances(&faction);
 
 			type = "Neutral";
 		}
@@ -162,8 +156,8 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 
 		faction.EggTimer->SpawnCitizens();
 
-		SetFactionFlagColour(&faction);
-		SetFactionCulture(&faction);
+		DiplomacyComponent->SetFactionFlagColour(&faction);
+		DiplomacyComponent->SetFactionCulture(&faction);
 	}
 
 	Camera->SetFactionsInDiplomacyUI();
@@ -203,30 +197,6 @@ FFactionStruct UConquestManager::GetFactionFromName(FString FactionName)
 TArray<ACitizen*> UConquestManager::GetCitizensFromFactionName(FString FactionName)
 {
 	return GetFactionFromName(FactionName).Citizens;
-}
-
-void UConquestManager::SetFactionFlagColour(FFactionStruct* Faction)
-{
-	FTileStruct* tile = Camera->Grid->GetTileFromLocation(Faction->EggTimer->GetActorLocation());
-	auto bound = Camera->Grid->GetMapBounds();
-
-	Faction->FlagColour = FLinearColor(tile->X / bound, FMath::Abs(tile->Y / bound - 1.0f), tile->Level / Camera->Grid->MaxLevel);
-}
-
-UTexture2D* UConquestManager::GetTextureFromCulture(FString Party, FString Religion)
-{
-	UTexture2D* texture = nullptr;
-
-	for (FCultureImageStruct culture : CultureTextureList) {
-		if (culture.Party != Party || culture.Religion != Religion)
-			continue;
-
-		texture = culture.Texture;
-
-		break;
-	}
-		
-	return texture;
 }
 
 FPoliticsStruct UConquestManager::GetFactionPoliticsStruct(FString FactionName)
@@ -274,18 +244,18 @@ void UConquestManager::ComputeAI()
 		else if (!faction.AtWar.IsEmpty())
 			faction.WarFatigue++;
 
-		SetFactionsHappiness(faction);
+		DiplomacyComponent->SetFactionsHappiness(faction);
 
 		if (faction.Name == Camera->ColonyName)
 			continue;
 
-		SetFactionCulture(&faction);
+		DiplomacyComponent->SetFactionCulture(&faction);
 
 		Camera->UpdateFactionHappiness();
 
-		EvaluateDiplomacy(faction);
+		DiplomacyComponent->EvaluateDiplomacy(faction);
 
-		EvaluateAIBuild(&faction);
+		AIBuildComponent->EvaluateAIBuild(&faction);
 
 		EvaluateAIArmy(&faction);
 	}
@@ -308,6 +278,186 @@ void UConquestManager::ComputeAI()
 	}
 
 	FactionsToRemove.Empty();
+}
+
+void UConquestManager::CalculateAIFighting()
+{
+	Async(EAsyncExecution::TaskGraph, [this]() {
+		FScopeTryLock lock(&AIFightLock);
+		if (!lock.IsLocked())
+			return;
+
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Fighting);
+
+			return;
+		}
+
+		bool bEnemies = false;
+
+		TMap<FString, TArray<AAI*>> ais;
+
+		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+			if (!ais.Contains("Citizens"))
+				ais.Add("Citizens");
+
+			TArray<AAI*>* ai = ais.Find("Citizens");
+			ai->Append(faction.Citizens);
+
+			if (!ais.Contains("Clones"))
+				ais.Add("Clones");
+
+			ai = ais.Find("Clones");
+			ai->Append(faction.Clones);
+
+			if (!ais.Contains("Rebels"))
+				ais.Add("Rebels");
+
+			ai = ais.Find("Rebels");
+			ai->Append(faction.Rebels);
+
+			if (!faction.Rebels.IsEmpty())
+				bEnemies = true;
+		}
+
+		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+
+		ais.Add("Enemies", gamemode->Enemies);
+
+		if (!gamemode->Enemies.IsEmpty())
+			bEnemies = true;
+
+		if (!bEnemies)
+			return;
+
+		for (auto& element : ais) {
+			if (Camera->SaveGameComponent->IsLoading())
+				return;
+
+			for (AAI* ai : element.Value) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
+				if (!IsValid(ai) || ai->HealthComponent->GetHealth() <= 0)
+					continue;
+
+				FOverlapsStruct requestedOverlaps;
+
+				if (element.Key == "Citizens" || element.Key == "Clones")
+					requestedOverlaps.GetCitizenEnemies();
+				else if (element.Key == "Rebels")
+					requestedOverlaps.GetRebelsEnemies();
+				else
+					requestedOverlaps.GetEnemyEnemies();
+
+				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range, requestedOverlaps, EFactionType::Both);
+
+				for (AActor* actor : actors) {
+					if (Camera->SaveGameComponent->IsLoading())
+						return;
+
+					if (!IsValid(actor) || ai->AttackComponent->OverlappingEnemies.Contains(actor))
+						continue;
+
+					UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+
+					if ((healthComp && healthComp->GetHealth() <= 0) || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))))
+						continue;
+
+					ai->AttackComponent->OverlappingEnemies.Add(actor);
+
+					if (ai->AttackComponent->OverlappingEnemies.Num() == 1)
+						ai->AttackComponent->SetComponentTickEnabled(true);
+				}
+			}
+		}
+	});
+}
+
+void UConquestManager::CalculateBuildingFighting()
+{
+	Async(EAsyncExecution::TaskGraph, [this]() {
+		FScopeTryLock lock(&BuildingFightLock);
+		if (!lock.IsLocked())
+			return;
+
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Fighting);
+
+			return;
+		}
+
+		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+			if (faction.Rebels.IsEmpty() && GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty())
+				continue;
+
+			for (ABuilding* building : faction.Buildings) {
+				if (Camera->SaveGameComponent->IsLoading())
+					return;
+
+				if (!building->IsA<AGate>() && !building->IsA<ATower>() && !building->IsA<ATrap>())
+					continue;
+
+				UHealthComponent* healthComp = building->GetComponentByClass<UHealthComponent>();
+
+				if (healthComp->GetHealth() <= 0)
+					continue;
+
+				if (building->IsA<ATrap>()) {
+					ATrap* trap = Cast<ATrap>(building);
+
+					if (Camera->TimerManager->DoesTimerExist("Trap", trap))
+						continue;
+
+					FOverlapsStruct requestedOverlaps;
+					requestedOverlaps.GetCitizenEnemies();
+
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, trap->ActivateRange, requestedOverlaps, EFactionType::Both);
+
+					if (!actors.IsEmpty())
+						trap->StartTrapFuse();
+				}
+				else {
+					USphereComponent* rangeComp = building->GetComponentByClass<USphereComponent>();
+
+					FOverlapsStruct requestedOverlaps;
+					requestedOverlaps.GetCitizenEnemies();
+
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, rangeComp->GetUnscaledSphereRadius(), requestedOverlaps, EFactionType::Both);
+
+					if (building->IsA<AGate>()) {
+						AGate* gate = Cast<AGate>(building);
+
+						if (actors.IsEmpty())
+							gate->OpenGate();
+						else
+							gate->CloseGate();
+					}
+					else {
+						ATower* tower = Cast<ATower>(building);
+
+						for (AActor* actor : actors) {
+							if (Camera->SaveGameComponent->IsLoading())
+								return;
+
+							if (!IsValid(actor) || tower->AttackComponent->OverlappingEnemies.Contains(actor))
+								continue;
+
+							UHealthComponent* hpComp = actor->GetComponentByClass<UHealthComponent>();
+
+							if (hpComp && hpComp->GetHealth() <= 0)
+								continue;
+
+							tower->AttackComponent->OverlappingEnemies.Add(actor);
+
+							if (tower->AttackComponent->OverlappingEnemies.Num() == 1)
+								tower->AttackComponent->SetComponentTickEnabled(true);
+						}
+					}
+				}
+			}
+		}
+	});
 }
 
 void UConquestManager::CheckLoadFactionLock()
@@ -355,1106 +505,6 @@ FFactionStruct* UConquestManager::GetFaction(FString Name, AActor* Actor)
 	}
 
 	return faction;
-}
-
-//
-// Diplomacy
-//
-void UConquestManager::SetFactionCulture(FFactionStruct* Faction)
-{
-	TMap<FString, int32> partyCount;
-
-	for (ACitizen* Citizen : Faction->Politics.Representatives) {
-		FString party = Camera->PoliticsManager->GetCitizenParty(Citizen);
-
-		if (partyCount.Contains(party)) {
-			int32* count = partyCount.Find(party);
-			count++;
-		}
-		else {
-			partyCount.Add(party, 1);
-		}
-	}
-
-	TTuple<FString, int32> biggestParty;
-
-	for (auto& element : partyCount) {
-		if (biggestParty.Value >= element.Value)
-			continue;
-
-		biggestParty = element;
-	}
-
-	TMap<FString, int32> religionCount;
-
-	for (ACitizen* citizen : Faction->Citizens) {
-		FString faith = citizen->Spirituality.Faith;
-
-		if (religionCount.Contains(faith)) {
-			int32* count = religionCount.Find(faith);
-			count++;
-		}
-		else {
-			religionCount.Add(faith, 1);
-		}
-	}
-
-	TTuple<FString, int32> biggestReligion;
-
-	for (auto& element : religionCount) {
-		if (biggestReligion.Value >= element.Value)
-			continue;
-
-		biggestReligion = element;
-	}
-
-	if (Faction->PartyInPower == biggestParty.Key && Faction->LargestReligion == biggestReligion.Key)
-		return;
-
-	Faction->PartyInPower = biggestParty.Key;
-	Faction->LargestReligion = biggestReligion.Key;
-
-	Faction->Flag = GetTextureFromCulture(Faction->PartyInPower, Faction->LargestReligion);
-
-	Camera->UpdateFactionIcons(Factions.Find(*Faction));
-}
-
-int32 UConquestManager::GetHappinessWithFaction(FFactionStruct Faction, FFactionStruct Target)
-{
-	FFactionHappinessStruct happiness;
-	happiness.Owner = Target.Name;
-
-	int32 i = Factions.Find(Faction);
-
-	int32 index = Factions[i].Happiness.Find(happiness);
-
-	if (index == INDEX_NONE)
-		index = Factions[i].Happiness.Add(happiness);
-
-	happiness = Factions[i].Happiness[index];
-
-	return index;
-}
-
-int32 UConquestManager::GetHappinessValue(FFactionHappinessStruct Happiness)
-{
-	int32 value = 0;
-
-	for (auto& element : Happiness.Modifiers)
-		value += element.Value;
-
-	return value;
-}
-
-void UConquestManager::SetFactionsHappiness(FFactionStruct Faction)
-{
-	for (FFactionStruct& f : Factions) {
-		if (FactionsToRemove.Contains(f) || f == Faction)
-			continue;
-
-		int32 i = Factions.Find(Faction);
-
-		int32 index = GetHappinessWithFaction(Faction, f);
-		Factions[i].Happiness[index].ProposalTimer = FMath::Max(Factions[i].Happiness[index].ProposalTimer - 1, 0);
-
-		if (Faction.LargestReligion != f.LargestReligion) {
-			int32 value = -18;
-
-			if ((Faction.LargestReligion == "Egg" || Faction.LargestReligion == "Chicken") && (f.LargestReligion == "Egg" || f.LargestReligion == "Chicken"))
-				value = -6;
-
-			if (Factions[i].Happiness[index].Contains("Same religion"))
-				Factions[i].Happiness[index].RemoveValue("Same religion");
-
-			Factions[i].Happiness[index].SetValue("Different religion", value);
-		}
-		else {
-			if (Factions[i].Happiness[index].Contains("Different religion"))
-				Factions[i].Happiness[index].RemoveValue("Different religion");
-
-			Factions[i].Happiness[index].SetValue("Same religion", 18);
-		}
-
-		if (Faction.PartyInPower != f.PartyInPower) {
-			if (Factions[i].Happiness[index].Contains("Same party"))
-				Factions[i].Happiness[index].RemoveValue("Same party");
-
-			Factions[i].Happiness[index].SetValue("Different party", -18);
-		}
-		else {
-			if (Factions[i].Happiness[index].Contains("Different party"))
-				Factions[i].Happiness[index].RemoveValue("Different party");
-
-			Factions[i].Happiness[index].SetValue("Same party", 18);
-		}
-
-		if (Factions[i].Happiness[index].Contains("Recently enemies"))
-			Factions[i].Happiness[index].Decay("Recently enemies");
-
-		if (Factions[i].Happiness[index].Contains("Recently allies"))
-			Factions[i].Happiness[index].Decay("Recently allies");
-
-		if (Factions[i].Happiness[index].Contains("Insulted"))
-			Factions[i].Happiness[index].Decay("Insulted");
-
-		if (Factions[i].Happiness[index].Contains("Praised"))
-			Factions[i].Happiness[index].Decay("Praised");
-
-		if (f.Allies.Contains(Faction.Name)) {
-			Factions[i].Happiness[index].SetValue("Allies", 48);
-		}
-		else if (Factions[i].Happiness[index].Contains("Allies")) {
-			Factions[i].Happiness[index].SetValue("Recently allies", -12);
-			Factions[i].Happiness[index].RemoveValue("Allies");
-		}
-
-		for (FString owner : Faction.Allies) {
-			if (Factions[i].Happiness[index].Contains("Recently allied with " + owner))
-				Factions[i].Happiness[index].Decay("Recently allied with " + owner);
-
-			if (Factions[i].Happiness[index].Contains("Recently warring with ally: " + owner))
-				Factions[i].Happiness[index].Decay("Recently warring with ally: " + owner);
-
-			if (f.Allies.Contains(owner)) {
-				Factions[i].Happiness[index].SetValue("Allied with: " + owner, 12);
-			}
-			else if (Factions[i].Happiness[index].Contains("Allied with " + owner)) {
-				Factions[i].Happiness[index].SetValue("Recently allied with " + owner, -6);
-				Factions[i].Happiness[index].RemoveValue("Allied with " + owner);
-			}
-
-			if (f.AtWar.Contains(owner)) {
-				Factions[i].Happiness[index].SetValue("Warring with ally: " + owner, -12);
-			}
-			else if (Factions[i].Happiness[index].Contains("Warring with ally: " + owner)) {
-				Factions[i].Happiness[index].SetValue("Recently wrring with ally: " + owner, -6);
-				Factions[i].Happiness[index].RemoveValue("Warring with ally: " + owner);
-			}
-		}
-
-		if (f.AtWar.Contains(Faction.Name)) {
-			Factions[i].Happiness[index].SetValue("Enemies", -48);
-		}
-		else if (Factions[i].Happiness[index].Contains("Enemies")) {
-			Factions[i].Happiness[index].SetValue("Recently enemies", -24);
-			Factions[i].Happiness[index].RemoveValue("Enemies");
-		}
-
-		for (FString owner : Faction.AtWar) {
-			if (Factions[i].Happiness[index].Contains("Recently enemies with " + owner))
-				Factions[i].Happiness[index].Decay("Recently enemies with " + owner);
-
-			if (Factions[i].Happiness[index].Contains("Recently allied with enemy: " + owner))
-				Factions[i].Happiness[index].Decay("Recently allied with enemy: " + owner);
-
-			if (f.AtWar.Contains(owner)) {
-				Factions[i].Happiness[index].SetValue("Enemies with " + owner, 12);
-			}
-			else if (Factions[i].Happiness[index].Contains("Enemies with " + owner)) {
-				Factions[i].Happiness[index].SetValue("Recently enemies with " + owner, 6);
-				Factions[i].Happiness[index].RemoveValue("Enemies with " + owner);
-			}
-
-			if (f.Allies.Contains(owner)) {
-				Factions[i].Happiness[index].SetValue("Allied with enemy: " + owner, -12);
-			}
-			else if (Factions[i].Happiness[index].Contains("Allied with enemy: " + owner)) {
-				Factions[i].Happiness[index].SetValue("Recently allied with enemy: " + owner, 6);
-				Factions[i].Happiness[index].RemoveValue("Allied with enemy: " + owner);
-			}
-		}
-
-		bool bTooClose = false;
-
-		for (ABuilding* building : Factions[i].Buildings) {
-			TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(building, 3.0f);
-
-			for (FHitResult hit : hits) {
-				if (!hit.GetActor()->IsA<ABuilding>() || Cast<ABuilding>(hit.GetActor())->FactionName != Faction.Name)
-					continue;
-
-				bTooClose = true;
-
-				break;
-			}
-		}
-
-		if (!bTooClose && Factions[i].Happiness[index].Contains(f.Name + "is too close to settlement"))
-			Factions[i].Happiness[index].RemoveValue(f.Name + "is too close to settlement");
-		else if (bTooClose)
-			Factions[i].Happiness[index].SetValue(f.Name + "is too close to settlement", -6);
-	}
-}
-
-void UConquestManager::EvaluateDiplomacy(FFactionStruct Faction)
-{
-	TArray<FFactionStruct> potentialEnemies;
-	TArray<FFactionStruct> potentialAllies;
-
-	int32 i = Factions.Find(Faction);
-	
-	for (FFactionStruct& f : Factions) {
-		if (f.Name == Faction.Name || f.Name == Camera->ColonyName)
-			continue;
-
-		int32 i1 = GetHappinessWithFaction(Faction, f);
-		int32 i2 = GetHappinessWithFaction(f, Faction);
-
-		int32 value = GetHappinessValue(Factions[i].Happiness[i1]);
-		int32 fValue = GetHappinessValue(f.Happiness[i2]);
-
-		if (value < 12 && Faction.AtWar.IsEmpty() && Faction.Allies.Contains(f.Name)) {
-			BreakAlliance(Faction, f);
-		}
-		else if (Faction.AtWar.Contains(f.Name)) {
-			int32 newValue = value;
-			int32 newFValue = fValue;
-
-			TTuple<bool, bool> winnability = IsWarWinnable(Faction, f);
-
-			if (winnability.Key)
-				newValue -= 24;
-			
-			if (winnability.Value)
-				newFValue -= 24;
-
-			if (newValue + (Faction.WarFatigue / 3) >= 0) {
-				if (f.Name == Camera->ColonyName) {
-					DisplayConquestNotification(Faction.Name + " offers peace", Faction.Name, true);
-
-					Factions[i].Happiness[i1].ProposalTimer = 24;
-				}
-				else if (newFValue + (f.WarFatigue / 3) >= 0)
-					Peace(Faction, f);
-			}
-		}
-
-		if (f.Name == Camera->ColonyName)
-			fValue = 24;
-
-		if (value < 6) {
-			if (Faction.AtWar.IsEmpty() && !Faction.Allies.Contains(f.Name) && Faction.WarFatigue == 0 && IsWarWinnable(Faction, f).Key && !f.Happiness[i2].Contains("Recently allies"))
-				potentialEnemies.Add(f);
-			else if (!f.Happiness[i2].Contains("Insulted"))
-				Insult(Faction, f);
-		}
-		else if (value >= 24 && fValue >= 24 && !Faction.Allies.Contains(f.Name) && !Faction.AtWar.Contains(f.Name) && !f.Happiness[i2].Contains("Recently allies"))
-			potentialAllies.Add(f);
-		else if (value > 6 && !f.Happiness[i2].Contains("Praised"))
-			Praise(Faction, f);
-
-	}
-
-	if (!potentialEnemies.IsEmpty()) {
-		int32 index = Camera->Grid->Stream.RandRange(0, potentialEnemies.Num() - 1);
-		FFactionStruct f = potentialEnemies[index];
-
-		DeclareWar(Faction, f);
-
-		if (f.Name == Camera->ColonyName)
-			DisplayConquestNotification(Faction.Name + " has declared war on you", Faction.Name, false);
-	}
-
-	if (!potentialAllies.IsEmpty()) {
-		int32 index = Camera->Grid->Stream.RandRange(0, potentialAllies.Num() - 1);
-		FFactionStruct f = potentialAllies[index];
-
-		if (f.Name == Camera->ColonyName) {
-			DisplayConquestNotification(Faction.Name + " wants to be your ally", Faction.Name, true);
-
-			int32 i1 = GetHappinessWithFaction(Faction, f);
-			Factions[i].Happiness[i1].ProposalTimer = 24;
-		}
-		else
-			Ally(Faction, f);
-	}
-}
-
-int32 UConquestManager::GetStrengthScore(FFactionStruct Faction)
-{
-	int32 value = 0;
-
-	for (ACitizen* citizen : Faction.Citizens)
-		value += (citizen->HealthComponent->GetHealth() + citizen->AttackComponent->Damage);
-
-	for (ACitizen* citizen : Faction.Rebels)
-		value -= (citizen->HealthComponent->GetHealth() + citizen->AttackComponent->Damage);
-
-	if (!Camera->CitizenManager->Enemies.IsEmpty()) {
-		AAI* enemy = Camera->CitizenManager->Enemies[0];
-
-		value -= (Camera->CitizenManager->Enemies.Num() * enemy->HealthComponent->GetHealth() + Camera->CitizenManager->Enemies.Num() * enemy->AttackComponent->Damage);
-	}
-
-	return value;
-}
-
-TTuple<bool, bool> UConquestManager::IsWarWinnable(FFactionStruct Faction, FFactionStruct& Target)
-{
-	int32 factionStrength = GetStrengthScore(Faction);
-	int32 targetStrength = GetStrengthScore(Faction);
-
-	int32 total = FMath::Max(factionStrength + targetStrength, 1.0f);
-
-	bool bFactionCanWin = false;
-	bool bTargetCanWin = false;
-
-	if (factionStrength / total > 0.4f)
-		bFactionCanWin = true;
-
-	if (targetStrength / total > 0.4f)
-		bTargetCanWin = true;
-
-	return TTuple<bool, bool>(bFactionCanWin, bTargetCanWin);
-}
-
-void UConquestManager::Peace(FFactionStruct Faction1, FFactionStruct Faction2)
-{
-	int32 i1 = Factions.Find(Faction1);
-	int32 i2 = Factions.Find(Faction2);
-
-	Factions[i1].AtWar.Remove(Factions[i2].Name);
-	Factions[i2].AtWar.Remove(Factions[i1].Name);
-}
-
-void UConquestManager::Ally(FFactionStruct Faction1, FFactionStruct Faction2)
-{
-	int32 i1 = Factions.Find(Faction1);
-	int32 i2 = Factions.Find(Faction2);
-	
-	Factions[i1].Allies.Add(Factions[i2].Name);
-	Factions[i2].Allies.Add(Factions[i1].Name);
-}
-
-void UConquestManager::BreakAlliance(FFactionStruct Faction1, FFactionStruct Faction2)
-{
-	int32 i1 = Factions.Find(Faction1);
-	int32 i2 = Factions.Find(Faction2);
-
-	Factions[i1].Allies.Remove(Factions[i2].Name);
-	Factions[i2].Allies.Remove(Factions[i1].Name);
-}
-
-void UConquestManager::DeclareWar(FFactionStruct Faction1, FFactionStruct Faction2)
-{
-	int32 i1 = Factions.Find(Faction1);
-	int32 i2 = Factions.Find(Faction2);
-
-	Factions[i1].AtWar.Add(Factions[i2].Name);
-	Factions[i2].AtWar.Add(Factions[i1].Name);
-
-	if (Faction1.Name == Camera->ColonyName)
-		for (int32 i = 0; i < Faction2.Armies.Num(); i++)
-			Camera->SetArmyWidgetUI(Faction2.Name, Faction2.Armies[i].WidgetComponent->GetWidget(), i);
-	else if (Faction2.Name == Camera->ColonyName)
-		for (int32 i = 0; i < Faction1.Armies.Num(); i++)
-			Camera->SetArmyWidgetUI(Faction1.Name, Faction1.Armies[i].WidgetComponent->GetWidget(), i);
-}
-
-void UConquestManager::Insult(FFactionStruct Faction, FFactionStruct Target)
-{
-	int32 i = Factions.Find(Faction);
-	int32 index = GetHappinessWithFaction(Target, Faction);
-
-	Factions[i].Happiness[index].SetValue("Insulted", -12);
-}
-
-void UConquestManager::Praise(FFactionStruct Faction, FFactionStruct Target)
-{
-	int32 i = Factions.Find(Faction);
-	int32 index = GetHappinessWithFaction(Target, Faction);
-
-	Factions[i].Happiness[index].SetValue("Praised", 12);
-}
-
-void UConquestManager::Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts)
-{
-	for (FGiftStruct gift : Gifts) {
-		if (!Camera->ResourceManager->TakeUniversalResource(GetFaction(Faction.Name), gift.Resource, gift.Amount, 0))
-			continue;
-
-		int32 i = Factions.Find(Faction);
-
-		FFactionStruct playerFaction = GetFactionFromName(Camera->ColonyName);
-
-		int32 index = GetHappinessWithFaction(Faction, playerFaction);
-
-		int32 value = Camera->ResourceManager->GetMarketValue(gift.Resource) * gift.Amount / 12;
-
-		if (Factions[i].Happiness[index].Contains("Received a gift"))
-			Factions[i].Happiness[index].SetValue("Received a gift", Factions[i].Happiness[index].GetValue("Received a gift") + value);
-		else
-			Factions[i].Happiness[index].SetValue("Received a gift", value);
-	}
-}
-
-//
-// Tile Distance Calulation
-//
-
-double UConquestManager::CalculateTileDistance(FVector EggTimerLocation, FVector TileLocation)
-{
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
-	FNavLocation targetLoc;
-	nav->ProjectPointToNavigation(EggTimerLocation, targetLoc, FVector(20.0f, 20.0f, 20.0f));
-
-	FNavLocation ownerLoc;
-	nav->ProjectPointToNavigation(TileLocation, ownerLoc, FVector(20.0f, 20.0f, 20.0f));
-
-	double length;
-	ENavigationQueryResult::Type result = nav->GetPathLength(GetWorld(), targetLoc.Location, ownerLoc.Location, length);
-
-	if (result != ENavigationQueryResult::Success)
-		return 100000000000.0f;
-
-	return length;
-}
-
-void UConquestManager::InitialiseTileLocationDistances(FFactionStruct* Faction)
-{
-	for (TArray<FTileStruct>& row : Camera->Grid->Storage) {
-		for (FTileStruct& tile : row) {
-			if (tile.bMineral || tile.bRamp)
-				continue;
-
-			FTransform transform = Camera->Grid->GetTransform(&tile);
-
-			if (Faction->Citizens[0]->AIController->CanMoveTo(transform.GetLocation()))
-				Faction->AccessibleBuildLocations.Add(transform.GetLocation(), CalculateTileDistance(Faction->EggTimer->GetActorLocation(), transform.GetLocation()));
-			else	
-				Faction->InaccessibleBuildLocations.Add(transform.GetLocation());
-		}
-	}
-
-	RemoveTileLocations(Faction, Faction->EggTimer);
-
-	SortTileDistances(Faction->AccessibleBuildLocations);
-}
-
-void UConquestManager::RecalculateTileLocationDistances(FFactionStruct* Faction)
-{
-	for (int32 i = Faction->InaccessibleBuildLocations.Num() - 1; i > -1; i--) {
-		FVector location = Faction->InaccessibleBuildLocations[i];
-
-		if (!Faction->Citizens[0]->AIController->CanMoveTo(location))
-			continue;
-
-		Faction->AccessibleBuildLocations.Add(location, CalculateTileDistance(Faction->EggTimer->GetActorLocation(), location));
-		Faction->InaccessibleBuildLocations.RemoveAt(i);
-	}
-
-	Faction->FailedBuild = 0;
-
-	SortTileDistances(Faction->AccessibleBuildLocations);
-}
-
-void UConquestManager::RemoveTileLocations(FFactionStruct* Faction, ABuilding* Building)
-{
-	TArray<FVector> roadLocations;
-
-	TArray<FVector> locations;
-	Faction->AccessibleBuildLocations.GenerateKeyArray(locations);
-
-	for (FVector location : locations) {
-		FVector hitLocation;
-		Building->BuildingMesh->GetClosestPointOnCollision(location, hitLocation);
-
-		double distance = FVector::Dist(location, hitLocation);
-
-		if (distance < 100.0f) {
-			Faction->AccessibleBuildLocations.Remove(location);
-
-			if (distance > 40.0f)
-				roadLocations.Add(location);
-		}
-	}
-
-	if (!Faction->RoadBuildLocations.IsEmpty()) {
-		FVector closestCurrentRoad = FVector::Zero();
-		for (FVector location : Faction->RoadBuildLocations) {
-			if (closestCurrentRoad == FVector::Zero()) {
-				closestCurrentRoad = location;
-
-				continue;
-			}
-
-			if (FVector::Dist(Building->GetActorLocation(), location) > FVector::Dist(Building->GetActorLocation(), closestCurrentRoad))
-				continue;
-
-			closestCurrentRoad = location;
-		}
-
-		FVector closestNewRoad = FVector::Zero();
-		for (FVector location : roadLocations) {
-			if (closestNewRoad == FVector::Zero()) {
-				closestNewRoad = location;
-
-				continue;
-			}
-
-			if (FVector::Dist(closestCurrentRoad, location) > FVector::Dist(closestCurrentRoad, closestNewRoad))
-				continue;
-
-			closestNewRoad = location;
-		}
-
-		FTileStruct* tile = Camera->Grid->GetTileFromLocation(closestNewRoad);
-
-		roadLocations.Append(ConnectRoadTiles(Faction, tile, closestCurrentRoad));
-	}
-
-	for (FVector location : roadLocations) {
-		if (Faction->RoadBuildLocations.Contains(location))
-			continue;
-
-		Faction->RoadBuildLocations.Add(location);
-	}
-
-	SortTileDistances(Faction->AccessibleBuildLocations);
-}
-
-void UConquestManager::SortTileDistances(TMap<FVector, double>& Locations)
-{
-	Locations.ValueSort([](double s1, double s2)
-	{
-		return s1 < s2;
-	});
-}
-
-TArray<FVector> UConquestManager::ConnectRoadTiles(FFactionStruct* Faction, FTileStruct* Tile, FVector Location)
-{
-	TArray<FVector> locations;
-
-	FTransform transform = Camera->Grid->GetTransform(Tile);
-
-	if (transform.GetLocation() == Location)
-		return locations;
-
-	locations.Add(transform.GetLocation());
-
-	FTileStruct* closestTile = nullptr;
-
-	for (auto& element : Tile->AdjacentTiles) {
-		if (closestTile == nullptr) {
-			closestTile = element.Value;
-
-			continue;
-		}
-
-		FTransform closestTransform = Camera->Grid->GetTransform(closestTile);
-		FTransform newTransform = Camera->Grid->GetTransform(element.Value);
-
-		if (FVector::Dist(Location, newTransform.GetLocation()) > FVector::Dist(Location, closestTransform.GetLocation()))
-			continue;
-
-		closestTile = element.Value;
-	}
-
-	locations.Append(ConnectRoadTiles(Faction, closestTile, Location));
-
-	return locations;
-}
-
-//
-// Building
-//
-void UConquestManager::EvaluateAIBuild(FFactionStruct* Faction)
-{
-	int32 numBuildings = Faction->Buildings.Num();
-
-	AITrade(Faction);
-
-	BuildFirstBuilder(Faction);
-
-	for (ABuilding* building : Faction->RuinedBuildings)
-		building->Rebuild(Faction->Name);
-
-	BuildAIBuild(Faction);
-
-	BuildAIHouse(Faction);
-
-	BuildAIRoads(Faction);
-	
-	if (Faction->Buildings.Num() > numBuildings)
-		RecalculateTileLocationDistances(Faction);
-	else
-		Faction->FailedBuild++;
-
-	BuildAIAccessibility(Faction);
-}
-
-void UConquestManager::AITrade(FFactionStruct* Faction)
-{
-	ATrader* trader = nullptr;
-
-	for (ABuilding* building : Faction->Buildings) {
-		if (!building->IsA<ATrader>())
-			continue;
-
-		trader = Cast<ATrader>(building);
-
-		break;
-	}
-
-	if (!IsValid(trader) || !trader->Orders.IsEmpty())
-		return;
-
-	FQueueStruct order;
-
-	for (FFactionResourceStruct resourceStruct : Faction->Resources) {
-		if (resourceStruct.Type == Camera->ResourceManager->Money)
-			continue;
-
-		int32 amount = Camera->ResourceManager->GetResourceAmount(Faction->Name, resourceStruct.Type);
-
-		if (amount <= 100)
-			continue;
-
-		FItemStruct item;
-		item.Resource = resourceStruct.Type;
-		item.Amount = amount - 100;
-
-		order.SellingItems.Add(item);
-	}
-
-	trader->SetNewOrder(order);
-}
-
-void UConquestManager::BuildFirstBuilder(FFactionStruct* Faction)
-{
-	bool bContainsBuilder = false;
-
-	for (ABuilding* building : Faction->Buildings) {
-		if (!building->IsA<ABuilder>())
-			continue;
-
-		bContainsBuilder = true;
-
-		break;
-	}
-
-	if (bContainsBuilder) {
-		for (FAIBuildStruct aibuild : AIBuilds) {
-			if (!aibuild.Building->GetDefaultObject()->IsA<ABuilder>())
-				continue;
-
-			AIBuild(Faction, aibuild.Building, nullptr);
-
-			return;
-		}
-	}
-}
-
-void UConquestManager::BuildAIBuild(FFactionStruct* Faction)
-{
-	int32 count = 0;
-
-	TArray<TSubclassOf<ABuilding>> buildingsClassList;
-
-	for (FResourceStruct resource : Camera->ResourceManager->ResourceList) {
-		if (resource.Category != "Food")
-			continue;
-
-		if (count == 2)
-			break;
-
-		int32 trend = Camera->ResourceManager->GetCategoryTrend(Faction->Name, resource.Category);
-
-		if (trend >= 0)
-			continue;
-
-		TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResourcesFromCategory(resource.Category);
-
-		for (TSubclassOf<AResource> r : resources) {
-			TArray<TSubclassOf<ABuilding>> buildings;
-			Camera->ResourceManager->GetBuildings(r).GenerateKeyArray(buildings);
-
-			buildingsClassList.Append(buildings);
-		}
-	}
-
-	if (buildingsClassList.IsEmpty()) {
-		for (FAIBuildStruct& aibuild : AIBuilds) {
-			if (Faction->Citizens.Num() < aibuild.NumCitizens || aibuild.CurrentAmount == aibuild.Limit || !AICanAfford(Faction, aibuild.Building))
-				continue;
-
-			if (Camera->Grid->Stream.RandRange(1, 100) < 50) {
-				aibuild.NumCitizens *= 1.1f;
-
-				continue;
-			}
-
-			if (aibuild.Building->GetDefaultObject()->IsA<AInternalProduction>()) {
-				AInternalProduction* internalBuilding = Cast<AInternalProduction>(aibuild.Building->GetDefaultObject());
-				
-				if (!internalBuilding->Intake.IsEmpty()) {
-					bool bMakesResources = true;
-
-					for (FItemStruct item : internalBuilding->Intake) {
-						int32 trend = Camera->ResourceManager->GetResourceTrend(Faction->Name, item.Resource);
-
-						if (trend > 0.0f)
-							continue;
-
-						bMakesResources = false;
-
-						break;
-					}
-
-					if (!bMakesResources)
-						continue;
-				}
-			}
-
-			buildingsClassList.Add(aibuild.Building);
-		}
-	}
-
-	ChooseBuilding(Faction, buildingsClassList);
-}
-
-void UConquestManager::BuildAIHouse(FFactionStruct* Faction)
-{
-	TArray<TSubclassOf<ABuilding>> buildingsClassList;
-
-	bool bHomeless = false;
-
-	for (ACitizen* citizen : Faction->Citizens) {
-		if (IsValid(citizen->Building.House))
-			continue;
-
-		bHomeless = true;
-
-		break;
-	}
-
-	if (!bHomeless)
-		return;
-
-	for (TSubclassOf<ABuilding> house : Houses) {
-		if (!AICanAfford(Faction, house))
-			continue;
-
-		buildingsClassList.Add(house);
-	}
-
-	ChooseBuilding(Faction, buildingsClassList);
-}
-
-void UConquestManager::BuildAIRoads(FFactionStruct* Faction)
-{
-	if (Faction->RoadBuildLocations.IsEmpty())
-		return;
-
-	int32 amount = Camera->ResourceManager->GetResourceAmount(Faction->Name, Camera->ResourceManager->Money);
-
-	if (amount <= 100)
-		return;
-
-	int32 cost = Cast<ABuilding>(RoadClass->GetDefaultObject())->CostList[0].Amount;
-	int32 numRoads = FMath::CeilToInt((amount - 100.0f) / cost);
-
-	for (int32 i = 0; i < numRoads; i++) {
-		if (Faction->RoadBuildLocations.IsEmpty())
-			return;
-
-		AIBuild(Faction, RoadClass, nullptr);
-	}
-}
-
-void UConquestManager::BuildMiscBuild(FFactionStruct* Faction)
-{
-	if (Camera->Grid->Stream.RandRange(1, 100) != 100)
-		return;
-
-	TArray<TSubclassOf<ABuilding>> buildingsClassList;
-
-	for (TSubclassOf<ABuilding> misc : MiscBuilds) {
-		if (!AICanAfford(Faction, misc))
-			continue;
-
-		buildingsClassList.Add(misc);
-	}
-
-	ChooseBuilding(Faction, buildingsClassList);
-}
-
-void UConquestManager::BuildAIAccessibility(FFactionStruct* Faction)
-{
-	bool bCanAffordRamp = AICanAfford(Faction, RampClass);
-	bool bCanAffordRoad = AICanAfford(Faction, RoadClass);
-
-	if (Faction->FailedBuild <= 3 || Faction->AccessibleBuildLocations.Num() > 50 || (!bCanAffordRamp && !bCanAffordRoad))
-		return;
-
-	TSubclassOf<ABuilding> chosenClass = nullptr;
-
-	FTileStruct* chosenTile = nullptr;
-	FRotator rotation = FRotator::ZeroRotator;
-
-	if (bCanAffordRamp) {
-		for (auto& element : Faction->AccessibleBuildLocations) {
-			if (chosenTile != nullptr && FVector::Dist(Faction->EggTimer->GetActorLocation(), element.Key) > FVector::Dist(Faction->EggTimer->GetActorLocation(), Camera->Grid->GetTransform(chosenTile).GetLocation()))
-				continue;
-
-			FTileStruct* tile = Camera->Grid->GetTileFromLocation(element.Key);
-			bool bValid = false;
-
-			for (auto& e : tile->AdjacentTiles) {
-				if (!Faction->InaccessibleBuildLocations.Contains(Camera->Grid->GetTransform(e.Value).GetLocation()))
-					continue;
-
-				bValid = true;
-			}
-
-			if (!bValid)
-				continue;
-
-			chosenTile = tile;
-		}
-	}
-
-	if (chosenTile == nullptr) {
-		if (!bCanAffordRoad)
-			return;
-
-		chosenClass = RoadClass;
-	}
-	else {
-		chosenClass = RampClass;
-	}
-
-	AIBuild(Faction, chosenClass, nullptr, true, chosenTile);
-}
-
-void UConquestManager::ChooseBuilding(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>> BuildingsClasses)
-{
-	if (BuildingsClasses.IsEmpty())
-		return;
-
-	int32 chosenIndex = Camera->Grid->Stream.RandRange(0, BuildingsClasses.Num() - 1);
-	TSubclassOf<ABuilding> chosenBuildingClass = BuildingsClasses[chosenIndex];
-
-	TSubclassOf<AResource> resource = nullptr;
-
-	FAIBuildStruct aibuild;
-	aibuild.Building = chosenBuildingClass;
-
-	int32 i = AIBuilds.Find(aibuild);
-
-	if (i != INDEX_NONE)
-		resource = AIBuilds[i].Resource;
-
-	AIBuild(Faction, chosenBuildingClass, resource);
-}
-
-bool UConquestManager::AIValidBuildingLocation(FFactionStruct* Faction, ABuilding* Building, float Extent, FVector Location)
-{
-	if (!Faction->Citizens[0]->AIController->CanMoveTo(Location) || !Camera->BuildComponent->IsValidLocation(Building, Extent, Location))
-		return false;
-
-	return true;
-}
-
-bool UConquestManager::AICanAfford(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, int32 Amount)
-{
-	TArray<FItemStruct> items = Cast<ABuilding>(BuildingClass->GetDefaultObject())->CostList;
-
-	if (Amount > 1)
-		for (FItemStruct& item : items)
-			item.Amount *= Amount;
-
-	for (FItemStruct item : items) {
-		int32 maxAmount = Camera->ResourceManager->GetResourceAmount(Faction->Name, item.Resource);
-
-		if (maxAmount < item.Amount)
-			return false;
-	}
-
-	return true;
-}
-
-void UConquestManager::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> BuildingClass, TSubclassOf<AResource> Resource, bool bAccessibility, FTileStruct* Tile)
-{
-	FActorSpawnParameters spawnParams;
-	spawnParams.bNoFail = true;
-
-	FRotator rotation = FRotator(0.0f, FMath::RoundHalfFromZero(Camera->Grid->Stream.FRandRange(0.0f, 270.0f) / 90.0f) * 90.0f, 0.0f);
-
-	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, FVector(0.0f, 0.0f, -1000.0f), FRotator::ZeroRotator, spawnParams);
-	building->FactionName = Faction->Name;
-
-	for (int32 i = 0; i < building->Seeds.Num(); i++) {
-		if (Resource != nullptr) {
-			if (building->Seeds[i].Resource != Resource)
-				continue;
-
-			building->SetSeed(i);
-
-			break;
-		}
-		else if (!building->Seeds[i].Cost.IsEmpty()) {
-			bool bCanAfford = true;
-
-			for (FItemStruct item : building->Seeds[i].Cost)
-				if (item.Amount > Camera->ResourceManager->GetResourceAmount(Faction->Name, item.Resource))
-					bCanAfford = false;
-
-			if (bCanAfford)
-				building->SetSeed(i);
-		}
-		else {
-			building->SetSeed(Camera->Grid->Stream.RandRange(0, building->Seeds.Num() - 1));
-
-			break;
-		}
-	}
-
-	FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
-	float extent = size.X / (size.X + 100.0f);
-	float yExtent = size.Y / (size.Y + 100.0f);
-
-	if (yExtent > extent)
-		extent = yExtent;
-
-	FVector location = FVector(10000000000.0f);
-	FVector offset = building->BuildingMesh->GetComponentLocation() + FVector(0.0f, 0.0f, 1000.0f);
-
-	if (bAccessibility) {
-		if (BuildingClass == RoadClass) {
-			for (int32 i = 0; i < Camera->Grid->HISMRiver->GetInstanceCount(); i++) {
-				FTransform transform;
-				Camera->Grid->HISMRiver->GetInstanceTransform(i, transform);
-
-				bool bClose = false;
-				for (ABuilding* b : Faction->Buildings) {
-					if (FVector::Dist(b->GetActorLocation(), transform.GetLocation()) > 500.0f)
-						continue;
-
-					bClose = true;
-				}
-
-				FTileStruct* tile = Camera->Grid->GetTileFromLocation(transform.GetLocation());
-
-				if (AIValidBuildingLocation(Faction, building, 2.0f, transform.GetLocation()))
-					continue;
-
-				Tile = tile;
-
-				break;
-			}
-		}
-		else {
-			FTileStruct* chosenInaccessibleTile = nullptr;
-
-			for (auto& e : Tile->AdjacentTiles) {
-				if (!Faction->InaccessibleBuildLocations.Contains(Camera->Grid->GetTransform(e.Value).GetLocation()))
-					continue;
-
-				chosenInaccessibleTile = e.Value;
-
-				break;
-			}
-
-			if (Tile->Level > chosenInaccessibleTile->Level) {
-				rotation = (Camera->Grid->GetTransform(chosenInaccessibleTile).GetLocation() - Camera->Grid->GetTransform(Tile).GetLocation()).Rotation();
-
-				Tile = chosenInaccessibleTile;
-			}
-			else
-				rotation = (Camera->Grid->GetTransform(Tile).GetLocation() - Camera->Grid->GetTransform(chosenInaccessibleTile).GetLocation()).Rotation();
-		}
-
-		location = Camera->Grid->GetTransform(Tile).GetLocation();
-	}
-	if (building->IsA<AExternalProduction>()) {
-		AExternalProduction* externalBuilding = Cast<AExternalProduction>(building);
-
-		for (auto& element : externalBuilding->GetValidResources()) {
-			for (int32 inst : element.Value) {
-				FTransform transform;
-				element.Key->ResourceHISM->GetInstanceTransform(inst, transform);
-
-				transform.SetLocation(transform.GetLocation() + offset);
-
-				if (FVector::Dist(Faction->EggTimer->GetActorLocation(), location) < FVector::Dist(Faction->EggTimer->GetActorLocation(), transform.GetLocation()) || !AIValidBuildingLocation(Faction, building, extent, transform.GetLocation()))
-					continue;
-
-				location = transform.GetLocation();
-			}
-		}
-	}
-	else if (building->IsA<AInternalProduction>() && Cast<AInternalProduction>(building)->ResourceToOverlap != nullptr) {
-		AInternalProduction* internalBuilding = Cast<AInternalProduction>(building);
-
-		TArray<FResourceHISMStruct> resourceStructs;
-		resourceStructs.Append(Camera->Grid->MineralStruct);
-
-		for (FResourceHISMStruct resourceStruct : resourceStructs) {
-			if (internalBuilding->ResourceToOverlap != resourceStruct.ResourceClass)
-				continue;
-
-			for (int32 i = 0; i < resourceStruct.Resource->ResourceHISM->GetInstanceCount(); i++) {
-				FTransform transform;
-				resourceStruct.Resource->ResourceHISM->GetInstanceTransform(i, transform);
-
-				if (FVector::Dist(Faction->EggTimer->GetActorLocation(), location) < FVector::Dist(Faction->EggTimer->GetActorLocation(), transform.GetLocation()) || !AIValidBuildingLocation(Faction, building, extent, transform.GetLocation()))
-					continue;
-
-				location = transform.GetLocation();
-			}
-		}
-	}
-	else if (building->IsA<ARoad>()) {
-		int32 index = Camera->Grid->Stream.RandRange(0, Faction->RoadBuildLocations.Num() - 1);
-		
-		location = Faction->RoadBuildLocations[index];
-
-		Faction->RoadBuildLocations.RemoveAt(index);
-	}
-	else {
-		for (auto& element : Faction->AccessibleBuildLocations) {
-			if (!AIValidBuildingLocation(Faction, building, extent, element.Key))
-				continue;
-
-			location = element.Key;
-
-			break;
-		}
-	}
-
-	if (location == FVector(10000000000.0f)) {
-		building->DestroyBuilding();
-
-		return;
-	}
-
-	Camera->BuildComponent->GetBuildLocationZ(building, location);
-	building->SetActorRotation(rotation);
-	building->SetActorLocation(location);
-	building->Build();
-
-	Camera->BuildComponent->SetTreeStatus(building, true);
-
-	if (building->IsA<ARoad>())
-		Cast<ARoad>(building)->RegenerateMesh();
-
-	RemoveTileLocations(Faction, building);
-
-	if (Houses.Contains(BuildingClass) || MiscBuilds.Contains(BuildingClass) || RoadClass == BuildingClass || RampClass == BuildingClass)
-		return;
-
-	FAIBuildStruct aibuild;
-	aibuild.Building = BuildingClass;
-
-	int32 i = AIBuilds.Find(aibuild);
-
-	if (i == INDEX_NONE)
-		return;
-
-	AIBuilds[i].CurrentAmount++;
-	AIBuilds[i].NumCitizens += AIBuilds[i].NumCitizensIncrement;
 }
 
 //
@@ -1609,7 +659,7 @@ void UConquestManager::MoveToTarget(FFactionStruct* Faction, TArray<ACitizen*> C
 		return;
 	}
 
-	int32 index = Camera->Grid->Stream.RandRange(0, targets.Num() - 1);
+	int32 index = Camera->Stream.RandRange(0, targets.Num() - 1);
 
 	for (ACitizen* citizen : Citizens)
 		citizen->AIController->AIMoveTo(targets[index]);
@@ -1655,7 +705,7 @@ void UConquestManager::EvaluateAIArmy(FFactionStruct* Faction)
 
 	if (!availableCitizens.IsEmpty()) {
 		for (int32 i = 0; i < diff; i++) {
-			int32 index = Camera->Grid->Stream.RandRange(0, availableCitizens.Num() - 1);
+			int32 index = Camera->Stream.RandRange(0, availableCitizens.Num() - 1);
 
 			chosenCitizens.Add(availableCitizens[index]);
 			availableCitizens.RemoveAt(index);
@@ -1663,7 +713,7 @@ void UConquestManager::EvaluateAIArmy(FFactionStruct* Faction)
 
 		if (currentCitizens > enemyCitizens) {
 			if (Faction->Armies.Num() == 5 || (diff < 20 && !Faction->Armies.IsEmpty())) {
-				int32 index = Camera->Grid->Stream.RandRange(0, Faction->Armies.Num() - 1);
+				int32 index = Camera->Stream.RandRange(0, Faction->Armies.Num() - 1);
 
 				AddToArmy(index, chosenCitizens);
 			}
@@ -1781,14 +831,14 @@ void UConquestManager::PlayerMoveArmy(FVector Location)
 					FVector offset = FVector(x * 25.0f, y * 25.0f, 0.0f);
 					FVector loc = transform.GetLocation() + offset;
 
-					locations.Add(loc, CalculateTileDistance(Location, loc));
+					locations.Add(loc, AIBuildComponent->CalculateTileDistance(Location, loc));
 				}
 			}
 
 		}
 	}
 
-	SortTileDistances(locations);
+	AIBuildComponent->SortTileDistances(locations);
 
 	TArray<FVector> locs;
 	locations.GenerateKeyArray(locs);

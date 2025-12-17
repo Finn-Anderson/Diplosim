@@ -7,21 +7,21 @@
 #include "NiagaraComponent.h"
 #include "Misc/ScopeTryLock.h"
 
-#include "Map/Grid.h"
-#include "Map/Atmosphere/AtmosphereComponent.h"
-#include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
-#include "Player/Managers/DiseaseManager.h"
-#include "Player/Managers/ConquestManager.h"
-#include "Player/Components/SaveGameComponent.h"
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
 #include "AI/AIMovementComponent.h"
+#include "Buildings/Building.h"
+#include "Buildings/Work/Service/Research.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Player/Camera.h"
+#include "Player/Managers/DiseaseManager.h"
+#include "Player/Managers/ConquestManager.h"
+#include "Player/Components/SaveGameComponent.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
-#include "Buildings/Building.h"
-#include "Buildings/Work/Service/Research.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 UAIVisualiser::UAIVisualiser()
 {
@@ -266,17 +266,18 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 			return;
 		}
 
+		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 		TArray<AAI*> clones;
 
 		for (FFactionStruct faction : Camera->ConquestManager->Factions)
 			clones.Append(faction.Clones);
 
-		if (clones.IsEmpty() && Camera->CitizenManager->Enemies.IsEmpty())
+		if (clones.IsEmpty() && gamemode->Enemies.IsEmpty())
 			return;
 
 		TArray<TArray<AAI*>> ais;
 		ais.Add(clones);
-		ais.Add(Camera->CitizenManager->Enemies);
+		ais.Add(gamemode->Enemies);
 
 		for (int32 i = 0; i < ais.Num(); i++) {
 			if (Camera->SaveGameComponent->IsLoading())
@@ -503,9 +504,11 @@ TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::G
 	if (!IsValid(AI))
 		return info;
 
-	if (AI->Camera->CitizenManager->Enemies.Contains(AI)) {
+	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+
+	if (gamemode->Enemies.Contains(AI)) {
 		info.Key = HISMEnemy;
-		info.Value = AI->Camera->CitizenManager->Enemies.Find(AI);
+		info.Value = gamemode->Enemies.Find(AI);
 	}
 	else {
 		FFactionStruct* faction = AI->Camera->ConquestManager->GetFaction("", AI);
@@ -532,8 +535,6 @@ TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::G
 
 AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
 {
-	UCitizenManager* cm = Camera->CitizenManager;
-
 	AAI* ai = nullptr;
 
 	TArray<ACitizen*> citizens;
@@ -553,15 +554,13 @@ AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UHierarchicalInstancedStaticMeshC
 	else if (HISM == HISMClone)
 		ai = clones[Instance];
 	else if (HISM == HISMEnemy)
-		ai = cm->Enemies[Instance];
+		ai = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies[Instance];
 
 	return ai;
 }
 
 FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 {
-	UCitizenManager* cm = AI->Camera->CitizenManager;
-	
 	FVector position = FVector::Zero();
 	FRotator rotation = FRotator::ZeroRotator;
 
@@ -585,8 +584,6 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 
 void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 {
-	UCitizenManager* cm = AI->Camera->CitizenManager;
-
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
 	if (!IsValid(info.Key) || info.Value == -1)
@@ -601,8 +598,6 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction, FVector Location)
 {
 	TArray<AActor*> actors;
-
-	UCitizenManager* cm = Camera->CitizenManager;
 
 	TArray<AActor*> actorsToCheck;
 
@@ -644,7 +639,7 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 	}
 
 	if (RequestedOverlaps.bEnemies)
-		actorsToCheck.Append(cm->Enemies);
+		actorsToCheck.Append(GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies);
 
 	if (actorsToCheck.Contains(Actor))
 		actorsToCheck.Remove(Actor);

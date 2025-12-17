@@ -4,7 +4,6 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "Player/Camera.h"
-#include "Map/Grid.h"
 
 AResource::AResource()
 {
@@ -54,7 +53,7 @@ int32 AResource::GetYield(ACitizen* Citizen, int32 Instance)
 
 int32 AResource::GenerateYield()
 {
-	int32 yield = Camera->Grid->Stream.RandRange(MinYield, MaxYield);
+	int32 yield = Camera->Stream.RandRange(MinYield, MaxYield);
 
 	return yield;
 }
@@ -88,7 +87,7 @@ void AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
 
 AResource* AResource::GetHarvestedResource()
 {
-	int32 chance = Camera->Grid->Stream.RandRange(1, 100);
+	int32 chance = Camera->Stream.RandRange(1, 100);
 
 	if (SpecialResource != nullptr && chance > 99)
 		return Cast<AResource>(SpecialResource->GetDefaultObject());

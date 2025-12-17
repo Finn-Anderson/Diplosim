@@ -3,16 +3,16 @@
 #include "Components/DirectionalLightComponent.h"
 #include "Kismet/GameplayStatics.h"
 
+#include "AI/Projectile.h"
+#include "Buildings/Building.h"
+#include "Buildings/Work/Work.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Buildings/Building.h"
-#include "Buildings/Work/Work.h"
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
-#include "AI/Projectile.h"
 
 UNaturalDisasterComponent::UNaturalDisasterComponent()
 {
@@ -26,7 +26,7 @@ UNaturalDisasterComponent::UNaturalDisasterComponent()
 
 bool UNaturalDisasterComponent::ShouldCreateDisaster()
 {
-	float chance = Grid->Stream.FRandRange(0.0f, 100.0f);
+	float chance = Grid->Camera->Stream.FRandRange(0.0f, 100.0f);
 
 	if (bDisasterChance <= chance)
 		return false;
@@ -41,9 +41,9 @@ void UNaturalDisasterComponent::IncrementDisasterChance()
 	if (!ShouldCreateDisaster())
 		return;
 
-	float magnitude = Grid->Stream.FRandRange(1.0f, 5.0f) * Intensity;
+	float magnitude = Grid->Camera->Stream.FRandRange(1.0f, 5.0f) * Intensity;
 
-	int32 type = Grid->Stream.RandRange(0, 2);
+	int32 type = Grid->Camera->Stream.RandRange(0, 2);
 
 	if (type == 0)
 		GenerateEarthquake(magnitude);
@@ -75,8 +75,8 @@ TArray<FTileStruct> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitu
 	int32 bounds = Grid->Storage.Num() - 1;
 	int32 distance = Magnitude * 5;
 
-	int32 iX = Grid->Stream.RandRange(0, bounds);
-	int32 iY = Grid->Stream.RandRange(0, bounds);
+	int32 iX = Grid->Camera->Stream.RandRange(0, bounds);
+	int32 iY = Grid->Camera->Stream.RandRange(0, bounds);
 
 	FTileStruct start = Grid->Storage[iX][iY];
 
@@ -91,7 +91,7 @@ TArray<FTileStruct> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitu
 		}
 	}
 
-	int32 chosenEnd = Grid->Stream.RandRange(0, endLocations.Num() - 1);
+	int32 chosenEnd = Grid->Camera->Stream.RandRange(0, endLocations.Num() - 1);
 
 	FTileStruct end = endLocations[chosenEnd];
 
@@ -119,8 +119,8 @@ TArray<FTileStruct> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitu
 
 	float variance = dist * 0.66f;
 
-	p1 = FVector2D(Grid->Stream.RandRange(p0.X, pHalf.X) + Grid->Stream.RandRange(-variance, variance), Grid->Stream.RandRange(p0.Y, pHalf.Y) + Grid->Stream.RandRange(-variance, variance));
-	p2 = FVector2D(Grid->Stream.RandRange(pHalf.X, p3.X) + Grid->Stream.RandRange(-variance, variance), Grid->Stream.RandRange(pHalf.Y, p3.Y) + Grid->Stream.RandRange(-variance, variance));
+	p1 = FVector2D(Grid->Camera->Stream.RandRange(p0.X, pHalf.X) + Grid->Camera->Stream.RandRange(-variance, variance), Grid->Camera->Stream.RandRange(p0.Y, pHalf.Y) + Grid->Camera->Stream.RandRange(-variance, variance));
+	p2 = FVector2D(Grid->Camera->Stream.RandRange(pHalf.X, p3.X) + Grid->Camera->Stream.RandRange(-variance, variance), Grid->Camera->Stream.RandRange(pHalf.Y, p3.Y) + Grid->Camera->Stream.RandRange(-variance, variance));
 
 	double t = 0.0f;
 
@@ -196,12 +196,12 @@ void UNaturalDisasterComponent::GeneratePurifier(float Magnitude)
 {
 	auto bound = Grid->GetMapBounds();
 
-	int32 x = Grid->Stream.RandRange(0, bound);
-	int32 y = Grid->Stream.RandRange(0, bound);
+	int32 x = Grid->Camera->Stream.RandRange(0, bound);
+	int32 y = Grid->Camera->Stream.RandRange(0, bound);
 
 	FRotator rotation;
-	rotation.Yaw = Grid->Stream.RandRange(0, 359);
-	rotation.Pitch = Grid->Stream.RandRange(-90, -30);
+	rotation.Yaw = Grid->Camera->Stream.RandRange(0, 359);
+	rotation.Pitch = Grid->Camera->Stream.RandRange(-90, -30);
 
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(PurifierClass, Grid->GetTransform(&Grid->Storage[x][y]).GetLocation() - (rotation.Vector() * 1000.0f), rotation);
 	projectile->SpawnNiagaraSystems(GetOwner());

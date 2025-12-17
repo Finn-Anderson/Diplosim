@@ -2,7 +2,6 @@
 
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "Components/SphereComponent.h"
 #include "Misc/ScopeTryLock.h"
 
 #include "AI/Citizen.h"
@@ -11,9 +10,6 @@
 #include "AI/AIMovementComponent.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Defence/Wall.h"
-#include "Buildings/Work/Defence/Trap.h"
-#include "Buildings/Work/Defence/Gate.h"
-#include "Buildings/Work/Defence/Tower.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/School.h"
 #include "Map/Grid.h"
@@ -173,7 +169,7 @@ void UCitizenManager::CitizenGeneralLoop()
 					continue;
 
 				if (citizen->Building.Employment->IsA<AWall>())
-					Cast<AWall>(citizen->Building.Employment)->SetEmergency(!Enemies.IsEmpty() || !faction.Rebels.IsEmpty());
+					Cast<AWall>(citizen->Building.Employment)->SetEmergency(!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() || !faction.Rebels.IsEmpty());
 				else if (citizen->Building.Employment->IsA<AClinic>())
 					Cast<AClinic>(citizen->Building.Employment)->SetEmergency(!Camera->DiseaseManager->Infected.IsEmpty());
 			}
@@ -270,7 +266,7 @@ void UCitizenManager::CalculateConversationInteractions()
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens = faction.Citizens;
 
-			if (!Enemies.IsEmpty() || !faction.Rebels.IsEmpty())
+			if (!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() || !faction.Rebels.IsEmpty())
 				continue;
 
 			for (ACitizen* citizen : citizens) {
@@ -290,7 +286,7 @@ void UCitizenManager::CalculateConversationInteractions()
 				if (IsValid(citizen->AIController->MoveRequest.GetGoalActor()) && IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA(Camera->PoliceManager->PoliceStationClass)) {
 					Camera->PoliceManager->PoliceInteraction(&faction, citizen, reach);
 				}
-				else if (Camera->Grid->Stream.RandRange(0, 1000) == 1000) {
+				else if (Camera->Stream.RandRange(0, 1000) == 1000) {
 					FOverlapsStruct requestedOverlaps;
 					requestedOverlaps.bCitizens = true;
 
@@ -312,187 +308,9 @@ void UCitizenManager::CalculateConversationInteractions()
 					if (citizensToTalkTo.IsEmpty())
 						continue;
 
-					int32 index = Camera->Grid->Stream.RandRange(0, citizensToTalkTo.Num() - 1);
+					int32 index = Camera->Stream.RandRange(0, citizensToTalkTo.Num() - 1);
 
 					StartConversation(&faction, citizen, citizensToTalkTo[index], false);
-				}
-			}
-		}
-	});
-}
-
-void UCitizenManager::CalculateAIFighting()
-{
-	Async(EAsyncExecution::TaskGraph, [this]() {
-		FScopeTryLock lock(&AIFightLock);
-		if (!lock.IsLocked())
-			return;
-
-		if (Camera->SaveGameComponent->IsLoading()) {
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Fighting);
-
-			return;
-		}
-
-		bool bEnemies = false;
-
-		TMap<FString, TArray<AAI*>> ais;
-
-		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-			if (!ais.Contains("Citizens"))
-				ais.Add("Citizens");
-
-			TArray<AAI*>* ai = ais.Find("Citizens");
-			ai->Append(faction.Citizens);
-
-			if (!ais.Contains("Clones"))
-				ais.Add("Clones");
-
-			ai = ais.Find("Clones");
-			ai->Append(faction.Clones);
-
-			if (!ais.Contains("Rebels"))
-				ais.Add("Rebels");
-
-			ai = ais.Find("Rebels");
-			ai->Append(faction.Rebels);
-
-			if (!faction.Rebels.IsEmpty())
-				bEnemies = true;
-		}
-
-		ais.Add("Enemies", Enemies);
-
-		if (!Enemies.IsEmpty())
-			bEnemies = true;
-
-		if (!bEnemies)
-			return;
-
-		for (auto& element : ais) {
-			if (Camera->SaveGameComponent->IsLoading())
-				return;
-
-			for (AAI* ai : element.Value) {
-				if (Camera->SaveGameComponent->IsLoading())
-					return;
-
-				if (!IsValid(ai) || ai->HealthComponent->GetHealth() <= 0)
-					continue;
-
-				FOverlapsStruct requestedOverlaps;
-
-				if (element.Key == "Citizens" || element.Key == "Clones")
-					requestedOverlaps.GetCitizenEnemies();
-				else if (element.Key == "Rebels")
-					requestedOverlaps.GetRebelsEnemies();
-				else
-					requestedOverlaps.GetEnemyEnemies();
-
-				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range, requestedOverlaps, EFactionType::Both);
-
-				for (AActor* actor : actors) {
-					if (Camera->SaveGameComponent->IsLoading())
-						return;
-
-					if (!IsValid(actor) || ai->AttackComponent->OverlappingEnemies.Contains(actor))
-						continue;
-
-					UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
-
-					if ((healthComp && healthComp->GetHealth() <= 0) || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))))
-						continue;
-
-					ai->AttackComponent->OverlappingEnemies.Add(actor);
-
-					if (ai->AttackComponent->OverlappingEnemies.Num() == 1)
-						ai->AttackComponent->SetComponentTickEnabled(true);
-				}
-			}
-		}
-	});
-}
-
-void UCitizenManager::CalculateBuildingFighting()
-{
-	Async(EAsyncExecution::TaskGraph, [this]() {
-		FScopeTryLock lock(&BuildingFightLock);
-		if (!lock.IsLocked())
-			return;
-
-		if (Camera->SaveGameComponent->IsLoading()) {
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Fighting);
-
-			return;
-		}
-
-		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-			if (faction.Rebels.IsEmpty() && Enemies.IsEmpty())
-				continue;
-
-			for (ABuilding* building : faction.Buildings) {
-				if (Camera->SaveGameComponent->IsLoading())
-					return;
-
-				if (!building->IsA<AGate>() && !building->IsA<ATower>() && !building->IsA<ATrap>())
-					continue;
-
-				UHealthComponent* healthComp = building->GetComponentByClass<UHealthComponent>();
-
-				if (healthComp->GetHealth() <= 0)
-					continue;
-
-				if (building->IsA<ATrap>()) {
-					ATrap* trap = Cast<ATrap>(building);
-
-					if (Camera->TimerManager->DoesTimerExist("Trap", trap))
-						continue;
-
-					FOverlapsStruct requestedOverlaps;
-					requestedOverlaps.GetCitizenEnemies();
-
-					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, trap->ActivateRange, requestedOverlaps, EFactionType::Both);
-
-					if (!actors.IsEmpty())
-						trap->StartTrapFuse();
-				}
-				else {
-					USphereComponent* rangeComp = building->GetComponentByClass<USphereComponent>();
-
-					FOverlapsStruct requestedOverlaps;
-					requestedOverlaps.GetCitizenEnemies();
-
-					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, rangeComp->GetUnscaledSphereRadius(), requestedOverlaps, EFactionType::Both);
-
-					if (building->IsA<AGate>()) {
-						AGate* gate = Cast<AGate>(building);
-
-						if (actors.IsEmpty())
-							gate->OpenGate();
-						else
-							gate->CloseGate();
-					}
-					else {
-						ATower* tower = Cast<ATower>(building);
-
-						for (AActor* actor : actors) {
-							if (Camera->SaveGameComponent->IsLoading())
-								return;
-
-							if (!IsValid(actor) || tower->AttackComponent->OverlappingEnemies.Contains(actor))
-								continue;
-
-							UHealthComponent* hpComp = actor->GetComponentByClass<UHealthComponent>();
-
-							if (hpComp && hpComp->GetHealth() <= 0)
-								continue;
-
-							tower->AttackComponent->OverlappingEnemies.Add(actor);
-
-							if (tower->AttackComponent->OverlappingEnemies.Num() == 1)
-								tower->AttackComponent->SetComponentTickEnabled(true);
-						}
-					}
 				}
 			}
 		}
@@ -660,14 +478,14 @@ USoundBase* UCitizenManager::GetConversationSound(ACitizen* Citizen)
 	Citizen->bConversing = true;
 	Citizen->AIController->StopMovement();
 
-	int32 index = Camera->Grid->Stream.RandRange(0, Citizen->NormalConversations.Num() - 1);
+	int32 index = Camera->Stream.RandRange(0, Citizen->NormalConversations.Num() - 1);
 	USoundBase* convo = Citizen->NormalConversations[index];
 
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen)) {
 		if (personality->Trait != "Inept")
 			continue;
 
-		index = Camera->Grid->Stream.RandRange(0, Citizen->IneptIdiotConversations.Num() - 1);
+		index = Camera->Stream.RandRange(0, Citizen->IneptIdiotConversations.Num() - 1);
 
 		convo = Citizen->IneptIdiotConversations[index];
 
@@ -715,7 +533,7 @@ void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACiti
 
 	PersonalityComparison(Citizen1, Citizen2, count, citizen1Aggressiveness, citizen2Aggressiveness);
 
-	int32 chance = Camera->Grid->Stream.RandRange(0, 100);
+	int32 chance = Camera->Stream.RandRange(0, 100);
 	int32 positiveConversationLikelihood = 50 + count * 25;
 
 	int32 happinessValue = 12;
@@ -792,7 +610,7 @@ void UCitizenManager::Sacrifice(FString FactionName)
 		return;
 	}
 
-	int32 index = Camera->Grid->Stream.RandRange(0, faction->Citizens.Num() - 1);
+	int32 index = Camera->Stream.RandRange(0, faction->Citizens.Num() - 1);
 	ACitizen* citizen = faction->Citizens[index];
 
 	Camera->TimerManager->RemoveTimer("Energy", citizen);

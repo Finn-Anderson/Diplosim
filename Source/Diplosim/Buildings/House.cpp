@@ -55,7 +55,7 @@ void AHouse::GetRent(FFactionStruct* Faction, ACitizen* Citizen)
 	else {
 		for (int32 i = 0; i < Rent; i++) {
 			if (Citizen->Balance == 0) {
-				index = Camera->Grid->Stream.RandRange(0, family.Num() - 1);
+				index = Camera->Stream.RandRange(0, family.Num() - 1);
 
 				family[index]->Balance -= 1;
 

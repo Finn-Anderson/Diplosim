@@ -1,12 +1,13 @@
 #include "Buildings/Misc/Special/CloneLab.h"
 
 #include "AI/Clone.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Map/Grid.h"
-#include "Map/AIVisualiser.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 ACloneLab::ACloneLab()
 {
@@ -25,7 +26,7 @@ void ACloneLab::Production(ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	if (Camera->CitizenManager->Enemies.IsEmpty() && faction->Rebels.IsEmpty())
+	if (GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() && faction->Rebels.IsEmpty())
 		return;
 	
 	Super::Production(Citizen);

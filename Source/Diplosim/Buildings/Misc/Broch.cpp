@@ -29,7 +29,7 @@ void ABroch::SpawnCitizens()
 
 	for (int32 i = 0; i < Camera->CitizenNum; i++) {
 		FVector location = GetActorLocation();
-		location += FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.FRandRange(120.0f, 400.0f);
+		location += FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.FRandRange(120.0f, 400.0f);
 
 		FNavLocation navLoc;
 		nav->ProjectPointToNavigation(location, navLoc, FVector(300.0f, 300.0f, 9.0f));

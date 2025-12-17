@@ -239,9 +239,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colours")
 		TArray<FLinearColor> GroundColours;
 
-	UPROPERTY()
-		FRandomStream Stream;
-
 	TMap<UHierarchicalInstancedStaticMeshComponent*, TArray<FTransform>> CalculatedTiles;
 
 	TArray<FTileStruct*> PeaksList;

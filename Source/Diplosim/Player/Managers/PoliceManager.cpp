@@ -43,7 +43,7 @@ void UPoliceManager::CalculateVandalism()
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens = faction.Citizens;
 
-			if (!Camera->CitizenManager->Enemies.IsEmpty() || !faction.Rebels.IsEmpty() || faction.Buildings.Num() < 2)
+			if (!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() || !faction.Rebels.IsEmpty() || faction.Buildings.Num() < 2)
 				continue;
 
 			for (ACitizen* citizen : citizens) {
@@ -79,7 +79,7 @@ void UPoliceManager::CalculateVandalism()
 
 					int32 max = (1000 + (citizen->GetHappiness() - 50) * 16) / aggressiveness;
 
-					if (Camera->Grid->Stream.RandRange(1, max) != max)
+					if (Camera->Stream.RandRange(1, max) != max)
 						continue;
 
 					Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() { Camera->Grid->AtmosphereComponent->SetOnFire(actor); });
@@ -261,7 +261,7 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 
 	TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, aggressor, aggressor->Range, requestedOverlaps, EFactionType::Same);
 
-	int32 chance = Camera->Grid->Stream.RandRange(0, 100);
+	int32 chance = Camera->Stream.RandRange(0, 100);
 	int32 fightChance = 25 * Citizen1Aggressiveness * Citizen2Aggressiveness - FMath::RoundHalfFromZero(300 / distance) - (10 * actors.Num());
 
 	if (fightChance > chance) {
@@ -290,7 +290,7 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 
 void UPoliceManager::RespondToReports(FFactionStruct* Faction)
 {
-	if (Faction->Police.PoliceReports.IsEmpty() || !Faction->Rebels.IsEmpty() || !Camera->CitizenManager->Enemies.IsEmpty())
+	if (Faction->Police.PoliceReports.IsEmpty() || !Faction->Rebels.IsEmpty() || !GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty())
 		return;
 
 	for (int32 i = Faction->Police.PoliceReports.Num() - 1; i > -1; i--) {
@@ -364,7 +364,7 @@ void UPoliceManager::RespondToReports(FFactionStruct* Faction)
 			if (distance > dist) {
 				distance = dist;
 
-				officer = building->GetCitizensAtBuilding()[Camera->Grid->Stream.RandRange(0, building->GetCitizensAtBuilding().Num() - 1)];
+				officer = building->GetCitizensAtBuilding()[Camera->Stream.RandRange(0, building->GetCitizensAtBuilding().Num() - 1)];
 			}
 		}
 
@@ -477,7 +477,7 @@ void UPoliceManager::ChangeReportToMurder(ACitizen* Citizen)
 void UPoliceManager::GetCloserToFight(ACitizen* Citizen, ACitizen* Target, FVector MidPoint)
 {
 	FVector location = MidPoint;
-	location += FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.RandRange(100.0f, 400.0f);
+	location += FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(100.0f, 400.0f);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
@@ -556,7 +556,7 @@ void UPoliceManager::InterrogateWitnesses(FFactionStruct Faction, ACitizen* Offi
 
 		float tally = impartial + accuseTeam1 + accuseTeam2;
 
-		int32 choice = Camera->Grid->Stream.FRandRange(0.0f, tally);
+		int32 choice = Camera->Stream.FRandRange(0.0f, tally);
 
 		if (choice <= impartial)
 			report.Impartial.Add(Citizen);

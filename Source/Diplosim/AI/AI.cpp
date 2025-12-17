@@ -50,7 +50,7 @@ void AAI::BeginPlay()
 
 	AttackComponent->Camera = Camera;
 
-	Colour = FLinearColor(Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f), Camera->Grid->Stream.FRandRange(0.0f, 1.0f));
+	Colour = FLinearColor(Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f));
 }
 
 void AAI::MoveToBroch()

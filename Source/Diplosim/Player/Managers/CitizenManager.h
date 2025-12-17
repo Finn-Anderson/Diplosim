@@ -76,10 +76,6 @@ public:
 
 	void CalculateConversationInteractions();
 
-	void CalculateAIFighting();
-
-	void CalculateBuildingFighting();
-
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -111,9 +107,6 @@ public:
 		int32 IssuePensionHour;
 
 	void IssuePensions(int32 Hour);
-
-	UPROPERTY()
-		TArray<class AAI*> Enemies;
 
 	// Genetics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sacrifice")
@@ -157,7 +150,4 @@ private:
 
 	FCriticalSection GoalInteractionsLock;
 	FCriticalSection ConversationInteractionsLock;
-
-	FCriticalSection AIFightLock;
-	FCriticalSection BuildingFightLock;
 };

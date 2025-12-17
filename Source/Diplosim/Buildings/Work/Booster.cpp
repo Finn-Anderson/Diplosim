@@ -2,12 +2,14 @@
 
 #include "Kismet/KismetSystemLibrary.h"
 
+#include "AI/Citizen.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/PoliticsManager.h"
-#include "Map/Grid.h"
-#include "AI/Citizen.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 ABooster::ABooster()
 {
@@ -44,29 +46,10 @@ void ABooster::SetBroadcastType(FString Type)
 
 TArray<ABuilding*> ABooster::GetAffectedBuildings()
 {
-	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
+	FOverlapsStruct overlaps;
+	overlaps.bBuildings = true;
 
-	TArray<AActor*> ignore;
-	ignore.Add(this);
-	ignore.Add(Camera->Grid);
-
-	for (FResourceHISMStruct resourceStruct : Camera->Grid->MineralStruct)
-		ignore.Add(resourceStruct.Resource);
-
-	for (FResourceHISMStruct resourceStruct : Camera->Grid->FlowerStruct)
-		ignore.Add(resourceStruct.Resource);
-
-	for (FResourceHISMStruct resourceStruct : Camera->Grid->TreeStruct)
-		ignore.Add(resourceStruct.Resource);
-
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
-
-	ignore.Append(faction->Citizens);
-	ignore.Append(Camera->CitizenManager->Enemies);
-
-	TArray<AActor*> actors;
-
-	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), Range, objects, nullptr, ignore, actors);
+	TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, this, Range, overlaps, EFactionType::Same);
 
 	TArray<ABuilding*> buildings;
 
@@ -85,7 +68,7 @@ TArray<ABuilding*> ABooster::GetAffectedBuildings()
 			break;
 		}
 
-		if (!bContainsBuilding || !faction->Buildings.Contains(actor))
+		if (!bContainsBuilding)
 			continue;
 
 		buildings.Add(Cast<ABuilding>(actor));

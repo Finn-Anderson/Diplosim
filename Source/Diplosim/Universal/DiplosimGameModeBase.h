@@ -139,6 +139,9 @@ public:
 		TSubclassOf<class UNavAreaBase> NavAreaThreat;
 
 	UPROPERTY()
+		TArray<class AAI*> Enemies;
+
+	UPROPERTY()
 		FTimerHandle WaveTimer;
 
 	UPROPERTY()

@@ -1,15 +1,15 @@
 #include "Buildings/Work/Service/Orphanage.h"
 
 #include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
+#include "Buildings/House.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/PoliticsManager.h"
-#include "Map/Grid.h"
-#include "Map/Atmosphere/AtmosphereComponent.h"
-#include "Buildings/House.h"
-#include "AI/DiplosimAIController.h"
 
 AOrphanage::AOrphanage()
 {
@@ -108,7 +108,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 	int32 amount = FMath::Min(Citizen->Building.House->Space - Citizen->Building.House->GetVisitors(Citizen->Building.House->GetOccupant(Citizen)).Num(), money / (maxF * cost));
 
 	for (int32 i = 0; i < amount; i++) {
-		int32 index = Camera->Grid->Stream.RandRange(0, favourites.Num() - 1);
+		int32 index = Camera->Stream.RandRange(0, favourites.Num() - 1);
 
 		ACitizen* child = favourites[index];
 

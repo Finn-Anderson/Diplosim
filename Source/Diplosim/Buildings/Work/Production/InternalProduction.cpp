@@ -5,7 +5,6 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Map/Grid.h"
 
 AInternalProduction::AInternalProduction()
 {
@@ -73,7 +72,7 @@ void AInternalProduction::Production(ACitizen* Citizen)
 		float yield = MinYield;
 
 		if (MinYield != MaxYield)
-			yield = Camera->Grid->Stream.RandRange(MinYield, MaxYield);
+			yield = Camera->Stream.RandRange(MinYield, MaxYield);
 
 		if (bMultiplicitive) {
 			yield = FMath::CeilToInt32(Camera->ResourceManager->GetResourceAmount(FactionName, resources[0]) * yield);

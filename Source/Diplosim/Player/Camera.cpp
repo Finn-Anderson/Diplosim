@@ -12,11 +12,19 @@
 #include "Components/AudioComponent.h"
 #include "NiagaraComponent.h"
 
+#include "AI/AI.h"
+#include "AI/Citizen.h"
+#include "AI/AIMovementComponent.h"
+#include "Buildings/Building.h"
+#include "Buildings/Misc/Broch.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Components/BuildComponent.h"
 #include "Components/CameraMovementComponent.h"
 #include "Components/SaveGameComponent.h"
+#include "Components/AIBuildComponent.h"
+#include "Components/DiplomacyComponent.h"
 #include "Managers/ResourceManager.h"
 #include "Managers/ConstructionManager.h"
 #include "Managers/CitizenManager.h"
@@ -27,16 +35,10 @@
 #include "Managers/PoliceManager.h"
 #include "Managers/ResearchManager.h"
 #include "Managers/ConquestManager.h"
-#include "Buildings/Building.h"
-#include "Buildings/Misc/Broch.h"
-#include "AI/AI.h"
-#include "AI/Citizen.h"
-#include "AI/AIMovementComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/HealthComponent.h"
-#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "DebugManager.h"
 
 ACamera::ACamera()
@@ -148,6 +150,9 @@ void ACamera::BeginPlay()
 	Super::BeginPlay();
 
 	CitizenManager->Camera = this;
+	ConquestManager->Camera = this;
+	ConquestManager->AIBuildComponent->Camera = this;
+	ConquestManager->DiplomacyComponent->Camera = this;
 	SaveGameComponent->Camera = this;
 	ResearchManager->Camera = this;
 	EventsManager->Camera = this;
@@ -243,8 +248,8 @@ void ACamera::Tick(float DeltaTime)
 			CitizenManager->CalculateGoalInteractions();
 			CitizenManager->CalculateConversationInteractions();
 
-			CitizenManager->CalculateAIFighting();
-			CitizenManager->CalculateBuildingFighting();
+			ConquestManager->CalculateAIFighting();
+			ConquestManager->CalculateBuildingFighting();
 
 			TimerManager->TimerLoop(this);
 
@@ -293,7 +298,7 @@ void ACamera::Tick(float DeltaTime)
 			ais.Append(faction.Clones);
 		}
 
-		ais.Append(CitizenManager->Enemies);
+		ais.Append(GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies);
 
 		FVector chosenLocation = FVector(1000000000000000.0f);
 
@@ -447,7 +452,7 @@ void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Soun
 		float pitch = Pitch;
 
 		if (pitch == -1.0f)
-			pitch = Grid->Stream.FRandRange(0.8f, 1.2f);
+			pitch = Stream.FRandRange(0.8f, 1.2f);
 
 		AudioComponent->SetSound(Sound);
 		AudioComponent->SetPitchMultiplier(pitch);
@@ -460,7 +465,7 @@ void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
 {
 	InteractAudioComponent->SetSound(Sound);
 	InteractAudioComponent->SetVolumeMultiplier(Settings->GetMasterVolume() * Settings->GetSFXVolume());
-	InteractAudioComponent->SetPitchMultiplier(Pitch * Grid->Stream.RandRange(0.99f, 1.01f));
+	InteractAudioComponent->SetPitchMultiplier(Pitch * Stream.RandRange(0.99f, 1.01f));
 
 	InteractAudioComponent->Play();
 }

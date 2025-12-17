@@ -6,7 +6,8 @@
 
 #include "AI.h"
 #include "Citizen.h"
-#include "Universal/HealthComponent.h"
+#include "AttackComponent.h"
+#include "AIMovementComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Work.h"
@@ -15,8 +16,6 @@
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Misc/Portal.h"
-#include "Universal/Resource.h"
-#include "AttackComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -25,8 +24,9 @@
 #include "Player/Managers/EventsManager.h"
 #include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/PoliceManager.h"
-#include "AIMovementComponent.h"
-#include "Map/Grid.h"
+#include "Universal/HealthComponent.h"
+#include "Universal/Resource.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 ADiplosimAIController::ADiplosimAIController()
 {
@@ -51,7 +51,7 @@ void ADiplosimAIController::DefaultAction()
 		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bEmergency) {
 			AIMoveTo(citizen->Building.Employment);
 		}
-		else if (!Camera->CitizenManager->Enemies.IsEmpty()) {
+		else if (!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty()) {
 			ERaidPolicy raidPolicy = Camera->PoliticsManager->GetRaidPolicyStatus(citizen);
 
 			if (raidPolicy != ERaidPolicy::Default) {
@@ -103,7 +103,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 	MoveRequest.SetGoalActor(nullptr);
 
-	int32 chance = Camera->Grid->Stream.RandRange(0, 100);
+	int32 chance = Camera->Stream.RandRange(0, 100);
 
 	int32 hoursLeft = Citizen->HoursSleptToday.Num();
 
@@ -112,7 +112,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
 		AIMoveTo(house);
 	else {
-		int32 time = Camera->Grid->Stream.RandRange(5, 20);
+		int32 time = Camera->Stream.RandRange(5, 20);
 
 		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66 && !Faction->Police.Arrested.Contains(Citizen)) {
 			AIMoveTo(ChosenBuilding);
@@ -141,7 +141,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 				location = ChosenBuilding->GetActorLocation();
 			}
 
-			location += Async(EAsyncExecution::TaskGraph, [this, innerRange, outerRange]() { return FRotator(0.0f, Camera->Grid->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Grid->Stream.RandRange(innerRange, outerRange); }).Get();
+			location += Async(EAsyncExecution::TaskGraph, [this, innerRange, outerRange]() { return FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(innerRange, outerRange); }).Get();
 
 			FNavLocation navLoc;
 			nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));
@@ -185,7 +185,7 @@ void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 		return;
 	}
 
-	int32 index = Camera->Grid->Stream.RandRange(0, buildings.Num() - 1);
+	int32 index = Camera->Stream.RandRange(0, buildings.Num() - 1);
 
 	ChosenBuilding = buildings[index];
 }

@@ -207,6 +207,9 @@ public:
 		bool bStartMenu;
 
 	UPROPERTY()
+		FRandomStream Stream;
+
+	UPROPERTY()
 		APlayerController* PController;
 
 	void Tick(float DeltaTime) override;
