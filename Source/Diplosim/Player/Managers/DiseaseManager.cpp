@@ -11,6 +11,7 @@
 #include "Player/Camera.h"
 #include "Player/Components/SaveGameComponent.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/ArmyManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/HealthComponent.h"
 
@@ -271,7 +272,7 @@ TArray<ACitizen*> UDiseaseManager::GetAvailableHealers(FFactionStruct* Faction, 
 		AClinic* clinic = Cast<AClinic>(building);
 
 		for (ACitizen* citizen : clinic->GetOccupied()) {
-			if (!clinic->IsWorking(citizen) || citizen->Camera->ConquestManager->IsCitizenInAnArmy(citizen))
+			if (!clinic->IsWorking(citizen) || citizen->Camera->ArmyManager->IsCitizenInAnArmy(citizen))
 				continue;
 
 			AActor* goal = citizen->AIController->MoveRequest.GetGoalActor();

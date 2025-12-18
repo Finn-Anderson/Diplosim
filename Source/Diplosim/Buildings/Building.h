@@ -251,9 +251,6 @@ public:
 	virtual void StoreSocketLocations();
 
 	void SetSocketLocation(class ACitizen* Citizen);
-	
-	UFUNCTION(BlueprintCallable)
-		virtual void DestroyBuilding(bool bCheckAbove = true, bool bMove = false);
 
 	TArray<FItemStruct> GetGradeCost(int32 Grade);
 
@@ -272,8 +269,6 @@ public:
 	virtual void AddVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
 
 	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
-
-	TArray<class ACitizen*> GetCitizensAtBuilding();
 
 	virtual bool CheckInstant();
 
@@ -325,6 +320,9 @@ public:
 
 	void SetConstructionMesh();
 
+	UFUNCTION(BlueprintCallable)
+		virtual void DestroyBuilding(bool bCheckAbove = true, bool bMove = false);
+
 	virtual void OnBuilt();
 
 	// Upkeep
@@ -362,6 +360,8 @@ public:
 	int32 GetCapacity();
 
 	TArray<class ACitizen*> GetOccupied();
+
+	TArray<class ACitizen*> GetCitizensAtBuilding();
 
 	// Resources
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")

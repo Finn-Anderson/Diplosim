@@ -176,6 +176,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Conquest Manager")
 		class UConquestManager* ConquestManager;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army Manager")
+		class UArmyManager* ArmyManager;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		class UBuildComponent* BuildComponent;
 
@@ -492,9 +495,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputCancel;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-		class UInputAction* InputSpan;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		class UInputAction* InputRender;

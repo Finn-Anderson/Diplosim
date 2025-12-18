@@ -4,14 +4,15 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/AudioComponent.h"
 
-#include "Universal/HealthComponent.h"
 #include "AIMovementComponent.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
+#include "Buildings/Building.h"
+#include "Map/Grid.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Map/Grid.h"
-#include "Buildings/Building.h"
+#include "Player/Managers/ArmyManager.h"
+#include "Universal/HealthComponent.h"
 
 AAI::AAI()
 {
@@ -57,8 +58,13 @@ void AAI::MoveToBroch()
 {
 	ABuilding* target = nullptr;
 
-	for (FFactionStruct& faction : Camera->ConquestManager->Factions)
-		target = Camera->ConquestManager->MoveArmyMember(&faction, this, true);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
+
+	if (faction != nullptr)
+		Camera->ArmyManager->MoveToTarget(faction, { Cast<ACitizen>(this) });
+	else
+		for (FFactionStruct& f : Camera->ConquestManager->Factions)
+			target = Camera->ArmyManager->MoveArmyMember(&f, this, true, target);
 
 	AIController->AIMoveTo(target);
 }

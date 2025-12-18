@@ -22,6 +22,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/ArmyManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Components/CameraMovementComponent.h"
@@ -1367,7 +1368,7 @@ void UDiplosimSaveGame::InitialiseFactions(ACamera* Camera, FActorSaveData& Acto
 			for (FString name : armyData.CitizensNames)
 				citizens.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
 
-			Camera->ConquestManager->CreateArmy(data.Name, citizens, armyData.bGroup, true);
+			Camera->ArmyManager->CreateArmy(data.Name, citizens, armyData.bGroup, true);
 		}
 	}
 }

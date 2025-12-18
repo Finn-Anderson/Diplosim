@@ -94,6 +94,11 @@ public:
 
 	void CheckCitizenStatus(int32 Hour);
 
+	void IssuePensions(int32 Hour);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pensions")
+		int32 IssuePensionHour;
+
 	// Conversations
 	USoundBase* GetConversationSound(ACitizen* Citizen);
 
@@ -102,15 +107,7 @@ public:
 	UFUNCTION()
 		void Interact(FFactionStruct Faction, class ACitizen* Citizen1, class ACitizen* Citizen2);
 
-	// Pensions
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pensions")
-		int32 IssuePensionHour;
-
-	void IssuePensions(int32 Hour);
-
 	// Genetics
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sacrifice")
-		class UNiagaraSystem* SacrificeSystem;
 
 	UFUNCTION(BlueprintCallable)
 		void Pray(FString FactionName);
@@ -124,14 +121,14 @@ public:
 	UFUNCTION()
 		void IncrementPray(FFactionStruct Faction, FString Type, int32 Increment);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sacrifice")
+		class UNiagaraSystem* SacrificeSystem;
+
 	// Religion
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
 		TArray<FReligionStruct> Religions;
 
 	// Personality
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
-		TArray<FPersonality> Personalities;
-
 	TArray<FPersonality*> GetCitizensPersonalities(class ACitizen* Citizen);
 
 	float GetAggressiveness(class ACitizen* Citizen);
@@ -139,6 +136,9 @@ public:
 	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness);
 
 	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		TArray<FPersonality> Personalities;
 
 protected:
 	void ReadJSONFile(FString path);

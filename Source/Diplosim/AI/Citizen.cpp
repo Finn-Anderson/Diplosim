@@ -12,17 +12,7 @@
 #include "Universal/HealthComponent.h"
 #include "AttackComponent.h"
 #include "DiplosimAIController.h"
-#include "Player/Camera.h"
-#include "Player/Managers/CitizenManager.h"
-#include "Player/Managers/DiplosimTimerManager.h"
-#include "Player/Managers/DiseaseManager.h"
-#include "Player/Managers/ResourceManager.h"
-#include "Player/Managers/ConstructionManager.h"
-#include "Player/Managers/ResearchManager.h"
-#include "Player/Managers/ConquestManager.h"
-#include "Player/Managers/EventsManager.h"
-#include "Player/Managers/PoliticsManager.h"
-#include "Player/Components/BuildComponent.h"
+#include "AIMovementComponent.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/House.h"
@@ -31,14 +21,25 @@
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/Misc/Special/PowerPlant.h"
-#include "Universal/DiplosimUserSettings.h"
-#include "Universal/DiplosimGameModeBase.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
-#include "AIMovementComponent.h"
 #include "Map/Resources/Mineral.h"
+#include "Player/Camera.h"
+#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
+#include "Player/Managers/DiseaseManager.h"
+#include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/ConstructionManager.h"
+#include "Player/Managers/ResearchManager.h"
+#include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/ArmyManager.h"
+#include "Player/Managers/EventsManager.h"
+#include "Player/Managers/PoliticsManager.h"
+#include "Player/Components/BuildComponent.h"
+#include "Universal/DiplosimUserSettings.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 ACitizen::ACitizen()
 {
@@ -791,7 +792,7 @@ void ACitizen::LoseEnergy()
 
 	MovementComponent->SetMaxSpeed(Energy);
 
-	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && Building.Employment->IsWorking(this)) || Camera->ConquestManager->IsCitizenInAnArmy(this))
+	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(Building.Employment) && Building.Employment->IsWorking(this)) || Camera->ArmyManager->IsCitizenInAnArmy(this))
 		return;
 
 	ABuilding* target = nullptr;

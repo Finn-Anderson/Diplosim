@@ -18,6 +18,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/ArmyManager.h"
 #include "Player/Managers/EventsManager.h"
 #include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/PoliceManager.h"
@@ -389,7 +390,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		if (personality->Citizens.Contains(Citizen))
 			personality->Citizens.Remove(Citizen);
 
-	Camera->ConquestManager->RemoveFromArmy(Citizen);
+	Camera->ArmyManager->RemoveFromArmy(Citizen);
 }
 
 //
@@ -468,6 +469,23 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 	}
 
 	Camera->EventsManager->CreateWedding(Hour);
+}
+
+void UCitizenManager::IssuePensions(int32 Hour)
+{
+	if (Hour != IssuePensionHour)
+		return;
+
+	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+		int32 value = Camera->PoliticsManager->GetLawValue(faction.Name, "Pension");
+
+		if (value == 0)
+			continue;
+
+		for (ACitizen* citizen : faction.Citizens)
+			if (citizen->BioStruct.Age >= Camera->PoliticsManager->GetLawValue(faction.Name, "Pension Age"))
+				citizen->Balance += value;
+	}
 }
 
 //
@@ -550,23 +568,6 @@ void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACiti
 	if (!Citizen1->AttackComponent->IsComponentTickEnabled()) {
 		Citizen1->AIController->DefaultAction();
 		Citizen2->AIController->DefaultAction();
-	}
-}
-
-void UCitizenManager::IssuePensions(int32 Hour)
-{
-	if (Hour != IssuePensionHour)
-		return;
-
-	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-		int32 value = Camera->PoliticsManager->GetLawValue(faction.Name, "Pension");
-
-		if (value == 0)
-			continue;
-
-		for (ACitizen* citizen : faction.Citizens)
-			if (citizen->BioStruct.Age >= Camera->PoliticsManager->GetLawValue(faction.Name, "Pension Age"))
-				citizen->Balance += value;
 	}
 }
 

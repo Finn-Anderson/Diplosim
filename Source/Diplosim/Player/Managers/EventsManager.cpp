@@ -14,6 +14,7 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/ArmyManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/PoliticsManager.h"
 
@@ -84,7 +85,7 @@ void UEventsManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 
 bool UEventsManager::IsAttendingEvent(ACitizen* Citizen)
 {
-	if (Camera->ConquestManager->IsCitizenInAnArmy(Citizen))
+	if (Camera->ArmyManager->IsCitizenInAnArmy(Citizen))
 		return true;
 
 	for (auto& element : OngoingEvents())

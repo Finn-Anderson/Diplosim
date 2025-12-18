@@ -35,6 +35,7 @@
 #include "Managers/PoliceManager.h"
 #include "Managers/ResearchManager.h"
 #include "Managers/ConquestManager.h"
+#include "Managers/ArmyManager.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -95,6 +96,8 @@ ACamera::ACamera()
 
 	ConquestManager = CreateDefaultSubobject<UConquestManager>(TEXT("ConquestManager"));
 
+	ArmyManager = CreateDefaultSubobject<UArmyManager>(TEXT("ArmyManager"));
+
 	SaveGameComponent = CreateDefaultSubobject<USaveGameComponent>(TEXT("SaveGameComponent"));
 
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
@@ -153,6 +156,7 @@ void ACamera::BeginPlay()
 	ConquestManager->Camera = this;
 	ConquestManager->AIBuildComponent->Camera = this;
 	ConquestManager->DiplomacyComponent->Camera = this;
+	ArmyManager->Camera = this;
 	SaveGameComponent->Camera = this;
 	ResearchManager->Camera = this;
 	EventsManager->Camera = this;
@@ -795,7 +799,7 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 			return;
 		}
 
-		ConquestManager->SetSelectedArmy(INDEX_NONE);
+		ArmyManager->SetSelectedArmy(INDEX_NONE);
 
 		if (!IsValid(HoveredActor.Actor))
 			return;
@@ -826,10 +830,10 @@ void ACamera::Cancel()
 		bBulldoze = false;
 	else if (BuildComponent->IsComponentTickEnabled())
 		BuildComponent->RemoveBuilding();
-	else if (ConquestManager->PlayerSelectedArmyIndex > -1)
-		ConquestManager->PlayerMoveArmy(MouseHitLocation);
+	else if (ArmyManager->PlayerSelectedArmyIndex > -1)
+		ArmyManager->PlayerMoveArmy(MouseHitLocation);
 
-	if (bBulldoze || BuildComponent->IsComponentTickEnabled() || ConquestManager->PlayerSelectedArmyIndex > -1)
+	if (bBulldoze || BuildComponent->IsComponentTickEnabled() || ArmyManager->PlayerSelectedArmyIndex > -1)
 		PlayInteractSound(InteractSound);
 }
 
