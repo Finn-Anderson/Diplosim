@@ -1,6 +1,7 @@
 #include "Buildings/Work/Service/School.h"
 
 #include "AI/Citizen.h"
+#include "AI/BuildingComponent.h"
 
 ASchool::ASchool()
 {
@@ -12,7 +13,7 @@ ASchool::ASchool()
 
 void ASchool::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Visitor->Building.School = this;
+	Visitor->BuildingComponent->School = this;
 
 	Visitor->PayForEducationLevels();
 
@@ -21,7 +22,7 @@ void ASchool::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 
 void ASchool::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Visitor->Building.School = nullptr;
+	Visitor->BuildingComponent->School = nullptr;
 
 	Super::RemoveVisitor(Occupant, Visitor);
 }
@@ -31,7 +32,7 @@ TArray<ACitizen*> ASchool::GetStudentsAtSchool(ACitizen* Occupant)
 	TArray<ACitizen*> citizens;
 
 	for (ACitizen* student : GetVisitors(Occupant)) {
-		if (student->Building.BuildingAt != this)
+		if (student->BuildingComponent->BuildingAt != this)
 			continue;
 
 		citizens.Add(student);

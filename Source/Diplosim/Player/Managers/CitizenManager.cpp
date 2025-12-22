@@ -8,6 +8,7 @@
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Service/Clinic.h"
@@ -134,45 +135,47 @@ void UCitizenManager::CitizenGeneralLoop()
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() == 0)
 					continue;
 
-				citizen->AllocatedBuildings.Empty();
-				citizen->AllocatedBuildings = { citizen->Building.School, citizen->Building.Employment, citizen->Building.House };
+				citizen->BuildingComponent->AllocatedBuildings.Empty();
+				citizen->BuildingComponent->AllocatedBuildings = { citizen->BuildingComponent->School, citizen->BuildingComponent->Employment, citizen->BuildingComponent->House };
 
-				if (citizen->CanFindAnything(timeToCompleteDay, &faction)) {
+				TArray<ACitizen*> roommates = citizen->BuildingComponent->GetRoomates();
+
+				if (citizen->BuildingComponent->CanFindAnything(timeToCompleteDay, &faction)) {
 					for (ABuilding* building : faction.Buildings) {
 						if (Camera->SaveGameComponent->IsLoading())
 							return;
 
-						if (!IsValid(building) || building->HealthComponent->GetHealth() == 0 || citizen->AllocatedBuildings.Contains(building) || (!building->IsA<AWork>() && !building->IsA<AHouse>()) || building->GetOccupied().Num() == building->Capacity || !citizen->AIController->CanMoveTo(building->GetActorLocation()))
+						if (!IsValid(building) || building->HealthComponent->GetHealth() == 0 || citizen->BuildingComponent->AllocatedBuildings.Contains(building) || (!building->IsA<AWork>() && !building->IsA<AHouse>()) || !citizen->AIController->CanMoveTo(building->GetActorLocation()))
 							continue;
 
 						if (building->IsA<ASchool>())
-							citizen->FindEducation(Cast<ASchool>(building), timeToCompleteDay);
+							citizen->BuildingComponent->FindEducation(Cast<ASchool>(building), timeToCompleteDay);
 						else if (building->IsA<AWork>())
-							citizen->FindJob(Cast<AWork>(building), timeToCompleteDay);
+							citizen->BuildingComponent->FindJob(Cast<AWork>(building), timeToCompleteDay);
 						else if (building->IsA<AHouse>())
-							citizen->FindHouse(Cast<AHouse>(building), timeToCompleteDay);
+							citizen->BuildingComponent->FindHouse(Cast<AHouse>(building), timeToCompleteDay, roommates);
 					}
 
-					citizen->SetJobHouseEducation(timeToCompleteDay);
+					citizen->BuildingComponent->SetJobHouseEducation(timeToCompleteDay, roommates);
 				}
 
 				citizen->SetHappiness();
 
 				int32 happiness = citizen->GetHappiness();
-				citizen->SetEyesVisuals(happiness);
+				Camera->Grid->AIVisualiser->SetEyesVisuals(citizen, happiness);
 
 				happinessCount += happiness;
 
 				if (Camera->PoliticsManager->GetMembersParty(citizen) != nullptr && Camera->PoliticsManager->GetMembersParty(citizen)->Party == "Shell Breakers")
 					rebelCount++;
 
-				if (!IsValid(citizen->Building.Employment))
+				if (!IsValid(citizen->BuildingComponent->Employment))
 					continue;
 
-				if (citizen->Building.Employment->IsA<AWall>())
-					Cast<AWall>(citizen->Building.Employment)->SetEmergency(!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() || !faction.Rebels.IsEmpty());
-				else if (citizen->Building.Employment->IsA<AClinic>())
-					Cast<AClinic>(citizen->Building.Employment)->SetEmergency(!Camera->DiseaseManager->Infected.IsEmpty());
+				if (citizen->BuildingComponent->Employment->IsA<AWall>())
+					Cast<AWall>(citizen->BuildingComponent->Employment)->SetEmergency(!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() || !faction.Rebels.IsEmpty());
+				else if (citizen->BuildingComponent->Employment->IsA<AClinic>())
+					Cast<AClinic>(citizen->BuildingComponent->Employment)->SetEmergency(!Camera->DiseaseManager->Infected.IsEmpty());
 			}
 
 			float rebelsPerc = rebelCount / (float)faction.Citizens.Num();
@@ -279,12 +282,12 @@ void UCitizenManager::CalculateConversationInteractions()
 
 				bool bCitizenInReport = Camera->PoliceManager->IsInAPoliceReport(citizen, &faction);
 
-				if (citizen->bConversing || citizen->bSleep || (bCitizenInReport && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->IsA(Camera->PoliceManager->PoliceStationClass))))
+				if (citizen->bConversing || citizen->bSleep || (bCitizenInReport && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass))))
 					continue;
 
 				float reach = citizen->Range / 15.0f;
 				
-				if (IsValid(citizen->AIController->MoveRequest.GetGoalActor()) && IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA(Camera->PoliceManager->PoliceStationClass)) {
+				if (IsValid(citizen->AIController->MoveRequest.GetGoalActor()) && IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)) {
 					Camera->PoliceManager->PoliceInteraction(&faction, citizen, reach);
 				}
 				else if (Camera->Stream.RandRange(0, 1000) == 1000) {
@@ -400,12 +403,11 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 {
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 		for (ACitizen* citizen : faction.Citizens) {
-			for (auto element : citizen->HoursWorked) {
-				if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsWorking(citizen, Hour))
-					if (!citizen->HoursWorked.Contains(Hour))
-						citizen->HoursWorked.Add(Hour, citizen->Building.Employment->WagePerHour);
-					else if (citizen->HoursWorked.Contains(Hour))
-						citizen->HoursWorked.Remove(Hour);
+			for (auto element : citizen->BuildingComponent->HoursWorked) {
+				if (!IsValid(citizen->BuildingComponent->Employment) || (citizen->BuildingComponent->HoursWorked.Contains(Hour) && !citizen->BuildingComponent->Employment->IsWorking(citizen, Hour)))
+					citizen->BuildingComponent->HoursWorked.Remove(Hour);
+				else if (!citizen->BuildingComponent->HoursWorked.Contains(Hour))
+					citizen->BuildingComponent->HoursWorked.Add(Hour, citizen->BuildingComponent->Employment->WagePerHour);
 			}
 		}
 
@@ -427,14 +429,14 @@ void UCitizenManager::CheckUpkeepCosts()
 		for (ACitizen* citizen : faction.Citizens) {
 			float amount = 0.0f;
 
-			for (auto element : citizen->HoursWorked)
+			for (auto element : citizen->BuildingComponent->HoursWorked)
 				amount += element.Value;
 
 			citizen->Balance += FMath::RoundHalfFromZero(amount);
 			Camera->ResourceManager->TakeUniversalResource(&faction, Camera->ResourceManager->Money, amount, -100000);
 
-			if (IsValid(citizen->Building.House))
-				citizen->Building.House->GetRent(&faction, citizen);
+			if (IsValid(citizen->BuildingComponent->House))
+				citizen->BuildingComponent->House->GetRent(&faction, citizen);
 		}
 	}
 }
@@ -449,12 +451,12 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 			if (citizen->bSleep)
 				citizen->HoursSleptToday.Add(Hour);
 
-			if (citizen->HoursSleptToday.Num() < citizen->IdealHoursSlept && !citizen->bSleep && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->IsWorking(citizen)) && IsValid(citizen->Building.House) && citizen->Building.BuildingAt == citizen->Building.House) {
+			if (citizen->HoursSleptToday.Num() < citizen->IdealHoursSlept && !citizen->bSleep && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsWorking(citizen)) && IsValid(citizen->BuildingComponent->House) && citizen->BuildingComponent->BuildingAt == citizen->BuildingComponent->House) {
 				citizen->bSleep = true;
 
 				citizen->Snore(true);
 			}
-			else if (citizen->bSleep && citizen->HoursSleptToday.Num() >= citizen->IdealHoursSlept) {
+			else if (citizen->bSleep) {
 				citizen->bSleep = false;
 
 				FTimerStruct* timer = Camera->TimerManager->FindTimer("Snore", citizen);

@@ -2,12 +2,13 @@
 
 #include "Components/WidgetComponent.h"
 
-#include "Buildings/Work/Service/Builder.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
+#include "Buildings/Work/Service/Builder.h"
+#include "Buildings/Misc/Broch.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Buildings/Misc/Broch.h"
 
 UConstructionManager::UConstructionManager()
 {
@@ -70,7 +71,7 @@ void UConstructionManager::FindBuilder(class ABuilding* Building)
 		constructionStruct.Builder = builder;
 		constructionStruct.Building = builder;
 
-		if (Construction.Contains(constructionStruct) || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->Building.BuildingAt != builder)
+		if (Construction.Contains(constructionStruct) || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->BuildingComponent->BuildingAt != builder)
 			continue;
 
 		bool bCanMove = builder->GetOccupied()[0]->AIController->CanMoveTo(Building->GetActorLocation());

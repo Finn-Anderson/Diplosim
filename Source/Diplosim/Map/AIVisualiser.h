@@ -172,6 +172,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animations")
 		TArray<FAnimStruct> Animations;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visuals")
+		TMap<FString, FLinearColor> HarvestVisuals;
+
 	void ResetToDefaultValues();
 
 	void MainLoop(class ACamera* Camera);
@@ -182,7 +185,11 @@ public:
 
 	void UpdateInstanceCustomData(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, int32 Index, float Value);
 
+	void SetHarvestVisuals(class ACitizen* Citizen, class AResource* Resource);
+
 	FVector AddHarvestVisual(class AAI* AI, FLinearColor Colour);
+
+	void SetEyesVisuals(class ACitizen* Citizen, int32 HappinessValue);
 
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
 

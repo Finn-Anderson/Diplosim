@@ -2,6 +2,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/House.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -45,14 +46,14 @@ void AOrphanage::Leave(ACitizen* Citizen)
 
 void AOrphanage::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Visitor->Building.Orphanage = this;
+	Visitor->BuildingComponent->Orphanage = this;
 
 	Super::AddVisitor(Occupant, Visitor);
 }
 
 void AOrphanage::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Visitor->Building.Orphanage = nullptr;
+	Visitor->BuildingComponent->Orphanage = nullptr;
 
 	Camera->TimerManager->RemoveTimer("Orphanage", Visitor);
 
@@ -105,7 +106,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 	int32 maxF = FMath::CeilToInt((100 - Citizen->Hunger) / (25.0f * Citizen->FoodMultiplier));
 	int32 cost = Camera->PoliticsManager->GetLawValue(faction->Name, "Food Cost");
 
-	int32 amount = FMath::Min(Citizen->Building.House->Space - Citizen->Building.House->GetVisitors(Citizen->Building.House->GetOccupant(Citizen)).Num(), money / (maxF * cost));
+	int32 amount = FMath::Min(Citizen->BuildingComponent->House->Space - Citizen->BuildingComponent->House->GetVisitors(Citizen->BuildingComponent->House->GetOccupant(Citizen)).Num(), money / (maxF * cost));
 
 	for (int32 i = 0; i < amount; i++) {
 		int32 index = Camera->Stream.RandRange(0, favourites.Num() - 1);
@@ -133,9 +134,9 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 
 		Citizen->BioStruct.Children.Add(child);
 
-		Citizen->Building.House->AddVisitor(Citizen->Building.House->GetOccupant(Citizen), child);
+		Citizen->BuildingComponent->House->AddVisitor(Citizen->BuildingComponent->House->GetOccupant(Citizen), child);
 
-		child->AIController->AIMoveTo(Citizen->Building.House);
+		child->AIController->AIMoveTo(Citizen->BuildingComponent->House);
 
 		child->Camera->TimerManager->CreateTimer("Idle", child, 60.0f, "DefaultAction", {}, false, true);
 
@@ -144,7 +145,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 		favourites.RemoveAt(index);
 	}
 
-	Citizen->AIController->AIMoveTo(Citizen->Building.House);
+	Citizen->AIController->AIMoveTo(Citizen->BuildingComponent->House);
 
 	Citizen->Camera->TimerManager->CreateTimer("Idle", Citizen, 60.0f, "DefaultAction", {}, false, true);
 }

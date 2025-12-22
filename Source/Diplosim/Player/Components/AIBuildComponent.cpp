@@ -5,6 +5,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/House.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Road.h"
@@ -351,22 +352,29 @@ void UAIBuildComponent::BuildAIHouse(FFactionStruct* Faction)
 {
 	TArray<TSubclassOf<ABuilding>> buildingsClassList;
 
-	bool bHomeless = false;
+	TArray<ACitizen*> homeless;
 
 	for (ACitizen* citizen : Faction->Citizens) {
-		if (IsValid(citizen->Building.House))
+		if (IsValid(citizen->BuildingComponent->House))
 			continue;
 
-		bHomeless = true;
-
-		break;
+		homeless.Add(citizen);
 	}
 
-	if (!bHomeless)
+	if (homeless.IsEmpty())
 		return;
 
 	for (TSubclassOf<ABuilding> house : Houses) {
 		if (!AICanAfford(Faction, house))
+			continue;
+
+		int32 amount = 0;
+
+		for (ACitizen* citizen : homeless)
+			if (citizen->BuildingComponent->Employment->GetWage(citizen) >= Cast<AHouse>(house->GetDefaultObject())->Rent)
+				amount++;
+
+		if (amount / homeless.Num() < 0.33f)
 			continue;
 
 		buildingsClassList.Add(house);

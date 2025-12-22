@@ -2,6 +2,7 @@
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/AudioComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -10,6 +11,8 @@
 #include "AI/Citizen.h"
 #include "AI/Enemy.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/AttackComponent.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Research.h"
 #include "Map/Grid.h"
@@ -17,6 +20,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/ResourceManager.h"
 #include "Player/Components/SaveGameComponent.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/Resource.h"
@@ -85,6 +89,12 @@ UAIVisualiser::UAIVisualiser()
 	HatsContainer->SetupAttachment(AIContainer);
 
 	hatsNum = 0;
+
+	HarvestVisuals.Add("Wood", FLinearColor(0.270498f, 0.158961f, 0.07036f));
+	HarvestVisuals.Add("Stone", FLinearColor(0.571125f, 0.590619f, 0.64448f));
+	HarvestVisuals.Add("Marble", FLinearColor(0.768151f, 0.73791f, 0.610496f));
+	HarvestVisuals.Add("Iron", FLinearColor(0.291771f, 0.097587f, 0.066626f));
+	HarvestVisuals.Add("Gold", FLinearColor(1.0f, 0.672443f, 0.0f));
 }
 
 void UAIVisualiser::BeginPlay()
@@ -226,7 +236,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 						if (i == 0) {
 							float opacity = 1.0f;
-							if (IsValid(citizen->Building.BuildingAt))
+							if (IsValid(citizen->BuildingComponent->BuildingAt))
 								opacity = 0.0f;
 
 							UpdateInstanceCustomData(HISMCitizen, j, 14, opacity);
@@ -481,7 +491,34 @@ void UAIVisualiser::UpdateArmyVisuals(ACamera* Camera, ACitizen* Citizen)
 	}
 }
 
-FVector UAIVisualiser::AddHarvestVisual(class AAI* AI, FLinearColor Colour)
+void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
+{
+	USoundBase* sound = nullptr;
+
+	FHitResult hit(ForceInit);
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(Citizen);
+
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource->GetClass();
+
+	int32 index = Citizen->Camera->ResourceManager->ResourceList.Find(resourceStruct);
+	FString category = Citizen->Camera->ResourceManager->ResourceList[index].Category;
+
+	FLinearColor colour = *HarvestVisuals.Find(category);
+
+	if (Resource->IsA<AMineral>())
+		sound = Citizen->Mines[Citizen->Camera->Stream.RandRange(0, Citizen->Mines.Num() - 1)];
+	else
+		sound = Citizen->Chops[Citizen->Camera->Stream.RandRange(0, Citizen->Chops.Num() - 1)];
+
+	FVector location = AddHarvestVisual(Citizen, colour);
+
+	Citizen->AmbientAudioComponent->SetRelativeLocation(location);
+	Citizen->Camera->PlayAmbientSound(Citizen->AmbientAudioComponent, sound);
+}
+
+FVector UAIVisualiser::AddHarvestVisual(AAI* AI, FLinearColor Colour)
 {
 	FVector location = AI->MovementComponent->Transform.GetLocation() + FVector(20.0f, 0.0f, 17.0f);
 
@@ -495,6 +532,26 @@ FVector UAIVisualiser::AddHarvestVisual(class AAI* AI, FLinearColor Colour)
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayColor(HarvestNiagaraComponent, "Colours", colours);
 
 	return location;
+}
+
+void UAIVisualiser::SetEyesVisuals(ACitizen* Citizen, int32 HappinessValue)
+{
+	auto element = GetAIHISM(Citizen);
+
+	float val15 = 0.0f;
+	float val16 = 0.0f;
+	float val17 = 0.0f;
+
+	if (!Citizen->AttackComponent->OverlappingEnemies.IsEmpty())
+		val16 = 1.0f;
+	else if (Citizen->Camera->DiseaseManager->Infected.Contains(Citizen) || Citizen->Camera->DiseaseManager->Injured.Contains(Citizen) || HappinessValue < 35)
+		val17 = 1.0f;
+	else if (HappinessValue > 65)
+		val15 = 1.0f;
+
+	UpdateInstanceCustomData(element.Key, element.Value, 15, val15);
+	UpdateInstanceCustomData(element.Key, element.Value, 16, val16);
+	UpdateInstanceCustomData(element.Key, element.Value, 17, val17);
 }
 
 TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)

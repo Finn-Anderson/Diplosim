@@ -4,6 +4,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Misc/Broch.h"
@@ -232,7 +233,7 @@ void UPoliticsManager::Election(FFactionStruct Faction)
 		TArray<ACitizen*> citizens;
 
 		for (TPair<ACitizen*, TEnumAsByte<ESway>> pair : party.Members) {
-			if ((representativeType == 1 && pair.Key->Building.Employment == nullptr) || (representativeType == 2 && pair.Key->Balance < 15))
+			if ((representativeType == 1 && pair.Key->BuildingComponent->Employment == nullptr) || (representativeType == 2 && pair.Key->Balance < 15))
 				continue;
 
 			citizens.Add(pair.Key);
@@ -467,11 +468,11 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 	if (Bill.BillType.Contains("Cost")) {
 		int32 leftoverMoney = 0;
 
-		if (IsValid(Representative->Building.Employment))
-			leftoverMoney += Representative->Building.Employment->GetWage(Representative);
+		if (IsValid(Representative->BuildingComponent->Employment))
+			leftoverMoney += Representative->BuildingComponent->Employment->GetWage(Representative);
 
-		if (IsValid(Representative->Building.House))
-			leftoverMoney -= Representative->Building.House->Rent;
+		if (IsValid(Representative->BuildingComponent->House))
+			leftoverMoney -= Representative->BuildingComponent->House->Rent;
 
 		if (leftoverMoney < Bill.Value)
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
@@ -489,7 +490,7 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 			verdict.Append({ "Agreeing", "Agreeing", "Agreeing" });
 	}
 	else if (Bill.BillType == "Representative Type") {
-		if (Bill.Value == 1 && !IsValid(Representative->Building.Employment))
+		if (Bill.Value == 1 && !IsValid(Representative->BuildingComponent->Employment))
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 		else if (Bill.Value == 2 && Representative->Balance < 15)
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
@@ -535,11 +536,11 @@ void UPoliticsManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 
 			if (Faction->Politics.Laws[index].BillType.Contains("Age")) {
 				for (ACitizen* citizen : Faction->Citizens) {
-					if (IsValid(citizen->Building.Employment) && !citizen->CanWork(citizen->Building.Employment))
-						citizen->Building.Employment->RemoveCitizen(citizen);
+					if (IsValid(citizen->BuildingComponent->Employment) && !citizen->BuildingComponent->CanWork(citizen->BuildingComponent->Employment))
+						citizen->BuildingComponent->Employment->RemoveCitizen(citizen);
 
-					if (IsValid(citizen->Building.School) && (citizen->BioStruct.Age >= GetLawValue(Faction->Name, "Work Age") || citizen->BioStruct.Age < GetLawValue(Faction->Name, "Education Age")))
-						citizen->Building.School->RemoveVisitor(citizen->Building.School->GetOccupant(citizen), citizen);
+					if (IsValid(citizen->BuildingComponent->School))
+						citizen->BuildingComponent->RemoveOnReachingWorkAge(Faction);
 
 					if (citizen->BioStruct.Age >= Faction->Politics.Laws[index].Value)
 						continue;

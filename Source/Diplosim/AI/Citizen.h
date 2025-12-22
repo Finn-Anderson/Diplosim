@@ -23,40 +23,6 @@ struct FCarryStruct
 	}
 };
 
-USTRUCT(BlueprintType)
-struct FBuildingStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class AHouse* House;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class AWork* Employment;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class ASchool* School;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class AOrphanage* Orphanage;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class ABuilding* BuildingAt;
-
-	UPROPERTY()
-		FVector EnterLocation;
-
-	FBuildingStruct()
-	{
-		House = nullptr;
-		Employment = nullptr;
-		School = nullptr;
-		Orphanage = nullptr;
-		BuildingAt = nullptr;
-		EnterLocation = FVector::Zero();
-	}
-};
-
 UENUM()
 enum class ESex : uint8
 {
@@ -258,32 +224,8 @@ public:
 
 	void ApplyResearch(FFactionStruct* Faction);
 
-	// Find Job, House and Education
-	void FindEducation(class ASchool* Education, int32 TimeToCompleteDay);
-
-	void FindJob(class AWork* Job, int32 TimeToCompleteDay);
-
-	void FindHouse(class AHouse* House, int32 TimeToCompleteDay);
-
-	void SetJobHouseEducation(int32 TimeToCompleteDay);
-
-	float GetAcquiredTime(int32 Index);
-
-	void SetAcquiredTime(int32 Index, float Time);
-
-	bool CanFindAnything(int32 TimeToCompleteDay, FFactionStruct* Faction);
-
-	UPROPERTY()
-		TArray<float> TimeOfAcquirement;
-
-	UPROPERTY()
-		TArray<class ABuilding*> AllocatedBuildings;
-
-	UPROPERTY()
-		ACitizen* FoundHouseOccupant;
-
-	// On Hit
-	void SetHarvestVisuals(class AResource* Resource);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building Component")
+		class UBuildingComponent* BuildingComponent;
 
 	// Audio
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
@@ -304,38 +246,22 @@ public:
 	UPROPERTY()
 		float VoicePitch;
 
-	// Education
+	// Economy
 	bool CanAffordEducationLevel();
 
 	void PayForEducationLevels();
-
-	// Work
-	bool CanWork(class ABuilding* WorkBuilding);
-
-	bool WillWork();
-
-	float GetProductivity();
-
-	UFUNCTION()
-		void Heal(ACitizen* Citizen);
 
 	int32 GetLeftoverMoney();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Money")
 		int32 Balance;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Hours")
-		int32 IdealHoursWorkedMin;
+	// Health
+	UFUNCTION()
+		void Heal(ACitizen* Citizen);
 
-	UPROPERTY(BlueprintReadOnly, Category = "Hours")
-		int32 IdealHoursWorkedMax;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Hours")
-		TMap<int32, float> HoursWorked;
-
-	// Buildings
-	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
-		FBuildingStruct Building;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+		TArray<FConditionStruct> HealthIssues;
 
 	// Resources
 	void StartHarvestTimer(class AResource* Resource);
@@ -391,8 +317,6 @@ public:
 
 	void HaveChild();
 
-	void RemoveFromHouse();
-
 	TArray<ACitizen*> GetLikedFamily(bool bFactorAge);
 
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
@@ -421,10 +345,6 @@ public:
 		EAttendStatus MassStatus;
 
 	void SetReligion(FFactionStruct* Faction);
-
-	// Status
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-		TArray<FConditionStruct> HealthIssues;
 
 	// Happiness
 	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
@@ -468,8 +388,6 @@ public:
 
 	void SetHappiness();
 
-	void SetEyesVisuals(int32 HappinessValue);
-
 	// Genetics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Genetics")
 		TArray<FGeneticsStruct> Genetics;
@@ -480,11 +398,6 @@ public:
 	void GenerateGenetics(FFactionStruct* Faction);
 
 	void ApplyGeneticAffect(FGeneticsStruct Genetic);
-
-	// Personality
-	void GivePersonalityTrait(ACitizen* Parent = nullptr);
-
-	void ApplyTraitAffect(TMap<FString, float> Affects);
 
 	// Sleep
 	UFUNCTION()
@@ -501,6 +414,11 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		int32 IdealHoursSlept;
+
+	// Personality
+	void GivePersonalityTrait(ACitizen* Parent = nullptr);
+
+	void ApplyTraitAffect(TMap<FString, float> Affects);
 
 	// Multipliers
 	UPROPERTY(BlueprintReadOnly, Category = "Multiplier")
@@ -525,4 +443,6 @@ public:
 		float EnergyMultiplier;
 
 	void ApplyToMultiplier(FString Affect, float Amount);
+
+	float GetProductivity();
 };

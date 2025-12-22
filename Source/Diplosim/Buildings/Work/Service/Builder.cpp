@@ -2,6 +2,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ConquestManager.h"
@@ -60,7 +61,7 @@ void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 
 void ABuilder::AddBuildPercentage(ACitizen* Citizen, ABuilding* Building)
 {
-	if (Citizen->Building.BuildingAt != Building || !Camera->ConstructionManager->IncrementBuildPercentage(Building))
+	if (Citizen->BuildingComponent->BuildingAt != Building || !Camera->ConstructionManager->IncrementBuildPercentage(Building))
 		return;
 
 	Building->OnBuilt();

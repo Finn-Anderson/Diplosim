@@ -5,6 +5,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Universal/Resource.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
@@ -54,7 +55,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 {
 	Super::Production(Citizen);
 
-	if (Citizen->Building.BuildingAt != this)
+	if (Citizen->BuildingComponent->BuildingAt != this)
 		return;
 
 	AResource* resource = nullptr;

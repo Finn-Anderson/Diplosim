@@ -15,6 +15,7 @@
 #include "AI/AI.h"
 #include "AI/Citizen.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Misc/Broch.h"
 #include "Map/Grid.h"
@@ -592,7 +593,7 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 		bool bAttach = true;
 
 		if (Actor->IsA<ACitizen>()) {
-			ABuilding* building = Cast<ACitizen>(Actor)->Building.BuildingAt;
+			ABuilding* building = Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt;
 
 			if (building != nullptr && building->bHideCitizen)
 				bAttach = false;

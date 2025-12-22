@@ -4,6 +4,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Work/Booster.h"
@@ -59,7 +60,7 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	Citizen->Building.Employment = this;
+	Citizen->BuildingComponent->Employment = this;
 
 	AddToWorkHours(Citizen, true);
 
@@ -84,7 +85,7 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	Citizen->Building.Employment = nullptr;
+	Citizen->BuildingComponent->Employment = nullptr;
 
 	AddToWorkHours(Citizen, false);
 
@@ -157,7 +158,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 bool AWork::IsAtWork(ACitizen* Citizen)
 {
-	if (Citizen->Building.BuildingAt == this)
+	if (Citizen->BuildingComponent->BuildingAt == this)
 		return true;
 	else if (IsA<AExternalProduction>()) {
 		AExternalProduction* externalProduction = Cast<AExternalProduction>(this);

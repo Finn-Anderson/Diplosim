@@ -3,6 +3,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 
 #include "AI/Citizen.h"
+#include "AI/BuildingComponent.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
@@ -40,7 +41,7 @@ void ABooster::SetBroadcastType(FString Type)
 		element.Value = Type;
 
 	for (int32 i = GetOccupied().Num() - 1; i > -1; i--)
-		if (!GetOccupied()[i]->CanWork(this))
+		if (!GetOccupied()[i]->BuildingComponent->CanWork(this))
 			RemoveCitizen(GetOccupied()[i]);
 }
 

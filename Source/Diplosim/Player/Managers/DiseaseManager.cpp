@@ -5,6 +5,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Buildings/Work/Service/Clinic.h"
@@ -115,10 +116,10 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 						citizen->HealthComponent->TakeHealth(1000, citizen);
 				}
 
-				if (citizen->HealthComponent->GetHealth() <= 0 || (!Infected.Contains(citizen) && (!IsValid(citizen->Building.Employment) || !citizen->Building.Employment->IsA<AClinic>())))
+				if (citizen->HealthComponent->GetHealth() <= 0 || (!Infected.Contains(citizen) && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsA<AClinic>())))
 					continue;
 
-				if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsA<AClinic>() && faction.Citizens.Contains(citizen->AIController->MoveRequest.GetGoalActor()) && citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), citizen->Range / 15.0f)) {
+				if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA<AClinic>() && faction.Citizens.Contains(citizen->AIController->MoveRequest.GetGoalActor()) && citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), citizen->Range / 15.0f)) {
 					TArray<FTimerParameterStruct> params;
 					Camera->TimerManager->SetParameter(citizen->AIController->MoveRequest.GetGoalActor(), params);
 

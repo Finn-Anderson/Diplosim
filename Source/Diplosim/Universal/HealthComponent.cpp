@@ -14,6 +14,7 @@
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Misc/Broch.h"
@@ -294,7 +295,7 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 			if (Attacker->GetOwner()->IsA<AWall>())
 				a = Attacker->GetOwner();
 			else
-				a = Cast<ACitizen>(Attacker->GetOwner())->Building.Employment;
+				a = Cast<ACitizen>(Attacker->GetOwner())->BuildingComponent->Employment;
 
 			gamemode->WavesData.Last().SetDiedTo(a);
 		}

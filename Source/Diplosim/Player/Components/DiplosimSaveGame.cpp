@@ -11,6 +11,7 @@
 #include "AI/Projectile.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Map/Grid.h"
@@ -519,7 +520,7 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 		if (faction->Rebels.Contains(citizen))
 			data->CitizenData.bRebel = true;
 
-		data->CitizenData.EnterLocation = citizen->Building.EnterLocation;
+		data->CitizenData.EnterLocation = citizen->BuildingComponent->EnterLocation;
 	}
 
 	if (IsValid(citizen->Carrying.Type)) {
@@ -556,10 +557,10 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	data->CitizenData.bAdopted = citizen->BioStruct.bAdopted;
 
 	data->CitizenData.Spirituality = citizen->Spirituality;
-	data->CitizenData.TimeOfAcquirement = citizen->TimeOfAcquirement;
+	data->CitizenData.TimeOfAcquirement = citizen->BuildingComponent->TimeOfAcquirement;
 	data->CitizenData.VoicePitch = citizen->VoicePitch;
 	data->CitizenData.Balance = citizen->Balance;
-	data->CitizenData.HoursWorked = citizen->HoursWorked;
+	data->CitizenData.HoursWorked = citizen->BuildingComponent->HoursWorked;
 	data->CitizenData.Hunger = citizen->Hunger;
 	data->CitizenData.Energy = citizen->Energy;
 	data->CitizenData.bGain = citizen->bGain;
@@ -966,10 +967,10 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	citizen->BioStruct.bAdopted = data->CitizenData.bAdopted;
 
 	citizen->Spirituality = data->CitizenData.Spirituality;
-	citizen->TimeOfAcquirement = data->CitizenData.TimeOfAcquirement;
+	citizen->BuildingComponent->TimeOfAcquirement = data->CitizenData.TimeOfAcquirement;
 	citizen->VoicePitch = data->CitizenData.VoicePitch;
 	citizen->Balance = data->CitizenData.Balance;
-	citizen->HoursWorked = data->CitizenData.HoursWorked;
+	citizen->BuildingComponent->HoursWorked = data->CitizenData.HoursWorked;
 	citizen->Hunger = data->CitizenData.Hunger;
 	citizen->Energy = data->CitizenData.Energy;
 	citizen->bGain = data->CitizenData.bGain;

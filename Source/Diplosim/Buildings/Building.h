@@ -266,6 +266,8 @@ public:
 
 	TArray<class ACitizen*> GetVisitors(class ACitizen* Occupant);
 
+	bool IsAVisitor(class ACitizen* Citizen);
+
 	virtual void AddVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
 
 	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor);

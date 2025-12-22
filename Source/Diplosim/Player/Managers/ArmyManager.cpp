@@ -6,6 +6,7 @@
 #include "AI/DiplosimAIController.h"
 #include "AI/AttackComponent.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/Misc/Broch.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -89,7 +90,7 @@ bool UArmyManager::CanJoinArmy(ACitizen* Citizen)
 {
 	FFactionStruct faction = Camera->ConquestManager->GetCitizenFaction(Citizen);
 
-	if (Citizen->HealthComponent->GetHealth() == 0 || Camera->DiseaseManager->Injured.Contains(Citizen) || Camera->DiseaseManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->PoliticsManager->GetLawValue(faction.Name, "Work Age") || !Citizen->WillWork() || IsCitizenInAnArmy(Citizen))
+	if (Citizen->HealthComponent->GetHealth() == 0 || Camera->DiseaseManager->Injured.Contains(Citizen) || Camera->DiseaseManager->Infected.Contains(Citizen) || Citizen->BioStruct.Age < Camera->PoliticsManager->GetLawValue(faction.Name, "Work Age") || !Citizen->BuildingComponent->WillWork() || IsCitizenInAnArmy(Citizen))
 		return false;
 
 	return true;

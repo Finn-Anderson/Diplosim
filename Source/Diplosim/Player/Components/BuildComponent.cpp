@@ -5,23 +5,24 @@
 #include "Components/DecalComponent.h"
 #include "Misc/ScopeTryLock.h"
 
+#include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
+#include "Buildings/Building.h"
+#include "Buildings/Work/Service/Builder.h"
+#include "Buildings/Work/Service/Research.h"
+#include "Buildings/Work/Booster.h"
+#include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Misc/Road.h"
+#include "Buildings/Work/Production/InternalProduction.h"
+#include "Map/Grid.h"
+#include "Map/Resources/Vegetation.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/PoliceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Components/CameraMovementComponent.h"
-#include "Buildings/Building.h"
-#include "Buildings/Work/Service/Builder.h"
-#include "Buildings/Work/Service/Research.h"
-#include "Buildings/Work/Booster.h"
-#include "Buildings/Work/Defence/Wall.h"
-#include "Map/Grid.h"
-#include "Map/Resources/Vegetation.h"
-#include "AI/Citizen.h"
-#include "AI/DiplosimAIController.h"
-#include "Buildings/Misc/Road.h"
-#include "Buildings/Work/Production/InternalProduction.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "DebugManager.h"
 
@@ -744,7 +745,7 @@ void UBuildComponent::Place(bool bQuick)
 				BuildingToMove->RemoveCitizen(citizen);
 			}
 			else if (BuildingToMove->GetCitizensAtBuilding().Contains(citizen)) {
-				citizen->Building.EnterLocation += diff;
+				citizen->BuildingComponent->EnterLocation += diff;
 
 				BuildingToMove->SetSocketLocation(citizen);
 			}
@@ -766,7 +767,7 @@ void UBuildComponent::Place(bool bQuick)
 			FFactionStruct* faction = Camera->ConquestManager->GetFaction(BuildingToMove->FactionName);
 
 			for (ACitizen* citizen : faction->Citizens) {
-				if (citizen->Building.BuildingAt != BuildingToMove || !faction->Police.Arrested.Contains(citizen))
+				if (citizen->BuildingComponent->BuildingAt != BuildingToMove || !faction->Police.Arrested.Contains(citizen))
 					continue;
 
 				Camera->PoliceManager->SetInNearestJail(*faction, nullptr, citizen);

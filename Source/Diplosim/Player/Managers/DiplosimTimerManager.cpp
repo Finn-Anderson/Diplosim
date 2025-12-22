@@ -5,6 +5,7 @@
 #include "AI/AI.h"
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -199,8 +200,8 @@ TTuple<UObject*, UFunction*> UDiplosimTimerManager::GetFunction(FTimerStruct* Ti
 
 		SET_OBJECT(ai->AIController);
 
-		if (ai->IsA<ACitizen>() && IsValid(Cast<ACitizen>(ai)->Building.Orphanage)) {
-			SET_OBJECT(Cast<ACitizen>(ai)->Building.Orphanage);
+		if (ai->IsA<ACitizen>() && IsValid(Cast<ACitizen>(ai)->BuildingComponent->Orphanage)) {
+			SET_OBJECT(Cast<ACitizen>(ai)->BuildingComponent->Orphanage);
 		}
 	}
 

@@ -2,6 +2,7 @@
 
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -40,7 +41,7 @@ void AHouse::GetRent(FFactionStruct* Faction, ACitizen* Citizen)
 
 	if (total < Rent) {
 		for (ACitizen* c : Citizen->GetLikedFamily(false)) {
-			if (!IsValid(c->Building.House) || c->Balance - c->Building.House->Rent - Rent <= 0 || family.Contains(c))
+			if (!IsValid(c->BuildingComponent->House) || c->Balance - c->BuildingComponent->House->Rent - Rent <= 0 || family.Contains(c))
 				continue;
 
 			family.Add(c);
@@ -97,7 +98,7 @@ bool AHouse::AddCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	Citizen->Building.House = this;
+	Citizen->BuildingComponent->House = this;
 
 	Citizen->AIController->DefaultAction();
 
@@ -111,7 +112,7 @@ bool AHouse::RemoveCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	Citizen->Building.House = nullptr;
+	Citizen->BuildingComponent->House = nullptr;
 
 	Citizen->AIController->DefaultAction();
 
@@ -120,14 +121,14 @@ bool AHouse::RemoveCitizen(ACitizen* Citizen)
 
 void AHouse::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Visitor->Building.House = this;
+	Visitor->BuildingComponent->House = this;
 
 	Super::AddVisitor(Occupant, Visitor);
 }
 
 void AHouse::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Visitor->Building.House = nullptr;
+	Visitor->BuildingComponent->House = nullptr;
 
 	Super::RemoveVisitor(Occupant, Visitor);
 }

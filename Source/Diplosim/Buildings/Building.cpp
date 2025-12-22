@@ -17,6 +17,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Defence/Trap.h"
 #include "Buildings/Work/Defence/Fort.h"
@@ -569,7 +570,7 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 
 	if (IsA(Camera->PoliceManager->PoliceStationClass)) {
 		for (ACitizen* citizen : faction->Citizens) {
-			if (citizen->Building.BuildingAt != this || GetOccupied().Contains(citizen) || !faction->Police.Arrested.Contains(citizen))
+			if (citizen->BuildingComponent->BuildingAt != this || GetOccupied().Contains(citizen) || !faction->Police.Arrested.Contains(citizen))
 				continue;
 
 			Camera->PoliceManager->SetInNearestJail(*faction, nullptr, citizen);
@@ -653,7 +654,7 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen))
 		return false;
 
-	if (Citizen->Building.BuildingAt == this ||  Citizen->HealthComponent->GetHealth() != 0)
+	if (Citizen->BuildingComponent->BuildingAt == this ||  Citizen->HealthComponent->GetHealth() != 0)
 		Leave(Citizen);
 
 	for (ACitizen* citizen : GetVisitors(Citizen))
@@ -692,6 +693,14 @@ TArray<ACitizen*> ABuilding::GetVisitors(ACitizen* Occupant)
 	return Occupied[index].Visitors;
 }
 
+bool ABuilding::IsAVisitor(ACitizen* Citizen)
+{
+	if (!GetOccupied().Contains(Citizen))
+		return true;
+
+	return false;
+}
+
 void ABuilding::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
 	FOccupantStruct occupant;
@@ -718,7 +727,7 @@ void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 	if (index != INDEX_NONE)
 		Occupied[index].Visitors.Remove(Visitor);
 
-	if (Visitor->Building.BuildingAt == this)
+	if (Visitor->BuildingComponent->BuildingAt == this)
 		Leave(Visitor);
 
 	Visitor->AIController->DefaultAction();
@@ -729,7 +738,7 @@ TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()
 	TArray<ACitizen*> citizens;
 
 	for (ACitizen* citizen : GetOccupied()) {
-		if (!IsValid(citizen) || citizen->Building.BuildingAt != this)
+		if (!IsValid(citizen) || citizen->BuildingComponent->BuildingAt != this)
 			continue;
 
 		citizens.Add(citizen);
@@ -820,11 +829,11 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 
 void ABuilding::Enter(ACitizen* Citizen)
 {
-	if (Citizen->Building.BuildingAt == this)
+	if (Citizen->BuildingComponent->BuildingAt == this)
 		return;
 	
-	Citizen->Building.BuildingAt = this;
-	Citizen->Building.EnterLocation = Citizen->MovementComponent->Transform.GetLocation();
+	Citizen->BuildingComponent->BuildingAt = this;
+	Citizen->BuildingComponent->EnterLocation = Citizen->MovementComponent->Transform.GetLocation();
 
 	SetSocketLocation(Citizen);
 
@@ -843,34 +852,34 @@ void ABuilding::Enter(ACitizen* Citizen)
 	if (Citizen->Carrying.Amount > 0)
 		StoreResource(Citizen);
 
-	if (IsValid(Citizen->Building.Employment) && Citizen->Building.Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
-		ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
+	if (IsValid(Citizen->BuildingComponent->Employment) && Citizen->BuildingComponent->Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
+		ABuilder* builder = Cast<ABuilder>(Citizen->BuildingComponent->Employment);
 
 		if (cm->IsRepairJob(this, builder))
 			builder->StartRepairTimer(Citizen, this);
 		else
 			builder->CheckCosts(Citizen, this);
 	}
-	else if (!IsA<AHouse>() && !IsA<ABooster>() && !GetOccupied().Contains(Citizen) && IsValid(Citizen->Building.Employment)) {
+	else if (!IsA<AHouse>() && !IsA<ABooster>() && !GetOccupied().Contains(Citizen) && IsValid(Citizen->BuildingComponent->Employment)) {
 		TArray<FItemStruct> items;
 		ABuilding* deliverTo = nullptr;
 
-		if (Citizen->Building.Employment->IsA<ABuilder>()) {
-			ABuilder* builder = Cast<ABuilder>(Citizen->Building.Employment);
+		if (Citizen->BuildingComponent->Employment->IsA<ABuilder>()) {
+			ABuilder* builder = Cast<ABuilder>(Citizen->BuildingComponent->Employment);
 
 			deliverTo = cm->GetBuilding(builder);
 			items = deliverTo->CostList;
 		}
-		else if (Citizen->Building.Employment->IsA<ATrader>()) {
-			ATrader* trader = Cast<ATrader>(Citizen->Building.Employment);
+		else if (Citizen->BuildingComponent->Employment->IsA<ATrader>()) {
+			ATrader* trader = Cast<ATrader>(Citizen->BuildingComponent->Employment);
 
 			deliverTo = trader;
 
 			if (!trader->Orders[0].bCancelled)
 				items = trader->Orders[0].SellingItems;
 		}
-		else if (Citizen->Building.Employment->IsA<AStockpile>()) {
-			AStockpile* stockpile = Cast <AStockpile>(Citizen->Building.Employment);
+		else if (Citizen->BuildingComponent->Employment->IsA<AStockpile>()) {
+			AStockpile* stockpile = Cast <AStockpile>(Citizen->BuildingComponent->Employment);
 
 			deliverTo = stockpile;
 
@@ -888,7 +897,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 void ABuilding::Leave(ACitizen* Citizen)
 {
-	Citizen->Building.BuildingAt = nullptr;
+	Citizen->BuildingComponent->BuildingAt = nullptr;
 
 	Inside.Remove(Citizen);
 
@@ -914,7 +923,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
 
-	FVector location = Citizen->Building.EnterLocation;
+	FVector location = Citizen->BuildingComponent->EnterLocation;
 
 	if (BuildingMesh->DoesSocketExist("Entrance")) {
 		FVector pos = BuildingMesh->GetSocketLocation("Entrance");

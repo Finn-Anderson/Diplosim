@@ -4,12 +4,13 @@
 #include "GameFramework/SaveGame.h"
 #include "Blueprint/UserWidget.h"
 
+#include "AI/Citizen.h"
+#include "AI/BuildingComponent.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/DiplosimUserSettings.h"
-#include "Map/Grid.h"
-#include "Map/AIVisualiser.h"
-#include "AI/Citizen.h"
 
 USaveGameComponent::USaveGameComponent()
 {
@@ -255,17 +256,17 @@ void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* B
 	ACitizen* citizen = Cast<ACitizen>(CitizenData.Actor);
 
 	if (Building->IsA<AHouse>())
-		citizen->Building.House = Cast<AHouse>(Building);
+		citizen->BuildingComponent->House = Cast<AHouse>(Building);
 	else if (Building->IsA<AOrphanage>() && bVisitor)
-		citizen->Building.Orphanage = Cast<AOrphanage>(Building);
+		citizen->BuildingComponent->Orphanage = Cast<AOrphanage>(Building);
 	else if (Building->IsA<ASchool>() && bVisitor)
-		citizen->Building.School = Cast<ASchool>(Building);
+		citizen->BuildingComponent->School = Cast<ASchool>(Building);
 	else
-		citizen->Building.Employment = Cast<AWork>(Building);
+		citizen->BuildingComponent->Employment = Cast<AWork>(Building);
 
 	if (CitizenData.AIData.BuildingAtName == BuildingName) {
 		Building->Enter(citizen);
 
-		citizen->Building.EnterLocation = CitizenData.AIData.CitizenData.EnterLocation;
+		citizen->BuildingComponent->EnterLocation = CitizenData.AIData.CitizenData.EnterLocation;
 	}
 }

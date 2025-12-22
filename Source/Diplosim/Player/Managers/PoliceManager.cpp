@@ -8,6 +8,7 @@
 #include "AI/AttackComponent.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/Work/Service/School.h"
@@ -55,7 +56,7 @@ void UPoliceManager::CalculateVandalism()
 
 				FPartyStruct* partyStruct = Camera->PoliticsManager->GetMembersParty(citizen);
 
-				if (citizen->bConversing || citizen->bSleep || IsValid(citizen->Building.BuildingAt) || partyStruct == nullptr || partyStruct->Party != "Shell Breakers")
+				if (citizen->bConversing || citizen->bSleep || IsValid(citizen->BuildingComponent->BuildingAt) || partyStruct == nullptr || partyStruct->Party != "Shell Breakers")
 					continue;
 
 				FOverlapsStruct requestedOverlaps;
@@ -97,7 +98,7 @@ void UPoliceManager::CalculateVandalism()
 
 						ACitizen* witness = Cast<ACitizen>(a);
 
-						if (witness->Building.BuildingAt == actor || witness->Building.House == actor) {
+						if (witness->BuildingComponent->BuildingAt == actor || witness->BuildingComponent->House == actor) {
 							if (!witness->AttackComponent->OverlappingEnemies.Contains(citizen))
 								witness->AttackComponent->OverlappingEnemies.Add(citizen);
 
@@ -641,22 +642,7 @@ void UPoliceManager::Arrest(ACitizen* Officer, ACitizen* Citizen)
 	if (Camera->DiseaseManager->Infected.Contains(Citizen) || Camera->DiseaseManager->Injured.Contains(Citizen))
 		Camera->DiseaseManager->Cure(Citizen);
 
-	if (IsValid(Citizen->Building.Employment))
-		Citizen->Building.Employment->RemoveCitizen(Citizen);
-
-	if (IsValid(Citizen->Building.House)) {
-		ACitizen* occupant = Citizen->Building.House->GetOccupant(Citizen);
-		if (occupant != Citizen)
-			Citizen->Building.House->RemoveVisitor(occupant, Citizen);
-		else
-			Citizen->Building.House->RemoveCitizen(Citizen);
-	}
-
-	if (IsValid(Citizen->Building.Orphanage))
-		Citizen->Building.Orphanage->RemoveVisitor(Citizen->Building.Orphanage->GetOccupant(Citizen), Citizen);
-
-	if (IsValid(Citizen->Building.School))
-		Citizen->Building.School->RemoveVisitor(Citizen->Building.Orphanage->GetOccupant(Citizen), Citizen);
+	Citizen->ClearCitizen();
 
 	Officer->AIController->StopMovement();
 	Citizen->AIController->StopMovement();
@@ -720,7 +706,7 @@ void UPoliceManager::SetInNearestJail(FFactionStruct Faction, ACitizen* Officer,
 
 	Citizen->MovementComponent->Transform.SetLocation(target->GetActorLocation());
 
-	Citizen->Building.BuildingAt = target;
+	Citizen->BuildingComponent->BuildingAt = target;
 
 	Citizen->AIController->ChosenBuilding = target;
 	Citizen->AIController->Idle(faction, Citizen);
@@ -779,7 +765,7 @@ void UPoliceManager::ItterateThroughSentences()
 			faction.Police.Arrested.Remove(citizen);
 			Camera->DiseaseManager->Infectible.Add(citizen);
 
-			citizen->MovementComponent->Transform.SetLocation(citizen->Building.BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
+			citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 		}
 	}
 }

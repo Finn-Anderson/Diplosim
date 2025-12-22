@@ -6,6 +6,7 @@
 #include "AI/Citizen.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/BuildingComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Work/Booster.h"
@@ -135,7 +136,7 @@ TMap<FFactionStruct*, TArray<FEventStruct*>> UEventsManager::OngoingEvents()
 
 void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionStruct* Faction)
 {
-	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event->Type != EEventType::Protest && IsValid(Citizen->Building.Employment) && !Citizen->Building.Employment->bCanAttendEvents && Citizen->Building.Employment->IsWorking(Citizen)) || (Event->Type == EEventType::Mass && Cast<ABooster>(Event->Building->GetDefaultObject())->DoesPromoteFavouringValues(Citizen) && Citizen->BioStruct.Age >= 18))
+	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event->Type != EEventType::Protest && IsValid(Citizen->BuildingComponent->Employment) && !Citizen->BuildingComponent->Employment->bCanAttendEvents && Citizen->BuildingComponent->Employment->IsWorking(Citizen)))
 		return;
 
 	if (Event->Type == EEventType::Holliday || Event->Type == EEventType::Festival) {
@@ -155,8 +156,9 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 		return;
 	}
 	else if (Event->Type == EEventType::Mass) {
-		if (!IsValid(Citizen->Building.Employment) || !IsValid(Citizen->Building.BuildingAt) || Citizen->Building.Employment->IsA(Event->Building)) {
-			Citizen->AIController->AIMoveTo(Citizen->Building.Employment);
+		if (IsValid(Citizen->BuildingComponent->Employment) && Citizen->BuildingComponent->Employment->IsA(Event->Building)) {
+			if (Citizen->BuildingComponent->BuildingAt != Citizen->BuildingComponent->Employment)
+				Citizen->AIController->AIMoveTo(Citizen->BuildingComponent->Employment);
 
 			Event->Attendees.Add(Citizen);
 
@@ -165,12 +167,9 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 
 		ABooster* church = Cast<ABooster>(Event->Building->GetDefaultObject());
 
-		TArray<FString> faiths;
-		church->BuildingsToBoost.GenerateValueArray(faiths);
+		bool validReligion = church->DoesPromoteFavouringValues(Citizen);
 
-		bool validReligion = (Citizen->Spirituality.Faith == faiths[0]);
-
-		if (Citizen->BioStruct.Age < 18 && (Citizen->BioStruct.Mother != nullptr && faiths[0] != Citizen->BioStruct.Mother->Spirituality.Faith || Citizen->BioStruct.Father != nullptr && faiths[0] != Citizen->BioStruct.Father->Spirituality.Faith))
+		if (Citizen->BioStruct.Age < 18 && (Citizen->BioStruct.Mother != nullptr && church->DoesPromoteFavouringValues(Cast<ACitizen>(Citizen->BioStruct.Mother)) || Citizen->BioStruct.Father != nullptr && church->DoesPromoteFavouringValues(Cast<ACitizen>(Citizen->BioStruct.Father))))
 			validReligion = true;
 
 		if (!validReligion)
@@ -182,16 +181,16 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 
 	TArray<AActor*> actors;
 
-	if (IsValid(Event->Building)) {
+	if (IsValid(Event->Venue))
+		actors.Add(Event->Venue);
+	else if (IsValid(Event->Building)) {
 		if (Faction == nullptr)
 			Faction = Camera->ConquestManager->GetFaction("", Citizen);
 
 		for (ABuilding* building : Faction->Buildings)
 			if (building->IsA(Event->Building))
 				actors.Add(building);
-	}
-	else if (IsValid(Event->Venue))
-		actors.Add(Event->Venue);
+	} 
 
 	for (AActor* actor : actors) {
 		ABuilding* building = Cast<ABuilding>(actor);
@@ -292,7 +291,7 @@ void UEventsManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int3
 			citizen->SetHolliday(false);
 
 			if (Event->Type == EEventType::Festival) {
-				if (IsValid(citizen->Building.BuildingAt) && citizen->Building.BuildingAt->IsA(Event->Building))
+				if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt->IsA(Event->Building))
 					citizen->SetAttendStatus(EAttendStatus::Attended, false);
 				else
 					citizen->SetAttendStatus(EAttendStatus::Missed, false);

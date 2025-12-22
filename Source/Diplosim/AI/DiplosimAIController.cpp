@@ -8,6 +8,7 @@
 #include "Citizen.h"
 #include "AttackComponent.h"
 #include "AIMovementComponent.h"
+#include "BuildingComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Work.h"
@@ -48,15 +49,15 @@ void ADiplosimAIController::DefaultAction()
 			if (army.Citizens.Contains(citizen))
 				return;
 
-		if (citizen->Building.Employment != nullptr && citizen->Building.Employment->bEmergency) {
-			AIMoveTo(citizen->Building.Employment);
+		if (citizen->BuildingComponent->Employment != nullptr && citizen->BuildingComponent->Employment->bEmergency) {
+			AIMoveTo(citizen->BuildingComponent->Employment);
 		}
 		else if (!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty()) {
 			ERaidPolicy raidPolicy = Camera->PoliticsManager->GetRaidPolicyStatus(citizen);
 
 			if (raidPolicy != ERaidPolicy::Default) {
 				if (raidPolicy == ERaidPolicy::Home)
-					AIMoveTo(citizen->Building.House);
+					AIMoveTo(citizen->BuildingComponent->House);
 				else
 					AIMoveTo(faction->EggTimer);
 
@@ -81,14 +82,14 @@ void ADiplosimAIController::DefaultAction()
 			break;
 		}
 
-		if (IsValid(citizen->Building.Employment) && citizen->Building.Employment->IsWorking(citizen)) {
+		if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsWorking(citizen)) {
 			if (IsValid(MoveRequest.GetGoalActor()) && MoveRequest.GetGoalActor()->IsA<AResource>())
 				StartMovement();
 			else
-				AIMoveTo(citizen->Building.Employment);
+				AIMoveTo(citizen->BuildingComponent->Employment);
 		}
-		else if (IsValid(citizen->Building.School) && citizen->Building.School->IsWorking(citizen->Building.School->GetOccupant(citizen)))
-			AIMoveTo(citizen->Building.School);
+		else if (IsValid(citizen->BuildingComponent->School) && citizen->BuildingComponent->School->IsWorking(citizen->BuildingComponent->School->GetOccupant(citizen)))
+			AIMoveTo(citizen->BuildingComponent->School);
 		else
 			Idle(faction, citizen);
 	}
@@ -107,7 +108,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 	int32 hoursLeft = Citizen->HoursSleptToday.Num();
 
-	AHouse* house = Citizen->Building.House;
+	AHouse* house = Citizen->BuildingComponent->House;
 
 	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
 		AIMoveTo(house);
@@ -154,8 +155,8 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 				Citizen->MovementComponent->SetPoints(path->PathPoints);
 
-				if (IsValid(Citizen->Building.BuildingAt))
-					Async(EAsyncExecution::TaskGraphMainTick, [Citizen]() { Citizen->Building.BuildingAt->Leave(Citizen); });
+				if (IsValid(Citizen->BuildingComponent->BuildingAt))
+					Async(EAsyncExecution::TaskGraphMainTick, [Citizen]() { Citizen->BuildingComponent->BuildingAt->Leave(Citizen); });
 			}
 		}
 
@@ -338,8 +339,8 @@ TArray<FVector> ADiplosimAIController::GetPathPoints(FVector StartLocation, FVec
 	if (IsValid(AI) && AI->NavQueryFilter != nullptr)
 		filter = AI->NavQueryFilter;
 
-	if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->Building.BuildingAt != nullptr)
-		StartLocation = Cast<ACitizen>(AI)->Building.EnterLocation;
+	if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt != nullptr)
+		StartLocation = Cast<ACitizen>(AI)->BuildingComponent->EnterLocation;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
@@ -355,7 +356,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	
 	int32 reach = AI->Range / 15.0f;
 	
-	if ((IsValid(MoveRequest.GetGoalActor()) && AI->CanReach(MoveRequest.GetGoalActor(), reach)) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->Building.BuildingAt == Actor))
+	if ((IsValid(MoveRequest.GetGoalActor()) && AI->CanReach(MoveRequest.GetGoalActor(), reach)) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
 		return;
 
 	StartMovement();
@@ -420,15 +421,15 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	SetFocus(Actor);
 
-	if (!AI->IsA<ACitizen>() || Cast<ACitizen>(AI)->Building.BuildingAt == Actor)
+	if (!AI->IsA<ACitizen>() || Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor)
 		return;
 
 	ACitizen* citizen = Cast<ACitizen>(AI);
 
 	Camera->TimerManager->RemoveTimer("Idle", citizen);
 
-	if (citizen->Building.BuildingAt != nullptr)
-		Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { citizen->Building.BuildingAt->Leave(citizen); });
+	if (citizen->BuildingComponent->BuildingAt != nullptr)
+		Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { citizen->BuildingComponent->BuildingAt->Leave(citizen); });
 }
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
