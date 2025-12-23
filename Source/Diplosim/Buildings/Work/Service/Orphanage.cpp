@@ -3,6 +3,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/BuildingComponent.h"
+#include "AI/BioComponent.h"
 #include "Buildings/House.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -64,7 +65,7 @@ void AOrphanage::Kickout(ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	if (Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") > Citizen->BioStruct.Age && IsValid(GetOccupant(Citizen)))
+	if (Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") > Citizen->BioComponent->Age && IsValid(GetOccupant(Citizen)))
 		return;
 
 	RemoveVisitor(GetOccupant(Citizen), Citizen);
@@ -74,7 +75,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 {
 	int32 money = Citizen->GetLeftoverMoney();
 
-	if (Citizen->BioStruct.Partner != nullptr)
+	if (Citizen->BioComponent->Partner != nullptr)
 		money += Citizen->GetLeftoverMoney();
 	
 	TArray<ACitizen*> favourites;
@@ -112,27 +113,7 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 		int32 index = Camera->Stream.RandRange(0, favourites.Num() - 1);
 
 		ACitizen* child = favourites[index];
-
-		if (Citizen->BioStruct.Sex == ESex::Female)
-			child->BioStruct.Mother = Citizen;
-		else
-			child->BioStruct.Father = Citizen;
-
-		if (Citizen->BioStruct.Partner != nullptr) {
-			if (Citizen->BioStruct.Partner->BioStruct.Sex == ESex::Female)
-				child->BioStruct.Mother = Citizen->BioStruct.Partner;
-			else
-				child->BioStruct.Father = Citizen->BioStruct.Partner;
-
-			Citizen->BioStruct.Partner->BioStruct.Children.Add(child);
-		}
-		
-		for (ACitizen* c : Citizen->BioStruct.Children) {
-			c->BioStruct.Siblings.Add(child);
-			child->BioStruct.Siblings.Add(c);
-		}
-
-		Citizen->BioStruct.Children.Add(child);
+		Citizen->BioComponent->Adopt(child);
 
 		Citizen->BuildingComponent->House->AddVisitor(Citizen->BuildingComponent->House->GetOccupant(Citizen), child);
 

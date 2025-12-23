@@ -5,7 +5,6 @@
 #include "Components/ActorComponent.h"
 #include "DiseaseManager.generated.h"
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UDiseaseManager : public UActorComponent
 {

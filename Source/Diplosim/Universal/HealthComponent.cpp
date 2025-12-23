@@ -15,6 +15,7 @@
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/BuildingComponent.h"
+#include "AI/BioComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Misc/Broch.h"
@@ -154,7 +155,7 @@ void UHealthComponent::Death(AActor* Attacker)
 			citizen->MovementComponent->SetAnimation(EAnim::Death);
 
 			if (IsValid(Attacker))
-				Camera->NotifyLog("Bad", citizen->BioStruct.Name + " has died", Camera->ConquestManager->GetCitizenFaction(citizen).Name);
+				Camera->NotifyLog("Bad", citizen->BioComponent->Name + " has died", Camera->ConquestManager->GetCitizenFaction(citizen).Name);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {
@@ -236,16 +237,8 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
-		citizen->RemovePartner();
-
-		if (citizen->BioStruct.Mother != nullptr)
-			citizen->BioStruct.Mother->BioStruct.Children.Remove(citizen);
-
-		if (citizen->BioStruct.Father != nullptr)
-			citizen->BioStruct.Father->BioStruct.Children.Remove(citizen);
-
-		for (ACitizen* sibling : citizen->BioStruct.Siblings)
-			sibling->BioStruct.Siblings.Remove(citizen);
+		citizen->BioComponent->RemovePartner();
+		citizen->BioComponent->Disown();
 
 		if (Attacker->IsA<AEnemy>())
 			gamemode->WavesData.Last().NumKilled++;
@@ -253,7 +246,7 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 			TMap<ACitizen*, int32> favouredChildren;
 			int32 totalCount = 0;
 
-			for (ACitizen* c : citizen->BioStruct.Children) {
+			for (ACitizen* c : citizen->BioComponent->Children) {
 				int32 count = 0;
 
 				for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen)) {

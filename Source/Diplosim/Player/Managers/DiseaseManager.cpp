@@ -6,6 +6,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/BuildingComponent.h"
+#include "AI/BioComponent.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Buildings/Work/Service/Clinic.h"
@@ -153,7 +154,7 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 
 								bInfected = true;
 
-								Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + condition.Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
+								Camera->NotifyLog("Bad", citizen->BioComponent->Name + " is infected with " + condition.Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
 							}
 						}
 
@@ -186,7 +187,7 @@ void UDiseaseManager::SpawnDisease(ACamera* Camera)
 	index = Camera->Stream.RandRange(0, Diseases.Num() - 1);
 	citizen->HealthIssues.Add(Diseases[index]);
 
-	Camera->NotifyLog("Bad", citizen->BioStruct.Name + " is infected with " + Diseases[index].Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
+	Camera->NotifyLog("Bad", citizen->BioComponent->Name + " is infected with " + Diseases[index].Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
 
 	Infect(citizen);
 
@@ -226,7 +227,7 @@ void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
 			Citizen->ApplyToMultiplier("Health", affect.Amount);
 	}
 
-	Citizen->Camera->NotifyLog("Bad", Citizen->BioStruct.Name + " is injured with " + conditions[index].Name, Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
+	Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is injured with " + conditions[index].Name, Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
 
 	Injured.Add(Citizen);
 
@@ -251,7 +252,7 @@ void UDiseaseManager::Cure(ACitizen* Citizen)
 	Infected.Remove(Citizen);
 	Injured.Remove(Citizen);
 
-	Citizen->Camera->NotifyLog("Good", Citizen->BioStruct.Name + " has been healed", Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
+	Citizen->Camera->NotifyLog("Good", Citizen->BioComponent->Name + " has been healed", Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
 
 	UpdateHealthText(Citizen);
 }

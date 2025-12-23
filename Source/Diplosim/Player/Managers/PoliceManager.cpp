@@ -9,6 +9,7 @@
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/BuildingComponent.h"
+#include "AI/HappinessComponent.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/Work/Service/School.h"
@@ -78,7 +79,7 @@ void UPoliceManager::CalculateVandalism()
 					for (FPersonality* personality : personalities)
 						aggressiveness += personality->Aggressiveness / personalities.Num();
 
-					int32 max = (1000 + (citizen->GetHappiness() - 50) * 16) / aggressiveness;
+					int32 max = (1000 + (citizen->HappinessComponent->GetHappiness() - 50) * 16) / aggressiveness;
 
 					if (Camera->Stream.RandRange(1, max) != max)
 						continue;

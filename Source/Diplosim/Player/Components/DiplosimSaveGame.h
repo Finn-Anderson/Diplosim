@@ -2,15 +2,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "AI/Citizen.h"
+#include "AI/BioComponent.h"
+#include "Buildings/Work/Work.h"
 #include "Map/Grid.h"
-#include "Universal/Resource.h"
-#include "Universal/DiplosimGameModeBase.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConstructionManager.h"
-#include "Buildings/Work/Work.h"
-#include "Map/Atmosphere/AtmosphereComponent.h"
-#include "AI/Citizen.h"
+#include "Universal/Resource.h"
+#include "Universal/DiplosimGameModeBase.h"
 #include "DiplosimSaveGame.generated.h"
 
 USTRUCT()
@@ -439,13 +440,10 @@ struct FCitizenData
 		TArray<FConditionStruct> HealthIssues;
 
 	UPROPERTY()
-		FHappinessStruct Happiness;
+		TMap<FString, int32> Modifiers;
 
 	UPROPERTY()
 		int32 SadTimer;
-
-	UPROPERTY()
-		bool bHolliday;
 
 	UPROPERTY()
 		EAttendStatus FestivalStatus;
@@ -505,7 +503,6 @@ struct FCitizenData
 		bHasBeenLeader = false;
 		MassStatus = EAttendStatus::Neutral;
 		SadTimer = 0;
-		bHolliday = false;
 		FestivalStatus = EAttendStatus::Neutral;
 		bConversing = false;
 		ConversationHappiness = 0;

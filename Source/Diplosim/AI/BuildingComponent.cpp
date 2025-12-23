@@ -3,6 +3,8 @@
 #include "AI/Citizen.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/HappinessComponent.h"
+#include "AI/BioComponent.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Buildings/House.h"
@@ -46,10 +48,10 @@ void UBuildingComponent::FindEducation(ASchool* Education, int32 TimeToCompleteD
 
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
-	if (HasRecentlyAcquired(0, TimeToCompleteDay) || citizen->BioStruct.EducationLevel == 5 || !citizen->CanAffordEducationLevel() || Education->GetOccupied().IsEmpty())
+	if (HasRecentlyAcquired(0, TimeToCompleteDay) || citizen->BioComponent->EducationLevel == 5 || !citizen->CanAffordEducationLevel() || Education->GetOccupied().IsEmpty())
 		return;
 
-	if (citizen->BioStruct.Age >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") || citizen->BioStruct.Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Education Age"))
+	if (citizen->BioComponent->Age >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") || citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Education Age"))
 		return;
 
 	bool bFull = true;
@@ -105,7 +107,7 @@ void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 	else {
 		int32 diff = Job->GetAverageWage() - chosenWorkplace->GetWage(citizen);
 
-		int32* happiness = citizen->Happiness.Modifiers.Find("Work Happiness");
+		int32* happiness = citizen->HappinessComponent->Modifiers.Find("Work Happiness");
 
 		if (happiness != nullptr)
 			diff -= *happiness / 5;
@@ -154,7 +156,7 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 		for (ACitizen* occupier : NewHouse->GetOccupied()) {
 			TArray<ACitizen*> citizens = House->GetVisitors(occupier);
 
-			if (citizens.Num() == NewHouse->Space || occupier->BioStruct.Partner != nullptr)
+			if (citizens.Num() == NewHouse->Space || occupier->BioComponent->Partner != nullptr)
 				continue;
 
 			citizens.Add(occupier);
@@ -211,8 +213,8 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 
 		double magnitude = citizen->AIController->GetClosestActor(400.0f, workLocation, chosenHouse->GetActorLocation(), NewHouse->GetActorLocation(), true, currentValue, newValue);
 
-		if (citizen->BioStruct.Partner != nullptr && IsValid(citizen->BioStruct.Partner->BuildingComponent->Employment)) {
-			FVector partnerWorkLoc = citizen->BioStruct.Partner->BuildingComponent->Employment->GetActorLocation();
+		if (citizen->BioComponent->Partner != nullptr && IsValid(citizen->BioComponent->Partner->BuildingComponent->Employment)) {
+			FVector partnerWorkLoc = citizen->BioComponent->Partner->BuildingComponent->Employment->GetActorLocation();
 
 			double m = citizen->AIController->GetClosestActor(400.0f, partnerWorkLoc, chosenHouse->GetActorLocation(), NewHouse->GetActorLocation(), true, currentValue, newValue);
 
@@ -302,8 +304,8 @@ TArray<ACitizen*> UBuildingComponent::GetRoomates()
 {
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	TArray<ACitizen*> citizens = citizen->BioStruct.Children;
-	citizens.Append(citizen->BioStruct.Siblings);
+	TArray<ACitizen*> citizens = citizen->BioComponent->Children;
+	citizens.Append(citizen->BioComponent->Siblings);
 
 	TArray<ACitizen*> roommates;
 
@@ -314,7 +316,7 @@ TArray<ACitizen*> UBuildingComponent::GetRoomates()
 			continue;
 		}
 
-		if (c->BioStruct.Age >= 18 || IsValid(c->BuildingComponent->House))
+		if (c->BioComponent->Age >= 18 || IsValid(c->BuildingComponent->House))
 			continue;
 
 		int32 likeness = 0;
@@ -327,8 +329,8 @@ TArray<ACitizen*> UBuildingComponent::GetRoomates()
 		roommates.Add(c);
 	}
 
-	if (citizen->BioStruct.Partner != nullptr)
-		roommates.Add(Cast<ACitizen>(citizen->BioStruct.Partner));
+	if (citizen->BioComponent->Partner != nullptr)
+		roommates.Add(citizen->BioComponent->Partner.Get());
 
 	return roommates;
 }
@@ -364,10 +366,10 @@ void UBuildingComponent::RemoveOnReachingWorkAge(FFactionStruct* Faction)
 {
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (citizen->BioStruct.Age < citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Work Age")) {
+	if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Work Age")) {
 		citizen->Camera->TimerManager->RemoveTimer("Orphanage", citizen);
 
-		if (citizen->BioStruct.Age < citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Education Age"))
+		if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Education Age"))
 			School->RemoveVisitor(School->GetOccupant(citizen), citizen);
 
 		return;
@@ -394,7 +396,7 @@ bool UBuildingComponent::CanWork(ABuilding* WorkBuilding)
 
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
-	if (citizen->BioStruct.Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age"))
+	if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age"))
 		return false;
 
 	if (WorkBuilding->IsA<ABooster>() && !Cast<ABooster>(WorkBuilding)->DoesPromoteFavouringValues(citizen))
@@ -411,7 +413,7 @@ bool UBuildingComponent::WillWork()
 
 	int32 pensionAge = citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Pension Age");
 
-	if (citizen->BioStruct.Age < pensionAge)
+	if (citizen->BioComponent->Age < pensionAge)
 		return true;
 
 	int32 pension = citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Pension");
@@ -432,14 +434,14 @@ void UBuildingComponent::RemoveFromHouse()
 	if (!IsValid(House) || House->GetOccupant(citizen) == citizen)
 		return;
 
-	TArray<ACitizen*> likedFamily = citizen->GetLikedFamily(false);
+	TArray<ACitizen*> likedFamily = citizen->BioComponent->GetLikedFamily(false);
 
-	if (likedFamily.Contains(citizen->BioStruct.Mother) || likedFamily.Contains(citizen->BioStruct.Father))
+	if (likedFamily.Contains(citizen->BioComponent->Mother.Get()) || likedFamily.Contains(citizen->BioComponent->Father.Get()))
 		return;
 
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
-	if (citizen->BioStruct.Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age")) {
+	if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age")) {
 		for (ABuilding* building : faction->Buildings) {
 			if (!building->IsA<AOrphanage>())
 				continue;
@@ -450,20 +452,7 @@ void UBuildingComponent::RemoveFromHouse()
 
 				House->RemoveVisitor(House->GetOccupant(carer), citizen);
 
-				if (citizen->BioStruct.Mother != nullptr) {
-					citizen->BioStruct.Mother = nullptr;
-					citizen->BioStruct.Mother->BioStruct.Children.Remove(citizen);
-				}
-
-				if (citizen->BioStruct.Father != nullptr) {
-					citizen->BioStruct.Father = nullptr;
-					citizen->BioStruct.Father->BioStruct.Children.Remove(citizen);
-				}
-
-				for (ACitizen* siblings : citizen->BioStruct.Siblings)
-					siblings->BioStruct.Siblings.Remove(citizen);
-
-				citizen->BioStruct.Siblings.Empty();
+				citizen->BioComponent->Disown();
 
 				Cast<AOrphanage>(building)->AddVisitor(carer, citizen);
 

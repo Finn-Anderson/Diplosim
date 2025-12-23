@@ -2,18 +2,19 @@
 
 #include "Components/WidgetComponent.h"
 
+#include "AI/Citizen.h"
+#include "AI/BioComponent.h"
 #include "Player/Camera.h"
+#include "Buildings/Misc/Broch.h"
+#include "Buildings/Misc/Festival.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/EventsManager.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/HealthComponent.h"
-#include "Map/Grid.h"
-#include "Map/Atmosphere/AtmosphereComponent.h"
-#include "Buildings/Misc/Broch.h"
-#include "Buildings/Misc/Festival.h"
-#include "AI/Citizen.h"
 
 UDebugManager::UDebugManager()
 {
@@ -103,8 +104,8 @@ void UDebugManager::SpawnCitizen(int32 Amount, bool bAdult)
 		for (int32 j = 0; j < 2; j++)
 			citizen->GivePersonalityTrait();
 
-		citizen->BioStruct.Age = 17;
-		citizen->Birthday();
+		citizen->BioComponent->Age = 17;
+		citizen->BioComponent->Birthday();
 
 		citizen->HealthComponent->AddHealth(100);
 	}

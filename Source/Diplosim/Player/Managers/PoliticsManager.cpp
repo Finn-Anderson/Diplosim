@@ -5,6 +5,7 @@
 #include "AI/Citizen.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/BuildingComponent.h"
+#include "AI/BioComponent.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Misc/Broch.h"
@@ -463,7 +464,7 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 
-	;
+	index = Faction->Politics.Laws.Find(Bill);
 
 	if (Bill.BillType.Contains("Cost")) {
 		int32 leftoverMoney = 0;
@@ -478,15 +479,13 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 	else if (Bill.BillType.Contains("Age")) {
-		index = Faction->Politics.Laws.Find(Bill);
-
-		if (Faction->Politics.Laws[index].Value <= Representative->BioStruct.Age) {
-			if (Bill.Value > Representative->BioStruct.Age)
+		if (Faction->Politics.Laws[index].Value <= Representative->BioComponent->Age) {
+			if (Bill.Value > Representative->BioComponent->Age)
 				verdict.Append({ "Opposing", "Opposing", "Opposing" });
 			else
 				verdict.Append({ "Abstaining", "Abstaining", "Abstaining" });
 		}
-		else if (Bill.Value <= Representative->BioStruct.Age)
+		else if (Bill.Value <= Representative->BioComponent->Age)
 			verdict.Append({ "Agreeing", "Agreeing", "Agreeing" });
 	}
 	else if (Bill.BillType == "Representative Type") {
@@ -494,6 +493,9 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
 		else if (Bill.Value == 2 && Representative->Balance < 15)
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
+	}
+	else if (Bill.BillType == "Same-Sex Laws" && Bill.Value < Faction->Politics.Laws[index].Value && Representative->BioComponent->Sexuality != ESexuality::Straight) {
+		verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 
 	auto value = Async(EAsyncExecution::TaskGraph, [this, verdict]() { return Camera->Stream.RandRange(0, verdict.Num() - 1); });
@@ -542,7 +544,7 @@ void UPoliticsManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 					if (IsValid(citizen->BuildingComponent->School))
 						citizen->BuildingComponent->RemoveOnReachingWorkAge(Faction);
 
-					if (citizen->BioStruct.Age >= Faction->Politics.Laws[index].Value)
+					if (citizen->BioComponent->Age >= Faction->Politics.Laws[index].Value)
 						continue;
 
 					FPartyStruct* party = GetMembersParty(citizen);
@@ -555,13 +557,13 @@ void UPoliticsManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 			}
 			else if (Faction->Politics.Laws[index].BillType == "Same-Sex Laws" && Bill.Value != 2) {
 				for (ACitizen* citizen : Faction->Citizens) {
-					if (citizen->BioStruct.Partner == nullptr || citizen->BioStruct.Sex != citizen->BioStruct.Partner->BioStruct.Sex)
+					if (citizen->BioComponent->Partner == nullptr || citizen->BioComponent->Sex != citizen->BioComponent->Partner->BioComponent->Sex)
 						continue;
 
 					if (Bill.Value == 0)
-						citizen->RemovePartner();
+						citizen->BioComponent->RemovePartner();
 					else
-						citizen->RemoveMarriage();
+						citizen->BioComponent->RemoveMarriage();
 				}
 			}
 		}

@@ -4,7 +4,6 @@
 #include "Components/ActorComponent.h"
 #include "BuildComponent.generated.h"
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UBuildComponent : public UActorComponent
 {

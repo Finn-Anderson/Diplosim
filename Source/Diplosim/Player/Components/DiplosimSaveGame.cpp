@@ -12,6 +12,8 @@
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/BuildingComponent.h"
+#include "AI/HappinessComponent.h"
+#include "AI/BioComponent.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Map/Grid.h"
@@ -528,33 +530,35 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 		data->CitizenData.CarryAmount = citizen->Carrying.Amount;
 	}
 
-	if (citizen->BioStruct.Mother != nullptr)
-		data->CitizenData.MothersName = citizen->BioStruct.Mother->GetName();
+	if (citizen->BioComponent->Mother != nullptr)
+		data->CitizenData.MothersName = citizen->BioComponent->Mother->GetName();
 
-	if (citizen->BioStruct.Father != nullptr)
-		data->CitizenData.FathersName = citizen->BioStruct.Father->GetName();
+	if (citizen->BioComponent->Father != nullptr)
+		data->CitizenData.FathersName = citizen->BioComponent->Father->GetName();
 
-	if (citizen->BioStruct.Partner != nullptr)
-		data->CitizenData.PartnersName = citizen->BioStruct.Partner->GetName();
+	if (citizen->BioComponent->Partner != nullptr)
+		data->CitizenData.PartnersName = citizen->BioComponent->Partner->GetName();
 
 	data->CitizenData.ChildrensNames.Empty();
 	data->CitizenData.SiblingsNames.Empty();
 
-	for (ACitizen* child : citizen->BioStruct.Children)
+	for (ACitizen* child : citizen->BioComponent->Children)
 		data->CitizenData.ChildrensNames.Add(child->GetName());
 
-	for (ACitizen* sibling : citizen->BioStruct.Siblings)
+	for (ACitizen* sibling : citizen->BioComponent->Siblings)
 		data->CitizenData.SiblingsNames.Add(sibling->GetName());
 
-	data->CitizenData.HoursTogetherWithPartner = citizen->BioStruct.HoursTogetherWithPartner;
-	data->CitizenData.bMarried = citizen->BioStruct.bMarried;
-	data->CitizenData.Sex = citizen->BioStruct.Sex;
-	data->CitizenData.Age = citizen->BioStruct.Age;
-	data->CitizenData.Name = citizen->BioStruct.Name;
-	data->CitizenData.EducationLevel = citizen->BioStruct.EducationLevel;
-	data->CitizenData.EducationProgress = citizen->BioStruct.EducationProgress;
-	data->CitizenData.PaidForEducationLevel = citizen->BioStruct.PaidForEducationLevel;
-	data->CitizenData.bAdopted = citizen->BioStruct.bAdopted;
+	data->CitizenData.HoursTogetherWithPartner = citizen->BioComponent->HoursTogetherWithPartner;
+	data->CitizenData.bMarried = citizen->BioComponent->bMarried;
+	data->CitizenData.Sex = citizen->BioComponent->Sex;
+	data->CitizenData.Age = citizen->BioComponent->Age;
+	data->CitizenData.Name = citizen->BioComponent->Name;
+	data->CitizenData.EducationLevel = citizen->BioComponent->EducationLevel;
+	data->CitizenData.EducationProgress = citizen->BioComponent->EducationProgress;
+	data->CitizenData.PaidForEducationLevel = citizen->BioComponent->PaidForEducationLevel;
+	data->CitizenData.bAdopted = citizen->BioComponent->bAdopted;
+	data->CitizenData.SpeedBeforeOld = citizen->BioComponent->SpeedBeforeOld;
+	data->CitizenData.MaxHealthBeforeOld = citizen->BioComponent->MaxHealthBeforeOld;
 
 	data->CitizenData.Spirituality = citizen->Spirituality;
 	data->CitizenData.TimeOfAcquirement = citizen->BuildingComponent->TimeOfAcquirement;
@@ -564,19 +568,16 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	data->CitizenData.Hunger = citizen->Hunger;
 	data->CitizenData.Energy = citizen->Energy;
 	data->CitizenData.bGain = citizen->bGain;
-	data->CitizenData.SpeedBeforeOld = citizen->SpeedBeforeOld;
-	data->CitizenData.MaxHealthBeforeOld = citizen->MaxHealthBeforeOld;
 	data->CitizenData.bHasBeenLeader = citizen->bHasBeenLeader;
-	data->CitizenData.MassStatus = citizen->MassStatus;
 	data->CitizenData.HealthIssues = citizen->HealthIssues;
-	data->CitizenData.Happiness = citizen->Happiness;
-	data->CitizenData.SadTimer = citizen->SadTimer;
-	data->CitizenData.bHolliday = citizen->bHolliday;
-	data->CitizenData.FestivalStatus = citizen->FestivalStatus;
+	data->CitizenData.Modifiers = citizen->HappinessComponent->Modifiers;
+	data->CitizenData.SadTimer = citizen->HappinessComponent->SadTimer;
+	data->CitizenData.MassStatus = citizen->HappinessComponent->MassStatus;
+	data->CitizenData.FestivalStatus = citizen->HappinessComponent->FestivalStatus;
 	data->CitizenData.bConversing = citizen->bConversing;
-	data->CitizenData.ConversationHappiness = citizen->ConversationHappiness;
-	data->CitizenData.FamilyDeathHappiness = citizen->FamilyDeathHappiness;
-	data->CitizenData.WitnessedDeathHappiness = citizen->WitnessedDeathHappiness;
+	data->CitizenData.ConversationHappiness = citizen->HappinessComponent->ConversationHappiness;
+	data->CitizenData.FamilyDeathHappiness = citizen->HappinessComponent->FamilyDeathHappiness;
+	data->CitizenData.WitnessedDeathHappiness = citizen->HappinessComponent->WitnessedDeathHappiness;
 	data->CitizenData.Genetics = citizen->Genetics;
 	data->CitizenData.bSleep = citizen->bSleep;
 	data->CitizenData.HoursSleptToday = citizen->HoursSleptToday;
@@ -956,15 +957,17 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 		citizen->Carrying.Amount = data->CitizenData.CarryAmount;
 	}
 
-	citizen->BioStruct.HoursTogetherWithPartner = data->CitizenData.HoursTogetherWithPartner;
-	citizen->BioStruct.bMarried = data->CitizenData.bMarried;
-	citizen->BioStruct.Sex = data->CitizenData.Sex;
-	citizen->BioStruct.Age = data->CitizenData.Age;
-	citizen->BioStruct.Name = data->CitizenData.Name;
-	citizen->BioStruct.EducationLevel = data->CitizenData.EducationLevel;
-	citizen->BioStruct.EducationProgress = data->CitizenData.EducationProgress;
-	citizen->BioStruct.PaidForEducationLevel = data->CitizenData.PaidForEducationLevel;
-	citizen->BioStruct.bAdopted = data->CitizenData.bAdopted;
+	citizen->BioComponent->HoursTogetherWithPartner = data->CitizenData.HoursTogetherWithPartner;
+	citizen->BioComponent->bMarried = data->CitizenData.bMarried;
+	citizen->BioComponent->Sex = data->CitizenData.Sex;
+	citizen->BioComponent->Age = data->CitizenData.Age;
+	citizen->BioComponent->Name = data->CitizenData.Name;
+	citizen->BioComponent->EducationLevel = data->CitizenData.EducationLevel;
+	citizen->BioComponent->EducationProgress = data->CitizenData.EducationProgress;
+	citizen->BioComponent->PaidForEducationLevel = data->CitizenData.PaidForEducationLevel;
+	citizen->BioComponent->bAdopted = data->CitizenData.bAdopted;
+	citizen->BioComponent->SpeedBeforeOld = data->CitizenData.SpeedBeforeOld;
+	citizen->BioComponent->MaxHealthBeforeOld = data->CitizenData.MaxHealthBeforeOld;
 
 	citizen->Spirituality = data->CitizenData.Spirituality;
 	citizen->BuildingComponent->TimeOfAcquirement = data->CitizenData.TimeOfAcquirement;
@@ -974,18 +977,15 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	citizen->Hunger = data->CitizenData.Hunger;
 	citizen->Energy = data->CitizenData.Energy;
 	citizen->bGain = data->CitizenData.bGain;
-	citizen->SpeedBeforeOld = data->CitizenData.SpeedBeforeOld;
-	citizen->MaxHealthBeforeOld = data->CitizenData.MaxHealthBeforeOld;
 	citizen->bHasBeenLeader = data->CitizenData.bHasBeenLeader;
-	citizen->MassStatus = data->CitizenData.MassStatus;
 	citizen->HealthIssues = data->CitizenData.HealthIssues;
-	citizen->Happiness = data->CitizenData.Happiness;
-	citizen->SadTimer = data->CitizenData.SadTimer;
-	citizen->bHolliday = data->CitizenData.bHolliday;
-	citizen->FestivalStatus = data->CitizenData.FestivalStatus;
-	citizen->ConversationHappiness = data->CitizenData.ConversationHappiness;
-	citizen->FamilyDeathHappiness = data->CitizenData.FamilyDeathHappiness;
-	citizen->WitnessedDeathHappiness = data->CitizenData.WitnessedDeathHappiness;
+	citizen->HappinessComponent->Modifiers = data->CitizenData.Modifiers;
+	citizen->HappinessComponent->SadTimer = data->CitizenData.SadTimer;
+	citizen->HappinessComponent->MassStatus = data->CitizenData.MassStatus;
+	citizen->HappinessComponent->FestivalStatus = data->CitizenData.FestivalStatus;
+	citizen->HappinessComponent->ConversationHappiness = data->CitizenData.ConversationHappiness;
+	citizen->HappinessComponent->FamilyDeathHappiness = data->CitizenData.FamilyDeathHappiness;
+	citizen->HappinessComponent->WitnessedDeathHappiness = data->CitizenData.WitnessedDeathHappiness;
 	citizen->Genetics = data->CitizenData.Genetics;
 	citizen->bSleep = data->CitizenData.bSleep;
 	citizen->HoursSleptToday = data->CitizenData.HoursSleptToday;
@@ -1204,17 +1204,17 @@ void UDiplosimSaveGame::InitialiseCitizen(ACamera* Camera, FActorSaveData& Actor
 	ACitizen* citizen = Cast<ACitizen>(ActorData.Actor);
 	FCitizenData* citizenData = &ActorData.AIData.CitizenData;
 
-	citizen->BioStruct.Mother = Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, citizenData->MothersName));
+	citizen->BioComponent->Mother = Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, citizenData->MothersName));
 
-	citizen->BioStruct.Father = Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, citizenData->FathersName));
+	citizen->BioComponent->Father = Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, citizenData->FathersName));
 
-	citizen->BioStruct.Partner = Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, citizenData->PartnersName));
+	citizen->BioComponent->Partner = Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, citizenData->PartnersName));
 
 	for (FString name : citizenData->ChildrensNames)
-		citizen->BioStruct.Children.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
+		citizen->BioComponent->Children.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
 
 	for (FString name : citizenData->SiblingsNames)
-		citizen->BioStruct.Siblings.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
+		citizen->BioComponent->Siblings.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
 }
 
 void UDiplosimSaveGame::InitialiseConstructionManager(ACamera* Camera, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData)

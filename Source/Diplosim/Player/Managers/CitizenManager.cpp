@@ -9,6 +9,8 @@
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/BuildingComponent.h"
+#include "AI/HappinessComponent.h"
+#include "AI/BioComponent.h"
 #include "Buildings/House.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Service/Clinic.h"
@@ -159,9 +161,9 @@ void UCitizenManager::CitizenGeneralLoop()
 					citizen->BuildingComponent->SetJobHouseEducation(timeToCompleteDay, roommates);
 				}
 
-				citizen->SetHappiness();
+				citizen->HappinessComponent->SetHappiness();
 
-				int32 happiness = citizen->GetHappiness();
+				int32 happiness = citizen->HappinessComponent->GetHappiness();
 				Camera->Grid->AIVisualiser->SetEyesVisuals(citizen, happiness);
 
 				happinessCount += happiness;
@@ -355,13 +357,13 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		break;
 	}
 
-	for (ACitizen* citizen : Citizen->GetLikedFamily(false)) {
+	for (ACitizen* citizen : Citizen->BioComponent->GetLikedFamily(false)) {
 		int32 value = -12;
 
-		if (citizen->BioStruct.Partner == Citizen)
+		if (citizen->BioComponent->Partner == Citizen)
 			value = -20;
 
-		citizen->SetDecayHappiness(&citizen->FamilyDeathHappiness, value);
+		citizen->HappinessComponent->SetDecayingHappiness(&citizen->HappinessComponent->FamilyDeathHappiness, value);
 	}
 
 	FOverlapsStruct requestedOverlaps;
@@ -386,7 +388,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		if (bIsCruel)
 			happinessValue = 6;
 
-		citizen->SetDecayHappiness(&citizen->WitnessedDeathHappiness, happinessValue);
+		citizen->HappinessComponent->SetDecayingHappiness(&citizen->HappinessComponent->WitnessedDeathHappiness, happinessValue);
 	}
 
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen))
@@ -465,8 +467,8 @@ void UCitizenManager::CheckCitizenStatus(int32 Hour)
 					timer->Actor = nullptr;
 			}
 
-			citizen->DecayHappiness();
-			citizen->IncrementHoursTogetherWithPartner();
+			citizen->HappinessComponent->DecayHappiness();
+			citizen->BioComponent->IncrementHoursTogetherWithPartner();
 		}
 	}
 
@@ -485,7 +487,7 @@ void UCitizenManager::IssuePensions(int32 Hour)
 			continue;
 
 		for (ACitizen* citizen : faction.Citizens)
-			if (citizen->BioStruct.Age >= Camera->PoliticsManager->GetLawValue(faction.Name, "Pension Age"))
+			if (citizen->BioComponent->Age >= Camera->PoliticsManager->GetLawValue(faction.Name, "Pension Age"))
 				citizen->Balance += value;
 	}
 }
@@ -564,8 +566,8 @@ void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACiti
 		Camera->PoliceManager->CalculateIfFight(&Faction, Citizen1, Citizen2, citizen1Aggressiveness, citizen2Aggressiveness);
 	}
 
-	Citizen1->SetDecayHappiness(&Citizen1->ConversationHappiness, happinessValue);
-	Citizen2->SetDecayHappiness(&Citizen2->ConversationHappiness, happinessValue);
+	Citizen1->HappinessComponent->SetDecayingHappiness(&Citizen1->HappinessComponent->ConversationHappiness, happinessValue);
+	Citizen2->HappinessComponent->SetDecayingHappiness(&Citizen2->HappinessComponent->ConversationHappiness, happinessValue);
 
 	if (!Citizen1->AttackComponent->IsComponentTickEnabled()) {
 		Citizen1->AIController->DefaultAction();

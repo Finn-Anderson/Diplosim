@@ -3,6 +3,7 @@
 #include "AI/Citizen.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/BuildingComponent.h"
+#include "AI/BioComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -40,7 +41,7 @@ void AHouse::GetRent(FFactionStruct* Faction, ACitizen* Citizen)
 	}
 
 	if (total < Rent) {
-		for (ACitizen* c : Citizen->GetLikedFamily(false)) {
+		for (ACitizen* c : Citizen->BioComponent->GetLikedFamily(false)) {
 			if (!IsValid(c->BuildingComponent->House) || c->Balance - c->BuildingComponent->House->Rent - Rent <= 0 || family.Contains(c))
 				continue;
 

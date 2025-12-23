@@ -4,7 +4,6 @@
 #include "Components/ActorComponent.h"
 #include "CameraMovementComponent.generated.h"
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UCameraMovementComponent : public UActorComponent
 {

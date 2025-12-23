@@ -5,23 +5,24 @@
 #include "Components/SphereComponent.h"
 #include "NavigationSystem.h"
 
-#include "AI.h"
-#include "Universal/HealthComponent.h"
-#include "DiplosimAIController.h"
-#include "Enemy.h"
-#include "Citizen.h"
-#include "Projectile.h"
+#include "AI/AI.h"
+#include "AI/Enemy.h"
+#include "AI/Citizen.h"
+#include "AI/Projectile.h"
+#include "AI/DiplosimAIController.h"
+#include "AI/AIMovementComponent.h"
+#include "AI/BioComponent.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Defence/Trap.h"
 #include "Buildings/Work/Defence/Tower.h"
 #include "Buildings/Building.h"
-#include "Universal/DiplosimGameModeBase.h"
-#include "AIMovementComponent.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/PoliceManager.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Map/Grid.h"
-#include "Map/AIVisualiser.h"
+#include "Universal/DiplosimGameModeBase.h"
+#include "Universal/HealthComponent.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -324,7 +325,7 @@ void UAttackComponent::Melee()
 	int32 dmg = Damage;
 	
 	if (GetOwner()->IsA<ACitizen>())
-		dmg *= 1 / (18 / FMath::Clamp(Cast<ACitizen>(GetOwner())->BioStruct.Age, 0, 18));
+		dmg *= 1 / (18 / FMath::Clamp(Cast<ACitizen>(GetOwner())->BioComponent->Age, 0, 18));
 
 	healthComp->TakeHealth(dmg * DamageMultiplier, GetOwner(), sound);
 }

@@ -5,7 +5,6 @@
 #include "Components/ActorComponent.h"
 #include "EventsManager.generated.h"
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UEventsManager : public UActorComponent
 {
@@ -21,6 +20,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		bool IsAttendingEvent(class ACitizen* Citizen);
+
+	bool IsHolliday(class ACitizen* Citizen);
 
 	void RemoveFromEvent(class ACitizen* Citizen);
 

@@ -23,91 +23,6 @@ struct FCarryStruct
 	}
 };
 
-UENUM()
-enum class ESex : uint8
-{
-	NaN,
-	Male,
-	Female
-};
-
-UENUM()
-enum class ESexuality : uint8
-{
-	NaN,
-	Straight,
-	Homosexual,
-	Bisexual
-};
-
-USTRUCT(BlueprintType)
-struct FBioStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		TWeakObjectPtr<class ACitizen> Mother;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		TWeakObjectPtr<class ACitizen> Father;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		TWeakObjectPtr<class ACitizen> Partner;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		int32 HoursTogetherWithPartner;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		bool bMarried;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		ESex Sex;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		ESexuality Sexuality;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		int32 Age;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		FString Name;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		int32 EducationLevel;
-
-	UPROPERTY()
-		int32 EducationProgress;
-
-	UPROPERTY()
-		int32 PaidForEducationLevel;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		TArray<class ACitizen*> Children;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		TArray<class ACitizen*> Siblings;
-
-	UPROPERTY()
-		bool bAdopted;
-
-	FBioStruct()
-	{
-		Mother = nullptr;
-		Father = nullptr;
-		Partner = nullptr;
-		HoursTogetherWithPartner = 0;
-		bMarried = false;
-		Sex = ESex::NaN;
-		Sexuality = ESexuality::NaN;
-		Age = 0;
-		EducationLevel = 0;
-		EducationProgress = 0;
-		PaidForEducationLevel = 0;
-		Name = "Citizen";
-		bAdopted = false;
-	}
-};
-
 USTRUCT(BlueprintType)
 struct FSpiritualStruct
 {
@@ -132,35 +47,6 @@ struct FSpiritualStruct
 	bool operator==(const FSpiritualStruct& other) const
 	{
 		return (other.Faith == Faith);
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FHappinessStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
-		TMap<FString, int32> Modifiers;
-
-	FHappinessStruct()
-	{
-		ClearValues();
-	}
-
-	void ClearValues()
-	{
-		Modifiers.Empty();
-	}
-
-	void SetValue(FString Key, int32 Value)
-	{
-		Modifiers.Add(Key, Value);
-	}
-
-	void RemoveValue(FString Key)
-	{
-		Modifiers.Remove(Key);
 	}
 };
 
@@ -226,6 +112,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building Component")
 		class UBuildingComponent* BuildingComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bio Component")
+		class UBioComponent* BioComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Happiness Component")
+		class UHappinessComponent* HappinessComponent;
+
+	UPROPERTY()
+		bool bConversing;
 
 	// Audio
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
@@ -295,39 +190,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Energy")
 		bool bGain;
 
-	// Bio
-	UFUNCTION()
-		void Birthday();
-
-	void SetSex(TArray<ACitizen*> Citizens);
-
-	void SetName();
-
-	void SetSexuality(TArray<ACitizen*> Citizens);
-
-	void FindPartner(FFactionStruct* Faction);
-
-	void SetPartner(ACitizen* Citizen);
-	
-	void RemoveMarriage();
-
-	void RemovePartner();
-
-	void IncrementHoursTogetherWithPartner();
-
-	void HaveChild();
-
-	TArray<ACitizen*> GetLikedFamily(bool bFactorAge);
-
-	UPROPERTY(BlueprintReadOnly, Category = "Bio")
-		FBioStruct BioStruct;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Age")
-		float SpeedBeforeOld;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Age")
-		float MaxHealthBeforeOld;
-
 	// Politics
 	void SetPoliticalLeanings();
 
@@ -341,52 +203,7 @@ public:
 	UPROPERTY()
 		bool bWorshipping;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Religion")
-		EAttendStatus MassStatus;
-
 	void SetReligion(FFactionStruct* Faction);
-
-	// Happiness
-	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
-		FHappinessStruct Happiness;
-
-	UPROPERTY()
-		int32 SadTimer;
-
-	UPROPERTY()
-		bool bHolliday;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Festival")
-		EAttendStatus FestivalStatus;
-
-	UPROPERTY()
-		bool bConversing;
-
-	UPROPERTY()
-		int32 ConversationHappiness;
-
-	UPROPERTY()
-		int32 FamilyDeathHappiness;
-
-	UPROPERTY()
-		int32 WitnessedDeathHappiness;
-
-	UPROPERTY()
-		int32 DivorceHappiness;
-
-	UFUNCTION()
-		void SetAttendStatus(EAttendStatus Status, bool bMass);
-
-	void SetHolliday(bool bStatus);
-
-	void SetDecayHappiness(int32* HappinessToDecay, int32 Amount, int32 Min = -24, int32 Max = 24);
-
-	void DecayHappiness();
-
-	UFUNCTION(BlueprintCallable)
-		int32 GetHappiness();
-
-	void SetHappiness();
 
 	// Genetics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Genetics")

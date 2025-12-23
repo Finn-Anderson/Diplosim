@@ -4,11 +4,12 @@
 #include "NavigationSystem.h"
 
 #include "AI/Citizen.h"
-#include "Universal/HealthComponent.h"
-#include "Player/Camera.h"
-#include "Player/Managers/ConquestManager.h"
+#include "AI/BioComponent.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
+#include "Player/Camera.h"
+#include "Player/Managers/ConquestManager.h"
+#include "Universal/HealthComponent.h"
 
 ABroch::ABroch()
 {
@@ -47,13 +48,13 @@ void ABroch::SpawnCitizens()
 
 		citizen->CitizenSetup(faction);
 
-		citizen->SetSex(faction->Citizens);
+		citizen->BioComponent->SetSex(faction->Citizens);
 
 		for (int32 j = 0; j < 2; j++)
 			citizen->GivePersonalityTrait();
 
-		citizen->BioStruct.Age = 17;
-		citizen->Birthday();
+		citizen->BioComponent->Age = 17;
+		citizen->BioComponent->Birthday();
 		
 		citizen->HealthComponent->MaxHealth = 100 * citizen->HealthComponent->HealthMultiplier;
 		citizen->HealthComponent->AddHealth(100 * citizen->HealthComponent->HealthMultiplier);

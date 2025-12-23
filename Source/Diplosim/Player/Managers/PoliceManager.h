@@ -5,7 +5,6 @@
 #include "Components/ActorComponent.h"
 #include "PoliceManager.generated.h"
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UPoliceManager : public UActorComponent
 {

@@ -143,7 +143,6 @@ struct FTimerStruct
 	}
 };
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UDiplosimTimerManager : public UActorComponent
 {

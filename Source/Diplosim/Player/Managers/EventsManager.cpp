@@ -7,6 +7,8 @@
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/BuildingComponent.h"
+#include "AI/HappinessComponent.h"
+#include "AI/BioComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Work/Booster.h"
@@ -97,6 +99,16 @@ bool UEventsManager::IsAttendingEvent(ACitizen* Citizen)
 	return false;
 }
 
+bool UEventsManager::IsHolliday(ACitizen* Citizen)
+{
+	for (auto& element : OngoingEvents())
+		for (FEventStruct* event : element.Value)
+			if (event->Type == EEventType::Holliday || event->Type == EEventType::Festival)
+				return true;
+
+	return false;
+}
+
 void UEventsManager::RemoveFromEvent(ACitizen* Citizen)
 {
 	for (auto& element : OngoingEvents()) {
@@ -139,11 +151,8 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event->Type != EEventType::Protest && IsValid(Citizen->BuildingComponent->Employment) && !Citizen->BuildingComponent->Employment->bCanAttendEvents && Citizen->BuildingComponent->Employment->IsWorking(Citizen)))
 		return;
 
-	if (Event->Type == EEventType::Holliday || Event->Type == EEventType::Festival) {
-		Citizen->SetHolliday(true);
-	}
-	else if (Event->Type == EEventType::Protest) {
-		if (Citizen->GetHappiness() >= 35)
+	if (Event->Type == EEventType::Protest) {
+		if (Citizen->HappinessComponent->GetHappiness() >= 35)
 			return;
 
 		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
@@ -169,7 +178,7 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 
 		bool validReligion = church->DoesPromoteFavouringValues(Citizen);
 
-		if (Citizen->BioStruct.Age < 18 && (Citizen->BioStruct.Mother != nullptr && church->DoesPromoteFavouringValues(Cast<ACitizen>(Citizen->BioStruct.Mother)) || Citizen->BioStruct.Father != nullptr && church->DoesPromoteFavouringValues(Cast<ACitizen>(Citizen->BioStruct.Father))))
+		if (Citizen->BioComponent->Age < 18 && (Citizen->BioComponent->Mother != nullptr && church->DoesPromoteFavouringValues(Citizen->BioComponent->Mother.Get()) || Citizen->BioComponent->Father != nullptr && church->DoesPromoteFavouringValues(Citizen->BioComponent->Father.Get())))
 			validReligion = true;
 
 		if (!validReligion)
@@ -287,15 +296,11 @@ void UEventsManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int3
 	}
 
 	for (ACitizen* citizen : Faction->Citizens) {
-		if (Event->Type == EEventType::Holliday || Event->Type == EEventType::Festival) {
-			citizen->SetHolliday(false);
-
-			if (Event->Type == EEventType::Festival) {
-				if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt->IsA(Event->Building))
-					citizen->SetAttendStatus(EAttendStatus::Attended, false);
-				else
-					citizen->SetAttendStatus(EAttendStatus::Missed, false);
-			}
+		if (Event->Type == EEventType::Festival) {
+			if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt->IsA(Event->Building))
+				citizen->HappinessComponent->SetAttendStatus(EAttendStatus::Attended, false);
+			else
+				citizen->HappinessComponent->SetAttendStatus(EAttendStatus::Missed, false);
 		}
 		else if (Event->Type == EEventType::Mass) {
 			ABooster* church = Cast<ABooster>(Event->Building->GetDefaultObject());
@@ -307,9 +312,9 @@ void UEventsManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int3
 				continue;
 
 			if (citizen->bWorshipping)
-				citizen->SetAttendStatus(EAttendStatus::Attended, true);
+				citizen->HappinessComponent->SetAttendStatus(EAttendStatus::Attended, true);
 			else
-				citizen->SetAttendStatus(EAttendStatus::Missed, true);
+				citizen->HappinessComponent->SetAttendStatus(EAttendStatus::Missed, true);
 		}
 
 		if (!IsValid(Event->Building))
@@ -342,10 +347,10 @@ void UEventsManager::CreateWedding(int32 Hour)
 			ACitizen* citizen = citizens[i];
 			int32 lawValue = Camera->PoliticsManager->GetLawValue(faction.Name, "Same-Sex Laws");
 
-			if (citizen->BioStruct.Partner == nullptr || citizen->BioStruct.bMarried || checked.Contains(citizen) || (lawValue != 2 && citizen->BioStruct.Sex == citizen->BioStruct.Partner->BioStruct.Sex))
+			if (citizen->BioComponent->Partner == nullptr || citizen->BioComponent->bMarried || checked.Contains(citizen) || (lawValue != 2 && citizen->BioComponent->Sex == citizen->BioComponent->Partner->BioComponent->Sex))
 				continue;
 
-			ACitizen* partner = Cast<ACitizen>(citizen->BioStruct.Partner);
+			ACitizen* partner = citizen->BioComponent->Partner.Get();
 
 			checked.Add(citizen);
 			checked.Add(partner);
@@ -363,7 +368,7 @@ void UEventsManager::CreateWedding(int32 Hour)
 					likelihood += *personality->Affects.Find("Marriage");
 
 			int32 chance = Camera->Stream.RandRange(80, 150);
-			int32 likelihoodChance = likelihood * 10 + citizen->BioStruct.HoursTogetherWithPartner * 5;
+			int32 likelihoodChance = likelihood * 10 + citizen->BioComponent->HoursTogetherWithPartner * 5;
 
 			if (likelihoodChance < chance)
 				continue;
@@ -466,8 +471,8 @@ void UEventsManager::CreateWedding(int32 Hour)
 			}
 
 			TArray<ACitizen*> whitelist = { citizen, partner, priest };
-			whitelist.Append(citizen->GetLikedFamily(false));
-			whitelist.Append(partner->GetLikedFamily(false));
+			whitelist.Append(citizen->BioComponent->GetLikedFamily(false));
+			whitelist.Append(partner->BioComponent->GetLikedFamily(false));
 
 			FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
 
