@@ -48,6 +48,9 @@ struct FPersonality
 		float Aggressiveness;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
+		float Morale;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Personality")
 		TArray<class ACitizen*> Citizens;
 
 	FPersonality()

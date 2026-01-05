@@ -13,6 +13,7 @@
 #include "AI/AIMovementComponent.h"
 #include "AI/AttackComponent.h"
 #include "AI/BuildingComponent.h"
+#include "AI/AISpawner.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Research.h"
 #include "Map/Grid.h"
@@ -80,6 +81,17 @@ UAIVisualiser::UAIVisualiser()
 	HISMEnemy->bAutoRebuildTreeOnInstanceChanges = false;
 	HISMEnemy->NumCustomDataFloats = 9;
 
+	HISMSnake = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMSnake"));
+	HISMSnake->SetupAttachment(AIContainer);
+	HISMSnake->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HISMSnake->SetCollisionObjectType(ECC_GameTraceChannel4);
+	HISMSnake->SetCollisionResponseToChannels(response);
+	HISMSnake->SetCanEverAffectNavigation(false);
+	HISMSnake->SetGenerateOverlapEvents(false);
+	HISMSnake->bWorldPositionOffsetWritesVelocity = false;
+	HISMSnake->bAutoRebuildTreeOnInstanceChanges = false;
+	HISMSnake->NumCustomDataFloats = 9;
+
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);
 	HarvestNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
@@ -134,6 +146,9 @@ void UAIVisualiser::ResetToDefaultValues()
 
 	for (int32 i = 0; i < HISMEnemy->GetInstanceCount(); i++)
 		RemoveInstance(HISMEnemy, i);
+
+	for (int32 i = 0; i < HISMSnake->GetInstanceCount(); i++)
+		RemoveInstance(HISMSnake, i);
 
 	for (FHatsStruct hat : HISMHats)
 		for (int32 i = 0; i < hat.HISMHat->GetInstanceCount(); i++)
@@ -288,6 +303,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 		TArray<TArray<AAI*>> ais;
 		ais.Add(clones);
 		ais.Add(gamemode->Enemies);
+		ais.Add(gamemode->Snakes);
 
 		for (int32 i = 0; i < ais.Num(); i++) {
 			if (Camera->SaveGameComponent->IsLoading())
@@ -309,14 +325,18 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 
 				if (i == 0)
 					SetInstanceTransform(HISMClone, j, ai->MovementComponent->Transform);
-				else
+				else if (i == 1)
 					SetInstanceTransform(HISMEnemy, j, ai->MovementComponent->Transform);
+				else
+					SetInstanceTransform(HISMSnake, j, ai->MovementComponent->Transform);
 			}
 
 			if (i == 0 && HISMClone->bIsOutOfDate)
 				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMClone->BuildTreeIfOutdated(false, false); });
-			else if (HISMEnemy->bIsOutOfDate)
+			else if (i == 1 && HISMEnemy->bIsOutOfDate)
 				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMEnemy->BuildTreeIfOutdated(false, false); });
+			else if (HISMSnake->bIsOutOfDate)
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMSnake->BuildTreeIfOutdated(false, false); });
 		}
 	});
 }
@@ -567,6 +587,10 @@ TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::G
 		info.Key = HISMEnemy;
 		info.Value = gamemode->Enemies.Find(AI);
 	}
+	else if (gamemode->Snakes.Contains(AI)) {
+		info.Key = HISMSnake;
+		info.Value = gamemode->Snakes.Find(AI);
+	}
 	else {
 		FFactionStruct* faction = AI->Camera->ConquestManager->GetFaction("", AI);
 
@@ -593,6 +617,7 @@ TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::G
 AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
 {
 	AAI* ai = nullptr;
+	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 	TArray<ACitizen*> citizens;
 	TArray<ACitizen*> rebels;
@@ -611,7 +636,9 @@ AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UHierarchicalInstancedStaticMeshC
 	else if (HISM == HISMClone)
 		ai = clones[Instance];
 	else if (HISM == HISMEnemy)
-		ai = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies[Instance];
+		ai = gamemode->Enemies[Instance];
+	else if (HISM == HISMSnake)
+		ai = gamemode->Snakes[Instance];
 
 	return ai;
 }
@@ -695,8 +722,13 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 			actorsToCheck.Append(Faction->Rebels);
 	}
 
-	if (RequestedOverlaps.bEnemies)
-		actorsToCheck.Append(GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies);
+	if (RequestedOverlaps.bEnemies) {
+		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+
+		actorsToCheck.Append(gamemode->Enemies);
+		actorsToCheck.Append(gamemode->Snakes);
+		actorsToCheck.Append(gamemode->SnakeSpawners);
+	}
 
 	if (actorsToCheck.Contains(Actor))
 		actorsToCheck.Remove(Actor);

@@ -93,7 +93,12 @@ void UCitizenManager::ReadJSONFile(FString path)
 							religion.Faith = value;
 					}
 					else {
-						personality.Aggressiveness = v.Value->AsNumber();
+						float value = v.Value->AsNumber();
+
+						if (v.Key == "Aggressiveness")
+							personality.Aggressiveness = value;
+						else
+							personality.Morale = value;
 					}
 				}
 

@@ -142,6 +142,12 @@ public:
 		TArray<class AAI*> Enemies;
 
 	UPROPERTY()
+		TArray<class AAI*> Snakes;
+
+	UPROPERTY()
+		TArray<class AAISpawner*> SnakeSpawners;
+
+	UPROPERTY()
 		FTimerHandle WaveTimer;
 
 	UPROPERTY()

@@ -15,5 +15,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 		class UNiagaraComponent* ZapComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+		FVector SpawnLocation;
+
 	void Zap(FVector Location);
 };

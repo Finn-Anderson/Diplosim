@@ -16,11 +16,14 @@
 #include "Buildings/Work/Defence/Trap.h"
 #include "Buildings/Work/Defence/Tower.h"
 #include "Buildings/Building.h"
+#include "Buildings/Misc/Broch.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/PoliceManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/CitizenManager.h"
+#include "Player/Managers/ArmyManager.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/HealthComponent.h"
 
@@ -41,6 +44,7 @@ UAttackComponent::UAttackComponent()
 	DamageMultiplier = 1.0f;
 
 	bShowMercy = false;
+	bFactorMorale = false;
 }
 
 void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -72,6 +76,7 @@ void UAttackComponent::PickTarget()
 		FFavourabilityStruct targetFavourability = GetActorFavourability(target);
 
 		bool withinRange = true;
+
 		if (GetOwner()->IsA<AAI>()) {
 			AAI* ai = Cast<AAI>(GetOwner());
 
@@ -105,6 +110,9 @@ void UAttackComponent::PickTarget()
 		if (favourability > 0.0f)
 			favoured = target;
 	}
+
+	if (!IsMoraleHigh())
+		return;
 
 	int32 reach = 0.0f;
 	AAI* ai = nullptr;
@@ -180,6 +188,43 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 	NavData->CalcPathLength(Camera->GetTargetActorLocation(GetOwner()), Camera->GetTargetActorLocation(Actor), Favourability.Dist);
 
 	return Favourability;
+}
+
+bool UAttackComponent::IsMoraleHigh()
+{
+	if (!bFactorMorale)
+		return true;
+
+	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	FFactionStruct* Faction = Camera->ConquestManager->GetFaction("", citizen);
+
+	FVector citizenLocation = Camera->GetTargetActorLocation(citizen);
+	FVector eggTimerLocation = Camera->GetTargetActorLocation(Faction->EggTimer);
+
+	if (IsValid(Faction->EggTimer) && (FVector::Dist(citizenLocation, eggTimerLocation) < 500.0f || !citizen->AIController->CanMoveTo(eggTimerLocation) || Faction->EggTimer->HealthComponent->GetHealth() <= 0))
+		return true;
+
+	int32 enemiesNum = OverlappingEnemies.Num();
+
+	FOverlapsStruct overlaps;
+	overlaps.bCitizens = true;
+	overlaps.bClones = true;
+	int32 alliesNum = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range, overlaps, EFactionType::Same, Faction, citizenLocation).Num();
+
+	int32 moraleMultiplier = 1.0f;
+	for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
+		moraleMultiplier *= personality->Morale;
+
+	float morale = 50.0f * moraleMultiplier - FMath::Pow(2.0f, FMath::Max(enemiesNum - alliesNum, 0));
+
+	if (morale <= 0.0f) {
+		Camera->ArmyManager->RemoveFromArmy(citizen);
+
+		if (IsValid(Faction->EggTimer))
+			citizen->AIController->AIMoveTo(Faction->EggTimer);
+	}
+
+	return morale > 0.0f;
 }
 
 void UAttackComponent::Attack()

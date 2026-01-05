@@ -14,7 +14,8 @@
 					"Amount": 1
 				}
 			],
-			"Aggressiveness": 1.5
+			"Aggressiveness": 1.5,
+			"Morale":  2.0
 		},
 		{
 			"Trait": "Craven",
@@ -30,7 +31,8 @@
 					"Amount": -1
 				}
 			],
-			"Aggressiveness": 0.5
+			"Aggressiveness": 0.5,
+			"Morale": 0.5
 		},
 		{
 			"Trait": "Diligent",
@@ -42,7 +44,8 @@
 					"Amount": 1.15
 				}
 			],
-			"Aggressiveness": 1.0
+			"Aggressiveness": 1.0,
+			"Morale": 1.2
 		},
 		{
 			"Trait": "Lazy",
@@ -62,7 +65,8 @@
 					"Amount": -2
 				}
 			],
-			"Aggressiveness": 0.75
+			"Aggressiveness": 0.75,
+			"Morale": 0.8
 		},
 		{
 			"Trait": "Outgoing",
@@ -82,7 +86,8 @@
 					"Amount": 2
 				}
 			],
-			"Aggressiveness": 1.0
+			"Aggressiveness": 1.0,
+			"Morale": 1.0
 		},
 		{
 			"Trait": "Reserved",
@@ -94,19 +99,22 @@
 					"Amount": 0.85
 				}
 			],
-			"Aggressiveness": 1.0
+			"Aggressiveness": 1.0,
+			"Morale": 1.0
 		},
 		{
 			"Trait": "Kind",
 			"Likes": [ "Brave", "Craven", "Diligent", "Lazy", "Outgoing", "Reserved", "Talented", "Inept", "Conscientious", "Careless", "Energetic", "Lethargic", "Workaholic", "Idler" ],
 			"Dislikes": [ "Cruel" ],
-			"Aggressiveness": 0.25
+			"Aggressiveness": 0.25,
+			"Morale": 1.0
 		},
 		{
 			"Trait": "Cruel",
 			"Likes": [],
 			"Dislikes": [ "Brave", "Craven", "Diligent", "Lazy", "Outgoing", "Reserved", "Kind", "Talented", "Inept", "Conscientious", "Careless", "Energetic", "Lethargic", "Workaholic", "Idler" ],
-			"Aggressiveness": 2.0
+			"Aggressiveness": 2.0,
+			"Morale": 1.0
 		},
 		{
 			"Trait": "Talented",
@@ -118,7 +126,8 @@
 					"Amount": 1.25
 				}
 			],
-			"Aggressiveness": 1.0
+			"Aggressiveness": 1.0,
+			"Morale": 1.0
 		},
 		{
 			"Trait": "Inept",
@@ -134,7 +143,8 @@
 					"Amount": 1.3
 				}
 			],
-			"Aggressiveness": 1.25
+			"Aggressiveness": 1.25,
+			"Morale": 1.5
 		},
 		{
 			"Trait": "Conscientious",
@@ -146,7 +156,8 @@
 					"Amount": -2
 				}
 			],
-			"Aggressiveness": 0.8
+			"Aggressiveness": 0.8,
+			"Morale": 0.75
 		},
 		{
 			"Trait": "Careless",
@@ -158,7 +169,8 @@
 					"Amount": 2
 				}
 			],
-			"Aggressiveness": 1.2
+			"Aggressiveness": 1.2,
+			"Morale": 1.3
 		},
 		{
 			"Trait": "Energetic",
@@ -174,7 +186,8 @@
 					"Amount": 6
 				}
 			],
-			"Aggressiveness": 1.0
+			"Aggressiveness": 1.0,
+			"Morale": 1.0
 		},
 		{
 			"Trait": "Lethargic",
@@ -190,7 +203,8 @@
 					"Amount": 10
 				}
 			],
-			"Aggressiveness": 0.8
+			"Aggressiveness": 0.8,
+			"Morale": 0.8
 		},
 		{
 			"Trait": "Workaholic",
@@ -206,7 +220,8 @@
 					"Amount": 6
 				}
 			],
-			"Aggressiveness": 1.0
+			"Aggressiveness": 1.0,
+			"Morale": 1.0
 		},
 		{
 			"Trait": "Idler",
@@ -222,7 +237,8 @@
 					"Amount": 10
 				}
 			],
-			"Aggressiveness": 1.0
+			"Aggressiveness": 1.0,
+			"Morale": 1.0
 		}
 	]
 }

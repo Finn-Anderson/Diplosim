@@ -17,6 +17,8 @@ AEnemy::AEnemy()
 	ZapComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ZapComponent"));
 	ZapComponent->SetupAttachment(RootComponent, "ParticleSocket");
 	ZapComponent->SetAutoActivate(false);
+
+	SpawnLocation = FVector::Zero();
 }
 
 void AEnemy::Zap(FVector Location)

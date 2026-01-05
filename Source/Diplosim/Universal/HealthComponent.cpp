@@ -16,6 +16,7 @@
 #include "AI/AIMovementComponent.h"
 #include "AI/BuildingComponent.h"
 #include "AI/BioComponent.h"
+#include "AI/AISpawner.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Misc/Broch.h"
@@ -240,7 +241,7 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 		citizen->BioComponent->RemovePartner();
 		citizen->BioComponent->Disown();
 
-		if (Attacker->IsA<AEnemy>())
+		if (Attacker->IsA<AEnemy>() && gamemode->Enemies.Contains(Attacker))
 			gamemode->WavesData.Last().NumKilled++;
 		else {
 			TMap<ACitizen*, int32> favouredChildren;
@@ -281,7 +282,7 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 			}
 		}
 	}
-	else if (actor->IsA<AEnemy>()) {
+	else if (actor->IsA<AEnemy>() && gamemode->Enemies.Contains(actor)) {
 		if (Attacker->IsA<AProjectile>()) {
 			AActor* a = nullptr;
 
@@ -307,6 +308,16 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 
 		building->DestructionComponent->Deactivate();
 	}
+	else if (actor->IsA<AAISpawner>()) {
+		FFactionStruct* f = Camera->ConquestManager->GetFaction("", Attacker);
+
+		AAISpawner* spawner = Cast<AAISpawner>(actor);
+		spawner->ClearedNest(f);
+
+		gamemode->SnakeSpawners.RemoveSingle(spawner);
+
+		actor->Destroy();
+	}
 
 	if (actor->IsA<AAI>()) {
 		AAI* ai = Cast<AAI>(actor);
@@ -323,8 +334,14 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 			else
 				faction->Rebels.Remove(citizen);
 		}
-		else if (ai->IsA<AEnemy>())
-			GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.Remove(ai);
+		else if (ai->IsA<AEnemy>()) {
+			AEnemy* enemy = Cast<AEnemy>(ai);
+
+			if (gamemode->Enemies.Contains(enemy))
+				gamemode->Enemies.Remove(enemy);
+			else
+				gamemode->Snakes.Remove(enemy);
+		}
 		else
 			faction->Clones.Remove(ai);
 

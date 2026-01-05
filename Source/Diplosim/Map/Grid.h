@@ -311,4 +311,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
 		TArray<TSubclassOf<class ASpecial>> SpecialBuildingClasses;
+
+	// AISpawners
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI Spawner")
+		TSubclassOf<class AAISpawner> AISpawnerClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI Spawner")
+		int32 NumOfNests;
+
+	void SpawnAISpawners();
 };

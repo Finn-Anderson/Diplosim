@@ -74,10 +74,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class USoundBase* ZapSound;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Attack")
+		bool bFactorMorale;
+
 private:
 	void PickTarget();
 
 	FFavourabilityStruct GetActorFavourability(AActor* Actor);
+
+	bool IsMoraleHigh();
 
 	void Attack();
 };

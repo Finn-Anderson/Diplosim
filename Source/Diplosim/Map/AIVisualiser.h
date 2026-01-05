@@ -89,6 +89,7 @@ struct FOverlapsStruct
 
 	void GetRebelsEnemies()
 	{
+		bBuildings = true;
 		bCitizens = true;
 		bEnemies = true;
 		bClones = true;
@@ -96,6 +97,7 @@ struct FOverlapsStruct
 
 	void GetEnemyEnemies()
 	{
+		bBuildings = true;
 		bCitizens = true;
 		bRebels = true;
 		bClones = true;
@@ -103,11 +105,11 @@ struct FOverlapsStruct
 
 	void GetEverythingWithHealth()
 	{
+		bBuildings = true;
 		bCitizens = true;
 		bRebels = true;
 		bEnemies = true;
 		bClones = true;
-		bBuildings = true;
 	}
 
 	void GetEverything()
@@ -165,6 +167,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMEnemy;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UHierarchicalInstancedStaticMeshComponent* HISMSnake;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* HarvestNiagaraComponent;

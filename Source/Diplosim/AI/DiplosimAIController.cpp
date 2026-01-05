@@ -4,10 +4,11 @@
 #include "NavigationPath.h"
 #include "NavFilters/NavigationQueryFilter.h"
 
-#include "AI.h"
-#include "Citizen.h"
-#include "AttackComponent.h"
-#include "AIMovementComponent.h"
+#include "AI/AI.h"
+#include "AI/Citizen.h"
+#include "AI/Enemy.h"
+#include "AI/AttackComponent.h"
+#include "AI/AIMovementComponent.h"
 #include "BuildingComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/House.h"
@@ -93,8 +94,12 @@ void ADiplosimAIController::DefaultAction()
 		else
 			Idle(faction, citizen);
 	}
-	else
-		AI->MoveToBroch();
+	else {
+		if (AI->IsA<AEnemy>() && Cast<AEnemy>(AI)->SpawnLocation != FVector::Zero())
+			Wander(Cast<AEnemy>(AI)->SpawnLocation, true);
+		else
+			AI->MoveToBroch();
+	}
 }
 
 void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
@@ -121,47 +126,58 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 			time = 60.0f;
 		}
 		else {
-			UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-			const ANavigationData* navData = nav->GetDefaultNavDataInstance();
-
-			int32 innerRange = 200;
-			int32 outerRange = 1000;
-
-			FVector location = Faction->EggTimer->GetActorLocation();
-					
-			if (IsValid(ChosenBuilding) && !ChosenBuilding->IsA<ABroch>()) {
-				FVector size = ChosenBuilding->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
-
-				innerRange = 0;
-
-				if (size.X > size.Y)
-					outerRange = size.X;
-				else
-					outerRange = size.Y;
-
-				location = ChosenBuilding->GetActorLocation();
-			}
-
-			location += Async(EAsyncExecution::TaskGraph, [this, innerRange, outerRange]() { return FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(innerRange, outerRange); }).Get();
-
-			FNavLocation navLoc;
-			nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));
-
-			double length = 0.0f;
-			nav->GetPathLength(Camera->GetTargetActorLocation(Citizen), navLoc, length);
-
-			if (length < 5000.0f && CanMoveTo(navLoc)) {
-				UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetActorLocation(Citizen), navLoc, Citizen, Citizen->NavQueryFilter);
-
-				Citizen->MovementComponent->SetPoints(path->PathPoints);
-
-				if (IsValid(Citizen->BuildingComponent->BuildingAt))
-					Async(EAsyncExecution::TaskGraphMainTick, [Citizen]() { Citizen->BuildingComponent->BuildingAt->Leave(Citizen); });
-			}
+			Wander(Faction->EggTimer->GetActorLocation(), false);
 		}
 
 		Camera->TimerManager->CreateTimer("Idle", Citizen, time, "DefaultAction", {}, false);
 	}
+}
+
+void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer)
+{
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+
+	int32 innerRange = 200;
+	int32 outerRange = 1000;
+
+	if (IsValid(ChosenBuilding) && !ChosenBuilding->IsA<ABroch>()) {
+		FVector size = ChosenBuilding->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+
+		innerRange = 0;
+
+		if (size.X > size.Y)
+			outerRange = size.X;
+		else
+			outerRange = size.Y;
+
+		CentrePoint = ChosenBuilding->GetActorLocation();
+	}
+
+	FVector location = CentrePoint + Async(EAsyncExecution::TaskGraph, [this, innerRange, outerRange]() { return FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(innerRange, outerRange); }).Get();
+
+	FNavLocation navLoc;
+	nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));
+
+	double length = 0.0f;
+	nav->GetPathLength(Camera->GetTargetActorLocation(AI), navLoc, length);
+
+	if (length < 5000.0f && CanMoveTo(navLoc)) {
+		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetActorLocation(AI), navLoc, AI, AI->NavQueryFilter);
+
+		AI->MovementComponent->SetPoints(path->PathPoints);
+
+		if (AI->IsA<ACitizen>() && IsValid(Cast<ACitizen>(AI)->BuildingComponent->BuildingAt)) {
+			ACitizen* citizen = Cast<ACitizen>(AI);
+
+			Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { citizen->BuildingComponent->BuildingAt->Leave(citizen); });
+		}
+	}
+
+	if (!bTimer)
+		return;
+
+	Camera->TimerManager->CreateTimer("Wander", AI, Camera->Stream.RandRange(5, 20), "DefaultAction", {}, false);
 }
 
 void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)

@@ -95,6 +95,8 @@ public:
 
 	void Idle(FFactionStruct* Faction, class ACitizen* Citizen);
 
+	void Wander(FVector CentrePoint, bool bTimer);
+
 	UFUNCTION()
 		void ChooseIdleBuilding(class ACitizen* Citizen);
 

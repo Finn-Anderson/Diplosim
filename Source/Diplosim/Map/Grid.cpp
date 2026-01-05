@@ -11,11 +11,15 @@
 #include "Engine/ExponentialHeightFog.h"
 #include "NavigationSystem.h"
 
-#include "AIVisualiser.h"
-#include "Atmosphere/Clouds.h"
-#include "Resources/Mineral.h"
-#include "Resources/Vegetation.h"
-#include "Atmosphere/AtmosphereComponent.h"
+#include "AI/Citizen.h"
+#include "AI/DiplosimAIController.h"
+#include "AI/AISpawner.h"
+#include "Buildings/Misc/Special/Special.h"
+#include "Map/AIVisualiser.h"
+#include "Map/Atmosphere/Clouds.h"
+#include "Map/Resources/Mineral.h"
+#include "Map/Resources/Vegetation.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
@@ -23,9 +27,6 @@
 #include "Player/Components/BuildComponent.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
-#include "AI/Citizen.h"
-#include "AI/DiplosimAIController.h"
-#include "Buildings/Misc/Special/Special.h"
 
 AGrid::AGrid()
 {
@@ -122,6 +123,7 @@ AGrid::AGrid()
 	VegetationSizeMultiplier = 5;
 
 	bRandSpecialBuildings = true;
+	NumOfNests = 1;
 
 	TreeColours = { FLinearColor(53.0f, 90.0f, 32.0f), FLinearColor(54.0f, 79.0f, 38.0f), FLinearColor(32.0f, 90.0f, 40.0f), FLinearColor(38.0f, 79.0f, 43.0f), FLinearColor(82.0f, 90.0f, 32.0f) };
 	GroundColours = { FLinearColor(30.0f, 20.0f, 13.0f), FLinearColor(255.0f, 225.0f, 45.0f), FLinearColor(152.0f, 192.0f, 100.0f), FLinearColor(86.0f, 228.0f, 68.0f), FLinearColor(52.0f, 213.0f, 31.0f), FLinearColor(36.0f, 146.0f, 21.0f) };
@@ -689,6 +691,7 @@ void AGrid::SetupEnvironment(bool bLoad)
 	AtmosphereComponent->Clouds->ActivateCloud();
 
 	SpawnEggBasket();
+	SpawnAISpawners();
 
 	SetSpecialBuildings(ValidMineralTiles);
 
@@ -1391,5 +1394,21 @@ void AGrid::BuildSpecialBuildings()
 
 			building->BuildingMesh->SetCanEverAffectNavigation(true);
 		}
+	}
+}
+
+void AGrid::SpawnAISpawners()
+{
+	for (int32 i = 0; i < NumOfNests; i++) {
+		int32 index = Camera->Stream.RandRange(0, ResourceTiles.Num() - 1);
+
+		if (index == INDEX_NONE)
+			return;
+
+		FTransform transform = GetTransform(ResourceTiles[index]);
+
+		GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, transform.GetLocation(), transform.Rotator());
+
+		ResourceTiles.RemoveAt(index);
 	}
 }
