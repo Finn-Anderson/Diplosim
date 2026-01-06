@@ -450,7 +450,20 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 {
-	if (!IsValid(Actor) || !IsValid(AI) || !IsValid(AI->MovementComponent) || MoveRequest.GetGoalActor() != Actor || (!AI->MovementComponent->Points.IsEmpty() && FVector::Dist(Camera->GetTargetActorLocation(Actor), AI->MovementComponent->Points.Last()) < 20.0f))
+	if (!IsValid(Actor) || !IsValid(AI))
+		return;
+
+	FVector targetLoc = Camera->GetTargetActorLocation(Actor);
+	FVector currentLoc = Camera->GetTargetActorLocation(AI);
+	UStaticMeshComponent* mesh = Actor->GetComponentByClass<UStaticMeshComponent>();
+
+	if (!AI->MovementComponent->Points.IsEmpty())
+		currentLoc = AI->MovementComponent->Points.Last();
+
+	if (mesh)
+		mesh->GetClosestPointOnCollision(currentLoc, targetLoc);
+
+	if (FVector::Dist(currentLoc, targetLoc) < AI->Range)
 		return;
 
 	AIMoveTo(Actor, MoveRequest.GetLocation(), MoveRequest.GetGoalInstance());

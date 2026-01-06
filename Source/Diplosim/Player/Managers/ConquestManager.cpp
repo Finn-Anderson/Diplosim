@@ -289,8 +289,6 @@ void UConquestManager::CalculateAIFighting()
 			return;
 		}
 
-		bool bEnemies = false;
-
 		TMap<FString, TArray<AAI*>> ais;
 
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
@@ -311,20 +309,11 @@ void UConquestManager::CalculateAIFighting()
 
 			ai = ais.Find("Rebels");
 			ai->Append(faction.Rebels);
-
-			if (!faction.Rebels.IsEmpty())
-				bEnemies = true;
 		}
 
 		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 		ais.Add("Enemies", gamemode->Enemies);
-
-		if (!gamemode->Enemies.IsEmpty())
-			bEnemies = true;
-
-		if (!bEnemies)
-			return;
 
 		for (auto& element : ais) {
 			if (Camera->SaveGameComponent->IsLoading())
@@ -361,10 +350,10 @@ void UConquestManager::CalculateAIFighting()
 						continue;
 
 					ai->AttackComponent->OverlappingEnemies.Add(actor);
-
-					if (ai->AttackComponent->OverlappingEnemies.Num() == 1)
-						ai->AttackComponent->SetComponentTickEnabled(true);
 				}
+
+				if (!ai->AttackComponent->OverlappingEnemies.IsEmpty())
+					ai->AttackComponent->PickTarget();
 			}
 		}
 	});
@@ -445,10 +434,10 @@ void UConquestManager::CalculateBuildingFighting()
 								continue;
 
 							tower->AttackComponent->OverlappingEnemies.Add(actor);
-
-							if (tower->AttackComponent->OverlappingEnemies.Num() == 1)
-								tower->AttackComponent->SetComponentTickEnabled(true);
 						}
+
+						if (!tower->AttackComponent->OverlappingEnemies.IsEmpty())
+							tower->AttackComponent->PickTarget();
 					}
 				}
 			}

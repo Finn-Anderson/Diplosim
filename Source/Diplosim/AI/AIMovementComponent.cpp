@@ -1,5 +1,7 @@
 #include "AI/AIMovementComponent.h"
 
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+
 #include "AI.h"
 #include "Citizen.h"
 #include "AttackComponent.h"
@@ -46,12 +48,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);
 	
-	if (IsValid(goal)) {
-		FVector location = AI->Camera->GetTargetLocation(goal);
-
-		if (Points.Last() != location && (!goal->IsA<AAI>() || !AI->AttackComponent->OverlappingEnemies.IsEmpty()))
-			AI->AIController->RecalculateMovement(goal);
-	}
+	AI->AIController->RecalculateMovement(goal);
 
 	if (!Points.IsEmpty() && FVector::DistXY(Transform.GetLocation(), Points[0]) < range)
 		Points.RemoveAt(0);
@@ -62,6 +59,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		Velocity = CalculateVelocity(Points[0]);
 
 	FVector deltaV = Velocity * DeltaTime;
+	AvoidCollisions(deltaV, DeltaTime);
 
 	if (!deltaV.IsNearlyZero(1e-6f))
 	{
@@ -132,6 +130,41 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 FVector UAIMovementComponent::CalculateVelocity(FVector Vector)
 {
 	return (Vector - Transform.GetLocation()).Rotation().Vector() * MaxSpeed;
+}
+
+void UAIMovementComponent::AvoidCollisions(FVector& DeltaV, float DeltaTime)
+{
+	if (DeltaV.IsNearlyZero(1e-6f) || AI->AttackComponent->OverlappingEnemies.IsEmpty())
+		return;
+
+	FVector currentLoc = Transform.GetLocation();
+	FVector location = Transform.GetLocation() + DeltaV;
+	float size = AIVisualiser->GetAIHISM(AI).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().X;
+
+	FOverlapsStruct overlaps;
+	overlaps.GetEverything();
+
+	TArray<AActor*> actors = AIVisualiser->GetOverlaps(AI->Camera, AI, size, overlaps, EFactionType::Both, nullptr, location);
+
+	if (actors.IsEmpty())
+		return;
+
+	for (int32 i = -1; i <= 1; i += 2) {
+		FVector avoidancePoint = FVector((size * i) / FMath::Sqrt(1 + FMath::Square((location.Y - currentLoc.Y) / (location.X - currentLoc.X))) + currentLoc.X, -((size * i) * (location.X - currentLoc.X)) / ((location.Y - currentLoc.Y) * FMath::Sqrt(1 + FMath::Square((location.Y - currentLoc.Y) / (location.X - currentLoc.X)))) + currentLoc.Y, location.Z);
+
+		actors = AIVisualiser->GetOverlaps(AI->Camera, AI, size, overlaps, EFactionType::Both, nullptr, avoidancePoint);
+
+		if (!actors.IsEmpty())
+			continue;
+
+		Points.EmplaceAt(0, avoidancePoint);
+		Velocity = CalculateVelocity(Points[0]);
+		DeltaV = Velocity * DeltaTime;
+
+		return;
+	}
+
+	DeltaV = FVector::Zero();
 }
 
 void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)

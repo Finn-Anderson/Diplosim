@@ -234,10 +234,10 @@ public:
 		FString Seed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colours")
-		TArray<FLinearColor> TreeColours;
+		TArray<FColor> TreeColours;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colours")
-		TArray<FLinearColor> GroundColours;
+		TArray<FColor> GroundColours;
 
 	TMap<UHierarchicalInstancedStaticMeshComponent*, TArray<FTransform>> CalculatedTiles;
 

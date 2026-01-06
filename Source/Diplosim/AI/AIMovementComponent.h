@@ -66,4 +66,6 @@ private:
 	void ComputeCurrentAnimation(AActor* Goal, float DeltaTime);
 
 	FVector CalculateVelocity(FVector Vector);
+
+	void AvoidCollisions(FVector& DeltaV, float DeltaTime);
 };

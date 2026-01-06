@@ -29,10 +29,7 @@
 
 UAttackComponent::UAttackComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
-	PrimaryComponentTick.bAllowTickBatching = true;
-	SetComponentTickInterval(0.1f);
+	PrimaryComponentTick.bCanEverTick = false;
 
 	Damage = 10;
 
@@ -45,18 +42,6 @@ UAttackComponent::UAttackComponent()
 
 	bShowMercy = false;
 	bFactorMorale = false;
-}
-
-void UAttackComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	UHealthComponent* healthComp = GetOwner()->GetComponentByClass<UHealthComponent>();
-
-	if (healthComp->Health == 0)
-		return;
-
-	Async(EAsyncExecution::TaskGraph, [this]() { PickTarget(); });
 }
 
 void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
@@ -123,11 +108,8 @@ void UAttackComponent::PickTarget()
 		reach = ai->Range / 15.0f;
 	}
 
-	if (favoured == nullptr) {
-		SetComponentTickEnabled(false);
-
+	if (favoured == nullptr)
 		AttackTimer = 0.0f;
-	}
 	else if (!*ProjectileClass && ai->CanReach(favoured, reach))
 		ai->AIController->StopMovement();
 
@@ -192,7 +174,7 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 
 bool UAttackComponent::IsMoraleHigh()
 {
-	if (!bFactorMorale)
+	if (!bFactorMorale || OverlappingEnemies.IsEmpty())
 		return true;
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());

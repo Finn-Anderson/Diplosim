@@ -106,12 +106,6 @@ void UPoliceManager::CalculateVandalism()
 							if (!citizen->AttackComponent->OverlappingEnemies.Contains(witness))
 								citizen->AttackComponent->OverlappingEnemies.Add(witness);
 
-							if (witness->AttackComponent->OverlappingEnemies.Num() == 1)
-								witness->AttackComponent->SetComponentTickEnabled(true);
-
-							if (citizen->AttackComponent->OverlappingEnemies.Num() == 1)
-								citizen->AttackComponent->SetComponentTickEnabled(true);
-
 							witness->AttackComponent->bShowMercy = false;
 							citizen->AttackComponent->bShowMercy = false;
 						}
@@ -185,9 +179,6 @@ void UPoliceManager::ProcessReports()
 
 						if (!citizenToAttack->AttackComponent->OverlappingEnemies.Contains(citizen))
 							citizenToAttack->AttackComponent->OverlappingEnemies.Add(citizen);
-
-						if (citizen->AttackComponent->OverlappingEnemies.Num() == 1)
-							citizen->AttackComponent->SetComponentTickEnabled(true);
 
 						citizen->AttackComponent->bShowMercy = citizenToAttack->AttackComponent->bShowMercy;
 
@@ -272,12 +263,6 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 
 		if (!Citizen2->AttackComponent->OverlappingEnemies.Contains(Citizen1))
 			Citizen2->AttackComponent->OverlappingEnemies.Add(Citizen1);
-
-		if (Citizen1->AttackComponent->OverlappingEnemies.Num() == 1)
-			Citizen1->AttackComponent->SetComponentTickEnabled(true);
-
-		if (Citizen2->AttackComponent->OverlappingEnemies.Num() == 1)
-			Citizen2->AttackComponent->SetComponentTickEnabled(true);
 
 		if (fightChance < 66) {
 			Citizen1->AttackComponent->bShowMercy = true;

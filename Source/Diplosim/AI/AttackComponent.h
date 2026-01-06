@@ -31,9 +31,9 @@ class DIPLOSIM_API UAttackComponent : public UActorComponent
 public:	
 	UAttackComponent();
 
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 	void SetProjectileClass(TSubclassOf<class AProjectile> OtherClass);
+
+	void PickTarget();
 
 	void ClearAttacks();
 
@@ -74,12 +74,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class USoundBase* ZapSound;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Attack")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morale")
 		bool bFactorMorale;
 
 private:
-	void PickTarget();
-
 	FFavourabilityStruct GetActorFavourability(AActor* Actor);
 
 	bool IsMoraleHigh();

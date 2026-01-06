@@ -125,8 +125,8 @@ AGrid::AGrid()
 	bRandSpecialBuildings = true;
 	NumOfNests = 1;
 
-	TreeColours = { FLinearColor(53.0f, 90.0f, 32.0f), FLinearColor(54.0f, 79.0f, 38.0f), FLinearColor(32.0f, 90.0f, 40.0f), FLinearColor(38.0f, 79.0f, 43.0f), FLinearColor(82.0f, 90.0f, 32.0f) };
-	GroundColours = { FLinearColor(30.0f, 20.0f, 13.0f), FLinearColor(255.0f, 225.0f, 45.0f), FLinearColor(152.0f, 192.0f, 100.0f), FLinearColor(86.0f, 228.0f, 68.0f), FLinearColor(52.0f, 213.0f, 31.0f), FLinearColor(36.0f, 146.0f, 21.0f) };
+	TreeColours = { FColor(53.0f / 255.0f, 90.0f, 32.0f), FColor(54.0f, 79.0f, 38.0f), FColor(32.0f, 90.0f, 40.0f), FColor(38.0f, 79.0f, 43.0f), FColor(82.0f, 90.0f, 32.0f) };
+	GroundColours = { FColor(30.0f, 20.0f, 13.0f), FColor(255.0f, 225.0f, 45.0f), FColor(152.0f, 192.0f, 100.0f), FColor(86.0f, 228.0f, 68.0f), FColor(52.0f, 213.0f, 31.0f), FColor(36.0f, 146.0f, 21.0f) };
 }
 
 void AGrid::BeginPlay()
@@ -447,18 +447,6 @@ void AGrid::RemovePocketSeas()
 		}
 	}
 
-	Camera->UpdateLoadingText("Populating Tile Information");
-
-	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupTileInformation, 0.001, false);
-}
-
-void AGrid::SetupTileInformation()
-{
-	for (TArray<FTileStruct>& row : Storage)
-		for (FTileStruct& tile : row)
-			SetTileDetails(&tile);
-
 	Camera->UpdateLoadingText("Paving Rivers");
 
 	FTimerHandle RenderTimer;
@@ -537,6 +525,18 @@ void AGrid::PaveRivers()
 			}
 		}
 	}
+
+	Camera->UpdateLoadingText("Populating Tile Information");
+
+	FTimerHandle RenderTimer;
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupTileInformation, 0.001, false);
+}
+
+void AGrid::SetupTileInformation()
+{
+	for (TArray<FTileStruct>& row : Storage)
+		for (FTileStruct& tile : row)
+			SetTileDetails(&tile);
 
 	Camera->UpdateLoadingText("Spawning Tiles");
 
@@ -691,7 +691,7 @@ void AGrid::SetupEnvironment(bool bLoad)
 	AtmosphereComponent->Clouds->ActivateCloud();
 
 	SpawnEggBasket();
-	SpawnAISpawners();
+	//SpawnAISpawners();
 
 	SetSpecialBuildings(ValidMineralTiles);
 
@@ -763,13 +763,13 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 
 	Tile->Rotation = (FRotator(0.0f, 90.0f, 0.0f) * rand).Quaternion();
 
-	if ((bLava && Tile->Level == MaxLevel) || Tile->Level < 0)
+	if ((bLava && Tile->Level == MaxLevel) || Tile->Level < 0 || Tile->bRiver)
 		return;
 
 	int32 value = Camera->Stream.RandRange(-1, 1);
 
 	int32 fTile = 0;
-	int32 count = 0;
+	float count = 0;
 
 	for (auto& element : Tile->AdjacentTiles) {
 		FTileStruct* t = element.Value;
@@ -779,10 +779,15 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 
 			return;
 		}
+		else if (t->bRiver) {
+			Tile->Fertility = 5;
+
+			return;
+		}
 
 		int32 f = t->Fertility;
 
-		if (f > -1) {
+		if (f > -1 || (t->Level < 0 && value == -1)) {
 			fTile += f;
 			count++;
 		}
@@ -1030,9 +1035,9 @@ void AGrid::GenerateTiles()
 					}
 
 					if (bTree) {
-						int32 colourIndex = FMath::Floor(Camera->Stream.RandRange(0, 20) / 4.0f);
+						int32 colourIndex = FMath::Floor(Camera->Stream.RandRange(0, 16) / 4.0f);
 
-						colour = TreeColours[colourIndex];
+						colour = FLinearColor(TreeColours[colourIndex]);
 
 						int32 dyingChance = Camera->Stream.RandRange(0, 100);
 
@@ -1076,11 +1081,11 @@ void AGrid::GenerateTiles()
 
 			FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
 
-			if (tile == nullptr)
+			if (tile == nullptr || tile->Fertility < 0)
 				continue;
 
 			if (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround) {
-				colour = GroundColours[tile->Fertility];
+				colour = FLinearColor(GroundColours[tile->Fertility]);
 
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
