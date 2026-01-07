@@ -315,10 +315,10 @@ struct FBuildingData
 		TArray<FBasketStruct> Basket;
 
 	UPROPERTY()
-		double DeathTime;
+		bool bOperate;
 
 	UPROPERTY()
-		bool bOperate;
+		double DeathTime;
 
 	UPROPERTY()
 		TArray<FWorkHoursStruct> WorkHours;
@@ -614,6 +614,24 @@ struct FProjectileData
 };
 
 USTRUCT()
+struct FSpawnerData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FLinearColor Colour;
+
+	UPROPERTY()
+		int32 IncrementSpawned;
+
+	FSpawnerData()
+	{
+		Colour = FLinearColor(); 
+		IncrementSpawned = 0;
+	}
+};
+
+USTRUCT()
 struct FHealthData
 {
 	GENERATED_USTRUCT_BODY()
@@ -718,6 +736,9 @@ struct FGamemodeData
 
 	UPROPERTY()
 		TArray<FString> EnemyNames;
+
+	UPROPERTY()
+		TArray<FString> SnakeNames;
 
 	UPROPERTY()
 		bool bOngoingRaid;
@@ -1146,6 +1167,9 @@ struct FActorSaveData
 		FProjectileData ProjectileData;
 
 	UPROPERTY()
+		FSpawnerData SpawnerData;
+
+	UPROPERTY()
 		FCameraData CameraData;
 
 	UPROPERTY()
@@ -1242,6 +1266,8 @@ private:
 
 	void SaveProjectile(FActorSaveData& ActorData, AActor* Actor);
 
+	void SaveAISpawner(FActorSaveData& ActorData, AActor* Actor);
+
 	void SaveTimers(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
 
 	void SaveComponents(FActorSaveData& ActorData, AActor* Actor);
@@ -1263,6 +1289,8 @@ private:
 	void LoadBuilding(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData>& AIToName);
 
 	void LoadProjectile(FActorSaveData& ActorData, AActor* Actor);
+
+	void LoadAISpawner(FActorSaveData& ActorData, AActor* Actor);
 
 	void LoadComponents(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TArray<FActorSaveData> SavedData);
 

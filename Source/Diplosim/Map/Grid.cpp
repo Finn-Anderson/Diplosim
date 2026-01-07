@@ -691,7 +691,7 @@ void AGrid::SetupEnvironment(bool bLoad)
 	AtmosphereComponent->Clouds->ActivateCloud();
 
 	SpawnEggBasket();
-	//SpawnAISpawners();
+	SpawnAISpawners();
 
 	SetSpecialBuildings(ValidMineralTiles);
 
@@ -1412,7 +1412,8 @@ void AGrid::SpawnAISpawners()
 
 		FTransform transform = GetTransform(ResourceTiles[index]);
 
-		GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, transform.GetLocation(), transform.Rotator());
+		AAISpawner* nest = GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, transform.GetLocation(), transform.Rotator());
+		nest->SpawnAI();
 
 		ResourceTiles.RemoveAt(index);
 	}

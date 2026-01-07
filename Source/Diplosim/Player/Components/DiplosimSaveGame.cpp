@@ -14,6 +14,7 @@
 #include "AI/BuildingComponent.h"
 #include "AI/HappinessComponent.h"
 #include "AI/BioComponent.h"
+#include "AI/AISpawner.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Map/Grid.h"
@@ -60,6 +61,10 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 	actors.Append(foundActors);
 	potentialWetActors.Append(foundActors);
 
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AAISpawner::StaticClass(), foundActors);
+	actors.Append(foundActors);
+	potentialWetActors.Append(foundActors);
+
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AProjectile::StaticClass(), foundActors);
 	actors.Append(foundActors);
 
@@ -96,6 +101,8 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 			SaveBuilding(actorData, actor);
 		else if (actor->IsA<AProjectile>())
 			SaveProjectile(actorData, actor);
+		else if (actor->IsA<AAISpawner>())
+			SaveAISpawner(actorData, actor);
 
 		SaveTimers(Camera, actorData, actor);
 
@@ -466,6 +473,9 @@ void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor)
 	for (AAI* enemy : gamemode->Enemies)
 		gamemodeData->EnemyNames.Add(enemy->GetName());
 
+	for (AAI* snake : gamemode->Snakes)
+		gamemodeData->SnakeNames.Add(snake->GetName());
+
 	gamemodeData->bOngoingRaid = gamemode->bOngoingRaid;
 	gamemodeData->CrystalOpacity = camera->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0];
 	gamemodeData->TargetOpacity = gamemode->TargetOpacity;
@@ -603,7 +613,10 @@ void UDiplosimSaveGame::SaveBuilding(FActorSaveData& ActorData, AActor* Actor)
 	ActorData.BuildingData.Storage = building->Storage;
 	ActorData.BuildingData.Basket = building->Basket;
 
-	ActorData.BuildingData.DeathTime = building->DeathTime;
+	double* time = building->Camera->Grid->AIVisualiser->DestructingActors.Find(building);
+	if (time != nullptr)
+		ActorData.BuildingData.DeathTime = *time;
+
 	ActorData.BuildingData.bOperate = building->bOperate;
 
 	if (IsA<AWork>())
@@ -630,6 +643,14 @@ void UDiplosimSaveGame::SaveProjectile(FActorSaveData& ActorData, AActor* Actor)
 
 	ActorData.ProjectileData.OwnerName = projectile->GetOwner()->GetName();
 	ActorData.ProjectileData.Velocity = projectile->ProjectileMovementComponent->Velocity;
+}
+
+void UDiplosimSaveGame::SaveAISpawner(FActorSaveData& ActorData, AActor* Actor)
+{
+	AAISpawner* spawner = Cast<AAISpawner>(Actor);
+
+	ActorData.SpawnerData.Colour = spawner->Colour;
+	ActorData.SpawnerData.IncrementSpawned = spawner->IncrementSpawned;
 }
 
 void UDiplosimSaveGame::SaveTimers(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
@@ -673,11 +694,14 @@ void UDiplosimSaveGame::SaveComponents(FActorSaveData& ActorData, AActor* Actor)
 void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 {
 	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+	gamemode->Enemies.Empty();
+	gamemode->SnakeSpawners.Empty();
+	gamemode->Snakes.Empty();
 
 	TArray<AActor*> actors;
 	TArray<AActor*> foundActors;
 
-	TArray<UClass*> classes = { AAI::StaticClass(), AEggBasket::StaticClass(), ABuilding::StaticClass(), AProjectile::StaticClass() };
+	TArray<UClass*> classes = { AAI::StaticClass(), AEggBasket::StaticClass(), ABuilding::StaticClass(), AAISpawner::StaticClass(), AProjectile::StaticClass() };
 
 	for (UClass* clss : classes) {
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), clss, foundActors);
@@ -729,6 +753,8 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 			LoadBuilding(Camera, actorData, actor, aiToName);
 		else if (actor->IsA<AProjectile>())
 			LoadProjectile(actorData, actor);
+		else if (actor->IsA<AAISpawner>())
+			LoadAISpawner(actorData, actor);
 
 		actorData.Actor = actor;
 	}
@@ -1037,7 +1063,9 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 	building->Storage = ActorData.BuildingData.Storage;
 	building->Basket = ActorData.BuildingData.Basket;
 
-	building->DeathTime = ActorData.BuildingData.DeathTime;
+	if (ActorData.BuildingData.DeathTime != 0.0f)
+		building->Camera->Grid->AIVisualiser->DestructingActors.Add(building, ActorData.BuildingData.DeathTime);
+
 	building->bOperate = ActorData.BuildingData.bOperate;
 
 	if (building->IsA<AWork>())
@@ -1082,6 +1110,14 @@ void UDiplosimSaveGame::LoadProjectile(FActorSaveData& ActorData, AActor* Actor)
 	AProjectile* projectile = Cast<AProjectile>(Actor);
 
 	projectile->ProjectileMovementComponent->Velocity = ActorData.ProjectileData.Velocity;
+}
+
+void UDiplosimSaveGame::LoadAISpawner(FActorSaveData& ActorData, AActor* Actor)
+{
+	AAISpawner* spawner = Cast<AAISpawner>(Actor);
+
+	spawner->Colour = ActorData.SpawnerData.Colour;
+	spawner->IncrementSpawned = ActorData.SpawnerData.IncrementSpawned;
 }
 
 void UDiplosimSaveGame::LoadComponents(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TArray<FActorSaveData> SavedData)
@@ -1401,6 +1437,9 @@ void UDiplosimSaveGame::InitialiseGamemode(ACamera* Camera, ADiplosimGameModeBas
 
 	for (FString name : gamemodeData->EnemyNames)
 		Gamemode->Enemies.Add(Cast<AAI>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
+
+	for (FString name : gamemodeData->SnakeNames)
+		Gamemode->Snakes.Add(Cast<AAI>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name)));
 
 	if (!Gamemode->bSpawnedAllEnemies())
 		Gamemode->SpawnAllEnemies();

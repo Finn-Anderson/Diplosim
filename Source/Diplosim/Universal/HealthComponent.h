@@ -56,6 +56,9 @@ public:
 	void Death(AActor* Attacker);
 
 	UFUNCTION()
+		void AIDecay();
+
+	UFUNCTION()
 		void Clear(FFactionStruct Faction, AActor* Attacker);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")

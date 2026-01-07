@@ -183,9 +183,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* ParticleComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
-		class UNiagaraComponent* DestructionComponent;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* AmbientAudioComponent;
 
@@ -305,9 +302,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		bool bCoastal;
-
-	UPROPERTY()
-		double DeathTime;
 
 	UPROPERTY()
 		UStaticMesh* ActualMesh;

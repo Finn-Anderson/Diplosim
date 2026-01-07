@@ -229,7 +229,8 @@ enum class EAnim : uint8
 	Move,
 	Melee,
 	Throw,
-	Death
+	Death,
+	Decay
 };
 
 USTRUCT(BlueprintType)

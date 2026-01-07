@@ -148,6 +148,8 @@ void UHealthComponent::Death(AActor* Attacker)
 		Cast<AAI>(actor)->AIController->StopMovement();
 		Camera->TimerManager->RemoveTimer("Idle", actor);
 
+		Camera->TimerManager->CreateTimer("Decay", GetOwner(), 6.0f, "Clear", {}, false, true);
+
 		if (actor->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(actor);
 
@@ -177,20 +179,7 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		Camera->ConstructionManager->RemoveBuilding(building);
 
-		FVector dimensions = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
-
-		building->DestructionComponent->SetVariableVec2(TEXT("XY"), FVector2D(dimensions.X, dimensions.Y));
-		building->DestructionComponent->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
-
 		building->ParticleComponent->Deactivate();
-		building->DestructionComponent->Activate();
-
-		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, building->GetActorLocation(), 0.0f, 2000.0f, 1.0f);
-
-		if (IsValid(Attacker))
-			building->DeathTime = GetWorld()->GetTimeSeconds();
-
-		Camera->Grid->AIVisualiser->DestructingBuildings.Add(building);
 
 		if (building->IsA<AParliament>()) {
 			faction->Politics.Representatives.Empty();
@@ -216,6 +205,16 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		if (actor->IsA<AEnemy>())
 			deathComp->SetColorParameter("Colour", Cast<AEnemy>(actor)->Colour);
+		else if (actor->IsA<ABuilding>() || actor->IsA<AAISpawner>()) {
+			UStaticMeshComponent* mesh = actor->GetComponentByClass<UStaticMeshComponent>();
+			FVector dimensions = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+
+			deathComp->SetVariableVec2(TEXT("XY"), FVector2D(dimensions.X, dimensions.Y));
+			deathComp->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
+
+			Camera->Grid->AIVisualiser->DestructingActors.Add(actor, GetWorld()->GetTimeSeconds());
+			UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, origin, 0.0f, 2000.0f, 1.0f);
+		}
 	}
 
 	if (!IsValid(Attacker))
@@ -225,6 +224,12 @@ void UHealthComponent::Death(AActor* Attacker)
 	Camera->TimerManager->SetParameter(*faction, params);
 	Camera->TimerManager->SetParameter(Attacker, params);
 	Camera->TimerManager->CreateTimer("Clear Death", GetOwner(), 10.0f, "Clear", params, false, true);
+}
+
+void UHealthComponent::AIDecay()
+{
+	AAI* ai = Cast<AAI>(GetOwner());
+	ai->MovementComponent->SetAnimation(EAnim::Decay, false, 1.0f);
 }
 
 void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
@@ -305,8 +310,6 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 		building->BuildingMesh->SetCanEverAffectNavigation(false);
 
 		building->GroundDecalComponent->SetHiddenInGame(false);
-
-		building->DestructionComponent->Deactivate();
 	}
 	else if (actor->IsA<AAISpawner>()) {
 		FFactionStruct* f = Camera->ConquestManager->GetFaction("", Attacker);

@@ -50,7 +50,7 @@ void AAISpawner::BeginPlay()
 
 	GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->SnakeSpawners.Add(this);
 
-	SpawnAI();
+	Colour = FLinearColor(Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f));
 }
 
 void AAISpawner::SpawnAI()
@@ -62,9 +62,10 @@ void AAISpawner::SpawnAI()
 	transform.SetLocation(GetActorLocation());
 
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(AIClass->GetClass(), FVector::Zero(), FRotator::ZeroRotator, params);
-	Camera->Grid->AIVisualiser->AddInstance(enemy, Camera->Grid->AIVisualiser->HISMSnake, transform);
-
 	enemy->SpawnLocation = transform.GetLocation();
+	enemy->Colour = Colour;
+
+	Camera->Grid->AIVisualiser->AddInstance(enemy, Camera->Grid->AIVisualiser->HISMSnake, transform);
 
 	GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Snakes.Add(enemy);
 

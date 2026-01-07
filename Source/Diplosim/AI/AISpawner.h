@@ -28,13 +28,14 @@ public:
 	UPROPERTY()
 		int32 IncrementSpawned;
 
+	UPROPERTY()
+		FLinearColor Colour;
+
+	UFUNCTION()
+		void SpawnAI();
+
 	void ClearedNest(FFactionStruct* Faction);
 
 protected:
 	virtual void BeginPlay() override;
-
-private:	
-	void SpawnAI();
-
-
 };

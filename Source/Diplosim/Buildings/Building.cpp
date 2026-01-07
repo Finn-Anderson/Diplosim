@@ -76,12 +76,6 @@ ABuilding::ABuilding()
 	ParticleComponent->AutoAttachSocketName = "ParticleSocket";
 	ParticleComponent->bAutoActivate = false;
 
-	DestructionComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DestructionComponent"));
-	DestructionComponent->SetupAttachment(RootComponent);
-	DestructionComponent->SetUseAutoManageAttachment(true);
-	DestructionComponent->SetCastShadow(true);
-	DestructionComponent->bAutoActivate = false;
-
 	AmbientAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AmbientAudioComponent"));
 	AmbientAudioComponent->SetupAttachment(RootComponent);
 	AmbientAudioComponent->SetVolumeMultiplier(0.0f);
@@ -132,8 +126,6 @@ ABuilding::ABuilding()
 	bOperate = true;
 
 	FactionName = "";
-
-	DeathTime = 0.0f;
 }
 
 void ABuilding::BeginPlay()

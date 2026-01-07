@@ -87,10 +87,25 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 	if (!CurrentAnim.bPlay)
 		return;
 
+	if (IsValid(ActorToLookAt)) {
+		FRotator rotation = (AI->Camera->GetTargetActorLocation(ActorToLookAt) - Transform.GetLocation()).Rotation() * CurrentAnim.Alpha;
+		rotation.Pitch = 0.0f;
+		rotation.Roll = 0.0f;
+
+		Transform.SetRotation((Transform.GetRotation() + rotation.Quaternion()).GetNormalized());
+
+		if (CurrentAnim.Alpha == 1.0f)
+			ActorToLookAt = nullptr;
+	}
+
 	CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
 
+	FVector endLocation = CurrentAnim.EndTransform.GetLocation();
+	if (CurrentAnim.Type == EAnim::Melee)
+		endLocation = Transform.GetRotation().Vector() * endLocation.X;
+
 	FTransform transform;
-	transform.SetLocation(FMath::Lerp(CurrentAnim.StartTransform.GetLocation(), CurrentAnim.EndTransform.GetLocation(), CurrentAnim.Alpha));
+	transform.SetLocation(FMath::Lerp(CurrentAnim.StartTransform.GetLocation(), endLocation, CurrentAnim.Alpha));
 	transform.SetRotation(FMath::Lerp(CurrentAnim.StartTransform.GetRotation(), CurrentAnim.EndTransform.GetRotation(), CurrentAnim.Alpha));
 
 	AIVisualiser->SetAnimationPoint(AI, transform);
@@ -100,7 +115,7 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 
 		CurrentAnim.StartTransform = FTransform();
 
-		if (CurrentAnim.StartTransform.GetLocation() == CurrentAnim.EndTransform.GetLocation() || (CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat))
+		if (CurrentAnim.StartTransform.GetLocation() == endLocation || (CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat) || CurrentAnim.Type == EAnim::Decay)
 			CurrentAnim.bPlay = false;
 
 		if (CurrentAnim.Alpha == 1.0f && (CurrentAnim.Type == EAnim::Melee || CurrentAnim.Type == EAnim::Throw)) {
@@ -113,17 +128,6 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 			else
 				AI->AttackComponent->Throw();
 		}
-	}
-
-	if (IsValid(ActorToLookAt)) {
-		FRotator rotation = (AI->Camera->GetTargetActorLocation(ActorToLookAt) - Transform.GetLocation()).Rotation() * CurrentAnim.Alpha;
-		rotation.Pitch = 0.0f;
-		rotation.Roll = 0.0f;
-
-		Transform.SetRotation((Transform.GetRotation() + rotation.Quaternion()).GetNormalized());
-
-		if (CurrentAnim.Alpha == 1.0f)
-			ActorToLookAt = nullptr;
 	}
 }
 
@@ -149,22 +153,26 @@ void UAIMovementComponent::AvoidCollisions(FVector& DeltaV, float DeltaTime)
 	if (actors.IsEmpty())
 		return;
 
+	FVector preferredPoint = FVector::Zero();
+
 	for (int32 i = -1; i <= 1; i += 2) {
 		FVector avoidancePoint = FVector((size * i) / FMath::Sqrt(1 + FMath::Square((location.Y - currentLoc.Y) / (location.X - currentLoc.X))) + currentLoc.X, -((size * i) * (location.X - currentLoc.X)) / ((location.Y - currentLoc.Y) * FMath::Sqrt(1 + FMath::Square((location.Y - currentLoc.Y) / (location.X - currentLoc.X)))) + currentLoc.Y, location.Z);
 
 		actors = AIVisualiser->GetOverlaps(AI->Camera, AI, size, overlaps, EFactionType::Both, nullptr, avoidancePoint);
 
-		if (!actors.IsEmpty())
+		if (!actors.IsEmpty() || FVector::Dist(currentLoc, avoidancePoint) > FVector::Dist(currentLoc, preferredPoint))
 			continue;
 
-		Points.EmplaceAt(0, avoidancePoint);
-		Velocity = CalculateVelocity(Points[0]);
-		DeltaV = Velocity * DeltaTime;
-
-		return;
+		preferredPoint = avoidancePoint;
 	}
 
-	DeltaV = FVector::Zero();
+	if (preferredPoint != FVector::Zero()) {
+		Points.EmplaceAt(0, preferredPoint);
+		Velocity = CalculateVelocity(Points[0]);
+		DeltaV = Velocity * DeltaTime;
+	}
+	else
+		DeltaV = FVector::Zero();
 }
 
 void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
@@ -200,6 +208,9 @@ void UAIMovementComponent::SetAnimation(EAnim Type, bool bRepeat, float Speed)
 	CurrentAnim.bRepeat = bRepeat;
 	CurrentAnim.Speed = Speed;
 	CurrentAnim.bPlay = true;
+
+	if (Type == EAnim::Decay)
+		CurrentAnim.EndTransform.SetRotation(CurrentAnim.StartTransform.GetRotation());
 }
 
 bool UAIMovementComponent::IsAttacking()

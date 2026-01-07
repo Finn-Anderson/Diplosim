@@ -79,7 +79,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMEnemy->SetGenerateOverlapEvents(false);
 	HISMEnemy->bWorldPositionOffsetWritesVelocity = false;
 	HISMEnemy->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMEnemy->NumCustomDataFloats = 9;
+	HISMEnemy->NumCustomDataFloats = 10;
 
 	HISMSnake = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMSnake"));
 	HISMSnake->SetupAttachment(AIContainer);
@@ -90,7 +90,7 @@ UAIVisualiser::UAIVisualiser()
 	HISMSnake->SetGenerateOverlapEvents(false);
 	HISMSnake->bWorldPositionOffsetWritesVelocity = false;
 	HISMSnake->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMSnake->NumCustomDataFloats = 9;
+	HISMSnake->NumCustomDataFloats = 10;
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);
@@ -343,7 +343,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 
 void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
 {
-	if (DestructingBuildings.IsEmpty()) {
+	if (DestructingActors.IsEmpty()) {
 		if (Camera->SaveGameComponent->IsLoading())
 			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::BuildingDeath);
 
@@ -361,22 +361,26 @@ void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
 			return;
 		}
 
-		for (int32 i = DestructingBuildings.Num() - 1; i > -1; i--) {
+		for (int32 i = DestructingActors.Num() - 1; i > -1; i--) {
 			if (Camera->SaveGameComponent->IsLoading())
 				return;
 
-			ABuilding* building = DestructingBuildings[i];
+			TArray<AActor*> actors;
+			DestructingActors.GenerateKeyArray(actors);
 
-			double alpha = FMath::Clamp((GetWorld()->GetTimeSeconds() - building->DeathTime) / 10.0f, 0.0f, 1.0f);
-			float z = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z + 1.0f;
+			AActor* actor = actors[i];
+			double deathTime = *DestructingActors.Find(actor);
 
-			building->BuildingMesh->SetCustomPrimitiveDataFloat(8, FMath::Lerp(0.0f, -z, alpha));
+			UStaticMeshComponent* mesh = actor->GetComponentByClass<UStaticMeshComponent>();
+			FVector dimensions = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-			if (alpha == 1.0f) {
-				building->DestructionComponent->Deactivate();
+			double alpha = FMath::Clamp((GetWorld()->GetTimeSeconds() - deathTime) / 10.0f, 0.0f, 1.0f);
+			float z = dimensions.Z + 1.0f;
 
-				DestructingBuildings.RemoveAt(i);
-			}
+			mesh->SetCustomPrimitiveDataFloat(8, FMath::Lerp(0.0f, -z, alpha));
+
+			if (alpha == 1.0f)
+				DestructingActors.Remove(actor);
 		}
 	});
 }

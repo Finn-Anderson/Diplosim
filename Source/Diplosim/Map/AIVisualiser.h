@@ -210,7 +210,7 @@ public:
 		TArray<FPendingChangeStruct> PendingChange;
 
 	UPROPERTY()
-		TArray<class ABuilding*> DestructingBuildings;
+		TMap<class AActor*, double> DestructingActors;
 
 	UPROPERTY()
 		TArray<class AResearch*> RotatingBuildings;

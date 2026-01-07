@@ -70,7 +70,6 @@ void ATrap::ActivateTrap()
 	float height = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z + 1.0f;
 
 	SetActorLocation(GetActorLocation() - FVector(0.0f, 0.0f, height));
-	DestructionComponent->SetRelativeLocation(DestructionComponent->GetRelativeLocation() + FVector(0.0f, 0.0f, height));
 	GroundDecalComponent->SetRelativeLocation(GroundDecalComponent->GetRelativeLocation() + FVector(0.0f, 0.0f, height));
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
