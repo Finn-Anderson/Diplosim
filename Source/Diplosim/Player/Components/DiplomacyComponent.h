@@ -6,33 +6,6 @@
 #include "DiplomacyComponent.generated.h"
 
 USTRUCT(BlueprintType)
-struct FCultureImageStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
-		FString Party;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
-		FString Religion;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
-		UTexture2D* Texture;
-
-	FCultureImageStruct()
-	{
-		Party = "";
-		Religion = "";
-		Texture = nullptr;
-	}
-
-	bool operator==(const FCultureImageStruct& other) const
-	{
-		return (other.Party == Party && other.Religion == Religion);
-	}
-};
-
-USTRUCT(BlueprintType)
 struct FGiftStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -57,6 +30,8 @@ class DIPLOSIM_API UDiplomacyComponent : public UActorComponent
 
 public:	
 	UDiplomacyComponent();
+
+	void InitCultureList();
 
 	void SetFactionFlagColour(FFactionStruct* Faction);
 
@@ -95,14 +70,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Gift(FFactionStruct Faction, TArray<FGiftStruct> Gifts);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Culture Texture List")
-		TArray<FCultureImageStruct> CultureTextureList;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Culture")
+		TMap<FString, UTexture2D*> CultureTextureList;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Culture")
+		UMaterial* CultureMaterial;
 
 	UPROPERTY()
 		class ACamera* Camera;
 
 private:
-	UTexture2D* GetTextureFromCulture(FString Party, FString Religion);
+	UMaterialInstanceDynamic* GetTextureFromCulture(FString Party, FString Religion);
 
 	FFactionStruct* GetFactionPtr(FFactionStruct Faction);
 

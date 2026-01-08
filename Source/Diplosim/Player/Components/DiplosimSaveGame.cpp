@@ -32,6 +32,7 @@
 #include "Player/Components/CameraMovementComponent.h"
 #include "Player/Components/BuildComponent.h"
 #include "Player/Components/SaveGameComponent.h"
+#include "Player/Components/DiplomacyComponent.h"
 #include "Universal/EggBasket.h"
 #include "Universal/HealthComponent.h"
 
@@ -306,7 +307,6 @@ void UDiplosimSaveGame::SaveFactions(FActorSaveData& ActorData, AActor* Actor)
 	for (FFactionStruct faction : camera->ConquestManager->Factions) {
 		FFactionData data;
 		data.Name = faction.Name;
-		data.Flag = faction.Flag;
 		data.FlagColour = faction.FlagColour;
 		data.AtWar = faction.AtWar;
 		data.Allies = faction.Allies;
@@ -897,7 +897,6 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, AActor* Actor)
 	for (FFactionData data : ActorData.CameraData.FactionData) {
 		FFactionStruct faction;
 		faction.Name = data.Name;
-		faction.Flag = data.Flag;
 		faction.FlagColour = data.FlagColour;
 		faction.AtWar = data.AtWar;
 		faction.Allies = data.Allies;
@@ -1407,6 +1406,8 @@ void UDiplosimSaveGame::InitialiseFactions(ACamera* Camera, FActorSaveData& Acto
 
 			Camera->ArmyManager->CreateArmy(data.Name, citizens, armyData.bGroup, true);
 		}
+
+		Camera->ConquestManager->DiplomacyComponent->SetFactionCulture(faction);
 	}
 }
 

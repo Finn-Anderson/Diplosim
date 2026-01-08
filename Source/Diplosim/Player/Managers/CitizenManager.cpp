@@ -49,64 +49,65 @@ void UCitizenManager::ReadJSONFile(FString path)
 	FFileHelper::LoadFileToString(fileContents, *path);
 	TSharedRef<TJsonReader<>> jsonReader = TJsonReaderFactory<>::Create(fileContents);
 
-	if (FJsonSerializer::Deserialize(jsonReader, jsonObject) && jsonObject.IsValid()) {
-		for (auto& element : jsonObject->Values) {
-			for (auto& e : element.Value->AsArray()) {
-				FPersonality personality;
-				FReligionStruct religion;
+	if (!FJsonSerializer::Deserialize(jsonReader, jsonObject) || !jsonObject.IsValid())
+		return;
 
-				for (auto& v : e->AsObject()->Values) {
-					uint8 index = 0;
+	for (auto& element : jsonObject->Values) {
+		for (auto& e : element.Value->AsArray()) {
+			FPersonality personality;
+			FReligionStruct religion;
 
-					if (v.Value->Type == EJson::Array) {
-						for (auto& ev : v.Value->AsArray()) {
-							if (element.Key == "Personalities") {
-								if (v.Key == "Likes")
-									personality.Likes.Add(ev->AsString());
-								else if (v.Key == "Dislikes")
-									personality.Dislikes.Add(ev->AsString());
-								else {
-									FString key = "";
-									float value = 1.0f;
+			for (auto& v : e->AsObject()->Values) {
+				uint8 index = 0;
 
-									for (auto& bv : ev->AsObject()->Values) {
-										if (bv.Key == "Affect")
-											key = bv.Value->AsString();
-										else
-											value = bv.Value->AsNumber();
-									}
-
-									personality.Affects.Add(key, value);
-								}
-							}
+				if (v.Value->Type == EJson::Array) {
+					for (auto& ev : v.Value->AsArray()) {
+						if (element.Key == "Personalities") {
+							if (v.Key == "Likes")
+								personality.Likes.Add(ev->AsString());
+							else if (v.Key == "Dislikes")
+								personality.Dislikes.Add(ev->AsString());
 							else {
-								religion.Agreeable.Add(ev->AsString());
+								FString key = "";
+								float value = 1.0f;
+
+								for (auto& bv : ev->AsObject()->Values) {
+									if (bv.Key == "Affect")
+										key = bv.Value->AsString();
+									else
+										value = bv.Value->AsNumber();
+								}
+
+								personality.Affects.Add(key, value);
 							}
 						}
-					}
-					else if (v.Value->Type == EJson::String) {
-						FString value = v.Value->AsString();
-
-						if (element.Key == "Personalities")
-							personality.Trait = value;
-						else if (element.Key == "Religions")
-							religion.Faith = value;
-					}
-					else {
-						float value = v.Value->AsNumber();
-
-						if (v.Key == "Aggressiveness")
-							personality.Aggressiveness = value;
-						else
-							personality.Morale = value;
+						else {
+							religion.Agreeable.Add(ev->AsString());
+						}
 					}
 				}
+				else if (v.Value->Type == EJson::String) {
+					FString value = v.Value->AsString();
 
-				if (element.Key == "Personalities")
-					Personalities.Add(personality);
-				else if (element.Key == "Religions")
-					Religions.Add(religion);
+					if (element.Key == "Personalities")
+						personality.Trait = value;
+					else if (element.Key == "Religions")
+						religion.Faith = value;
+				}
+				else {
+					float value = v.Value->AsNumber();
+
+					if (v.Key == "Aggressiveness")
+						personality.Aggressiveness = value;
+					else
+						personality.Morale = value;
+				}
 			}
+
+			if (element.Key == "Personalities")
+				Personalities.Add(personality);
+			else if (element.Key == "Religions")
+				Religions.Add(religion);
 		}
 	}
 }

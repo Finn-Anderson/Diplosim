@@ -18,22 +18,42 @@
 UDiplomacyComponent::UDiplomacyComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+
+	InitCultureList();
 }
 
-UTexture2D* UDiplomacyComponent::GetTextureFromCulture(FString Party, FString Religion)
+void UDiplomacyComponent::InitCultureList()
 {
-	UTexture2D* texture = nullptr;
+	TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject());
 
-	for (FCultureImageStruct culture : CultureTextureList) {
-		if (culture.Party != Party || culture.Religion != Religion)
+	TArray<FString> dirList = { FPaths::ProjectDir() + "/Content/Custom/Structs/Religions.json",  FPaths::ProjectDir() + "/Content/Custom/Structs/Parties.json" };
+
+	for (FString dir : dirList) {
+		FString fileContents;
+		FFileHelper::LoadFileToString(fileContents, *dir);
+		TSharedRef<TJsonReader<>> jsonReader = TJsonReaderFactory<>::Create(fileContents);
+
+		if (!FJsonSerializer::Deserialize(jsonReader, jsonObject) || !jsonObject.IsValid())
 			continue;
 
-		texture = culture.Texture;
-
-		break;
+		for (auto& element : jsonObject->Values)
+			for (auto& e : element.Value->AsArray())
+				for (auto& v : e->AsObject()->Values)
+					if (v.Value->Type == EJson::String)
+						CultureTextureList.Add(v.Value->AsString(), nullptr);
 	}
+}
 
-	return texture;
+UMaterialInstanceDynamic* UDiplomacyComponent::GetTextureFromCulture(FString Party, FString Religion)
+{
+	UTexture2D* partyTexture = *CultureTextureList.Find(Party);
+	UTexture2D* religionTexture = *CultureTextureList.Find(Religion);
+
+	UMaterialInstanceDynamic* material = UMaterialInstanceDynamic::Create(CultureMaterial, this);
+	material->SetTextureParameterValue("Party", partyTexture);
+	material->SetTextureParameterValue("Religion", religionTexture);
+
+	return material;
 }
 
 FFactionStruct* UDiplomacyComponent::GetFactionPtr(FFactionStruct Faction)

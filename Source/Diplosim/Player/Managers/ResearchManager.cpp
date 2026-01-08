@@ -21,35 +21,36 @@ void UResearchManager::ReadJSONFile(FString Path)
 	FFileHelper::LoadFileToString(fileContents, *Path);
 	TSharedRef<TJsonReader<>> jsonReader = TJsonReaderFactory<>::Create(fileContents);
 
-	if (FJsonSerializer::Deserialize(jsonReader, jsonObject) && jsonObject.IsValid()) {
-		for (auto& element : jsonObject->Values) {
-			for (auto& e : element.Value->AsArray()) {
-				FResearchStruct research;
+	if (!FJsonSerializer::Deserialize(jsonReader, jsonObject) || !jsonObject.IsValid())
+		return;
 
-				for (auto& v : e->AsObject()->Values) {
-					uint8 index = 0;
+	for (auto& element : jsonObject->Values) {
+		for (auto& e : element.Value->AsArray()) {
+			FResearchStruct research;
 
-					if (v.Value->Type == EJson::Array)
-						for (auto& ev : v.Value->AsArray())
-							for (auto& bev : ev->AsObject()->Values)
-									research.Modifiers.Add(bev.Key, FCString::Atof(*bev.Value->AsString()));
-					else if (v.Value->Type == EJson::String)
-						if (v.Key == "Name")
-							research.ResearchName = v.Value->AsString();
-						else
-							research.Texture = FImageUtils::ImportFileAsTexture2D(FPaths::ProjectDir() + v.Value->AsString());
-					else {
-						int32 value = FCString::Atoi(*v.Value->AsString());
+			for (auto& v : e->AsObject()->Values) {
+				uint8 index = 0;
 
-						if (v.Key == "Target")
-							research.Target = value;
-						else
-							research.MaxLevel = value;
-					}
+				if (v.Value->Type == EJson::Array)
+					for (auto& ev : v.Value->AsArray())
+						for (auto& bev : ev->AsObject()->Values)
+								research.Modifiers.Add(bev.Key, FCString::Atof(*bev.Value->AsString()));
+				else if (v.Value->Type == EJson::String)
+					if (v.Key == "Name")
+						research.ResearchName = v.Value->AsString();
+					else
+						research.Texture = FImageUtils::ImportFileAsTexture2D(FPaths::ProjectDir() + v.Value->AsString());
+				else {
+					int32 value = FCString::Atoi(*v.Value->AsString());
+
+					if (v.Key == "Target")
+						research.Target = value;
+					else
+						research.MaxLevel = value;
 				}
-
-				InitResearchStruct.Add(research);
 			}
+
+			InitResearchStruct.Add(research);
 		}
 	}
 }

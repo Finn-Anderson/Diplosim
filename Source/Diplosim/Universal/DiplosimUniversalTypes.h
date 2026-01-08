@@ -737,7 +737,7 @@ struct FFactionStruct
 		FString Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
-		UTexture2D* Flag;
+		UMaterialInstanceDynamic* Flag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faction")
 		FLinearColor FlagColour;

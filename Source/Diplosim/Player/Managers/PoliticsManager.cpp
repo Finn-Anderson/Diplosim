@@ -39,86 +39,87 @@ void UPoliticsManager::ReadJSONFile(FString path)
 	FFileHelper::LoadFileToString(fileContents, *path);
 	TSharedRef<TJsonReader<>> jsonReader = TJsonReaderFactory<>::Create(fileContents);
 
-	if (FJsonSerializer::Deserialize(jsonReader, jsonObject) && jsonObject.IsValid()) {
-		for (auto& element : jsonObject->Values) {
-			for (auto& e : element.Value->AsArray()) {
-				FPartyStruct party;
-				FLawStruct law;
+	if (!FJsonSerializer::Deserialize(jsonReader, jsonObject) || !jsonObject.IsValid())
+		return;
 
-				for (auto& v : e->AsObject()->Values) {
-					uint8 index = 0;
+	for (auto& element : jsonObject->Values) {
+		for (auto& e : element.Value->AsArray()) {
+			FPartyStruct party;
+			FLawStruct law;
 
-					if (v.Value->Type == EJson::Object) {
-						for (auto& bv : v.Value->AsObject()->Values) {
-							if (bv.Value->Type == EJson::Array) {
-								for (auto& bev : bv.Value->AsArray()) {
-									if (bv.Key == "Descriptions") {
-										FDescriptionStruct description;
+			for (auto& v : e->AsObject()->Values) {
+				uint8 index = 0;
 
-										for (auto& pv : bev->AsObject()->Values) {
-											if (pv.Key == "Description")
-												description.Description = pv.Value->AsString();
-											else if (pv.Key == "Min")
-												description.Min = FCString::Atoi(*pv.Value->AsString());
-											else
-												description.Max = FCString::Atoi(*pv.Value->AsString());
-										}
+				if (v.Value->Type == EJson::Object) {
+					for (auto& bv : v.Value->AsObject()->Values) {
+						if (bv.Value->Type == EJson::Array) {
+							for (auto& bev : bv.Value->AsArray()) {
+								if (bv.Key == "Descriptions") {
+									FDescriptionStruct description;
 
-										law.Description.Add(description);
+									for (auto& pv : bev->AsObject()->Values) {
+										if (pv.Key == "Description")
+											description.Description = pv.Value->AsString();
+										else if (pv.Key == "Min")
+											description.Min = FCString::Atoi(*pv.Value->AsString());
+										else
+											description.Max = FCString::Atoi(*pv.Value->AsString());
 									}
-									else {
-										FLeanStruct lean;
 
-										for (auto& pv : bev->AsObject()->Values) {
-											if (pv.Key == "Party")
-												lean.Party = pv.Value->AsString();
-											else if (pv.Key == "Personality")
-												lean.Personality = pv.Value->AsString();
-											else {
-												for (auto& pev : pv.Value->AsArray()) {
-													int32 value = FCString::Atoi(*pev->AsString());
+									law.Description.Add(description);
+								}
+								else {
+									FLeanStruct lean;
 
-													if (pv.Key == "ForRange")
-														lean.ForRange.Add(value);
-													else
-														lean.AgainstRange.Add(value);
-												}
+									for (auto& pv : bev->AsObject()->Values) {
+										if (pv.Key == "Party")
+											lean.Party = pv.Value->AsString();
+										else if (pv.Key == "Personality")
+											lean.Personality = pv.Value->AsString();
+										else {
+											for (auto& pev : pv.Value->AsArray()) {
+												int32 value = FCString::Atoi(*pev->AsString());
+
+												if (pv.Key == "ForRange")
+													lean.ForRange.Add(value);
+												else
+													lean.AgainstRange.Add(value);
 											}
 										}
-
-										law.Lean.Add(lean);
 									}
+
+									law.Lean.Add(lean);
 								}
 							}
-							else if (bv.Value->Type == EJson::Number) {
-								index = FCString::Atoi(*bv.Value->AsString());
+						}
+						else if (bv.Value->Type == EJson::Number) {
+							index = FCString::Atoi(*bv.Value->AsString());
 
-								law.Value = index;
-							}
-							else if (bv.Value->Type == EJson::String) {
-								law.Warning = bv.Value->AsString();
-							}
+							law.Value = index;
+						}
+						else if (bv.Value->Type == EJson::String) {
+							law.Warning = bv.Value->AsString();
 						}
 					}
-					else if (v.Value->Type == EJson::Array) {
-						for (auto& ev : v.Value->AsArray())
-							party.Agreeable.Add(ev->AsString());
-					}
-					else if (v.Value->Type == EJson::String) {
-						FString value = v.Value->AsString();
-
-						if (element.Key == "Parties")
-							party.Party = value;
-						else
-							law.BillType = value;
-					}
 				}
+				else if (v.Value->Type == EJson::Array) {
+					for (auto& ev : v.Value->AsArray())
+						party.Agreeable.Add(ev->AsString());
+				}
+				else if (v.Value->Type == EJson::String) {
+					FString value = v.Value->AsString();
 
-				if (element.Key == "Parties")
-					InitParties.Add(party);
-				else
-					InitLaws.Add(law);
+					if (element.Key == "Parties")
+						party.Party = value;
+					else
+						law.BillType = value;
+				}
 			}
+
+			if (element.Key == "Parties")
+				InitParties.Add(party);
+			else
+				InitLaws.Add(law);
 		}
 	}
 }

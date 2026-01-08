@@ -32,48 +32,49 @@ void UDiseaseManager::ReadJSONFile(FString path)
 	FFileHelper::LoadFileToString(fileContents, *path);
 	TSharedRef<TJsonReader<>> jsonReader = TJsonReaderFactory<>::Create(fileContents);
 
-	if (FJsonSerializer::Deserialize(jsonReader, jsonObject) && jsonObject.IsValid()) {
-		for (auto& element : jsonObject->Values) {
-			for (auto& e : element.Value->AsArray()) {
-				FConditionStruct condition;
+	if (!FJsonSerializer::Deserialize(jsonReader, jsonObject) || !jsonObject.IsValid())
+		return;
 
-				for (auto& v : e->AsObject()->Values) {
-					if (v.Value->Type == EJson::Array) {
-						for (auto& ev : v.Value->AsArray()) {
-							FAffectStruct affect;
+	for (auto& element : jsonObject->Values) {
+		for (auto& e : element.Value->AsArray()) {
+			FConditionStruct condition;
 
-							for (auto& bv : ev->AsObject()->Values) {
-								if (bv.Key == "Affect")
-									affect.Affect = EAffect(FCString::Atoi(*bv.Value->AsString()));
-								else
-									affect.Amount = bv.Value->AsNumber();
-							}
+			for (auto& v : e->AsObject()->Values) {
+				if (v.Value->Type == EJson::Array) {
+					for (auto& ev : v.Value->AsArray()) {
+						FAffectStruct affect;
 
-							condition.Affects.Add(affect);
+						for (auto& bv : ev->AsObject()->Values) {
+							if (bv.Key == "Affect")
+								affect.Affect = EAffect(FCString::Atoi(*bv.Value->AsString()));
+							else
+								affect.Amount = bv.Value->AsNumber();
 						}
-					}
-					else if (v.Value->Type == EJson::String) {
-						condition.Name = v.Value->AsString();
-					}
-					else {
-						uint8 index = FCString::Atoi(*v.Value->AsString());
 
-						if (v.Key == "Grade")
-							condition.Grade = EGrade(index);
-						else if (v.Key == "Spreadability")
-							condition.Spreadability = index;
-						else if (v.Key == "Level")
-							condition.Level = index;
-						else
-							condition.DeathLevel = index;
+						condition.Affects.Add(affect);
 					}
 				}
+				else if (v.Value->Type == EJson::String) {
+					condition.Name = v.Value->AsString();
+				}
+				else {
+					uint8 index = FCString::Atoi(*v.Value->AsString());
 
-				if (element.Key == "Injuries")
-					Injuries.Add(condition);
-				else
-					Diseases.Add(condition);
+					if (v.Key == "Grade")
+						condition.Grade = EGrade(index);
+					else if (v.Key == "Spreadability")
+						condition.Spreadability = index;
+					else if (v.Key == "Level")
+						condition.Level = index;
+					else
+						condition.DeathLevel = index;
+				}
 			}
+
+			if (element.Key == "Injuries")
+				Injuries.Add(condition);
+			else
+				Diseases.Add(condition);
 		}
 	}
 }

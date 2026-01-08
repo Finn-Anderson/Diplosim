@@ -1028,9 +1028,6 @@ struct FFactionData
 		FString Name;
 
 	UPROPERTY()
-		UTexture2D* Flag;
-
-	UPROPERTY()
 		FLinearColor FlagColour;
 
 	UPROPERTY()
@@ -1093,7 +1090,6 @@ struct FFactionData
 	FFactionData()
 	{
 		Name = "";
-		Flag = nullptr;
 		FlagColour = FLinearColor();
 		WarFatigue = 0;
 		PartyInPower = "";
