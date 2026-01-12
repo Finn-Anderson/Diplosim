@@ -609,7 +609,7 @@ void UAIBuildComponent::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> 
 
 		location = Camera->Grid->GetTransform(Tile).GetLocation();
 	}
-	if (building->IsA<AExternalProduction>()) {
+	else if (building->IsA<AExternalProduction>()) {
 		AExternalProduction* externalBuilding = Cast<AExternalProduction>(building);
 
 		for (auto& element : externalBuilding->GetValidResources()) {
