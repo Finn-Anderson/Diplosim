@@ -438,9 +438,18 @@ void UCitizenManager::AISetupRadioTowerBroadcasts(FFactionStruct* Faction)
 		if (!building->IsA(RadioTowerClass))
 			continue;
 
-		FString type = bParty ? Camera->PoliticsManager->GetCitizenParty(citizen) : citizen->Spirituality.Faith;
-
 		ABooster* radioTower = Cast<ABooster>(building);
+
+		if (radioTower->AISetTypeCooldown > 0) {
+			radioTower->AISetTypeCooldown--;
+
+			continue;
+		}
+
+		if (!building->GetOccupied().IsEmpty())
+			continue;
+
+		FString type = bParty ? Camera->PoliticsManager->GetCitizenParty(citizen) : citizen->Spirituality.Faith;
 		radioTower->SetBroadcastType(type);
 
 		radioTower->AISetTypeCooldown = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
