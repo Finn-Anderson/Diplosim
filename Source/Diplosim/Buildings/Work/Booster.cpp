@@ -16,6 +16,7 @@ ABooster::ABooster()
 {
 	Range = 100.0f;
 
+	AISetTypeCooldown = 0;
 	bHolyPlace = false;
 }
 

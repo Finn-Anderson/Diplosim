@@ -92,6 +92,11 @@ public:
 	// Work
 	void CheckWorkStatus(int32 Hour);
 
+	void AISetupRadioTowerBroadcasts(FFactionStruct* Faction);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Work")
+		TSubclassOf<class ABooster> RadioTowerClass;
+
 	// Citizen
 	void CheckUpkeepCosts();
 

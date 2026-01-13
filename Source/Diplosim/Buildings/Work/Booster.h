@@ -31,4 +31,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Influence")
 		bool bHolyPlace;
+
+	UPROPERTY()
+		int32 AISetTypeCooldown;
 };

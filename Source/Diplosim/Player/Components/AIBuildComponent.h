@@ -75,6 +75,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		TSubclassOf<class ABuilding> RampClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
+		TSubclassOf<class ABuilding> NDProtectorClass;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -92,6 +95,9 @@ private:
 	void BuildFirstBuilder(FFactionStruct* Faction);
 
 	void BuildAIBuild(FFactionStruct* Faction);
+	void BuildAIFarms(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>>& BuildingsClassList);
+	void BuildAIBuildings(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>>& BuildingsClassList);
+	void BuildAINDProtectors(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>>& BuildingsClassList);
 
 	void BuildAIHouse(FFactionStruct* Faction);
 

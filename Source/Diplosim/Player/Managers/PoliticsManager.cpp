@@ -26,6 +26,8 @@ UPoliticsManager::UPoliticsManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
+	AIProposeTimer = 0;
+
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Parties.json");
 
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Laws.json");
@@ -139,6 +141,45 @@ void UPoliticsManager::PoliticsLoop(FFactionStruct* Faction)
 
 		law.Cooldown--;
 	}
+
+	AIProposeBill(Faction);
+}
+
+void UPoliticsManager::AIProposeBill(FFactionStruct* Faction)
+{
+	if (Faction->Politics.Representatives.IsEmpty())
+		return;
+
+	AIProposeTimer++;
+
+	if (AIProposeTimer < Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay())
+		return;
+
+	ACitizen* proposer = Faction->Politics.Representatives[Camera->Stream.RandRange(0, Faction->Politics.Representatives.Num() - 1)];
+	FPartyStruct* party = GetMembersParty(proposer);
+	
+	TArray<FLawStruct> changeableLaws;
+
+	for (FLawStruct law : Faction->Politics.Laws) {
+		if (law.Cooldown != 0)
+			continue;
+
+		FLeanStruct lean;
+		lean.Party = party->Party;
+		
+		int32 index = law.Lean.Find(lean);
+		
+		if (index == INDEX_NONE)
+			continue;
+
+		law.Value = Camera->Stream.RandRange(law.Lean[index].ForRange[0], law.Lean[index].ForRange[1]);
+	}
+
+	if (changeableLaws.IsEmpty())
+		return;
+
+	FLawStruct lawToPropose = changeableLaws[Camera->Stream.RandRange(0, changeableLaws.Num() - 1)];
+	ProposeBill(Faction->Name, lawToPropose);
 }
 
 FPartyStruct* UPoliticsManager::GetMembersParty(ACitizen* Citizen)
@@ -393,6 +434,8 @@ void UPoliticsManager::SetupBill(FFactionStruct* Faction)
 
 		Faction->Politics.BribeValue.Add(bribe);
 	}
+
+	AIProposeTimer = 0;
 
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(*Faction, params);

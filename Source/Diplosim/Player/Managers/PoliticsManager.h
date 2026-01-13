@@ -23,6 +23,8 @@ public:
 
 	void PoliticsLoop(FFactionStruct* Faction);
 
+	void AIProposeBill(FFactionStruct* Faction);
+
 	FPartyStruct* GetMembersParty(ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
@@ -65,6 +67,9 @@ public:
 
 	UPROPERTY()
 		class ACamera* Camera;
+
+	UPROPERTY()
+		int32 AIProposeTimer;
 
 	// Rebel
 	void ChooseRebellionType(FFactionStruct* Faction);

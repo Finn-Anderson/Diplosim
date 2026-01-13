@@ -254,6 +254,8 @@ void UConquestManager::ComputeAI()
 		AIBuildComponent->EvaluateAIBuild(&faction);
 
 		Camera->ArmyManager->EvaluateAIArmy(&faction);
+
+		Camera->CitizenManager->AISetupRadioTowerBroadcasts(&faction);
 	}
 
 	for (FFactionStruct faction : FactionsToRemove) {

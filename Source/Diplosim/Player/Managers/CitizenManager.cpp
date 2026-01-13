@@ -15,6 +15,7 @@
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Service/Clinic.h"
 #include "Buildings/Work/Service/School.h"
+#include "Buildings/Work/Booster.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -425,6 +426,24 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 
 			Cast<AWork>(building)->CheckWorkStatus(Hour);
 		}
+	}
+}
+
+void UCitizenManager::AISetupRadioTowerBroadcasts(FFactionStruct* Faction)
+{
+	ACitizen* citizen = Faction->Citizens[Camera->Stream.RandRange(0, Faction->Citizens.Num() - 1)];
+	bool bParty = Camera->Stream.RandRange(0, 1) == 1 ? true : false;
+
+	for (ABuilding* building : Faction->Buildings) {
+		if (!building->IsA(RadioTowerClass))
+			continue;
+
+		FString type = bParty ? Camera->PoliticsManager->GetCitizenParty(citizen) : citizen->Spirituality.Faith;
+
+		ABooster* radioTower = Cast<ABooster>(building);
+		radioTower->SetBroadcastType(type);
+
+		radioTower->AISetTypeCooldown = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 	}
 }
 

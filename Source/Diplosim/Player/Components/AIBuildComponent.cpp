@@ -14,6 +14,8 @@
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
 #include "Player/Components/BuildComponent.h"
 #include "Player/Managers/ResourceManager.h"
@@ -282,9 +284,18 @@ void UAIBuildComponent::BuildFirstBuilder(FFactionStruct* Faction)
 
 void UAIBuildComponent::BuildAIBuild(FFactionStruct* Faction)
 {
-	int32 count = 0;
-
 	TArray<TSubclassOf<ABuilding>> buildingsClassList;
+
+	BuildAIFarms(Faction, buildingsClassList);
+	BuildAIBuildings(Faction, buildingsClassList);
+	BuildAINDProtectors(Faction, buildingsClassList);
+
+	ChooseBuilding(Faction, buildingsClassList);
+}
+
+void UAIBuildComponent::BuildAIFarms(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>>& BuildingsClassList)
+{
+	int32 count = 0;
 
 	for (FResourceStruct resource : Camera->ResourceManager->ResourceList) {
 		if (resource.Category != "Food")
@@ -304,48 +315,70 @@ void UAIBuildComponent::BuildAIBuild(FFactionStruct* Faction)
 			TArray<TSubclassOf<ABuilding>> buildings;
 			Camera->ResourceManager->GetBuildings(r).GenerateKeyArray(buildings);
 
-			buildingsClassList.Append(buildings);
+			for (TSubclassOf<ABuilding> building : buildings) {
+				if (!AICanAfford(Faction, building))
+					continue;
+
+				BuildingsClassList.Add(building);
+			}
 		}
 	}
+}
 
-	if (buildingsClassList.IsEmpty()) {
-		for (FAIBuildStruct& aibuild : AIBuilds) {
-			if (Faction->Citizens.Num() < aibuild.NumCitizens || aibuild.CurrentAmount == aibuild.Limit || !AICanAfford(Faction, aibuild.Building))
-				continue;
+void UAIBuildComponent::BuildAIBuildings(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>>& BuildingsClassList)
+{
+	if (!BuildingsClassList.IsEmpty())
+		return;
 
-			if (Camera->Stream.RandRange(1, 100) < 50) {
-				aibuild.NumCitizens *= 1.1f;
+	for (FAIBuildStruct& aibuild : AIBuilds) {
+		if (Faction->Citizens.Num() < aibuild.NumCitizens || aibuild.CurrentAmount == aibuild.Limit || !AICanAfford(Faction, aibuild.Building))
+			continue;
 
-				continue;
-			}
+		if (Camera->Stream.RandRange(1, 100) < 50) {
+			aibuild.NumCitizens *= 1.1f;
 
-			if (aibuild.Building->GetDefaultObject()->IsA<AInternalProduction>()) {
-				AInternalProduction* internalBuilding = Cast<AInternalProduction>(aibuild.Building->GetDefaultObject());
+			continue;
+		}
 
-				if (!internalBuilding->Intake.IsEmpty()) {
-					bool bMakesResources = true;
+		if (aibuild.Building->GetDefaultObject()->IsA<AInternalProduction>()) {
+			AInternalProduction* internalBuilding = Cast<AInternalProduction>(aibuild.Building->GetDefaultObject());
 
-					for (FItemStruct item : internalBuilding->Intake) {
-						int32 trend = Camera->ResourceManager->GetResourceTrend(Faction->Name, item.Resource);
+			if (!internalBuilding->Intake.IsEmpty()) {
+				bool bMakesResources = true;
 
-						if (trend > 0.0f)
-							continue;
+				for (FItemStruct item : internalBuilding->Intake) {
+					int32 trend = Camera->ResourceManager->GetResourceTrend(Faction->Name, item.Resource);
 
-						bMakesResources = false;
-
-						break;
-					}
-
-					if (!bMakesResources)
+					if (trend > 0.0f)
 						continue;
+
+					bMakesResources = false;
+
+					break;
 				}
+
+				if (!bMakesResources)
+					continue;
 			}
-
-			buildingsClassList.Add(aibuild.Building);
 		}
-	}
 
-	ChooseBuilding(Faction, buildingsClassList);
+		BuildingsClassList.Add(aibuild.Building);
+	}
+}
+
+void UAIBuildComponent::BuildAINDProtectors(FFactionStruct* Faction, TArray<TSubclassOf<ABuilding>>& BuildingsClassList)
+{
+	if (!BuildingsClassList.IsEmpty() || !AICanAfford(Faction, NDProtectorClass))
+		return;
+
+	TArray<ABuilding*> unprotectedBuildings;
+
+	for (ABuilding* building : Faction->Buildings)
+		if (!Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(building->GetActorLocation()))
+			unprotectedBuildings.Add(building);
+
+	if (unprotectedBuildings.Num() >= 3)
+		BuildingsClassList.Add(NDProtectorClass);
 }
 
 void UAIBuildComponent::BuildAIHouse(FFactionStruct* Faction)
@@ -653,6 +686,31 @@ void UAIBuildComponent::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> 
 		location = Faction->RoadBuildLocations[index];
 
 		Faction->RoadBuildLocations.RemoveAt(index);
+	}
+	else if (building->IsA(NDProtectorClass)) {
+		TArray<ABuilding*> unprotectedBuildings;
+
+		for (ABuilding* b : Faction->Buildings)
+			if (!Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(b->GetActorLocation()))
+				unprotectedBuildings.Add(b);
+
+		double distance = 100000000000000000.0f;
+
+		for (auto& element : Faction->AccessibleBuildLocations) {
+			if (!AIValidBuildingLocation(Faction, building, extent, element.Key))
+				continue;
+
+			double dist = 0.0f;
+
+			for (ABuilding* b : unprotectedBuildings)
+				dist += FVector::Dist(b->GetActorLocation(), element.Key);
+
+			if (dist < distance) {
+				distance = dist;
+
+				location = element.Key;
+			}
+		}
 	}
 	else {
 		for (auto& element : Faction->AccessibleBuildLocations) {
