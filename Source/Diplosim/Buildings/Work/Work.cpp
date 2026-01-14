@@ -20,7 +20,7 @@
 
 AWork::AWork()
 {
-	WagePerHour = 0.0f;
+	DefaultWagePerHour = 0.0f;
 
 	bCanAttendEvents = true;
 	bEmergency = false;
@@ -109,20 +109,25 @@ void AWork::Enter(ACitizen* Citizen)
 
 void AWork::AddToWorkHours(ACitizen* Citizen, bool bAdd)
 {
-	for (int32 i = 0; i < WorkHours.Num(); i++) {
-		if (IsValid(WorkHours[i].Citizen))
-			continue;
+	int32 index = INDEX_NONE;
 
-		if (bAdd)
-			WorkHours[i].Citizen = Citizen;
-		else
-			WorkHours[i].Citizen = nullptr;
+	if (bAdd) {
+		FWorkHoursStruct* workHours = GetBestWorkHours(Citizen);
+		workHours->Citizen = Citizen;
 
-		if (Camera->HoursUIInstance->IsInViewport())
-			Camera->UpdateWorkHours(this, i);
-
-		break;
+		index = WorkHours.Find(*workHours);
 	}
+	else {
+		FWorkHoursStruct hoursStruct;
+		hoursStruct.Citizen = Citizen;
+
+		index = WorkHours.Find(hoursStruct);
+
+		WorkHours[index].Citizen = nullptr;
+	}
+
+	if (Camera->HoursUIInstance->IsInViewport())
+		Camera->UpdateWorkHours(this, index);
 }
 
 void AWork::CheckWorkStatus(int32 Hour)
@@ -176,44 +181,103 @@ bool AWork::IsAtWork(ACitizen* Citizen)
 	return false;
 }
 
-int32 AWork::GetHoursInADay(ACitizen* Citizen)
+//
+// Hours
+//
+int32 AWork::GetHoursInADay(ACitizen* Citizen, FWorkHoursStruct* WorkHour)
 {
 	int32 hours = 0;
 
-	for (FWorkHoursStruct hoursStruct : WorkHours) {
-		if (hoursStruct.Citizen != Citizen)
-			continue;
+	if (WorkHour == nullptr) {
+		FWorkHoursStruct hoursStruct;
+		hoursStruct.Citizen = Citizen;
 
-		for (auto& element : hoursStruct.WorkHours)
-			if (element.Value == EWorkType::Work)
-				hours++;
+		int32 index = WorkHours.Find(hoursStruct);
+
+		WorkHour = &WorkHours[index];
 	}
+
+	for (auto& element : WorkHour->WorkHours)
+		if (element.Value == EWorkType::Work)
+			hours++;
 
 	return hours;
 }
 
+int32 AWork::GetWagePerHour(ACitizen* Citizen)
+{
+	FWorkHoursStruct hoursStruct;
+	hoursStruct.Citizen = Citizen;
+
+	int32 index = WorkHours.Find(hoursStruct);
+
+	return WorkHours[index].WagePerHour;
+}
+
 int32 AWork::GetWage(ACitizen* Citizen)
 {
-	return WagePerHour * GetHoursInADay(Citizen);
+	return GetWagePerHour(Citizen) * GetHoursInADay(Citizen);
 }
 
 int32 AWork::GetAverageWage()
 {
 	int32 averageHours = 0;
+	int32 averageWage = 0;
 
-	for (FWorkHoursStruct hoursStruct : WorkHours)
+	for (FWorkHoursStruct hoursStruct : WorkHours) {
+		averageWage += hoursStruct.WagePerHour;
+
 		for (auto& element : hoursStruct.WorkHours)
 			if (element.Value == EWorkType::Work)
 				averageHours++;
+	}
 
 	averageHours /= Capacity;
+	averageWage /= Capacity;
 
-	return WagePerHour * averageHours;
+	return averageWage * averageHours;
+}
+
+FWorkHoursStruct* AWork::GetBestWorkHours(ACitizen* Citizen)
+{
+	FWorkHoursStruct* hours = nullptr;
+
+	for (FWorkHoursStruct& workHour : WorkHours) {
+		if (IsValid(workHour.Citizen))
+			continue;
+
+		int32 h = GetHoursInADay(nullptr, &workHour);
+
+		if (h < Citizen->BuildingComponent->IdealHoursWorkedMin || h > Citizen->BuildingComponent->IdealHoursWorkedMax)
+			continue;
+
+		if (hours == nullptr) {
+			hours = &workHour;
+
+			continue;
+		}
+
+		if (hours->WagePerHour < workHour.WagePerHour)
+			hours = &workHour;
+	}
+
+	return hours;
 }
 
 void AWork::SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours)
 {
 	WorkHours[Index].WorkHours = NewWorkHours.WorkHours;
+}
+
+void AWork::UpdateWagePerHour(int32 Index, int32 NewWagePerHour)
+{
+	if (Index == INDEX_NONE) {
+		for (FWorkHoursStruct& workHours : WorkHours)
+			workHours.WagePerHour = NewWagePerHour;
+	}
+	else {
+		WorkHours[Index].WagePerHour = NewWagePerHour;
+	}
 }
 
 void AWork::SetEmergency(bool bStatus)

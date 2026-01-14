@@ -19,6 +19,9 @@ struct FWorkHoursStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Work")
 		class ACitizen* Citizen;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
+		float WagePerHour;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Work")
 		TMap<int32, EWorkType> WorkHours;
 
@@ -47,7 +50,7 @@ protected:
 public:
 	// Cost
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
-		float WagePerHour;
+		float DefaultWagePerHour;
 
 	// Citizens
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
@@ -77,14 +80,22 @@ public:
 
 	bool IsAtWork(class ACitizen* Citizen);
 
-	int32 GetHoursInADay(class ACitizen* Citizen);
+	// Hours
+	int32 GetHoursInADay(class ACitizen* Citizen = nullptr, FWorkHoursStruct* WorkHour = nullptr);
+
+	int32 GetWagePerHour(class ACitizen* Citizen);
 
 	int32 GetWage(class ACitizen* Citizen);
 
 	int32 GetAverageWage();
 
+	FWorkHoursStruct* GetBestWorkHours(class ACitizen* Citizen);
+
 	UFUNCTION(BlueprintCallable)
 		void SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours);
+
+	UFUNCTION(BlueprintCallable)
+		void UpdateWagePerHour(int32 Index, int32 NewWagePerHour);
 
 	void SetEmergency(bool bStatus);
 

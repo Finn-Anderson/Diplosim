@@ -105,7 +105,12 @@ void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 		AllocatedBuildings[1] = Job;
 	}
 	else {
-		int32 diff = Job->GetAverageWage() - chosenWorkplace->GetWage(citizen);
+		FWorkHoursStruct* workHours = Job->GetBestWorkHours(citizen);
+
+		if (workHours == nullptr)
+			return;
+
+		int32 diff = (workHours->WagePerHour * Job->GetHoursInADay(nullptr, workHours)) - chosenWorkplace->GetWage(citizen);
 
 		int32* happiness = citizen->HappinessComponent->Modifiers.Find("Work Happiness");
 
@@ -188,7 +193,10 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 		}
 	}
 
-	if (wages < NewHouse->Rent || NewHouse->Space < Roommates.Num() || (!IsValid(occupant) && NewHouse->GetOccupied().Num() == NewHouse->GetCapacity()))
+	int32 newRent = NewHouse->GetBestAvailableRoom()->Rent;
+	int32 oldRent = Cast<AHouse>(AllocatedBuildings[2])->GetRent(citizen);
+
+	if (wages < newRent || NewHouse->Space < Roommates.Num() || (!IsValid(occupant) && NewHouse->GetOccupied().Num() == NewHouse->GetCapacity()))
 		return;
 
 	AHouse* chosenHouse = Cast<AHouse>(AllocatedBuildings[2]);
@@ -198,13 +206,13 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 		FoundHouseOccupant = occupant;
 	}
 	else {
-		int32 newLeftoverMoney = (wages - NewHouse->Rent) * 50;
+		int32 newLeftoverMoney = (wages - newRent) * 50;
 
-		wages -= chosenHouse->Rent;
+		wages -= oldRent;
 		wages *= 50;
 
-		int32 currentValue = FMath::Max(chosenHouse->GetSatisfactionLevel() / 10 + chosenHouse->BaseRent + wages, 0);
-		int32 newValue = FMath::Max(NewHouse->GetSatisfactionLevel() / 10 + NewHouse->BaseRent + newLeftoverMoney, 0);
+		int32 currentValue = FMath::Max(chosenHouse->GetSatisfactionLevel(oldRent) / 10 + chosenHouse->BaseRent + wages, 0);
+		int32 newValue = FMath::Max(NewHouse->GetSatisfactionLevel(newRent) / 10 + NewHouse->BaseRent + newLeftoverMoney, 0);
 
 		FVector workLocation = citizen->MovementComponent->Transform.GetLocation();
 
@@ -243,31 +251,8 @@ void UBuildingComponent::SetJobHouseEducation(int32 TimeToCompleteDay, TArray<AC
 			School->RemoveVisitor(School->GetOccupant(citizen), citizen);
 		else if (i == 1 && IsValid(Employment))
 			Employment->RemoveCitizen(citizen);
-		else if (i == 2 && IsValid(House)) {
-			if (House->GetOccupied().Contains(citizen)) {
-				TArray<ACitizen*> leftoverCitizens;
-
-				for (ACitizen* c : House->GetVisitors(citizen))
-					if (!Roommates.Contains(c))
-						leftoverCitizens.Add(c);
-
-				House->RemoveCitizen(citizen);
-
-				if (!leftoverCitizens.IsEmpty()) {
-					int32 index = citizen->Camera->Stream.RandRange(0, leftoverCitizens.Num() - 1);
-
-					ACitizen* newOccupant = leftoverCitizens[index];
-					leftoverCitizens.RemoveAt(index);
-
-					House->AddCitizen(newOccupant);
-
-					for (ACitizen* c : leftoverCitizens)
-						House->AddVisitor(newOccupant, c);
-				}
-			}
-			else
-				House->RemoveVisitor(House->GetOccupant(citizen), citizen);
-		}
+		else if (i == 2 && IsValid(House))
+			RemoveCitizenFromHouse(citizen, Roommates);
 
 		if (i == 0) {
 			ASchool* school = Cast<ASchool>(building);
@@ -418,7 +403,7 @@ bool UBuildingComponent::WillWork()
 
 	int32 pension = citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Pension");
 
-	if (IsValid(AllocatedBuildings[2]) && pension >= Cast<AHouse>(AllocatedBuildings[2])->Rent)
+	if (IsValid(House) && pension >= House->GetRent(citizen))
 		return false;
 
 	return true;
@@ -477,8 +462,10 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 			bThisHouse = false;
 		}
 		else if (!Partner->BuildingComponent->House->IsAVisitor(Partner)) {
-			int32 h1 = House->GetSatisfactionLevel() / 10 + House->Space + House->BaseRent;
-			int32 h2 = Partner->BuildingComponent->House->GetSatisfactionLevel() / 10 + Partner->BuildingComponent->House->Space + Partner->BuildingComponent->House->BaseRent;
+			AHouse* partnersHouse = Partner->BuildingComponent->House;
+
+			int32 h1 = House->GetSatisfactionLevel(House->GetRent(Citizen)) / 10 + House->Space + House->BaseRent;
+			int32 h2 = partnersHouse->GetSatisfactionLevel(partnersHouse->GetRent(Partner)) / 10 + partnersHouse->Space + partnersHouse->BaseRent;
 
 			if (h2 > h1)
 				bThisHouse = false;
@@ -510,4 +497,34 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 
 	SetAcquiredTime(2, GetWorld()->GetTimeSeconds());
 	Partner->BuildingComponent->SetAcquiredTime(2, GetWorld()->GetTimeSeconds());
+}
+
+//
+// House
+//
+void UBuildingComponent::RemoveCitizenFromHouse(ACitizen* Citizen, TArray<ACitizen*> Roommates)
+{
+	if (House->GetOccupied().Contains(Citizen)) {
+		TArray<ACitizen*> leftoverCitizens;
+
+		for (ACitizen* c : House->GetVisitors(Citizen))
+			if (!Roommates.Contains(c))
+				leftoverCitizens.Add(c);
+
+		House->RemoveCitizen(Citizen);
+
+		if (!leftoverCitizens.IsEmpty()) {
+			int32 index = Citizen->Camera->Stream.RandRange(0, leftoverCitizens.Num() - 1);
+
+			ACitizen* newOccupant = leftoverCitizens[index];
+			leftoverCitizens.RemoveAt(index);
+
+			House->AddCitizen(newOccupant);
+
+			for (ACitizen* c : leftoverCitizens)
+				House->AddVisitor(newOccupant, c);
+		}
+	}
+	else
+		House->RemoveVisitor(House->GetOccupant(Citizen), Citizen);
 }

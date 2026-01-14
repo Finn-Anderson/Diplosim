@@ -79,4 +79,7 @@ public:
 	void RemoveFromHouse();
 
 	void SelectPreferredPartnersHouse(ACitizen* Citizen, ACitizen* Partner);
+
+	// House
+	void RemoveCitizenFromHouse(ACitizen* Citizen, TArray<ACitizen*> Roommates = {});
 };

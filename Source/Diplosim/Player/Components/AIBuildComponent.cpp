@@ -404,7 +404,7 @@ void UAIBuildComponent::BuildAIHouse(FFactionStruct* Faction)
 		int32 amount = 0;
 
 		for (ACitizen* citizen : homeless)
-			if (citizen->BuildingComponent->Employment->GetWage(citizen) >= Cast<AHouse>(house->GetDefaultObject())->Rent)
+			if (citizen->BuildingComponent->Employment->GetWage(citizen) >= Cast<AHouse>(house->GetDefaultObject())->BaseRent)
 				amount++;
 
 		if (amount / homeless.Num() < 0.33f)

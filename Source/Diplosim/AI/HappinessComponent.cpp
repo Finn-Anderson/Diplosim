@@ -151,8 +151,8 @@ void UHappinessComponent::SetHousingHappiness(ACitizen* Citizen, FFactionStruct*
 	else {
 		Modifiers.Add("Housed", 10);
 
-		int32 satisfaction = Citizen->BuildingComponent->House->GetSatisfactionLevel();
-		int32 level = (Citizen->BuildingComponent->House->GetSatisfactionLevel() / 5 - 10) * 2;
+		int32 satisfaction = Citizen->BuildingComponent->House->GetSatisfactionLevel(Citizen->BuildingComponent->House->GetRent(Citizen));
+		int32 level = (satisfaction / 5 - 10) * 2;
 
 		if (level > 0)
 			level *= 0.75f;
@@ -259,7 +259,26 @@ void UHappinessComponent::SetWorkHappiness(ACitizen* Citizen, FFactionStruct* Fa
 	else
 		Modifiers.Add("Rich", 20);
 
-	if (!IsValid(Citizen->BuildingComponent->Employment) || GetWorld()->GetTimeSeconds() < Citizen->BuildingComponent->GetAcquiredTime(1) + 300.0f)
+	if (!IsValid(Citizen->BuildingComponent->Employment))
+		return;
+
+	int32 wagePerHour = Citizen->BuildingComponent->Employment->GetWagePerHour(Citizen);
+
+	for (ACitizen* colleague : Citizen->BuildingComponent->Employment->GetOccupied()) {
+		if (colleague == Citizen)
+			continue;
+
+		int32 wPH = colleague->BuildingComponent->Employment->GetWagePerHour(colleague);
+
+		if (wPH <= wagePerHour)
+			continue;
+
+		Modifiers.Add("Unequal pay", -10);
+
+		break;
+	}
+
+	if (GetWorld()->GetTimeSeconds() < Citizen->BuildingComponent->GetAcquiredTime(1) + 300.0f)
 		return;
 
 	int32 count = 0;

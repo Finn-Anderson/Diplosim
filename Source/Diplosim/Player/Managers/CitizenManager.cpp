@@ -333,7 +333,7 @@ void UCitizenManager::CalculateConversationInteractions()
 //
 // House
 //
-void UCitizenManager::UpdateRent(FString FactionName, TSubclassOf<class AHouse> HouseType, int32 NewRent)
+void UCitizenManager::UpdateAllTypeRent(FString FactionName, TSubclassOf<class AHouse> HouseType, int32 NewRent)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
@@ -341,7 +341,21 @@ void UCitizenManager::UpdateRent(FString FactionName, TSubclassOf<class AHouse> 
 		if (!building->IsA(HouseType))
 			continue;
 
-		Cast<AHouse>(building)->Rent = NewRent;
+		for (FRentStruct& rent : Cast<AHouse>(building)->RentStruct)
+			rent.Rent = NewRent;
+	}
+}
+
+void UCitizenManager::UpdateAllTypeWages(FString FactionName, TSubclassOf<class AWork> WorkType, int32 NewWagePerHour)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	for (ABuilding* building : faction->Buildings) {
+		if (!building->IsA(WorkType))
+			continue;
+
+		for (FWorkHoursStruct& workHours : Cast<AWork>(building)->WorkHours)
+			workHours.WagePerHour = NewWagePerHour;
 	}
 }
 
@@ -402,6 +416,12 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		if (personality->Citizens.Contains(Citizen))
 			personality->Citizens.Remove(Citizen);
 
+	if (IsValid(Citizen->BuildingComponent->Employment))
+		Citizen->BuildingComponent->Employment->RemoveCitizen(Citizen);
+
+	if (IsValid(Citizen->BuildingComponent->House))
+		Citizen->BuildingComponent->RemoveCitizenFromHouse(Citizen);
+
 	Camera->ArmyManager->RemoveFromArmy(Citizen);
 }
 
@@ -416,7 +436,7 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 				if (!IsValid(citizen->BuildingComponent->Employment) || (citizen->BuildingComponent->HoursWorked.Contains(Hour) && !citizen->BuildingComponent->Employment->IsWorking(citizen, Hour)))
 					citizen->BuildingComponent->HoursWorked.Remove(Hour);
 				else if (!citizen->BuildingComponent->HoursWorked.Contains(Hour))
-					citizen->BuildingComponent->HoursWorked.Add(Hour, citizen->BuildingComponent->Employment->WagePerHour);
+					citizen->BuildingComponent->HoursWorked.Add(Hour, citizen->BuildingComponent->Employment->GetWagePerHour(citizen));
 			}
 		}
 
@@ -472,7 +492,7 @@ void UCitizenManager::CheckUpkeepCosts()
 			Camera->ResourceManager->TakeUniversalResource(&faction, Camera->ResourceManager->Money, amount, -100000);
 
 			if (IsValid(citizen->BuildingComponent->House))
-				citizen->BuildingComponent->House->GetRent(&faction, citizen);
+				citizen->BuildingComponent->House->CollectRent(&faction, citizen);
 		}
 	}
 }

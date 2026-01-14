@@ -517,7 +517,7 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 			leftoverMoney += Representative->BuildingComponent->Employment->GetWage(Representative);
 
 		if (IsValid(Representative->BuildingComponent->House))
-			leftoverMoney -= Representative->BuildingComponent->House->Rent;
+			leftoverMoney -= Representative->BuildingComponent->House->GetRent(Representative);
 
 		if (leftoverMoney < Bill.Value)
 			verdict.Append({ "Opposing", "Opposing", "Opposing" });
