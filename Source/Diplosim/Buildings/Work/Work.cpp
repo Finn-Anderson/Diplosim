@@ -33,24 +33,7 @@ void AWork::BeginPlay()
 {
 	Super::BeginPlay();
 
-	WorkHours.Empty();
-
-	for (int32 i = 0; i < MaxCapacity; i++) {
-		FWorkHoursStruct hours;
-
-		for (int32 j = 0; j < 24; j++) {
-			EWorkType type = EWorkType::Freetime;
-
-			if (j >= 6 && j < 18)
-				type = EWorkType::Work;
-
-			hours.WorkHours.Add(j, type);
-		}
-
-		WorkHours.Add(hours);
-	}
-
-	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
+	ResetWorkHours();
 }
 
 bool AWork::AddCitizen(ACitizen* Citizen)
@@ -266,10 +249,35 @@ FWorkHoursStruct* AWork::GetBestWorkHours(ACitizen* Citizen)
 
 void AWork::SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours)
 {
+	NewWorkHours.Citizen = WorkHours[Index].Citizen;
 	WorkHours[Index].WorkHours = NewWorkHours.WorkHours;
+
+	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 }
 
-void AWork::UpdateWagePerHour(int32 Index, int32 NewWagePerHour)
+void AWork::ResetWorkHours()
+{
+	WorkHours.Empty();
+
+	for (int32 i = 0; i < MaxCapacity; i++) {
+		FWorkHoursStruct hours;
+
+		for (int32 j = 0; j < 24; j++) {
+			EWorkType type = EWorkType::Freetime;
+
+			if (j >= 6 && j < 18)
+				type = EWorkType::Work;
+
+			hours.WorkHours.Add(j, type);
+		}
+
+		WorkHours.Add(hours);
+	}
+
+	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
+}
+
+void AWork::UpdateWagePerHour(int32 Index, float NewWagePerHour)
 {
 	if (Index == INDEX_NONE) {
 		for (FWorkHoursStruct& workHours : WorkHours)

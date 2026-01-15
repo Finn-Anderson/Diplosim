@@ -224,6 +224,8 @@ void ACamera::BeginPlay()
 
 	HoursUIInstance = CreateWidget<UUserWidget>(PController, HoursUI);
 
+	RentUIInstance = CreateWidget<UUserWidget>(PController, RentUI);
+
 	GiftUIInstance = CreateWidget<UUserWidget>(PController, GiftUI);
 
 	DiplomacyNotifyUIInstance = CreateWidget<UUserWidget>(PController, DiplomacyNotifyUI);
@@ -504,7 +506,7 @@ void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
 
 void ACamera::ClearPopupUI()
 {
-	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, ResearchUIInstance, BuildingColourUIInstance, HoursUIInstance };
+	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, ResearchUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance };
 
 	if (widgets.Contains(HoveredWidget))
 		widgets.Remove(HoveredWidget);
@@ -874,8 +876,9 @@ void ACamera::Menu()
 
 		BuildingColourUIInstance->RemoveFromParent();
 		HoursUIInstance->RemoveFromParent();
+		RentUIInstance->RemoveFromParent();
 
-		if (HoveredWidget == BuildingColourUIInstance || HoveredWidget == HoursUIInstance)
+		if (HoveredWidget == BuildingColourUIInstance || HoveredWidget == HoursUIInstance || HoveredWidget == RentUIInstance)
 			SetMouseCapture(bMouseCapture, false, true);
 
 		return;

@@ -346,6 +346,12 @@ public:
 		class UUserWidget* HoursUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> RentUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* RentUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> GiftUI;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")

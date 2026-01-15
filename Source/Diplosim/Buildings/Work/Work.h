@@ -95,7 +95,10 @@ public:
 		void SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours);
 
 	UFUNCTION(BlueprintCallable)
-		void UpdateWagePerHour(int32 Index, int32 NewWagePerHour);
+		void ResetWorkHours();
+
+	UFUNCTION(BlueprintCallable)
+		void UpdateWagePerHour(int32 Index, float NewWagePerHour);
 
 	void SetEmergency(bool bStatus);
 
