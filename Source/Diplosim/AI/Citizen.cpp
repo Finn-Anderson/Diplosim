@@ -142,7 +142,7 @@ void ACitizen::ClearCitizen()
 
 				int32 index = BuildingComponent->House->GetOccupied().Find(this);
 
-				BuildingComponent->House->Occupied[index].Occupant = BioComponent->Partner.Get();
+				BuildingComponent->House->Occupied[index].Citizen = BioComponent->Partner.Get();
 			}
 			else {
 				BuildingComponent->House->RemoveCitizen(this);
@@ -258,7 +258,7 @@ int32 ACitizen::GetLeftoverMoney()
 	int32 money = Balance;
 
 	if (IsValid(BuildingComponent->House))
-		money -= BuildingComponent->House->GetRent(this);
+		money -= BuildingComponent->House->GetAmount(this);
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 	int32 cost = Camera->PoliticsManager->GetLawValue(faction->Name, "Food Cost");

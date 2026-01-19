@@ -105,12 +105,12 @@ void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 		AllocatedBuildings[1] = Job;
 	}
 	else {
-		FWorkHoursStruct* workHours = Job->GetBestWorkHours(citizen);
+		FCapacityStruct* capacityStruct = Job->GetBestWorkHours(citizen);
 
-		if (workHours == nullptr)
+		if (capacityStruct == nullptr)
 			return;
 
-		int32 diff = (workHours->WagePerHour * Job->GetHoursInADay(nullptr, workHours)) - chosenWorkplace->GetWage(citizen);
+		int32 diff = (capacityStruct->Amount * Job->GetHoursInADay(nullptr, capacityStruct)) - chosenWorkplace->GetWage(citizen);
 
 		int32* happiness = citizen->HappinessComponent->Modifiers.Find("Work Happiness");
 
@@ -193,8 +193,8 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 		}
 	}
 
-	int32 newRent = NewHouse->GetBestAvailableRoom()->Rent;
-	int32 oldRent = Cast<AHouse>(AllocatedBuildings[2])->GetRent(citizen);
+	int32 newRent = NewHouse->GetBestAvailableRoom()->Amount;
+	int32 oldRent = Cast<AHouse>(AllocatedBuildings[2])->GetAmount(citizen);
 
 	if (wages < newRent || NewHouse->Space < Roommates.Num() || (!IsValid(occupant) && NewHouse->GetOccupied().Num() == NewHouse->GetCapacity()))
 		return;
@@ -403,7 +403,7 @@ bool UBuildingComponent::WillWork()
 
 	int32 pension = citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Pension");
 
-	if (IsValid(House) && pension >= House->GetRent(citizen))
+	if (IsValid(House) && pension >= House->GetAmount(citizen))
 		return false;
 
 	return true;
@@ -464,8 +464,8 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 		else if (!Partner->BuildingComponent->House->IsAVisitor(Partner)) {
 			AHouse* partnersHouse = Partner->BuildingComponent->House;
 
-			int32 h1 = House->GetSatisfactionLevel(House->GetRent(Citizen)) / 10 + House->Space + House->BaseRent;
-			int32 h2 = partnersHouse->GetSatisfactionLevel(partnersHouse->GetRent(Partner)) / 10 + partnersHouse->Space + partnersHouse->BaseRent;
+			int32 h1 = House->GetSatisfactionLevel(House->GetAmount(Citizen)) / 10 + House->Space + House->BaseRent;
+			int32 h2 = partnersHouse->GetSatisfactionLevel(partnersHouse->GetAmount(Partner)) / 10 + partnersHouse->Space + partnersHouse->BaseRent;
 
 			if (h2 > h1)
 				bThisHouse = false;

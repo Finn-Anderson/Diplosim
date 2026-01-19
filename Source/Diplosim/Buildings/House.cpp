@@ -15,20 +15,6 @@ AHouse::AHouse()
 	BaseRent = 0;
 }
 
-void AHouse::BeginPlay()
-{
-	Super::BeginPlay();
-
-	RentStruct.Empty();
-
-	for (int32 i = 0; i < MaxCapacity; i++) {
-		FRentStruct rent;
-		rent.Rent = BaseRent;
-
-		RentStruct.Add(rent);
-	}
-}
-
 int32 AHouse::GetSatisfactionLevel(int32 Rent)
 {
 	int32 difference = BaseRent - Rent;
@@ -41,14 +27,9 @@ void AHouse::CollectRent(FFactionStruct* Faction, ACitizen* Citizen)
 {
 	TArray<ACitizen*> family;
 	int32 total = Citizen->Balance;
-	int32 rent = GetRent(Citizen);
+	int32 rent = GetAmount(Citizen);
 
-	FOccupantStruct occupant;
-	occupant.Occupant = Citizen;
-
-	int32 index = Occupied.Find(occupant);
-
-	for (ACitizen* c : Occupied[index].Visitors) {
+	for (ACitizen* c : GetVisitors(Citizen)) {
 		family.Add(c);
 
 		total += c->Balance;
@@ -56,7 +37,7 @@ void AHouse::CollectRent(FFactionStruct* Faction, ACitizen* Citizen)
 
 	if (total < rent) {
 		for (ACitizen* c : Citizen->BioComponent->GetLikedFamily(false)) {
-			if (!IsValid(c->BuildingComponent->House) || c->Balance - c->BuildingComponent->House->GetRent(c) - rent <= 0 || family.Contains(c))
+			if (!IsValid(c->BuildingComponent->House) || c->Balance - c->BuildingComponent->House->GetAmount(c) - rent <= 0 || family.Contains(c))
 				continue;
 
 			family.Add(c);
@@ -75,7 +56,7 @@ void AHouse::CollectRent(FFactionStruct* Faction, ACitizen* Citizen)
 
 		if (rent > 0) {
 			for (int32 i = 0; i < rent; i++) {
-				index = Camera->Stream.RandRange(0, family.Num() - 1);
+				int32 index = Camera->Stream.RandRange(0, family.Num() - 1);
 
 				family[index]->Balance -= 1;
 
@@ -151,22 +132,32 @@ void AHouse::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 	Super::RemoveVisitor(Occupant, Visitor);
 }
 
-FRentStruct* AHouse::GetBestAvailableRoom()
+void AHouse::InitialiseCapacityStruct()
 {
-	FRentStruct* rent = nullptr;
+	for (int32 i = 0; i < GetCapacity(); i++) {
+		FCapacityStruct capacityStruct;
+		capacityStruct.Amount = BaseRent;
 
-	for (FRentStruct& r : RentStruct) {
-		if (IsValid(r.Occupant))
+		Occupied.Add(capacityStruct);
+	}
+}
+
+FCapacityStruct* AHouse::GetBestAvailableRoom()
+{
+	FCapacityStruct* rent = nullptr;
+
+	for (FCapacityStruct& capacityStruct : Occupied) {
+		if (IsValid(capacityStruct.Citizen))
 			continue;
 
 		if (rent == nullptr) {
-			rent = &r;
+			rent = &capacityStruct;
 
 			continue;
 		}
 
-		if (rent->Rent > r.Rent)
-			rent = &r;
+		if (rent->Amount > capacityStruct.Amount)
+			rent = &capacityStruct;
 	}
 
 	return rent;
@@ -174,39 +165,16 @@ FRentStruct* AHouse::GetBestAvailableRoom()
 
 void AHouse::SetRent(ACitizen* Citizen)
 {
-	FRentStruct* rent = GetBestAvailableRoom();
-	rent->Occupant = Citizen;
+	FCapacityStruct* rent = GetBestAvailableRoom();
+	rent->Citizen = Citizen;
 }
 
 void AHouse::RemoveRent(ACitizen* Citizen)
 {
-	FRentStruct rent;
-	rent.Occupant = Citizen;
+	FCapacityStruct capacityStruct;
+	capacityStruct.Citizen = Citizen;
 
-	int32 index = RentStruct.Find(rent);
+	int32 index = Occupied.Find(capacityStruct);
 
-	RentStruct[index].Occupant = nullptr;
-}
-
-int32 AHouse::GetRent(ACitizen* Citizen)
-{
-	ACitizen* occupant = GetOccupant(Citizen);
-
-	FRentStruct rent;
-	rent.Occupant = occupant;
-
-	int32 index = RentStruct.Find(rent);
-
-	return RentStruct[index].Rent;
-}
-
-void AHouse::UpdateRent(int32 Index, int32 NewRent)
-{
-	if (Index == INDEX_NONE) {
-		for (FRentStruct& rent : RentStruct)
-			rent.Rent = NewRent;
-	}
-	else {
-		RentStruct[Index].Rent = NewRent;
-	}
+	Occupied[index].Citizen = nullptr;
 }

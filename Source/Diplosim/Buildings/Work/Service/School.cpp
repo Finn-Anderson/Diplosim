@@ -7,7 +7,6 @@
 ASchool::ASchool()
 {
 	Capacity = 3;
-	MaxCapacity = 3;
 	
 	Space = 30;
 }

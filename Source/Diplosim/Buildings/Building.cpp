@@ -101,7 +101,7 @@ ABuilding::ABuilding()
 	bBlink = false;
 
 	Capacity = 2;
-	MaxCapacity = 2;
+	Space = 0;
 
 	bHideCitizen = true;
 
@@ -175,6 +175,8 @@ void ABuilding::BeginPlay()
 	SetSeed(SeedNum);
 
 	SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
+
+	InitialiseCapacityStruct();
 }
 
 void ABuilding::SetLights(int32 Hour)
@@ -235,10 +237,9 @@ void ABuilding::SetSeed(int32 Seed)
 		}
 
 		if (Seeds[Seed].Capacity != -1) {
-			MaxCapacity = Seeds[Seed].Capacity;
-			Capacity = MaxCapacity;
+			Capacity = Seeds[Seed].Capacity;
 
-			for (int32 i = GetOccupied().Num() - 1; i > Capacity; i--)
+			for (int32 i = GetOccupied().Num() - 1; i > GetCapacity(); i--)
 				RemoveCitizen(GetOccupied()[i]);
 		}
 
@@ -525,7 +526,7 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 
 	for (TSubclassOf<AResource> resource : resources)
-		rm->TakeLocalResource(resource, this, Capacity);
+		rm->TakeLocalResource(resource, this, GetCapacity());
 
 	for (ACitizen* citizen : GetOccupied()) {
 		if (!IsValid(citizen))
@@ -628,15 +629,19 @@ void ABuilding::AlterOperate()
 		RemoveCitizen(citizen);
 }
 
+//
+// Capacity
+//
+void ABuilding::InitialiseCapacityStruct()
+{
+	for (int32 i = 0; i < GetCapacity(); i++)
+		Occupied.Add(FCapacityStruct());
+}
+
 bool ABuilding::AddCitizen(ACitizen* Citizen)
 {
 	if (GetCapacity() <= Occupied.Num() || !bOperate)
 		return false;
-
-	FOccupantStruct occupant;
-	occupant.Occupant = Citizen;
-
-	Occupied.Add(occupant);
 
 	return true;
 }
@@ -652,11 +657,6 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	for (ACitizen* citizen : GetVisitors(Citizen))
 		RemoveVisitor(Citizen, citizen);
 
-	FOccupantStruct occupant;
-	occupant.Occupant = Citizen;
-
-	Occupied.Remove(occupant);
-
 	return true;
 }
 
@@ -665,11 +665,11 @@ ACitizen* ABuilding::GetOccupant(class ACitizen* Citizen)
 	if (GetOccupied().Contains(Citizen))
 		return Citizen;
 
-	for (FOccupantStruct occupant : Occupied) {
-		if (!occupant.Visitors.Contains(Citizen))
+	for (FCapacityStruct capacityStruct : Occupied) {
+		if (!capacityStruct.Visitors.Contains(Citizen))
 			continue;
 
-		return occupant.Occupant;
+		return capacityStruct.Citizen;
 	}
 
 	return nullptr;
@@ -677,10 +677,10 @@ ACitizen* ABuilding::GetOccupant(class ACitizen* Citizen)
 
 TArray<ACitizen*> ABuilding::GetVisitors(ACitizen* Occupant)
 {
-	FOccupantStruct occupant;
-	occupant.Occupant = Occupant;
+	FCapacityStruct capacityStruct;
+	capacityStruct.Citizen = Occupant;
 
-	int32 index = Occupied.Find(occupant);
+	int32 index = Occupied.Find(capacityStruct);
 
 	return Occupied[index].Visitors;
 }
@@ -695,10 +695,10 @@ bool ABuilding::IsAVisitor(ACitizen* Citizen)
 
 void ABuilding::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	FOccupantStruct occupant;
-	occupant.Occupant = Occupant;
+	FCapacityStruct capacityStruct;
+	capacityStruct.Citizen = Occupant;
 
-	int32 index = Occupied.Find(occupant);
+	int32 index = Occupied.Find(capacityStruct);
 
 	if (index == INDEX_NONE)
 		return;
@@ -711,10 +711,10 @@ void ABuilding::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 
 void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	FOccupantStruct occupant;
-	occupant.Occupant = Occupant;
+	FCapacityStruct capacityStruct;
+	capacityStruct.Citizen = Occupant;
 
-	int32 index = Occupied.Find(occupant);
+	int32 index = Occupied.Find(capacityStruct);
 
 	if (index != INDEX_NONE)
 		Occupied[index].Visitors.Remove(Visitor);
@@ -723,6 +723,57 @@ void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 		Leave(Visitor);
 
 	Visitor->AIController->DefaultAction();
+}
+
+void ABuilding::UpdateAmount(int32 Index, float NewAmount)
+{
+	if (Index == INDEX_NONE) {
+		for (FCapacityStruct& capacityStruct : Occupied)
+			capacityStruct.Amount = NewAmount;
+	}
+	else {
+		Occupied[Index].Amount = NewAmount;
+	}
+}
+
+float ABuilding::GetAmount(ACitizen* Citizen)
+{
+	ACitizen* occupant = GetOccupant(Citizen);
+
+	FCapacityStruct capacityStruct;
+	capacityStruct.Citizen = occupant;
+
+	int32 index = Occupied.Find(capacityStruct);
+
+	return Occupied[index].Amount;
+}
+
+void ABuilding::AlterBlocked(int32 Index)
+{
+	Occupied[Index].bBlocked = !Occupied[Index].bBlocked;
+
+	if (Occupied[Index].bBlocked && IsValid(Occupied[Index].Citizen))
+		RemoveCitizen(Occupied[Index].Citizen);
+}
+
+int32 ABuilding::GetCapacity()
+{
+	return Capacity;
+}
+
+int32 ABuilding::GetSpace()
+{
+	return Space;
+}
+
+TArray<ACitizen*> ABuilding::GetOccupied()
+{
+	TArray<ACitizen*> citizens;
+
+	for (FCapacityStruct& capacityStruct : Occupied)
+		citizens.Add(capacityStruct.Citizen);
+
+	return citizens;
 }
 
 TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()
@@ -934,42 +985,6 @@ bool ABuilding::CheckInstant()
 		bInstantConstruction = true;
 
 	return bInstantConstruction;
-}
-
-void ABuilding::AddCapacity()
-{
-	if (Capacity == MaxCapacity)
-		return;
-
-	Capacity++;
-}
-
-void ABuilding::RemoveCapacity()
-{
-	if (Capacity == 0)
-		return;
-
-	Capacity--;
-
-	if (GetOccupied().Num() <= GetCapacity())
-		return;
-
-	RemoveCitizen(GetOccupied().Last());
-}
-
-int32 ABuilding::GetCapacity()
-{
-	return Capacity;
-}
-
-TArray<ACitizen*> ABuilding::GetOccupied()
-{
-	TArray<ACitizen*> citizens;
-
-	for (FOccupantStruct &occupant : Occupied)
-		citizens.Add(occupant.Occupant);
-
-	return citizens;
 }
 
 bool ABuilding::CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items)

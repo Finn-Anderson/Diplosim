@@ -333,29 +333,16 @@ void UCitizenManager::CalculateConversationInteractions()
 //
 // House
 //
-void UCitizenManager::UpdateAllTypeRent(FString FactionName, TSubclassOf<class AHouse> HouseType, int32 NewRent)
+void UCitizenManager::UpdateAllTypeAmount(FString FactionName, TSubclassOf<class ABuilding> BuildingType, float NewAmount)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	for (ABuilding* building : faction->Buildings) {
-		if (!building->IsA(HouseType))
+		if (!building->IsA(BuildingType))
 			continue;
 
-		for (FRentStruct& rent : Cast<AHouse>(building)->RentStruct)
-			rent.Rent = NewRent;
-	}
-}
-
-void UCitizenManager::UpdateAllTypeWages(FString FactionName, TSubclassOf<class AWork> WorkType, int32 NewWagePerHour)
-{
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
-
-	for (ABuilding* building : faction->Buildings) {
-		if (!building->IsA(WorkType))
-			continue;
-
-		for (FWorkHoursStruct& workHours : Cast<AWork>(building)->WorkHours)
-			workHours.WagePerHour = NewWagePerHour;
+		for (FCapacityStruct& capacityStruct : Cast<AHouse>(building)->Occupied)
+			capacityStruct.Amount = NewAmount;
 	}
 }
 
@@ -436,7 +423,7 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 				if (!IsValid(citizen->BuildingComponent->Employment) || (citizen->BuildingComponent->HoursWorked.Contains(Hour) && !citizen->BuildingComponent->Employment->IsWorking(citizen, Hour)))
 					citizen->BuildingComponent->HoursWorked.Remove(Hour);
 				else if (!citizen->BuildingComponent->HoursWorked.Contains(Hour))
-					citizen->BuildingComponent->HoursWorked.Add(Hour, citizen->BuildingComponent->Employment->GetWagePerHour(citizen));
+					citizen->BuildingComponent->HoursWorked.Add(Hour, citizen->BuildingComponent->Employment->GetAmount(citizen));
 			}
 		}
 

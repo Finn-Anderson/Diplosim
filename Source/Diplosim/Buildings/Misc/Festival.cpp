@@ -37,7 +37,6 @@ AFestival::AFestival()
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	Capacity = 0;
-	MaxCapacity = Capacity;
 
 	bCanHostFestival = true;
 
@@ -191,10 +190,10 @@ void AFestival::StopFestival()
 
 	ParticleComponent->Deactivate();
 
-	for (ACitizen* visitor : GetVisitors(Occupied[0].Occupant)) {
+	for (ACitizen* visitor : GetVisitors(Occupied[0].Citizen)) {
 		visitor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
-		RemoveVisitor(Occupied[0].Occupant, visitor);
+		RemoveVisitor(Occupied[0].Citizen, visitor);
 	}
 
 	SetActorTickEnabled(false);

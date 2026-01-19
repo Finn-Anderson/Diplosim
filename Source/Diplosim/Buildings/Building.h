@@ -140,25 +140,57 @@ struct FSeedStruct
 	}
 };
 
+UENUM()
+enum class EWorkType : uint8
+{
+	Freetime,
+	Work
+};
+
 USTRUCT(BlueprintType)
-struct FOccupantStruct
+struct FCapacityStruct
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
-		class ACitizen* Occupant;
+		class ACitizen* Citizen;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
 		TArray<class ACitizen*> Visitors;
 
-	FOccupantStruct()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
+		float Amount;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
+		TMap<int32, EWorkType> WorkHours;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
+		bool bBlocked;
+
+	FCapacityStruct()
 	{
-		Occupant = nullptr;
+		Citizen = nullptr;
+		Amount = 0.0f;
+		bBlocked = false;
+
+		ResetWorkHours();
 	}
 
-	bool operator==(const FOccupantStruct& other) const
+	void ResetWorkHours()
 	{
-		return (other.Occupant == Occupant);
+		for (int32 j = 0; j < 24; j++) {
+			EWorkType type = EWorkType::Freetime;
+
+			if (j >= 6 && j < 18)
+				type = EWorkType::Work;
+
+			WorkHours.Add(j, type);
+		}
+	}
+
+	bool operator==(const FCapacityStruct& other) const
+	{
+		return (other.Citizen == Citizen);
 	}
 };
 
@@ -216,6 +248,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		USoundBase* CitizenSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+		TMap<FName, EAnim> AnimSockets;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -237,6 +272,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetSeed(int32 Seed);
 
+	void SetLights(int32 Hour);
+
+	void ToggleDecalComponentVisibility(bool bVisible);
+
 	UFUNCTION(BlueprintCallable)
 		int32 GetTier();
 
@@ -255,25 +294,7 @@ public:
 
 	virtual void Leave(class ACitizen* Citizen);
 
-	virtual bool AddCitizen(class ACitizen* Citizen);
-
-	virtual bool RemoveCitizen(class ACitizen* Citizen);
-
-	class ACitizen* GetOccupant(class ACitizen* Citizen);
-
-	TArray<class ACitizen*> GetVisitors(class ACitizen* Occupant);
-
-	bool IsAVisitor(class ACitizen* Citizen);
-
-	virtual void AddVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
-
-	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
-
 	virtual bool CheckInstant();
-
-	void SetLights(int32 Hour);
-
-	void ToggleDecalComponentVisibility(bool bVisible);
 
 	// Construct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cost")
@@ -328,32 +349,46 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void AlterOperate();
 
-	// Citizens
+	// Capacity
 	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
 		TArray<class ACitizen*> Inside;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
-		TArray<FOccupantStruct> Occupied;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-		TMap<FName, EAnim> AnimSockets;
+		TArray<FCapacityStruct> Occupied;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		int32 Capacity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
-		int32 MaxCapacity;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		int32 Space;
 
-	UFUNCTION(BlueprintCallable)
-		void AddCapacity();
+	virtual void InitialiseCapacityStruct();
+
+	virtual bool AddCitizen(class ACitizen* Citizen);
+
+	virtual bool RemoveCitizen(class ACitizen* Citizen);
+
+	class ACitizen* GetOccupant(class ACitizen* Citizen);
+
+	TArray<class ACitizen*> GetVisitors(class ACitizen* Occupant);
+
+	bool IsAVisitor(class ACitizen* Citizen);
+
+	virtual void AddVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
+
+	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
 
 	UFUNCTION(BlueprintCallable)
-		void RemoveCapacity();
+		void UpdateAmount(int32 Index, float NewAmount);
+
+	float GetAmount(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		void AlterBlocked(int32 Index);
 
 	int32 GetCapacity();
+
+	int32 GetSpace();
 
 	TArray<class ACitizen*> GetOccupied();
 

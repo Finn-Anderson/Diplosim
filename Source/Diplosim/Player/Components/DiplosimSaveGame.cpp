@@ -619,22 +619,26 @@ void UDiplosimSaveGame::SaveBuilding(FActorSaveData& ActorData, AActor* Actor)
 
 	ActorData.BuildingData.bOperate = building->bOperate;
 
-	if (IsA<AWork>())
-		ActorData.BuildingData.WorkHours = Cast<AWork>(building)->WorkHours;
+	TArray<FCapacityData> occData;
 
-	TArray<FOccupantData> occData;
+	for (FCapacityStruct capacityStruct : building->Occupied) {
+		FCapacityData capData;
 
-	for (FOccupantStruct occupant : building->Occupied) {
-		FOccupantData occupantData;
-		occupantData.OccupantName = occupant.Occupant->GetName();
+		if (IsValid(capacityStruct.Citizen)) {
+			capData.CitizenName = capacityStruct.Citizen->GetName();
 
-		for (ACitizen* visitor : occupant.Visitors)
-			occupantData.VisitorNames.Add(visitor->GetName());
+			for (ACitizen* visitor : capacityStruct.Visitors)
+				capData.VisitorNames.Add(visitor->GetName());
+		}
 
-		occData.Add(occupantData);
+		capData.Amount = capacityStruct.Amount;
+		capData.WorkHours = capacityStruct.WorkHours;
+		capData.bBlocked = capacityStruct.bBlocked;
+
+		occData.Add(capData);
 	}
 
-	ActorData.BuildingData.OccupantsData = occData;
+	ActorData.BuildingData.OccupiedData = occData;
 }
 
 void UDiplosimSaveGame::SaveProjectile(FActorSaveData& ActorData, AActor* Actor)
@@ -1067,41 +1071,31 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 
 	building->bOperate = ActorData.BuildingData.bOperate;
 
-	if (building->IsA<AWork>())
-		Cast<AWork>(building)->WorkHours = ActorData.BuildingData.WorkHours;
+	for (FCapacityData data : ActorData.BuildingData.OccupiedData) {
+		FCapacityStruct capacityStruct;
 
-	for (FOccupantData data : ActorData.BuildingData.OccupantsData) {
-		FActorSaveData aiData = *AIToName.Find(data.OccupantName);
+		if (data.CitizenName != "") {
+			FActorSaveData aiData = *AIToName.Find(data.CitizenName);
 
-		Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, aiData, false);
+			Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, aiData, false);
 
-		FOccupantStruct occupant;
-		occupant.Occupant = Cast<ACitizen>(aiData.Actor);
+			capacityStruct.Citizen = Cast<ACitizen>(aiData.Actor);
 
-		for (FString name : data.VisitorNames) {
-			FActorSaveData visitorData = *AIToName.Find(name);
+			for (FString name : data.VisitorNames) {
+				FActorSaveData visitorData = *AIToName.Find(name);
 
-			occupant.Visitors.Add(Cast<ACitizen>(visitorData.Actor));
+				capacityStruct.Visitors.Add(Cast<ACitizen>(visitorData.Actor));
 
-			Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, visitorData, true);
+				Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, visitorData, true);
+			}
 		}
 
-		building->Occupied.Add(occupant);
+		capacityStruct.Amount = data.Amount;
+		capacityStruct.WorkHours = data.WorkHours;
+		capacityStruct.bBlocked = data.bBlocked;
+
+		building->Occupied.Add(capacityStruct);
 	}
-
-	TArray<FOccupantData> occData;
-
-	for (FOccupantStruct occupant : building->Occupied) {
-		FOccupantData occupantData;
-		occupantData.OccupantName = occupant.Occupant->GetName();
-
-		for (ACitizen* visitor : occupant.Visitors)
-			occupantData.VisitorNames.Add(visitor->GetName());
-
-		occData.Add(occupantData);
-	}
-
-	ActorData.BuildingData.OccupantsData = occData;
 }
 
 void UDiplosimSaveGame::LoadProjectile(FActorSaveData& ActorData, AActor* Actor)

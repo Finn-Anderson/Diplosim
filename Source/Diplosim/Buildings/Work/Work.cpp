@@ -95,18 +95,18 @@ void AWork::AddToWorkHours(ACitizen* Citizen, bool bAdd)
 	int32 index = INDEX_NONE;
 
 	if (bAdd) {
-		FWorkHoursStruct* workHours = GetBestWorkHours(Citizen);
-		workHours->Citizen = Citizen;
+		FCapacityStruct* capacityStruct = GetBestWorkHours(Citizen);
+		capacityStruct->Citizen = Citizen;
 
-		index = WorkHours.Find(*workHours);
+		index = Occupied.Find(*capacityStruct);
 	}
 	else {
-		FWorkHoursStruct hoursStruct;
-		hoursStruct.Citizen = Citizen;
+		FCapacityStruct capacityStruct;
+		capacityStruct.Citizen = Citizen;
 
-		index = WorkHours.Find(hoursStruct);
+		index = Occupied.Find(capacityStruct);
 
-		WorkHours[index].Citizen = nullptr;
+		Occupied[index].Citizen = nullptr;
 	}
 
 	if (Camera->HoursUIInstance->IsInViewport())
@@ -131,12 +131,12 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 	if (Hour == -1)
 		Hour = Camera->Grid->AtmosphereComponent->Calendar.Hour;
 
-	FWorkHoursStruct hours;
-	hours.Citizen = Citizen;
+	FCapacityStruct capacityStruct;
+	capacityStruct.Citizen = Citizen;
 
-	int32 index = WorkHours.Find(hours);
+	int32 index = Occupied.Find(capacityStruct);
 
-	EWorkType type = *WorkHours[index].WorkHours.Find(Hour);
+	EWorkType type = *Occupied[index].WorkHours.Find(Hour);
 
 	if ((type == EWorkType::Work && Camera->PoliticsManager->GetRaidPolicyStatus(Citizen) == ERaidPolicy::Default && !Camera->EventsManager->IsAttendingEvent(Citizen) && !Camera->EventsManager->IsHolliday(Citizen)) || bEmergency)
 		return true;
@@ -163,43 +163,43 @@ bool AWork::IsAtWork(ACitizen* Citizen)
 
 	return false;
 }
+//
+// Wage + Hours
+//
+void AWork::InitialiseCapacityStruct()
+{
+	for (int32 i = 0; i < GetCapacity(); i++) {
+		FCapacityStruct capacityStruct;
+		capacityStruct.Amount = DefaultWagePerHour;
 
-//
-// Hours
-//
-int32 AWork::GetHoursInADay(ACitizen* Citizen, FWorkHoursStruct* WorkHour)
+		Occupied.Add(capacityStruct);
+	}
+}
+
+
+int32 AWork::GetHoursInADay(ACitizen* Citizen, FCapacityStruct* CapacityStruct)
 {
 	int32 hours = 0;
 
-	if (WorkHour == nullptr) {
-		FWorkHoursStruct hoursStruct;
-		hoursStruct.Citizen = Citizen;
+	if (CapacityStruct == nullptr) {
+		FCapacityStruct capStruct;
+		capStruct.Citizen = Citizen;
 
-		int32 index = WorkHours.Find(hoursStruct);
+		int32 index = Occupied.Find(capStruct);
 
-		WorkHour = &WorkHours[index];
+		CapacityStruct = &Occupied[index];
 	}
 
-	for (auto& element : WorkHour->WorkHours)
+	for (auto& element : CapacityStruct->WorkHours)
 		if (element.Value == EWorkType::Work)
 			hours++;
 
 	return hours;
 }
 
-int32 AWork::GetWagePerHour(ACitizen* Citizen)
-{
-	FWorkHoursStruct hoursStruct;
-	hoursStruct.Citizen = Citizen;
-
-	int32 index = WorkHours.Find(hoursStruct);
-
-	return WorkHours[index].WagePerHour;
-}
-
 int32 AWork::GetWage(ACitizen* Citizen)
 {
-	return GetWagePerHour(Citizen) * GetHoursInADay(Citizen);
+	return GetAmount(Citizen) * GetHoursInADay(Citizen);
 }
 
 int32 AWork::GetAverageWage()
@@ -207,10 +207,10 @@ int32 AWork::GetAverageWage()
 	int32 averageHours = 0;
 	int32 averageWage = 0;
 
-	for (FWorkHoursStruct hoursStruct : WorkHours) {
-		averageWage += hoursStruct.WagePerHour;
+	for (FCapacityStruct capacityStruct : Occupied) {
+		averageWage += capacityStruct.Amount;
 
-		for (auto& element : hoursStruct.WorkHours)
+		for (auto& element : capacityStruct.WorkHours)
 			if (element.Value == EWorkType::Work)
 				averageHours++;
 	}
@@ -221,71 +221,45 @@ int32 AWork::GetAverageWage()
 	return averageWage * averageHours;
 }
 
-FWorkHoursStruct* AWork::GetBestWorkHours(ACitizen* Citizen)
+FCapacityStruct* AWork::GetBestWorkHours(ACitizen* Citizen)
 {
-	FWorkHoursStruct* hours = nullptr;
+	FCapacityStruct* bestCapacityStruct = nullptr;
 
-	for (FWorkHoursStruct& workHour : WorkHours) {
-		if (IsValid(workHour.Citizen))
+	for (FCapacityStruct& capacityStruct : Occupied) {
+		if (IsValid(capacityStruct.Citizen))
 			continue;
 
-		int32 h = GetHoursInADay(nullptr, &workHour);
+		int32 h = GetHoursInADay(nullptr, &capacityStruct);
 
 		if (h < Citizen->BuildingComponent->IdealHoursWorkedMin || h > Citizen->BuildingComponent->IdealHoursWorkedMax)
 			continue;
 
-		if (hours == nullptr) {
-			hours = &workHour;
+		if (bestCapacityStruct == nullptr) {
+			bestCapacityStruct = &capacityStruct;
 
 			continue;
 		}
 
-		if (hours->WagePerHour < workHour.WagePerHour)
-			hours = &workHour;
+		if (bestCapacityStruct->Amount < capacityStruct.Amount)
+			bestCapacityStruct = &capacityStruct;
 	}
 
-	return hours;
+	return bestCapacityStruct;
 }
 
-void AWork::SetNewWorkHours(int32 Index, FWorkHoursStruct NewWorkHours)
+void AWork::SetNewWorkHours(int32 Index, TMap<int32, EWorkType> NewWorkHours)
 {
-	NewWorkHours.Citizen = WorkHours[Index].Citizen;
-	WorkHours[Index].WorkHours = NewWorkHours.WorkHours;
+	Occupied[Index].WorkHours = NewWorkHours;
 
 	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 }
 
 void AWork::ResetWorkHours()
 {
-	WorkHours.Empty();
-
-	for (int32 i = 0; i < MaxCapacity; i++) {
-		FWorkHoursStruct hours;
-
-		for (int32 j = 0; j < 24; j++) {
-			EWorkType type = EWorkType::Freetime;
-
-			if (j >= 6 && j < 18)
-				type = EWorkType::Work;
-
-			hours.WorkHours.Add(j, type);
-		}
-
-		WorkHours.Add(hours);
-	}
+	for (FCapacityStruct& capacityStruct : Occupied)
+		capacityStruct.ResetWorkHours();
 
 	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
-}
-
-void AWork::UpdateWagePerHour(int32 Index, float NewWagePerHour)
-{
-	if (Index == INDEX_NONE) {
-		for (FWorkHoursStruct& workHours : WorkHours)
-			workHours.WagePerHour = NewWagePerHour;
-	}
-	else {
-		WorkHours[Index].WagePerHour = NewWagePerHour;
-	}
 }
 
 void AWork::SetEmergency(bool bStatus)

@@ -578,8 +578,8 @@ int32 UResourceManager::GetCategoryTrend(FString FactionName, FString Category)
 				for (ACitizen* citizen : Cast<AWork>(building)->GetOccupied())
 					overallTrend -= Cast<AWork>(building)->GetWage(citizen);
 			else if (building->IsA<AHouse>())
-				for (FRentStruct rent : Cast<AHouse>(building)->RentStruct)
-					overallTrend += rent.Rent;
+				for (FCapacityStruct capacityStruct : Cast<AHouse>(building)->Occupied)
+					overallTrend += capacityStruct.Amount;
 		}
 	}
 	else if (Category == "Food") {

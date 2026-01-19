@@ -5,29 +5,6 @@
 #include "Building.h"
 #include "House.generated.h"
 
-USTRUCT(BlueprintType)
-struct FRentStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Rent")
-		class ACitizen* Occupant;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
-		int32 Rent;
-
-	FRentStruct()
-	{
-		Occupant = nullptr;
-		Rent = 0;
-	}
-
-	bool operator==(const FRentStruct& other) const
-	{
-		return (other.Occupant == Occupant);
-	}
-};
-
 UCLASS()
 class DIPLOSIM_API AHouse : public ABuilding
 {
@@ -36,15 +13,8 @@ class DIPLOSIM_API AHouse : public ABuilding
 public:
 	AHouse();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "House")
 		int32 BaseRent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "House")
-		TArray<FRentStruct> RentStruct;
 
 	int32 GetSatisfactionLevel(int32 Rent);
 
@@ -64,14 +34,11 @@ public:
 	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor) override;
 
 	// Rent
-	FRentStruct* GetBestAvailableRoom();
+	virtual void InitialiseCapacityStruct() override;
+
+	FCapacityStruct* GetBestAvailableRoom();
 
 	void SetRent(ACitizen* Citizen);
 
 	void RemoveRent(ACitizen* Citizen);
-
-	int32 GetRent(ACitizen* Citizen);
-
-	UFUNCTION(BlueprintCallable)
-		void UpdateRent(int32 Index, int32 NewRent);
 };

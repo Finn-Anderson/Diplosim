@@ -266,19 +266,30 @@ struct FWorldSaveData
 };
 
 USTRUCT()
-struct FOccupantData
+struct FCapacityData
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-		FString OccupantName;
+		FString CitizenName;
 
 	UPROPERTY()
 		TArray<FString> VisitorNames;
 
-	FOccupantData()
+	UPROPERTY()
+		float Amount;
+
+	UPROPERTY()
+		TMap<int32, EWorkType> WorkHours;
+
+	UPROPERTY()
+		bool bBlocked;
+
+	FCapacityData()
 	{
-		OccupantName = "";
+		CitizenName = "";
+		Amount = 0.0f;
+		bBlocked = false;
 	}
 };
 
@@ -321,10 +332,7 @@ struct FBuildingData
 		double DeathTime;
 
 	UPROPERTY()
-		TArray<FWorkHoursStruct> WorkHours;
-
-	UPROPERTY()
-		TArray<FOccupantData> OccupantsData;
+		TArray<FCapacityData> OccupiedData;
 
 	FBuildingData()
 	{
