@@ -152,19 +152,19 @@ struct FCapacityStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		class ACitizen* Citizen;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		TArray<class ACitizen*> Visitors;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		float Amount;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		TMap<int32, EWorkType> WorkHours;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		bool bBlocked;
 
 	FCapacityStruct()
@@ -384,7 +384,7 @@ public:
 	float GetAmount(class ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
-		void AlterBlocked(int32 Index);
+		void UpdateBlocked(int32 Index, bool bNewBlocked);
 
 	int32 GetCapacity();
 

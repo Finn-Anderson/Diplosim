@@ -727,13 +727,11 @@ void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 
 void ABuilding::UpdateAmount(int32 Index, float NewAmount)
 {
-	if (Index == INDEX_NONE) {
+	if (Index == INDEX_NONE)
 		for (FCapacityStruct& capacityStruct : Occupied)
 			capacityStruct.Amount = NewAmount;
-	}
-	else {
+	else
 		Occupied[Index].Amount = NewAmount;
-	}
 }
 
 float ABuilding::GetAmount(ACitizen* Citizen)
@@ -748,9 +746,9 @@ float ABuilding::GetAmount(ACitizen* Citizen)
 	return Occupied[index].Amount;
 }
 
-void ABuilding::AlterBlocked(int32 Index)
+void ABuilding::UpdateBlocked(int32 Index, bool bNewBlocked)
 {
-	Occupied[Index].bBlocked = !Occupied[Index].bBlocked;
+	Occupied[Index].bBlocked = bNewBlocked;
 
 	if (Occupied[Index].bBlocked && IsValid(Occupied[Index].Citizen))
 		RemoveCitizen(Occupied[Index].Citizen);

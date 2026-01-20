@@ -41,4 +41,7 @@ public:
 	void SetRent(ACitizen* Citizen);
 
 	void RemoveRent(ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		void ResetRent();
 };

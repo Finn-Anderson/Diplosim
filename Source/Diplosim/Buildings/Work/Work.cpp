@@ -29,13 +29,6 @@ AWork::AWork()
 	Boosters = 0;
 }
 
-void AWork::BeginPlay()
-{
-	Super::BeginPlay();
-
-	ResetWorkHours();
-}
-
 bool AWork::AddCitizen(ACitizen* Citizen)
 {
 	bool bCheck = Super::AddCitizen(Citizen);
@@ -108,9 +101,6 @@ void AWork::AddToWorkHours(ACitizen* Citizen, bool bAdd)
 
 		Occupied[index].Citizen = nullptr;
 	}
-
-	if (Camera->HoursUIInstance->IsInViewport())
-		Camera->UpdateWorkHours(this, index);
 }
 
 void AWork::CheckWorkStatus(int32 Hour)
@@ -226,7 +216,7 @@ FCapacityStruct* AWork::GetBestWorkHours(ACitizen* Citizen)
 	FCapacityStruct* bestCapacityStruct = nullptr;
 
 	for (FCapacityStruct& capacityStruct : Occupied) {
-		if (IsValid(capacityStruct.Citizen))
+		if (IsValid(capacityStruct.Citizen) || capacityStruct.bBlocked)
 			continue;
 
 		int32 h = GetHoursInADay(nullptr, &capacityStruct);
@@ -256,8 +246,11 @@ void AWork::SetNewWorkHours(int32 Index, TMap<int32, EWorkType> NewWorkHours)
 
 void AWork::ResetWorkHours()
 {
-	for (FCapacityStruct& capacityStruct : Occupied)
+	for (FCapacityStruct& capacityStruct : Occupied) {
+		capacityStruct.Amount = DefaultWagePerHour;
+		capacityStruct.bBlocked = false;
 		capacityStruct.ResetWorkHours();
+	}
 
 	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 }

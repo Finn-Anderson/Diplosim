@@ -147,7 +147,7 @@ FCapacityStruct* AHouse::GetBestAvailableRoom()
 	FCapacityStruct* rent = nullptr;
 
 	for (FCapacityStruct& capacityStruct : Occupied) {
-		if (IsValid(capacityStruct.Citizen))
+		if (IsValid(capacityStruct.Citizen) || capacityStruct.bBlocked)
 			continue;
 
 		if (rent == nullptr) {
@@ -177,4 +177,12 @@ void AHouse::RemoveRent(ACitizen* Citizen)
 	int32 index = Occupied.Find(capacityStruct);
 
 	Occupied[index].Citizen = nullptr;
+}
+
+void AHouse::ResetRent()
+{
+	for (FCapacityStruct& capacityStruct : Occupied) {
+		capacityStruct.Amount = BaseRent;
+		capacityStruct.bBlocked = false;
+	}
 }

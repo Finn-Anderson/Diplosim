@@ -125,9 +125,6 @@ public:
 		void DisplayNotifyLog(const FString& Type, const FString& Message, const FString& IslandName);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateWorkHours(class ABuilding* Building, int32 Index);
-
-	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateLoadingText(const FString& Message);
 
 	UFUNCTION(BlueprintImplementableEvent)

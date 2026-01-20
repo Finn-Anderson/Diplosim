@@ -12,10 +12,6 @@ class DIPLOSIM_API AWork : public ABuilding
 public:
 	AWork();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	// Cost
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
 		float DefaultWagePerHour;
