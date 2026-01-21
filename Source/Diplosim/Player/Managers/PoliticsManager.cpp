@@ -211,6 +211,20 @@ FString UPoliticsManager::GetCitizenParty(ACitizen* Citizen)
 	return partyStruct->Party;
 }
 
+FPartyStruct UPoliticsManager::GetPartyFromName(FString FactionName, FString PartyName)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	for (FPartyStruct& party : faction->Politics.Parties) {
+		if (party.Party != PartyName)
+			continue;
+
+		return party;
+	}
+
+	UE_LOGFMT(LogTemp, Fatal, "Party not found");
+}
+
 void UPoliticsManager::SelectNewLeader(FPartyStruct* Party)
 {
 	TArray<ACitizen*> candidates;

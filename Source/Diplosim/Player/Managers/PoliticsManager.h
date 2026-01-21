@@ -30,6 +30,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 		FString GetCitizenParty(ACitizen* Citizen);
 
+	UFUNCTION(BlueprintCallable)
+		FPartyStruct GetPartyFromName(FString FactionName, FString PartyName);
+
 	void SelectNewLeader(FPartyStruct* Party);
 
 	void StartElectionTimer(FFactionStruct* Faction);

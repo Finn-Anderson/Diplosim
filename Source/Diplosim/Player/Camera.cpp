@@ -234,6 +234,8 @@ void ACamera::BeginPlay()
 
 	ArmyEditorUIInstance = CreateWidget<UUserWidget>(PController, ArmyEditorUI);
 
+	InfoUIInstance = CreateWidget<UUserWidget>(PController, InfoUI);
+
 	if (GetWorld()->GetMapName() == "Map")
 		Grid->Load();
 }
@@ -274,7 +276,7 @@ void ACamera::Tick(float DeltaTime)
 
 	FHitResult hit(ForceInit);
 
-	if (MainMenuUIInstance->IsInViewport() || BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport())
+	if (MainMenuUIInstance->IsInViewport() || BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport() || InfoUIInstance->IsInViewport() || DiplomacyUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport())
 		return;
 
 	HoveredActor.Reset();
@@ -506,7 +508,7 @@ void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
 
 void ACamera::ClearPopupUI()
 {
-	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, ResearchUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance };
+	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance };
 
 	if (widgets.Contains(HoveredWidget))
 		widgets.Remove(HoveredWidget);
@@ -777,7 +779,7 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 
 	ClearPopupUI();
 	
-	if (bWasClosingWindow || bInMenu || ParliamentUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || bBulldoze) {
+	if (bWasClosingWindow || bInMenu || ParliamentUIInstance->IsInViewport() || InfoUIInstance->IsInViewport() || DiplomacyUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || bBulldoze) {
 		bWasClosingWindow = false;
 
 		return;
@@ -898,6 +900,11 @@ void ACamera::Menu()
 	}
 	else if (DiplomacyUIInstance->IsInViewport()) {
 		DiplomacyUIInstance->RemoveFromParent();
+
+		return;
+	}
+	else if (InfoUIInstance->IsInViewport()) {
+		InfoUIInstance->RemoveFromParent();
 
 		return;
 	}

@@ -373,6 +373,12 @@ public:
 		class UUserWidget* ArmyEditorUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> InfoUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* InfoUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
