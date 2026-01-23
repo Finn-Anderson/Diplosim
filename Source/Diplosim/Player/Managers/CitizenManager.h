@@ -133,10 +133,16 @@ public:
 		class UNiagaraSystem* SacrificeSystem;
 
 	// Religion
+	UFUNCTION(BlueprintCallable)
+		TArray<ACitizen*> GetCitizensOfReligion(FString FactionName, FString ReligionName);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Religion")
 		TArray<FReligionStruct> Religions;
 
 	// Personality
+	UFUNCTION(BlueprintCallable)
+		TArray<ACitizen*> GetCitizensOfPersonality(FString FactionName, FString PersonalityName);
+
 	TArray<FPersonality*> GetCitizensPersonalities(class ACitizen* Citizen);
 
 	float GetAggressiveness(class ACitizen* Citizen);

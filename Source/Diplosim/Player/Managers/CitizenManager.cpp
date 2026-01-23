@@ -690,6 +690,19 @@ void UCitizenManager::IncrementPray(FFactionStruct Faction, FString Type, int32 
 		SetPrayTimer(Faction, Type);
 }
 
+TArray<ACitizen*> UCitizenManager::GetCitizensOfReligion(FString FactionName, FString ReligionName)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	TArray<ACitizen*> citizens;
+
+	for (ACitizen* citizen : faction->Citizens)
+		if (citizen->Spirituality.Faith == ReligionName)
+			citizens.Add(citizen);
+
+	return citizens;
+}
+
 void UCitizenManager::SetPrayTimer(FFactionStruct Faction, FString Type)
 {
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
@@ -705,6 +718,24 @@ void UCitizenManager::SetPrayTimer(FFactionStruct Faction, FString Type)
 //
 // Personality
 //
+TArray<ACitizen*> UCitizenManager::GetCitizensOfPersonality(FString FactionName, FString PersonalityName)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	TArray<ACitizen*> citizens;
+
+	FPersonality personality;
+	personality.Trait = PersonalityName;
+
+	int32 index = Personalities.Find(personality);
+
+	for (ACitizen* citizen : Personalities[index].Citizens)
+		if (faction->Citizens.Contains(citizen))
+			citizens.Add(citizen);
+
+	return citizens;
+}
+
 TArray<FPersonality*> UCitizenManager::GetCitizensPersonalities(class ACitizen* Citizen)
 {
 	TArray<FPersonality*> personalities;
