@@ -84,7 +84,7 @@ public:
 
 	// House
 	UFUNCTION(BlueprintCallable)
-		void UpdateAllTypeAmount(FString FactionName, TSubclassOf<class ABuilding> HouseType, float NewAmount);
+		void UpdateAllTypeAmount(FString FactionName, TSubclassOf<class ABuilding> BuildingType, float NewAmount);
 
 	// Death
 	void ClearCitizen(ACitizen* Citizen);

@@ -190,6 +190,9 @@ void UHealthComponent::Death(AActor* Attacker)
 			Camera->BribeUIInstance->RemoveFromParent();
 			Camera->ParliamentUIInstance->RemoveFromParent();
 		}
+
+		if (Camera->InfoUIInstance->IsInViewport())
+			Camera->UpdateBuildingInfoDisplay(building, false);
 	}
 
 	if (DeathSystem != nullptr) {

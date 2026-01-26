@@ -31,6 +31,14 @@ struct FHoverStruct
 	}
 };
 
+UENUM()
+enum class EInfoUpdate : uint8
+{
+	Party,
+	Religion,
+	Personality
+};
+
 UCLASS()
 class DIPLOSIM_API ACamera : public APawn
 {
@@ -135,6 +143,12 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateArmyCountUI(int32 Index, int32 Amount);
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateCitizenInfoDisplay(EInfoUpdate Type, const FString& Name);
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateBuildingInfoDisplay(class ABuilding* Building, bool bOccupants);
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)

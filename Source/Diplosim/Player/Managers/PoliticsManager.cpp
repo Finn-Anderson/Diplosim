@@ -261,6 +261,9 @@ void UPoliticsManager::SelectNewLeader(FPartyStruct* Party)
 
 	chosen->bHasBeenLeader = true;
 	Party->Members.Emplace(chosen, ESway::Radical);
+
+	if (Camera->InfoUIInstance->IsInViewport())
+		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, Party->Party);
 }
 
 void UPoliticsManager::StartElectionTimer(FFactionStruct* Faction)
@@ -334,6 +337,10 @@ void UPoliticsManager::Election(FFactionStruct Faction)
 				break;
 		}
 	}
+
+	for (FPartyStruct party : faction->Politics.Parties)
+		if (Camera->InfoUIInstance->IsInViewport())
+			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party.Party);
 
 	StartElectionTimer(faction);
 	SetupBill(faction);

@@ -3,6 +3,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Misc/ScopeTryLock.h"
+#include "Blueprint/UserWidget.h"
 
 #include "AI/Citizen.h"
 #include "AI/AttackComponent.h"
@@ -362,6 +363,9 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 
 		party.Members.Remove(Citizen);
 
+		if (Camera->InfoUIInstance->IsInViewport())
+			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party.Party);
+
 		break;
 	}
 
@@ -399,9 +403,15 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		citizen->HappinessComponent->SetDecayingHappiness(&citizen->HappinessComponent->WitnessedDeathHappiness, happinessValue);
 	}
 
-	for (FPersonality* personality : GetCitizensPersonalities(Citizen))
-		if (personality->Citizens.Contains(Citizen))
-			personality->Citizens.Remove(Citizen);
+	for (FPersonality* personality : GetCitizensPersonalities(Citizen)) {
+		if (!personality->Citizens.Contains(Citizen))
+			continue;
+
+		personality->Citizens.Remove(Citizen);
+
+		if (Camera->InfoUIInstance->IsInViewport())
+			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, personality->Trait);
+	}
 
 	if (IsValid(Citizen->BuildingComponent->Employment))
 		Citizen->BuildingComponent->Employment->RemoveCitizen(Citizen);
@@ -410,6 +420,9 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		Citizen->BuildingComponent->RemoveCitizenFromHouse(Citizen);
 
 	Camera->ArmyManager->RemoveFromArmy(Citizen);
+
+	if (Camera->InfoUIInstance->IsInViewport())
+		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Citizen->Spirituality.Faith);
 }
 
 //
@@ -697,7 +710,7 @@ TArray<ACitizen*> UCitizenManager::GetCitizensOfReligion(FString FactionName, FS
 	TArray<ACitizen*> citizens;
 
 	for (ACitizen* citizen : faction->Citizens)
-		if (citizen->Spirituality.Faith == ReligionName)
+		if (citizen->HealthComponent->GetHealth() > 0 && citizen->Spirituality.Faith == ReligionName)
 			citizens.Add(citizen);
 
 	return citizens;

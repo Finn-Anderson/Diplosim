@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Components/AudioComponent.h"
+#include "Blueprint/UserWidget.h"
 
 #include "AI/AttackComponent.h"
 #include "AI/DiplosimAIController.h"
@@ -639,6 +640,9 @@ void ACitizen::SetPoliticalLeanings()
 
 			if (party->Party == "Shell Breakers" && Camera->PoliticsManager->IsRebellion(faction))
 				Camera->PoliticsManager->SetupRebel(faction, this);
+
+			if (Camera->InfoUIInstance->IsInViewport())
+				Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party);
 		}
 
 		bLog = true;
@@ -716,6 +720,9 @@ void ACitizen::SetReligion(FFactionStruct* Faction)
 	Spirituality.Faith = religionList[index];
 
 	Camera->NotifyLog("Neutral", BioComponent->Name + " set their faith as " + Spirituality.Faith, Faction->Name);
+
+	if (Camera->InfoUIInstance->IsInViewport())
+		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Spirituality.Faith);
 }
 
 //
@@ -890,6 +897,9 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 	Camera->CitizenManager->Personalities[i].Citizens.Add(this);
 
 	ApplyTraitAffect(Camera->CitizenManager->Personalities[i].Affects);
+
+	if (Camera->InfoUIInstance->IsInViewport())
+		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, Camera->CitizenManager->Personalities[i].Trait);
 }
 
 void ACitizen::ApplyTraitAffect(TMap<FString, float> Affects)

@@ -643,6 +643,9 @@ bool ABuilding::AddCitizen(ACitizen* Citizen)
 	if (GetCapacity() <= Occupied.Num() || !bOperate)
 		return false;
 
+	if (Camera->InfoUIInstance->IsInViewport())
+		Camera->UpdateBuildingInfoDisplay(this, true);
+
 	return true;
 }
 
@@ -653,6 +656,9 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 
 	if (Citizen->BuildingComponent->BuildingAt == this ||  Citizen->HealthComponent->GetHealth() != 0)
 		Leave(Citizen);
+
+	if (Camera->InfoUIInstance->IsInViewport())
+		Camera->UpdateBuildingInfoDisplay(this, true);
 
 	for (ACitizen* citizen : GetVisitors(Citizen))
 		RemoveVisitor(Citizen, citizen);
@@ -707,6 +713,9 @@ void ABuilding::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 
 	if (!IsA<AFestival>())
 		Visitor->AIController->DefaultAction();
+
+	if (Camera->InfoUIInstance->IsInViewport())
+		Camera->UpdateBuildingInfoDisplay(this, true);
 }
 
 void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
@@ -723,6 +732,25 @@ void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 		Leave(Visitor);
 
 	Visitor->AIController->DefaultAction();
+
+	if (Camera->InfoUIInstance->IsInViewport())
+		Camera->UpdateBuildingInfoDisplay(this, true);
+}
+
+int32 ABuilding::GetNumOfOccupantsAndVisitors()
+{
+	int32 num = 0;
+
+	for (FCapacityStruct capacityStruct : Occupied) {
+		if (!IsValid(capacityStruct.Citizen))
+			continue;
+
+		num++;
+
+		num += capacityStruct.Visitors.Num();
+	}
+
+	return num;
 }
 
 void ABuilding::UpdateAmount(int32 Index, float NewAmount)
@@ -732,6 +760,9 @@ void ABuilding::UpdateAmount(int32 Index, float NewAmount)
 			capacityStruct.Amount = NewAmount;
 	else
 		Occupied[Index].Amount = NewAmount;
+
+	if (Camera->InfoUIInstance->IsInViewport())
+		Camera->UpdateBuildingInfoDisplay(this, false);
 }
 
 float ABuilding::GetAmount(ACitizen* Citizen)
@@ -744,6 +775,23 @@ float ABuilding::GetAmount(ACitizen* Citizen)
 	int32 index = Occupied.Find(capacityStruct);
 
 	return Occupied[index].Amount;
+}
+
+void ABuilding::GetMinMaxAmount(float& Min, float& Max)
+{
+	Min = 1000000;
+	Max = INDEX_NONE;
+
+	for (FCapacityStruct capacityStruct : Occupied) {
+		if (capacityStruct.bBlocked)
+			continue;
+
+		if (capacityStruct.Amount < Min)
+			Min = capacityStruct.Amount;
+
+		if (capacityStruct.Amount > Max)
+			Max = capacityStruct.Amount;
+	}
 }
 
 void ABuilding::UpdateBlocked(int32 Index, bool bNewBlocked)

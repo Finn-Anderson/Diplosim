@@ -379,9 +379,15 @@ public:
 	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor);
 
 	UFUNCTION(BlueprintCallable)
+		int32 GetNumOfOccupantsAndVisitors();
+
+	UFUNCTION(BlueprintCallable)
 		void UpdateAmount(int32 Index, float NewAmount);
 
 	float GetAmount(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		void GetMinMaxAmount(float& Min, float& Max);
 
 	UFUNCTION(BlueprintCallable)
 		void UpdateBlocked(int32 Index, bool bNewBlocked);
