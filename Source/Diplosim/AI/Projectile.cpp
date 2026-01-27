@@ -4,6 +4,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 #include "Universal/HealthComponent.h"
@@ -24,15 +25,21 @@ AProjectile::AProjectile()
 	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
 	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	ProjectileMesh->SetupAttachment(RootComponent);
 	ProjectileMesh->bCastDynamicShadow = true;
 	ProjectileMesh->CastShadow = true;
+
+	RootComponent = ProjectileMesh;
 
     ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
     ProjectileMovementComponent->SetUpdatedComponent(ProjectileMesh);
     ProjectileMovementComponent->bRotationFollowsVelocity = true;
 	ProjectileMovementComponent->InitialSpeed = 600.0f;
     ProjectileMovementComponent->MaxSpeed = 600.0f;
+
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
+	AudioComponent->SetupAttachment(ProjectileMesh);
+	AudioComponent->PitchModulationMin = 0.9f;
+	AudioComponent->PitchModulationMax = 1.1f;
 
 	Damage = 10;
 	Radius = 150.0f;
@@ -114,9 +121,10 @@ void AProjectile::Explode()
 	}
 
 	UNiagaraComponent* explosion = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionSystem, GetActorLocation());
-
 	if (GetOwner()->IsA<ATower>())
 		explosion->SetVariableLinearColor(TEXT("Colour"), Cast<ATower>(GetOwner())->ChosenColour);
+
+	AudioComponent->Play();
 
 	UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, Radius * 6, 1.0f);
 }

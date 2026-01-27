@@ -22,6 +22,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		class UProjectileMovementComponent* ProjectileMovementComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* AudioComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		class UNiagaraSystem* TrailSystem;
 
