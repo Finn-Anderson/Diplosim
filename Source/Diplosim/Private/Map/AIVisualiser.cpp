@@ -297,7 +297,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 		for (FFactionStruct faction : Camera->ConquestManager->Factions)
 			clones.Append(faction.Clones);
 
-		if (clones.IsEmpty() && gamemode->Enemies.IsEmpty())
+		if (clones.IsEmpty() && gamemode->Enemies.IsEmpty() && gamemode->Snakes.IsEmpty())
 			return;
 
 		TArray<TArray<AAI*>> ais;

@@ -76,9 +76,6 @@ AGrid::AGrid()
 		if (hism == HISMLava || hism == HISMSea || hism == HISMRiver)
 			hism->SetCanEverAffectNavigation(false);
 
-		if (hism == HISMLava || hism == HISMFlatGround)
-			hism->SetCastShadow(false);
-
 		if (hism == HISMGround || hism == HISMFlatGround || hism == HISMRampGround)
 			hism->NumCustomDataFloats = 8;
 		else if (hism == HISMRiver)
@@ -560,6 +557,7 @@ void AGrid::SpawnTiles()
 		}
 	}
 
+	FixEdgeZClipping();
 	GenerateTiles();
 
 	Camera->UpdateLoadingText("Spawning Minerals");
@@ -1007,6 +1005,42 @@ void AGrid::AddCalculatedTile(UHierarchicalInstancedStaticMeshComponent* HISM, F
 	}
 }
 
+void AGrid::FixEdgeZClipping()
+{
+	for (auto& element : CalculatedTiles) {
+		if (element.Key != HISMGround)
+			continue;
+
+		for (FTransform& transform : element.Value) {
+			TArray<float> offsets = { -0.02f, -0.01f, 0.0f, 0.01f, 0.02f };
+
+			for (FTransform t : element.Value) {
+				FVector loc1 = transform.GetLocation() - FVector(0.0f, 0.0f, transform.GetLocation().Z);
+				FVector loc2 = t.GetLocation() - FVector(0.0f, 0.0f, t.GetLocation().Z);
+
+				if (FVector::Dist(loc1, loc2) >= 150.0f)
+					continue;
+
+				float whole, fractional;
+				fractional = FMath::Modf(loc2.X, &whole);
+				fractional = FMath::RoundHalfFromZero(fractional * 100.0f) / 100.0f;
+
+				for (int32 i = offsets.Num() - 1; i > -1; i--) {
+					if (fractional != offsets[i])
+						continue;
+
+					offsets.RemoveAt(i);
+
+					break;
+				}
+			}
+
+			int32 index = Camera->Stream.FRandRange(0, offsets.Num() - 1);
+			transform.SetLocation(transform.GetLocation() + FVector(offsets[index], offsets[index], 0.0f));
+		}
+	}
+}
+
 void AGrid::GenerateTiles()
 {
 	for (auto& element : CalculatedTiles) {
@@ -1076,7 +1110,10 @@ void AGrid::GenerateTiles()
 				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 3] = colour.B;
 			}
 
-			if ((int32)transform.GetLocation().X % 100 != 0 || (int32)transform.GetLocation().Y % 100 != 0)
+			int32 x = FMath::RoundHalfFromZero(transform.GetLocation().X);
+			int32 y = FMath::RoundHalfFromZero(transform.GetLocation().Y);
+
+			if (x % 100 != 0 || y % 100 != 0)
 				continue;
 
 			FTileStruct* tile = GetTileFromLocation(transform.GetLocation());

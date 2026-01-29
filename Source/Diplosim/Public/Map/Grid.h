@@ -219,6 +219,8 @@ public:
 
 	void AddCalculatedTile(UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
 
+	void FixEdgeZClipping();
+
 	void GenerateTiles();
 
 	void CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis);

@@ -83,25 +83,6 @@ void ACitizen::BeginPlay()
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	Camera->TimerManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, "Birthday", {}, true);
-
-	float minPitch = 0.8f;
-	float maxPitch = 1.2f;
-
-	for (FGeneticsStruct genetic : Genetics) {
-		if (genetic.Type != EGeneticsType::Reach)
-			continue;
-
-		if (genetic.Grade == EGeneticsGrade::Good) {
-			minPitch = 0.6f;
-			maxPitch = 1.0f;
-		}
-		else if (genetic.Grade == EGeneticsGrade::Bad) {
-			minPitch = 1.0f;
-			maxPitch = 1.4f;
-		}
-	}
-
-	VoicePitch = Camera->Stream.FRandRange(minPitch, maxPitch);
 }
 
 void ACitizen::CitizenSetup(FFactionStruct* Faction)
@@ -124,6 +105,25 @@ void ACitizen::CitizenSetup(FFactionStruct* Faction)
 
 	GenerateGenetics(Faction);
 	ApplyResearch(Faction);
+
+	float minPitch = 0.8f;
+	float maxPitch = 1.2f;
+
+	for (FGeneticsStruct genetic : Genetics) {
+		if (genetic.Type != EGeneticsType::Reach)
+			continue;
+
+		if (genetic.Grade == EGeneticsGrade::Good) {
+			minPitch = 0.6f;
+			maxPitch = 1.0f;
+		}
+		else if (genetic.Grade == EGeneticsGrade::Bad) {
+			minPitch = 1.0f;
+			maxPitch = 1.4f;
+		}
+	}
+
+	VoicePitch = Camera->Stream.FRandRange(minPitch, maxPitch);
 
 	AIController->ChooseIdleBuilding(this);
 	AIController->DefaultAction();

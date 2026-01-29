@@ -60,6 +60,7 @@ void AAISpawner::SpawnAI()
 
 	FTransform transform;
 	transform.SetLocation(GetActorLocation());
+	transform.SetRotation((GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f)).Quaternion());
 
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(AIClass, FVector::Zero(), FRotator::ZeroRotator, params);
 	enemy->SpawnLocation = transform.GetLocation();
