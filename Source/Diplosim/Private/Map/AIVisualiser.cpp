@@ -37,60 +37,38 @@ UAIVisualiser::UAIVisualiser()
 
 	AIContainer = CreateDefaultSubobject<USceneComponent>(TEXT("AIContainer"));
 
-	HISMCitizen = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMCitizen"));
-	HISMCitizen->SetupAttachment(AIContainer);
-	HISMCitizen->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	HISMCitizen->SetCollisionObjectType(ECC_GameTraceChannel2);
-	HISMCitizen->SetCollisionResponseToChannels(response);
-	HISMCitizen->SetCanEverAffectNavigation(false);
-	HISMCitizen->SetGenerateOverlapEvents(false);
-	HISMCitizen->bWorldPositionOffsetWritesVelocity = false;
-	HISMCitizen->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMCitizen->NumCustomDataFloats = 18;
+	TMap<UHierarchicalInstancedStaticMeshComponent**, FName> hisms;
+	hisms.Add(&HISMCitizen, TEXT("HISMCitizen"));
+	hisms.Add(&HISMClone, TEXT("HISMClone"));
+	hisms.Add(&HISMRebel, TEXT("HISMRebel"));
+	hisms.Add(&HISMEnemy, TEXT("HISMEnemy"));
+	hisms.Add(&HISMSnake, TEXT("HISMSnake"));
 
-	HISMClone = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMClone"));
-	HISMClone->SetupAttachment(AIContainer);
-	HISMClone->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	HISMClone->SetCollisionObjectType(ECC_GameTraceChannel2);
-	HISMClone->SetCollisionResponseToChannels(response);
-	HISMClone->SetCanEverAffectNavigation(false);
-	HISMClone->SetGenerateOverlapEvents(false);
-	HISMClone->bWorldPositionOffsetWritesVelocity = false;
-	HISMClone->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMClone->NumCustomDataFloats = 10;
+	for (auto& element : hisms) {
+		auto hism = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(element.Value);
+		*element.Key = hism;
+		hism->SetupAttachment(AIContainer);
+		hism->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		hism->SetCollisionResponseToChannels(response);
+		hism->SetCanEverAffectNavigation(false);
+		hism->SetGenerateOverlapEvents(false);
+		hism->bWorldPositionOffsetWritesVelocity = false;
+		hism->bAutoRebuildTreeOnInstanceChanges = false;
 
-	HISMRebel = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMRebel"));
-	HISMRebel->SetupAttachment(AIContainer);
-	HISMRebel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	HISMRebel->SetCollisionObjectType(ECC_GameTraceChannel3);
-	HISMRebel->SetCollisionResponseToChannels(response);
-	HISMRebel->SetCanEverAffectNavigation(false);
-	HISMRebel->SetGenerateOverlapEvents(false);
-	HISMRebel->bWorldPositionOffsetWritesVelocity = false;
-	HISMRebel->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMRebel->NumCustomDataFloats = 14;
+		if (hism == HISMCitizen || hism == HISMClone)
+			hism->SetCollisionObjectType(ECC_GameTraceChannel2);
+		else if (hism == HISMRebel)
+			hism->SetCollisionObjectType(ECC_GameTraceChannel3);
+		else
+			hism->SetCollisionObjectType(ECC_GameTraceChannel4);
 
-	HISMEnemy = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMEnemy"));
-	HISMEnemy->SetupAttachment(AIContainer);
-	HISMEnemy->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	HISMEnemy->SetCollisionObjectType(ECC_GameTraceChannel4);
-	HISMEnemy->SetCollisionResponseToChannels(response);
-	HISMEnemy->SetCanEverAffectNavigation(false);
-	HISMEnemy->SetGenerateOverlapEvents(false);
-	HISMEnemy->bWorldPositionOffsetWritesVelocity = false;
-	HISMEnemy->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMEnemy->NumCustomDataFloats = 10;
-
-	HISMSnake = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISMSnake"));
-	HISMSnake->SetupAttachment(AIContainer);
-	HISMSnake->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	HISMSnake->SetCollisionObjectType(ECC_GameTraceChannel4);
-	HISMSnake->SetCollisionResponseToChannels(response);
-	HISMSnake->SetCanEverAffectNavigation(false);
-	HISMSnake->SetGenerateOverlapEvents(false);
-	HISMSnake->bWorldPositionOffsetWritesVelocity = false;
-	HISMSnake->bAutoRebuildTreeOnInstanceChanges = false;
-	HISMSnake->NumCustomDataFloats = 10;
+		if (hism == HISMCitizen)
+			hism->NumCustomDataFloats = 18;
+		else if (hism == HISMRebel)
+			hism->NumCustomDataFloats = 14;
+		else
+			hism->NumCustomDataFloats = 10;
+	}
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);

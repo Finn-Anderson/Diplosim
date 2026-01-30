@@ -145,6 +145,8 @@ public:
 
 	TArray<FPersonality*> GetCitizensPersonalities(class ACitizen* Citizen);
 
+	bool CanGiveCruelPersonality(FFactionStruct* Faction);
+
 	float GetAggressiveness(class ACitizen* Citizen);
 
 	void PersonalityComparison(class ACitizen* Citizen1, class ACitizen* Citizen2, int32& Likeness, float& Citizen1Aggressiveness, float& Citizen2Aggressiveness);

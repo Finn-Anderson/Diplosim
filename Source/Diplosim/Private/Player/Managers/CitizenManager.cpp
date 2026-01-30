@@ -193,7 +193,7 @@ void UCitizenManager::CitizenGeneralLoop()
 			Camera->PoliceManager->RespondToReports(&faction);
 
 			if (rebelsPerc > 0.33f)
-				Camera->PoliticsManager->ChooseRebellionType(&faction);
+				Async(EAsyncExecution::TaskGraphMainTick, [this, &faction]() { Camera->PoliticsManager->ChooseRebellionType(&faction); });
 
 			if (faction.Name == Camera->ColonyName) {
 				float happinessPerc = happinessCount / (faction.Citizens.Num() * 100.0f);
@@ -761,6 +761,36 @@ TArray<FPersonality*> UCitizenManager::GetCitizensPersonalities(class ACitizen* 
 	}
 
 	return personalities;
+}
+
+bool UCitizenManager::CanGiveCruelPersonality(FFactionStruct* Faction)
+{
+	if (Faction->Citizens.Num() < 4)
+		return false;
+
+	float numCruel = 0.0f;
+
+	for (ACitizen* citizen : Faction->Citizens) {
+		TArray<FPersonality*> personalities = GetCitizensPersonalities(citizen);
+
+		bool bIsCruel = false;
+
+		for (FPersonality* personality : personalities) {
+			if (personality->Trait != "Cruel")
+				continue;
+
+			bIsCruel = true;
+
+			break;
+		}
+
+		if (bIsCruel)
+			numCruel++;
+	}
+
+	float cruelPerc = numCruel / Faction->Citizens.Num();
+
+	return cruelPerc <= 0.25f;
 }
 
 float UCitizenManager::GetAggressiveness(ACitizen* Citizen)

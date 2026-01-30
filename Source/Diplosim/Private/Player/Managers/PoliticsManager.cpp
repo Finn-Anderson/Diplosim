@@ -745,7 +745,7 @@ void UPoliticsManager::ChooseRebellionType(FFactionStruct* Faction)
 	if (Faction->RebelCooldownTimer < 1) {
 		int32 value = Camera->Stream.RandRange(1, 3);
 
-		if (value == 3) {
+		if (value == 3 || Faction->Politics.Representatives.IsEmpty()) {
 			Overthrow(Faction);
 		}
 		else {

@@ -862,6 +862,8 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 		Camera = PController->GetPawn<ACamera>();
 	}
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
+
 	TArray<FPersonality*> parentsPersonalities = Camera->CitizenManager->GetCitizensPersonalities(Parent);
 	TArray<FPersonality> personalities;
 
@@ -874,17 +876,21 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 			personalities.Add(*personality);
 
 	for (int32 i = personalities.Num() - 1; i > -1; i--) {
-		if (!personalities[i].Citizens.Contains(this))
+		bool bHasPersonality = personalities[i].Citizens.Contains(this);
+
+		if (!bHasPersonality || (personalities[i].Trait == "Cruel" && Camera->CitizenManager->CanGiveCruelPersonality(faction)))
 			continue;
 
-		for (int32 j = personalities.Num() - 1; j > -1; j--) {
-			if (!personalities[i].Dislikes.Contains(personalities[j].Trait) || (personalities[i].Trait == "Cruel" && personalities[j].Trait != "Kind"))
-				continue;
+		if (bHasPersonality) {
+			for (int32 j = personalities.Num() - 1; j > -1; j--) {
+				if (!personalities[i].Dislikes.Contains(personalities[j].Trait) || (personalities[i].Trait == "Cruel" && personalities[j].Trait != "Kind"))
+					continue;
 
-			if (j < i)
-				i--;
+				if (j < i)
+					i--;
 
-			personalities.RemoveAt(j);
+				personalities.RemoveAt(j);
+			}
 		}
 
 		personalities.RemoveAt(i);

@@ -4,6 +4,7 @@
 
 #include "AI/Enemy.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/DiplosimAIController.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
@@ -69,6 +70,8 @@ void AAISpawner::SpawnAI()
 	Camera->Grid->AIVisualiser->AddInstance(enemy, Camera->Grid->AIVisualiser->HISMSnake, transform);
 
 	GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Snakes.Add(enemy);
+
+	enemy->AIController->DefaultAction();
 
 	IncrementSpawned++;
 
