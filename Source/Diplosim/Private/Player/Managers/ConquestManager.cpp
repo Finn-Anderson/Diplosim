@@ -173,6 +173,20 @@ ABuilding* UConquestManager::DoesFactionContainUniqueBuilding(FString FactionNam
 	return nullptr;
 }
 
+TArray<class ABuilding*> UConquestManager::GetFactionBuildingsFromClass(TSubclassOf<class ABuilding> BuildingClass)
+{
+	TArray<class ABuilding*> buildings;
+
+	for (ABuilding* building : GetFaction(Camera->ColonyName)->Buildings) {
+		if (building->GetClass() != BuildingClass)
+			continue;
+
+		buildings.Add(building);
+	}
+
+	return buildings;
+}
+
 int32 UConquestManager::GetFactionIndexFromName(FString FactionName)
 {
 	for (int32 i = 0; i < Factions.Num(); i++) {

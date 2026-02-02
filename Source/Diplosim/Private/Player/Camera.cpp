@@ -577,6 +577,8 @@ void ACamera::DisplayInteractOnAI(AAI* AI)
 {
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> hism = Grid->AIVisualiser->GetAIHISM(AI);
 
+	ClearPopupUI();
+
 	DisplayInteract(AI, hism.Key, hism.Value);
 }
 

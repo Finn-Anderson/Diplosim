@@ -595,11 +595,15 @@ struct FAIData
 	UPROPERTY()
 		FCitizenData CitizenData;
 
+	UPROPERTY()
+		bool bSnake;
+
 	FAIData()
 	{
 		FactionName = "";
 		BuildingAtName = "";
 		Colour = FLinearColor();
+		bSnake = false;
 	}
 };
 

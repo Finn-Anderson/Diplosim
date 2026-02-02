@@ -22,6 +22,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 		class ABuilding* DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<class ABuilding> BuildingClass);
 
+	UFUNCTION(BlueprintCallable)
+		TArray<class ABuilding*> GetFactionBuildingsFromClass(TSubclassOf<class ABuilding> BuildingClass);
+
 	int32 GetFactionIndexFromName(FString FactionName);
 
 	UFUNCTION(BlueprintCallable)

@@ -64,12 +64,11 @@ FFactionStruct* UDiplomacyComponent::GetFactionPtr(FFactionStruct Faction)
 
 void UDiplomacyComponent::SetFactionCulture(FFactionStruct* Faction)
 {
-	TMap<FString, int32> partyCount;
-
 	TArray<ACitizen*> partyCitizens = Faction->Politics.Representatives;
 	if (partyCitizens.IsEmpty())
 		partyCitizens = Faction->Citizens;
 
+	TMap<FString, int32> partyCount;
 	for (ACitizen* citizen : partyCitizens) {
 		FString party = Camera->PoliticsManager->GetCitizenParty(citizen);
 
@@ -82,8 +81,7 @@ void UDiplomacyComponent::SetFactionCulture(FFactionStruct* Faction)
 		}
 	}
 
-	TTuple<FString, int32> biggestParty;
-
+	TTuple<FString, int32> biggestParty = TTuple<FString, int32>("Undecided", 0);
 	for (auto& element : partyCount) {
 		if (biggestParty.Value >= element.Value)
 			continue;
@@ -92,7 +90,6 @@ void UDiplomacyComponent::SetFactionCulture(FFactionStruct* Faction)
 	}
 
 	TMap<FString, int32> religionCount;
-
 	for (ACitizen* citizen : Faction->Citizens) {
 		FString faith = citizen->Spirituality.Faith;
 
@@ -105,8 +102,7 @@ void UDiplomacyComponent::SetFactionCulture(FFactionStruct* Faction)
 		}
 	}
 
-	TTuple<FString, int32> biggestReligion;
-
+	TTuple<FString, int32> biggestReligion = TTuple<FString, int32>("Atheist", 0);
 	for (auto& element : religionCount) {
 		if (biggestReligion.Value >= element.Value)
 			continue;

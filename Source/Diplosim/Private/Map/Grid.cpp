@@ -1018,7 +1018,7 @@ void AGrid::FixEdgeZClipping()
 				FVector loc1 = transform.GetLocation() - FVector(0.0f, 0.0f, transform.GetLocation().Z);
 				FVector loc2 = t.GetLocation() - FVector(0.0f, 0.0f, t.GetLocation().Z);
 
-				if (FVector::Dist(loc1, loc2) >= 150.0f)
+				if (FVector::Dist(loc1, loc2) > 120.0f)
 					continue;
 
 				float whole, fractional;

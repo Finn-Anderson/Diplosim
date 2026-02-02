@@ -44,6 +44,12 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 			CapAutosaves();
 	}
 	else {
+		FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
+
+		CurrentSaveGame->Saves[CurrentIndex].Period = calendar.Period;
+		CurrentSaveGame->Saves[CurrentIndex].Day = calendar.Days[calendar.Index];
+		CurrentSaveGame->Saves[CurrentIndex].Hour = calendar.Hour;
+
 		CurrentSaveGame->Saves[CurrentIndex].bAutosave = bAutosave;
 	}
 
@@ -141,6 +147,9 @@ TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()
 	TArray<FString> sortedNames;
 	for (const FString& name : fileNames) {
 		UDiplosimSaveGame* gameSave = Cast<UDiplosimSaveGame>(UGameplayStatics::LoadGameFromSlot(name, 0));
+
+		if (!IsValid(gameSave))
+			continue;
 
 		int32 index = 0;
 

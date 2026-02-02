@@ -48,25 +48,25 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 	TArray<AActor*> actors = { Camera, Camera->Grid };
 	TArray<AActor*> potentialWetActors;
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AResource::StaticClass(), foundActors);
+	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AResource::StaticClass(), foundActors);
 	actors.Append(foundActors);
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEggBasket::StaticClass(), foundActors);
-	actors.Append(foundActors);
-	potentialWetActors.Append(foundActors);
-
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AAI::StaticClass(), foundActors);
-	actors.Append(foundActors);
-
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuilding::StaticClass(), foundActors);
+	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AEggBasket::StaticClass(), foundActors);
 	actors.Append(foundActors);
 	potentialWetActors.Append(foundActors);
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AAISpawner::StaticClass(), foundActors);
+	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AAI::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), ABuilding::StaticClass(), foundActors);
 	actors.Append(foundActors);
 	potentialWetActors.Append(foundActors);
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AProjectile::StaticClass(), foundActors);
+	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AAISpawner::StaticClass(), foundActors);
+	actors.Append(foundActors);
+	potentialWetActors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AProjectile::StaticClass(), foundActors);
 	actors.Append(foundActors);
 
 	for (AActor* actor : actors)
@@ -95,8 +95,11 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 		else if (actor->IsA<AAI>()) {
 			SaveAI(Camera, actorData, actor);
 
-			if (actor->IsA<ACitizen>())
+			if (actor->IsA<ACitizen>()) {
 				SaveCitizen(Camera, actorData, actor);
+
+				Saves[Index].CitizenNum++;
+			}
 		}
 		else if (actor->IsA<ABuilding>())
 			SaveBuilding(actorData, actor);
@@ -486,6 +489,7 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, AActo
 	AAI* ai = Cast<AAI>(Actor);
 	FAIData* data = &ActorData.AIData;
 
+	ADiplosimGameModeBase* gamemode = Camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", ai);
 
 	data->Colour = ai->Colour;
@@ -516,6 +520,9 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, AActo
 
 	data->MovementData.Instance = ai->AIController->MoveRequest.GetGoalInstance();
 	data->MovementData.Location = ai->AIController->MoveRequest.GetLocation();
+
+	if (gamemode->Snakes.Contains(ai))
+		data->bSnake = true;
 
 	if (faction != nullptr)
 		data->FactionName = faction->Name;
@@ -697,7 +704,7 @@ void UDiplosimSaveGame::SaveComponents(FActorSaveData& ActorData, AActor* Actor)
 //
 void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 {
-	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+	ADiplosimGameModeBase* gamemode = Camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 	gamemode->Enemies.Empty();
 	gamemode->SnakeSpawners.Empty();
 	gamemode->Snakes.Empty();
@@ -708,7 +715,7 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 	TArray<UClass*> classes = { AAI::StaticClass(), AEggBasket::StaticClass(), ABuilding::StaticClass(), AAISpawner::StaticClass(), AProjectile::StaticClass() };
 
 	for (UClass* clss : classes) {
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), clss, foundActors);
+		UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), clss, foundActors);
 		actors.Append(foundActors);
 	}
 
@@ -721,7 +728,7 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 	for (FActorSaveData& actorData : Saves[Index].SavedActors) {
 		AActor* actor = nullptr;
 
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), actorData.Class, foundActors);
+		UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), actorData.Class, foundActors);
 
 		if (foundActors.Num() == 1 && (foundActors[0]->IsA<ACamera>() || foundActors[0]->IsA<AGrid>() || foundActors[0]->IsA<AResource>())) {
 			actor = foundActors[0];
@@ -732,7 +739,7 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 			FActorSpawnParameters params;
 			params.bNoFail = true;
 
-			actor = GetWorld()->SpawnActor<AActor>(actorData.Class, actorData.Transform, params);
+			actor = Camera->GetWorld()->SpawnActor<AActor>(actorData.Class, actorData.Transform, params);
 		}
 
 		if (actor->IsA<AGrid>())
@@ -751,7 +758,8 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		else if (actor->IsA<AAI>()) {
 			LoadAI(Camera, actorData, actor, aiToName);
 
-			LoadCitizen(Camera, actorData, actor);
+			if (actor->IsA<ACitizen>())
+				LoadCitizen(Camera, actorData, actor);
 		}
 		else if (actor->IsA<ABuilding>())
 			LoadBuilding(Camera, actorData, actor, aiToName);
@@ -947,7 +955,10 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, FActorSaveData& ActorData, AActo
 	UHierarchicalInstancedStaticMeshComponent* hism;
 
 	if (data->FactionName == "") {
-		hism = Camera->Grid->AIVisualiser->HISMEnemy;
+		if (data->bSnake)
+			hism = Camera->Grid->AIVisualiser->HISMSnake;
+		else
+			hism = Camera->Grid->AIVisualiser->HISMEnemy;
 	}
 	else {
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction(data->FactionName);
