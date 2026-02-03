@@ -8,7 +8,7 @@ public class DiplosimTarget : TargetRules
 	public DiplosimTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
-		DefaultBuildSettings = BuildSettingsVersion.V5;
+		DefaultBuildSettings = BuildSettingsVersion.Latest;
         CppStandard = CppStandardVersion.Default;
         bValidateFormatStrings = true;
         IncludeOrderVersion = EngineIncludeOrderVersion.Latest;

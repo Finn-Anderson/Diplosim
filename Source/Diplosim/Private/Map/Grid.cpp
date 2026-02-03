@@ -27,6 +27,7 @@
 #include "Player/Components/BuildComponent.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 AGrid::AGrid()
 {
@@ -1012,13 +1013,13 @@ void AGrid::FixEdgeZClipping()
 			continue;
 
 		for (FTransform& transform : element.Value) {
-			TArray<float> offsets = { -0.02f, -0.01f, 0.0f, 0.01f, 0.02f };
+			TArray<float> offsets = { 0.0f, 0.01f, 0.02f, 0.03f };
 
 			for (FTransform t : element.Value) {
-				FVector loc1 = transform.GetLocation() - FVector(0.0f, 0.0f, transform.GetLocation().Z);
-				FVector loc2 = t.GetLocation() - FVector(0.0f, 0.0f, t.GetLocation().Z);
+				FVector loc1 = transform.GetLocation();
+				FVector loc2 = t.GetLocation();
 
-				if (FVector::Dist(loc1, loc2) > 120.0f)
+				if (FMath::RoundHalfFromZero(loc1.Z) != FMath::RoundHalfFromZero(loc2.Z) || FMath::RoundHalfFromZero(FMath::Abs((loc1.X + loc1.Y) - (loc2.X + loc2.Y))) != 100.0f)
 					continue;
 
 				float whole, fractional;
@@ -1035,8 +1036,10 @@ void AGrid::FixEdgeZClipping()
 				}
 			}
 
-			int32 index = Camera->Stream.FRandRange(0, offsets.Num() - 1);
-			transform.SetLocation(transform.GetLocation() + FVector(offsets[index], offsets[index], 0.0f));
+			if (offsets.Find(0.0f) != INDEX_NONE)
+				continue;
+
+			transform.SetLocation(transform.GetLocation() + FVector(offsets[0], offsets[0], 0.0f));
 		}
 	}
 }
@@ -1112,9 +1115,6 @@ void AGrid::GenerateTiles()
 
 			int32 x = FMath::RoundHalfFromZero(transform.GetLocation().X);
 			int32 y = FMath::RoundHalfFromZero(transform.GetLocation().Y);
-
-			if (x % 100 != 0 || y % 100 != 0)
-				continue;
 
 			FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
 
@@ -1341,6 +1341,18 @@ void AGrid::Clear()
 
 	for (AActor* actor : baskets)
 		actor->Destroy();
+
+	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+	for (AAISpawner* spawner : gamemode->SnakeSpawners)
+		spawner->Destroy();
+
+	for (AAI* snake : gamemode->Snakes)
+		snake->Destroy();
+
+	gamemode->SnakeSpawners.Empty();
+	gamemode->Snakes.Empty();
+
+	AIVisualiser->ResetToDefaultValues();
 
 	HISMLava->ClearInstances();
 	HISMSea->ClearInstances();
