@@ -39,7 +39,7 @@ struct FResourceStruct
 		Category = "";
 
 		Texture = nullptr;
-		TextureDimensions = { 32, 32 };
+		TextureDimensions = { 24, 24 };
 	}
 
 	bool operator==(const FResourceStruct& other) const
@@ -105,6 +105,9 @@ public:
 	void UpdateResourceCapacityUI(ABuilding* Building);
 
 	TArray<TSubclassOf<class AResource>> GetResourcesFromCategory(FString Category);
+
+	UFUNCTION(BlueprintCallable, Category = "Resource")
+		UTexture2D* GetResourceTexture(TSubclassOf<class AResource> Resource, int32& Width, int32& Height);
 
 	// Trade
 	void RandomiseMarket();

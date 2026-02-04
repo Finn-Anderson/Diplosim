@@ -486,6 +486,19 @@ TArray<TSubclassOf<AResource>> UResourceManager::GetResourcesFromCategory(FStrin
 	return resources;
 }
 
+UTexture2D* UResourceManager::GetResourceTexture(TSubclassOf<class AResource> Resource, int32& Width, int32& Height)
+{
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
+
+	int32 index = ResourceList.Find(resourceStruct);
+
+	Width = ResourceList[index].TextureDimensions[0];
+	Height = ResourceList[index].TextureDimensions[1];
+
+	return ResourceList[index].Texture;
+}
+
 //
 // Trade
 //
