@@ -55,6 +55,9 @@ public:
 
 	FFactionStruct* GetFaction(FString Name = "", AActor* Actor = nullptr);
 
+	UFUNCTION(BlueprintCallable)
+		float GetBuildingClassAmount(FString FactionName, TSubclassOf<class ABuilding> BuildingClass);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		class UAIBuildComponent* AIBuildComponent;
 
@@ -75,6 +78,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Factions")
 		TArray<FFactionStruct> FactionsToRemove;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Factions")
+		TArray<TSubclassOf<class ABuilding>> BuildingClassDefaultAmount;
 
 	// UI
 	UFUNCTION(BlueprintCallable)

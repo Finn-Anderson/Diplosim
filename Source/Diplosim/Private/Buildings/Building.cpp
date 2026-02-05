@@ -102,6 +102,7 @@ ABuilding::ABuilding()
 
 	Capacity = 2;
 	Space = 0;
+	DefaultAmount = 0.0f;
 
 	bHideCitizen = true;
 

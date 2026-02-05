@@ -1099,6 +1099,9 @@ struct FFactionData
 	UPROPERTY()
 		TArray<FArmyData> ArmiesData;
 
+	UPROPERTY()
+		TArray<float> BuildingClassAmount;
+
 	FFactionData()
 	{
 		Name = "";

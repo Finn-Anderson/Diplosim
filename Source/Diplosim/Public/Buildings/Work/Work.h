@@ -12,10 +12,6 @@ class DIPLOSIM_API AWork : public ABuilding
 public:
 	AWork();
 
-	// Cost
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upkeep")
-		float DefaultWagePerHour;
-
 	// Citizens
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cosmetics")
 		class UStaticMesh* WorkHat;

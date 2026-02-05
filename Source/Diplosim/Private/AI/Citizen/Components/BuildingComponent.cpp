@@ -211,13 +211,11 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 		FoundHouseOccupant = occupant;
 	}
 	else {
-		int32 newLeftoverMoney = (wages - newRent) * 50;
+		int32 oldLeftoverMoney = wages - oldRent;
+		int32 newLeftoverMoney = wages - newRent;
 
-		wages -= oldRent;
-		wages *= 50;
-
-		int32 currentValue = FMath::Max(chosenHouse->GetSatisfactionLevel(oldRent) / 10 + chosenHouse->BaseRent + wages, 0);
-		int32 newValue = FMath::Max(NewHouse->GetSatisfactionLevel(newRent) / 10 + NewHouse->BaseRent + newLeftoverMoney, 0);
+		int32 currentValue = FMath::Max(chosenHouse->GetSatisfactionLevel(oldRent) / 10 + chosenHouse->Space + oldLeftoverMoney, 0);
+		int32 newValue = FMath::Max(NewHouse->GetSatisfactionLevel(newRent) / 10 + NewHouse->Space + newLeftoverMoney, 0);
 
 		FVector workLocation = citizen->MovementComponent->Transform.GetLocation();
 
@@ -469,8 +467,8 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 		else if (!Partner->BuildingComponent->House->IsAVisitor(Partner)) {
 			AHouse* partnersHouse = Partner->BuildingComponent->House;
 
-			int32 h1 = House->GetSatisfactionLevel(House->GetAmount(Citizen)) / 10 + House->Space + House->BaseRent;
-			int32 h2 = partnersHouse->GetSatisfactionLevel(partnersHouse->GetAmount(Partner)) / 10 + partnersHouse->Space + partnersHouse->BaseRent;
+			int32 h1 = House->GetSatisfactionLevel(House->GetAmount(Citizen)) / 10 + House->Space;
+			int32 h2 = partnersHouse->GetSatisfactionLevel(partnersHouse->GetAmount(Partner)) / 10 + partnersHouse->Space;
 
 			if (h2 > h1)
 				bThisHouse = false;

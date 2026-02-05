@@ -327,6 +327,10 @@ void UDiplosimSaveGame::SaveFactions(FActorSaveData& ActorData, AActor* Actor)
 		data.RoadBuildLocations = faction.RoadBuildLocations;
 		data.FailedBuild = faction.FailedBuild;
 
+		data.BuildingClassAmount.Empty();
+		for (auto& element : faction.BuildingClassAmount)
+			data.BuildingClassAmount.Add(element.Value);
+
 		// Politics
 		FPoliticsData politicsData;
 		for (FPartyStruct party : faction.Politics.Parties) {
@@ -925,6 +929,9 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, AActor* Actor)
 		faction.InaccessibleBuildLocations = data.InaccessibleBuildLocations;
 		faction.RoadBuildLocations = data.RoadBuildLocations;
 		faction.FailedBuild = data.FailedBuild;
+
+		for (int32 i = 0; i < camera->ConquestManager->BuildingClassDefaultAmount.Num(); i++)
+			faction.BuildingClassAmount.Add(camera->ConquestManager->BuildingClassDefaultAmount[i], data.BuildingClassAmount[i]);
 
 		camera->ConquestManager->Factions.Add(faction);
 	}

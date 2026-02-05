@@ -13,9 +13,6 @@ class DIPLOSIM_API AHouse : public ABuilding
 public:
 	AHouse();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "House")
-		int32 BaseRent;
-
 	int32 GetSatisfactionLevel(int32 Rent);
 
 	void CollectRent(FFactionStruct* Faction, class ACitizen* Citizen);

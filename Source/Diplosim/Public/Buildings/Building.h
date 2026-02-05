@@ -362,6 +362,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
 		int32 Space;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capacity")
+		float DefaultAmount;
+
 	virtual void InitialiseCapacityStruct();
 
 	virtual bool AddCitizen(class ACitizen* Citizen);

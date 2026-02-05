@@ -56,6 +56,9 @@ FFactionStruct UConquestManager::InitialiseFaction(FString Name)
 		faction.Resources.Add(factionResource);
 	}
 
+	for (TSubclassOf<ABuilding> buildingClass : BuildingClassDefaultAmount)
+		faction.BuildingClassAmount.Add(buildingClass, Cast<ABuilding>(buildingClass->GetDefaultObject())->DefaultAmount);
+
 	return faction;
 }
 
@@ -506,6 +509,12 @@ FFactionStruct* UConquestManager::GetFaction(FString Name, AActor* Actor)
 	}
 
 	return faction;
+}
+
+float UConquestManager::GetBuildingClassAmount(FString FactionName, TSubclassOf<class ABuilding> BuildingClass)
+{
+	FFactionStruct* faction = GetFaction(FactionName);
+	return *faction->BuildingClassAmount.Find(BuildingClass);
 }
 
 //

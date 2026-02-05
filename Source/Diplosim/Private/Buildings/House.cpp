@@ -9,16 +9,16 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
+#include "Player/Managers/ConquestManager.h"
 
 AHouse::AHouse()
 {
-	BaseRent = 0;
 }
 
 int32 AHouse::GetSatisfactionLevel(int32 Rent)
 {
-	int32 difference = BaseRent - Rent;
-	int32 percentage = difference * (50.0f / (BaseRent / 2.0f)) + 50;
+	int32 difference = DefaultAmount - Rent;
+	int32 percentage = difference * (50.0f / (DefaultAmount / 2.0f)) + 50;
 
 	return FMath::Clamp(percentage, 0, 100);
 }
@@ -136,7 +136,7 @@ void AHouse::InitialiseCapacityStruct()
 {
 	for (int32 i = 0; i < GetCapacity(); i++) {
 		FCapacityStruct capacityStruct;
-		capacityStruct.Amount = BaseRent;
+		capacityStruct.Amount = Camera->ConquestManager->GetBuildingClassAmount(FactionName, GetClass());
 
 		Occupied.Add(capacityStruct);
 	}
@@ -182,7 +182,7 @@ void AHouse::RemoveRent(ACitizen* Citizen)
 void AHouse::ResetRent()
 {
 	for (FCapacityStruct& capacityStruct : Occupied) {
-		capacityStruct.Amount = BaseRent;
+		capacityStruct.Amount = DefaultAmount;
 		capacityStruct.bBlocked = false;
 	}
 }

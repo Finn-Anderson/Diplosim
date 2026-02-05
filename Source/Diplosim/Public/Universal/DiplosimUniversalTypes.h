@@ -817,6 +817,9 @@ struct FFactionStruct
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Army")
 		TArray<FArmyStruct> Armies;
 
+	UPROPERTY()
+		TMap<TSubclassOf<class ABuilding>, float> BuildingClassAmount;
+
 	FFactionStruct()
 	{
 		Name = "";

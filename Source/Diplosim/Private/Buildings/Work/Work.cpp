@@ -20,8 +20,6 @@
 
 AWork::AWork()
 {
-	DefaultWagePerHour = 0.0f;
-
 	bCanAttendEvents = true;
 	bEmergency = false;
 
@@ -153,6 +151,7 @@ bool AWork::IsAtWork(ACitizen* Citizen)
 
 	return false;
 }
+
 //
 // Wage + Hours
 //
@@ -160,12 +159,11 @@ void AWork::InitialiseCapacityStruct()
 {
 	for (int32 i = 0; i < GetCapacity(); i++) {
 		FCapacityStruct capacityStruct;
-		capacityStruct.Amount = DefaultWagePerHour;
+		capacityStruct.Amount = Camera->ConquestManager->GetBuildingClassAmount(FactionName, GetClass());
 
 		Occupied.Add(capacityStruct);
 	}
 }
-
 
 int32 AWork::GetHoursInADay(ACitizen* Citizen, FCapacityStruct* CapacityStruct)
 {
@@ -247,7 +245,7 @@ void AWork::SetNewWorkHours(int32 Index, TMap<int32, EWorkType> NewWorkHours)
 void AWork::ResetWorkHours()
 {
 	for (FCapacityStruct& capacityStruct : Occupied) {
-		capacityStruct.Amount = DefaultWagePerHour;
+		capacityStruct.Amount = DefaultAmount;
 		capacityStruct.bBlocked = false;
 		capacityStruct.ResetWorkHours();
 	}

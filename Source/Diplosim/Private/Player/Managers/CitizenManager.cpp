@@ -342,9 +342,11 @@ void UCitizenManager::UpdateAllTypeAmount(FString FactionName, TSubclassOf<class
 		if (!building->IsA(BuildingType))
 			continue;
 
-		for (FCapacityStruct& capacityStruct : Cast<AHouse>(building)->Occupied)
+		for (FCapacityStruct& capacityStruct : building->Occupied)
 			capacityStruct.Amount = NewAmount;
 	}
+
+	faction->BuildingClassAmount.Add(BuildingType, NewAmount);
 }
 
 //
