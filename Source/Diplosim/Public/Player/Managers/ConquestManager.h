@@ -79,7 +79,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Factions")
 		TArray<FFactionStruct> FactionsToRemove;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Factions")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Factions")
 		TArray<TSubclassOf<class ABuilding>> BuildingClassDefaultAmount;
 
 	// UI

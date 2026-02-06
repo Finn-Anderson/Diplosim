@@ -514,6 +514,10 @@ FFactionStruct* UConquestManager::GetFaction(FString Name, AActor* Actor)
 float UConquestManager::GetBuildingClassAmount(FString FactionName, TSubclassOf<class ABuilding> BuildingClass)
 {
 	FFactionStruct* faction = GetFaction(FactionName);
+
+	if (faction == nullptr)
+		return Cast<ABuilding>(BuildingClass->GetDefaultObject())->DefaultAmount;
+
 	return *faction->BuildingClassAmount.Find(BuildingClass);
 }
 
