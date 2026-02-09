@@ -76,6 +76,13 @@ bool UResearchManager::IsMaxResearched(int32 Index, FString FactionName)
 	return faction->ResearchStruct[Index].Level + GetAmountResearchIndexInQueue(Index, FactionName) == faction->ResearchStruct[Index].MaxLevel;
 }
 
+bool UResearchManager::HasResearchedAllLevels(int32 Index, FString FactionName)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	return faction->ResearchStruct[Index].Level == faction->ResearchStruct[Index].MaxLevel;
+}
+
 bool UResearchManager::IsBeingResearched(int32 Index, FString FactionName)
 {
 	int32 currentIndex = GetCurrentResearchIndex(FactionName);

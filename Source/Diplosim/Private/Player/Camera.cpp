@@ -577,8 +577,6 @@ void ACamera::DisplayInteractOnAI(AAI* AI)
 {
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> hism = Grid->AIVisualiser->GetAIHISM(AI);
 
-	ClearPopupUI();
-
 	DisplayInteract(AI, hism.Key, hism.Value);
 }
 
@@ -594,25 +592,9 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 		PlayInteractSound(InteractSound);
 	
 	SetInteractableText(Actor, Instance);
+	ClearPopupUI();
 
-	if (Actor->IsA<AAI>()) {
-		bool bAttach = true;
-
-		if (Actor->IsA<ACitizen>()) {
-			ABuilding* building = Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt;
-
-			if (building != nullptr && building->bHideCitizen)
-				bAttach = false;
-
-			FocusedCitizen = Cast<ACitizen>(Actor);
-		}
-
-		if (bAttach)
-			Attach(Actor, Component, Instance);
-	}
-	else {
-		Detach();
-	}
+	Attach(Actor, Component, Instance);
 
 	SetInteractStatus(Actor, true, Component, Instance);
 }

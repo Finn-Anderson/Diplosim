@@ -7,6 +7,8 @@
 #include "Components/WidgetComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
+#include "AI/Citizen/Citizen.h"
+#include "AI/Citizen/Components/BuildingComponent.h"
 #include "Buildings/Building.h"
 #include "Map/Grid.h"
 #include "Player/Camera.h"
@@ -99,6 +101,8 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 
 		location = transform.GetLocation();
 	}
+	else if (Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt))
+		location = Camera->GetTargetActorLocation(Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt);
 
 	float z = 0.0f;
 
@@ -108,7 +112,7 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 		z = Cast<UHierarchicalInstancedStaticMeshComponent>(Component)->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
 	FVector widgetLocation = location;
-	widgetLocation.Z += z;
+	widgetLocation.Z += z - 8.0f;
 	Camera->WidgetComponent->SetWorldLocation(widgetLocation);
 
 	location.Z += z / 2.0f + 5.0f;

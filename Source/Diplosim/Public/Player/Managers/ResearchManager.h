@@ -32,6 +32,9 @@ public:
 		bool IsMaxResearched(int32 Index, FString FactionName);
 
 	UFUNCTION(BlueprintCallable)
+		bool HasResearchedAllLevels(int32 Index, FString FactionName);
+
+	UFUNCTION(BlueprintCallable)
 		bool IsBeingResearched(int32 Index, FString FactionName);
 
 	UFUNCTION(BlueprintCallable)
