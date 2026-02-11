@@ -36,7 +36,7 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 
 	Citizen->BuildingComponent->Employment = this;
 
-	AddToWorkHours(Citizen, true);
+	AddToWorkHours(Citizen, true); 
 
 	if (IsWorking(Citizen)) {
 		bool bAttendingEvent = Camera->EventsManager->IsAttendingEvent(Citizen);

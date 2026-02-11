@@ -36,10 +36,7 @@ void UResearchManager::ReadJSONFile(FString Path)
 						for (auto& bev : ev->AsObject()->Values)
 								research.Modifiers.Add(bev.Key, FCString::Atof(*bev.Value->AsString()));
 				else if (v.Value->Type == EJson::String)
-					if (v.Key == "Name")
-						research.ResearchName = v.Value->AsString();
-					else
-						research.Texture = FImageUtils::ImportFileAsTexture2D(FPaths::ProjectDir() + v.Value->AsString());
+					research.ResearchName = v.Value->AsString();
 				else {
 					int32 value = FCString::Atoi(*v.Value->AsString());
 
@@ -104,10 +101,15 @@ FResearchStruct UResearchManager::GetCurrentResearch(FString FactionName)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	FResearchStruct defaultStruct;
-	defaultStruct.Texture = DefaultTexture;
+	FResearchStruct researchStruct;
+	researchStruct.Texture = DefaultTexture;
 
-	return faction->ResearchIndices.IsEmpty() ? defaultStruct : faction->ResearchStruct[faction->ResearchIndices[0]];
+	if (!faction->ResearchIndices.IsEmpty()) {
+		researchStruct = faction->ResearchStruct[faction->ResearchIndices[0]];
+		researchStruct.Texture = GetResearchTexture(GetCurrentResearchIndex(FactionName));
+	}
+
+	return researchStruct;
 }
 
 FResearchStruct UResearchManager::GetResearchFromIndex(int32 Index, FString FactionName)
@@ -150,6 +152,11 @@ int32 UResearchManager::GetResearchLevel(int32 Index, FString FactionName)
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	return faction->ResearchStruct[Index].Level;
+}
+
+UTexture2D* UResearchManager::GetResearchTexture(int32 Index)
+{
+	return Index == INDEX_NONE ? DefaultTexture : InitResearchStruct[Index].Texture;
 }
 
 void UResearchManager::SetResearch(int32 Index, FString FactionName)

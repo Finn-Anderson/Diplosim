@@ -287,7 +287,7 @@ struct FResearchStruct
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
 		FString ResearchName;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Research")
 		UTexture2D* Texture;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")

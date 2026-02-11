@@ -285,6 +285,27 @@ int32 UResourceManager::GetResourceCapacity(FString FactionName, TSubclassOf<cla
 	return capacity;
 }
 
+int32 UResourceManager::GetBuildingCapacity(ABuilding* Building, TSubclassOf<class AResource> Resource)
+{
+	int32 capacity = 0;
+
+	FResourceStruct resourceStruct;
+	resourceStruct.Type = Resource;
+
+	int32 index = ResourceList.Find(resourceStruct);
+
+	for (auto& element : ResourceList[index].Buildings) {
+		if (!Building->IsA(element.Key))
+			continue;
+
+		capacity = element.Value;
+
+		break;
+	}
+
+	return capacity;
+}
+
 float UResourceManager::GetBuildingCapacityPercentage(ABuilding* Building)
 {
 	int32 amount = 0;

@@ -74,6 +74,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		int32 GetBuildPercentage(class ABuilding* Building);
 
+	bool IsFactionConstructingBuilding(FString FactionName, class ABuilding* Building);
+
 	UPROPERTY()
 		TArray<FConstructionStruct> Construction;
 };

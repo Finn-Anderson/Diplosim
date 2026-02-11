@@ -22,9 +22,6 @@ struct FQueueStruct
 		bool bRepeat;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
-		bool bLimit;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FItemStruct> SellingItems;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
@@ -36,7 +33,6 @@ struct FQueueStruct
 		bCancelled = false;
 		Wait = 0;
 		bRepeat = false;
-		bLimit = false;
 	}
 };
 

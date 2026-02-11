@@ -70,6 +70,7 @@ ACamera::ACamera()
 	InteractAudioComponent->SetupAttachment(CameraComponent);
 	InteractAudioComponent->SetUISound(true);
 	InteractAudioComponent->SetAutoActivate(false);
+	InteractAudioComponent->bCanPlayMultipleInstances = true;
 
 	MusicAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("MusicAudioComponent"));
 	MusicAudioComponent->SetupAttachment(CameraComponent);
@@ -474,7 +475,6 @@ void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
 {
 	InteractAudioComponent->SetSound(Sound);
 	InteractAudioComponent->SetVolumeMultiplier(Settings->GetMasterVolume() * Settings->GetSFXVolume());
-	InteractAudioComponent->SetPitchMultiplier(Pitch * Stream.RandRange(0.99f, 1.01f));
 
 	InteractAudioComponent->Play();
 }
@@ -594,7 +594,8 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 	SetInteractableText(Actor, Instance);
 	ClearPopupUI();
 
-	Attach(Actor, Component, Instance);
+	if (!BuildComponent->Buildings.Contains(Actor))
+		Attach(Actor, Component, Instance);
 
 	SetInteractStatus(Actor, true, Component, Instance);
 }

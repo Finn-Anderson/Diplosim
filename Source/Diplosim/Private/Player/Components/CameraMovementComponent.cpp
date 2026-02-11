@@ -10,8 +10,10 @@
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
 #include "Buildings/Building.h"
+#include "Buildings/Work/Service/Trader.h"
 #include "Map/Grid.h"
 #include "Player/Camera.h"
+#include "Player/Components/BuildComponent.h"
 #include "Universal/DiplosimUserSettings.h"
 
 UCameraMovementComponent::UCameraMovementComponent()
@@ -112,7 +114,11 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 		z = Cast<UHierarchicalInstancedStaticMeshComponent>(Component)->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
 	FVector widgetLocation = location;
-	widgetLocation.Z += z - 8.0f;
+	if (Actor->IsA<ATrader>() && !Camera->BuildComponent->Buildings.Contains(Actor))
+		widgetLocation.Z += z / 2.0f + 5.0f;
+	else
+		widgetLocation.Z += z - 8.0f;
+
 	Camera->WidgetComponent->SetWorldLocation(widgetLocation);
 
 	location.Z += z / 2.0f + 5.0f;

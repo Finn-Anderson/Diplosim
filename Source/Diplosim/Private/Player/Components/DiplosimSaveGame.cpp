@@ -572,6 +572,7 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	data->CitizenData.HoursTogetherWithPartner = citizen->BioComponent->HoursTogetherWithPartner;
 	data->CitizenData.bMarried = citizen->BioComponent->bMarried;
 	data->CitizenData.Sex = citizen->BioComponent->Sex;
+	data->CitizenData.Sexuality = citizen->BioComponent->Sexuality;
 	data->CitizenData.Age = citizen->BioComponent->Age;
 	data->CitizenData.Name = citizen->BioComponent->Name;
 	data->CitizenData.EducationLevel = citizen->BioComponent->EducationLevel;
@@ -674,11 +675,10 @@ void UDiplosimSaveGame::SaveTimers(ACamera* Camera, FActorSaveData& ActorData, A
 		if (timer.Actor != Actor)
 			continue;
 
-		for (FTimerParameterStruct param : timer.Parameters) {
+		for (FTimerParameterStruct& param : timer.Parameters) {
 			if (!IsValid(param.Object))
 				continue;
 
-			param.ObjectClass = param.Object->GetClass();
 			param.ObjectName = param.Object->GetName();
 		}
 
@@ -776,9 +776,9 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 	}
 
 	for (FActorSaveData actorData : Saves[Index].SavedActors) {
-		LoadTimers(Camera, Index, actorData);
-
 		TArray<FActorSaveData> savedData = Saves[Index].SavedActors;
+
+		LoadTimers(Camera, Index, actorData, savedData);
 
 		LoadComponents(Camera, actorData, actorData.Actor, savedData);
 
@@ -1007,6 +1007,7 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	citizen->BioComponent->HoursTogetherWithPartner = data->CitizenData.HoursTogetherWithPartner;
 	citizen->BioComponent->bMarried = data->CitizenData.bMarried;
 	citizen->BioComponent->Sex = data->CitizenData.Sex;
+	citizen->BioComponent->Sexuality = data->CitizenData.Sexuality;
 	citizen->BioComponent->Age = data->CitizenData.Age;
 	citizen->BioComponent->Name = data->CitizenData.Name;
 	citizen->BioComponent->EducationLevel = data->CitizenData.EducationLevel;
@@ -1155,38 +1156,38 @@ void UDiplosimSaveGame::LoadComponents(ACamera* Camera, FActorSaveData& ActorDat
 	}
 }
 
-void UDiplosimSaveGame::LoadTimers(ACamera* Camera, int32 Index, FActorSaveData& ActorData)
+void UDiplosimSaveGame::LoadTimers(ACamera* Camera, int32 Index, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData)
 {
 	for (FTimerStruct timer : ActorData.SavedTimers) {
 		timer.Actor = ActorData.Actor;
 
-		for (FTimerParameterStruct params : timer.Parameters) {
-			for (FActorSaveData data : Saves[Index].SavedActors) {
-				if (params.ObjectClass == USoundBase::StaticClass()) {
-					UAttackComponent* attackComponent = data.Actor->FindComponentByClass<UAttackComponent>();
-
-					if (!attackComponent)
-						continue;
-
-					params.Object = attackComponent->OnHitSound;
-				}
-				else if (params.ObjectClass == data.Actor->GetClass()) {
-					if (data.Name != params.ObjectName)
-						continue;
-
+		for (FTimerParameterStruct& params : timer.Parameters) {
+			for (FActorSaveData data : SavedData) {
+				if (data.Name == params.ObjectName) {
 					params.Object = data.Actor;
 				}
 				else {
 					TArray<UActorComponent*>components;
 					data.Actor->GetComponents(components);
 
+					bool bComponent = false;
 					for (UActorComponent* component : components) {
-						if (!component->IsA(params.ObjectClass) || params.ObjectName != component->GetName())
+						if (params.ObjectName != component->GetName())
 							continue;
 
 						params.Object = component;
+						bComponent = true;
 
 						break;
+					}
+
+					if (!bComponent) {
+						UAttackComponent* attackComponent = data.Actor->FindComponentByClass<UAttackComponent>();
+
+						if (!attackComponent || data.Name != attackComponent->OnHitSound->GetName())
+							continue;
+
+						params.Object = attackComponent->OnHitSound;
 					}
 				}
 

@@ -188,18 +188,13 @@ void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 		return;
 
 	TArray<ABuilding*> buildings;
+	buildings.Add(nullptr);
 
 	for (ABuilding* building : faction->Buildings) {
 		if (!IsValid(building) || (building->IsA<AWork>() && !building->IsA<AOrphanage>()) || building->IsA<ARoad>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
 			continue;
 
 		buildings.Add(building);
-	}
-
-	if (buildings.IsEmpty()) {
-		ChosenBuilding = nullptr;
-
-		return;
 	}
 
 	int32 index = Camera->Stream.RandRange(0, buildings.Num() - 1);

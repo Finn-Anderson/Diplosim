@@ -88,6 +88,9 @@ public:
 		int32 GetResourceCapacity(FString FactionName, TSubclassOf<class AResource> Resource);
 
 	UFUNCTION(BlueprintCallable, Category = "Resource")
+		int32 GetBuildingCapacity(class ABuilding* Building, TSubclassOf<class AResource> Resource);
+
+	UFUNCTION(BlueprintCallable, Category = "Resource")
 		float GetBuildingCapacityPercentage(class ABuilding* Building);
 
 	TMap<TSubclassOf<class AResource>, int32> GetBuildingCapacities(class ABuilding* Building, TSubclassOf<class AResource> Resource = nullptr);

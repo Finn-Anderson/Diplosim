@@ -384,6 +384,9 @@ struct FCitizenData
 		ESex Sex;
 
 	UPROPERTY()
+		ESexuality Sexuality;
+
+	UPROPERTY()
 		int32 Age;
 
 	UPROPERTY()
@@ -494,6 +497,7 @@ struct FCitizenData
 		HoursTogetherWithPartner = 0;
 		bMarried = false;
 		Sex = ESex::NaN;
+		Sexuality = ESexuality::NaN;
 		Age = 0;
 		EducationLevel = 0;
 		EducationProgress = 0;
@@ -1305,7 +1309,7 @@ private:
 
 	void LoadComponents(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TArray<FActorSaveData> SavedData);
 
-	void LoadTimers(class ACamera* Camera, int32 Index, FActorSaveData& ActorData);
+	void LoadTimers(class ACamera* Camera, int32 Index, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
 
 	void InitialiseObjects(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
 

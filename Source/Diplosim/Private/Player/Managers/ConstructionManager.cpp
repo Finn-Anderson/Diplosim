@@ -213,3 +213,19 @@ int32 UConstructionManager::GetBuildPercentage(ABuilding* Building)
 
 	return Construction[index].BuildPercentage;
 }
+
+bool UConstructionManager::IsFactionConstructingBuilding(FString FactionName, ABuilding* Building)
+{
+	if (Building->FactionName != FactionName)
+		return false;
+
+	FConstructionStruct constructionStruct;
+	constructionStruct.Building = Building;
+
+	int32 index = Construction.Find(constructionStruct);
+
+	if (index == INDEX_NONE)
+		return false;
+
+	return true;
+}

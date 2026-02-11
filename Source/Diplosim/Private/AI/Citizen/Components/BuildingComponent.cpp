@@ -29,7 +29,7 @@ UBuildingComponent::UBuildingComponent()
 	BuildingAt = nullptr;
 	EnterLocation = FVector::Zero();
 
-	TimeOfAcquirement.Init(-1000.0f, 3);
+	TimeOfAcquirement.Init(-10000.0f, 3);
 	FoundHouseOccupant = nullptr;
 
 	IdealHoursWorkedMin = 4;
@@ -335,7 +335,7 @@ void UBuildingComponent::SetAcquiredTime(int32 Index, float Time)
 
 bool UBuildingComponent::CanFindAnything(int32 TimeToCompleteDay, FFactionStruct* Faction)
 {
-	if (Faction == nullptr || Faction->Police.Arrested.Contains(Cast<ACitizen>(GetOwner())))
+	if (Faction->Police.Arrested.Contains(Cast<ACitizen>(GetOwner())))
 		return false;
 
 	for (int32 i = 0; i < 3; i++)

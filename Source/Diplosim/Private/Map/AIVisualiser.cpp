@@ -757,6 +757,7 @@ FTransform UAIVisualiser::GetHatTransform(ACitizen* Citizen)
 {
 	FTransform transform = Citizen->MovementComponent->Transform + GetAnimationPoint(Citizen);
 	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, HISMCitizen->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2.0f));
+	transform.NormalizeRotation();
 
 	return transform;
 }
@@ -819,19 +820,11 @@ void UAIVisualiser::UpdateHatsTransforms(ACamera* Camera)
 					return;
 
 				FTransform transform = GetHatTransform(hat.Citizens[i]);
-
-				FInstancedStaticMeshInstanceData& instanceData = hat.HISMHat->PerInstanceSMData[i];
-
-				if (instanceData.Transform == transform.ToMatrixWithScale())
-					return;
-
-				instanceData.Transform = transform.ToMatrixWithScale();
-
-				FBodyInstance*& InstanceBodyInstance = hat.HISMHat->InstanceBodies[i];
-				hat.HISMHat->UnbuiltInstanceBoundsList.Add(InstanceBodyInstance->GetBodyBounds());
+				SetInstanceTransform(hat.HISMHat, i, transform);
 			}
 
-			Async(EAsyncExecution::TaskGraphMainTick, [this, hat]() { hat.HISMHat->BuildTreeIfOutdated(false, false); });
+			if (hat.HISMHat->bIsOutOfDate)
+				Async(EAsyncExecution::TaskGraphMainTick, [this, hat]() { hat.HISMHat->BuildTreeIfOutdated(false, false); });
 		}
 	});
 }

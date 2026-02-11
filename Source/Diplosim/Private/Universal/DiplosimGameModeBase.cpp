@@ -47,10 +47,10 @@ void ADiplosimGameModeBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (DeltaTime < 0.009f || DeltaTime > 1.0f)
+	if (!IsValid(Camera) || Camera->CustomTimeDilation > 1.0f || DeltaTime > 1.0f)
 		return;
 
-	float oldOpacity = Camera->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0];
+	float oldOpacity = Grid->CrystalMesh->GetCustomPrimitiveData().Data[0];
 	float increment = 0.005f;
 
 	if (TargetOpacity != 1.0f)
@@ -59,7 +59,7 @@ void ADiplosimGameModeBase::Tick(float DeltaTime)
 	float newOpacity = FMath::Clamp(oldOpacity + increment, -0.01f, 1.0f);
 
 	if (oldOpacity != newOpacity)
-		Camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, newOpacity);
+		Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, newOpacity);
 	else
 		SetActorTickEnabled(false);
 }
@@ -320,7 +320,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 	FTimerHandle crystalTimer;
 	GetWorld()->GetTimerManager().SetTimer(crystalTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::ShowRaidCrystal, false, FVector(0.0f, 0.0f, -1000.0f)), 0.1f * count, false);
 
-	for (ASpecial* building : Camera->Grid->SpecialBuildings) {
+	for (ASpecial* building : Grid->SpecialBuildings) {
 		if (!building->IsA<ACloneLab>())
 			continue;
 

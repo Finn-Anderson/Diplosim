@@ -641,7 +641,7 @@ void ABuilding::InitialiseCapacityStruct()
 
 bool ABuilding::AddCitizen(ACitizen* Citizen)
 {
-	if (GetCapacity() <= Occupied.Num() || !bOperate)
+	if (GetCapacity() <= GetOccupied().Num() || !bOperate)
 		return false;
 
 	if (Camera->InfoUIInstance->IsInViewport())
@@ -818,7 +818,8 @@ TArray<ACitizen*> ABuilding::GetOccupied()
 	TArray<ACitizen*> citizens;
 
 	for (FCapacityStruct& capacityStruct : Occupied)
-		citizens.Add(capacityStruct.Citizen);
+		if (IsValid(capacityStruct.Citizen))
+			citizens.Add(capacityStruct.Citizen);
 
 	return citizens;
 }
@@ -828,7 +829,7 @@ TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()
 	TArray<ACitizen*> citizens;
 
 	for (ACitizen* citizen : GetOccupied()) {
-		if (!IsValid(citizen) || citizen->BuildingComponent->BuildingAt != this)
+		if (citizen->BuildingComponent->BuildingAt != this)
 			continue;
 
 		citizens.Add(citizen);

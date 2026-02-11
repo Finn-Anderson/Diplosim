@@ -237,7 +237,7 @@ FFactionStruct UConquestManager::GetFactionFromActor(AActor* Actor)
 
 bool UConquestManager::DoesFactionContainActor(FString FactionName, AActor* Actor)
 {
-	if (Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->FactionName == "")
+	if (Actor->IsA<ABuilding>() && (Cast<ABuilding>(Actor)->FactionName == "" || Camera->ConstructionManager->IsFactionConstructingBuilding(FactionName, Cast<ABuilding>(Actor))))
 		return true;
 
 	FFactionStruct faction = GetFactionFromName(FactionName);

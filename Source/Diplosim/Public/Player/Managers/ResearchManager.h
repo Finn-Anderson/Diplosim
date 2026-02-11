@@ -17,7 +17,7 @@ protected:
 	void ReadJSONFile(FString Path);
 
 public:	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Research")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Research")
 		TArray<FResearchStruct> InitResearchStruct;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Research")
@@ -57,6 +57,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetResearchLevel(int32 Index, FString FactionName);
+
+	UFUNCTION(BlueprintCallable)
+		UTexture2D* GetResearchTexture(int32 Index);
 
 	UFUNCTION(BlueprintCallable)
 		void SetResearch(int32 Index, FString FactionName);

@@ -177,34 +177,12 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 
 void ATrader::SetNewOrder(FQueueStruct Order)
 {
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
-
-	if (Order.bLimit) {
-		for (FItemStruct &item : Order.SellingItems) {
-			int32 Amount = Camera->ResourceManager->GetResourceAmount(faction->Name, item.Resource);
-
-			if (Amount <= item.Amount)
-				continue;
-
-			item.Amount = Amount - item.Amount;
-		}
-
-		for (FItemStruct &item : Order.BuyingItems) {
-			int32 Amount = Camera->ResourceManager->GetResourceAmount(faction->Name, item.Resource);
-
-			if (Amount >= item.Amount)
-				continue;
-
-			item.Amount = Amount - item.Amount;
-		}
-	}
-	
 	Orders.Add(Order);
 
-	UResourceManager* rm = Camera->ResourceManager;
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	for (FItemStruct items : Order.SellingItems)
-		rm->AddCommittedResource(faction, items.Resource, items.Amount);
+		Camera->ResourceManager->AddCommittedResource(faction, items.Resource, items.Amount);
 
 	if (Orders.Num() != 1)
 		return;
