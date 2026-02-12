@@ -510,9 +510,6 @@ void ACamera::ClearPopupUI()
 {
 	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance };
 
-	if (widgets.Contains(HoveredWidget))
-		widgets.Remove(HoveredWidget);
-
 	for (UUserWidget* widget : widgets) {
 		if (!widget->IsInViewport())
 			continue;
@@ -564,6 +561,16 @@ void ACamera::SetGameSpeed(float Speed)
 		else if (CustomTimeDilation <= 1.0f)
 			SetTimeDilation(GameSpeed);
 	}
+}
+
+float ACamera::GetGameSpeed()
+{
+	float speed = GameSpeed;
+
+	if (CustomTimeDilation == 1.0f / 0.0001f)
+		speed = 0.0f;
+
+	return speed;
 }
 
 void ACamera::SetTimeDilation(float Dilation)

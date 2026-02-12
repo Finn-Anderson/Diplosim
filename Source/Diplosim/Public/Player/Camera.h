@@ -454,6 +454,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetGameSpeed(float Speed);
 
+	UFUNCTION(BlueprintCallable)
+		float GetGameSpeed();
+
 	void SetTimeDilation(float Dilation);
 
 	UFUNCTION(BlueprintCallable)
