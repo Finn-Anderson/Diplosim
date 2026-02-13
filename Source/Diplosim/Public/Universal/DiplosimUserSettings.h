@@ -97,6 +97,12 @@ protected:
 	UPROPERTY(Config)
 		int32 AutosaveTimer;
 
+	UPROPERTY(Config)
+		int32 CitizenNum;
+
+	UPROPERTY(Config)
+		float WarningSpeed;
+
 public:
 	UFUNCTION(BlueprintCallable)
 		static UDiplosimUserSettings* GetDiplosimUserSettings();
@@ -283,6 +289,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Accessibility")
 		int32 GetAutosaveTimer() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AI")
+		void SetCitizenNum(int32 Value);
+
+	UFUNCTION(BlueprintPure, Category = "AI")
+		int32 GetCitizenNum() const;
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+		void SetWarningSpeed(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "UI")
+		float GetWarningSpeed() const;
 
 	void UpdateAmbientVolume();
 

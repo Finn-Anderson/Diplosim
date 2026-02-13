@@ -27,6 +27,7 @@
 UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bEnemies = true;
+	CitizenNum = 1000;
 
 	bSmoothCamera = true;
 
@@ -68,6 +69,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	UIScale = 1.0f;
 	AutosaveTimer = 30;
+	WarningSpeed = 1.0f;
 
 	Atmosphere = nullptr;
 	Clouds = nullptr;
@@ -179,6 +181,10 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetShowLog(value.ToBool());
 	else if (FString("AutosaveTimer").Equals(Key))
 		SetAutosaveTimer(FCString::Atoi(Value));
+	else if (FString("CitizenNum").Equals(Key))
+		SetCitizenNum(FCString::Atoi(Value));
+	else if (FString("WarningSpeed").Equals(Key))
+		SetWarningSpeed(FCString::Atof(Value));
 }
 
 void UDiplosimUserSettings::LoadIniSettings()
@@ -238,6 +244,8 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetFloat(*Section, TEXT("UIScale"), GetUIScale(), Filename);
 	GConfig->SetBool(*Section, TEXT("bShowLog"), GetShowLog(), Filename);
 	GConfig->SetInt(*Section, TEXT("AutosaveTimer"), GetAutosaveTimer(), Filename);
+	GConfig->SetInt(*Section, TEXT("CitizenNum"), GetCitizenNum(), Filename);
+	GConfig->SetFloat(*Section, TEXT("WarningSpeed"), GetWarningSpeed(), Filename);
 
 	GConfig->Flush(false, Filename);
 }
@@ -739,6 +747,26 @@ void UDiplosimUserSettings::SetAutosaveTimer(int32 Value)
 int32 UDiplosimUserSettings::GetAutosaveTimer() const
 {
 	return AutosaveTimer;
+}
+
+void UDiplosimUserSettings::SetCitizenNum(int32 Value)
+{
+	CitizenNum = Value;
+}
+
+int32 UDiplosimUserSettings::GetCitizenNum() const
+{
+	return CitizenNum;
+}
+
+void UDiplosimUserSettings::SetWarningSpeed(float Value)
+{
+	WarningSpeed = Value;
+}
+
+float UDiplosimUserSettings::GetWarningSpeed() const
+{
+	return WarningSpeed;
 }
 
 void UDiplosimUserSettings::UpdateAmbientVolume()

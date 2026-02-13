@@ -255,8 +255,6 @@ void UCitizenManager::CalculateGoalInteractions()
 
 							b->Enter(citizen);
 						}
-
-						citizen->AIController->StopMovement();
 					});
 				}
 			}
@@ -626,8 +624,8 @@ void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACiti
 	Citizen2->HappinessComponent->SetDecayingHappiness(&Citizen2->HappinessComponent->ConversationHappiness, happinessValue);
 
 	if (!Citizen1->AttackComponent->IsComponentTickEnabled()) {
-		Citizen1->AIController->DefaultAction();
-		Citizen2->AIController->DefaultAction();
+		Citizen1->AIController->StartMovement();
+		Citizen2->AIController->StartMovement();
 	}
 }
 

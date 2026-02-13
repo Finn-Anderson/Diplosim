@@ -485,8 +485,6 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(Resource, params);
 	Camera->TimerManager->CreateTimer("Harvest", this, time, "HarvestResource", params, false, true);
-
-	AIController->StopMovement();
 }
 
 void ACitizen::HarvestResource(AResource* Resource)

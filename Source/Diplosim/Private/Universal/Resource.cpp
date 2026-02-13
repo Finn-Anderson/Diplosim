@@ -87,15 +87,20 @@ void AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
 
 AResource* AResource::GetHarvestedResource()
 {
+	if (!IsValid(Camera)) {
+		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		Camera = PController->GetPawn<ACamera>();
+	}
+
 	int32 chance = Camera->Stream.RandRange(1, 100);
 
 	if (SpecialResource != nullptr && chance > 99)
 		return Cast<AResource>(SpecialResource->GetDefaultObject());
 
-	if (DroppedResource == nullptr)
-		return this;
+	if (DroppedResource != nullptr)
+		return Cast<AResource>(DroppedResource->GetDefaultObject());
 
-	return Cast<AResource>(DroppedResource->GetDefaultObject());
+	return this;
 }
 
 TArray<TSubclassOf<class AResource>> AResource::GetParentResources()

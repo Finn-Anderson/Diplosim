@@ -659,8 +659,12 @@ FVector ACamera::GetTargetActorLocation(AActor* Actor)
 {
 	FVector location = Actor->GetActorLocation();
 
-	if (Actor->IsA<AAI>())
+	if (Actor->IsA<AAI>()) {
 		location = Cast<AAI>(Actor)->MovementComponent->Transform.GetLocation();
+
+		if (Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt))
+			location = Cast<ACitizen>(Actor)->BuildingComponent->EnterLocation;
+	}
 
 	return location;
 }

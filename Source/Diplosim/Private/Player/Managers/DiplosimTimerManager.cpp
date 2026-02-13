@@ -146,6 +146,16 @@ void UDiplosimTimerManager::ResetTimer(FString ID, AActor* Actor)
 	timer->Timer = 0;
 }
 
+void UDiplosimTimerManager::PauseTimer(FString ID, AActor* Actor, bool bPause)
+{
+	FTimerStruct* timer = FindTimer(ID, Actor);
+
+	if (timer == nullptr)
+		return;
+
+	timer->bPaused = bPause;
+}
+
 void UDiplosimTimerManager::UpdateTimerLength(FString ID, AActor* Actor, int32 NewTarget)
 {
 	FTimerStruct* timer = FindTimer(ID, Actor);

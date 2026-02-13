@@ -501,13 +501,14 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 	FCollisionQueryParams params;
 	params.AddIgnoredActor(Citizen);
 
-	FResourceStruct resourceStruct;
-	resourceStruct.Type = Resource->GetClass();
+	FLinearColor colour;
+	for (FResourceStruct resourceStruct : Citizen->Camera->ResourceManager->ResourceList) {
+		if (!Resource->IsA(resourceStruct.Type))
+			continue;
 
-	int32 index = Citizen->Camera->ResourceManager->ResourceList.Find(resourceStruct);
-	FString category = Citizen->Camera->ResourceManager->ResourceList[index].Category;
-
-	FLinearColor colour = *HarvestVisuals.Find(category);
+		FString category = resourceStruct.Category;
+		colour = *HarvestVisuals.Find(category);
+	}
 
 	if (Resource->IsA<AMineral>())
 		sound = Citizen->Mines[Citizen->Camera->Stream.RandRange(0, Citizen->Mines.Num() - 1)];
@@ -630,7 +631,7 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 	FVector position = FVector::Zero();
 	FRotator rotation = FRotator::ZeroRotator;
 
-	FTransform transform;
+	FTransform transform = FTransform();
 
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
@@ -757,6 +758,7 @@ FTransform UAIVisualiser::GetHatTransform(ACitizen* Citizen)
 {
 	FTransform transform = Citizen->MovementComponent->Transform + GetAnimationPoint(Citizen);
 	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, HISMCitizen->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2.0f));
+	transform.SetScale3D(transform.GetScale3D() * FVector(0.5f));
 	transform.NormalizeRotation();
 
 	return transform;
@@ -821,6 +823,12 @@ void UAIVisualiser::UpdateHatsTransforms(ACamera* Camera)
 
 				FTransform transform = GetHatTransform(hat.Citizens[i]);
 				SetInstanceTransform(hat.HISMHat, i, transform);
+
+				float opacity = 1.0f;
+				if (IsValid(hat.Citizens[i]->BuildingComponent->BuildingAt))
+					opacity = 0.0f;
+
+				UpdateInstanceCustomData(hat.HISMHat, i, 1, opacity);
 			}
 
 			if (hat.HISMHat->bIsOutOfDate)

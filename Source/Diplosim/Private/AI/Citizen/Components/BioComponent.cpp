@@ -13,6 +13,7 @@
 #include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Universal/HealthComponent.h"
+#include "Universal/DiplosimUserSettings.h"
 
 UBioComponent::UBioComponent()
 {
@@ -297,7 +298,7 @@ void UBioComponent::HaveChild()
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
-	if (!IsValid(citizen->BuildingComponent->House) || Children.Num() >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Child Policy"))
+	if (!IsValid(citizen->BuildingComponent->House) || Children.Num() >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Child Policy") || faction->Citizens.Num() >= citizen->Camera->Settings->GetCitizenNum())
 		return;
 
 	ACitizen* occupant = nullptr;

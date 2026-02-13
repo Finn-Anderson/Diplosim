@@ -59,7 +59,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 		return;
 
 	AResource* resource = nullptr;
-	int32 instance = -1;
+	int32 instance = INDEX_NONE;
 
 	for (auto& element : GetValidResources()) {
 		for (int32 inst : element.Value) {
@@ -94,7 +94,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 		}
 	}
 
-	if (instance != -1) {
+	if (instance != INDEX_NONE) {
 		resource->AddWorker(Citizen, instance);
 
 		FTransform transform;

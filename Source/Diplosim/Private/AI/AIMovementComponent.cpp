@@ -43,7 +43,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		bSetPoints = false;
 	}
 
-	if (Points.IsEmpty() || AI->HealthComponent->GetHealth() == 0)
+	if (Points.IsEmpty() || AI->HealthComponent->GetHealth() == 0 || CurrentAnim.Type != EAnim::Move)
 		return;
 
 	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);
@@ -180,7 +180,7 @@ void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 	if (!VectorPoints.IsEmpty())
 		AI->AIController->StartMovement();
 	else if (CurrentAnim.Type == EAnim::Move)
-		SetAnimation(EAnim::Still);
+		AI->AIController->StopMovement();
 
 	TempPoints = VectorPoints;
 	bSetPoints = true;
