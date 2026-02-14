@@ -925,6 +925,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 	
 	Citizen->BuildingComponent->BuildingAt = this;
 	Citizen->BuildingComponent->EnterLocation = Citizen->MovementComponent->Transform.GetLocation();
+	Citizen->AIController->StopMovement();
 
 	SetSocketLocation(Citizen);
 

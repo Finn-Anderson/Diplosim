@@ -10,7 +10,8 @@ struct FTimerParameterStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	UObject* Object;
+	UPROPERTY()
+		UObject* Object;
 
 	UPROPERTY()
 		FString ObjectName;
@@ -25,7 +26,7 @@ struct FTimerParameterStruct
 		FLinearColor Colour;
 
 	UPROPERTY()
-	bool bStatus;
+		bool bStatus;
 
 	UPROPERTY()
 		FFactionStruct Faction;

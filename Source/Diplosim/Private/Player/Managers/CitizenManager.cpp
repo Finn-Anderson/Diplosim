@@ -250,7 +250,7 @@ void UCitizenManager::CalculateGoalInteractions()
 
 							citizen->StartHarvestTimer(r);
 						}
-						else if (actor->IsA<ABuilding>()) {
+						else if (actor->IsA<ABuilding>() && citizen->BuildingComponent->BuildingAt != actor) {
 							ABuilding* b = Cast<ABuilding>(actor);
 
 							b->Enter(citizen);

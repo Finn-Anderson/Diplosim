@@ -477,6 +477,8 @@ void ACitizen::GainEnergy()
 //
 void ACitizen::StartHarvestTimer(AResource* Resource)
 {
+	AIController->StopMovement();
+
 	float time = Camera->Stream.RandRange(6.0f, 10.0f);
 	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * GetProductivity());
 

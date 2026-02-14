@@ -269,6 +269,7 @@ void UDiplosimTimerManager::CallTimerFunction(FTimerStruct* Timer)
 		SET_TYPE(ACamera*);
 		SET_TYPE(ABuilding*);
 		SET_TYPE(ACitizen*);
+		SET_TYPE(AResource*);
 
 		// Objects
 		SET_TYPE(USoundBase*);
@@ -295,7 +296,7 @@ void UDiplosimTimerManager::CallTimerFunction(FTimerStruct* Timer)
 	const bool bHasReturnParam = objFunc.Value->ReturnValueOffset != MAX_uint16;
 	uint8* ReturnValueAddress = bHasReturnParam ? (buffer + objFunc.Value->ReturnValueOffset) : nullptr;
 
-	objFunc.Value->Invoke(objFunc.Key, stack, nullptr);
+	objFunc.Value->Invoke(objFunc.Key, stack, ReturnValueAddress);
 
 	Timer->bDone = true;
 }

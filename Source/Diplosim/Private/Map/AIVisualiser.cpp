@@ -444,6 +444,13 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 	if (instanceData.Transform == Transform.ToMatrixWithScale())
 		return;
 
+	if (HISM == HISMCitizen) {
+		int32 value = Instance * HISM->NumCustomDataFloats + 8;
+		float pitch = HISM->PerInstanceSMCustomData[value];
+		FRotator rotation = Transform.GetRotation().Rotator() + FRotator(pitch, 0.0f, 0.0f);
+		Transform.SetRotation(rotation.Quaternion());
+	}
+
 	instanceData.Transform = Transform.ToMatrixWithScale();
 
 	HISM->bIsOutOfDate = true;
@@ -659,7 +666,7 @@ void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 	UpdateInstanceCustomData(info.Key, info.Value, 5, Transform.GetLocation().X);
 	UpdateInstanceCustomData(info.Key, info.Value, 6, Transform.GetLocation().Y);
 	UpdateInstanceCustomData(info.Key, info.Value, 7, Transform.GetLocation().Z);
-	UpdateInstanceCustomData(info.Key, info.Value, 8, Transform.GetRotation().Rotator().Pitch / 360.0f);
+	UpdateInstanceCustomData(info.Key, info.Value, 8, Transform.GetRotation().Rotator().Pitch);
 }
 
 TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction, FVector Location)
@@ -756,10 +763,15 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 //
 FTransform UAIVisualiser::GetHatTransform(ACitizen* Citizen)
 {
-	FTransform transform = Citizen->MovementComponent->Transform + GetAnimationPoint(Citizen);
-	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, HISMCitizen->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2.0f));
-	transform.SetScale3D(transform.GetScale3D() * FVector(0.5f));
-	transform.NormalizeRotation();
+	FTransform animTransform = GetAnimationPoint(Citizen);
+	FTransform transform = Citizen->MovementComponent->Transform;
+
+	FVector location = transform.GetLocation() + animTransform.GetLocation();
+	transform.SetLocation(location);
+
+	FRotator rotation = transform.GetRotation().Rotator() + animTransform.GetRotation().Rotator();
+	rotation.Normalize();
+	transform.SetRotation(rotation.Quaternion());
 
 	return transform;
 }
@@ -837,16 +849,25 @@ void UAIVisualiser::UpdateHatsTransforms(ACamera* Camera)
 	});
 }
 
-bool UAIVisualiser::DoesCitizenHaveHat(ACitizen* Citizen)
+FHatsStruct* UAIVisualiser::GetCitizenHat(ACitizen* Citizen)
 {
+	FHatsStruct* hatStruct = nullptr;
+
 	for (FHatsStruct& hat : HISMHats) {
 		if (!hat.Citizens.Contains(Citizen))
 			continue;
 
-		return true;
+		hatStruct = &hat;
+
+		break;
 	}
 
-	return false;
+	return hatStruct;
+}
+
+bool UAIVisualiser::DoesCitizenHaveHat(ACitizen* Citizen)
+{
+	return GetCitizenHat(Citizen) != nullptr;
 }
 
 void UAIVisualiser::ToggleOfficerLights(ACitizen* Citizen, float Value)

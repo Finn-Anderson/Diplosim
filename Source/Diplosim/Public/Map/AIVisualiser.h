@@ -257,6 +257,8 @@ private:
 
 	void UpdateHatsTransforms(ACamera* Camera);
 
+	FHatsStruct* GetCitizenHat(ACitizen* Citizen);
+
 	FCriticalSection CitizenMovementLock;
 	FCriticalSection CitizenMovementLock1;
 	FCriticalSection CitizenMovementLock2;

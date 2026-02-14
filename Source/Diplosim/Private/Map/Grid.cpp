@@ -1461,7 +1461,7 @@ void AGrid::SpawnAISpawners()
 
 		FTransform transform = GetTransform(ResourceTiles[index]);
 
-		AAISpawner* nest = GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, transform.GetLocation(), transform.Rotator());
+		AAISpawner* nest = GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, transform);
 		nest->SpawnAI();
 
 		ResourceTiles.RemoveAt(index);

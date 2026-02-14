@@ -87,11 +87,6 @@ void AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
 
 AResource* AResource::GetHarvestedResource()
 {
-	if (!IsValid(Camera)) {
-		APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		Camera = PController->GetPawn<ACamera>();
-	}
-
 	int32 chance = Camera->Stream.RandRange(1, 100);
 
 	if (SpecialResource != nullptr && chance > 99)

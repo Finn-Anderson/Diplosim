@@ -444,7 +444,6 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	MoveRequest.SetLocation(navLoc.Location);
 
 	TArray<FVector> points = GetPathPoints(Camera->GetTargetActorLocation(AI), MoveRequest.GetLocation());
-
 	AI->MovementComponent->SetPoints(points);
 
 	SetFocus(Actor);
@@ -483,7 +482,7 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 
 void ADiplosimAIController::StartMovement()
 {
-	if (!AI->MovementComponent->Points.IsEmpty())
+	if (!IsValid(AI))
 		return;
 	
 	AI->MovementComponent->SetAnimation(EAnim::Move, true, 6.0f);
