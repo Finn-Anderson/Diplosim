@@ -18,7 +18,6 @@ enum class EAsyncLoop : uint8
 	Fighting,
 	CitizenMovement,
 	AIMovement,
-	Hats,
 	BuildingDeath,
 	BuildingRotation,
 	Faction

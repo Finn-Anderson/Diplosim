@@ -156,6 +156,8 @@ public:
 
 	void RemoveTimer(FString ID, AActor* Actor);
 
+	void RemoveAllTimers(AActor* Actor);
+
 	void ResetTimer(FString ID, AActor* Actor);
 
 	void PauseTimer(FString ID, AActor* Actor, bool bPause);

@@ -195,22 +195,24 @@ struct FConditionStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		int32 Spreadability;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		int32 Level;
+	UPROPERTY()
+		float AcquiredTime;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-		int32 DeathLevel;
+		int32 DeathTime;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		TArray<FAffectStruct> Affects;
+
+
 
 	FConditionStruct()
 	{
 		Name = "";
 		Grade = EGrade::Mild;
 		Spreadability = 0;
-		Level = 0;
-		DeathLevel = -1;
+		AcquiredTime = 0.0f;
+		DeathTime = -1;
 	}
 
 	bool operator==(const FConditionStruct& other) const

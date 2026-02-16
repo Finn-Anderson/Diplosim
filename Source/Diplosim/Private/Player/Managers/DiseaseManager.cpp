@@ -64,10 +64,8 @@ void UDiseaseManager::ReadJSONFile(FString path)
 						condition.Grade = EGrade(index);
 					else if (v.Key == "Spreadability")
 						condition.Spreadability = index;
-					else if (v.Key == "Level")
-						condition.Level = index;
 					else
-						condition.DeathLevel = index;
+						condition.DeathTime = index;
 				}
 			}
 
@@ -111,12 +109,9 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen))
 					continue;
 
-				for (FConditionStruct& condition : citizen->HealthIssues) {
-					condition.Level++;
-
-					if (condition.Level == condition.DeathLevel)
+				for (FConditionStruct& condition : citizen->HealthIssues)
+					if (condition.AcquiredTime + condition.DeathTime <= GetWorld()->GetTimeSeconds())
 						citizen->HealthComponent->TakeHealth(1000, citizen);
-				}
 
 				if (citizen->HealthComponent->GetHealth() <= 0 || (!Infected.Contains(citizen) && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsA<AClinic>())))
 					continue;
@@ -151,7 +146,7 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 							int32 chance = Camera->Stream.RandRange(1, 100);
 
 							if (chance <= condition.Spreadability) {
-								c->HealthIssues.Add(condition);
+								GiveCondition(c, condition);
 
 								bInfected = true;
 
@@ -170,6 +165,12 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 	});
 }
 
+void UDiseaseManager::GiveCondition(ACitizen* Citizen, FConditionStruct Condition)
+{
+	Condition.AcquiredTime = GetWorld()->GetTimeSeconds();
+	Citizen->HealthIssues.Add(Condition);
+}
+
 void UDiseaseManager::StartDiseaseTimer(ACamera* Camera)
 {
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
@@ -186,7 +187,7 @@ void UDiseaseManager::SpawnDisease(ACamera* Camera)
 	ACitizen* citizen = Infectible[index];
 
 	index = Camera->Stream.RandRange(0, Diseases.Num() - 1);
-	citizen->HealthIssues.Add(Diseases[index]);
+	GiveCondition(citizen, Diseases[index]);
 
 	Camera->NotifyLog("Bad", citizen->BioComponent->Name + " is infected with " + Diseases[index].Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
 
@@ -201,7 +202,7 @@ void UDiseaseManager::Infect(ACitizen* Citizen)
 		Infected.Add(Citizen);
 
 		UpdateHealthText(Citizen);
-		});
+	});
 }
 
 void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
@@ -216,8 +217,11 @@ void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
 	for (FConditionStruct condition : Citizen->HealthIssues)
 		conditions.Remove(condition);
 
+	if (conditions.IsEmpty())
+		return;
+
 	index = Citizen->Camera->Stream.RandRange(0, conditions.Num() - 1);
-	Citizen->HealthIssues.Add(conditions[index]);
+	GiveCondition(Citizen, Diseases[index]);
 
 	for (FAffectStruct affect : conditions[index].Affects) {
 		if (affect.Affect == EAffect::Movement)

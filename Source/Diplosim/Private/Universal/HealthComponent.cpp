@@ -126,6 +126,7 @@ void UHealthComponent::RemoveDamageOverlay()
 void UHealthComponent::Death(AActor* Attacker)
 {
 	AActor* actor = GetOwner();
+	Camera->TimerManager->RemoveAllTimers(actor);
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", actor);
 
@@ -142,11 +143,9 @@ void UHealthComponent::Death(AActor* Attacker)
 
 	if (actor->IsA<AAI>()) {
 		UAttackComponent* attackComp = actor->GetComponentByClass<UAttackComponent>();
-
 		attackComp->ClearAttacks();
 
 		Cast<AAI>(actor)->AIController->StopMovement();
-		Camera->TimerManager->RemoveTimer("Idle", actor);
 
 		Camera->TimerManager->CreateTimer("Decay", GetOwner(), 6.0f, "Clear", {}, false, true);
 
@@ -157,8 +156,8 @@ void UHealthComponent::Death(AActor* Attacker)
 
 			citizen->MovementComponent->SetAnimation(EAnim::Death);
 
-			if (IsValid(Attacker))
-				Camera->NotifyLog("Bad", citizen->BioComponent->Name + " has died", Camera->ConquestManager->GetCitizenFaction(citizen).Name);
+			if (faction->Name == Camera->ColonyName)
+				Camera->NotifyLog("Bad", citizen->BioComponent->Name + " has died", faction->Name);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {

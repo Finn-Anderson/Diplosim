@@ -233,9 +233,6 @@ public:
 
 	void ToggleOfficerLights(ACitizen* Citizen, float Value);
 
-	UPROPERTY()
-		int32 hatsNum;
-
 private:
 	void CalculateCitizenMovement(class ACamera* Camera);
 
@@ -255,7 +252,7 @@ private:
 
 	FTransform GetHatTransform(ACitizen* Citizen);
 
-	void UpdateHatsTransforms(ACamera* Camera);
+	void UpdateHatTransform(class ACitizen* Citizen);
 
 	FHatsStruct* GetCitizenHat(ACitizen* Citizen);
 
@@ -268,6 +265,4 @@ private:
 	FCriticalSection BuildingDeathLock;
 
 	FCriticalSection BuildingRotationLock;
-
-	FCriticalSection HatLock;
 };

@@ -297,7 +297,7 @@ void ACamera::Tick(float DeltaTime)
 
 		MouseHitLocation = hit.Location;
 
-		if (hit.GetComponent() == Grid->HISMSea || (hit.GetActor() != Grid && !hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsA<AEggBasket>()))
+		if (!hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsA<AEggBasket>() && !hit.GetActor()->IsA<AResource>() && !hit.GetActor()->IsA<AAISpawner>())
 			return; 
 		
 		TArray<AAI*> ais;
@@ -309,6 +309,7 @@ void ACamera::Tick(float DeltaTime)
 		}
 
 		ais.Append(GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies);
+		ais.Append(GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Snakes);
 
 		FVector chosenLocation = FVector(1000000000000000.0f);
 
@@ -335,7 +336,7 @@ void ACamera::Tick(float DeltaTime)
 			chosenLocation = aiLoc;
 		}
 
-		if ((hit.GetActor()->IsA<ABuilding>() || hit.GetActor()->IsA<AEggBasket>()) && FVector::Dist(mouseLoc, chosenLocation) > FVector::Dist(mouseLoc, hit.Location)) {
+		if (FVector::Dist(mouseLoc, chosenLocation) > FVector::Dist(mouseLoc, hit.Location)) {
 			HoveredActor.Actor = actor;
 			HoveredActor.Component = hit.GetComponent();
 			HoveredActor.Instance = hit.Item;

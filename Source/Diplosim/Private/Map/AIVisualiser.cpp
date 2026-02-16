@@ -78,8 +78,6 @@ UAIVisualiser::UAIVisualiser()
 	HatsContainer = CreateDefaultSubobject<USceneComponent>(TEXT("HatsContainer"));
 	HatsContainer->SetupAttachment(AIContainer);
 
-	hatsNum = 0;
-
 	HarvestVisuals.Add("Wood", FLinearColor(0.270498f, 0.158961f, 0.07036f));
 	HarvestVisuals.Add("Stone", FLinearColor(0.571125f, 0.590619f, 0.64448f));
 	HarvestVisuals.Add("Marble", FLinearColor(0.768151f, 0.73791f, 0.610496f));
@@ -157,7 +155,6 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 		PendingChange.Empty();
 
 	CalculateCitizenMovement(Camera);
-	UpdateHatsTransforms(Camera);
 
 	CalculateAIMovement(Camera);
 
@@ -234,6 +231,8 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 							UpdateInstanceCustomData(HISMCitizen, j, 14, opacity);
 
+							UpdateHatTransform(citizen);
+
 							hism = HISMCitizen;
 						}
 						else
@@ -246,8 +245,13 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						UpdateArmyVisuals(Camera, citizen);
 					}
 
-					if (i == 0 && HISMCitizen->bIsOutOfDate)
+					if (i == 0 && HISMCitizen->bIsOutOfDate) {
 						Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMCitizen->BuildTreeIfOutdated(false, false); });
+
+						for (FHatsStruct& hat : HISMHats)
+							if (hat.HISMHat->bIsOutOfDate)
+								Async(EAsyncExecution::TaskGraphMainTick, [this, hat]() { hat.HISMHat->BuildTreeIfOutdated(false, false); });
+					}
 					else if (HISMRebel->bIsOutOfDate)
 						Async(EAsyncExecution::TaskGraphMainTick, [this]() { HISMRebel->BuildTreeIfOutdated(false, false); });
 				}
@@ -441,15 +445,15 @@ void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshCompone
 {
 	FInstancedStaticMeshInstanceData& instanceData = HISM->PerInstanceSMData[Instance];
 
-	if (instanceData.Transform == Transform.ToMatrixWithScale())
-		return;
-
 	if (HISM == HISMCitizen) {
 		int32 value = Instance * HISM->NumCustomDataFloats + 8;
 		float pitch = HISM->PerInstanceSMCustomData[value];
 		FRotator rotation = Transform.GetRotation().Rotator() + FRotator(pitch, 0.0f, 0.0f);
 		Transform.SetRotation(rotation.Quaternion());
 	}
+
+	if (instanceData.Transform == Transform.ToMatrixWithScale())
+		return;
 
 	instanceData.Transform = Transform.ToMatrixWithScale();
 
@@ -508,7 +512,7 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 	FCollisionQueryParams params;
 	params.AddIgnoredActor(Citizen);
 
-	FLinearColor colour;
+	FLinearColor colour = FLinearColor();
 	for (FResourceStruct resourceStruct : Citizen->Camera->ResourceManager->ResourceList) {
 		if (!Resource->IsA(resourceStruct.Type))
 			continue;
@@ -766,7 +770,7 @@ FTransform UAIVisualiser::GetHatTransform(ACitizen* Citizen)
 	FTransform animTransform = GetAnimationPoint(Citizen);
 	FTransform transform = Citizen->MovementComponent->Transform;
 
-	FVector location = transform.GetLocation() + animTransform.GetLocation();
+	FVector location = transform.GetLocation() + animTransform.GetLocation() + FVector(1.0f, 1.0f, 0.0f);
 	transform.SetLocation(location);
 
 	FRotator rotation = transform.GetRotation().Rotator() + animTransform.GetRotation().Rotator();
@@ -774,6 +778,24 @@ FTransform UAIVisualiser::GetHatTransform(ACitizen* Citizen)
 	transform.SetRotation(rotation.Quaternion());
 
 	return transform;
+}
+
+void UAIVisualiser::UpdateHatTransform(ACitizen* Citizen)
+{
+	FHatsStruct* hatStruct = GetCitizenHat(Citizen);
+
+	if (hatStruct != nullptr) {
+		int32 index = hatStruct->Citizens.Find(Citizen);
+
+		FTransform transform = GetHatTransform(Citizen);
+		SetInstanceTransform(hatStruct->HISMHat, index, transform);
+
+		float opacity = 1.0f;
+		if (IsValid(Citizen->BuildingComponent->BuildingAt))
+			opacity = 0.0f;
+
+		UpdateInstanceCustomData(hatStruct->HISMHat, index, 1, opacity);
+	}
 }
 
 void UAIVisualiser::AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh)
@@ -785,8 +807,6 @@ void UAIVisualiser::AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh)
 		hat.Citizens.Add(Citizen);
 		hat.HISMHat->AddInstance(GetHatTransform(Citizen));
 
-		hatsNum++;
-
 		break;
 	}
 }
@@ -794,59 +814,16 @@ void UAIVisualiser::AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh)
 void UAIVisualiser::RemoveCitizenFromHISMHat(ACitizen* Citizen)
 {
 	for (FHatsStruct& hat : HISMHats) {
-		if (!hat.Citizens.Contains(Citizen))
+		int32 index = hat.Citizens.Find(Citizen);
+
+		if (index == INDEX_NONE)
 			continue;
 
-		hat.Citizens.Remove(Citizen);
-
-		hatsNum--;
+		hat.Citizens.RemoveAt(index);
+		hat.HISMHat->RemoveInstance(index);
 
 		break;
 	}
-}
-
-void UAIVisualiser::UpdateHatsTransforms(ACamera* Camera)
-{
-	if (hatsNum == 0) {
-		if (Camera->SaveGameComponent->IsLoading())
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Hats);
-
-		return;
-	}
-
-	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
-		FScopeTryLock lock(&HatLock);
-		if (!lock.IsLocked())
-			return;
-
-		if (Camera->SaveGameComponent->IsLoading()) {
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Hats);
-
-			return;
-		}
-
-		for (FHatsStruct& hat : HISMHats) {
-			if (hat.Citizens.IsEmpty())
-				continue;
-
-			for (int32 i = 0; i < hat.Citizens.Num(); i++) {
-				if (Camera->SaveGameComponent->IsLoading())
-					return;
-
-				FTransform transform = GetHatTransform(hat.Citizens[i]);
-				SetInstanceTransform(hat.HISMHat, i, transform);
-
-				float opacity = 1.0f;
-				if (IsValid(hat.Citizens[i]->BuildingComponent->BuildingAt))
-					opacity = 0.0f;
-
-				UpdateInstanceCustomData(hat.HISMHat, i, 1, opacity);
-			}
-
-			if (hat.HISMHat->bIsOutOfDate)
-				Async(EAsyncExecution::TaskGraphMainTick, [this, hat]() { hat.HISMHat->BuildTreeIfOutdated(false, false); });
-		}
-	});
 }
 
 FHatsStruct* UAIVisualiser::GetCitizenHat(ACitizen* Citizen)

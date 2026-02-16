@@ -443,7 +443,9 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(400.0f, 400.0f, 40.0f));
 	MoveRequest.SetLocation(navLoc.Location);
 
-	TArray<FVector> points = GetPathPoints(Camera->GetTargetActorLocation(AI), MoveRequest.GetLocation());
+	nav->ProjectPointToNavigation(Camera->GetTargetActorLocation(AI), navLoc, FVector(400.0f, 400.0f, 40.0f));
+
+	TArray<FVector> points = GetPathPoints(navLoc.Location, MoveRequest.GetLocation());
 	AI->MovementComponent->SetPoints(points);
 
 	SetFocus(Actor);

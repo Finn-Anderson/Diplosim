@@ -97,7 +97,7 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 
 	FVector location = Camera->GetTargetActorLocation(Actor);
 
-	if (Actor->IsA<AGrid>()) {
+	if (Actor->IsA<AResource>()) {
 		FTransform transform;
 		Cast<UHierarchicalInstancedStaticMeshComponent>(Component)->GetInstanceTransform(Instance, transform);
 
@@ -108,10 +108,10 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 
 	float z = 0.0f;
 
-	if (Actor->IsA<ABuilding>())
-		z = Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-	else
+	if (Actor->IsA<UHierarchicalInstancedStaticMeshComponent>())
 		z = Cast<UHierarchicalInstancedStaticMeshComponent>(Component)->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	else
+		z = Actor->GetComponentByClass<UStaticMeshComponent>()->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
 	FVector widgetLocation = location;
 	if (Actor->IsA<ATrader>() && !Camera->BuildComponent->Buildings.Contains(Actor))

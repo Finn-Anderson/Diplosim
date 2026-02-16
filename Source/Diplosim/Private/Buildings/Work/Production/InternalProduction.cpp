@@ -80,9 +80,11 @@ void AInternalProduction::Production(ACitizen* Citizen)
 			Camera->ResourceManager->AddUniversalResource(Camera->ConquestManager->GetFaction(FactionName), resources[0], yield);
 		}
 		else {
-			GetCitizensAtBuilding()[0]->Carry(resources[0]->GetDefaultObject<AResource>(), yield, this);
+			TArray<ACitizen*> workers = GetCitizensAtBuilding();
+			int32 index = Camera->Stream.RandRange(0, workers.Num());
 
-			StoreResource(GetCitizensAtBuilding()[0]);
+			workers[index]->Carry(resources[0]->GetDefaultObject<AResource>(), yield, this);
+			StoreResource(workers[index]);
 		}
 	}
 

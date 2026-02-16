@@ -15,6 +15,8 @@ public:
 
 	void CalculateDisease(class ACamera* Camera);
 
+	void GiveCondition(class ACitizen* Citizen, FConditionStruct Condition);
+
 	void StartDiseaseTimer(class ACamera* Camera);
 
 	UFUNCTION()

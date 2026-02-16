@@ -265,17 +265,6 @@ void AWork::SetEmergency(bool bStatus)
 
 void AWork::Production(ACitizen* Citizen)
 {
-	TArray<ACitizen*> citizens = GetCitizensAtBuilding();
-
-	for (ACitizen* citizen : citizens) {
-		int32 chance = Camera->Stream.RandRange(1, 100);
-
-		if (chance > 98)
-			continue;
-
-		citizen->HealthComponent->TakeHealth(5, this);
-	}
-
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 	for (ABuilding* building : faction->Buildings) {

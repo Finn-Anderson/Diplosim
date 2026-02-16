@@ -512,10 +512,9 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 
 		cm->RemoveBuilding(this);
 	}
-	else {
+	else
 		for (FItemStruct items : CostList)
 			rm->AddUniversalResource(faction, items.Resource, items.Stored / 2.0f);
-	}
 
 	if (IsA(Camera->BuildComponent->FoundationClass)) {
 		FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorLocation());
@@ -1138,6 +1137,13 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			break;
 		}
 	}
+	
+	int32 chance = Camera->Stream.RandRange(1, 200);
+
+	if (chance > 199)
+		return;
+
+	Citizen->HealthComponent->TakeHealth(5, this);
 }
 
 void ABuilding::AddToBasket(TSubclassOf<AResource> Resource, int32 Amount)
