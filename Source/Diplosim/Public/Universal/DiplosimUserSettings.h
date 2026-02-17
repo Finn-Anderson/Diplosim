@@ -101,7 +101,7 @@ protected:
 		int32 CitizenNum;
 
 	UPROPERTY(Config)
-		float WarningSpeed;
+		float PopupUISpeed;
 
 public:
 	UFUNCTION(BlueprintCallable)
@@ -297,10 +297,10 @@ public:
 		int32 GetCitizenNum() const;
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
-		void SetWarningSpeed(float Value);
+		void SetPopupUISpeed(float Value);
 
 	UFUNCTION(BlueprintPure, Category = "UI")
-		float GetWarningSpeed() const;
+		float GetPopupUISpeed() const;
 
 	void UpdateAmbientVolume();
 

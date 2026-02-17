@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "InputMappingContext.h"
 #include "Components/WidgetComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DecalComponent.h"
@@ -115,13 +116,9 @@ ACamera::ACamera()
 
 	Smites = 0;
 
-	bStartMenu = true;
-
 	Start = true;
 
 	bQuick = false;
-
-	bInMenu = true;
 
 	bLost = false;
 
@@ -131,17 +128,13 @@ ACamera::ACamera()
 
 	FocusedCitizen = nullptr;
 
-	bMouseCapture = true;
-
 	bBlockPause = false;
-
-	bWasClosingWindow = false;
 
 	GameSpeed = 1.0f;
 	ResetGameSpeedCounter();
 
 	WikiURL = FPaths::ProjectDir() + "/Content/Custom/Wiki/index.html";
-	HoveredWidget = nullptr;
+	bMouseCapture = true;
 
 	PController = nullptr;
 	Settings = nullptr;
@@ -179,12 +172,12 @@ void ACamera::BeginPlay()
 
 	ConquestManager->CreatePlayerFaction();
 
-	SetMouseCapture(false);
-
 	GetWorld()->bIsCameraMoveableWhenPaused = false;
 
 	FModifyContextOptions options;
 	options.bNotifyUserSettings = true;
+
+	SetMouseCapture(false);
 
 	UEnhancedInputLocalPlayerSubsystem* inputSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PController->GetLocalPlayer());
 	inputSystem->AddMappingContext(MouseInputMapping, 0, options);
@@ -275,12 +268,12 @@ void ACamera::Tick(float DeltaTime)
 	if (bMouseCapture)
 		PController->SetMouseLocation(MousePosition.X, MousePosition.Y);
 
-	FHitResult hit(ForceInit);
+	HoveredActor.Reset();
 
-	if (MainMenuUIInstance->IsInViewport() || BuildComponent->IsComponentTickEnabled() || ParliamentUIInstance->IsInViewport() || InfoUIInstance->IsInViewport() || DiplomacyUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport())
+	if (IsUIHoveredOver() || BuildComponent->IsComponentTickEnabled())
 		return;
 
-	HoveredActor.Reset();
+	FHitResult hit(ForceInit);
 
 	if (bBulldoze)
 		PController->CurrentMouseCursor = EMouseCursor::CardinalCross;
@@ -297,7 +290,7 @@ void ACamera::Tick(float DeltaTime)
 
 		MouseHitLocation = hit.Location;
 
-		if (!hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsA<AEggBasket>() && !hit.GetActor()->IsA<AResource>() && !hit.GetActor()->IsA<AAISpawner>())
+		if (!hit.GetActor()->IsA<AGrid>() && !hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsA<AEggBasket>() && !hit.GetActor()->IsA<AResource>() && !hit.GetActor()->IsA<AAISpawner>())
 			return; 
 		
 		TArray<AAI*> ais;
@@ -336,13 +329,13 @@ void ACamera::Tick(float DeltaTime)
 			chosenLocation = aiLoc;
 		}
 
-		if (FVector::Dist(mouseLoc, chosenLocation) > FVector::Dist(mouseLoc, hit.Location)) {
+		if (!hit.GetActor()->IsA<AGrid>() && FVector::Dist(mouseLoc, chosenLocation) > FVector::Dist(mouseLoc, hit.Location)) {
 			HoveredActor.Actor = actor;
 			HoveredActor.Component = hit.GetComponent();
 			HoveredActor.Instance = hit.Item;
 		}
 
-		if (hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>() && HoveredActor.Actor == nullptr)
+		if (HoveredActor.Actor == nullptr)
 			return;
 
 		if (!bBulldoze)
@@ -350,52 +343,9 @@ void ACamera::Tick(float DeltaTime)
 	}
 }
 
-void ACamera::SetMouseCapture(bool bCapture, bool bUI, bool bOverwrite)
-{
-	UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport(); 
-	UEnhancedInputLocalPlayerSubsystem* inputSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PController->GetLocalPlayer());
-
-	if (bUI) {
-		FInputModeGameAndUI inputMode;
-		inputMode.SetHideCursorDuringCapture(false);
-		PController->SetInputMode(inputMode);
-
-		GameViewportClient->SetMouseCaptureMode(EMouseCaptureMode::NoCapture);
-		inputSystem->RemoveMappingContext(MouseInputMapping);
-
-		PController->FlushPressedKeys();
-
-		bCapture = false;
-	}
-	else if (!inputSystem->HasMappingContext(MouseInputMapping))
-		inputSystem->AddMappingContext(MouseInputMapping, 0);
-
-	if (bMouseCapture == bCapture && !bOverwrite)
-		return;
-
-	bMouseCapture = bCapture;
-	PController->SetShowMouseCursor(!bCapture);
-
-	if (bCapture) {
-		FInputModeGameOnly inputMode;
-		inputMode.SetConsumeCaptureMouseDown(bCapture);
-		PController->SetInputMode(inputMode);
-
-		GetWorld()->GetGameViewport()->GetMousePosition(MousePosition);
-	}
-	else {
-		FInputModeGameAndUI inputMode;
-		inputMode.SetHideCursorDuringCapture(bCapture);
-		PController->SetInputMode(inputMode);
-	}
-}
-
 void ACamera::StartGame()
 {
 	BuildComponent->SpawnBuilding(StartBuilding, ColonyName);
-
-	bStartMenu = false;
-	bInMenu = false;
 
 	Grid->MapUIInstance->AddToViewport();
 }
@@ -507,9 +457,49 @@ void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Type, Message, IslandName]() { DisplayNotifyLog(Type, Message, IslandName); });
 }
 
-void ACamera::ClearPopupUI()
+void ACamera::SetMouseCapture(bool bCapture)
 {
-	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance };
+	if (bMouseCapture == bCapture)
+		return;
+
+	if (bCapture) {
+		FInputModeGameOnly inputMode;
+		inputMode.SetConsumeCaptureMouseDown(bCapture);
+		PController->SetInputMode(inputMode);
+
+		GetWorld()->GetGameViewport()->GetMousePosition(MousePosition);
+	}
+	else {
+		FInputModeGameAndUI inputMode;
+		inputMode.SetHideCursorDuringCapture(bCapture);
+		PController->SetInputMode(inputMode);
+
+		PController->FlushPressedKeys();
+	}
+
+	PController->SetShowMouseCursor(!bCapture);
+
+	bMouseCapture = bCapture;
+}
+
+bool ACamera::IsUIHoveredOver()
+{
+	TArray<UUserWidget*> widgets = { Grid->LoadUIInstance, Grid->MapUIInstance, MainMenuUIInstance, BuildUIInstance, MenuUIInstance, LostUIInstance, SettingsUIInstance, SaveLoadGameUIInstance, WikiUIInstance, ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, DiplomacyNotifyUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, ArmyEditorUIInstance, WidgetComponent->GetWidget() };
+	
+	for (UUserWidget* widget : widgets) {
+		if (!widget->IsHovered())
+			continue;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool ACamera::ClearPopupUI()
+{
+	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, ArmyEditorUIInstance };
+	bool bWasClosingWidget = false;
 
 	for (UUserWidget* widget : widgets) {
 		if (!widget->IsInViewport())
@@ -517,13 +507,15 @@ void ACamera::ClearPopupUI()
 
 		widget->RemoveFromParent();
 
-		bWasClosingWindow = true;
+		bWasClosingWidget = true;
 	}
+
+	return bWasClosingWidget;
 }
 
 void ACamera::SetPause(bool bPause, bool bAlterViewport)
 {
-	if (bInMenu && PauseUIInstance->IsInViewport())
+	if (!bPause && !bAlterViewport && PauseUIInstance->IsInViewport())
 		return;
 	
 	float timeDilation = 0.0001f;
@@ -771,16 +763,8 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport())
+	if (IsUIHoveredOver() || ClearPopupUI() || bBulldoze)
 		return;
-
-	ClearPopupUI();
-	
-	if (bWasClosingWindow || bInMenu || ParliamentUIInstance->IsInViewport() || InfoUIInstance->IsInViewport() || DiplomacyUIInstance->IsInViewport() || ResearchUIInstance->IsInViewport() || bBulldoze) {
-		bWasClosingWindow = false;
-
-		return;
-	}
 
 	if (BuildComponent->IsComponentTickEnabled()) {
 		if ((bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)) {
@@ -815,7 +799,7 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 
 void ACamera::Bulldoze()
 {
-	if (Grid->LoadUIInstance->IsInViewport() || !bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy)
+	if (IsUIHoveredOver() || !bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy)
 		return;
 
 	PlayInteractSound(BuildComponent->PlaceSound);
@@ -825,7 +809,7 @@ void ACamera::Bulldoze()
 
 void ACamera::Cancel()
 {
-	if (Grid->LoadUIInstance->IsInViewport() || Start || bInMenu)
+	if (IsUIHoveredOver() || Start)
 		return;
 
 	if (bBulldoze)
@@ -841,7 +825,7 @@ void ACamera::Cancel()
 
 void ACamera::NewMap()
 {
-	if (Grid->LoadUIInstance->IsInViewport() || !Start || bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || !Start || MainMenuUIInstance->IsInViewport() || MenuUIInstance->IsInViewport())
 		return;
 
 	SetMouseCapture(false);
@@ -854,7 +838,7 @@ void ACamera::NewMap()
 
 void ACamera::Pause()
 {
-	if (Grid->LoadUIInstance->IsInViewport() || bInMenu || bBlockPause)
+	if (Grid->LoadUIInstance->IsInViewport() || MainMenuUIInstance->IsInViewport() || MenuUIInstance->IsInViewport() || bBlockPause)
 		return;
 
 	if (PauseUIInstance->IsInViewport())
@@ -876,9 +860,6 @@ void ACamera::Menu()
 		BuildingColourUIInstance->RemoveFromParent();
 		HoursUIInstance->RemoveFromParent();
 		RentUIInstance->RemoveFromParent();
-
-		if (HoveredWidget == BuildingColourUIInstance || HoveredWidget == HoursUIInstance || HoveredWidget == RentUIInstance)
-			SetMouseCapture(bMouseCapture, false, true);
 
 		return;
 	}
@@ -906,37 +887,29 @@ void ACamera::Menu()
 		return;
 	}
 
-	if (bInMenu) {
-		if (SettingsUIInstance->IsInViewport())
-			Settings->SaveIniSettings();
+	if (SettingsUIInstance->IsInViewport() || WikiUIInstance->IsInViewport() || SaveLoadGameUIInstance->IsInViewport()) {
+		if (SettingsUIInstance->IsInViewport()) {
+			if (SettingsUIInstance->IsInViewport())
+				Settings->SaveIniSettings();
+
+			SettingsUIInstance->RemoveFromParent();
+		}
 
 		SettingsUIInstance->RemoveFromParent();
 		WikiUIInstance->RemoveFromParent();
 		SaveLoadGameUIInstance->RemoveFromParent();
 
-		if (bStartMenu) {
-			MainMenuUIInstance->AddToViewport();
-
-			return;
-		}
-		if (!MenuUIInstance->IsInViewport()) {
-			MenuUIInstance->AddToViewport();
-
-			return;
-		}
-
-		MenuUIInstance->RemoveFromParent();
-
-		SetPause(false, false);
-
-		bInMenu = false;
-	}
-	else {
 		MenuUIInstance->AddToViewport();
+	}
+	else if (MenuUIInstance->IsInViewport()) { 
+		MenuUIInstance->RemoveFromParent();
 
 		SetMouseCapture(false);
 
-		bInMenu = true;
+		SetPause(false, false);
+	}
+	else {
+		MenuUIInstance->AddToViewport();
 
 		SetPause(true, false);
 	}
@@ -944,7 +917,7 @@ void ACamera::Menu()
 
 void ACamera::Rotate(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport())
 		return;
 
 	BuildComponent->RotateBuilding(Instance.GetValue().Get<bool>());
@@ -952,7 +925,7 @@ void ACamera::Rotate(const struct FInputActionInstance& Instance)
 
 void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport() || (bInMenu && !bMouseCapture))
+	if (IsUIHoveredOver() || Grid->LoadUIInstance->IsInViewport() || MainMenuUIInstance->IsInViewport() || MenuUIInstance->IsInViewport())
 		return;
 
 	if (((bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)))
@@ -963,15 +936,12 @@ void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 
 void ACamera::Look(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
-		return;
-
 	MovementComponent->Look(Instance);
 }
 
 void ACamera::Move(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || MainMenuUIInstance->IsInViewport() || MenuUIInstance->IsInViewport())
 		return;
 
 	Detach();
@@ -981,7 +951,7 @@ void ACamera::Move(const struct FInputActionInstance& Instance)
 
 void ACamera::Speed(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || MainMenuUIInstance->IsInViewport() || MenuUIInstance->IsInViewport())
 		return;
 
 	MovementComponent->Speed(Instance);
@@ -991,7 +961,7 @@ void ACamera::Speed(const struct FInputActionInstance& Instance)
 
 void ACamera::Scroll(const struct FInputActionInstance& Instance)
 {
-	if (Grid->LoadUIInstance->IsInViewport() || bInMenu)
+	if (Grid->LoadUIInstance->IsInViewport() || MainMenuUIInstance->IsInViewport() || MenuUIInstance->IsInViewport())
 		return;
 
 	MovementComponent->Scroll(Instance);
@@ -1001,7 +971,7 @@ void ACamera::IncrementGameSpeed(const struct FInputActionInstance& Instance)
 {	
 	GameSpeedCounter++;
 	
-	if (Start || bInMenu || GameSpeedCounter < 50)
+	if (Start || Grid->LoadUIInstance->IsInViewport() || MainMenuUIInstance->IsInViewport() || MenuUIInstance->IsInViewport() || GameSpeedCounter < 50)
 		return;
 
 	GameSpeedCounter = 0;
@@ -1020,7 +990,7 @@ void ACamera::DirectSetGameSpeed(const FInputActionInstance& Instance)
 {
 	float value = Instance.GetValue().Get<float>();
 
-	if (GameSpeed == value)
+	if (GameSpeed == value || Grid->LoadUIInstance->IsInViewport() || MainMenuUIInstance->IsInViewport() || MenuUIInstance->IsInViewport())
 		return;
 
 	SetGameSpeed(value);

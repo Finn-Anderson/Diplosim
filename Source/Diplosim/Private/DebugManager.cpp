@@ -26,9 +26,6 @@ void UDebugManager::SpawnEnemies()
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
-	if (camera->bInMenu)
-		return;
-
 	bInstantEnemies = true;
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
@@ -59,18 +56,12 @@ void UDebugManager::ChangeSeasonAffect(FString Season)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
-	if (camera->bInMenu)
-		return;
-
 	camera->Grid->AtmosphereComponent->SetSeasonAffect(Season, 0.02f);
 }
 
 void UDebugManager::CompleteResearch()
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
-
-	if (camera->bInMenu)
-		return;
 
 	camera->ResearchManager->Research(100000000000.0f, camera->ColonyName);
 }
@@ -79,18 +70,12 @@ void UDebugManager::TurnOnInstantBuild(bool Value)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
-	if (camera->bInMenu)
-		return;
-
 	bInstantBuildCheat = Value;
 }
 
 void UDebugManager::SpawnCitizen(int32 Amount, bool bAdult)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
-
-	if (camera->bInMenu)
-		return;
 
 	FFactionStruct* faction = camera->ConquestManager->GetFaction(camera->ColonyName);
 
@@ -114,9 +99,6 @@ void UDebugManager::SpawnCitizen(int32 Amount, bool bAdult)
 void UDebugManager::SetEvent(FString Type, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring, bool bFireFestival)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
-
-	if (camera->bInMenu)
-		return;
 
 	EEventType type;
 	TSubclassOf<ABuilding> building = nullptr;

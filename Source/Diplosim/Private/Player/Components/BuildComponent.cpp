@@ -59,7 +59,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		return;
 	
 	FScopeTryLock lock(&BuildLock);
-	if (!lock.IsLocked() || DeltaTime > 1.0f || Buildings.IsEmpty() || Camera->bInMenu || Camera->bMouseCapture)
+	if (!lock.IsLocked() || DeltaTime > 1.0f || Buildings.IsEmpty() || Camera->IsUIHoveredOver() || Camera->bMouseCapture)
 		return;
 
 	FVector mouseLoc, mouseDirection;

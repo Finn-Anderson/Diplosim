@@ -69,7 +69,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	UIScale = 1.0f;
 	AutosaveTimer = 30;
-	WarningSpeed = 1.0f;
+	PopupUISpeed = 1.0f;
 
 	Atmosphere = nullptr;
 	Clouds = nullptr;
@@ -183,8 +183,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetAutosaveTimer(FCString::Atoi(Value));
 	else if (FString("CitizenNum").Equals(Key))
 		SetCitizenNum(FCString::Atoi(Value));
-	else if (FString("WarningSpeed").Equals(Key))
-		SetWarningSpeed(FCString::Atof(Value));
+	else if (FString("PopupUISpeed").Equals(Key))
+		SetPopupUISpeed(FCString::Atof(Value));
 }
 
 void UDiplosimUserSettings::LoadIniSettings()
@@ -245,7 +245,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bShowLog"), GetShowLog(), Filename);
 	GConfig->SetInt(*Section, TEXT("AutosaveTimer"), GetAutosaveTimer(), Filename);
 	GConfig->SetInt(*Section, TEXT("CitizenNum"), GetCitizenNum(), Filename);
-	GConfig->SetFloat(*Section, TEXT("WarningSpeed"), GetWarningSpeed(), Filename);
+	GConfig->SetFloat(*Section, TEXT("PopupUISpeed"), GetPopupUISpeed(), Filename);
 
 	GConfig->Flush(false, Filename);
 }
@@ -759,14 +759,14 @@ int32 UDiplosimUserSettings::GetCitizenNum() const
 	return CitizenNum;
 }
 
-void UDiplosimUserSettings::SetWarningSpeed(float Value)
+void UDiplosimUserSettings::SetPopupUISpeed(float Value)
 {
-	WarningSpeed = Value;
+	PopupUISpeed = Value;
 }
 
-float UDiplosimUserSettings::GetWarningSpeed() const
+float UDiplosimUserSettings::GetPopupUISpeed() const
 {
-	return WarningSpeed;
+	return PopupUISpeed;
 }
 
 void UDiplosimUserSettings::UpdateAmbientVolume()

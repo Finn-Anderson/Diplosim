@@ -218,9 +218,6 @@ public:
 		bool Start;
 
 	UPROPERTY()
-		bool bStartMenu;
-
-	UPROPERTY()
 		FRandomStream Stream;
 
 	UPROPERTY()
@@ -398,19 +395,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		FString WikiURL;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-		class UUserWidget* HoveredWidget;
-
-	UPROPERTY()
-		bool bInMenu;
-
 	UPROPERTY()
 		bool bLost;
 
 	UPROPERTY()
 		class ACitizen* FocusedCitizen;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	UPROPERTY()
 		bool bMouseCapture;
 
 	UPROPERTY()
@@ -424,12 +415,6 @@ public:
 
 	UPROPERTY()
 		float GameSpeed;
-
-	UPROPERTY()
-		bool bWasClosingWindow;
-
-	UFUNCTION(BlueprintCallable)
-		void SetMouseCapture(bool bCapture, bool bUI = false, bool bOverwrite = false);
 
 	UFUNCTION(BlueprintCallable)
 		void StartGame();
@@ -445,8 +430,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void NotifyLog(FString Type, FString Message, FString IslandName);
 
+	void SetMouseCapture(bool bCapture);
+
+	bool IsUIHoveredOver();
+
 	UFUNCTION(BlueprintCallable)
-		void ClearPopupUI();
+		bool ClearPopupUI();
 
 	UFUNCTION(BlueprintCallable)
 		void SetPause(bool bPause, bool bAlterViewport = true);

@@ -57,6 +57,7 @@ struct FPersonality
 	{
 		Trait = "";
 		Aggressiveness = 1.0f;
+		Morale = 1.0f;
 	}
 
 	bool operator==(const FPersonality& other) const

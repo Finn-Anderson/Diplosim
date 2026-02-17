@@ -43,6 +43,7 @@ bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 				continue;
 
 			workerStruct.Citizens.Remove(Citizen);
+			Camera->TimerManager->RemoveTimer("Harvest", Citizen);
 
 			return true;
 		}

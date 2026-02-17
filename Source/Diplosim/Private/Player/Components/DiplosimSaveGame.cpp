@@ -890,7 +890,6 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, AActor* Actor)
 	camera->ColonyName = ActorData.CameraData.ColonyName;
 
 	camera->Start = false;
-	camera->bStartMenu = false;
 	camera->Cancel();
 
 	camera->ClearPopupUI();

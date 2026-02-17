@@ -263,7 +263,7 @@ void UPoliticsManager::SelectNewLeader(FPartyStruct* Party)
 	Party->Members.Emplace(chosen, ESway::Radical);
 
 	if (Camera->InfoUIInstance->IsInViewport())
-		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, Party->Party);
+		Async(EAsyncExecution::TaskGraphMainTick, [this, Party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, Party->Party); });
 }
 
 void UPoliticsManager::StartElectionTimer(FFactionStruct* Faction)

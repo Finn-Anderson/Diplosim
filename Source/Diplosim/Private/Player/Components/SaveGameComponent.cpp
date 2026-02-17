@@ -61,7 +61,6 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index)
 {
-	Camera->bInMenu = false;
 	Camera->SetPause(false);
 
 	CurrentID = SlotName;
@@ -110,8 +109,6 @@ void USaveGameComponent::LoadSave()
 
 	Checklist.bLoad = false;
 	Camera->Grid->AIVisualiser->MainLoop(Camera);
-
-	Camera->SetMouseCapture(false, false, true);
 
 	Camera->SetCurrentResearchUI();
 

@@ -107,8 +107,6 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 	if (!IsValid(Citizen))
 		return;
 
-	MoveRequest.SetGoalActor(nullptr);
-
 	int32 chance = Camera->Stream.RandRange(0, 100);
 
 	int32 hoursLeft = Citizen->HoursSleptToday.Num();
@@ -131,6 +129,8 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 		Camera->TimerManager->CreateTimer("Idle", Citizen, time, "DefaultAction", {}, false);
 	}
+
+	MoveRequest.SetGoalActor(nullptr);
 }
 
 void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer)
@@ -463,23 +463,26 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 {
-	if (!IsValid(Actor) || !IsValid(AI))
+	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AResource>())
 		return;
 
 	FVector targetLoc = Camera->GetTargetActorLocation(Actor);
 	FVector currentLoc = Camera->GetTargetActorLocation(AI);
-	UStaticMeshComponent* mesh = Actor->GetComponentByClass<UStaticMeshComponent>();
 
 	if (!AI->MovementComponent->Points.IsEmpty())
 		currentLoc = AI->MovementComponent->Points.Last();
 
-	if (mesh)
-		mesh->GetClosestPointOnCollision(currentLoc, targetLoc);
+	if (Actor->IsA<ABuilding>()) {
+		UStaticMeshComponent* comp = Actor->GetComponentByClass<UStaticMeshComponent>();
+
+		if (comp && comp->DoesSocketExist("Entrance"))
+			targetLoc = comp->GetSocketLocation("Entrance");
+	}
 
 	if (FVector::Dist(currentLoc, targetLoc) < AI->Range)
 		return;
 
-	AIMoveTo(Actor, MoveRequest.GetLocation(), MoveRequest.GetGoalInstance());
+	AIMoveTo(Actor, FVector::Zero(), MoveRequest.GetGoalInstance());
 }
 
 void ADiplosimAIController::StartMovement()
