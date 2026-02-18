@@ -405,6 +405,9 @@ public:
 		bool bMouseCapture;
 
 	UPROPERTY()
+		bool bUI;
+
+	UPROPERTY()
 		FVector2D MousePosition;
 
 	UPROPERTY()
@@ -430,7 +433,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void NotifyLog(FString Type, FString Message, FString IslandName);
 
-	void SetMouseCapture(bool bCapture);
+	void SetMouseCapture(bool bCapture, bool bUIStatus);
 
 	bool IsUIHoveredOver();
 

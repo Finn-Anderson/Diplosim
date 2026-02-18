@@ -136,3 +136,15 @@ void UDebugManager::DamageActor(int32 Amount)
 	UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 	healthComp->TakeHealth(Amount, camera);
 }
+
+void UDebugManager::SetOnFire()
+{
+	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
+
+	AActor* actor = camera->WidgetComponent->GetAttachParentActor();
+
+	if (!actor->IsA<ABuilding>())
+		return;
+
+	camera->Grid->AtmosphereComponent->SetOnFire(camera);
+}

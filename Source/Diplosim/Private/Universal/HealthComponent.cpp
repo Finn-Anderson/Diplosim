@@ -366,6 +366,6 @@ void UHealthComponent::OnFire(int32 Counter)
 	if (Counter < 5) {
 		TArray<FTimerParameterStruct> params;
 		Camera->TimerManager->SetParameter(Counter++, params);
-		Camera->TimerManager->CreateTimer("OnFire", GetOwner(), 1.0f, "OnFire", params, false);
+		Camera->TimerManager->CreateTimer("OnFire", GetOwner(), 2.0f, "OnFire", params, false);
 	}
 }

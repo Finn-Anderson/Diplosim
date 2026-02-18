@@ -41,4 +41,7 @@ public:
 
 	UFUNCTION(Exec)
 		void DamageActor(int32 Amount);
+
+	UFUNCTION(Exec)
+		void SetOnFire();
 };

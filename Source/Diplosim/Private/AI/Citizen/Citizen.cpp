@@ -593,9 +593,8 @@ void ACitizen::SetPoliticalLeanings()
 			}
 		}
 
-		if (count > 0)
-			for (int32 i = 0; i < count; i++)
-				partyList.Add(p.Party);
+		for (int32 i = 0; i < count; i++)
+			partyList.Add(p.Party);
 	}
 
 	if (partyList.IsEmpty())
