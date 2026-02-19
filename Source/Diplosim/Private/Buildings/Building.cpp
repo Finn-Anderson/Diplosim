@@ -384,7 +384,7 @@ TArray<FItemStruct> ABuilding::GetRebuildCost()
 	TArray<FItemStruct> items = CostList;
 	
 	if (!IsA<ASpecial>())
-		for (FItemStruct& item : CostList)
+		for (FItemStruct& item : items)
 			item.Amount = FMath::CeilToInt(item.Amount / 3.0f);
 
 	return items;
@@ -411,6 +411,8 @@ void ABuilding::Rebuild(FString NewFactionName)
 
 	if (faction->RuinedBuildings.Contains(this))
 		faction->RuinedBuildings.Remove(this);
+
+	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	Build(true);
 
@@ -523,10 +525,8 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 			Camera->Grid->HISMRiver->PerInstanceSMCustomData[tile->Instance * 4] = 1.0f;
 	}
 
-	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
-
-	for (TSubclassOf<AResource> resource : resources)
-		rm->TakeLocalResource(resource, this, GetCapacity());
+	for (FItemStruct& item : Storage)
+		rm->TakeLocalResource(item.Resource, this, item.Amount);
 
 	for (ACitizen* citizen : GetOccupied()) {
 		if (!IsValid(citizen))
@@ -606,8 +606,6 @@ void ABuilding::OnBuilt()
 		BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 
 	Camera->ConstructionManager->RemoveBuilding(this);
-
-	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 	faction->Buildings.Add(this);
@@ -1143,7 +1141,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 	if (chance > 199)
 		return;
 
-	Citizen->HealthComponent->TakeHealth(5, this);
+	Citizen->HealthComponent->TakeHealth(25, this);
 }
 
 void ABuilding::AddToBasket(TSubclassOf<AResource> Resource, int32 Amount)

@@ -90,7 +90,7 @@ bool ABooster::DoesPromoteFavouringValues(ACitizen* Citizen)
 		FPartyStruct party;
 		party.Party = element.Value;
 
-		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName, Citizen);
 
 		bool bContainsParty = faction->Politics.Parties.Contains(party);
 

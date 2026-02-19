@@ -69,5 +69,5 @@ public:
 
 	// Fire
 	UFUNCTION()
-		void OnFire(int32 Counter = 0);
+		void OnFire();
 };

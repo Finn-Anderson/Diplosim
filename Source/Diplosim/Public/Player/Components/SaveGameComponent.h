@@ -116,5 +116,5 @@ public:
 	AActor* GetSaveActorFromName(TArray<FActorSaveData> SavedData, FString Name);
 
 	// Save Setup
-	void SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData CitizenData, bool bVisitor);
+	void SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData* CitizenData, bool bVisitor);
 };

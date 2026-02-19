@@ -257,9 +257,9 @@ AActor* USaveGameComponent::GetSaveActorFromName(TArray<FActorSaveData> SavedDat
 	return SavedData[i].Actor;
 }
 
-void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData CitizenData, bool bVisitor)
+void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData* CitizenData, bool bVisitor)
 {
-	ACitizen* citizen = Cast<ACitizen>(CitizenData.Actor);
+	ACitizen* citizen = Cast<ACitizen>(CitizenData->Actor);
 
 	if (Building->IsA<AHouse>())
 		citizen->BuildingComponent->House = Cast<AHouse>(Building);
@@ -270,9 +270,9 @@ void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* B
 	else
 		citizen->BuildingComponent->Employment = Cast<AWork>(Building);
 
-	if (CitizenData.AIData.BuildingAtName == BuildingName) {
+	if (CitizenData->AIData.BuildingAtName == BuildingName) {
 		Building->Enter(citizen);
 
-		citizen->BuildingComponent->EnterLocation = CitizenData.AIData.CitizenData.EnterLocation;
+		citizen->BuildingComponent->EnterLocation = CitizenData->AIData.CitizenData.EnterLocation;
 	}
 }

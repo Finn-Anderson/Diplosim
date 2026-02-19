@@ -491,6 +491,9 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 
 void ACitizen::HarvestResource(AResource* Resource)
 {
+	if (!IsValid(BuildingComponent->Employment))
+		return;
+
 	MovementComponent->SetAnimation(EAnim::Still);
 	
 	AResource* resource = Resource->GetHarvestedResource();

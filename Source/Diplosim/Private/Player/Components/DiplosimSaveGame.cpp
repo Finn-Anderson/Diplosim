@@ -726,7 +726,7 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 	for (AActor* a : actors)
 		a->Destroy();
 
-	TMap<FString, FActorSaveData> aiToName;
+	TMap<FString, FActorSaveData*> aiToName;
 	TArray<FWetnessData> wetnessData;
 
 	for (FActorSaveData& actorData : Saves[Index].SavedActors) {
@@ -950,13 +950,13 @@ void UDiplosimSaveGame::LoadGamemode(ADiplosimGameModeBase* Gamemode, FActorSave
 		Gamemode->SetActorTickEnabled(true);
 }
 
-void UDiplosimSaveGame::LoadAI(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData>& AIToName)
+void UDiplosimSaveGame::LoadAI(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName)
 {
 	AAI* ai = Cast<AAI>(Actor);
 
 	FAIData* data = &ActorData.AIData;
 
-	AIToName.Add(ActorData.Name, ActorData);
+	AIToName.Add(ActorData.Name, &ActorData);
 
 	UHierarchicalInstancedStaticMeshComponent* hism;
 
@@ -1054,10 +1054,11 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	}
 }
 
-void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData>& AIToName)
+void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName)
 {
 	ABuilding* building = Cast<ABuilding>(Actor);
 
+	building->ToggleDecalComponentVisibility(false);
 	building->BuildingMesh->SetCanEverAffectNavigation(true);
 	building->BuildingMesh->bReceivesDecals = true;
 
@@ -1089,20 +1090,21 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 
 	building->bOperate = ActorData.BuildingData.bOperate;
 
+	building->Occupied.Empty();
 	for (FCapacityData data : ActorData.BuildingData.OccupiedData) {
 		FCapacityStruct capacityStruct;
 
 		if (data.CitizenName != "") {
-			FActorSaveData aiData = *AIToName.Find(data.CitizenName);
+			FActorSaveData* aiData = *AIToName.Find(data.CitizenName);
 
 			Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, aiData, false);
 
-			capacityStruct.Citizen = Cast<ACitizen>(aiData.Actor);
+			capacityStruct.Citizen = Cast<ACitizen>(aiData->Actor);
 
 			for (FString name : data.VisitorNames) {
-				FActorSaveData visitorData = *AIToName.Find(name);
+				FActorSaveData* visitorData = *AIToName.Find(name);
 
-				capacityStruct.Visitors.Add(Cast<ACitizen>(visitorData.Actor));
+				capacityStruct.Visitors.Add(Cast<ACitizen>(visitorData->Actor));
 
 				Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, visitorData, true);
 			}

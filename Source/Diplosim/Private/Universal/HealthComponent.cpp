@@ -21,6 +21,7 @@
 #include "Buildings/Misc/Parliament.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/CitizenManager.h"
@@ -190,23 +191,33 @@ void UHealthComponent::Death(AActor* Attacker)
 			Camera->ParliamentUIInstance->RemoveFromParent();
 		}
 
+		UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(building);
+		if (fireComp) {
+			fireComp->Deactivate();
+
+			Camera->TimerManager->RemoveTimer("Fire", building);
+		}
+
 		if (Camera->InfoUIInstance->IsInViewport())
 			Camera->UpdateBuildingInfoDisplay(building, false);
 	}
 
 	if (DeathSystem != nullptr) {
-		actor->SetActorHiddenInGame(true);
-
 		FVector origin;
 		FVector extent;
 		actor->GetActorBounds(false, origin, extent);
-
-		origin = Camera->GetTargetActorLocation(actor);
-
-		UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DeathSystem, origin + (extent / 2));
+		extent.Z = 0.0f;
 
 		if (actor->IsA<AEnemy>())
+			origin = Camera->GetTargetActorLocation(actor);
+
+		UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DeathSystem, origin);
+
+		if (actor->IsA<AEnemy>()) {
+			actor->SetActorHiddenInGame(true);
+
 			deathComp->SetColorParameter("Colour", Cast<AEnemy>(actor)->Colour);
+		}
 		else if (actor->IsA<ABuilding>() || actor->IsA<AAISpawner>()) {
 			UStaticMeshComponent* mesh = actor->GetComponentByClass<UStaticMeshComponent>();
 			FVector dimensions = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
@@ -216,6 +227,9 @@ void UHealthComponent::Death(AActor* Attacker)
 
 			Camera->Grid->AIVisualiser->DestructingActors.Add(actor, GetWorld()->GetTimeSeconds());
 			UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, origin, 0.0f, 2000.0f, 1.0f);
+
+			if (Camera->WidgetComponent->GetAttachParentActor() == actor)
+				Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
 		}
 	}
 
@@ -354,18 +368,7 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 	}
 }
 
-void UHealthComponent::OnFire(int32 Counter)
+void UHealthComponent::OnFire()
 {
-	int32 amount = 50;
-
-	if (Counter > 0)
-		amount = 10;
-
-	TakeHealth(amount, GetOwner());
-
-	if (Counter < 5) {
-		TArray<FTimerParameterStruct> params;
-		Camera->TimerManager->SetParameter(Counter++, params);
-		Camera->TimerManager->CreateTimer("OnFire", GetOwner(), 2.0f, "OnFire", params, false);
-	}
+	TakeHealth(5, GetOwner());
 }

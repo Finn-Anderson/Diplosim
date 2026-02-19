@@ -1,8 +1,10 @@
 #include "Map/Resources/Vegetation.h"
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "NiagaraComponent.h"
 
 #include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 
@@ -19,14 +21,20 @@ AVegetation::AVegetation()
 
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
+	FTransform transform;
+	ResourceHISM->GetInstanceTransform(Instance, transform);
+
+	if (Yield == 0) {
+		UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(this, transform.GetLocation());
+		if (fireComp)
+			fireComp->Deactivate();
+	}
+
 	if (ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10] == 0.0f) {
 		Camera->Grid->RemoveTree(this, Instance);
 
 		return;
 	}
-
-	FTransform transform;
-	ResourceHISM->GetInstanceTransform(Instance, transform);
 	transform.SetScale3D(FVector(ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] / 10));
 
 	ResourceHISM->UpdateInstanceTransform(Instance, transform, false);

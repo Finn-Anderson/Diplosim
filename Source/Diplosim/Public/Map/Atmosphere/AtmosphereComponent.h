@@ -119,6 +119,8 @@ public:
 
 	void SetOnFire(AActor* Actor, int32 Index = -1);
 
+	UNiagaraComponent* GetFireComponent(AActor* Actor, FVector Location = FVector::Zero());
+
 	int32 GetTimeToCompleteDay();
 
 	// Seasons

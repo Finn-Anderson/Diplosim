@@ -406,7 +406,7 @@ void ACamera::Quit(bool bMenu)
 
 void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch)
 {
-	if (Sound == nullptr || MainMenuUIInstance->IsInViewport() || Grid->Storage.IsEmpty())
+	if (Sound == nullptr || Grid->Storage.IsEmpty())
 		return;
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this, AudioComponent, Sound, Pitch]() {
@@ -604,7 +604,7 @@ void ACamera::DisplayInteractOnAI(AAI* AI)
 
 void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 Instance)
 {
-	if (!IsValid(Actor))
+	if (!IsValid(Actor) || Grid->AIVisualiser->DestructingActors.Contains(Actor))
 		return;
 
 	if (!IsValid(Component))
@@ -822,7 +822,8 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 void ACamera::Bulldoze()
 {
 	if (!bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy) {
-		ShowWarning("Cannot bulldoze");
+		if (bBulldoze)
+			ShowWarning("Cannot bulldoze");
 
 		return;
 	}

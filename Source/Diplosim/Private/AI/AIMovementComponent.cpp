@@ -120,7 +120,7 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 
 		if (CurrentAnim.Alpha == 1.0f && (CurrentAnim.Type == EAnim::Melee || CurrentAnim.Type == EAnim::Throw)) {
 			if (CurrentAnim.Type == EAnim::Melee) {
-				if (Goal->IsA<AResource>())
+				if (IsValid(Goal) && Goal->IsA<AResource>())
 					AIVisualiser->SetHarvestVisuals(Cast<ACitizen>(AI), Cast<AResource>(Goal));
 				else
 					AI->AttackComponent->Melee();

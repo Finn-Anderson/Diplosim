@@ -146,5 +146,5 @@ void UDebugManager::SetOnFire()
 	if (!actor->IsA<ABuilding>())
 		return;
 
-	camera->Grid->AtmosphereComponent->SetOnFire(camera);
+	camera->Grid->AtmosphereComponent->SetOnFire(actor);
 }

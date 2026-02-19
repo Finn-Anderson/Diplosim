@@ -239,7 +239,8 @@ void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Index)
 		FTransform t;
 		vegetation->ResourceHISM->GetInstanceTransform(Index, t);
 
-		fire = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), FireSystem, t.GetLocation(), t.GetRotation().Rotator(), FVector(1.0f), true, false);
+		fire = UNiagaraFunctionLibrary::SpawnSystemAttached(FireSystem, Actor->GetRootComponent(), "", t.GetLocation(), t.GetRotation().Rotator(), EAttachLocation::SnapToTarget, true, false);
+		fire->SetWorldScale3D(t.GetScale3D());
 
 		mesh = vegetation->ResourceHISM->GetStaticMesh();
 
@@ -247,14 +248,16 @@ void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Index)
 	}
 	else if (healthComp) {
 		if (Actor->IsA<AAI>()) {
-			healthComp->TakeHealth(1000, GetOwner());
+			healthComp->TakeHealth(1000, Actor);
 		}
 		else {
 			fire = UNiagaraFunctionLibrary::SpawnSystemAttached(FireSystem, Actor->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
+			fire->SetVariableInt("Lifetime", FMath::CeilToInt(healthComp->GetHealth() / 5.0f));
 
 			mesh = Actor->GetComponentByClass<UStaticMeshComponent>()->GetStaticMesh();
 
-			healthComp->OnFire();
+			healthComp->TakeHealth(50.0f, Actor);
+			Grid->Camera->TimerManager->CreateTimer("OnFire", Actor, 5.0f, "OnFire", {}, true);
 		}
 	}
 
@@ -264,6 +267,40 @@ void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Index)
 
 		fire->Activate();
 	}
+}
+
+UNiagaraComponent* UAtmosphereComponent::GetFireComponent(AActor* Actor, FVector Location)
+{
+	UNiagaraComponent* fireComp = nullptr;
+
+	if (Actor->IsA<AVegetation>()) {
+		TArray<UNiagaraComponent*> components;
+		Actor->GetComponents<UNiagaraComponent>(components);
+
+		for (UNiagaraComponent* component : components) {
+			if (Location != component->GetRelativeLocation())
+				continue;
+
+			fireComp = component;
+
+			break;
+		}
+	}
+	else if (Grid->Camera->TimerManager->DoesTimerExist("OnFire", Actor)) {
+		TArray<UNiagaraComponent*> components;
+		Actor->GetComponents<UNiagaraComponent>(components);
+
+		for (UNiagaraComponent* component : components) {
+			if (component->GetAsset() != FireSystem)
+				continue;
+
+			fireComp = component;
+
+			break;
+		}
+	}
+
+	return fireComp;
 }
 
 int32 UAtmosphereComponent::GetTimeToCompleteDay()

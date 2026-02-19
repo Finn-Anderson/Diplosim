@@ -1298,10 +1298,10 @@ private:
 	void LoadFactions(FActorSaveData& ActorData, AActor* Actor);
 	void LoadGamemode(class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, AActor* Actor);
 
-	void LoadAI(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData>& AIToName);
+	void LoadAI(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName);
 	void LoadCitizen(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
 
-	void LoadBuilding(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData>& AIToName);
+	void LoadBuilding(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName);
 
 	void LoadProjectile(FActorSaveData& ActorData, AActor* Actor);
 
