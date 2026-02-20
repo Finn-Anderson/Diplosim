@@ -90,11 +90,11 @@ bool ABooster::DoesPromoteFavouringValues(ACitizen* Citizen)
 		FPartyStruct party;
 		party.Party = element.Value;
 
-		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName, Citizen);
+		FFactionStruct* faction = Citizen->Camera->ConquestManager->GetFaction(FactionName, Citizen);
 
 		bool bContainsParty = faction->Politics.Parties.Contains(party);
 
-		if ((!Camera->CitizenManager->Religions.Contains(religion) && !bContainsParty) || element.Value == Citizen->Spirituality.Faith || (bContainsParty && element.Value == Camera->PoliticsManager->GetMembersParty(Citizen)->Party))
+		if ((!Citizen->Camera->CitizenManager->Religions.Contains(religion) && !bContainsParty) || element.Value == Citizen->Spirituality.Faith || (bContainsParty && element.Value == Citizen->Camera->PoliticsManager->GetMembersParty(Citizen)->Party))
 			continue;
 
 		bFavouring = false;

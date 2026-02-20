@@ -165,7 +165,7 @@ public:
 	void UpdateTimerLength(FString ID, AActor* Actor, int32 NewTarget);
 
 	UFUNCTION(BlueprintCallable)
-		int32 GetElapsedTime(FString ID, AActor* Actor);
+		float GetElapsedTime(FString ID, AActor* Actor);
 
 	UFUNCTION(BlueprintCallable)
 		float GetElapsedPercentage(FString ID, AActor* Actor);

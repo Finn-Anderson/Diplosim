@@ -226,59 +226,79 @@ void UAtmosphereComponent::SetDisplayText(int32 Hour)
 	Grid->Camera->UpdateDayText();
 }
 
-void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Index)
+void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Instance, bool bLoad)
 {
 	UNiagaraComponent* fire = nullptr;
 	UStaticMesh* mesh = nullptr;
 
 	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
+	float time = 0.0f;
 
 	if (Actor->IsA<AVegetation>()) {
 		AVegetation* vegetation = Cast<AVegetation>(Actor);
 
 		FTransform t;
-		vegetation->ResourceHISM->GetInstanceTransform(Index, t);
+		vegetation->ResourceHISM->GetInstanceTransform(Instance, t);
 
 		fire = UNiagaraFunctionLibrary::SpawnSystemAttached(FireSystem, Actor->GetRootComponent(), "", t.GetLocation(), t.GetRotation().Rotator(), EAttachLocation::SnapToTarget, true, false);
 		fire->SetWorldScale3D(t.GetScale3D());
 
 		mesh = vegetation->ResourceHISM->GetStaticMesh();
 
-		vegetation->OnFire(Index);
+		time = vegetation->OnFire(Instance);
+		fire->SetVariableFloat("Opacity", vegetation->ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 1]);
+		fire->SetVariableFloat("Leaves", vegetation->ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10]);
 	}
 	else if (healthComp) {
 		if (Actor->IsA<AAI>()) {
 			healthComp->TakeHealth(1000, Actor);
 		}
 		else {
+			time = healthComp->GetHealth();
+
+			if (!bLoad) {
+				healthComp->TakeHealth(50.0f, Actor);
+
+				Grid->Camera->TimerManager->CreateTimer("OnFire", Actor, 5.0f, "OnFire", {}, true);
+			}
+			else
+				time -= Grid->Camera->TimerManager->GetElapsedTime("OnFire", Actor);
+
 			fire = UNiagaraFunctionLibrary::SpawnSystemAttached(FireSystem, Actor->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
-			fire->SetVariableInt("Lifetime", FMath::CeilToInt(healthComp->GetHealth() / 5.0f));
 
 			mesh = Actor->GetComponentByClass<UStaticMeshComponent>()->GetStaticMesh();
-
-			healthComp->TakeHealth(50.0f, Actor);
-			Grid->Camera->TimerManager->CreateTimer("OnFire", Actor, 5.0f, "OnFire", {}, true);
 		}
 	}
 
 	if (IsValid(fire)) {
 		UNiagaraFunctionLibrary::OverrideSystemUserVariableStaticMesh(fire, "Static Mesh", mesh);
 		fire->SetVariableStaticMesh("Fire Mesh", mesh);
+		fire->SetVariableFloat("Lifetime", time);
 
 		fire->Activate();
 	}
 }
 
-UNiagaraComponent* UAtmosphereComponent::GetFireComponent(AActor* Actor, FVector Location)
+UNiagaraComponent* UAtmosphereComponent::GetFireComponent(AActor* Actor, int32 Instance)
 {
 	UNiagaraComponent* fireComp = nullptr;
+
+	FString id = "OnFire";
+	if (Instance != INDEX_NONE)
+		id += FString::FromInt(Instance);
+
+	if (Grid->Camera->TimerManager->FindTimer(id, Actor) == nullptr)
+		return fireComp;
 
 	if (Actor->IsA<AVegetation>()) {
 		TArray<UNiagaraComponent*> components;
 		Actor->GetComponents<UNiagaraComponent>(components);
 
+		FTransform transform;
+		Cast<AVegetation>(Actor)->ResourceHISM->GetInstanceTransform(Instance, transform);
+
 		for (UNiagaraComponent* component : components) {
-			if (Location != component->GetRelativeLocation())
+			if (transform.GetLocation() != component->GetRelativeLocation())
 				continue;
 
 			fireComp = component;
@@ -286,7 +306,7 @@ UNiagaraComponent* UAtmosphereComponent::GetFireComponent(AActor* Actor, FVector
 			break;
 		}
 	}
-	else if (Grid->Camera->TimerManager->DoesTimerExist("OnFire", Actor)) {
+	else {
 		TArray<UNiagaraComponent*> components;
 		Actor->GetComponents<UNiagaraComponent>(components);
 

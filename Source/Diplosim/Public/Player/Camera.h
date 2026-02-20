@@ -21,13 +21,13 @@ struct FHoverStruct
 	FHoverStruct()
 	{
 		Reset();
+		Instance = -1;
 	}
 
 	void Reset()
 	{
 		Actor = nullptr;
 		Component = nullptr;
-		Instance = -1;
 	}
 };
 

@@ -77,5 +77,6 @@ public:
 
 	TArray<TSubclassOf<class AResource>> GetParentResources();
 
-	virtual void YieldStatus(int32 Instance, int32 Yield);
+	UFUNCTION()
+		virtual void YieldStatus(int32 Instance, int32 Yield);
 };

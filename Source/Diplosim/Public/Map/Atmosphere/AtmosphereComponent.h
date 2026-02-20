@@ -117,9 +117,9 @@ public:
 
 	void SetDisplayText(int32 Hour);
 
-	void SetOnFire(AActor* Actor, int32 Index = -1);
+	void SetOnFire(AActor* Actor, int32 Instance = INDEX_NONE, bool bLoad = false);
 
-	UNiagaraComponent* GetFireComponent(AActor* Actor, FVector Location = FVector::Zero());
+	UNiagaraComponent* GetFireComponent(AActor* Actor, int32 Instance = INDEX_NONE);
 
 	int32 GetTimeToCompleteDay();
 

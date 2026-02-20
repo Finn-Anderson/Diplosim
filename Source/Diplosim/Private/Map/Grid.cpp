@@ -3,6 +3,7 @@
 #include "Math/UnrealMathUtility.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Engine/StaticMeshSocket.h"
 #include "Blueprint/UserWidget.h"
 #include "NiagaraFunctionLibrary.h"
@@ -655,9 +656,6 @@ void AGrid::SpawnVegetation()
 				for (FTileStruct* tile : VegetationTiles)
 					ResourceTiles.Remove(tile);
 		}
-
-		for (FResourceHISMStruct ResourceStruct : element.Value)
-			ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
 	}
 
 	GenerateTiles();
@@ -1076,21 +1074,23 @@ void AGrid::GenerateTiles()
 
 						colour = FLinearColor(TreeColours[colourIndex]);
 
-						int32 dyingChance = Camera->Stream.RandRange(0, 100);
+						int32 dyingChance = Camera->Stream.RandRange(1, 100);
 
-						if (dyingChance == 100)
-							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
-						else
+						if (dyingChance >= 99)
 							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 0.0f;
+						else
+							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
 
 						element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 9] = transform.GetScale3D().Z;
 					}
+					else
+						element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
 
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = colour.R;
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = colour.G;
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = colour.B;
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = colour.B; 
 				}
 				else {
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
@@ -1279,6 +1279,15 @@ void AGrid::RemoveTree(AResource* Resource, int32 Instance)
 
 			break;
 		}
+	}
+
+	UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(Resource, Instance);
+	if (fireComp)
+		fireComp->Deactivate();
+
+	if (Camera->WidgetComponent->GetAttachParentActor() == Resource && Camera->AttachedTo.Instance == Instance) {
+		Camera->Detach();
+		Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
 	}
 	
 	Resource->ResourceHISM->RemoveInstance(Instance);

@@ -198,6 +198,9 @@ void ABuilding::SetLights(int32 Hour)
 void ABuilding::ToggleDecalComponentVisibility(bool bVisible)
 {
 	if (!IsValid(DecalComponent->GetDecalMaterial()) || Camera->ConstructionManager->IsBeingConstructed(this, nullptr))
+		bVisible = false;
+
+	if (DecalComponent->GetVisibleFlag() == bVisible)
 		return;
 
 	DecalComponent->SetVisibility(bVisible);

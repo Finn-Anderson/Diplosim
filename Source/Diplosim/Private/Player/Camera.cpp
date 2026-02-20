@@ -637,9 +637,8 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, USceneComponent* Co
 
 		MovementComponent->SetAttachedMovementLocation(Actor, Component, Instance);
 	}
-	else {
+	else
 		WidgetComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
-	}
 }
 
 void ACamera::Attach(AActor* Actor, USceneComponent* Component, int32 Instance)
@@ -925,7 +924,10 @@ void ACamera::Menu()
 		WikiUIInstance->RemoveFromParent();
 		SaveLoadGameUIInstance->RemoveFromParent();
 
-		MenuUIInstance->AddToViewport();
+		if (Start && !BuildComponent->IsComponentTickEnabled())
+			MainMenuUIInstance->AddToViewport();
+		else
+			MenuUIInstance->AddToViewport();
 	}
 	else if (MenuUIInstance->IsInViewport()) { 
 		MenuUIInstance->RemoveFromParent();
@@ -934,7 +936,7 @@ void ACamera::Menu()
 
 		SetPause(false, false);
 	}
-	else {
+	else if (!Start || (Start && BuildComponent->IsComponentTickEnabled())) {
 		MenuUIInstance->AddToViewport();
 
 		SetPause(true, false);

@@ -178,12 +178,12 @@ void UDiplosimTimerManager::UpdateTimerLength(FString ID, AActor* Actor, int32 N
 	timer->Target = NewTarget;
 }
 
-int32 UDiplosimTimerManager::GetElapsedTime(FString ID, AActor* Actor)
+float UDiplosimTimerManager::GetElapsedTime(FString ID, AActor* Actor)
 {
 	FTimerStruct* timer = FindTimer(ID, Actor);
 
 	if (timer == nullptr)
-		return 0;
+		return 0.0f;
 
 	return timer->Target - timer->Timer;
 }
@@ -236,9 +236,8 @@ TTuple<UObject*, UFunction*> UDiplosimTimerManager::GetFunction(FTimerStruct* Ti
 	}
 
 	UHealthComponent* healthComp = Timer->Actor->FindComponentByClass<UHealthComponent>();
-	if (healthComp) {
+	if (healthComp)
 		SET_OBJECT(healthComp);
-	}
 
 	if (Timer->Actor->IsA<AGrid>()) {
 		AGrid* grid = Cast<AGrid>(Timer->Actor);

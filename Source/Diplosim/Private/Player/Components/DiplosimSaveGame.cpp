@@ -82,7 +82,7 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 		if (actor->IsA<AGrid>())
 			SaveWorld(actorData, actor, potentialWetActors);
 		else if (actor->IsA<AResource>())
-			SaveResource(actorData, actor);
+			SaveResource(Camera, actorData, actor);
 		else if (actor->IsA<ACamera>()) {
 			SaveCamera(actorData, actor);
 
@@ -107,6 +107,9 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 			SaveProjectile(actorData, actor);
 		else if (actor->IsA<AAISpawner>())
 			SaveAISpawner(actorData, actor);
+
+		if (Camera->Grid->AtmosphereComponent->GetFireComponent(actor) != nullptr)
+			actorData.FireInstances.Add(INDEX_NONE);
 
 		SaveTimers(Camera, actorData, actor);
 
@@ -233,7 +236,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 	}
 }
 
-void UDiplosimSaveGame::SaveResource(FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::SaveResource(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
 {
 	AResource* resource = Cast<AResource>(Actor);
 
@@ -245,6 +248,9 @@ void UDiplosimSaveGame::SaveResource(FActorSaveData& ActorData, AActor* Actor)
 		resource->ResourceHISM->GetInstanceTransform(i, transform);
 
 		ActorData.ResourceData.HISMData.Transforms.Add(transform);
+
+		if (Camera->Grid->AtmosphereComponent->GetFireComponent(Actor, i) != nullptr)
+			ActorData.FireInstances.Add(i);
 	}
 
 	ActorData.ResourceData.HISMData.CustomDataValues = resource->ResourceHISM->PerInstanceSMCustomData;
@@ -771,6 +777,9 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 			LoadProjectile(actorData, actor);
 		else if (actor->IsA<AAISpawner>())
 			LoadAISpawner(actorData, actor);
+
+		for (int32 instance : actorData.FireInstances)
+			Camera->Grid->AtmosphereComponent->SetOnFire(actor, instance, true);
 
 		actorData.Actor = actor;
 	}

@@ -143,8 +143,5 @@ void UDebugManager::SetOnFire()
 
 	AActor* actor = camera->WidgetComponent->GetAttachParentActor();
 
-	if (!actor->IsA<ABuilding>())
-		return;
-
-	camera->Grid->AtmosphereComponent->SetOnFire(actor);
+	camera->Grid->AtmosphereComponent->SetOnFire(actor, camera->AttachedTo.Instance);
 }

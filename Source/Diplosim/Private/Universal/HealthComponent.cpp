@@ -127,7 +127,6 @@ void UHealthComponent::RemoveDamageOverlay()
 void UHealthComponent::Death(AActor* Attacker)
 {
 	AActor* actor = GetOwner();
-	Camera->TimerManager->RemoveAllTimers(actor);
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", actor);
 
@@ -191,25 +190,28 @@ void UHealthComponent::Death(AActor* Attacker)
 			Camera->ParliamentUIInstance->RemoveFromParent();
 		}
 
-		UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(building);
-		if (fireComp) {
-			fireComp->Deactivate();
-
-			Camera->TimerManager->RemoveTimer("Fire", building);
-		}
-
 		if (Camera->InfoUIInstance->IsInViewport())
 			Camera->UpdateBuildingInfoDisplay(building, false);
+	}
+
+	UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(actor);
+	if (fireComp) {
+		fireComp->Deactivate();
+
+		Camera->TimerManager->RemoveTimer("Fire", actor);
 	}
 
 	if (DeathSystem != nullptr) {
 		FVector origin;
 		FVector extent;
 		actor->GetActorBounds(false, origin, extent);
-		extent.Z = 0.0f;
+
+		FVector location = Camera->GetTargetActorLocation(actor);
 
 		if (actor->IsA<AEnemy>())
-			origin = Camera->GetTargetActorLocation(actor);
+			origin = location;
+		else
+			origin.Z = location.Z;
 
 		UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DeathSystem, origin);
 
@@ -226,7 +228,7 @@ void UHealthComponent::Death(AActor* Attacker)
 			deathComp->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
 
 			Camera->Grid->AIVisualiser->DestructingActors.Add(actor, GetWorld()->GetTimeSeconds());
-			UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, origin, 0.0f, 2000.0f, 1.0f);
+			UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, origin, 0.0f, 2000.0f, 10000000.0f / (dimensions.X * dimensions.Y * dimensions.Z));
 
 			if (Camera->WidgetComponent->GetAttachParentActor() == actor)
 				Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
@@ -235,6 +237,8 @@ void UHealthComponent::Death(AActor* Attacker)
 
 	if (!IsValid(Attacker))
 		return;
+
+	Camera->TimerManager->RemoveAllTimers(actor);
 
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(*faction, params);

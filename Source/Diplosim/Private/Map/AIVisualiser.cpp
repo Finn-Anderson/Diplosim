@@ -361,8 +361,12 @@ void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
 
 			mesh->SetCustomPrimitiveDataFloat(8, FMath::Lerp(0.0f, -z, alpha));
 
-			if (alpha == 1.0f)
+			if (alpha == 1.0f) {
 				DestructingActors.Remove(actor);
+
+				if (Camera->AttachedTo.Actor == actor)
+					Camera->DisplayInteract(actor);
+			}
 		}
 	});
 }

@@ -1190,6 +1190,9 @@ struct FActorSaveData
 	UPROPERTY()
 		TArray<FTimerStruct> SavedTimers;
 
+	UPROPERTY()
+		TArray<int32> FireInstances;
+
 	FActorSaveData()
 	{
 		Class = nullptr;
@@ -1267,7 +1270,7 @@ private:
 	// Saving
 	void SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArray<AActor*> PotentialWetActors);
 
-	void SaveResource(FActorSaveData& ActorData, AActor* Actor);
+	void SaveResource(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
 
 	void SaveCamera(FActorSaveData& ActorData, AActor* Actor);
 	void SaveCitizenManager(FActorSaveData& ActorData, AActor* Actor);

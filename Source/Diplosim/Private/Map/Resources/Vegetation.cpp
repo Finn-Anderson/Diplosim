@@ -21,11 +21,8 @@ AVegetation::AVegetation()
 
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
-	FTransform transform;
-	ResourceHISM->GetInstanceTransform(Instance, transform);
-
 	if (Yield == 0) {
-		UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(this, transform.GetLocation());
+		UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(this, Instance);
 		if (fireComp)
 			fireComp->Deactivate();
 	}
@@ -35,6 +32,9 @@ void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 
 		return;
 	}
+
+	FTransform transform;
+	ResourceHISM->GetInstanceTransform(Instance, transform);
 	transform.SetScale3D(FVector(ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] / 10));
 
 	ResourceHISM->UpdateInstanceTransform(Instance, transform, false);
@@ -93,10 +93,20 @@ bool AVegetation::IsHarvestable(int32 Instance, FVector Scale)
 	return true;
 }
 
-void AVegetation::OnFire(int32 Instance)
+float AVegetation::OnFire(int32 Instance)
 {
-	TArray<FTimerParameterStruct> params;
-	Camera->TimerManager->SetParameter(Instance, params);
-	Camera->TimerManager->SetParameter(0, params);
-	Camera->TimerManager->CreateTimer("OnFire", this, 5.0f, "YieldStatus", params, false);
+	FString id = "OnFire" + FString::FromInt(Instance);
+	FTimerStruct* timer = Camera->TimerManager->FindTimer(id, this);
+
+	if (timer == nullptr) {
+		TArray<FTimerParameterStruct> params;
+		Camera->TimerManager->SetParameter(Instance, params);
+		Camera->TimerManager->SetParameter(0, params);
+		Camera->TimerManager->CreateTimer(id, this, 5.0f, "YieldStatus", params, false, true);
+
+		return 5.0f;
+	}
+	else {
+		return timer->Target - timer->Timer;
+	}
 }
