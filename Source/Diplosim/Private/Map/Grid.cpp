@@ -533,6 +533,30 @@ void AGrid::PaveRivers()
 
 void AGrid::SetupTileInformation()
 {
+	if (bLava) {
+		ChosenDistToLava.Empty();
+		TMap<FTileStruct*, float> distToLava;
+
+		for (TArray<FTileStruct>& row : Storage)
+			for (FTileStruct& tile : row)
+				GetDistToLava(&tile, distToLava);
+
+		int32 charredAmount = Size * (PercentageGround / 100.0f) * 0.03f;
+
+		while (charredAmount > 0 && !distToLava.IsEmpty()) {
+			TTuple<FTileStruct*, float> closestLava;
+			for (auto element : distToLava)
+				if (closestLava.Key == nullptr || closestLava.Value > element.Value)
+					closestLava = element;
+
+			closestLava.Key->Fertility = 0;
+
+			ChosenDistToLava.Add(closestLava);
+			distToLava.Remove(closestLava.Key);
+			charredAmount--;
+		}
+	}
+
 	for (TArray<FTileStruct>& row : Storage)
 		for (FTileStruct& tile : row)
 			SetTileDetails(&tile);
@@ -559,7 +583,6 @@ void AGrid::SpawnTiles()
 		}
 	}
 
-	FixEdgeZClipping();
 	GenerateTiles();
 
 	Camera->UpdateLoadingText("Spawning Minerals");
@@ -760,7 +783,7 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 
 	Tile->Rotation = (FRotator(0.0f, 90.0f, 0.0f) * rand).Quaternion();
 
-	if ((bLava && Tile->Level == MaxLevel) || Tile->Level < 0 || Tile->bRiver)
+	if ((bLava && Tile->Level == MaxLevel) || Tile->Level < 0 || Tile->bRiver || Tile->Fertility != INDEX_NONE)
 		return;
 
 	int32 value = Camera->Stream.RandRange(-1, 1);
@@ -771,12 +794,7 @@ void AGrid::SetTileDetails(FTileStruct* Tile)
 	for (auto& element : Tile->AdjacentTiles) {
 		FTileStruct* t = element.Value;
 
-		if (bLava && t->Level == MaxLevel) {
-			Tile->Fertility = 0;
-
-			return;
-		}
-		else if (t->bRiver) {
+		if (t->bRiver) {
 			Tile->Fertility = 5;
 
 			return;
@@ -805,6 +823,27 @@ void AGrid::GetSeaTiles(FTileStruct* Tile)
 
 	for (auto& element : Tile->AdjacentTiles)
 		GetSeaTiles(element.Value);
+}
+
+void AGrid::GetDistToLava(FTileStruct* Tile, TMap<FTileStruct*, float>& DistToLava)
+{
+	if (Tile->Level == MaxLevel)
+		return;
+
+	float distance = 1000000000.0f;
+	for (TArray<FTileStruct>& row : Storage) {
+		for (FTileStruct& t : row) {
+			if (t.Level != MaxLevel)
+				continue;
+
+			float dist = FVector::Dist(FVector(Tile->X, Tile->Y, Tile->Level), FVector(t.X, t.Y, t.Level));
+
+			if (distance > dist)
+				distance = dist;
+		}
+	}
+
+	DistToLava.Add(Tile, distance);
 }
 
 TArray<FTileStruct*> AGrid::GenerateRiver(FTileStruct* Tile, FTileStruct* Peak)
@@ -930,9 +969,6 @@ void AGrid::CalculateTile(FTileStruct* Tile)
 		}
 	}
 	else {
-		if (Tile->Fertility == 0)
-			Tile->Level = MaxLevel - 1;
-
 		transform.SetLocation(loc + FVector(0.0f, 0.0f, 75.0f * Tile->Level));
 
 		if (Tile->bEdge) {
@@ -1004,42 +1040,32 @@ void AGrid::AddCalculatedTile(UHierarchicalInstancedStaticMeshComponent* HISM, F
 	}
 }
 
-void AGrid::FixEdgeZClipping()
+void AGrid::FixEdgeZClipping(FTileStruct* Tile)
 {
-	for (auto& element : CalculatedTiles) {
-		if (element.Key != HISMGround)
+	FTransform transform = GetTransform(Tile);
+	TArray<float> offsets = { 0.0f, 0.01f, 0.02f, 0.03f };
+
+	for (auto& element : Tile->AdjacentTiles) {
+		if (Tile->Level != element.Value->Level || !element.Value->bEdge)
 			continue;
 
-		for (FTransform& transform : element.Value) {
-			TArray<float> offsets = { 0.0f, 0.01f, 0.02f, 0.03f };
+		FTransform t = GetTransform(element.Value);
 
-			for (FTransform t : element.Value) {
-				FVector loc1 = transform.GetLocation();
-				FVector loc2 = t.GetLocation();
+		float whole, fractional;
+		fractional = FMath::Modf(t.GetLocation().X, &whole);
+		fractional = FMath::RoundHalfFromZero(fractional * 100.0f) / 100.0f;
 
-				if (FMath::RoundHalfFromZero(loc1.Z) != FMath::RoundHalfFromZero(loc2.Z) || FMath::RoundHalfFromZero(FMath::Abs((loc1.X + loc1.Y) - (loc2.X + loc2.Y))) != 100.0f)
-					continue;
+		int32 index = offsets.Find(fractional);
 
-				float whole, fractional;
-				fractional = FMath::Modf(loc2.X, &whole);
-				fractional = FMath::RoundHalfFromZero(fractional * 100.0f) / 100.0f;
+		if (index == INDEX_NONE)
+			continue;
 
-				for (int32 i = offsets.Num() - 1; i > -1; i--) {
-					if (fractional != offsets[i])
-						continue;
-
-					offsets.RemoveAt(i);
-
-					break;
-				}
-			}
-
-			if (offsets.Find(0.0f) != INDEX_NONE)
-				continue;
-
-			transform.SetLocation(transform.GetLocation() + FVector(offsets[0], offsets[0], 0.0f));
-		}
+		offsets.RemoveAt(index);
 	}
+
+	FVector location = transform.GetLocation() + FVector(offsets[0], offsets[0], -100.0f);
+	transform.SetLocation(location);
+	HISMGround->UpdateInstanceTransform(Tile->Instance, transform, true);
 }
 
 void AGrid::GenerateTiles()
@@ -1052,7 +1078,7 @@ void AGrid::GenerateTiles()
 				FNavigationSystem::RegisterComponent(*element.Key);
 
 			FTransform transform;
-			element.Key->GetInstanceTransform(inst, transform);
+			element.Key->GetInstanceTransform(inst, transform, true);
 
 			FLinearColor colour = FLinearColor(Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f));
 
@@ -1113,9 +1139,6 @@ void AGrid::GenerateTiles()
 				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 3] = colour.B;
 			}
 
-			int32 x = FMath::RoundHalfFromZero(transform.GetLocation().X);
-			int32 y = FMath::RoundHalfFromZero(transform.GetLocation().Y);
-
 			FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
 
 			if (tile == nullptr || tile->Fertility < 0)
@@ -1124,6 +1147,11 @@ void AGrid::GenerateTiles()
 			if (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround) {
 				colour = FLinearColor(GroundColours[tile->Fertility]);
 
+				if (tile->Fertility == 0) {
+					float distance = *ChosenDistToLava.Find(tile);
+					colour *= FMath::Pow(distance - 0.7f, 2.0f);
+				}
+
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = colour.R;
@@ -1131,7 +1159,10 @@ void AGrid::GenerateTiles()
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = colour.B;
 			}
 
-			tile->Instance = inst;
+			tile->Instance = inst; 
+
+			if (element.Key == HISMGround)
+				FixEdgeZClipping(tile);
 		}
 
 		element.Key->PartialNavigationUpdates({ element.Value });

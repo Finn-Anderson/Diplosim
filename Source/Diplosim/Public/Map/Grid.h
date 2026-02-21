@@ -211,6 +211,8 @@ public:
 
 	void GetSeaTiles(FTileStruct* Tile);
 
+	void GetDistToLava(FTileStruct* Tile, TMap<FTileStruct*, float>& DistToLava);
+
 	void SetTileDetails(FTileStruct* Tile);
 
 	TArray<FTileStruct*> GenerateRiver(FTileStruct* Tile, FTileStruct* Peak);
@@ -219,7 +221,7 @@ public:
 
 	void AddCalculatedTile(UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
 
-	void FixEdgeZClipping();
+	void FixEdgeZClipping(FTileStruct* Tile);
 
 	void GenerateTiles();
 
@@ -244,6 +246,8 @@ public:
 	TMap<UHierarchicalInstancedStaticMeshComponent*, TArray<FTransform>> CalculatedTiles;
 
 	TArray<FTileStruct*> PeaksList;
+
+	TMap<FTileStruct*, float> ChosenDistToLava;
 
 	TArray<TArray<FTileStruct*>> ValidMineralTiles;
 

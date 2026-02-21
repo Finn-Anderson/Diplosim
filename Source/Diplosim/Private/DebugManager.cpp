@@ -56,6 +56,7 @@ void UDebugManager::ChangeSeasonAffect(FString Season)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
+	camera->ShowEvent("Season", Season);
 	camera->Grid->AtmosphereComponent->SetSeasonAffect(Season, 0.02f);
 }
 
