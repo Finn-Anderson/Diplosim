@@ -470,6 +470,13 @@ void ACamera::SetMouseCapture(bool bCapture, int32 bUIStatus)
 		PController->SetInputMode(inputMode);
 
 		PController->CurrentMouseCursor = EMouseCursor::Default;
+
+		if (bUIStatus == 2) {
+			PController->FlushPressedKeys();
+
+			if (bQuick)
+				Speed(FInputActionInstance());
+		}
 	}
 	else if (bCapture) {
 		FInputModeGameOnly inputMode;

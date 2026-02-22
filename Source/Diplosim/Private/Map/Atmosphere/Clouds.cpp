@@ -8,6 +8,7 @@
 
 #include "AI/Citizen/Citizen.h"
 #include "Buildings/Building.h"
+#include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Road.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -136,6 +137,22 @@ void UCloudComponent::Clear()
 			cloudStruct.Precipitation->DestroyComponent();
 
 		cloudStruct.HISMCloud->DestroyComponent();
+	}
+
+	for (int32 i = (WetnessStruct.Num() - 1); i > -1; i--) {
+		FString id = "Wet";
+
+		if (IsValid(WetnessStruct[i].Actor))
+			id += FString::FromInt(WetnessStruct[i].Actor->GetUniqueID());
+		else
+			id += FString::FromInt(WetnessStruct[i].HISM->GetUniqueID()) + FString::FromInt(WetnessStruct[i].Instance);
+
+		Grid->Camera->TimerManager->RemoveTimer(id, Grid);
+
+		if (WetnessStruct[i].Actor->IsA<ABroch>())
+			Cast<ABroch>(WetnessStruct[i].Actor)->BuildingMesh->SetCustomPrimitiveDataFloat(0, 0.0f);
+
+		WetnessStruct.RemoveAt(i);
 	}
 
 	Clouds.Empty();

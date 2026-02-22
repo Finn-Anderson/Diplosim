@@ -124,8 +124,7 @@ AGrid::AGrid()
 	bRandSpecialBuildings = true;
 	NumOfNests = 1;
 
-	TreeColours = { FColor(53.0f / 255.0f, 90.0f, 32.0f), FColor(54.0f, 79.0f, 38.0f), FColor(32.0f, 90.0f, 40.0f), FColor(38.0f, 79.0f, 43.0f), FColor(82.0f, 90.0f, 32.0f) };
-	GroundColours = { FColor(30.0f, 20.0f, 13.0f), FColor(255.0f, 225.0f, 45.0f), FColor(152.0f, 192.0f, 100.0f), FColor(86.0f, 228.0f, 68.0f), FColor(52.0f, 213.0f, 31.0f), FColor(36.0f, 146.0f, 21.0f) };
+	GroundColours = { FColor::FromHex("#111111FF"), FColor::FromHex("#E4C14DFF"), FColor::FromHex("#BEB449FF"), FColor::FromHex("#98A644FF"), FColor::FromHex("#729940FF"), FColor::FromHex("#4B8B3BFF") };
 }
 
 void AGrid::BeginPlay()
@@ -179,7 +178,10 @@ void AGrid::Load()
 {
 	LoadUIInstance->AddToViewport();
 
-	Camera->Stream.Initialize(*Seed);
+	if (Seed != "" && Seed.IsNumeric())
+		Camera->Stream.Initialize(FCString::Atoi(*Seed));
+	else
+		Camera->Stream.Initialize(*Seed);
 
 	FString s = Seed;
 
@@ -1081,11 +1083,10 @@ void AGrid::GenerateTiles()
 			element.Key->GetInstanceTransform(inst, transform, true);
 
 			FLinearColor colour = FLinearColor(Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f));
+			bool bTree = false;
 
 			if (element.Key->GetOwner()->IsA<AResource>()) {
 				if (element.Key->GetOwner()->IsA<AVegetation>()) {
-					bool bTree = false;
-
 					for (FResourceHISMStruct resourceStruct : TreeStruct) {
 						if (resourceStruct.Resource->ResourceHISM != element.Key)
 							continue;
@@ -1096,10 +1097,6 @@ void AGrid::GenerateTiles()
 					}
 
 					if (bTree) {
-						int32 colourIndex = FMath::Floor(Camera->Stream.RandRange(0, 16) / 4.0f);
-
-						colour = FLinearColor(TreeColours[colourIndex]);
-
 						int32 dyingChance = Camera->Stream.RandRange(1, 100);
 
 						if (dyingChance >= 99)
@@ -1111,12 +1108,6 @@ void AGrid::GenerateTiles()
 					}
 					else
 						element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
-
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = colour.R;
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = colour.G;
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = colour.B; 
 				}
 				else {
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
@@ -1144,13 +1135,16 @@ void AGrid::GenerateTiles()
 			if (tile == nullptr || tile->Fertility < 0)
 				continue;
 
-			if (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround) {
-				colour = FLinearColor(GroundColours[tile->Fertility]);
+			if (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround || element.Key->GetOwner()->IsA<AVegetation>()) {
+				if (!element.Key->GetOwner()->IsA<AVegetation>() || bTree)
+					colour = FLinearColor(GroundColours[tile->Fertility]);
 
 				if (tile->Fertility == 0) {
 					float distance = *ChosenDistToLava.Find(tile);
 					colour *= FMath::Pow(distance - 0.7f, 2.0f);
 				}
+				else if (bTree)
+					colour *= Camera->Stream.FRandRange(0.5f, 1.0f);
 
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
@@ -1435,7 +1429,7 @@ void AGrid::SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles)
 
 		float yaw = Camera->Stream.RandRange(0, 3) * 90.0f;
 
-		building->SetActorRotation(building->GetActorRotation() + FRotator(0.0f, yaw, 0.0f));
+		building->SetActorRotation(FRotator(0.0f, yaw, 0.0f));
 
 		TArray<FTileStruct*> validLocations;
 

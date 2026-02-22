@@ -418,6 +418,15 @@ void UAtmosphereComponent::SetSeasonValues(TArray<float> Values)
 					continue;
 			}
 
+			for (FResourceHISMStruct resourceStruct : Grid->FlowerStruct) {
+				if (resourceStruct.Resource->ResourceHISM != hism)
+					continue;
+
+				hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 1] = 1.0f - Values[2];
+
+				break;
+			}
+
 			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 5] = Values[0];
 			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 6] = Values[1];
 			hism->PerInstanceSMCustomData[inst * hism->NumCustomDataFloats + 7] = Values[2];
