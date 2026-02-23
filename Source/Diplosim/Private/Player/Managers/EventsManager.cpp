@@ -64,16 +64,12 @@ void UEventsManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 		for (FEventStruct& event : faction.Events) {
 			FString command = "";
-
-			if (event.Period != "" && event.Day != 0 && event.Period != Period && event.Day != Day)
-				continue;
-
-			if (event.Hours.Contains(Hour) && !event.bStarted)
-				command = "start";
-			else if (event.Hours.Contains(Hour) && event.bStarted)
+				
+			if (event.Period == Period && event.Day == Day && event.Hours.Contains(Hour))
+				if (!event.bStarted)
+					command = "start";
+			else if (event.bStarted)
 				command = "end";
-
-			event.Hours.Remove(Hour);
 
 			if (command == "")
 				continue;

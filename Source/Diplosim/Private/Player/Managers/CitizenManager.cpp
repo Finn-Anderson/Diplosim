@@ -14,6 +14,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Service/Clinic.h"
+#include "Buildings/Work/Service/FireStation.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Booster.h"
 #include "Map/Grid.h"
@@ -186,6 +187,13 @@ void UCitizenManager::CitizenGeneralLoop()
 					Cast<AWall>(citizen->BuildingComponent->Employment)->SetEmergency(!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() || !faction.Rebels.IsEmpty());
 				else if (citizen->BuildingComponent->Employment->IsA<AClinic>())
 					Cast<AClinic>(citizen->BuildingComponent->Employment)->SetEmergency(!Camera->DiseaseManager->Infected.IsEmpty());
+				else if (citizen->BuildingComponent->Employment->IsA<AFireStation>()) {
+					AFireStation* station = Cast<AFireStation>(citizen->BuildingComponent->Employment);
+					station->SetEmergency(!faction.BuildingsOnFire.IsEmpty());
+
+					if (station->bEmergency)
+						station->Production(nullptr);
+				}
 			}
 
 			float rebelsPerc = rebelCount / (float)faction.Citizens.Num();

@@ -194,12 +194,7 @@ void UHealthComponent::Death(AActor* Attacker)
 			Camera->UpdateBuildingInfoDisplay(building, false);
 	}
 
-	UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(actor);
-	if (fireComp) {
-		fireComp->Deactivate();
-
-		Camera->TimerManager->RemoveTimer("Fire", actor);
-	}
+	Camera->Grid->AtmosphereComponent->ClearFire(actor);
 
 	if (DeathSystem != nullptr) {
 		FVector origin;

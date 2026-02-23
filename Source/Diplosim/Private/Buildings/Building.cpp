@@ -28,6 +28,7 @@
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Buildings/Work/Service/Builder.h"
+#include "Buildings/Work/Service/FireStation.h"
 #include "Buildings/Work/Service/Trader.h"
 #include "Buildings/Work/Service/Stockpile.h"
 #include "Map/Grid.h"
@@ -692,6 +693,21 @@ TArray<ACitizen*> ABuilding::GetVisitors(ACitizen* Occupant)
 	return Occupied[index].Visitors;
 }
 
+TArray<class ACitizen*> ABuilding::GetAllCitizens()
+{
+	TArray<ACitizen*> citizens;
+
+	for (FCapacityStruct capacityStruct : Occupied) {
+		if (!IsValid(capacityStruct.Citizen))
+			continue;
+
+		citizens.Add(capacityStruct.Citizen);
+		citizens.Append(capacityStruct.Visitors);
+	}
+
+	return citizens;
+}
+
 bool ABuilding::IsAVisitor(ACitizen* Citizen)
 {
 	if (!GetOccupied().Contains(Citizen))
@@ -828,7 +844,7 @@ TArray<ACitizen*> ABuilding::GetCitizensAtBuilding()
 {
 	TArray<ACitizen*> citizens;
 
-	for (ACitizen* citizen : GetOccupied()) {
+	for (ACitizen* citizen : GetAllCitizens()) {
 		if (citizen->BuildingComponent->BuildingAt != this)
 			continue;
 
@@ -944,7 +960,14 @@ void ABuilding::Enter(ACitizen* Citizen)
 	if (Citizen->Carrying.Amount > 0)
 		StoreResource(Citizen);
 
-	if (IsValid(Citizen->BuildingComponent->Employment) && Citizen->BuildingComponent->Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
+	if (!IsValid(Citizen->BuildingComponent->Employment))
+		return;
+
+	if (Citizen->BuildingComponent->Employment->IsA<AFireStation>()) {
+		AFireStation* station = Cast<AFireStation>(Citizen->BuildingComponent->Employment);
+		station->PutOutFire(this, Citizen);
+	}
+	else if (Citizen->BuildingComponent->Employment->IsA<ABuilder>() && cm->IsBeingConstructed(this, nullptr)) {
 		ABuilder* builder = Cast<ABuilder>(Citizen->BuildingComponent->Employment);
 
 		if (cm->IsRepairJob(this, builder))
@@ -952,7 +975,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 		else
 			builder->CheckCosts(Citizen, this);
 	}
-	else if (!IsA<AHouse>() && !IsA<ABooster>() && !GetOccupied().Contains(Citizen) && IsValid(Citizen->BuildingComponent->Employment)) {
+	else if (!IsA<AHouse>() && !IsA<ABooster>() && !GetOccupied().Contains(Citizen)) {
 		TArray<FItemStruct> items;
 		ABuilding* deliverTo = nullptr;
 

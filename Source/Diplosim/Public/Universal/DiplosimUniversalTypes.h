@@ -822,6 +822,9 @@ struct FFactionStruct
 	UPROPERTY()
 		TMap<TSubclassOf<class ABuilding>, float> BuildingClassAmount;
 
+	UPROPERTY()
+		TMap<ABuilding*, ACitizen*> BuildingsOnFire;
+
 	FFactionStruct()
 	{
 		Name = "";

@@ -117,11 +117,14 @@ public:
 
 	void SetDisplayText(int32 Hour);
 
+	int32 GetTimeToCompleteDay();
+
+	// Fire
 	void SetOnFire(AActor* Actor, int32 Instance = INDEX_NONE, bool bLoad = false);
 
 	UNiagaraComponent* GetFireComponent(AActor* Actor, int32 Instance = INDEX_NONE);
 
-	int32 GetTimeToCompleteDay();
+	void ClearFire(AActor* Actor);
 
 	// Seasons
 	void SetSeasonAffect(FString Period, float Increment);

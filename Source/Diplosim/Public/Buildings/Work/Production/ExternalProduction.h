@@ -12,10 +12,11 @@ class DIPLOSIM_API AExternalProduction : public AWork
 public:
 	AExternalProduction();
 
-public:
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
+
+	virtual bool IsAtWork(class ACitizen* Citizen) override;
 
 	virtual void Production(class ACitizen* Citizen) override;
 

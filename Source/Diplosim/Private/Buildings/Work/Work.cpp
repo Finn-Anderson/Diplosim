@@ -136,18 +136,6 @@ bool AWork::IsAtWork(ACitizen* Citizen)
 {
 	if (Citizen->BuildingComponent->BuildingAt == this)
 		return true;
-	else if (IsA<AExternalProduction>()) {
-		AExternalProduction* externalProduction = Cast<AExternalProduction>(this);
-
-		for (auto& element : externalProduction->GetValidResources()) {
-			for (FWorkerStruct workerStruct : element.Key->WorkerStruct) {
-				if (!workerStruct.Citizens.Contains(Citizen))
-					continue;
-
-				return true;
-			}
-		}
-	}
 
 	return false;
 }

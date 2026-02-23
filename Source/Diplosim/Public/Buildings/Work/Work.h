@@ -35,7 +35,7 @@ public:
 
 	bool IsWorking(class ACitizen* Citizen, int32 Hour = -1);
 
-	bool IsAtWork(class ACitizen* Citizen);
+	virtual bool IsAtWork(class ACitizen* Citizen);
 
 	// Wage + Hours
 	virtual void InitialiseCapacityStruct() override;

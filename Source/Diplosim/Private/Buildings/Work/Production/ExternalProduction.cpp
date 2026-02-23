@@ -52,6 +52,26 @@ bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 	return true;
 }
 
+bool AExternalProduction::IsAtWork(ACitizen* Citizen)
+{
+	bool bWorking = Super::IsAtWork(Citizen);
+
+	if (!bWorking) {
+		for (auto& element : GetValidResources()) {
+			for (FWorkerStruct workerStruct : element.Key->WorkerStruct) {
+				if (!workerStruct.Citizens.Contains(Citizen))
+					continue;
+
+				bWorking = true;
+
+				break;
+			}
+		}
+	}
+
+	return bWorking;
+}
+
 void AExternalProduction::Production(ACitizen* Citizen)
 {
 	Super::Production(Citizen);

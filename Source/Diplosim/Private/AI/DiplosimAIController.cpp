@@ -50,17 +50,17 @@ void ADiplosimAIController::DefaultAction()
 			if (army.Citizens.Contains(citizen))
 				return;
 
-		if (citizen->BuildingComponent->Employment != nullptr && citizen->BuildingComponent->Employment->bEmergency) {
+		if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->bEmergency) {
 			AIMoveTo(citizen->BuildingComponent->Employment);
 		}
 		else if (!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty()) {
 			ERaidPolicy raidPolicy = Camera->PoliticsManager->GetRaidPolicyStatus(citizen);
 
 			if (raidPolicy != ERaidPolicy::Default) {
-				if (raidPolicy == ERaidPolicy::Home)
+				if (raidPolicy == ERaidPolicy::Home && !faction->BuildingsOnFire.Contains(citizen->BuildingComponent->House))
 					AIMoveTo(citizen->BuildingComponent->House);
 				else
-					AIMoveTo(faction->EggTimer);
+					Wander(faction->EggTimer->GetActorLocation(), true, 1000.0f, true);
 
 				return;
 			}
@@ -83,13 +83,13 @@ void ADiplosimAIController::DefaultAction()
 			break;
 		}
 
-		if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsWorking(citizen)) {
+		if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsWorking(citizen) && !faction->BuildingsOnFire.Contains(citizen->BuildingComponent->Employment)) {
 			if (IsValid(MoveRequest.GetGoalActor()) && MoveRequest.GetGoalActor()->IsA<AResource>())
 				StartMovement();
 			else
 				AIMoveTo(citizen->BuildingComponent->Employment);
 		}
-		else if (IsValid(citizen->BuildingComponent->School) && citizen->BuildingComponent->School->IsWorking(citizen->BuildingComponent->School->GetOccupant(citizen)))
+		else if (IsValid(citizen->BuildingComponent->School) && citizen->BuildingComponent->School->IsWorking(citizen->BuildingComponent->School->GetOccupant(citizen)) && !faction->BuildingsOnFire.Contains(citizen->BuildingComponent->School))
 			AIMoveTo(citizen->BuildingComponent->School);
 		else
 			Idle(faction, citizen);
@@ -113,12 +113,12 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 	AHouse* house = Citizen->BuildingComponent->House;
 
-	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33))
+	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33) && !Faction->BuildingsOnFire.Contains(house))
 		AIMoveTo(house);
 	else {
 		int32 time = Camera->Stream.RandRange(5, 20);
 
-		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66 && !Faction->Police.Arrested.Contains(Citizen)) {
+		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66 && !Faction->Police.Arrested.Contains(Citizen) && !Faction->BuildingsOnFire.Contains(ChosenBuilding)) {
 			AIMoveTo(ChosenBuilding);
 
 			time = 60.0f;
@@ -133,7 +133,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 	MoveRequest.SetGoalActor(nullptr);
 }
 
-void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer)
+void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, float MaxLength, bool bRaid)
 {
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
@@ -141,7 +141,7 @@ void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer)
 	int32 innerRange = 200;
 	int32 outerRange = 1000;
 
-	if (IsValid(ChosenBuilding) && !ChosenBuilding->IsA<ABroch>()) {
+	if (!bRaid && IsValid(ChosenBuilding) && !ChosenBuilding->IsA<ABroch>()) {
 		FVector size = ChosenBuilding->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
 		innerRange = 0;
@@ -162,7 +162,7 @@ void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer)
 	double length = 0.0f;
 	nav->GetPathLength(Camera->GetTargetActorLocation(AI), navLoc, length);
 
-	if (length < 5000.0f && CanMoveTo(navLoc)) {
+	if (length < MaxLength && CanMoveTo(navLoc)) {
 		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetActorLocation(AI), navLoc, AI, AI->NavQueryFilter);
 
 		AI->MovementComponent->SetPoints(path->PathPoints);

@@ -10,6 +10,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 
+#include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
 #include "Buildings/Building.h"
 #include "Map/Grid.h"
@@ -226,6 +227,14 @@ void UAtmosphereComponent::SetDisplayText(int32 Hour)
 	Grid->Camera->UpdateDayText();
 }
 
+int32 UAtmosphereComponent::GetTimeToCompleteDay()
+{
+	return 360 / (24 * Grid->AtmosphereComponent->Speed);
+}
+
+//
+// Fire
+//
 void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Instance, bool bLoad)
 {
 	UNiagaraComponent* fire = nullptr;
@@ -267,6 +276,16 @@ void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Instance, bool bLoad)
 			fire = UNiagaraFunctionLibrary::SpawnSystemAttached(FireSystem, Actor->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 
 			mesh = Actor->GetComponentByClass<UStaticMeshComponent>()->GetStaticMesh();
+
+			FFactionStruct* faction = Grid->Camera->ConquestManager->GetFaction("", Actor);
+			if (faction != nullptr) {
+				ABuilding* building = Cast<ABuilding>(Actor);
+				faction->BuildingsOnFire.Add(building);
+
+				for (ACitizen* citizen : building->GetAllCitizens())
+					if (citizen->AIController->MoveRequest.GetGoalActor() == building || building->GetCitizensAtBuilding().Contains(citizen))
+						citizen->AIController->DefaultAction();
+			}
 		}
 	}
 
@@ -323,9 +342,15 @@ UNiagaraComponent* UAtmosphereComponent::GetFireComponent(AActor* Actor, int32 I
 	return fireComp;
 }
 
-int32 UAtmosphereComponent::GetTimeToCompleteDay()
+void UAtmosphereComponent::ClearFire(AActor* Actor)
 {
-	return 360 / (24 * Grid->AtmosphereComponent->Speed);
+	UNiagaraComponent* fireComp = GetFireComponent(Actor);
+
+	if (!fireComp)
+		return;
+
+	fireComp->Deactivate();
+	Grid->Camera->TimerManager->RemoveTimer("Fire", Actor);
 }
 
 //
