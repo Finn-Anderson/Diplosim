@@ -3,6 +3,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 
+#include "AI/Citizen/Citizen.h"
 #include "Player/Camera.h"
 
 AResource::AResource()
@@ -66,23 +67,47 @@ void AResource::AddWorker(ACitizen* Citizen, int32 Instance)
 
 	int32 index = WorkerStruct.Find(workerStruct);
 
-	if (index == -1)
+	if (index == INDEX_NONE)
 		WorkerStruct.Add(workerStruct);
 	else
 		WorkerStruct[index].Citizens.Add(Citizen);
 }
 
-void AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
+TArray<ACitizen*> AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
 {
-	FWorkerStruct workerStruct;
-	workerStruct.Instance = Instance;
+	TArray<ACitizen*> citizens;
 
-	int32 index = WorkerStruct.Find(workerStruct);
+	if (Instance == INDEX_NONE) {
+		for (FWorkerStruct worker : WorkerStruct) {
+			if (!worker.Citizens.Contains(Citizen))
+				continue;
 
-	if (index == -1)
-		return;
+			citizens.Add(Citizen);
+			worker.Citizens.Remove(Citizen);
 
-	WorkerStruct[index].Citizens.Remove(Citizen);
+			break;
+		}
+	}
+	else {
+		FWorkerStruct workerStruct;
+		workerStruct.Instance = Instance;
+
+		int32 index = WorkerStruct.Find(workerStruct);
+
+		if (index == INDEX_NONE)
+			return citizens;
+
+		if (!IsValid(Citizen)) {
+			citizens.Append(WorkerStruct[index].Citizens);
+			WorkerStruct[index].Citizens.Empty();
+		}
+		else {
+			citizens.Add(Citizen);
+			WorkerStruct[index].Citizens.Remove(Citizen);
+		}
+	}
+
+	return citizens;
 }
 
 AResource* AResource::GetHarvestedResource()

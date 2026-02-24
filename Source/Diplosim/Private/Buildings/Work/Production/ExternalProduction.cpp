@@ -2,11 +2,13 @@
 
 #include "Components/DecalComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "NiagaraComponent.h"
 
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
 #include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -38,15 +40,10 @@ bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 		return false;
 
 	for (auto& element : GetValidResources()) {
-		for (FWorkerStruct workerStruct : element.Key->WorkerStruct) {
-			if (!workerStruct.Citizens.Contains(Citizen))
-				continue;
+		TArray<ACitizen*> workers = element.Key->RemoveWorker(Citizen, INDEX_NONE);
 
-			workerStruct.Citizens.Remove(Citizen);
+		if (!workers.IsEmpty())
 			Camera->TimerManager->RemoveTimer("Harvest", Citizen);
-
-			return true;
-		}
 	}
 
 	return true;
@@ -92,10 +89,10 @@ void AExternalProduction::Production(ACitizen* Citizen)
 
 			int32 index = element.Key->WorkerStruct.Find(workerStruct);
 
-			if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < element.Key->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] || (index > -1 && element.Key->WorkerStruct[index].Citizens.Num() == element.Key->MaxWorkers))
+			if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < element.Key->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] || (index > INDEX_NONE && element.Key->WorkerStruct[index].Citizens.Num() == element.Key->MaxWorkers) || IsValid(Camera->Grid->AtmosphereComponent->GetFireComponent(element.Key, inst)))
 				continue;
 
-			if (instance == -1) {
+			if (instance == INDEX_NONE) {
 				resource = element.Key;
 				instance = inst;
 

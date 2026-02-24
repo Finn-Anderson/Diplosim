@@ -257,6 +257,10 @@ void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Instance, bool bLoad)
 		time = vegetation->OnFire(Instance);
 		fire->SetVariableFloat("Opacity", vegetation->ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 1]);
 		fire->SetVariableFloat("Leaves", vegetation->ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10]);
+
+		TArray<ACitizen*> workers = vegetation->RemoveWorker(nullptr, Instance);
+		for (ACitizen* worker : workers)
+			worker->AIController->DefaultAction();
 	}
 	else if (healthComp) {
 		if (Actor->IsA<AAI>()) {

@@ -12,6 +12,9 @@ class DIPLOSIM_API AFireStation : public AWork
 public:
 	AFireStation();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Water")
+		class UNiagaraSystem* WaterSystem;
+
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	virtual bool IsAtWork(class ACitizen* Citizen) override;

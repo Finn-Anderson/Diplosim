@@ -71,7 +71,7 @@ public:
 
 	void AddWorker(class ACitizen* citizen, int32 Instance);
 
-	void RemoveWorker(class ACitizen* citizen, int32 Instance);
+	TArray<ACitizen*> RemoveWorker(class ACitizen* citizen, int32 Instance);
 
 	class AResource* GetHarvestedResource();
 

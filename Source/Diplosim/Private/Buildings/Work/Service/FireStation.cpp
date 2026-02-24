@@ -1,5 +1,8 @@
 #include "Buildings/Work/Service/FireStation.h"
 
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
 #include "Map/Grid.h"
@@ -76,7 +79,9 @@ void AFireStation::PutOutFire(ABuilding* Building, ACitizen* Citizen)
 
 	Camera->Grid->AtmosphereComponent->ClearFire(Building);
 
-	// Niagara system for 2 seconds to indicate putting out fire (mini rain cloud?)
+	UNiagaraComponent* water = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), WaterSystem, Building->GetActorLocation(), Building->GetActorRotation());
+	UNiagaraFunctionLibrary::OverrideSystemUserVariableStaticMesh(water, "Static Mesh", Building->BuildingMesh->GetStaticMesh());
+	water->SetBoundsScale(10.0f);
 
-	Camera->TimerManager->CreateTimer("RespondedToFire", Citizen, 2.0f, "DefaultAction", {}, false, true);
+	Camera->TimerManager->CreateTimer("RespondedToFire", Citizen, 5.0f, "DefaultAction", {}, false, true);
 }
