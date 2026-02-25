@@ -178,32 +178,19 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 	if (!Buildings.IsEmpty())
 		params.AddIgnoredActor(Buildings[0]);
 
-	if (Location == FVector::Zero())
-		Location = Building->BuildingMesh->GetComponentLocation();
-
 	FRotator rotation = Building->GetActorRotation();
 
-	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
+	FVector centre, size;
+	Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, size);
+
+	if (Location == FVector::Zero())
+		Location = Building->GetActorLocation() + rotation.RotateVector(centre);
 
 	TArray<FVector> points;
 
-	TArray<FVector> extremities;
-
 	for (float x = -1.0f; x <= 1.0f; x += 0.5f)
 		for (float y = -1.0f; y <= 1.0f; y += 0.5f)
-			extremities.Add(size * Extent * FVector(x, y, 0.0f));
-
-	for (FVector point : extremities) {
-		FVector newPoint = rotation.RotateVector(point);
-		newPoint += Location;
-
-		int32 x = FMath::RoundHalfFromZero(newPoint.X / 100.0f) * 100.0f;
-		int32 y = FMath::RoundHalfFromZero(newPoint.Y / 100.0f) * 100.0f;
-		FVector tilePoint = FVector(x, y, newPoint.Z);
-
-		if (!points.Contains(tilePoint))
-			points.Add(tilePoint);
-	}
+			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f)));
 
 	for (FVector point : points) {
 		FHitResult hit(ForceInit);
@@ -548,8 +535,10 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 
 	Buildings.Add(building);
 
-	if (StartLocation == FVector::Zero())
+	if (StartLocation == FVector::Zero()) {
+		Camera->Detach();
 		Camera->DisplayInteract(Buildings[0]);
+	}
 
 	if (!building->Seeds.IsEmpty())
 		Camera->SetSeedVisibility(true);

@@ -438,6 +438,9 @@ public:
 	bool IsUIHoveredOver();
 
 	UFUNCTION(BlueprintCallable)
+		void SetWidgetPosition(UUserWidget* Widget);
+
+	UFUNCTION(BlueprintCallable)
 		bool ClearPopupUI();
 
 	UFUNCTION(BlueprintCallable)

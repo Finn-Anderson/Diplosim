@@ -515,9 +515,9 @@ bool ACamera::IsUIHoveredOver()
 		if (!widget->IsHovered())
 			continue;
 
-		if (Grid->LoadUIInstance || MainMenuUIInstance || MenuUIInstance || SaveLoadGameUIInstance || SettingsUIInstance)
+		if (widget == Grid->LoadUIInstance || widget == MainMenuUIInstance || widget == MenuUIInstance || widget == SaveLoadGameUIInstance || widget == SettingsUIInstance)
 			mode = 2;
-		else
+		else if (!BuildComponent->IsComponentTickEnabled())
 			mode = 1;
 
 		break;
@@ -526,6 +526,22 @@ bool ACamera::IsUIHoveredOver()
 	SetMouseCapture(bMouseCapture, mode);
 
 	return mode > 0;
+}
+
+void ACamera::SetWidgetPosition(UUserWidget* Widget)
+{
+	double x, y;
+	PController->GetMousePosition(x, y);
+
+	int32 vx, vy;
+	PController->GetViewportSize(vx, vy);
+
+	FVector2D wsize = Widget->GetDesiredSize();
+
+	x = FMath::Clamp(x, 0, vx - (wsize.X * 1.3f));
+	y = FMath::Clamp(y, 0, vy - (wsize.Y * 1.3f));
+
+	Widget->SetPositionInViewport(FVector2D(x, y));
 }
 
 bool ACamera::ClearPopupUI()

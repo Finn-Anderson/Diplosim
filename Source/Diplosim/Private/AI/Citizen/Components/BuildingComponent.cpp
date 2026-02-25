@@ -199,7 +199,6 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 	}
 
 	int32 newRent = capacityStruct->Amount;
-	int32 oldRent = Cast<AHouse>(AllocatedBuildings[2])->GetAmount(citizen);
 
 	if (wages < newRent || NewHouse->Space < Roommates.Num() || (!IsValid(occupant) && NewHouse->GetOccupied().Num() == NewHouse->GetCapacity()))
 		return;
@@ -211,6 +210,8 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 		FoundHouseOccupant = occupant;
 	}
 	else {
+		int32 oldRent = chosenHouse->GetAmount(citizen);
+
 		int32 oldLeftoverMoney = wages - oldRent;
 		int32 newLeftoverMoney = wages - newRent;
 
