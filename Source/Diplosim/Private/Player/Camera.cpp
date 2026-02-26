@@ -15,6 +15,7 @@
 
 #include "AI/AI.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/AISpawner.h"
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
 #include "Buildings/Building.h"
@@ -378,6 +379,9 @@ void ACamera::OnEggTimerPlace(ABuilding* EggTimer)
 	ConquestManager->FinaliseFactions(Cast<ABroch>(EggTimer));
 
 	Start = false;
+
+	for (AAISpawner* spawner : gamemode->SnakeSpawners)
+		TimerManager->PauseTimer("AISpawner", spawner, false);
 
 	SaveGameComponent->StartNewSave();
 

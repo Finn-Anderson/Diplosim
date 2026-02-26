@@ -26,8 +26,9 @@
 
 UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	bEnemies = true;
 	CitizenNum = 1000;
+	bEnemies = true;
+	bEvil = true;
 
 	bSmoothCamera = true;
 
@@ -123,8 +124,12 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 {
 	FString value = FString(Value);
 
-	if (FString("bEnemies").Equals(Key))
+	if (FString("CitizenNum").Equals(Key))
+		SetCitizenNum(FCString::Atoi(Value));
+	else if (FString("bEnemies").Equals(Key))
 		SetSpawnEnemies(value.ToBool());
+	else if (FString("bEvil").Equals(Key))
+		SetCanBeEvil(value.ToBool());
 	else if (FString("bSmoothCamera").Equals(Key))
 		SetSmoothCamera(value.ToBool());
 	else if (FString("bRenderTorches").Equals(Key))
@@ -181,8 +186,6 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetShowLog(value.ToBool());
 	else if (FString("AutosaveTimer").Equals(Key))
 		SetAutosaveTimer(FCString::Atoi(Value));
-	else if (FString("CitizenNum").Equals(Key))
-		SetCitizenNum(FCString::Atoi(Value));
 	else if (FString("PopupUISpeed").Equals(Key))
 		SetPopupUISpeed(FCString::Atof(Value));
 }
@@ -215,7 +218,9 @@ void UDiplosimUserSettings::LoadIniSettings()
 
 void UDiplosimUserSettings::SaveIniSettings()
 {
+	GConfig->SetInt(*Section, TEXT("CitizenNum"), GetCitizenNum(), Filename);
 	GConfig->SetBool(*Section, TEXT("bEnemies"), GetSpawnEnemies(), Filename);
+	GConfig->SetBool(*Section, TEXT("bEvil"), GetCanBeEvil(), Filename);
 	GConfig->SetBool(*Section, TEXT("bSmoothCamera"), GetSmoothCamera(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderTorches"), GetRenderTorches(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
@@ -244,10 +249,19 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetFloat(*Section, TEXT("UIScale"), GetUIScale(), Filename);
 	GConfig->SetBool(*Section, TEXT("bShowLog"), GetShowLog(), Filename);
 	GConfig->SetInt(*Section, TEXT("AutosaveTimer"), GetAutosaveTimer(), Filename);
-	GConfig->SetInt(*Section, TEXT("CitizenNum"), GetCitizenNum(), Filename);
 	GConfig->SetFloat(*Section, TEXT("PopupUISpeed"), GetPopupUISpeed(), Filename);
 
 	GConfig->Flush(false, Filename);
+}
+
+void UDiplosimUserSettings::SetCitizenNum(int32 Value)
+{
+	CitizenNum = Value;
+}
+
+int32 UDiplosimUserSettings::GetCitizenNum() const
+{
+	return CitizenNum;
 }
 
 void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
@@ -263,6 +277,16 @@ void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
 bool UDiplosimUserSettings::GetSpawnEnemies() const
 {
 	return bEnemies;
+}
+
+void UDiplosimUserSettings::SetCanBeEvil(bool Value)
+{
+	bEvil = false;
+}
+
+bool UDiplosimUserSettings::GetCanBeEvil() const
+{
+	return bEvil;
 }
 
 void UDiplosimUserSettings::SetSmoothCamera(bool Value)
@@ -747,16 +771,6 @@ void UDiplosimUserSettings::SetAutosaveTimer(int32 Value)
 int32 UDiplosimUserSettings::GetAutosaveTimer() const
 {
 	return AutosaveTimer;
-}
-
-void UDiplosimUserSettings::SetCitizenNum(int32 Value)
-{
-	CitizenNum = Value;
-}
-
-int32 UDiplosimUserSettings::GetCitizenNum() const
-{
-	return CitizenNum;
 }
 
 void UDiplosimUserSettings::SetPopupUISpeed(float Value)

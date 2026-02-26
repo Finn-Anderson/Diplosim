@@ -495,13 +495,9 @@ void ACitizen::HarvestResource(AResource* Resource)
 		return;
 
 	MovementComponent->SetAnimation(EAnim::Still);
+	LoseEnergy();
 	
 	AResource* resource = Resource->GetHarvestedResource();
-
-	Camera->DiseaseManager->Injure(this, 99);
-
-	LoseEnergy();
-
 	int32 instance = AIController->MoveRequest.GetGoalInstance();
 	int32 amount = FMath::Clamp(Resource->GetYield(this, instance), 0, 10 * GetProductivity());
 

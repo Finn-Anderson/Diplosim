@@ -70,6 +70,9 @@ void UPoliceManager::CalculateVandalism()
 					if (Camera->SaveGameComponent->IsLoading())
 						return;
 
+					if (!IsValid(citizen))
+						break;
+
 					if (actor->IsA<ABroch>())
 						continue;
 
@@ -96,6 +99,9 @@ void UPoliceManager::CalculateVandalism()
 					for (AActor* a : actrs) {
 						if (Camera->SaveGameComponent->IsLoading())
 							return;
+
+						if (!IsValid(citizen))
+							break;
 
 						ACitizen* witness = Cast<ACitizen>(a);
 

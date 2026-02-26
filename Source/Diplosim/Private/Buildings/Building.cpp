@@ -1167,7 +1167,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 	if (chance > 199)
 		return;
 
-	Citizen->HealthComponent->TakeHealth(25, this);
+	Citizen->HealthComponent->TakeHealth(Camera->Stream.RandRange(10, 30), this);
 }
 
 void ABuilding::AddToBasket(TSubclassOf<AResource> Resource, int32 Amount)

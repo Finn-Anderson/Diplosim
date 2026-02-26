@@ -32,6 +32,7 @@
 #include "Player/Components/SaveGameComponent.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/AttackComponent.h"
+#include "Universal/DiplosimUserSettings.h"
 
 UCitizenManager::UCitizenManager()
 {
@@ -773,7 +774,7 @@ TArray<FPersonality*> UCitizenManager::GetCitizensPersonalities(class ACitizen* 
 
 bool UCitizenManager::CanGiveCruelPersonality(FFactionStruct* Faction)
 {
-	if (Faction->Citizens.Num() < 4)
+	if (!Camera->Settings->GetCanBeEvil() || Faction->Citizens.Num() < 4)
 		return false;
 
 	float numCruel = 0.0f;

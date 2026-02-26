@@ -508,14 +508,16 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 //
 void UBuildingComponent::RemoveCitizenFromHouse(ACitizen* Citizen, TArray<ACitizen*> Roommates)
 {
-	if (House->GetOccupied().Contains(Citizen)) {
+	AHouse* house = House;
+
+	if (house->GetOccupied().Contains(Citizen)) {
 		TArray<ACitizen*> leftoverCitizens;
 
-		for (ACitizen* c : House->GetVisitors(Citizen))
+		for (ACitizen* c : house->GetVisitors(Citizen))
 			if (!Roommates.Contains(c))
 				leftoverCitizens.Add(c);
 
-		House->RemoveCitizen(Citizen);
+		house->RemoveCitizen(Citizen);
 
 		if (!leftoverCitizens.IsEmpty()) {
 			int32 index = Citizen->Camera->Stream.RandRange(0, leftoverCitizens.Num() - 1);
@@ -523,12 +525,12 @@ void UBuildingComponent::RemoveCitizenFromHouse(ACitizen* Citizen, TArray<ACitiz
 			ACitizen* newOccupant = leftoverCitizens[index];
 			leftoverCitizens.RemoveAt(index);
 
-			House->AddCitizen(newOccupant);
+			house->AddCitizen(newOccupant);
 
 			for (ACitizen* c : leftoverCitizens)
-				House->AddVisitor(newOccupant, c);
+				house->AddVisitor(newOccupant, c);
 		}
 	}
 	else
-		House->RemoveVisitor(House->GetOccupant(Citizen), Citizen);
+		house->RemoveVisitor(house->GetOccupant(Citizen), Citizen);
 }

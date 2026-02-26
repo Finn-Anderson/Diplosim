@@ -69,6 +69,8 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AProjectile::StaticClass(), foundActors);
 	actors.Append(foundActors);
 
+	int32 citizenNum = 0;
+
 	for (AActor* actor : actors)
 	{
 		if (!IsValid(actor) || actor->IsPendingKillPending() || (Camera->BuildComponent->Buildings.Contains(actor) && !actor->IsA<ABroch>()))
@@ -98,7 +100,7 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 			if (actor->IsA<ACitizen>()) {
 				SaveCitizen(Camera, actorData, actor);
 
-				Saves[Index].CitizenNum++;
+				citizenNum++;
 			}
 		}
 		else if (actor->IsA<ABuilding>())
@@ -119,6 +121,7 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 	}
 
 	Saves[Index].SavedActors = allNewActorData;
+	Saves[Index].CitizenNum = citizenNum;
 	LastTimeUpdated = FDateTime::Now();
 
 	UGameplayStatics::AsyncSaveGameToSlot(this, ID, 0);

@@ -574,7 +574,7 @@ void UAIVisualiser::SetEyesVisuals(ACitizen* Citizen, int32 HappinessValue)
 
 TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)
 {
-	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info;
+	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32>(nullptr, INDEX_NONE);
 
 	if (!IsValid(AI))
 		return info;
@@ -650,7 +650,7 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 
 	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
-	if (!IsValid(info.Key) || info.Key->GetNumInstances() == 0)
+	if (!IsValid(info.Key) || info.Value == INDEX_NONE || info.Value >= info.Key->GetNumInstances())
 		return transform;
 
 	position.X = info.Key->PerInstanceSMCustomData[info.Value * info.Key->NumCustomDataFloats + 5];

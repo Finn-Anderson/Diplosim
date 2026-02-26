@@ -89,20 +89,16 @@ void AExternalProduction::Production(ACitizen* Citizen)
 
 			int32 index = element.Key->WorkerStruct.Find(workerStruct);
 
-			if (!Citizen->AIController->CanMoveTo(transform.GetLocation()) || transform.GetScale3D().Z < element.Key->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] || (index > INDEX_NONE && element.Key->WorkerStruct[index].Citizens.Num() == element.Key->MaxWorkers) || IsValid(Camera->Grid->AtmosphereComponent->GetFireComponent(element.Key, inst)))
+			if (transform.GetScale3D().Z < element.Key->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] || (index > INDEX_NONE && element.Key->WorkerStruct[index].Citizens.Num() == element.Key->MaxWorkers) || IsValid(Camera->Grid->AtmosphereComponent->GetFireComponent(element.Key, inst)))
 				continue;
-
-			if (instance == INDEX_NONE) {
-				resource = element.Key;
-				instance = inst;
-
-				continue;
-			}
 
 			FTransform currentTransform;
-			resource->ResourceHISM->GetInstanceTransform(instance, currentTransform);
+			if (instance == INDEX_NONE)
+				currentTransform.SetLocation(FVector(100000.0f));
+			else
+				resource->ResourceHISM->GetInstanceTransform(instance, currentTransform);
 
-			double magnitude = Citizen->AIController->GetClosestActor(50.0f, GetActorLocation(), currentTransform.GetLocation(), transform.GetLocation(), false);
+			double magnitude = Citizen->AIController->GetClosestActor(50.0f, GetActorLocation(), currentTransform.GetLocation(), transform.GetLocation(), true);
 
 			if (magnitude <= 0.0f)
 				continue;

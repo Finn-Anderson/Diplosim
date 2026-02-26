@@ -357,6 +357,9 @@ TArray<FVector> ADiplosimAIController::GetPathPoints(FVector StartLocation, FVec
 
 	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), StartLocation, EndLocation, AI, filter);
 
+	if (path == nullptr)
+		return {};
+
 	return path->PathPoints;
 }
 
@@ -450,15 +453,17 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	SetFocus(Actor);
 
-	if (!AI->IsA<ACitizen>() || Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor)
+	if (!AI->IsA<ACitizen>())
 		return;
 
-	ACitizen* citizen = Cast<ACitizen>(AI);
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Actor]() {
+		ACitizen* citizen = Cast<ACitizen>(AI);
 
-	Camera->TimerManager->RemoveTimer("Idle", citizen);
+		Camera->TimerManager->RemoveTimer("Idle", citizen);
 
-	if (citizen->BuildingComponent->BuildingAt != nullptr)
-		Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { citizen->BuildingComponent->BuildingAt->Leave(citizen); });
+		if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt != Actor)
+			citizen->BuildingComponent->BuildingAt->Leave(citizen); 
+	});
 }
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)

@@ -11,7 +11,13 @@ class DIPLOSIM_API UDiplosimUserSettings : public UGameUserSettings
 
 protected:
 	UPROPERTY(Config)
+		int32 CitizenNum;
+
+	UPROPERTY(Config)
 		bool bEnemies;
+
+	UPROPERTY(Config)
+		bool bEvil;
 
 	UPROPERTY(Config)
 		bool bSmoothCamera;
@@ -98,9 +104,6 @@ protected:
 		int32 AutosaveTimer;
 
 	UPROPERTY(Config)
-		int32 CitizenNum;
-
-	UPROPERTY(Config)
 		float PopupUISpeed;
 
 public:
@@ -116,11 +119,23 @@ public:
 		
 	void LoadIniSettings();
 
-	UFUNCTION(BlueprintCallable, Category = "Enemies")
+	UFUNCTION(BlueprintCallable, Category = "AI")
+		void SetCitizenNum(int32 Value);
+
+	UFUNCTION(BlueprintPure, Category = "AI")
+		int32 GetCitizenNum() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AI")
 		void SetSpawnEnemies(bool Value);
 
-	UFUNCTION(BlueprintPure, Category = "Enemies")
+	UFUNCTION(BlueprintPure, Category = "AI")
 		bool GetSpawnEnemies() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AI")
+		void SetCanBeEvil(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "AI")
+		bool GetCanBeEvil() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Camera")
 		void SetSmoothCamera(bool Value);
@@ -289,12 +304,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Accessibility")
 		int32 GetAutosaveTimer() const;
-
-	UFUNCTION(BlueprintCallable, Category = "AI")
-		void SetCitizenNum(int32 Value);
-
-	UFUNCTION(BlueprintPure, Category = "AI")
-		int32 GetCitizenNum() const;
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 		void SetPopupUISpeed(float Value);

@@ -76,6 +76,9 @@ void AAISpawner::SpawnAI()
 	IncrementSpawned++;
 
 	Camera->TimerManager->CreateTimer("AISpawner", this, Camera->Stream.FRandRange(300.0f, 600.0f), "SpawnAI", {}, false, true);
+
+	if (Camera->Start)
+		Camera->TimerManager->PauseTimer("AISpawner", this, true);
 }
 
 void AAISpawner::ClearedNest(FFactionStruct* Faction)
