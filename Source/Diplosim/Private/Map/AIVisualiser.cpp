@@ -52,6 +52,7 @@ UAIVisualiser::UAIVisualiser()
 		hism->SetCollisionResponseToChannels(response);
 		hism->SetCanEverAffectNavigation(false);
 		hism->SetGenerateOverlapEvents(false);
+		hism->bSupportRemoveAtSwap = false;
 		hism->bWorldPositionOffsetWritesVelocity = false;
 		hism->bAutoRebuildTreeOnInstanceChanges = false;
 

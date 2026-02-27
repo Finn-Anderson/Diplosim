@@ -44,4 +44,7 @@ public:
 
 	UFUNCTION(Exec)
 		void SetOnFire();
+
+	UFUNCTION(Exec)
+		void GiveProblem(bool bInjury);
 };

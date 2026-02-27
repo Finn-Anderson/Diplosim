@@ -448,15 +448,15 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	nav->ProjectPointToNavigation(Camera->GetTargetActorLocation(AI), navLoc, FVector(400.0f, 400.0f, 40.0f));
 
-	TArray<FVector> points = GetPathPoints(navLoc.Location, MoveRequest.GetLocation());
-	AI->MovementComponent->SetPoints(points);
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Actor, navLoc]() {
+		TArray<FVector> points = GetPathPoints(navLoc.Location, MoveRequest.GetLocation());
+		AI->MovementComponent->SetPoints(points);
 
-	SetFocus(Actor);
+		SetFocus(Actor);
 
-	if (!AI->IsA<ACitizen>())
-		return;
+		if (!AI->IsA<ACitizen>())
+			return;
 
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Actor]() {
 		ACitizen* citizen = Cast<ACitizen>(AI);
 
 		Camera->TimerManager->RemoveTimer("Idle", citizen);

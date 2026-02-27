@@ -121,8 +121,11 @@ void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGame* Sav
 {
 	if (bSlot)
 		UGameplayStatics::DeleteGameInSlot(SlotName, 0);
-	else
+	else {
 		SaveGame->Saves.RemoveAt(Index);
+
+		UGameplayStatics::AsyncSaveGameToSlot(SaveGame, SlotName, 0);
+	}
 }
 
 TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()

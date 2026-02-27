@@ -18,6 +18,9 @@ struct FHoverStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
 		int32 Instance;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
+		bool bAttachCamera;
+
 	FHoverStruct()
 	{
 		Reset();
@@ -28,6 +31,7 @@ struct FHoverStruct
 	{
 		Actor = nullptr;
 		Component = nullptr;
+		bAttachCamera = false;
 	}
 };
 

@@ -255,6 +255,9 @@ void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
+	if (Camera->AttachedTo.Actor == actor)
+		Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
+
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 

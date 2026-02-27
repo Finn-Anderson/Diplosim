@@ -76,21 +76,14 @@ ACitizen::ACitizen()
 	bGlasses = false;
 }
 
-void ACitizen::BeginPlay()
-{
-	Super::BeginPlay();
-
-	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
-
-	Camera->TimerManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, "Birthday", {}, true);
-}
-
 void ACitizen::CitizenSetup(FFactionStruct* Faction)
 {
 	Faction->Citizens.Add(this);
 	Camera->DiseaseManager->Infectible.Add(this);
 
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
+
+	Camera->TimerManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, "Birthday", {}, true);
 
 	Camera->TimerManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, "Eat", {}, true);
 

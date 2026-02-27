@@ -13,6 +13,7 @@
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/EventsManager.h"
+#include "Player/Managers/DiseaseManager.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/HealthComponent.h"
 
@@ -126,7 +127,7 @@ void UDebugManager::DamageActor(int32 Amount)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
-	AActor* actor = camera->WidgetComponent->GetAttachParentActor();
+	AActor* actor = camera->AttachedTo.Actor;
 
 	if (IsValid(camera->FocusedCitizen))
 		actor = camera->FocusedCitizen;
@@ -142,7 +143,18 @@ void UDebugManager::SetOnFire()
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
-	AActor* actor = camera->WidgetComponent->GetAttachParentActor();
+	camera->Grid->AtmosphereComponent->SetOnFire(camera->AttachedTo.Actor, camera->AttachedTo.Instance);
+}
 
-	camera->Grid->AtmosphereComponent->SetOnFire(actor, camera->AttachedTo.Instance);
+void UDebugManager::GiveProblem(bool bInjury)
+{
+	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
+
+	AActor* actor = camera->AttachedTo.Actor;
+
+	if (bInjury)
+		if (IsValid(actor) && actor->IsA<ACitizen>())
+			camera->DiseaseManager->Injure(Cast<ACitizen>(actor), 0);
+	else
+		camera->DiseaseManager->SpawnDisease(camera);
 }

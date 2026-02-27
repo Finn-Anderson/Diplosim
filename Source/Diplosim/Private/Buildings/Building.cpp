@@ -1162,9 +1162,9 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 		}
 	}
 	
-	int32 chance = Camera->Stream.RandRange(1, 200);
+	int32 chance = Camera->Stream.RandRange(1, 100);
 
-	if (chance > 199)
+	if (chance < 100)
 		return;
 
 	Citizen->HealthComponent->TakeHealth(Camera->Stream.RandRange(10, 30), this);

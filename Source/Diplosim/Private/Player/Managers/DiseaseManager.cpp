@@ -221,7 +221,7 @@ void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
 		return;
 
 	index = Citizen->Camera->Stream.RandRange(0, conditions.Num() - 1);
-	GiveCondition(Citizen, Diseases[index]);
+	GiveCondition(Citizen, conditions[index]);
 
 	for (FAffectStruct affect : conditions[index].Affects) {
 		if (affect.Affect == EAffect::Movement)

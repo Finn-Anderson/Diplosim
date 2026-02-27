@@ -669,11 +669,18 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, USceneComponent* Co
 	}
 	else
 		WidgetComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+
+	if (Actor == this) {
+		Detach();
+		AttachedTo.Reset();
+	}
 }
 
 void ACamera::Attach(AActor* Actor, USceneComponent* Component, int32 Instance)
 {
+	AttachedTo.Reset();
 	AttachedTo.Actor = Actor;
+	AttachedTo.bAttachCamera = true;
 
 	if (IsValid(Component)) {
 		AttachedTo.Component = Component;
@@ -685,12 +692,12 @@ void ACamera::Attach(AActor* Actor, USceneComponent* Component, int32 Instance)
 
 void ACamera::Detach()
 {
-	if (!IsValid(AttachedTo.Actor))
+	if (!AttachedTo.bAttachCamera)
 		return;
 	
 	SpringArmComponent->ProbeSize = 12.0f;
 
-	AttachedTo.Reset();
+	AttachedTo.bAttachCamera = false;
 
 	FVector location = GetActorLocation();
 	location.Z = 800.0f;

@@ -100,10 +100,6 @@ class DIPLOSIM_API ACitizen : public AAI
 public:
 	ACitizen();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	void CitizenSetup(FFactionStruct* Faction);
 
 	void ClearCitizen();

@@ -25,7 +25,7 @@ public:
 
 	bool IsCarelessWitness(class ACitizen* Citizen);
 
-	void CreatePoliceReport(FFactionStruct* Faction, class ACitizen* Witness, class ACitizen* Accused, EReportType ReportType, int32& Index);
+	void CreatePoliceReport(FFactionStruct* Faction, class ACitizen* Witness, class ACitizen* Accused, EReportType ReportType, int32 Index);
 
 	bool IsInAPoliceReport(class ACitizen* Citizen, FFactionStruct* Faction);
 

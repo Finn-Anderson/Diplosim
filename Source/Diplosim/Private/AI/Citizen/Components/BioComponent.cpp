@@ -339,7 +339,7 @@ void UBioComponent::HaveChild()
 	c->CitizenSetup(faction);
 
 	if (IsValid(occupant))
-		c->BuildingComponent->House->AddVisitor(occupant, c);
+		occupant->BuildingComponent->House->AddVisitor(occupant, c);
 
 	citizen->Camera->NotifyLog("Good", c->BioComponent->Name + " is born", faction->Name);
 

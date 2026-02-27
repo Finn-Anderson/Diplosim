@@ -60,6 +60,20 @@ void UPoliceManager::CalculateVandalism()
 				if (citizen->bConversing || citizen->bSleep || IsValid(citizen->BuildingComponent->BuildingAt) || partyStruct == nullptr || partyStruct->Party != "Shell Breakers")
 					continue;
 
+				int32 aggressiveness = 0;
+				TArray<FPersonality*> personalities = Camera->CitizenManager->GetCitizensPersonalities(citizen);
+
+				for (FPersonality* personality : personalities)
+					aggressiveness += personality->Aggressiveness / personalities.Num();
+
+				if (aggressiveness == 0)
+					continue;
+
+				int32 max = (1000 + (citizen->HappinessComponent->GetHappiness() - 50) * 16) / aggressiveness;
+
+				if (Camera->Stream.RandRange(1, max) != max)
+					continue;
+
 				FOverlapsStruct requestedOverlaps;
 				requestedOverlaps.bBuildings = true;
 
@@ -70,26 +84,11 @@ void UPoliceManager::CalculateVandalism()
 					if (Camera->SaveGameComponent->IsLoading())
 						return;
 
-					if (!IsValid(citizen))
-						break;
-
 					if (actor->IsA<ABroch>())
-						continue;
-
-					int32 aggressiveness = 0;
-					TArray<FPersonality*> personalities = Camera->CitizenManager->GetCitizensPersonalities(citizen);
-
-					for (FPersonality* personality : personalities)
-						aggressiveness += personality->Aggressiveness / personalities.Num();
-
-					int32 max = (1000 + (citizen->HappinessComponent->GetHappiness() - 50) * 16) / aggressiveness;
-
-					if (Camera->Stream.RandRange(1, max) != max)
 						continue;
 
 					Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() { Camera->Grid->AtmosphereComponent->SetOnFire(actor); });
 
-					int32 index = INDEX_NONE;
 
 					FOverlapsStruct rqstdOvrlps;
 					rqstdOvrlps.bCitizens = true;
@@ -99,9 +98,6 @@ void UPoliceManager::CalculateVandalism()
 					for (AActor* a : actrs) {
 						if (Camera->SaveGameComponent->IsLoading())
 							return;
-
-						if (!IsValid(citizen))
-							break;
 
 						ACitizen* witness = Cast<ACitizen>(a);
 
@@ -116,7 +112,7 @@ void UPoliceManager::CalculateVandalism()
 							citizen->AttackComponent->bShowMercy = false;
 						}
 						else {
-							CreatePoliceReport(&faction, witness, citizen, EReportType::Vandalism, index);
+							CreatePoliceReport(&faction, witness, citizen, EReportType::Vandalism, INDEX_NONE);
 						}
 					}
 				}
@@ -275,9 +271,7 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 			Citizen2->AttackComponent->bShowMercy = true;
 		}
 
-		int32 index = INDEX_NONE;
-
-		Camera->PoliceManager->CreatePoliceReport(Faction, nullptr, Citizen1, EReportType::Fighting, index);
+		Camera->PoliceManager->CreatePoliceReport(Faction, nullptr, Citizen1, EReportType::Fighting, INDEX_NONE);
 	}
 }
 
@@ -383,7 +377,7 @@ bool UPoliceManager::IsCarelessWitness(ACitizen* Citizen)
 	return false;
 }
 
-void UPoliceManager::CreatePoliceReport(FFactionStruct* Faction, ACitizen* Witness, ACitizen* Accused, EReportType ReportType, int32& Index)
+void UPoliceManager::CreatePoliceReport(FFactionStruct* Faction, ACitizen* Witness, ACitizen* Accused, EReportType ReportType, int32 Index)
 {
 	if (Index == INDEX_NONE) {
 		FPoliceReport report;

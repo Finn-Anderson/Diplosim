@@ -613,6 +613,8 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	data->CitizenData.bSleep = citizen->bSleep;
 	data->CitizenData.HoursSleptToday = citizen->HoursSleptToday;
 
+	data->MovementData.Transform.SetScale3D(FVector(1.0f));
+
 	data->CitizenData.PersonalityTraits.Empty();
 	for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
 		data->CitizenData.PersonalityTraits.Add(personality->Trait);

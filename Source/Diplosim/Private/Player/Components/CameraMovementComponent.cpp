@@ -121,6 +121,9 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 
 	Camera->WidgetComponent->SetWorldLocation(widgetLocation);
 
+	if (!Camera->AttachedTo.bAttachCamera)
+		return FVector::Zero();
+
 	location.Z += z / 2.0f + 5.0f;
 
 	return location;
