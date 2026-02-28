@@ -136,12 +136,12 @@ void UDiplosimTimerManager::RemoveTimer(FString ID, AActor* Actor)
 	timer->Actor = nullptr;
 }
 
-void UDiplosimTimerManager::RemoveAllTimers(AActor* Actor)
+void UDiplosimTimerManager::RemoveAllTimers(AActor* Actor, TArray<FString> Exceptions)
 {
 	FScopeLock lock(&TimerLock);
 
 	for (FTimerStruct& timer : Timers) {
-		if (timer.Actor != Actor)
+		if (timer.Actor != Actor || Exceptions.Contains(timer.ID))
 			continue;
 
 		timer.Actor = nullptr;

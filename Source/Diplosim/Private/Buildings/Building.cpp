@@ -1027,7 +1027,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 	if (index != INDEX_NONE)
 		SocketList[index].Citizen = nullptr;
 
-	if (!Citizen->IsHidden())
+	if (!bHideCitizen)
 		return;
 
 	if (Camera->FocusedCitizen == Citizen)

@@ -149,7 +149,7 @@ void UCloudComponent::Clear()
 
 		Grid->Camera->TimerManager->RemoveTimer(id, Grid);
 
-		if (WetnessStruct[i].Actor->IsA<ABroch>())
+		if (IsValid(WetnessStruct[i].Actor) && WetnessStruct[i].Actor->IsA<ABroch>())
 			Cast<ABroch>(WetnessStruct[i].Actor)->BuildingMesh->SetCustomPrimitiveDataFloat(0, 0.0f);
 
 		WetnessStruct.RemoveAt(i);

@@ -233,39 +233,28 @@ void UCitizenManager::CalculateGoalInteractions()
 				if (Camera->SaveGameComponent->IsLoading())
 					return;
 
-				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
-					continue;
+				AActor* actor = citizen->AIController->MoveRequest.GetGoalActor();
 
-				if (!IsValid(citizen->AIController->MoveRequest.GetGoalActor()) || citizen->AIController->MoveRequest.GetGoalActor()->IsA<AAI>())
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || IsValid(citizen->BuildingComponent->BuildingAt) || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || !IsValid(actor) || actor->IsA<AAI>())
 					continue;
-
-				FOverlapsStruct requestedOverlaps;
-				requestedOverlaps.bBuildings = true;
-				requestedOverlaps.bResources = true;
 
 				float reach = citizen->Range / 15.0f;
-				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, reach, requestedOverlaps, EFactionType::Same, &faction);
 
-				for (AActor* actor : actors) {
-					if (Camera->SaveGameComponent->IsLoading())
-						return;
+				if (!citizen->CanReach(actor, reach, citizen->AIController->MoveRequest.GetGoalInstance()))
+					continue;
 
-					if (citizen->AIController->MoveRequest.GetGoalActor() != actor || !citizen->CanReach(actor, reach, citizen->AIController->MoveRequest.GetGoalInstance()))
-						continue;
+				Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() {
+					if (actor->IsA<AResource>() && Camera->TimerManager->FindTimer("Harvest", citizen) == nullptr) {
+						AResource* r = Cast<AResource>(actor);
 
-					Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() {
-						if (actor->IsA<AResource>() && Camera->TimerManager->FindTimer("Harvest", citizen) == nullptr) {
-							AResource* r = Cast<AResource>(actor);
+						citizen->StartHarvestTimer(r);
+					}
+					else if (actor->IsA<ABuilding>() && citizen->BuildingComponent->BuildingAt != actor) {
+						ABuilding* b = Cast<ABuilding>(actor);
 
-							citizen->StartHarvestTimer(r);
-						}
-						else if (actor->IsA<ABuilding>() && citizen->BuildingComponent->BuildingAt != actor) {
-							ABuilding* b = Cast<ABuilding>(actor);
-
-							b->Enter(citizen);
-						}
-					});
-				}
+						b->Enter(citizen);
+					}
+				});
 			}
 		}
 	});
@@ -499,9 +488,14 @@ void UCitizenManager::CheckUpkeepCosts()
 
 			citizen->Balance += FMath::RoundHalfFromZero(amount);
 			Camera->ResourceManager->TakeUniversalResource(&faction, Camera->ResourceManager->Money, amount, -100000);
+		}
 
-			if (IsValid(citizen->BuildingComponent->House))
-				citizen->BuildingComponent->House->CollectRent(&faction, citizen);
+		for (ABuilding* building : faction.Buildings) {
+			if (!building->IsA<AHouse>())
+				continue;
+
+			for (ACitizen* citizen : building->GetOccupied())
+				Cast<AHouse>(building)->CollectRent(&faction, citizen);
 		}
 	}
 }

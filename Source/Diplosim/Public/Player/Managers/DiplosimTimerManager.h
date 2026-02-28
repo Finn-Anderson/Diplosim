@@ -156,7 +156,7 @@ public:
 
 	void RemoveTimer(FString ID, AActor* Actor);
 
-	void RemoveAllTimers(AActor* Actor);
+	void RemoveAllTimers(AActor* Actor, TArray<FString> Exceptions = {});
 
 	void ResetTimer(FString ID, AActor* Actor);
 

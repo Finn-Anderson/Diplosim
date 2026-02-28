@@ -107,6 +107,8 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 	if (!IsValid(Citizen))
 		return;
 
+	MoveRequest.SetGoalActor(nullptr);
+
 	int32 chance = Camera->Stream.RandRange(0, 100);
 
 	int32 hoursLeft = Citizen->HoursSleptToday.Num();
@@ -121,7 +123,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66 && !Faction->Police.Arrested.Contains(Citizen) && !Faction->BuildingsOnFire.Contains(ChosenBuilding)) {
 			AIMoveTo(ChosenBuilding);
 
-			time = 60.0f;
+			time = Camera->Stream.RandRange(20, 60);
 		}
 		else {
 			Wander(Faction->EggTimer->GetActorLocation(), false);
@@ -129,8 +131,6 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 		Camera->TimerManager->CreateTimer("Idle", Citizen, time, "DefaultAction", {}, false);
 	}
-
-	MoveRequest.SetGoalActor(nullptr);
 }
 
 void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, float MaxLength, bool bRaid)

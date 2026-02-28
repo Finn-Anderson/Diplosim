@@ -233,7 +233,7 @@ void UHealthComponent::Death(AActor* Attacker)
 	if (!IsValid(Attacker))
 		return;
 
-	Camera->TimerManager->RemoveAllTimers(actor);
+	Camera->TimerManager->RemoveAllTimers(actor, {"RemoveDamageOverlay"});
 
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(*faction, params);

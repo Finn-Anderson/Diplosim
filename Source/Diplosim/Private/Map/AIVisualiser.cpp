@@ -227,7 +227,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 						if (i == 0) {
 							float opacity = 1.0f;
-							if (IsValid(citizen->BuildingComponent->BuildingAt))
+							if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt->bHideCitizen)
 								opacity = 0.0f;
 
 							UpdateInstanceCustomData(HISMCitizen, j, 14, opacity);

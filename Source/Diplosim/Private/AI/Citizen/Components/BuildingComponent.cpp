@@ -358,7 +358,7 @@ void UBuildingComponent::RemoveOnReachingWorkAge(FFactionStruct* Faction)
 	if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Work Age")) {
 		citizen->Camera->TimerManager->RemoveTimer("Orphanage", citizen);
 
-		if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Education Age"))
+		if (IsValid(School) && citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Education Age"))
 			School->RemoveVisitor(School->GetOccupant(citizen), citizen);
 
 		return;
