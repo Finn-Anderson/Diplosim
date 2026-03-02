@@ -343,7 +343,7 @@ public:
 	virtual void OnBuilt();
 
 	// Upkeep
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Capacity")
 		bool bOperate;
 
 	UFUNCTION(BlueprintCallable)

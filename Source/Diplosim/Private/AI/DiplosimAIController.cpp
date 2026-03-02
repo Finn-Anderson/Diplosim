@@ -15,6 +15,8 @@
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Misc/Portal.h"
 #include "Buildings/Work/Work.h"
+#include "Buildings/Work/Production/ExternalProduction.h"
+#include "Buildings/Work/Production/InternalProduction.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Player/Camera.h"
@@ -191,7 +193,7 @@ void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 	buildings.Add(nullptr);
 
 	for (ABuilding* building : faction->Buildings) {
-		if (!IsValid(building) || (building->IsA<AWork>() && !building->IsA<AOrphanage>()) || building->IsA<ARoad>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
+		if (!IsValid(building) || building->IsA<ARoad>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
 			continue;
 
 		buildings.Add(building);

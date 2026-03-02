@@ -220,9 +220,6 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 						citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
 
-						if (citizen->HealthComponent->GetHealth() == 0)
-							continue;
-
 						UHierarchicalInstancedStaticMeshComponent* hism = nullptr;
 
 						if (i == 0) {

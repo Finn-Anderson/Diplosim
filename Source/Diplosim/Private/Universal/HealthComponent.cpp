@@ -224,11 +224,11 @@ void UHealthComponent::Death(AActor* Attacker)
 
 			Camera->Grid->AIVisualiser->DestructingActors.Add(actor, GetWorld()->GetTimeSeconds());
 			UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, origin, 0.0f, 2000.0f, 10000000.0f / (dimensions.X * dimensions.Y * dimensions.Z));
-
-			if (Camera->WidgetComponent->GetAttachParentActor() == actor)
-				Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
 		}
 	}
+
+	if (Camera->AttachedTo.Actor == actor)
+		Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
 
 	if (!IsValid(Attacker))
 		return;

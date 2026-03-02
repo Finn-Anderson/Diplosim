@@ -221,6 +221,8 @@ void ACamera::BeginPlay()
 
 	RentUIInstance = CreateWidget<UUserWidget>(PController, RentUI);
 
+	VisitorsUIInstance = CreateWidget<UUserWidget>(PController, VisitorsUI);
+
 	GiftUIInstance = CreateWidget<UUserWidget>(PController, GiftUI);
 
 	DiplomacyNotifyUIInstance = CreateWidget<UUserWidget>(PController, DiplomacyNotifyUI);
@@ -512,7 +514,7 @@ void ACamera::SetMouseCapture(bool bCapture, int32 bUIStatus)
 
 bool ACamera::IsUIHoveredOver()
 {
-	TArray<UUserWidget*> widgets = { Grid->LoadUIInstance, Grid->MapUIInstance, MainMenuUIInstance, BuildUIInstance, MenuUIInstance, LostUIInstance, SettingsUIInstance, SaveLoadGameUIInstance, WikiUIInstance, ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, DiplomacyNotifyUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, ArmyEditorUIInstance, WidgetComponent->GetWidget() };
+	TArray<UUserWidget*> widgets = { Grid->LoadUIInstance, Grid->MapUIInstance, MainMenuUIInstance, BuildUIInstance, MenuUIInstance, LostUIInstance, SettingsUIInstance, SaveLoadGameUIInstance, WikiUIInstance, ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, DiplomacyNotifyUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, VisitorsUIInstance, ArmyEditorUIInstance, WidgetComponent->GetWidget() };
 	int32 mode = 0;
 
 	for (UUserWidget* widget : widgets) {
@@ -550,7 +552,7 @@ void ACamera::SetWidgetPosition(UUserWidget* Widget)
 
 bool ACamera::ClearPopupUI()
 {
-	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, ArmyEditorUIInstance };
+	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, VisitorsUIInstance, ArmyEditorUIInstance };
 	bool bWasClosingWidget = false;
 
 	for (UUserWidget* widget : widgets) {
@@ -922,6 +924,7 @@ void ACamera::Menu()
 		BuildingColourUIInstance->RemoveFromParent();
 		HoursUIInstance->RemoveFromParent();
 		RentUIInstance->RemoveFromParent();
+		VisitorsUIInstance->RemoveFromParent();
 
 		return;
 	}
