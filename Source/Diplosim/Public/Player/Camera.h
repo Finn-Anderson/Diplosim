@@ -154,6 +154,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateBuildingInfoDisplay(class ABuilding* Building, bool bOccupants);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateEventInfoDisplay();
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -368,6 +371,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 		class UUserWidget* VisitorsUIInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+		TSubclassOf<class UUserWidget> CreateEventUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+		class UUserWidget* CreateEventUIInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> GiftUI;

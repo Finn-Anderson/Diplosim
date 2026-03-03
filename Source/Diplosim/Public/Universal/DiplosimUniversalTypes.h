@@ -374,19 +374,19 @@ struct FEventStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		bool bFireFestival;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event")
 		bool bStarted;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 		TSubclassOf<class ABuilding> Building;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event")
 		class ABuilding* Venue;
 
 	UPROPERTY()
 		TArray<class ACitizen*> Whitelist;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event")
 		TArray<class ACitizen*> Attendees;
 
 	UPROPERTY()

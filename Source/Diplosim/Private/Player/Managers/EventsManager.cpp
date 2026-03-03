@@ -57,6 +57,49 @@ void UEventsManager::CreateEvent(FString FactionName, EEventType Type, TSubclass
 	}
 
 	faction->Events.Add(event);
+	SortEvents(faction);
+
+	Camera->UpdateEventInfoDisplay();
+}
+
+void UEventsManager::SortEvents(FFactionStruct* Faction)
+{
+	TArray<FEventStruct> events;
+	FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
+	TArray<FString> periods = { "Spring", "Summer", "Autumn", "Winter" };
+
+	for (FEventStruct event : Faction->Events) {
+		int32 index = 0;
+
+		for (index = 0; index < events.Num(); index++) {
+			FEventStruct e = events[index];
+			
+			int32 calendarNum = calendar.Days[calendar.Index] * 100 + calendar.Hour;
+			int32 highestNum = calendar.Days[calendar.Days.Num() - 1] * 100 + 23;
+
+			int32 eventNum = (periods.Find(event.Period) + event.Day) * 100 + event.Hours[0];
+			int32 eNum = (periods.Find(e.Period) + e.Day) * 100 + e.Hours[0];
+
+			int32 eventDiff = FMath::Abs(calendarNum - eventNum);
+			int32 lowEventDiff = FMath::Abs(eventDiff - highestNum);
+
+			if (lowEventDiff < eventDiff)
+				eventDiff = lowEventDiff;
+
+			int32 eDiff = FMath::Abs(calendarNum - eNum);
+			int32 lowEDiff = FMath::Abs(eDiff - highestNum);
+
+			if (lowEDiff < eDiff)
+				eDiff = lowEDiff;
+
+			if (eDiff > eventDiff)
+				break;
+		}
+
+		events.Insert(event, index);
+	}
+
+	Faction->Events = events;
 }
 
 void UEventsManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
@@ -78,6 +121,8 @@ void UEventsManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 				StartEvent(&faction, &event, Hour);
 			else
 				EndEvent(&faction, &event, Hour);
+
+			Camera->UpdateEventInfoDisplay();
 		}
 	}
 }
@@ -119,14 +164,32 @@ void UEventsManager::RemoveFromEvent(ACitizen* Citizen)
 	}
 }
 
+void UEventsManager::RemoveEvent(FString FactionName, int32 Index)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+	FEventStruct* event = &faction->Events[Index];
+
+	if (event->bStarted)
+		EndEvent(faction, event, Camera->Grid->AtmosphereComponent->Calendar.Hour);
+
+	if (event != nullptr)
+		faction->Events.RemoveAt(Index);
+
+	Camera->UpdateEventInfoDisplay();
+}
+
+TArray<FEventStruct> UEventsManager::GetAllFactionEvents(FString FactionName)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+	return faction->Events;
+}
+
 TMap<FFactionStruct*, TArray<FEventStruct*>> UEventsManager::OngoingEvents()
 {
 	TMap<FFactionStruct*, TArray<FEventStruct*>> factionEvents;
 
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 		for (FEventStruct& event : faction.Events) {
-			UAtmosphereComponent* atmosphere = Camera->Grid->AtmosphereComponent;
-
 			if (!event.bStarted)
 				continue;
 
@@ -318,7 +381,9 @@ void UEventsManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int3
 	}
 
 	if (!Event->bRecurring && Event->Hours.IsEmpty())
-		Faction->Events.Remove(*Event);
+		Faction->Events.RemoveSingle(*Event);
+
+	SortEvents(Faction);
 }
 
 bool UEventsManager::UpcomingProtest(FFactionStruct* Faction)

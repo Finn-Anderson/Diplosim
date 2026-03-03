@@ -16,6 +16,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void CreateEvent(FString FactionName, EEventType Type, TSubclassOf<class ABuilding> Building, class ABuilding* Venue, FString Period, int32 Day, TArray<int32> Hours, bool bRecurring, TArray<ACitizen*> Whitelist, bool bFireFestival = false);
 
+	void SortEvents(FFactionStruct* Faction);
+
 	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
 
 	UFUNCTION(BlueprintCallable)
@@ -24,6 +26,12 @@ public:
 	bool IsHolliday(class ACitizen* Citizen);
 
 	void RemoveFromEvent(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		void RemoveEvent(FString FactionName, int32 Index);
+
+	UFUNCTION(BlueprintCallable)
+		TArray<FEventStruct> GetAllFactionEvents(FString FactionName);
 
 	TMap<FFactionStruct*, TArray<FEventStruct*>> OngoingEvents();
 
