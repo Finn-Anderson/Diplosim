@@ -425,6 +425,9 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 	bool bCoast = false;
 	bool bResource = false;
 
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%f"), Building->GetActorLocation().X));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%f"), Building->GetActorLocation().Y));
+
 	for (FHitResult hit : hits) {
 		if (hit.GetActor()->IsHidden() || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
@@ -435,6 +438,9 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		if (hit.GetComponent() == Camera->Grid->HISMSea) {
 			if (Building->IsA(FoundationClass))
 				continue;
+
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("%f"), hit.Location.X));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("%f"), hit.Location.Y));
 
 			return false;
 		}

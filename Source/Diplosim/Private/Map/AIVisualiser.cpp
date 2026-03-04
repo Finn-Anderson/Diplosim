@@ -363,7 +363,7 @@ void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
 				DestructingActors.Remove(actor);
 
 				if (Camera->AttachedTo.Actor == actor)
-					Camera->DisplayInteract(actor);
+					Async(EAsyncExecution::TaskGraphMainTick, [Camera, actor]() { Camera->DisplayInteract(actor); });
 			}
 		}
 	});

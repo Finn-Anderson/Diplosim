@@ -76,6 +76,9 @@ void ADiplosimAIController::DefaultAction()
 				continue;
 
 			for (FEventStruct* event : element.Value) {
+				if (!event->Whitelist.IsEmpty() && !event->Whitelist.Contains(citizen))
+					continue;
+
 				Camera->EventsManager->GotoEvent(citizen, event);
 
 				if (Camera->EventsManager->IsAttendingEvent(citizen))

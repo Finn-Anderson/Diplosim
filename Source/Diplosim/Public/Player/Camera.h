@@ -482,7 +482,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetInteractStatus(AActor* Actor, bool bStatus, USceneComponent* Component = nullptr, int32 Instance = -1);
 
-	void Attach(AActor* Actor, USceneComponent* Component = nullptr, int32 Instance = -1);
+	void Attach(AActor* Actor, USceneComponent* Component = nullptr, int32 Instance = -1, bool bBuilding = false);
 
 	void Detach();
 

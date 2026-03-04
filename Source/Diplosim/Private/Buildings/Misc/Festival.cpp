@@ -19,6 +19,7 @@ AFestival::AFestival()
 	FestivalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FestivalMesh"));
 	FestivalMesh->SetupAttachment(BuildingMesh);
 	FestivalMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	FestivalMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECR_Ignore);
 	FestivalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FestivalMesh->SetCanEverAffectNavigation(true);
 	FestivalMesh->bFillCollisionUnderneathForNavmesh = true;
@@ -174,9 +175,6 @@ void AFestival::StartFestival(bool bFireFestival)
 	}
 
 	FestivalMesh->SetRelativeScale3D(FVector(z));
-
-	ParticleComponent->SetRelativeScale3D(FVector(1.0f, 1.0f, z));
-
 	ParticleComponent->Activate();
 
 	SetActorTickEnabled(true);

@@ -21,26 +21,28 @@ struct FCalendarStruct
 	UPROPERTY(BlueprintReadOnly, Category = "Calendar")
 		int32 Hour;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Calendar")
+		int32 Year;
+
 	FCalendarStruct()
 	{
 		Period = "Spring";
 		Days = {1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3};
 		Index = 0;
 		Hour = 6;
+		Year = 1;
 	}
 
 	void NextDay()
 	{
-		if (Index == (Days.Num() - 1)) {
+		Index++;
+
+		if (Index == Days.Num()) {
 			Index = 0;
 			Period = "Spring";
+			Year++;
 		}
-		else {
-			Index++;
-
-			if (Days[Index] != 1)
-				return;
-
+		else if (Days[Index] == 1) {
 			if (Period == "Spring")
 				Period = "Summer";
 			else if (Period == "Summer")

@@ -650,8 +650,7 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 	SetInteractableText(Actor, Instance);
 	ClearPopupUI();
 
-	if (!BuildComponent->Buildings.Contains(Actor))
-		Attach(Actor, Component, Instance);
+	Attach(Actor, Component, Instance, BuildComponent->Buildings.Contains(Actor));
 
 	SetInteractStatus(Actor, true, Component, Instance);
 }
@@ -680,17 +679,20 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, USceneComponent* Co
 	}
 }
 
-void ACamera::Attach(AActor* Actor, USceneComponent* Component, int32 Instance)
+void ACamera::Attach(AActor* Actor, USceneComponent* Component, int32 Instance, bool bBuilding)
 {
 	AttachedTo.Reset();
 	AttachedTo.Actor = Actor;
-	AttachedTo.bAttachCamera = true;
 
 	if (IsValid(Component)) {
 		AttachedTo.Component = Component;
 		AttachedTo.Instance = Instance;
 	}
 
+	if (bBuilding)
+		return;
+
+	AttachedTo.bAttachCamera = true;
 	SpringArmComponent->ProbeSize = 6.0f;
 }
 

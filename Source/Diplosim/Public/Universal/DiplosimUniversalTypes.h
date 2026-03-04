@@ -326,7 +326,7 @@ struct FResearchStruct
 //
 // Events
 //
-UENUM()
+UENUM(BlueprintType)
 enum class EEventType : uint8
 {
 	Mass,

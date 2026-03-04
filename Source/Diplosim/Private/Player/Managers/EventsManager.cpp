@@ -67,33 +67,22 @@ void UEventsManager::SortEvents(FFactionStruct* Faction)
 	TArray<FEventStruct> events;
 	FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
 	TArray<FString> periods = { "Spring", "Summer", "Autumn", "Winter" };
+	int32 calendarNum = calendar.Days[calendar.Index] * 100 + calendar.Hour;
 
 	for (FEventStruct event : Faction->Events) {
 		int32 index = 0;
 
-		for (index = 0; index < events.Num(); index++) {
-			FEventStruct e = events[index];
-			
-			int32 calendarNum = calendar.Days[calendar.Index] * 100 + calendar.Hour;
-			int32 highestNum = calendar.Days[calendar.Days.Num() - 1] * 100 + 23;
+		int32 eventNum = (periods.Find(event.Period) + event.Day) * 100 + event.Hours[0];
+		int32 eventDiff = eventNum - calendarNum;
 
-			int32 eventNum = (periods.Find(event.Period) + event.Day) * 100 + event.Hours[0];
+		for (FEventStruct e : events) {
 			int32 eNum = (periods.Find(e.Period) + e.Day) * 100 + e.Hours[0];
+			int32 eDiff = eNum - calendarNum;
 
-			int32 eventDiff = FMath::Abs(calendarNum - eventNum);
-			int32 lowEventDiff = FMath::Abs(eventDiff - highestNum);
-
-			if (lowEventDiff < eventDiff)
-				eventDiff = lowEventDiff;
-
-			int32 eDiff = FMath::Abs(calendarNum - eNum);
-			int32 lowEDiff = FMath::Abs(eDiff - highestNum);
-
-			if (lowEDiff < eDiff)
-				eDiff = lowEDiff;
-
-			if (eDiff > eventDiff)
+			if ((eventDiff >= 0 && (eDiff < 0 || eDiff > eventDiff)) || (eventDiff < 0 && eDiff < 0 && eventDiff < eDiff))
 				break;
+
+			index++;
 		}
 
 		events.Insert(event, index);
@@ -108,9 +97,10 @@ void UEventsManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 		for (FEventStruct& event : faction.Events) {
 			FString command = "";
 				
-			if (event.Period == Period && event.Day == Day && event.Hours.Contains(Hour))
+			if (event.Period == Period && event.Day == Day && event.Hours.Contains(Hour)) {
 				if (!event.bStarted)
 					command = "start";
+			}
 			else if (event.bStarted)
 				command = "end";
 
@@ -210,6 +200,19 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event->Type != EEventType::Protest && IsValid(Citizen->BuildingComponent->Employment) && !Citizen->BuildingComponent->Employment->bCanAttendEvents && Citizen->BuildingComponent->Employment->IsWorking(Citizen)))
 		return;
 
+	TArray<AActor*> actors;
+
+	if (IsValid(Event->Venue))
+		actors.Add(Event->Venue);
+	else if (IsValid(Event->Building)) {
+		if (Faction == nullptr)
+			Faction = Camera->ConquestManager->GetFaction("", Citizen);
+
+		for (ABuilding* building : Faction->Buildings)
+			if (building->IsA(Event->Building))
+				actors.Add(building);
+	}
+
 	if (Event->Type == EEventType::Protest) {
 		if (Citizen->HappinessComponent->GetHappiness() >= 35)
 			return;
@@ -233,7 +236,10 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 			return;
 		}
 
-		ABooster* church = Cast<ABooster>(Event->Building->GetDefaultObject());
+		if (actors.IsEmpty())
+			return;
+
+		ABooster* church = Cast<ABooster>(actors[0]);
 
 		bool validReligion = church->DoesPromoteFavouringValues(Citizen);
 
@@ -247,19 +253,6 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 	ABuilding* chosenBuilding = nullptr;
 	ACitizen* chosenOccupant = nullptr;
 
-	TArray<AActor*> actors;
-
-	if (IsValid(Event->Venue))
-		actors.Add(Event->Venue);
-	else if (IsValid(Event->Building)) {
-		if (Faction == nullptr)
-			Faction = Camera->ConquestManager->GetFaction("", Citizen);
-
-		for (ABuilding* building : Faction->Buildings)
-			if (building->IsA(Event->Building))
-				actors.Add(building);
-	} 
-
 	for (AActor* actor : actors) {
 		ABuilding* building = Cast<ABuilding>(actor);
 		ACitizen* occupant = nullptr;
@@ -270,6 +263,10 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 		bool bSpace = false;
 
 		for (ACitizen* occpnt : building->GetOccupied()) {
+			int32 space = building->Space;
+			if (space == 0)
+				space = building->SocketList.Num();
+
 			if (building->GetVisitors(occpnt).Num() == building->Space)
 				continue;
 
@@ -380,7 +377,7 @@ void UEventsManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int3
 			citizen->AIController->DefaultAction();
 	}
 
-	if (!Event->bRecurring && Event->Hours.IsEmpty())
+	if (!Event->bRecurring)
 		Faction->Events.RemoveSingle(*Event);
 
 	SortEvents(Faction);

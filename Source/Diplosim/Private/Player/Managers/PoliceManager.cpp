@@ -10,6 +10,8 @@
 #include "AI/Citizen/Components/BuildingComponent.h"
 #include "AI/Citizen/Components/HappinessComponent.h"
 #include "Buildings/House.h"
+#include "Buildings/Misc/Festival.h"
+#include "Buildings/Misc/Road.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/Work/Service/School.h"
 #include "Map/Grid.h"
@@ -84,11 +86,10 @@ void UPoliceManager::CalculateVandalism()
 					if (Camera->SaveGameComponent->IsLoading())
 						return;
 
-					if (actor->IsA<ABroch>())
+					if (actor->IsA<ABroch>() || actor->IsA<ARoad>() || actor->IsA<AFestival>())
 						continue;
 
 					Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() { Camera->Grid->AtmosphereComponent->SetOnFire(actor); });
-
 
 					FOverlapsStruct rqstdOvrlps;
 					rqstdOvrlps.bCitizens = true;

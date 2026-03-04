@@ -153,6 +153,8 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 
 		Camera->NotifyLog(type, faction.Name + " was just founded", faction.Name);
 
+		Camera->EventsManager->SortEvents(&faction);
+
 		faction.EggTimer->SpawnCitizens();
 
 		DiplomacyComponent->SetFactionFlagColour(&faction);
