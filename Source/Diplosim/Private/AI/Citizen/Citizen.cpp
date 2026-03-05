@@ -713,7 +713,7 @@ void ACitizen::SetReligion(FFactionStruct* Faction)
 	Camera->NotifyLog("Neutral", BioComponent->Name + " set their faith as " + Spirituality.Faith, Faction->Name);
 
 	if (Camera->InfoUIInstance->IsInViewport())
-		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Spirituality.Faith);
+		Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Spirituality.Faith); });
 }
 
 //

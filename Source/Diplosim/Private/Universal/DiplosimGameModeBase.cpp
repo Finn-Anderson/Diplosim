@@ -64,6 +64,11 @@ void ADiplosimGameModeBase::Tick(float DeltaTime)
 		SetActorTickEnabled(false);
 }
 
+bool ADiplosimGameModeBase::IsSnakeFaction(AActor* Actor)
+{
+	return Snakes.Contains(Actor) || SnakeSpawners.Contains(Actor);
+}
+
 void ADiplosimGameModeBase::EvaluateThreats()
 {
 	int32 num = -1;

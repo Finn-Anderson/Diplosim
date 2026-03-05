@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/DirectionalLightComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/WidgetComponent.h"
 
@@ -204,6 +205,8 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 	ActorData.WorldSaveData.AtmosphereData.Calendar = grid->AtmosphereComponent->Calendar;
 	ActorData.WorldSaveData.AtmosphereData.bRedSun = grid->AtmosphereComponent->bRedSun;
 	ActorData.WorldSaveData.AtmosphereData.WindRotation = grid->AtmosphereComponent->WindRotation;
+	ActorData.WorldSaveData.AtmosphereData.SunRotation = grid->AtmosphereComponent->Sun->GetRelativeRotation();
+	ActorData.WorldSaveData.AtmosphereData.MoonRotation = grid->AtmosphereComponent->Moon->GetRelativeRotation();
 
 	ActorData.WorldSaveData.NaturalDisasterData.bDisasterChance = grid->AtmosphereComponent->NaturalDisasterComponent->bDisasterChance;
 	ActorData.WorldSaveData.NaturalDisasterData.Frequency = grid->AtmosphereComponent->NaturalDisasterComponent->Frequency;
@@ -852,6 +855,8 @@ void UDiplosimSaveGame::LoadWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 	grid->AtmosphereComponent->Calendar = ActorData.WorldSaveData.AtmosphereData.Calendar;
 	grid->AtmosphereComponent->bRedSun = ActorData.WorldSaveData.AtmosphereData.bRedSun;
 	grid->AtmosphereComponent->WindRotation = ActorData.WorldSaveData.AtmosphereData.WindRotation;
+	grid->AtmosphereComponent->Sun->SetRelativeRotation(ActorData.WorldSaveData.AtmosphereData.SunRotation);
+	grid->AtmosphereComponent->Moon->SetRelativeRotation(ActorData.WorldSaveData.AtmosphereData.MoonRotation);
 
 	if (grid->AtmosphereComponent->bRedSun)
 		grid->AtmosphereComponent->NaturalDisasterComponent->AlterSunGradually(0.15f, -1.00f);
@@ -1090,6 +1095,7 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 	building->SetTier(ActorData.BuildingData.Tier);
 
 	building->Capacity = ActorData.BuildingData.Capacity;
+	building->StoreSocketLocations();
 
 	FLinearColor colour = ActorData.BuildingData.ChosenColour;
 	building->SetBuildingColour(colour.R, colour.G, colour.B);
@@ -1283,10 +1289,12 @@ void UDiplosimSaveGame::InitialiseCitizen(ACamera* Camera, FActorSaveData& Actor
 void UDiplosimSaveGame::InitialiseConstructionManager(ACamera* Camera, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData)
 {
 	for (FConstructionData constructionData : ActorData.CameraData.ConstructionData) {
+		ABuilding* building = Cast<ABuilding>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, constructionData.BuildingName));
+
 		FConstructionStruct constructionStruct;
 		constructionStruct.Status = constructionData.Status;
 		constructionStruct.BuildPercentage = constructionData.BuildPercentage;
-		constructionStruct.Building = Cast<ABuilding>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, constructionData.BuildingName));
+		constructionStruct.Building = building;
 
 		if (constructionStruct.Status == EBuildStatus::Construction)
 			constructionStruct.Building->SetConstructionMesh();
@@ -1295,6 +1303,10 @@ void UDiplosimSaveGame::InitialiseConstructionManager(ACamera* Camera, FActorSav
 			constructionStruct.Builder = Cast<ABuilder>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, constructionData.BuilderName));
 
 		Camera->ConstructionManager->Construction.Add(constructionStruct);
+
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(building->FactionName);
+		if (faction != nullptr)
+			faction->Buildings.Remove(building);
 	}
 }
 

@@ -262,15 +262,11 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 
 		bool bSpace = false;
 
-		for (ACitizen* occpnt : building->GetOccupied()) {
-			int32 space = building->Space;
-			if (space == 0)
-				space = building->SocketList.Num();
-
-			if (building->GetVisitors(occpnt).Num() == building->Space)
+		for (FCapacityStruct capacity : building->Occupied) {
+			if ((!IsValid(capacity.Citizen) && building->GetCapacity() > 0) || capacity.Visitors.Num() == building->Space)
 				continue;
 
-			occupant = occpnt;
+			occupant = capacity.Citizen;
 			bSpace = true;
 
 			break;

@@ -113,7 +113,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (building->IsHidden())
 			continue;
 
-		if ((StartLocation == FVector::Zero() && !IsValidLocation(building)) || !CheckBuildCosts()) {
+		if ((StartLocation == FVector::Zero() && !IsValidLocation(building, 0.9f)) || !CheckBuildCosts()) {
 			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
 			if (building->IsA<AResearch>()) {
@@ -173,6 +173,7 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 	TArray<FHitResult> hits;
 
 	FCollisionQueryParams params;
+	params.bTraceComplex = true;
 	params.AddIgnoredActor(Building);
 
 	if (!Buildings.IsEmpty())
@@ -278,7 +279,7 @@ void UBuildComponent::SetBuildingsOnPath()
 	for (FVector location : locations) {
 		Buildings[0]->SetActorLocation(location);
 
-		if (IsValidLocation(Buildings[0])) {
+		if (IsValidLocation(Buildings[0], 0.9f)) {
 			SpawnBuilding(Buildings[0]->GetClass(), Buildings[0]->FactionName, location);
 
 			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
@@ -425,9 +426,6 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 	bool bCoast = false;
 	bool bResource = false;
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%f"), Building->GetActorLocation().X));
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%f"), Building->GetActorLocation().Y));
-
 	for (FHitResult hit : hits) {
 		if (hit.GetActor()->IsHidden() || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
@@ -438,9 +436,6 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		if (hit.GetComponent() == Camera->Grid->HISMSea) {
 			if (Building->IsA(FoundationClass))
 				continue;
-
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("%f"), hit.Location.X));
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("%f"), hit.Location.Y));
 
 			return false;
 		}
@@ -660,7 +655,7 @@ void UBuildComponent::Place(bool bQuick)
 		if (building->IsHidden() && Buildings.Num() > 1)
 			continue;
 
-		if (!IsValidLocation(building) || (Buildings.Num() == 1 && !building->bUnique)) {
+		if (!IsValidLocation(building, 0.9f) || (Buildings.Num() == 1 && !building->bUnique)) {
 			Camera->ShowWarning("Invalid location");
 
 			EndPathPlace();

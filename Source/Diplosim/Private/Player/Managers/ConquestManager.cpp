@@ -335,6 +335,7 @@ void UConquestManager::CalculateAIFighting()
 		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 		ais.Add("Enemies", gamemode->Enemies);
+		ais.Add("Snakes", gamemode->Snakes);
 
 		for (auto& element : ais) {
 			if (Camera->SaveGameComponent->IsLoading())

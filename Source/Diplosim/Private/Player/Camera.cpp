@@ -315,14 +315,34 @@ void ACamera::Tick(float DeltaTime)
 			if (!IsValid(ai) || ai->HealthComponent->GetHealth() == 0)
 				continue;
 
-			FVector aiLoc = ai->MovementComponent->Transform.GetLocation() + FVector(0.0f, 0.0f, 9.0f);
+			FTransform transform = ai->MovementComponent->Transform;
+
+			FVector centre, extents;
+			Grid->AIVisualiser->GetAIHISM(ai).Key->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, extents);
+
+			FVector Location = transform.GetLocation() + transform.GetRotation().RotateVector(centre);
+
+			FVector aiLoc = FVector(1000000000000000.0f);
+			for (float x = -1.0f; x <= 1.0f; x += 0.1f) {
+				for (float y = -1.0f; y <= 1.0f; y += 0.1f) {
+					for (float z = -1.0f; z <= 1.0f; z += 0.1f) {
+						FVector newLoc = Location + transform.GetRotation().RotateVector(extents * FVector(x, y, z));
+
+						if (FMath::PointDistToSegment(aiLoc, mouseLoc, hit.Location) < FMath::PointDistToSegment(newLoc, mouseLoc, hit.Location))
+							continue;
+
+						aiLoc = newLoc;
+					}
+				}
+			}
+
 			float distance = FMath::PointDistToSegment(aiLoc, mouseLoc, hit.Location);
 
 			float size = 1.0f;
 			if (ai->IsA<ACitizen>())
 				size = Cast<ACitizen>(ai)->ReachMultiplier;
 
-			if (distance > 12.0f * size || (chosenLocation != FVector(1000000000000000.0f) && FVector::Dist(mouseLoc, chosenLocation) < FVector::Dist(mouseLoc, aiLoc)))
+			if (distance > 3.0f * size || (chosenLocation != FVector(1000000000000000.0f) && FVector::Dist(mouseLoc, chosenLocation) < FVector::Dist(mouseLoc, aiLoc)))
 				continue;
 
 			HoveredActor.Actor = ai;

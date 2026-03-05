@@ -242,10 +242,14 @@ void ABuilding::SetSeed(int32 Seed)
 		}
 
 		if (Seeds[Seed].Capacity != -1) {
-			Capacity = Seeds[Seed].Capacity;
+			if (IsA<AFestival>())
+				Space = Seeds[Seed].Capacity;
+			else {
+				Capacity = Seeds[Seed].Capacity;
 
-			for (int32 i = GetOccupied().Num() - 1; i > GetCapacity(); i--)
-				RemoveCitizen(GetOccupied()[i]);
+				for (int32 i = GetOccupied().Num() - 1; i > GetCapacity(); i--)
+					RemoveCitizen(GetOccupied()[i]);
+			}
 		}
 
 		if (!Seeds[Seed].Cost.IsEmpty())
@@ -931,6 +935,7 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	if (!IsA<AFestival>())
 		speed = Citizen->GetProductivity();
 
+	Citizen->MovementComponent->SetPoints({});
 	Citizen->MovementComponent->SetAnimation(anim, bRepeat, speed);
 }
 

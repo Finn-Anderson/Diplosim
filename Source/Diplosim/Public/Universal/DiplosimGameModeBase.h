@@ -118,6 +118,9 @@ protected:
 public:
 	void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintCallable)
+		bool IsSnakeFaction(AActor* Actor);
+
 	UFUNCTION()
 		void SpawnAllEnemies();
 

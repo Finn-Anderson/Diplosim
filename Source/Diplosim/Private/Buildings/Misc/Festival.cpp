@@ -5,6 +5,7 @@
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 
 #include "AI/AIMovementComponent.h"
+#include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/EventsManager.h"
@@ -59,27 +60,23 @@ void AFestival::Tick(float DeltaTime)
 	if (DeltaTime > 1.0f)
 		return;
 
-	float spinRate = 1.0f;
-
 	FVector location = GetActorLocation();
 
-	for (FSocketStruct &socket : SocketList) {
+	for (FSocketStruct& socket : SocketList) {
 		float distance = FVector::Dist(location, socket.SocketLocation);
 		
-		socket.SocketRotation += FRotator(0.0f, spinRate / (1.0f + ((distance - 60.0f) / 40.0f) * 0.25f), 0.0f);
+		socket.SocketRotation += FRotator(0.0f, 0.5f / (1.0f + ((distance - 60.0f) / 40.0f) * 0.25f), 0.0f);
 
 		FVector socketLocation = location;
-		socketLocation.X += distance * FMath::Cos(socket.SocketRotation.Yaw);
-		socketLocation.Y += distance * FMath::Sin(socket.SocketRotation.Yaw);
+		socketLocation.X += distance * FMath::Cos(socket.SocketRotation.Yaw * (PI / 180));
+		socketLocation.Y += distance * FMath::Sin(socket.SocketRotation.Yaw * (PI / 180));
 		socket.SocketLocation = socketLocation;
 
 		if (!IsValid(socket.Citizen))
 			continue;
 
 		socket.Citizen->MovementComponent->Transform.SetLocation(socket.SocketLocation);
-		socket.Citizen->MovementComponent->Transform.SetRotation(socket.SocketRotation.Quaternion());
-
-		break;
+		socket.Citizen->MovementComponent->Transform.SetRotation((socket.SocketRotation + FRotator(0.0f, 90.0f, 0.0f)).Quaternion());
 	}
 }
 
@@ -115,31 +112,34 @@ void AFestival::OnBuilt()
 
 void AFestival::StoreSocketLocations()
 {
+	float count = 1;
 	int32 tier = 0;
 	int32 amount = 8;
-	int32 target = 8;
 
-	for (int32 i = 1; i <= Space; i++) {
-		if (i == amount) {
-			target *= 2;
-			amount += target;
+	for (int32 i = 0; i < Space; i++) {
+		if (count > amount) {
+			amount *= 2;
+			count = 1;
 			tier++;
 		}
 
 		float distance = 60.0f + (40.0f * tier);
 
 		FRotator rotation = GetActorRotation();
-		rotation.Yaw += 360.0f * ((i - (amount - target)) / target);
+		rotation.Yaw += (360.0f * count / amount);
+		rotation.Normalize();
 
 		FVector location = GetActorLocation();
-		location.X += distance * FMath::Cos(rotation.Yaw);
-		location.Y += distance * FMath::Sin(rotation.Yaw);
+		location.X += distance * FMath::Cos(rotation.Yaw * (PI / 180));
+		location.Y += distance * FMath::Sin(rotation.Yaw * (PI / 180));
 
 		FSocketStruct socketStruct;
 		socketStruct.SocketLocation = location;
 		socketStruct.SocketRotation = rotation;
 
 		SocketList.Add(socketStruct);
+
+		count++;
 	}
 }
 
@@ -182,14 +182,14 @@ void AFestival::StartFestival(bool bFireFestival)
 
 void AFestival::StopFestival()
 {
-	FestivalMesh->SetStaticMesh(nullptr);
-	FestivalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	FestivalMesh->UpdateNavigationBounds();
+	//FestivalMesh->SetStaticMesh(nullptr);
+	//FestivalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	//FestivalMesh->UpdateNavigationBounds();
 
-	ParticleComponent->Deactivate();
+	//ParticleComponent->Deactivate();
 
 	for (ACitizen* visitor : GetVisitors(Occupied[0].Citizen)) {
-		visitor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		visitor->AIController->StopMovement();
 
 		RemoveVisitor(Occupied[0].Citizen, visitor);
 	}

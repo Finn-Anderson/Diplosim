@@ -681,8 +681,12 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 
 	TArray<AActor*> actorsToCheck;
 
+	FString factionName = "";
+	if (Actor->IsA<ABuilding>())
+		factionName = Cast<ABuilding>(Actor)->FactionName;
+
 	if (Faction == nullptr)
-		Faction = Camera->ConquestManager->GetFaction("", Actor);
+		Faction = Camera->ConquestManager->GetFaction(factionName, Actor);
 
 	if (FactionType != EFactionType::Same) {
 		for (FFactionStruct& f : Camera->ConquestManager->Factions) {
