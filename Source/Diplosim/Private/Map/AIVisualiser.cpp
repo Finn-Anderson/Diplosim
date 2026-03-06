@@ -727,7 +727,9 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 
 		actorsToCheck.Append(gamemode->Enemies);
 		actorsToCheck.Append(gamemode->Snakes);
-		actorsToCheck.Append(gamemode->SnakeSpawners);
+
+		if (RequestedOverlaps.bBuildings)
+			actorsToCheck.Append(gamemode->SnakeSpawners);
 	}
 
 	if (actorsToCheck.Contains(Actor))

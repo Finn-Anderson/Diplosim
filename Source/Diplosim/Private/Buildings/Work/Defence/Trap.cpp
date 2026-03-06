@@ -72,8 +72,6 @@ void ATrap::ActivateTrap()
 	SetActorLocation(GetActorLocation() - FVector(0.0f, 0.0f, height));
 	GroundDecalComponent->SetRelativeLocation(GroundDecalComponent->GetRelativeLocation() + FVector(0.0f, 0.0f, height));
 
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
-
 	HealthComponent->Health = 0;
-	HealthComponent->Clear(*faction, this);
+	HealthComponent->Clear(this);
 }

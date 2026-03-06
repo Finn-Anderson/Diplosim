@@ -236,7 +236,6 @@ void UHealthComponent::Death(AActor* Attacker)
 	Camera->TimerManager->RemoveAllTimers(actor, {"RemoveDamageOverlay"});
 
 	TArray<FTimerParameterStruct> params;
-	Camera->TimerManager->SetParameter(*faction, params);
 	Camera->TimerManager->SetParameter(Attacker, params);
 	Camera->TimerManager->CreateTimer("Clear Death", GetOwner(), 10.0f, "Clear", params, false, true);
 }
@@ -247,11 +246,11 @@ void UHealthComponent::AIDecay()
 	ai->MovementComponent->SetAnimation(EAnim::Decay, false, 1.0f);
 }
 
-void UHealthComponent::Clear(FFactionStruct Faction, AActor* Attacker)
+void UHealthComponent::Clear(AActor* Attacker)
 {
 	AActor* actor = GetOwner();
 
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", actor);
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 

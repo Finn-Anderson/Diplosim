@@ -55,6 +55,9 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 void UAttackComponent::PickTarget()
 {
 	AActor* favoured = nullptr;
+	AAI* ai = nullptr;
+	if (GetOwner()->IsA<AAI>())
+		ai = Cast<AAI>(GetOwner());
 
 	for (int32 i = OverlappingEnemies.Num() - 1; i > -1; i--) {
 		AActor* target = OverlappingEnemies[i];
@@ -62,11 +65,10 @@ void UAttackComponent::PickTarget()
 
 		bool withinRange = true;
 
-		if (GetOwner()->IsA<AAI>()) {
-			AAI* ai = Cast<AAI>(GetOwner());
-
+		if (GetOwner()->IsA<AWall>())
+			withinRange = FVector::Dist(Camera->GetTargetActorLocation(GetOwner()), Camera->GetTargetActorLocation(target)) <= Cast<AWall>(GetOwner())->RangeComponent->GetScaledSphereRadius();
+		else if (GetOwner()->IsA<AAI>() && *ProjectileClass)
 			withinRange = ai->CanReach(target, ai->Range);
-		}
 
 		if (targetFavourability.Hp == 0 || targetFavourability.Hp == 10000000 || !withinRange) {
 			OverlappingEnemies.RemoveAt(i);
@@ -75,9 +77,10 @@ void UAttackComponent::PickTarget()
 		}
 
 		TArray<TWeakObjectPtr<AActor>> threats;
+		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
-		if (GetOwner()->IsA<AEnemy>())
-			threats = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->WavesData.Last().Threats;
+		if (GetOwner()->IsA<AEnemy>() && !gamemode->IsSnakeFaction(GetOwner()))
+			threats = gamemode->WavesData.Last().Threats;
 
 		if (!threats.IsEmpty() && threats.Contains(target)) {
 			if (target->IsA<AWall>() && Cast<AWall>(target)->RangeComponent->CanEverAffectNavigation() == true)
@@ -100,20 +103,13 @@ void UAttackComponent::PickTarget()
 		return;
 
 	int32 reach = 0.0f;
-	AAI* ai = nullptr;
 
-	if (GetOwner()->IsA<AAI>()) {
-		ai = Cast<AAI>(GetOwner());
-
+	if (ai != nullptr)
 		reach = ai->Range / 15.0f;
-	}
-
-	if (favoured == nullptr)
-		AttackTimer = 0.0f;
-	else if (!*ProjectileClass && ai->CanReach(favoured, reach))
-		ai->AIController->StopMovement();
 
 	if (favoured == nullptr) {
+		AttackTimer = 0.0f;
+
 		if (IsValid(ai))
 			ai->AIController->DefaultAction();
 
@@ -123,7 +119,7 @@ void UAttackComponent::PickTarget()
 	}
 
 	if ((*ProjectileClass || ai->CanReach(favoured, reach)))
-		Attack();
+		Attack(favoured);
 	else if (CurrentTarget != favoured)
 		ai->AIController->AIMoveTo(favoured);
 
@@ -140,10 +136,10 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
 	UAttackComponent* attackComp = Actor->GetComponentByClass<UAttackComponent>();
 
-	if (!healthComp || healthComp->Health == 0)
+	if (!healthComp)
 		return Favourability;
 
-	Favourability.Hp = healthComp->Health;
+	Favourability.Hp = healthComp->GetHealth();
 
 	if (attackComp) {
 		if (*attackComp->ProjectileClass)
@@ -209,12 +205,12 @@ bool UAttackComponent::IsMoraleHigh()
 	return morale > 0.0f;
 }
 
-void UAttackComponent::Attack()
+void UAttackComponent::Attack(AActor* Target)
 {
-	if (!IsValid(CurrentTarget))
+	if (!IsValid(Target))
 		return;
 
-	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
+	UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
 
 	if (healthComp->Health == 0)
 		return;
@@ -236,7 +232,16 @@ void UAttackComponent::Attack()
 	else if (GetOwner()->IsA<AAI>() && Cast<AAI>(GetOwner())->MovementComponent->IsAttacking())
 		return;
 
-	if ((GetOwner()->IsA<ABuilding>() && *ProjectileClass) || (GetOwner()->IsA<AEnemy>() && !*ProjectileClass)) {
+	if (GetOwner()->IsA<AAI>()) {
+		AAI* ai = Cast<AAI>(GetOwner());
+
+		ai->MovementComponent->SetPoints({});
+		ai->MovementComponent->ActorToLookAt = Target;
+	}
+
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+
+	if ((GetOwner()->IsA<ABuilding>() && *ProjectileClass) || (GetOwner()->IsA<AEnemy>() && !gamemode->IsSnakeFaction(GetOwner()) && !*ProjectileClass)) {
 		AttackTimer = time;
 
 		if (*ProjectileClass)
@@ -258,9 +263,6 @@ void UAttackComponent::Attack()
 			movementComponent->SetAnimation(EAnim::Melee, false, time);
 	}
 
-	if (GetOwner()->IsA<AAI>())
-		Cast<AAI>(GetOwner())->MovementComponent->ActorToLookAt = CurrentTarget;
-
 	FFactionStruct* faction1 = Camera->ConquestManager->GetFaction("", CurrentTarget);
 	FFactionStruct* faction2 = Camera->ConquestManager->GetFaction("", GetOwner());
 
@@ -275,7 +277,7 @@ void UAttackComponent::Attack()
 
 void UAttackComponent::Throw()
 {
-	if (CurrentTarget == nullptr)
+	if (!IsValid(CurrentTarget))
 		return;
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
@@ -336,7 +338,7 @@ void UAttackComponent::Throw()
 
 void UAttackComponent::Melee()
 {
-	if (CurrentTarget == nullptr)
+	if (!IsValid(CurrentTarget))
 		return;
 
 	USoundBase* sound = OnHitSound;

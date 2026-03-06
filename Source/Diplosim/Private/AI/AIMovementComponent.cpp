@@ -34,14 +34,14 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 	AActor* goal = AI->AIController->MoveRequest.GetGoalActor();
 
-	ComputeCurrentAnimation(goal, DeltaTime);
-
 	if (bSetPoints) {
 		Points = TempPoints;
 
 		TempPoints.Empty();
 		bSetPoints = false;
 	}
+
+	ComputeCurrentAnimation(goal, DeltaTime);
 
 	if (Points.IsEmpty() || AI->HealthComponent->GetHealth() == 0 || CurrentAnim.Type != EAnim::Move)
 		return;
@@ -59,7 +59,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		Velocity = CalculateVelocity(Points[0]);
 
 	FVector deltaV = Velocity * DeltaTime;
-	AvoidCollisions(deltaV, DeltaTime);
+	//AvoidCollisions(deltaV, DeltaTime);
 
 	if (!deltaV.IsNearlyZero(1e-6f))
 	{
@@ -147,16 +147,18 @@ void UAIMovementComponent::AvoidCollisions(FVector& DeltaV, float DeltaTime)
 
 	FOverlapsStruct overlaps;
 	overlaps.GetEverything();
+	overlaps.bBuildings = false;
 
 	TArray<AActor*> actors = AIVisualiser->GetOverlaps(AI->Camera, AI, size, overlaps, EFactionType::Both, nullptr, location);
 
 	if (actors.IsEmpty())
 		return;
 
-	FVector preferredPoint = FVector::Zero();
+	FVector preferredPoint = FVector(1000000000.0f);
 
 	for (int32 i = -1; i <= 1; i += 2) {
 		FVector avoidancePoint = FVector((size * i) / FMath::Sqrt(1 + FMath::Square((location.Y - currentLoc.Y) / (location.X - currentLoc.X))) + currentLoc.X, -((size * i) * (location.X - currentLoc.X)) / ((location.Y - currentLoc.Y) * FMath::Sqrt(1 + FMath::Square((location.Y - currentLoc.Y) / (location.X - currentLoc.X)))) + currentLoc.Y, location.Z);
+		overlaps.bBuildings = true;
 
 		actors = AIVisualiser->GetOverlaps(AI->Camera, AI, size, overlaps, EFactionType::Both, nullptr, avoidancePoint);
 

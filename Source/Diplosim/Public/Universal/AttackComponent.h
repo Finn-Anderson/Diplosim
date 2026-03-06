@@ -82,5 +82,5 @@ private:
 
 	bool IsMoraleHigh();
 
-	void Attack();
+	void Attack(AActor* Target);
 };

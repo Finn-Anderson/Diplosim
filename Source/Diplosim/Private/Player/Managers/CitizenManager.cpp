@@ -589,9 +589,9 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 		Camera->TimerManager->SetParameter(Citizen2, params);
 
 		if (bInterrogation)
-			Camera->TimerManager->CreateTimer("Interrogate", Citizen1, 6.0f, "InterrogateWitnesses", params, false);
+			Camera->TimerManager->CreateTimer("Interrogate", Camera, 6.0f, "InterrogateWitnesses", params, false);
 		else
-			Camera->TimerManager->CreateTimer("Interact", Citizen1, 6.0f, "Interact", params, false);
+			Camera->TimerManager->CreateTimer("Interact", Camera, 6.0f, "Interact", params, false);
 
 		Camera->PlayAmbientSound(Citizen1->AmbientAudioComponent, convo1, Citizen1->VoicePitch);
 		Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);

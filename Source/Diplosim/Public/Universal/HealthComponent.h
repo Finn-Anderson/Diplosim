@@ -59,7 +59,7 @@ public:
 		void AIDecay();
 
 	UFUNCTION()
-		void Clear(FFactionStruct Faction, AActor* Attacker);
+		void Clear(AActor* Attacker);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
