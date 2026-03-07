@@ -309,7 +309,7 @@ void UCitizenManager::CalculateConversationInteractions()
 
 						ACitizen* c = Cast<ACitizen>(actor);
 
-						if (!c->bConversing && !c->bSleep && c->AttackComponent->OverlappingEnemies.IsEmpty() && !bCitizenInReport && !Camera->PoliceManager->IsInAPoliceReport(c, &faction))
+						if (c->bConversing || c->bSleep || !c->AttackComponent->OverlappingEnemies.IsEmpty() || bCitizenInReport != Camera->PoliceManager->IsInAPoliceReport(c, &faction))
 							continue;
 
 						citizensToTalkTo.Add(c);
@@ -373,7 +373,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		if (citizen->BioComponent->Partner == Citizen)
 			value = -20;
 
-		citizen->HappinessComponent->SetDecayingHappiness(&citizen->HappinessComponent->FamilyDeathHappiness, value);
+		citizen->HappinessComponent->SetDecayingHappiness(EHappinessType::FamilyDeath, value);
 	}
 
 	FOverlapsStruct requestedOverlaps;
@@ -398,7 +398,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		if (bIsCruel)
 			happinessValue = 6;
 
-		citizen->HappinessComponent->SetDecayingHappiness(&citizen->HappinessComponent->WitnessedDeathHappiness, happinessValue);
+		citizen->HappinessComponent->SetDecayingHappiness(EHappinessType::WitnessedDeath, happinessValue);
 	}
 
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen)) {
@@ -623,10 +623,10 @@ void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACiti
 		Camera->PoliceManager->CalculateIfFight(&Faction, Citizen1, Citizen2, citizen1Aggressiveness, citizen2Aggressiveness);
 	}
 
-	Citizen1->HappinessComponent->SetDecayingHappiness(&Citizen1->HappinessComponent->ConversationHappiness, happinessValue);
-	Citizen2->HappinessComponent->SetDecayingHappiness(&Citizen2->HappinessComponent->ConversationHappiness, happinessValue);
+	Citizen1->HappinessComponent->SetDecayingHappiness(EHappinessType::Conversation, happinessValue);
+	Citizen2->HappinessComponent->SetDecayingHappiness(EHappinessType::Conversation, happinessValue);
 
-	if (!Citizen1->AttackComponent->IsComponentTickEnabled()) {
+	if (!Citizen1->AttackComponent->OverlappingEnemies.IsEmpty()) {
 		Citizen1->AIController->StartMovement();
 		Citizen2->AIController->StartMovement();
 	}

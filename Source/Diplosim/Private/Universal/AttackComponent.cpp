@@ -179,10 +179,13 @@ bool UAttackComponent::IsMoraleHigh()
 	FVector citizenLocation = Camera->GetTargetActorLocation(citizen);
 	FVector eggTimerLocation = Camera->GetTargetActorLocation(Faction->EggTimer);
 
-	if (IsValid(Faction->EggTimer) && (FVector::Dist(citizenLocation, eggTimerLocation) < 500.0f || !citizen->AIController->CanMoveTo(eggTimerLocation) || Faction->EggTimer->HealthComponent->GetHealth() <= 0))
+	if (IsValid(Faction->EggTimer) && FVector::Dist(citizenLocation, eggTimerLocation) < 500.0f)
 		return true;
 
-	int32 enemiesNum = OverlappingEnemies.Num();
+	int32 enemiesNum = 0;
+	for (AActor* enemy : OverlappingEnemies)
+		if (!enemy->IsA<AAISpawner>())
+			enemiesNum++;
 
 	FOverlapsStruct overlaps;
 	overlaps.bCitizens = true;
@@ -193,7 +196,7 @@ bool UAttackComponent::IsMoraleHigh()
 	for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
 		moraleMultiplier *= personality->Morale;
 
-	float morale = 50.0f * moraleMultiplier - FMath::Pow(2.0f, FMath::Max(enemiesNum - alliesNum, 0));
+	float morale = 50.0f * moraleMultiplier + (FMath::Pow(2.0f, alliesNum) - FMath::Pow(2.0f, enemiesNum));
 
 	if (morale <= 0.0f) {
 		Camera->ArmyManager->RemoveFromArmy(citizen);

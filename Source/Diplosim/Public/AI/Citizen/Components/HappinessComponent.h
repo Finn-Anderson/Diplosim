@@ -5,7 +5,6 @@
 #include "Components/ActorComponent.h"
 #include "HappinessComponent.generated.h"
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UHappinessComponent : public UActorComponent
 {
@@ -17,7 +16,7 @@ public:
 	UFUNCTION()
 		void SetAttendStatus(EAttendStatus Status, bool bMass);
 
-	void SetDecayingHappiness(int32* HappinessToDecay, int32 Amount, int32 Min = -24, int32 Max = 24);
+	void SetDecayingHappiness(EHappinessType Type, int32 Amount, int32 Min = -24, int32 Max = 24);
 
 	void DecayHappiness();
 
@@ -36,16 +35,7 @@ public:
 		EAttendStatus MassStatus;
 
 	UPROPERTY()
-		int32 ConversationHappiness;
-
-	UPROPERTY()
-		int32 FamilyDeathHappiness;
-
-	UPROPERTY()
-		int32 WitnessedDeathHappiness;
-
-	UPROPERTY()
-		int32 DivorceHappiness;
+		TMap<EHappinessType, int32> DecayingHappiness;
 
 	UPROPERTY()
 		int32 SadTimer;

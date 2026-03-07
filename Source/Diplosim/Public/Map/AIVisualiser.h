@@ -190,6 +190,8 @@ public:
 
 	void UpdateInstanceCustomData(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, int32 Index, float Value);
 
+	void SetAIColour(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FLinearColor Colour);
+
 	void SetHarvestVisuals(class ACitizen* Citizen, class AResource* Resource);
 
 	FVector AddHarvestVisual(class AAI* AI, FLinearColor Colour);

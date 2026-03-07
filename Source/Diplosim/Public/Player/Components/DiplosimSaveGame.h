@@ -471,13 +471,7 @@ struct FCitizenData
 		bool bConversing;
 
 	UPROPERTY()
-		int32 ConversationHappiness;
-
-	UPROPERTY()
-		int32 FamilyDeathHappiness;
-
-	UPROPERTY()
-		int32 WitnessedDeathHappiness;
+		TMap<EHappinessType, int32> DecayingHappiness;
 
 	UPROPERTY()
 		TArray<FGeneticsStruct> Genetics;
@@ -525,10 +519,12 @@ struct FCitizenData
 		SadTimer = 0;
 		FestivalStatus = EAttendStatus::Neutral;
 		bConversing = false;
-		ConversationHappiness = 0;
-		FamilyDeathHappiness = 0;
-		WitnessedDeathHappiness = 0;
 		bSleep = false;
+
+		DecayingHappiness.Add(EHappinessType::Conversation, 0);
+		DecayingHappiness.Add(EHappinessType::FamilyDeath, 0);
+		DecayingHappiness.Add(EHappinessType::WitnessedDeath, 0);
+		DecayingHappiness.Add(EHappinessType::Divorce, 0);
 	}
 };
 

@@ -268,10 +268,13 @@ void UBioComponent::RemoveMarriage()
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
 	bMarried = false;
-	citizen->HappinessComponent->DivorceHappiness = -20;
-
 	Partner->BioComponent->bMarried = false;
-	Partner->HappinessComponent->DivorceHappiness = -20;
+
+	if (citizen->HealthComponent->GetHealth() == 0 || Partner->HealthComponent->GetHealth() == 0)
+		return;
+
+	citizen->HappinessComponent->SetDecayingHappiness(EHappinessType::Divorce, -20);
+	Partner->HappinessComponent->SetDecayingHappiness(EHappinessType::Divorce, -20);
 }
 
 void UBioComponent::RemovePartner()

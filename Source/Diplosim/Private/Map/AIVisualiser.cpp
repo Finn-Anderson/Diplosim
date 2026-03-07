@@ -130,6 +130,8 @@ void UAIVisualiser::ResetToDefaultValues()
 	for (FHatsStruct hat : HISMHats)
 		for (int32 i = 0; i < hat.HISMHat->GetInstanceCount(); i++)
 			RemoveInstance(hat.HISMHat, i);
+
+	DestructingActors.Empty();
 }
 
 void UAIVisualiser::MainLoop(ACamera* Camera)
@@ -143,10 +145,6 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 
 			if (pending.HISM == HISMClone)
 				UpdateInstanceCustomData(pending.HISM, instance, 1, 3.0f);
-
-			UpdateInstanceCustomData(pending.HISM, instance, 2, pending.AI->Colour.R);
-			UpdateInstanceCustomData(pending.HISM, instance, 3, pending.AI->Colour.G);
-			UpdateInstanceCustomData(pending.HISM, instance, 4, pending.AI->Colour.B);
 		}
 		else
 			pending.HISM->RemoveInstance(pending.Instance);
@@ -241,6 +239,8 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						UpdateCitizenVisuals(hism, Camera, citizen, j);
 
 						UpdateArmyVisuals(Camera, citizen);
+
+						SetAIColour(hism, j, citizen->Colour);
 					}
 
 					if (i == 0 && HISMCitizen->bIsOutOfDate) {
@@ -303,12 +303,18 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 				if (ai->HealthComponent->GetHealth() == 0)
 					continue;
 
+				UHierarchicalInstancedStaticMeshComponent* hism = nullptr;
+
 				if (i == 0)
-					SetInstanceTransform(HISMClone, j, ai->MovementComponent->Transform);
+					hism = HISMClone;
 				else if (i == 1)
-					SetInstanceTransform(HISMEnemy, j, ai->MovementComponent->Transform);
+					hism = HISMEnemy;
 				else
-					SetInstanceTransform(HISMSnake, j, ai->MovementComponent->Transform);
+					hism = HISMSnake;
+
+				SetInstanceTransform(hism, j, ai->MovementComponent->Transform);
+
+				SetAIColour(hism, j, ai->Colour);
 			}
 
 			if (i == 0 && HISMClone->bIsOutOfDate)
@@ -441,6 +447,13 @@ void UAIVisualiser::UpdateInstanceCustomData(UHierarchicalInstancedStaticMeshCom
 	HISM->PerInstanceSMCustomData[value] = Value;
 
 	HISM->bIsOutOfDate = true;
+}
+
+void UAIVisualiser::SetAIColour(UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FLinearColor Colour)
+{
+	UpdateInstanceCustomData(HISM, Instance, 2, Colour.R);
+	UpdateInstanceCustomData(HISM, Instance, 3, Colour.G);
+	UpdateInstanceCustomData(HISM, Instance, 4, Colour.B);
 }
 
 void UAIVisualiser::SetInstanceTransform(UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform)
@@ -778,7 +791,7 @@ FTransform UAIVisualiser::GetHatTransform(ACitizen* Citizen)
 	FTransform animTransform = GetAnimationPoint(Citizen);
 	FTransform transform = Citizen->MovementComponent->Transform;
 
-	FVector location = transform.GetLocation() + animTransform.GetLocation() + FVector(1.0f, 1.0f, 0.0f);
+	FVector location = transform.GetLocation() + animTransform.GetLocation();
 	transform.SetLocation(location);
 
 	FRotator rotation = transform.GetRotation().Rotator() + animTransform.GetRotation().Rotator();

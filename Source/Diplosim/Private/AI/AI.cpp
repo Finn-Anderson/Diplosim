@@ -6,6 +6,7 @@
 
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
+#include "AI/AISpawner.h"
 #include "Buildings/Building.h"
 #include "Map/Grid.h"
 #include "Player/Camera.h"
@@ -81,6 +82,8 @@ bool AAI::CanReach(AActor* Actor, float Reach, int32 Instance)
 	}
 	else if (Actor->IsA<ABuilding>())
 		Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), location);
+	else if (Actor->IsA<AAISpawner>())
+		Cast<AAISpawner>(Actor)->SpawnerMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), location);
 
 	return Reach >= FVector::Dist(MovementComponent->Transform.GetLocation(), location);
 }

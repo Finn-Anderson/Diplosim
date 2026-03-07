@@ -609,9 +609,7 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	data->CitizenData.MassStatus = citizen->HappinessComponent->MassStatus;
 	data->CitizenData.FestivalStatus = citizen->HappinessComponent->FestivalStatus;
 	data->CitizenData.bConversing = citizen->bConversing;
-	data->CitizenData.ConversationHappiness = citizen->HappinessComponent->ConversationHappiness;
-	data->CitizenData.FamilyDeathHappiness = citizen->HappinessComponent->FamilyDeathHappiness;
-	data->CitizenData.WitnessedDeathHappiness = citizen->HappinessComponent->WitnessedDeathHappiness;
+	data->CitizenData.DecayingHappiness = citizen->HappinessComponent->DecayingHappiness;
 	data->CitizenData.Genetics = citizen->Genetics;
 	data->CitizenData.bSleep = citizen->bSleep;
 	data->CitizenData.HoursSleptToday = citizen->HoursSleptToday;
@@ -1049,9 +1047,7 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	citizen->HappinessComponent->SadTimer = data->CitizenData.SadTimer;
 	citizen->HappinessComponent->MassStatus = data->CitizenData.MassStatus;
 	citizen->HappinessComponent->FestivalStatus = data->CitizenData.FestivalStatus;
-	citizen->HappinessComponent->ConversationHappiness = data->CitizenData.ConversationHappiness;
-	citizen->HappinessComponent->FamilyDeathHappiness = data->CitizenData.FamilyDeathHappiness;
-	citizen->HappinessComponent->WitnessedDeathHappiness = data->CitizenData.WitnessedDeathHappiness;
+	citizen->HappinessComponent->DecayingHappiness = data->CitizenData.DecayingHappiness;
 	citizen->Genetics = data->CitizenData.Genetics;
 	citizen->bSleep = data->CitizenData.bSleep;
 	citizen->HoursSleptToday = data->CitizenData.HoursSleptToday;

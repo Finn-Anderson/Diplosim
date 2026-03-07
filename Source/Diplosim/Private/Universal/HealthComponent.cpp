@@ -60,7 +60,7 @@ void UHealthComponent::AddHealth(int32 Amount)
 void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* Sound)
 {
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Amount, Attacker, Sound]() {
-		if (GetHealth() == 0)
+		if (GetHealth() == 0 || !IsValid(GetOwner()))
 			return;
 
 		Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
@@ -74,7 +74,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 		else
 			Camera->TimerManager->ResetTimer("RemoveDamageOverlay", GetOwner());
 
-		if (Health == 0)
+		if (GetHealth() == 0)
 			Death(Attacker);
 		else if (GetOwner()->IsA<ACitizen>())
 			Camera->DiseaseManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Stream.RandRange(0, 100));
@@ -97,14 +97,17 @@ void UHealthComponent::ApplyDamageOverlay(bool bLoad)
 {
 	float opacity = (MaxHealth - Health) / (float)MaxHealth;
 
-	if (GetOwner()->IsA<ABuilding>()) {
-		ABuilding* building = Cast<ABuilding>(GetOwner());
+	if (GetOwner()->IsA<ABuilding>() || GetOwner()->IsA<AAISpawner>()) {
+		TArray<UStaticMeshComponent*> meshes;
+		GetOwner()->GetComponents<UStaticMeshComponent*>(meshes);
 
-		if (!bLoad)
-			Camera->ConstructionManager->AddBuilding(building, EBuildStatus::Damaged);
+		for (UStaticMeshComponent* mesh : meshes) {
+			mesh->SetOverlayMaterial(OnHitEffect);
+			mesh->SetCustomPrimitiveDataFloat(11, opacity);
+		}
 
-		building->BuildingMesh->SetOverlayMaterial(OnHitEffect);
-		building->BuildingMesh->SetCustomPrimitiveDataFloat(6, opacity);
+		if (!bLoad && GetOwner()->IsA<ABuilding>())
+			Camera->ConstructionManager->AddBuilding(Cast<ABuilding>(GetOwner()), EBuildStatus::Damaged);
 	}
 	else {
 		TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
@@ -114,9 +117,14 @@ void UHealthComponent::ApplyDamageOverlay(bool bLoad)
 
 void UHealthComponent::RemoveDamageOverlay()
 {
-	if (GetOwner()->IsA<ABuilding>()) {
-		Cast<ABuilding>(GetOwner())->BuildingMesh->SetOverlayMaterial(nullptr);
-		Cast<ABuilding>(GetOwner())->BuildingMesh->SetCustomPrimitiveDataFloat(6, 0.0f);
+	if (GetOwner()->IsA<ABuilding>() || GetOwner()->IsA<AAISpawner>()) {
+		TArray<UStaticMeshComponent*> meshes;
+		GetOwner()->GetComponents<UStaticMeshComponent*>(meshes);
+
+		for (UStaticMeshComponent* mesh : meshes) {
+			mesh->SetOverlayMaterial(nullptr);
+			mesh->SetCustomPrimitiveDataFloat(11, 0.0f);
+		}
 	}
 	else {
 		TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
@@ -147,7 +155,7 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		Cast<AAI>(actor)->AIController->StopMovement();
 
-		Camera->TimerManager->CreateTimer("Decay", GetOwner(), 6.0f, "Clear", {}, false, true);
+		Camera->TimerManager->CreateTimer("Decay", GetOwner(), 6.0f, "AIDecay", {}, false, true);
 
 		if (actor->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(actor);
@@ -233,7 +241,7 @@ void UHealthComponent::Death(AActor* Attacker)
 	if (!IsValid(Attacker))
 		return;
 
-	Camera->TimerManager->RemoveAllTimers(actor, {"RemoveDamageOverlay"});
+	Camera->TimerManager->RemoveAllTimers(actor, {"RemoveDamageOverlay", "Decay"});
 
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(Attacker, params);

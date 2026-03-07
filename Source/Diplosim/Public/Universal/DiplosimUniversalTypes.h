@@ -855,6 +855,18 @@ enum class EFactionType : uint8
 	Same
 };
 
+//
+// Happiness
+//
+UENUM()
+enum class EHappinessType : uint8
+{
+	Conversation,
+	FamilyDeath,
+	WitnessedDeath,
+	Divorce
+};
+
 class DIPLOSIM_API DiplosimUniversalTypes
 {
 public:

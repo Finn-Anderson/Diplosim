@@ -271,6 +271,9 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 			Citizen1->AttackComponent->bShowMercy = true;
 			Citizen2->AttackComponent->bShowMercy = true;
 		}
+		
+		Camera->TimerManager->RemoveTimer("Idle", Citizen1);
+		Camera->TimerManager->RemoveTimer("Idle", Citizen2);
 
 		Camera->PoliceManager->CreatePoliceReport(Faction, nullptr, Citizen1, EReportType::Fighting, INDEX_NONE);
 	}

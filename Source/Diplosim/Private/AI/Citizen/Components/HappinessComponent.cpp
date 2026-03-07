@@ -21,10 +21,10 @@ UHappinessComponent::UHappinessComponent()
 	MassStatus = EAttendStatus::Neutral;
 	FestivalStatus = EAttendStatus::Neutral;
 
-	ConversationHappiness = 0;
-	FamilyDeathHappiness = 0;
-	WitnessedDeathHappiness = 0;
-	DivorceHappiness = 0;
+	DecayingHappiness.Add(EHappinessType::Conversation, 0);
+	DecayingHappiness.Add(EHappinessType::FamilyDeath, 0);
+	DecayingHappiness.Add(EHappinessType::WitnessedDeath, 0);
+	DecayingHappiness.Add(EHappinessType::Divorce, 0);
 
 	SadTimer = 0;
 }
@@ -46,22 +46,19 @@ void UHappinessComponent::SetAttendStatus(EAttendStatus Status, bool bMass)
 	citizen->Camera->TimerManager->CreateTimer("Mass", citizen, timeToCompleteDay * 2, "SetAttendStatus", params, false);
 }
 
-void UHappinessComponent::SetDecayingHappiness(int32* HappinessToDecay, int32 Amount, int32 Min, int32 Max)
+void UHappinessComponent::SetDecayingHappiness(EHappinessType Type, int32 Amount, int32 Min, int32 Max)
 {
-	int32 value = FMath::Clamp(*HappinessToDecay + Amount, Min, Max);
-
-	HappinessToDecay = &value;
+	int32 value = FMath::Clamp(*DecayingHappiness.Find(Type) + Amount, Min, Max);
+	DecayingHappiness.Add(Type, value);
 }
 
 void UHappinessComponent::DecayHappiness()
 {
-	TArray<int32*> happinessToDecay = { &ConversationHappiness, &FamilyDeathHappiness, &WitnessedDeathHappiness, &DivorceHappiness };
-
-	for (int32* happiness : happinessToDecay) {
-		if (*happiness < 0)
-			happiness++;
-		else if (*happiness > 0)
-			happiness--;
+	for (auto& element : DecayingHappiness) {
+		if (element.Value < 0)
+			element.Value++;
+		else if (element.Value > 0)
+			element.Value--;
 	}
 }
 
@@ -126,19 +123,24 @@ void UHappinessComponent::SetHappiness()
 	if (citizen->Camera->EventsManager->IsHolliday(citizen))
 		Modifiers.Add("Holliday", 10);
 
-	if (ConversationHappiness < 0)
-		Modifiers.Add("Recent arguments", ConversationHappiness);
-	else if (ConversationHappiness > 0)
-		Modifiers.Add("Recent conversations", ConversationHappiness);
+	int32 conversationHappiness = *DecayingHappiness.Find(EHappinessType::Conversation);
+	int32 familyDeathHappiness = *DecayingHappiness.Find(EHappinessType::FamilyDeath);
+	int32 witnessedDeathHappiness = *DecayingHappiness.Find(EHappinessType::WitnessedDeath);
+	int32 divorceHappiness = *DecayingHappiness.Find(EHappinessType::Divorce);
 
-	if (FamilyDeathHappiness != 0)
-		Modifiers.Add("Recent family death", FamilyDeathHappiness);
+	if (conversationHappiness < 0)
+		Modifiers.Add("Recent arguments", conversationHappiness);
+	else if (conversationHappiness > 0)
+		Modifiers.Add("Recent conversations", conversationHappiness);
 
-	if (WitnessedDeathHappiness != 0)
-		Modifiers.Add("Witnessed death", WitnessedDeathHappiness);
+	if (familyDeathHappiness != 0)
+		Modifiers.Add("Recent family death", familyDeathHappiness);
 
-	if (DivorceHappiness != 0)
-		Modifiers.Add("Recently divorced", DivorceHappiness);
+	if (witnessedDeathHappiness != 0)
+		Modifiers.Add("Witnessed death", witnessedDeathHappiness);
+
+	if (divorceHappiness != 0)
+		Modifiers.Add("Recently divorced", divorceHappiness);
 
 	if (citizen->Camera->ConquestManager->GetCitizenFaction(citizen).WarFatigue >= 120)
 		Modifiers.Add("High War Fatigue", -15);

@@ -62,13 +62,13 @@ void ADiplosimAIController::DefaultAction()
 				if (raidPolicy == ERaidPolicy::Home && !faction->BuildingsOnFire.Contains(citizen->BuildingComponent->House))
 					AIMoveTo(citizen->BuildingComponent->House);
 				else
-					Wander(faction->EggTimer->GetActorLocation(), true, 1000.0f, true);
+					Wander(faction->EggTimer->GetActorLocation(), true, 500.0f, true);
 
 				return;
 			}
 		}
 
-		if (citizen->bConversing || Camera->PoliceManager->IsInAPoliceReport(citizen, faction) || citizen->AttackComponent->IsComponentTickEnabled() || Camera->EventsManager->IsAttendingEvent(citizen))
+		if (citizen->bConversing || Camera->PoliceManager->IsInAPoliceReport(citizen, faction) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || Camera->EventsManager->IsAttendingEvent(citizen))
 			return;
 
 		for (auto& element : Camera->EventsManager->OngoingEvents()) {
@@ -120,8 +120,9 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 	AHouse* house = Citizen->BuildingComponent->House;
 
-	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33) && !Faction->BuildingsOnFire.Contains(house))
+	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33) && !Faction->BuildingsOnFire.Contains(house)) {
 		AIMoveTo(house);
+	}
 	else {
 		int32 time = Camera->Stream.RandRange(5, 20);
 
@@ -134,7 +135,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 			Wander(Faction->EggTimer->GetActorLocation(), false);
 		}
 
-		Camera->TimerManager->CreateTimer("Idle", Citizen, time, "DefaultAction", {}, false);
+		Camera->TimerManager->CreateTimer("Idle", AI, time, "DefaultAction", {}, false);
 	}
 }
 
@@ -159,24 +160,32 @@ void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, float MaxLe
 		CentrePoint = ChosenBuilding->GetActorLocation();
 	}
 
-	FVector location = CentrePoint + Async(EAsyncExecution::TaskGraph, [this, innerRange, outerRange]() { return FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(innerRange, outerRange); }).Get();
+	int32 attempts = 0;
 
-	FNavLocation navLoc;
-	nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));
+	while (attempts < 5) {
+		FVector location = CentrePoint + Async(EAsyncExecution::TaskGraph, [this, innerRange, outerRange]() { return FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(innerRange, outerRange); }).Get();
 
-	double length = 0.0f;
-	nav->GetPathLength(Camera->GetTargetActorLocation(AI), navLoc, length);
+		FNavLocation navLoc;
+		nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));
 
-	if (length < MaxLength && CanMoveTo(navLoc)) {
-		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetActorLocation(AI), navLoc, AI, AI->NavQueryFilter);
+		double length = 0.0f;
+		nav->GetPathLength(Camera->GetTargetActorLocation(AI), navLoc, length);
 
-		AI->MovementComponent->SetPoints(path->PathPoints);
+		if (length <= MaxLength && CanMoveTo(navLoc)) {
+			UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetActorLocation(AI), navLoc, AI, AI->NavQueryFilter);
 
-		if (AI->IsA<ACitizen>() && IsValid(Cast<ACitizen>(AI)->BuildingComponent->BuildingAt)) {
-			ACitizen* citizen = Cast<ACitizen>(AI);
+			AI->MovementComponent->SetPoints(path->PathPoints);
 
-			Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { citizen->BuildingComponent->BuildingAt->Leave(citizen); });
+			if (AI->IsA<ACitizen>() && IsValid(Cast<ACitizen>(AI)->BuildingComponent->BuildingAt)) {
+				ACitizen* citizen = Cast<ACitizen>(AI);
+
+				Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { citizen->BuildingComponent->BuildingAt->Leave(citizen); });
+			}
+
+			break;
 		}
+
+		attempts++;
 	}
 
 	if (!bTimer)
@@ -497,7 +506,7 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 
 void ADiplosimAIController::StartMovement()
 {
-	if (!IsValid(AI))
+	if (!IsValid(AI) || (AI->MovementComponent->Points.IsEmpty() && !AI->MovementComponent->bSetPoints))
 		return;
 	
 	AI->MovementComponent->SetAnimation(EAnim::Move, true, 6.0f);
@@ -513,6 +522,6 @@ void ADiplosimAIController::StopMovement()
 
 	AI->MovementComponent->SetAnimation(EAnim::Still);
 
-	if (AI->IsA<ACitizen>())
+	if (AI->IsA<ACitizen>() && !AI->MovementComponent->Points.IsEmpty())
 		Camera->TimerManager->PauseTimer("Idle", AI, true);
 }

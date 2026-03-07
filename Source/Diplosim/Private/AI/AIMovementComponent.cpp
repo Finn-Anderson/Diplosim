@@ -87,18 +87,18 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 	if (!CurrentAnim.bPlay)
 		return;
 
-	if (IsValid(ActorToLookAt) && Points.IsEmpty()) {
-		FRotator rotation = (AI->Camera->GetTargetActorLocation(ActorToLookAt) - Transform.GetLocation()).Rotation() * CurrentAnim.Alpha;
-		rotation.Pitch = 0.0f;
-		rotation.Roll = 0.0f;
+	CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
 
-		Transform.SetRotation((Transform.GetRotation() + rotation.Quaternion()).GetNormalized());
+	if (IsValid(ActorToLookAt) && Points.IsEmpty()) {
+		FRotator rotation = (AI->Camera->GetTargetActorLocation(ActorToLookAt) - Transform.GetLocation()).Rotation();
+		rotation.Pitch = Transform.GetRotation().Rotator().Pitch;
+		rotation.Roll = Transform.GetRotation().Rotator().Roll;
+
+		Transform.SetRotation(FMath::Lerp(Transform.GetRotation(), rotation.Quaternion(), CurrentAnim.Alpha));
 
 		if (CurrentAnim.Alpha == 1.0f)
 			ActorToLookAt = nullptr;
 	}
-
-	CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
 
 	FVector endLocation = CurrentAnim.EndTransform.GetLocation();
 	if (CurrentAnim.Type == EAnim::Melee)
@@ -179,13 +179,13 @@ void UAIMovementComponent::AvoidCollisions(FVector& DeltaV, float DeltaTime)
 
 void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 {
+	TempPoints = VectorPoints;
+	bSetPoints = true;
+
 	if (!VectorPoints.IsEmpty())
 		AI->AIController->StartMovement();
 	else if (CurrentAnim.Type == EAnim::Move)
 		AI->AIController->StopMovement();
-
-	TempPoints = VectorPoints;
-	bSetPoints = true;
 }
 
 void UAIMovementComponent::SetMaxSpeed(int32 Energy)
