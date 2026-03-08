@@ -565,9 +565,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
 		bool bQuick;
 
-	UPROPERTY()
-		bool bBlockPause;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 		TSubclassOf<class ABuilding> StartBuilding;
 

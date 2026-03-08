@@ -129,8 +129,6 @@ ACamera::ACamera()
 
 	FocusedCitizen = nullptr;
 
-	bBlockPause = false;
-
 	GameSpeed = 1.0f;
 	ResetGameSpeedCounter();
 
@@ -414,12 +412,9 @@ void ACamera::OnEggTimerPlace(ABuilding* EggTimer)
 
 void ACamera::IntroUI()
 {
-	bBlockPause = true;
-
 	ShowEvent("Welcome to", ColonyName);
 
-	FTimerHandle displayBuildUITimer;
-	GetWorld()->GetTimerManager().SetTimer(displayBuildUITimer, this, &ACamera::DisplayBuildUI, 2.7f, false);
+	TimerManager->CreateTimer("DisplayBuildUI", this, 2.7f, "DisplayBuildUI", {}, false, true);
 }
 
 void ACamera::Quit(bool bMenu)
@@ -460,8 +455,6 @@ void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
 
 void ACamera::DisplayBuildUI()
 {
-	bBlockPause = false;
-
 	if (Settings->GetShowLog())
 		LogUIInstance->AddToViewport();
 
@@ -926,7 +919,7 @@ void ACamera::NewMap()
 
 void ACamera::Pause()
 {
-	if (bBlockPause || bUIMode == 2)
+	if (Start || TimerManager->DoesTimerExist("DisplayBuildUI", this) || bUIMode == 2)
 		return;
 
 	if (PauseUIInstance->IsInViewport())
