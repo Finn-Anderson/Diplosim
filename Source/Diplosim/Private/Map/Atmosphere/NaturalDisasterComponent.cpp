@@ -28,7 +28,7 @@ bool UNaturalDisasterComponent::ShouldCreateDisaster()
 {
 	float chance = Grid->Camera->Stream.FRandRange(0.0f, 100.0f);
 
-	if (bDisasterChance <= chance)
+	if (DisasterChance <= chance)
 		return false;
 
 	return true;
@@ -36,7 +36,7 @@ bool UNaturalDisasterComponent::ShouldCreateDisaster()
 
 void UNaturalDisasterComponent::IncrementDisasterChance()
 {
-	bDisasterChance += 0.02f * Frequency;
+	DisasterChance += 0.02f * Frequency;
 
 	if (!ShouldCreateDisaster())
 		return;
@@ -57,7 +57,7 @@ void UNaturalDisasterComponent::IncrementDisasterChance()
 
 void UNaturalDisasterComponent::ResetDisasterChance()
 {
-	bDisasterChance = 0.0f;
+	DisasterChance = 0.0f;
 }
 
 void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)

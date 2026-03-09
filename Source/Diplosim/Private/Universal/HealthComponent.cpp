@@ -110,7 +110,7 @@ void UHealthComponent::ApplyDamageOverlay(bool bLoad)
 			Camera->ConstructionManager->AddBuilding(Cast<ABuilding>(GetOwner()), EBuildStatus::Damaged);
 	}
 	else {
-		TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
+		TTuple<class UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
 		info.Key->SetCustomDataValue(info.Value, 9, opacity);
 	}
 }
@@ -127,7 +127,7 @@ void UHealthComponent::RemoveDamageOverlay()
 		}
 	}
 	else {
-		TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
+		TTuple<class UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
 		info.Key->SetCustomDataValue(info.Value, 9, 0.0f);
 	}
 }
@@ -350,7 +350,7 @@ void UHealthComponent::Clear(AActor* Attacker)
 	if (actor->IsA<AAI>()) {
 		AAI* ai = Cast<AAI>(actor);
 
-		TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
+		TTuple<class UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
 
 		Camera->Grid->AIVisualiser->RemoveInstance(info.Key, info.Value);
 

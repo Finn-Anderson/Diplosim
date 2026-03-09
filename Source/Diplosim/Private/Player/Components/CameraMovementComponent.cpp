@@ -108,8 +108,8 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 
 	float z = 0.0f;
 
-	if (Component->IsA<UHierarchicalInstancedStaticMeshComponent>())
-		z = Cast<UHierarchicalInstancedStaticMeshComponent>(Component)->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	if (Component->IsA<UInstancedStaticMeshComponent>())
+		z = Cast<UInstancedStaticMeshComponent>(Component)->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 	else
 		z = Actor->GetComponentByClass<UStaticMeshComponent>()->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 

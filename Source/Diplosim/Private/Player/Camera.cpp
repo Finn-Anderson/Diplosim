@@ -294,69 +294,15 @@ void ACamera::Tick(float DeltaTime)
 		MouseHitLocation = hit.Location;
 
 		if (!hit.GetActor()->IsA<AGrid>() && !hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsA<AEggBasket>() && !hit.GetActor()->IsA<AResource>() && !hit.GetActor()->IsA<AAISpawner>())
-			return; 
-		
-		TArray<AAI*> ais;
+			return;
 
-		for (FFactionStruct faction : ConquestManager->Factions) {
-			ais.Append(faction.Citizens);
-			ais.Append(faction.Rebels);
-			ais.Append(faction.Clones);
-		}
-
-		ais.Append(GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies);
-		ais.Append(GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Snakes);
-
-		FVector chosenLocation = FVector(1000000000000000.0f);
-
-		for (AAI* ai : ais) {
-			if (!IsValid(ai) || ai->HealthComponent->GetHealth() == 0)
-				continue;
-
-			FTransform transform = ai->MovementComponent->Transform;
-
-			FVector centre, extents;
-			Grid->AIVisualiser->GetAIHISM(ai).Key->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, extents);
-
-			FVector Location = transform.GetLocation() + transform.GetRotation().RotateVector(centre);
-
-			FVector aiLoc = FVector(1000000000000000.0f);
-			for (float x = -1.0f; x <= 1.0f; x += 0.1f) {
-				for (float y = -1.0f; y <= 1.0f; y += 0.1f) {
-					for (float z = -1.0f; z <= 1.0f; z += 0.1f) {
-						FVector newLoc = Location + transform.GetRotation().RotateVector(extents * FVector(x, y, z));
-
-						if (FMath::PointDistToSegment(aiLoc, mouseLoc, hit.Location) < FMath::PointDistToSegment(newLoc, mouseLoc, hit.Location))
-							continue;
-
-						aiLoc = newLoc;
-					}
-				}
-			}
-
-			float distance = FMath::PointDistToSegment(aiLoc, mouseLoc, hit.Location);
-
-			float size = 1.0f;
-			if (ai->IsA<ACitizen>())
-				size = Cast<ACitizen>(ai)->ReachMultiplier;
-
-			if (distance > 3.0f * size || (chosenLocation != FVector(1000000000000000.0f) && FVector::Dist(mouseLoc, chosenLocation) < FVector::Dist(mouseLoc, aiLoc)))
-				continue;
-
-			HoveredActor.Actor = ai;
-
-			TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> hismValue = Grid->AIVisualiser->GetAIHISM(ai);
-			HoveredActor.Component = hismValue.Key;
-			HoveredActor.Instance = hismValue.Value;
-
-			chosenLocation = aiLoc;
-		}
-
-		if (!hit.GetActor()->IsA<AGrid>() && FVector::Dist(mouseLoc, chosenLocation) > FVector::Dist(mouseLoc, hit.Location)) {
+		if (hit.GetActor()->IsA<AGrid>() && hit.GetComponent()->IsA<UInstancedStaticMeshComponent>())
+			HoveredActor.Actor = Grid->AIVisualiser->GetHISMAI(this, Cast<UInstancedStaticMeshComponent>(hit.GetComponent()), hit.Item);
+		else if (!hit.GetActor()->IsA<AGrid>())
 			HoveredActor.Actor = actor;
-			HoveredActor.Component = hit.GetComponent();
-			HoveredActor.Instance = hit.Item;
-		}
+
+		HoveredActor.Component = hit.GetComponent();
+		HoveredActor.Instance = hit.Item;
 
 		if (HoveredActor.Actor == nullptr)
 			return;
@@ -644,9 +590,9 @@ void ACamera::SetTimeDilation(float Dilation)
 
 void ACamera::DisplayInteractOnAI(AAI* AI)
 {
-	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> hism = Grid->AIVisualiser->GetAIHISM(AI);
+	TTuple<class UInstancedStaticMeshComponent*, int32> info = Grid->AIVisualiser->GetAIHISM(AI);
 
-	DisplayInteract(AI, hism.Key, hism.Value);
+	DisplayInteract(AI, info.Key, info.Value);
 }
 
 void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 Instance)

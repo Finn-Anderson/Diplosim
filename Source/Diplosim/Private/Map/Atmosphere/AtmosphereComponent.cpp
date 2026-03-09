@@ -314,6 +314,9 @@ UNiagaraComponent* UAtmosphereComponent::GetFireComponent(AActor* Actor, int32 I
 		return fireComp;
 
 	if (Actor->IsA<AVegetation>()) {
+		if (Instance == INDEX_NONE)
+			return fireComp;
+
 		TArray<UNiagaraComponent*> components;
 		Actor->GetComponents<UNiagaraComponent>(components);
 

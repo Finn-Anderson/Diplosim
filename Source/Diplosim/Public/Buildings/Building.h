@@ -40,9 +40,11 @@ struct FBasketStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	FGuid ID;
+	UPROPERTY()
+		FGuid ID;
 
-	FItemStruct Item;
+	UPROPERTY()
+		FItemStruct Item;
 
 	FBasketStruct()
 	{
@@ -60,13 +62,17 @@ struct FSocketStruct
 {
 	GENERATED_USTRUCT_BODY()
 
-	FName Name;
+	UPROPERTY()
+		FName Name;
 
-	FVector SocketLocation;
+	UPROPERTY()
+		FVector SocketLocation;
 
-	FRotator SocketRotation;
+	UPROPERTY()
+		FRotator SocketRotation;
 
-	class ACitizen* Citizen;
+	UPROPERTY()
+		class ACitizen* Citizen;
 
 	FSocketStruct()
 	{

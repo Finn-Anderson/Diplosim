@@ -55,7 +55,7 @@ public:
 		class AGrid* Grid;
 		
 	UPROPERTY()
-		float bDisasterChance;
+		float DisasterChance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Natural Disaster")
 		float Intensity;

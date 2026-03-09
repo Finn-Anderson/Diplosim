@@ -85,6 +85,9 @@ TArray<ACitizen*> AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
 			citizens.Add(Citizen);
 			worker.Citizens.Remove(Citizen);
 
+			if (worker.Citizens.IsEmpty())
+				WorkerStruct.RemoveSingle(worker);
+
 			break;
 		}
 	}
@@ -105,6 +108,9 @@ TArray<ACitizen*> AResource::RemoveWorker(ACitizen* Citizen, int32 Instance)
 			citizens.Add(Citizen);
 			WorkerStruct[index].Citizens.Remove(Citizen);
 		}
+
+		if (WorkerStruct[index].Citizens.IsEmpty())
+			WorkerStruct.RemoveAt(index);
 	}
 
 	return citizens;

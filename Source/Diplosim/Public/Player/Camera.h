@@ -441,7 +441,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void StartGame();
 
-	void DisplayBuildUI();
+	UFUNCTION()
+		void DisplayBuildUI();
 
 	UFUNCTION(BlueprintCallable)
 		void ShowWarning(FString Warning);

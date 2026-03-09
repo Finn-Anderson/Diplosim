@@ -49,14 +49,14 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 	TArray<AActor*> actors = { Camera, Camera->Grid };
 	TArray<AActor*> potentialWetActors;
 
-	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AResource::StaticClass(), foundActors);
-	actors.Append(foundActors);
-
 	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AEggBasket::StaticClass(), foundActors);
 	actors.Append(foundActors);
 	potentialWetActors.Append(foundActors);
 
 	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AAI::StaticClass(), foundActors);
+	actors.Append(foundActors);
+
+	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AResource::StaticClass(), foundActors);
 	actors.Append(foundActors);
 
 	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), ABuilding::StaticClass(), foundActors);
@@ -79,11 +79,11 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 
 		FActorSaveData actorData;
 		actorData.Name = actor->GetName();
-		actorData.Class = actor->GetClass();
-		actorData.Transform = actor->GetActorTransform();
+		SetActorData("ActorClass", actor->GetClass(), actorData);
+		SetActorData("ActorTransform", actor->GetActorTransform(), actorData);
 
 		if (actor->IsA<AGrid>())
-			SaveWorld(actorData, actor, potentialWetActors);
+			SaveWorld(actorData, actor, Index, potentialWetActors);
 		else if (actor->IsA<AResource>())
 			SaveResource(Camera, actorData, actor);
 		else if (actor->IsA<ACamera>()) {
@@ -112,7 +112,7 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 			SaveAISpawner(actorData, actor);
 
 		if (Camera->Grid->AtmosphereComponent->GetFireComponent(actor) != nullptr)
-			actorData.FireInstances.Add(INDEX_NONE);
+			SetActorData("Fire0", -1, actorData);
 
 		SaveTimers(Camera, actorData, actor);
 
@@ -128,40 +128,35 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 	UGameplayStatics::AsyncSaveGameToSlot(this, ID, 0);
 }
 
-void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArray<AActor*> PotentialWetActors)
+void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int32 Index, TArray<AActor*> PotentialWetActors)
 {
 	AGrid* grid = Cast<AGrid>(Actor);
+	
+	SetActorData("Size", grid->Size, ActorData);
+	SetActorData("Chunks", grid->Chunks, ActorData);
 
-	ActorData.WorldSaveData.Size = grid->Size;
-	ActorData.WorldSaveData.Chunks = grid->Chunks;
+	Saves[Index].Stream = grid->Camera->Stream;
 
-	ActorData.WorldSaveData.Stream = grid->Camera->Stream;
+	for (int32 i = 0; i < grid->LavaSpawnLocations.Num(); i++)
+		SetActorData("Lava" + FString::FromInt(i), grid->LavaSpawnLocations[i], ActorData);
 
-	ActorData.WorldSaveData.LavaSpawnLocations = grid->LavaSpawnLocations;
-
-	ActorData.WorldSaveData.Tiles.Empty();
-
+	auto bound = grid->GetMapBounds();
 	for (TArray<FTileStruct>& row : grid->Storage) {
 		for (FTileStruct& tile : row) {
-			FTileData t;
-			t.Level = tile.Level;
-			t.Fertility = tile.Fertility;
-			t.X = tile.X;
-			t.Y = tile.Y;
-			t.Rotation = tile.Rotation;
-			t.bRamp = tile.bRamp;
-			t.bRiver = tile.bRiver;
-			t.bEdge = tile.bEdge;
-			t.bMineral = tile.bMineral;
-			t.bUnique = tile.bUnique;
+			FString key = "Tile" + FString::FromInt(tile.X + tile.Y + bound);
 
-			ActorData.WorldSaveData.Tiles.Add(t);
+			SetActorData(key + "Level", tile.Level, ActorData);
+			SetActorData(key + "Fertility", tile.Fertility, ActorData);
+			SetActorData(key + "X", tile.X, ActorData);
+			SetActorData(key + "Y", tile.Y, ActorData);
+			SetActorData(key + "Rotation", tile.Rotation, ActorData);
+			SetActorData(key + "bRamp", tile.bRamp, ActorData);
+			SetActorData(key + "bRiver", tile.bRiver, ActorData);
+			SetActorData(key + "bEdge", tile.bEdge, ActorData);
+			SetActorData(key + "bMineral", tile.bMineral, ActorData);
+			SetActorData(key + "bUnique", tile.bUnique, ActorData);
 		}
 	}
-
-	ActorData.WorldSaveData.HISMData.Empty();
-	ActorData.WorldSaveData.CloudsData.WetnessData.Empty();
-	ActorData.WorldSaveData.CloudsData.CloudData.Empty();
 
 	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
 
@@ -169,8 +164,8 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 
 	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
 		FHISMData data;
-		data.Name = hism->GetName();
 
+		int32 count = 0;
 		for (int32 i = 0; i < hism->GetInstanceCount(); i++) {
 			FTransform transform;
 			hism->GetInstanceTransform(i, transform);
@@ -189,28 +184,33 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 			if (index == INDEX_NONE)
 				continue;
 
-			FWetnessData wetnessData;
-			wetnessData.Location = transform.GetLocation();
-			wetnessData.Value = clouds->WetnessStruct[index].Value;
-			wetnessData.Increment = clouds->WetnessStruct[index].Increment;
+			FString key = hism->GetName() + FString::FromInt(count);
+			SetActorData(key + "WetLocation", transform, ActorData);
+			SetActorData(key + "WetValue", clouds->WetnessStruct[index].Value, ActorData);
+			SetActorData(key + "WetIncrement", clouds->WetnessStruct[index].Increment, ActorData);
 
-			ActorData.WorldSaveData.CloudsData.WetnessData.Add(wetnessData);
+			count++;
 		}
 
 		data.CustomDataValues = hism->PerInstanceSMCustomData;
 
-		ActorData.WorldSaveData.HISMData.Add(data);
+		SetActorData(hism->GetName(), data, ActorData);
 	}
 
-	ActorData.WorldSaveData.AtmosphereData.Calendar = grid->AtmosphereComponent->Calendar;
-	ActorData.WorldSaveData.AtmosphereData.bRedSun = grid->AtmosphereComponent->bRedSun;
-	ActorData.WorldSaveData.AtmosphereData.WindRotation = grid->AtmosphereComponent->WindRotation;
-	ActorData.WorldSaveData.AtmosphereData.SunRotation = grid->AtmosphereComponent->Sun->GetRelativeRotation();
-	ActorData.WorldSaveData.AtmosphereData.MoonRotation = grid->AtmosphereComponent->Moon->GetRelativeRotation();
+	FCalendarStruct calendar = grid->AtmosphereComponent->Calendar;
+	SetActorData("CalendarPeriod", calendar.Period, ActorData);
+	SetActorData("CalendarIndex", calendar.Index, ActorData);
+	SetActorData("CalendarHour", calendar.Hour, ActorData);
+	SetActorData("CalendarYear", calendar.Year, ActorData);
 
-	ActorData.WorldSaveData.NaturalDisasterData.bDisasterChance = grid->AtmosphereComponent->NaturalDisasterComponent->bDisasterChance;
-	ActorData.WorldSaveData.NaturalDisasterData.Frequency = grid->AtmosphereComponent->NaturalDisasterComponent->Frequency;
-	ActorData.WorldSaveData.NaturalDisasterData.Intensity = grid->AtmosphereComponent->NaturalDisasterComponent->Intensity;
+	SetActorData("bRedSun", grid->AtmosphereComponent->bRedSun, ActorData);
+	SetActorData("WindRotation", grid->AtmosphereComponent->WindRotation, ActorData);
+	SetActorData("SunRotation", grid->AtmosphereComponent->Sun->GetRelativeTransform(), ActorData);
+	SetActorData("MoonRotation", grid->AtmosphereComponent->Moon->GetRelativeTransform(), ActorData);
+
+	SetActorData("DisasterChance", grid->AtmosphereComponent->NaturalDisasterComponent->DisasterChance, ActorData);
+	SetActorData("DisasterFrequency", grid->AtmosphereComponent->NaturalDisasterComponent->Frequency, ActorData);
+	SetActorData("DisasterIntensity", grid->AtmosphereComponent->NaturalDisasterComponent->Intensity, ActorData);
 
 	for (AActor* a : PotentialWetActors) {
 		FWetnessStruct wetnessStruct;
@@ -221,47 +221,53 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, TArr
 		if (index == INDEX_NONE)
 			continue;
 
-		FWetnessData wetnessData;
-		wetnessData.Location = a->GetActorLocation();
-		wetnessData.Value = clouds->WetnessStruct[index].Value;
-		wetnessData.Increment = clouds->WetnessStruct[index].Increment;
-
-		ActorData.WorldSaveData.CloudsData.WetnessData.Add(wetnessData);
+		SetActorData(a->GetName() + "WetLocation", a->GetActorTransform(), ActorData);
+		SetActorData(a->GetName() + "WetValue", clouds->WetnessStruct[index].Value, ActorData);
+		SetActorData(a->GetName() + "WetIncrement", clouds->WetnessStruct[index].Increment, ActorData);
 	}
 
+	int32 cloudCount = 0;
 	for (FCloudStruct cloud : grid->AtmosphereComponent->Clouds->Clouds) {
-		FCloudData data;
-		data.Transform = cloud.HISMCloud->GetRelativeTransform();
-		data.Distance = cloud.Distance;
-		data.bPrecipitation = cloud.Precipitation != nullptr;
-		data.bHide = cloud.bHide;
-		data.lightningFrequency = cloud.lightningFrequency;
-		data.lightningTimer = cloud.lightningTimer;
+		SetActorData("CloudTransform" + FString::FromInt(cloudCount), cloud.HISMCloud->GetRelativeTransform(), ActorData);
+		SetActorData("CloudDistance" + FString::FromInt(cloudCount), cloud.Distance, ActorData);
+		SetActorData("CloudPercipitation" + FString::FromInt(cloudCount), cloud.Precipitation != nullptr, ActorData);
+		SetActorData("CloudHide" + FString::FromInt(cloudCount), cloud.bHide, ActorData);
+		SetActorData("CloudLightningFrequency" + FString::FromInt(cloudCount), cloud.lightningFrequency, ActorData);
+		SetActorData("CloudLightningTimer" + FString::FromInt(cloudCount), cloud.lightningTimer, ActorData);
 
-		ActorData.WorldSaveData.CloudsData.CloudData.Add(data);
+		cloudCount++;
 	}
 }
 
 void UDiplosimSaveGame::SaveResource(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
 {
 	AResource* resource = Cast<AResource>(Actor);
+	FHISMData data;
 
-	ActorData.ResourceData.HISMData.Name = resource->ResourceHISM->GetName();
-
-	ActorData.ResourceData.HISMData.Transforms.Empty();
+	int32 fireCount = 0;
 	for (int32 i = 0; i < resource->ResourceHISM->GetInstanceCount(); i++) {
 		FTransform transform;
 		resource->ResourceHISM->GetInstanceTransform(i, transform);
 
-		ActorData.ResourceData.HISMData.Transforms.Add(transform);
+		data.Transforms.Add(transform);
 
 		if (Camera->Grid->AtmosphereComponent->GetFireComponent(Actor, i) != nullptr)
-			ActorData.FireInstances.Add(i);
+			SetActorData("Fire" + fireCount, i, ActorData);
+
+		fireCount++;
 	}
 
-	ActorData.ResourceData.HISMData.CustomDataValues = resource->ResourceHISM->PerInstanceSMCustomData;
+	data.CustomDataValues = resource->ResourceHISM->PerInstanceSMCustomData;
+	SetActorData(Actor->GetName(), data, ActorData);
 
-	ActorData.ResourceData.Workers = resource->WorkerStruct;
+	int32 workerCount = 0;
+	for (FWorkerStruct worker : resource->WorkerStruct) {
+		int32 citizenCount = 0;
+		for (ACitizen* citizen : worker.Citizens)
+			SetActorData("Workers" + FString::FromInt(workerCount) + FString::FromInt(citizenCount), citizen->GetName(), ActorData);
+
+		SetActorData("Workers" + FString::FromInt(workerCount), worker.Instance, ActorData);
+	}
 }
 
 void UDiplosimSaveGame::SaveCamera(FActorSaveData& ActorData, AActor* Actor)
@@ -669,16 +675,18 @@ void UDiplosimSaveGame::SaveProjectile(FActorSaveData& ActorData, AActor* Actor)
 {
 	AProjectile* projectile = Cast<AProjectile>(Actor);
 
-	ActorData.ProjectileData.OwnerName = projectile->GetOwner()->GetName();
-	ActorData.ProjectileData.Velocity = projectile->ProjectileMovementComponent->Velocity;
+	SetActorData("ProjectileOwner", projectile->GetOwner()->GetName(), ActorData);
+	SetActorData("ProjectileVelocity", projectile->ProjectileMovementComponent->Velocity, ActorData);
 }
 
 void UDiplosimSaveGame::SaveAISpawner(FActorSaveData& ActorData, AActor* Actor)
 {
 	AAISpawner* spawner = Cast<AAISpawner>(Actor);
 
-	ActorData.SpawnerData.Colour = spawner->Colour;
-	ActorData.SpawnerData.IncrementSpawned = spawner->IncrementSpawned;
+	SetActorData("Red", spawner->Colour.R, ActorData);
+	SetActorData("Green", spawner->Colour.G, ActorData);
+	SetActorData("Blue", spawner->Colour.B, ActorData);
+	SetActorData("IncrementSpawned", spawner->IncrementSpawned, ActorData);
 }
 
 void UDiplosimSaveGame::SaveTimers(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
@@ -702,16 +710,16 @@ void UDiplosimSaveGame::SaveComponents(FActorSaveData& ActorData, AActor* Actor)
 {
 	UHealthComponent* healthComp = Actor->FindComponentByClass<UHealthComponent>();
 	if (healthComp)
-		ActorData.HealthData.Health = healthComp->Health;
+		SetActorData("Health", healthComp->GetHealth(), ActorData);
 
 	UAttackComponent* attackComp = Actor->FindComponentByClass<UAttackComponent>();
 	if (attackComp) {
-		ActorData.AttackData.ProjectileClass = attackComp->ProjectileClass;
-		ActorData.AttackData.AttackTimer = attackComp->AttackTimer;
-		ActorData.AttackData.bShowMercy = attackComp->bShowMercy;
+		SetActorData("ProjectileClass", attackComp->ProjectileClass->GetClass(), ActorData);
+		SetActorData("AttackTimer", attackComp->AttackTimer, ActorData);
+		SetActorData("bShowMercy", attackComp->bShowMercy, ActorData);
 
-		for (AActor* enemies : attackComp->OverlappingEnemies)
-			ActorData.AttackData.ActorNames.Add(enemies->GetName());
+		for (int32 i = 0; i < attackComp->OverlappingEnemies.Num(); i++)
+			SetActorData("Enemy" + FString::FromInt(i), attackComp->OverlappingEnemies[i]->GetName(), ActorData);
 	}
 }
 
@@ -739,27 +747,28 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		a->Destroy();
 
 	TMap<FString, FActorSaveData*> aiToName;
-	TArray<FWetnessData> wetnessData;
+	TMap<FString, FActorSaveData> wetNames;
 
 	for (FActorSaveData& actorData : Saves[Index].SavedActors) {
 		AActor* actor = nullptr;
+		FTransform transform = GetActorData<FTransform>("ActorTransform", actorData);
 
-		UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), actorData.Class, foundActors);
+		UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), GetActorData<UClass*>("ActorClass", actorData), foundActors);
 
 		if (foundActors.Num() == 1 && (foundActors[0]->IsA<ACamera>() || foundActors[0]->IsA<AGrid>() || foundActors[0]->IsA<AResource>())) {
 			actor = foundActors[0];
 
-			actor->SetActorTransform(actorData.Transform);
+			actor->SetActorTransform(transform);
 		}
 		else {
 			FActorSpawnParameters params;
 			params.bNoFail = true;
 
-			actor = Camera->GetWorld()->SpawnActor<AActor>(actorData.Class, actorData.Transform, params);
+			actor = Camera->GetWorld()->SpawnActor<AActor>(GetActorData<UClass*>("ActorClass", actorData), transform, params);
 		}
 
 		if (actor->IsA<AGrid>())
-			LoadWorld(actorData, actor, wetnessData);
+			LoadWorld(actorData, actor, Index, wetNames);
 		else if (actor->IsA<AResource>())
 			LoadResource(actorData, actor);
 		else if (actor->IsA<AEggBasket>())
@@ -784,8 +793,16 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		else if (actor->IsA<AAISpawner>())
 			LoadAISpawner(actorData, actor);
 
-		for (int32 instance : actorData.FireInstances)
-			Camera->Grid->AtmosphereComponent->SetOnFire(actor, instance, true);
+		int32 fireCount = 0;
+		while (true) {
+			if (!actorData.Numbers.Contains("Fire" + FString::FromInt(fireCount)))
+				break;
+
+			Camera->Grid->AtmosphereComponent->SetOnFire(actor, GetActorData<int32>("Fire" + FString::FromInt(fireCount), actorData), true);
+		}
+
+		if (actorData.Transforms.Contains(actorData.Name + "WetLocation"))
+			wetNames.Add(actorData.Name, actorData);
 
 		actorData.Actor = actor;
 	}
@@ -800,77 +817,117 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		InitialiseObjects(Camera, gamemode, actorData, savedData);
 	}
 
-	for (FWetnessData data : wetnessData)
-		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(data.Location, data.Value, data.Increment);
+	for (auto element : wetNames)
+		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(GetActorData<FVector>(element.Key + "WetLocation", element.Value), GetActorData<float>(element.Key + "WetValue", element.Value), GetActorData<float>(element.Key + "WetIncrement", element.Value));
 }
 
-void UDiplosimSaveGame::LoadWorld(FActorSaveData& ActorData, AActor* Actor, TArray<FWetnessData>& WetnessData)
+void UDiplosimSaveGame::LoadWorld(FActorSaveData& ActorData, AActor* Actor, int32 Index, TMap<FString, FActorSaveData>& WetNames)
 {
 	AGrid* grid = Cast<AGrid>(Actor);
 
-	grid->Size = ActorData.WorldSaveData.Size;
-	grid->Chunks = ActorData.WorldSaveData.Chunks;
+	grid->Size = GetActorData<int32>("Size", ActorData);
+	grid->Chunks = GetActorData<int32>("Chunks", ActorData);
 
-	grid->Camera->Stream = ActorData.WorldSaveData.Stream;
+	grid->Camera->Stream = Saves[Index].Stream;
 
-	grid->LavaSpawnLocations = ActorData.WorldSaveData.LavaSpawnLocations;
+	int32 lavaCount = 0;
+	while (true) {
+		FString key = "lava" + FString::FromInt(lavaCount);
+
+		if (!ActorData.Transforms.Contains(key))
+			break;
+
+		grid->LavaSpawnLocations.Add(GetActorData<FVector>(key, ActorData));
+		lavaCount++;
+	}
 
 	grid->Clear();
 
 	grid->InitialiseStorage();
 	auto bound = grid->GetMapBounds();
 
-	for (FTileData t : ActorData.WorldSaveData.Tiles) {
-		FTileStruct* tile = &grid->Storage[t.X + (bound / 2)][t.Y + (bound / 2)];
-		tile->Level = t.Level;
-		tile->Fertility = t.Fertility;
-		tile->X = t.X;
-		tile->Y = t.Y;
-		tile->Rotation = t.Rotation;
-		tile->bRamp = t.bRamp;
-		tile->bRiver = t.bRiver;
-		tile->bEdge = t.bEdge;
-		tile->bMineral = t.bMineral;
-		tile->bUnique = t.bUnique;
+	int32 tileCount = 0;
+	while (true) {
+		FString key = "Tile" + FString::FromInt(tileCount);
+
+		if (!ActorData.Numbers.Contains(key + "Level"))
+			break;
+
+		int32 x = GetActorData<int32>(key + "X", ActorData);
+		int32 y = GetActorData<int32>(key + "Y", ActorData);
+
+		FTileStruct* tile = &grid->Storage[x + (bound / 2)][y + (bound / 2)];
+		tile->Level = GetActorData<int32>(key + "Level", ActorData);
+		tile->Fertility = GetActorData<int32>(key + "Fertility", ActorData);
+		tile->X = x;
+		tile->Y = y;
+		tile->Rotation = GetActorData<FQuat>(key + "Rotation", ActorData);
+		tile->bRamp = GetActorData<bool>(key + "bRamp", ActorData);
+		tile->bRiver = GetActorData<bool>(key + "bRiver", ActorData);
+		tile->bEdge = GetActorData<bool>(key + "bEdge", ActorData);
+		tile->bMineral = GetActorData<bool>(key + "bMineral", ActorData);
+		tile->bUnique = GetActorData<bool>(key + "bUnique", ActorData);
+
+		tileCount++;
 	}
 
 	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
 
+	int32 wetnessCount = 0;
 	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
-		FHISMData data;
-		data.Name = hism->GetName();
+		FHISMData data = GetActorData<FHISMData>(hism->GetName(), ActorData);
 
-		int32 index = ActorData.WorldSaveData.HISMData.Find(data);
-		TArray<FTransform> transforms = ActorData.WorldSaveData.HISMData[index].Transforms;
-
-		hism->AddInstances(transforms, false, true, true);
-		hism->PerInstanceSMCustomData = ActorData.WorldSaveData.HISMData[index].CustomDataValues;
+		hism->AddInstances(data.Transforms, false, true, true);
+		hism->PerInstanceSMCustomData = data.CustomDataValues;
 		hism->BuildTreeIfOutdated(true, true);
 
-		hism->PartialNavigationUpdates(transforms);
+		hism->PartialNavigationUpdates(data.Transforms);
+
+		while (true) {
+			FString key = hism->GetName() + FString::FromInt(wetnessCount);
+
+			if (!ActorData.Transforms.Contains(key + "WetLocation"))
+				break;
+
+			WetNames.Add(key, ActorData);
+
+			wetnessCount++;
+		}
 	}
 
-	grid->AtmosphereComponent->Calendar = ActorData.WorldSaveData.AtmosphereData.Calendar;
-	grid->AtmosphereComponent->bRedSun = ActorData.WorldSaveData.AtmosphereData.bRedSun;
-	grid->AtmosphereComponent->WindRotation = ActorData.WorldSaveData.AtmosphereData.WindRotation;
-	grid->AtmosphereComponent->Sun->SetRelativeRotation(ActorData.WorldSaveData.AtmosphereData.SunRotation);
-	grid->AtmosphereComponent->Moon->SetRelativeRotation(ActorData.WorldSaveData.AtmosphereData.MoonRotation);
+	FCalendarStruct& calendar = grid->AtmosphereComponent->Calendar;
+	calendar.Period = GetActorData<FString>("CalendarPeriod", ActorData);
+	calendar.Index = GetActorData<int32>("CalendarIndex", ActorData);
+	calendar.Hour = GetActorData<int32>("CalendarHour", ActorData);
+	calendar.Year = GetActorData<int32>("CalendarYear", ActorData);
+
+	grid->AtmosphereComponent->bRedSun = GetActorData<bool>("bRedSun", ActorData);
+	grid->AtmosphereComponent->WindRotation = GetActorData<FRotator>("WindRotation", ActorData);
+	grid->AtmosphereComponent->Sun->SetRelativeRotation(GetActorData<FRotator>("SunRotation", ActorData));
+	grid->AtmosphereComponent->Moon->SetRelativeRotation(GetActorData<FRotator>("MoonRotation", ActorData));
+
+	grid->AtmosphereComponent->NaturalDisasterComponent->DisasterChance = GetActorData<float>("DisasterChance", ActorData);
+	grid->AtmosphereComponent->NaturalDisasterComponent->Frequency = GetActorData<float>("DisasterFrequency", ActorData);
+	grid->AtmosphereComponent->NaturalDisasterComponent->Intensity = GetActorData<float>("DisasterIntensity", ActorData);
 
 	if (grid->AtmosphereComponent->bRedSun)
 		grid->AtmosphereComponent->NaturalDisasterComponent->AlterSunGradually(0.15f, -1.00f);
 
 	grid->AtmosphereComponent->Clouds->ProcessRainEffect.Empty();
 	grid->AtmosphereComponent->Clouds->WetnessStruct.Empty();
-	WetnessData = ActorData.WorldSaveData.CloudsData.WetnessData;
 
-	for (FCloudData data : ActorData.WorldSaveData.CloudsData.CloudData) {
-		FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0);
-		cloudStruct.Distance = data.Distance;
-		cloudStruct.bHide = data.bHide;
-		cloudStruct.lightningFrequency = data.lightningFrequency;
-		cloudStruct.lightningTimer = data.lightningTimer;
+	int32 cloudCount = 0;
+	while (true) {
+		if (!ActorData.Transforms.Contains("CloudTransform" + FString::FromInt(cloudCount)))
+			break;
 
-		grid->AtmosphereComponent->Clouds->Clouds.Add(cloudStruct);
+		FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(GetActorData<FTransform>("CloudTransform" + FString::FromInt(cloudCount), ActorData), GetActorData<bool>("CloudPercipitation" + FString::FromInt(cloudCount), ActorData) ? 100 : 0);
+		cloudStruct.Distance = GetActorData<double>("CloudDistance" + FString::FromInt(cloudCount), ActorData);
+		cloudStruct.bHide = GetActorData<bool>("CloudHide" + FString::FromInt(cloudCount), ActorData);
+		cloudStruct.lightningFrequency = GetActorData<float>("CloudLightningFrequency" + FString::FromInt(cloudCount), ActorData);
+		cloudStruct.lightningTimer = GetActorData<float>("CloudLightningTimer" + FString::FromInt(cloudCount), ActorData);
+
+		cloudCount++;
 	}
 
 	grid->SetupEnvironment(true);
@@ -881,11 +938,10 @@ void UDiplosimSaveGame::LoadResource(FActorSaveData& ActorData, AActor* Actor)
 {
 	AResource* resource = Cast<AResource>(Actor);
 
-	resource->ResourceHISM->AddInstances(ActorData.ResourceData.HISMData.Transforms, false, true, true);
-	resource->ResourceHISM->PerInstanceSMCustomData = ActorData.ResourceData.HISMData.CustomDataValues;
+	FHISMData data = GetActorData<FHISMData>(Actor->GetName(), ActorData);
 
-	resource->WorkerStruct = ActorData.ResourceData.Workers;
-
+	resource->ResourceHISM->AddInstances(data.Transforms, false, true, true);
+	resource->ResourceHISM->PerInstanceSMCustomData = data.CustomDataValues;
 	resource->ResourceHISM->BuildTreeIfOutdated(true, true);
 }
 
@@ -893,7 +949,7 @@ void UDiplosimSaveGame::LoadEggBasket(ACamera* Camera, FActorSaveData& ActorData
 {
 	AEggBasket* eggBasket = Cast<AEggBasket>(Actor);
 
-	FTileStruct* tile = Camera->Grid->GetTileFromLocation(ActorData.Transform.GetLocation());
+	FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorData<FVector>(ActorData.Name, ActorData));
 
 	eggBasket->Grid = Camera->Grid;
 	eggBasket->Tile = tile;
@@ -914,7 +970,7 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, AActor* Actor)
 
 	camera->Detach();
 	camera->MovementComponent->TargetLength = 3000.0f;
-	camera->MovementComponent->MovementLocation = ActorData.Transform.GetLocation();
+	camera->MovementComponent->MovementLocation = GetActorData<FVector>(ActorData.Name, ActorData);
 
 	camera->ConstructionManager->Construction.Empty();
 
@@ -975,28 +1031,28 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, FActorSaveData& ActorData, AActo
 
 	AIToName.Add(ActorData.Name, &ActorData);
 
-	UHierarchicalInstancedStaticMeshComponent* hism;
+	UInstancedStaticMeshComponent* ism;
 
 	if (data->FactionName == "") {
 		if (data->bSnake)
-			hism = Camera->Grid->AIVisualiser->HISMSnake;
+			ism = Camera->Grid->AIVisualiser->HISMSnake;
 		else
-			hism = Camera->Grid->AIVisualiser->HISMEnemy;
+			ism = Camera->Grid->AIVisualiser->HISMEnemy;
 	}
 	else {
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction(data->FactionName);
 
 		if (ai->IsA<AClone>()) {
 			faction->Clones.Add(ai);
-			hism = Camera->Grid->AIVisualiser->HISMClone;
+			ism = Camera->Grid->AIVisualiser->HISMClone;
 		}
 		else if (data->CitizenData.bRebel) {
 			faction->Rebels.Add(Cast<ACitizen>(ai));
-			hism = Camera->Grid->AIVisualiser->HISMRebel;
+			ism = Camera->Grid->AIVisualiser->HISMRebel;
 		}
 		else {
 			faction->Citizens.Add(Cast<ACitizen>(ai));
-			hism = Camera->Grid->AIVisualiser->HISMCitizen;
+			ism = Camera->Grid->AIVisualiser->HISMCitizen;
 		}
 	}
 
@@ -1006,7 +1062,7 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, FActorSaveData& ActorData, AActo
 	ai->MovementComponent->CurrentAnim = data->MovementData.CurrentAnim;
 	ai->MovementComponent->LastUpdatedTime = data->MovementData.LastUpdatedTime;
 
-	Camera->Grid->AIVisualiser->AddInstance(ai, hism, data->MovementData.Transform);
+	Camera->Grid->AIVisualiser->AddInstance(ai, ism, data->MovementData.Transform);
 }
 
 void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
@@ -1138,22 +1194,22 @@ void UDiplosimSaveGame::LoadProjectile(FActorSaveData& ActorData, AActor* Actor)
 {
 	AProjectile* projectile = Cast<AProjectile>(Actor);
 
-	projectile->ProjectileMovementComponent->Velocity = ActorData.ProjectileData.Velocity;
+	projectile->ProjectileMovementComponent->Velocity = GetActorData<FVector>("ProjectileVelocity", ActorData);
 }
 
 void UDiplosimSaveGame::LoadAISpawner(FActorSaveData& ActorData, AActor* Actor)
 {
 	AAISpawner* spawner = Cast<AAISpawner>(Actor);
 
-	spawner->Colour = ActorData.SpawnerData.Colour;
-	spawner->IncrementSpawned = ActorData.SpawnerData.IncrementSpawned;
+	spawner->Colour = FLinearColor(GetActorData<float>("Red", ActorData), GetActorData<float>("Green", ActorData), GetActorData<float>("Blue", ActorData));
+	spawner->IncrementSpawned = GetActorData<int32>("IncrementSpawned", ActorData);
 }
 
 void UDiplosimSaveGame::LoadComponents(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, TArray<FActorSaveData> SavedData)
 {
 	UHealthComponent* healthComp = Actor->FindComponentByClass<UHealthComponent>();
 	if (healthComp) {
-		healthComp->Health = ActorData.HealthData.Health;
+		healthComp->Health = GetActorData<int32>("Health", ActorData);
 
 		if (healthComp->Health == 0 && !(Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->FactionName == ""))
 			healthComp->Death(nullptr);
@@ -1161,12 +1217,18 @@ void UDiplosimSaveGame::LoadComponents(ACamera* Camera, FActorSaveData& ActorDat
 
 	UAttackComponent* attackComp = Actor->FindComponentByClass<UAttackComponent>();
 	if (attackComp) {
-		attackComp->ProjectileClass = ActorData.AttackData.ProjectileClass;
-		attackComp->AttackTimer = ActorData.AttackData.AttackTimer;
-		attackComp->bShowMercy = ActorData.AttackData.bShowMercy;
+		attackComp->ProjectileClass = GetActorData<UClass*>("ProjectileClass", ActorData);
+		attackComp->AttackTimer = GetActorData<float>("AttackTimer", ActorData);
+		attackComp->bShowMercy = GetActorData<bool>("bShowMercy", ActorData);
 
-		for (FString name : ActorData.AttackData.ActorNames)
-			attackComp->OverlappingEnemies.Add(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, name));
+		int32 enemyCount = 0;
+		while (true) {
+			FString key = "Enemy" + FString::FromInt(enemyCount);
+			if (!ActorData.Strings.Contains(key))
+				break;
+
+			attackComp->OverlappingEnemies.Add(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, GetActorData<FString>(key, ActorData)));
+		}
 
 		if (!attackComp->OverlappingEnemies.IsEmpty())
 			attackComp->SetComponentTickEnabled(true);
@@ -1223,7 +1285,7 @@ void UDiplosimSaveGame::LoadTimers(ACamera* Camera, int32 Index, FActorSaveData&
 void UDiplosimSaveGame::InitialiseObjects(ACamera* Camera, ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData)
 {
 	if (ActorData.Actor->IsA<AProjectile>()) {
-		Cast<AProjectile>(ActorData.Actor)->SpawnNiagaraSystems(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, ActorData.ProjectileData.OwnerName));
+		Cast<AProjectile>(ActorData.Actor)->SpawnNiagaraSystems(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, GetActorData<FString>("ProjectileOwner", ActorData)));
 	}
 	else if (ActorData.Actor->IsA<AAI>()) {
 		InitialiseAI(Camera, ActorData, SavedData);
@@ -1241,6 +1303,9 @@ void UDiplosimSaveGame::InitialiseObjects(ACamera* Camera, ADiplosimGameModeBase
 		InitialiseFactions(camera, ActorData, SavedData);
 
 		InitialiseGamemode(camera, Gamemode, ActorData, SavedData);
+	}
+	else if (ActorData.Actor->IsA<AResource>()) {
+		InitialiseResources(Camera, ActorData, SavedData);
 	}
 }
 
@@ -1480,4 +1545,27 @@ void UDiplosimSaveGame::InitialiseGamemode(ACamera* Camera, ADiplosimGameModeBas
 
 	if (!Gamemode->bSpawnedAllEnemies())
 		Gamemode->SpawnAllEnemies();
+}
+
+void UDiplosimSaveGame::InitialiseResources(ACamera* Camera, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData)
+{
+	int32 workerCount = 0;
+	while (true) {
+		if (!ActorData.Numbers.Contains("Workers" + FString::FromInt(workerCount)))
+			break;
+
+		FWorkerStruct workerStruct;
+
+		int32 citizenCount = 0;
+		while (true) {
+			if (!ActorData.Numbers.Contains("Workers" + FString::FromInt(workerCount) + FString::FromInt(citizenCount)))
+				break;
+
+			workerStruct.Citizens.Add(Cast<ACitizen>(Camera->SaveGameComponent->GetSaveActorFromName(SavedData, GetActorData<FString>("Workers" + FString::FromInt(workerCount) + FString::FromInt(citizenCount), ActorData))));
+			citizenCount++;
+		}
+
+		workerStruct.Instance = GetActorData<int32>("Workers" + FString::FromInt(workerCount), ActorData);
+		workerCount++;
+	}
 }

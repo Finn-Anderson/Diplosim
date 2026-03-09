@@ -14,20 +14,24 @@ struct FPendingChangeStruct
 		class AAI* AI;
 
 	UPROPERTY()
-		class UHierarchicalInstancedStaticMeshComponent* HISM;
+		class UInstancedStaticMeshComponent* ISM;
 
 	UPROPERTY()
 		FTransform Transform;
 
 	UPROPERTY()
-		int32 Instance;
+		TArray<int32> Instances;
 
 	FPendingChangeStruct()
 	{
 		AI = nullptr;
-		HISM = nullptr;
+		ISM = nullptr;
 		Transform = FTransform();
-		Instance = -1;
+	}
+
+	bool operator==(const FPendingChangeStruct& other) const
+	{
+		return (other.ISM == ISM && other.AI == AI);
 	}
 };
 
@@ -125,19 +129,19 @@ struct FHatsStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
-		class UHierarchicalInstancedStaticMeshComponent* HISMHat;
+		class UInstancedStaticMeshComponent* ISMHat;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
 		TArray<ACitizen*> Citizens;
 
 	FHatsStruct()
 	{
-		HISMHat = nullptr;
+		ISMHat = nullptr;
 	}
 
 	bool operator==(const FHatsStruct& other) const
 	{
-		return (other.HISMHat == HISMHat);
+		return (other.ISMHat == ISMHat);
 	}
 };
 
@@ -157,19 +161,19 @@ public:
 		class USceneComponent* AIContainer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMCitizen;
+		class UInstancedStaticMeshComponent* HISMCitizen;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMClone;
+		class UInstancedStaticMeshComponent* HISMClone;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMRebel;
+		class UInstancedStaticMeshComponent* HISMRebel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMEnemy;
+		class UInstancedStaticMeshComponent* HISMEnemy;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMSnake;
+		class UInstancedStaticMeshComponent* HISMSnake;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* HarvestNiagaraComponent;
@@ -184,13 +188,13 @@ public:
 
 	void MainLoop(class ACamera* Camera);
 
-	void AddInstance(class AAI* AI, class UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
+	void AddInstance(class AAI* AI, class UInstancedStaticMeshComponent* ISM, FTransform Transform);
 
-	void RemoveInstance(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
+	void RemoveInstance(class UInstancedStaticMeshComponent* ISM, int32 Instance);
 
-	void UpdateInstanceCustomData(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, int32 Index, float Value);
+	void UpdateInstanceCustomData(class UInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value);
 
-	void SetAIColour(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FLinearColor Colour);
+	void SetAIColour(class UInstancedStaticMeshComponent* ISM, int32 Instance, FLinearColor Colour);
 
 	void SetHarvestVisuals(class ACitizen* Citizen, class AResource* Resource);
 
@@ -198,9 +202,9 @@ public:
 
 	void SetEyesVisuals(class ACitizen* Citizen, int32 HappinessValue);
 
-	TTuple<class UHierarchicalInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
+	TTuple<class UInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
 
-	class AAI* GetHISMAI(class ACamera* Camera, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
+	class AAI* GetHISMAI(class ACamera* Camera, class UInstancedStaticMeshComponent* ISM, int32 Instance);
 
 	FTransform GetAnimationPoint(class AAI* AI);
 
@@ -244,11 +248,11 @@ private:
 
 	void CalculateBuildingRotation(ACamera* Camera);
 
-	void SetInstanceTransform(class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance, FTransform Transform);
+	void SetInstanceTransform(class UInstancedStaticMeshComponent* ISM, int32 Instance, FTransform Transform);
 
-	void UpdateCitizenVisuals(class UHierarchicalInstancedStaticMeshComponent* HISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
+	void UpdateCitizenVisuals(class UInstancedStaticMeshComponent* ISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
 
-	void ActivateTorch(int32 Hour, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
+	void ActivateTorch(int32 Hour, class UInstancedStaticMeshComponent* ISM, int32 Instance);
 
 	void UpdateArmyVisuals(class ACamera* Camera, class ACitizen* Citizen);
 
