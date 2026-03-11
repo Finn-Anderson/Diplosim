@@ -19,6 +19,9 @@ struct FHISMData
 {
 	GENERATED_USTRUCT_BODY()
 
+	UPROPERTY()
+		FString Name;
+
 	UPROPERTY();
 		TArray<FTransform> Transforms;
 
@@ -27,7 +30,395 @@ struct FHISMData
 
 	FHISMData()
 	{
+		Name = "";
+	}
 
+	bool operator==(const FHISMData& other) const
+	{
+		return (other.Name == Name);
+	}
+};
+USTRUCT()
+struct FAtmosphereData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FCalendarStruct Calendar;
+
+	UPROPERTY()
+		FRotator WindRotation;
+
+	UPROPERTY()
+		FRotator SunRotation;
+
+	UPROPERTY()
+		FRotator MoonRotation;
+
+	UPROPERTY()
+		bool bRedSun;
+
+	FAtmosphereData()
+	{
+		WindRotation = FRotator::ZeroRotator;
+		SunRotation = FRotator(-15.0f, 15.0f, 0.0f);
+		MoonRotation = FRotator(15.0f, 195.0f, 0.0f);
+		bRedSun = false;
+	}
+};
+
+USTRUCT()
+struct FWetnessData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FVector Location;
+
+	UPROPERTY()
+		float Value;
+
+	UPROPERTY()
+		float Increment;
+
+	FWetnessData()
+	{
+		Location = FVector::Zero();
+		Value = -1.0f;
+		Increment = 0.0f;
+	}
+};
+
+USTRUCT()
+struct FCloudData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FTransform Transform;
+	
+	UPROPERTY()
+		double Distance;
+
+	UPROPERTY()
+		bool bPrecipitation;
+
+	UPROPERTY()
+		bool bHide;
+
+	UPROPERTY()
+		float lightningTimer;
+
+	UPROPERTY()
+		float lightningFrequency;
+
+	FCloudData()
+	{
+		Transform = FTransform();
+		Distance = 0.0f;
+		bPrecipitation = false;
+		bHide = false;
+		lightningTimer = 0.0f;
+		lightningFrequency = 0.0f;
+	}
+};
+
+USTRUCT()
+struct FCloudsData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FWetnessData> WetnessData;
+
+	UPROPERTY()
+		TArray<FCloudData> CloudData;
+
+	UPROPERTY()
+		bool bSnow;
+
+	FCloudsData()
+	{
+		bSnow = false;
+	}
+};
+
+USTRUCT()
+struct FNaturalDisasterData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		float DisasterChance;
+
+	UPROPERTY()
+		float Intensity;
+
+	UPROPERTY()
+		float Frequency;
+
+	FNaturalDisasterData()
+	{
+		DisasterChance = 0.0f;
+		Intensity = 1.0f;
+		Frequency = 1.0f;
+	}
+};
+
+USTRUCT()
+struct FTileData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		int32 Level;
+
+	UPROPERTY()
+		int32 Fertility;
+
+	UPROPERTY()
+		int32 X;
+
+	UPROPERTY()
+		int32 Y;
+
+	UPROPERTY()
+		FQuat Rotation;
+
+	UPROPERTY()
+		bool bRamp;
+
+	UPROPERTY()
+		bool bRiver;
+
+	UPROPERTY()
+		bool bEdge;
+
+	UPROPERTY()
+		bool bMineral;
+
+	UPROPERTY()
+		bool bUnique;
+
+	FTileData()
+	{
+		Level = -1;
+		Fertility = -1;
+		X = 0;
+		Y = 0;
+		Rotation = FRotator(0.0f, 0.0f, 0.0f).Quaternion();
+		bRamp = false;
+		bRiver = false;
+		bEdge = false;
+		bMineral = false;
+		bUnique = false;
+	}
+};
+
+USTRUCT()
+struct FWorkerData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FString> CitizenNames;
+
+	UPROPERTY()
+		int32 Instance;
+
+	FWorkerData()
+	{
+		Instance = INDEX_NONE;
+	}
+};
+
+USTRUCT()
+struct FResourceData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FHISMData HISMData;
+
+	UPROPERTY()
+		TArray<int32> FireInstances;
+
+	UPROPERTY()
+		TArray<FWorkerData> WorkersData;
+
+	FResourceData()
+	{
+
+	}
+};
+
+USTRUCT()
+struct FWorldSaveData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<FTileData> Tiles;
+
+	UPROPERTY()
+		TArray<FHISMData> HISMData;
+
+	UPROPERTY()
+		int32 Size;
+
+	UPROPERTY()
+		int32 Chunks;
+
+	UPROPERTY()
+		FRandomStream Stream;
+
+	UPROPERTY()
+		TArray<FVector> LavaSpawnLocations;
+
+	UPROPERTY()
+		FAtmosphereData AtmosphereData;
+
+	UPROPERTY()
+		FCloudsData	CloudsData;
+
+	UPROPERTY()
+		FNaturalDisasterData NaturalDisasterData;
+
+	FWorldSaveData()
+	{
+		Stream = FRandomStream();
+		Size = 0;
+		Chunks = 0;
+	}
+};
+
+USTRUCT()
+struct FHealthData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	int32 Health;
+
+	FHealthData()
+	{
+		Health = 0;
+	}
+};
+
+USTRUCT()
+struct FAttackData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	TArray<FString> ActorNames;
+
+	UPROPERTY()
+	TSubclassOf<class AProjectile> ProjectileClass;
+
+	UPROPERTY()
+	float AttackTimer;
+
+	UPROPERTY()
+	bool bShowMercy;
+
+	FAttackData()
+	{
+		ProjectileClass = nullptr;
+		AttackTimer = 0.0f;
+		bShowMercy = false;
+	}
+};
+
+USTRUCT()
+struct FCapacityData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString CitizenName;
+
+	UPROPERTY()
+		TArray<FString> VisitorNames;
+
+	UPROPERTY()
+		float Amount;
+
+	UPROPERTY()
+		TMap<int32, EWorkType> WorkHours;
+
+	UPROPERTY()
+		bool bBlocked;
+
+	FCapacityData()
+	{
+		CitizenName = "";
+		Amount = 0.0f;
+		bBlocked = false;
+	}
+};
+
+USTRUCT()
+struct FBuildingData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString FactionName;
+
+	UPROPERTY()
+		int32 Capacity;
+
+	UPROPERTY()
+		int32 Seed;
+
+	UPROPERTY()
+		FLinearColor ChosenColour;
+
+	UPROPERTY()
+		int32 Tier;
+
+	UPROPERTY()
+		TArray<FItemStruct> TargetList;
+
+	UPROPERTY()
+		TArray<FSocketStruct> SocketList;
+
+	UPROPERTY()
+		TArray<FItemStruct> Storage;
+
+	UPROPERTY()
+		TArray<FBasketStruct> Basket;
+
+	UPROPERTY()
+		bool bOperate;
+
+	UPROPERTY()
+		double DeathTime;
+
+	UPROPERTY()
+		bool bOnFire;
+
+	UPROPERTY()
+		TArray<FCapacityData> OccupiedData;
+
+	UPROPERTY()
+		FHealthData HealthData;
+
+	UPROPERTY()
+		FAttackData AttackData;
+
+	FBuildingData()
+	{
+		FactionName = "";
+		Capacity = 0;
+		Seed = 0;
+		ChosenColour = FLinearColor();
+		Tier = 1;
+		DeathTime = 0.0f;
+		bOperate = true;
+		bOnFire = false;
 	}
 };
 
@@ -276,12 +667,18 @@ struct FAIData
 
 	UPROPERTY()
 		FLinearColor Colour;
-
 	UPROPERTY()
 		FCitizenData CitizenData;
 
 	UPROPERTY()
 		bool bSnake;
+
+	UPROPERTY()
+		FHealthData HealthData;
+
+	UPROPERTY()
+		FAttackData AttackData;
+
 
 	FAIData()
 	{
@@ -289,6 +686,42 @@ struct FAIData
 		BuildingAtName = "";
 		Colour = FLinearColor();
 		bSnake = false;
+	}
+};
+
+USTRUCT()
+struct FProjectileData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FString OwnerName;
+
+	UPROPERTY()
+		FVector Velocity;
+
+	FProjectileData()
+	{
+		OwnerName = "";
+		Velocity = FVector::Zero();
+	}
+};
+
+USTRUCT()
+struct FSpawnerData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FLinearColor Colour;
+
+	UPROPERTY()
+		int32 IncrementSpawned;
+
+	FSpawnerData()
+	{
+		Colour = FLinearColor();
+		IncrementSpawned = 0;
 	}
 };
 
@@ -761,33 +1194,24 @@ struct FActorSaveData
 		FString Name;
 
 	UPROPERTY()
-		TMap<FString, UClass*> Classes;
+		UClass* Class;
 
 	UPROPERTY()
-		TMap<FString, FTransform> Transforms;
+		FTransform Transform;
 
 	UPROPERTY()
-		TMap<FString, double> Numbers;
-
-	UPROPERTY()
-		TMap<FString, FString> Strings;
-
-	UPROPERTY()
-		TMap<FString, bool> Bools;
-
-	UPROPERTY()
-		TMap<FString, FHISMData> HISMData;
-	// Make ambiguous (TMaps with variable name as string key)
-
-	UPROPERTY()
-		FAIData AIData;
+		int32 dataIndex;
 
 	UPROPERTY()
 		TArray<FTimerStruct> SavedTimers;
 
 	FActorSaveData()
 	{
-
+		Actor = nullptr;
+		Name = "";
+		Class = nullptr;
+		Transform = FTransform(FQuat::Identity, FVector(0.0f));
+		dataIndex = INDEX_NONE;
 	}
 
 	bool operator==(const FActorSaveData& other) const
@@ -826,6 +1250,24 @@ struct FSave
 		TArray<FActorSaveData> SavedActors;
 
 	UPROPERTY()
+		TArray<FAIData> AIData;
+
+	UPROPERTY()
+		TArray<FBuildingData> BuildingData;
+
+	UPROPERTY()
+		TArray<FResourceData> ResourceData;
+
+	UPROPERTY()
+		TArray<FProjectileData> ProjectileData;
+
+	UPROPERTY()
+		TArray<FSpawnerData> SpawnerData;
+
+	UPROPERTY()
+		FWorldSaveData WorldData;
+
+	UPROPERTY()
 		FCameraData CameraData;
 
 	FSave()
@@ -836,6 +1278,18 @@ struct FSave
 		Hour = 0;
 		CitizenNum = 0;
 		bAutosave = false;
+	}
+
+	void EmptyData()
+	{
+		SavedActors.Empty();
+		AIData.Empty();
+		BuildingData.Empty();
+		ResourceData.Empty();
+		ProjectileData.Empty();
+		SpawnerData.Empty();
+		WorldData = FWorldSaveData();
+		CameraData = FCameraData();
 	}
 
 	bool operator==(const FSave& other) const
@@ -864,135 +1318,63 @@ public:
 	void LoadGame(class ACamera* Camera, int32 Index);
 
 private:
-	template<typename T>
-	void SetActorData(FString ID, T Value, FActorSaveData& ActorSaveData)
-	{
-		if constexpr (std::is_same_v<T, FVector> || std::is_same_v<T, FQuat> || std::is_same_v<T, FRotator>) {
-			FTransform transform = FTransform(FQuat::Identity, FVector(0.0f));
-
-			if constexpr (std::is_same_v<T, FVector>)
-				transform.SetLocation(Value);
-			else if constexpr (std::is_same_v<T, FQuat>)
-				transform.SetRotation(Value);
-			else
-				transform.SetRotation(FQuat(Value));
-
-			ActorSaveData.Transforms.Add(ID, transform);
-		}
-		else if constexpr (std::is_same_v<T, FTransform>)
-			ActorSaveData.Transforms.Add(ID, Value);
-		else if constexpr (std::is_same_v<T, double> || std::is_same_v<T, float> || std::is_same_v<T, int32> || std::is_same_v<T, uint8>)
-			ActorSaveData.Numbers.Add(ID, Value);
-		else if constexpr (std::is_same_v<T, FString>)
-			ActorSaveData.Strings.Add(ID, Value);
-		else if constexpr (std::is_same_v<T, bool>)
-			ActorSaveData.Bools.Add(ID, Value);
-		else if constexpr (std::is_same_v<T, FHISMData>)
-			ActorSaveData.HISMData.Add(ID, Value);
-		else if constexpr (std::is_base_of_v<UClass, std::remove_pointer_t<T>>)
-			ActorSaveData.Classes.Add(ID, Value);
-		else
-			static_assert(false, "Not a valid type");
-	}
-
-	template<typename T>
-	T GetActorData(FString ID, FActorSaveData& ActorSaveData)
-	{
-		if constexpr (std::is_same_v<T, FVector> || std::is_same_v<T, FQuat> || std::is_same_v<T, FRotator>) {
-			FTransform transform = *ActorSaveData.Transforms.Find(ID);
-
-			if constexpr (std::is_same_v<T, FVector>)
-				return transform.GetLocation();
-			else if constexpr (std::is_same_v<T, FQuat>)
-				return transform.GetRotation();
-			else
-				return transform.GetRotation().Rotator();
-		}
-		else if constexpr (std::is_same_v<T, FTransform>) {
-			FTransform transform = *ActorSaveData.Transforms.Find(ID);
-			return transform;
-		}
-		else if constexpr (std::is_same_v<T, double> || std::is_same_v<T, float> || std::is_same_v<T, int32> || std::is_same_v<T, uint8>) {
-			double number = *ActorSaveData.Numbers.Find(ID);
-			return number;
-		}
-		else if constexpr (std::is_same_v<T, FString>) {
-			FString string = *ActorSaveData.Strings.Find(ID);
-			return string;
-		}
-		else if constexpr (std::is_same_v<T, bool>) {
-			bool bBool = *ActorSaveData.Bools.Find(ID);
-			return bBool;
-		}
-		else if constexpr (std::is_same_v<T, FHISMData>) {
-			FHISMData data = *ActorSaveData.HISMData.Find(ID);
-			return data;
-		}
-		else if constexpr (std::is_base_of_v<UClass, std::remove_pointer_t<T>>) {
-			UClass* foundClass = *ActorSaveData.Classes.Find(ID);
-			return foundClass;
-		}
-		else
-			static_assert(false, "Not a valid type");
-	}
-
 	// Saving
 	void SaveWorld(FActorSaveData& ActorData, AActor* Actor, int32 Index, TArray<AActor*> PotentialWetActors);
 
-	void SaveResource(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
+	void SaveResource(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, int32 Index);
 
 	void SaveCamera(FActorSaveData& ActorData, AActor* Actor, int32 Index);
 	void SaveCitizenManager(FActorSaveData& ActorData, AActor* Actor, int32 Index);
 	void SaveFactions(FActorSaveData& ActorData, AActor* Actor, int32 Index);
 	void SaveGamemode(FActorSaveData& ActorData, AActor* Actor, int32 Index);
 
-	void SaveAI(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
-	void SaveCitizen(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
+	void SaveAI(class ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, AActor* Actor, int32 Index);
+	void SaveCitizen(class ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, AActor* Actor, int32 Index);
 
-	void SaveBuilding(FActorSaveData& ActorData, AActor* Actor);
+	void SaveBuilding(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, int32 Index);
 
-	void SaveProjectile(FActorSaveData& ActorData, AActor* Actor);
+	void SaveProjectile(FActorSaveData& ActorData, AActor* Actor, int32 Index);
 
-	void SaveAISpawner(FActorSaveData& ActorData, AActor* Actor);
+	void SaveAISpawner(FActorSaveData& ActorData, AActor* Actor, int32 Index);
 
 	void SaveTimers(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
 
-	void SaveComponents(FActorSaveData& ActorData, AActor* Actor);
+	void SaveComponents(FActorSaveData& ActorData, AActor* Actor, int32 Index);
 
 	// Loading
-	void LoadWorld(FActorSaveData& ActorData, AActor* Actor, int32 Index, TMap<FString, FActorSaveData>& WetNames);
+	void LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArray<FWetnessData>& WetnessData);
 
-	void LoadResource(FActorSaveData& ActorData, AActor* Actor);
+	void LoadResource(class ACamera* Camera, FResourceData& ResourceData, AActor* Actor);
 
 	void LoadEggBasket(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
 
-	void LoadCamera(FActorSaveData& ActorData, AActor* Actor, int32 Index);
-	void LoadFactions(FActorSaveData& ActorData, AActor* Actor, int32 Index);
-	void LoadGamemode(class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, AActor* Actor, int32 Index);
+	void LoadCamera(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor);
+	void LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor);
+	void LoadGamemode(class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor);
 
-	void LoadAI(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, AActor* Actor, int32 Index, TMap<FString, FActorSaveData*>& AIToName);
-	void LoadCitizen(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, int32 Index);
+	void LoadAI(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FAIData& AIData, FGamemodeData& GamemodeData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName);
+	void LoadCitizen(class ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FCameraData& CameraData, AActor* Actor);
 
-	void LoadBuilding(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, int32 Index, TMap<FString, FActorSaveData*>& AIToName);
+	void LoadBuilding(class ACamera* Camera, FActorSaveData& ActorData, FBuildingData& BuildingData, TArray<FConstructionData>& ConstructionData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName, int32 Index);
 
-	void LoadProjectile(FActorSaveData& ActorData, AActor* Actor);
+	void LoadProjectile(FProjectileData& ProjectileData, AActor* Actor);
 
-	void LoadAISpawner(class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, AActor* Actor);
+	void LoadAISpawner(class ADiplosimGameModeBase* Gamemode, FSpawnerData& SpawnerData, AActor* Actor);
 
-	void LoadComponents(FActorSaveData& ActorData, AActor* Actor);
-	void LoadOverlappingEnemies(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, FActorSaveData SavedData);
+	void LoadComponents(FActorSaveData& ActorData, AActor* Actor, int32 Index);
+	void LoadOverlappingEnemies(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, FActorSaveData SavedData, int32 Index);
 
 	void LoadTimers(class ACamera* Camera, int32 Index, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData);
 
 	void InitialiseObjects(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index);
 
-	void InitialiseAI(class ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData);
-	void InitialiseCitizen(class ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData);
+	void InitialiseAI(class ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FActorSaveData SavedData);
+	void InitialiseCitizen(class ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FActorSaveData SavedData);
 
 	void InitialiseConstructionManager(class ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index);
 	void InitialiseCitizenManager(class ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index);
 	void InitialiseFactions(class ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index);
 	void InitialiseGamemode(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index);
 
-	void InitialiseResources(class ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData);
+	void InitialiseResources(class ACamera* Camera, FActorSaveData& ActorData, FResourceData& ResourceData, FActorSaveData SavedData);
 };

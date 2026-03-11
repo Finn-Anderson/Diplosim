@@ -244,23 +244,7 @@ void USaveGameComponent::UpdateAutosave(int32 NewTime)
 	}
 }
 
-AActor* USaveGameComponent::GetSaveActorFromName(TArray<FActorSaveData> SavedData, FString Name)
-{
-	if (Name == "")
-		return nullptr;
-
-	FActorSaveData data;
-	data.Name = Name;
-
-	int32 i = SavedData.Find(data);
-
-	if (i == INDEX_NONE)
-		return nullptr;
-
-	return SavedData[i].Actor;
-}
-
-void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData* CitizenData, bool bVisitor)
+void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* Building, FActorSaveData* CitizenData, FAIData& AIData, bool bVisitor)
 {
 	ACitizen* citizen = Cast<ACitizen>(CitizenData->Actor);
 
@@ -273,9 +257,9 @@ void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* B
 	else
 		citizen->BuildingComponent->Employment = Cast<AWork>(Building);
 
-	if (CitizenData->AIData.BuildingAtName == BuildingName) {
+	if (AIData.BuildingAtName == BuildingName) {
 		Building->Enter(citizen);
 
-		citizen->BuildingComponent->EnterLocation = CitizenData->AIData.CitizenData.EnterLocation;
+		citizen->BuildingComponent->EnterLocation = AIData.CitizenData.EnterLocation;
 	}
 }

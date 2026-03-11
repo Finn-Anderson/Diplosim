@@ -44,8 +44,6 @@
 //
 void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 {
-	TArray<FActorSaveData> allNewActorData;
-
 	TArray<AActor*> foundActors;
 
 	TArray<AActor*> actors = { Camera, Camera->Grid };
@@ -72,6 +70,7 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AProjectile::StaticClass(), foundActors);
 	actors.Append(foundActors);
 
+	Saves[Index].EmptyData();
 	int32 citizenNum = 0;
 
 	for (AActor* actor : actors)
@@ -81,13 +80,13 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 
 		FActorSaveData actorData;
 		actorData.Name = actor->GetName();
-		SetActorData("ActorClass", actor->GetClass(), actorData);
-		SetActorData("ActorTransform", actor->GetActorTransform(), actorData);
+		actorData.Class = actor->GetClass();
+		actorData.Transform = actor->GetActorTransform();
 
 		if (actor->IsA<AGrid>())
 			SaveWorld(actorData, actor, Index, potentialWetActors);
 		else if (actor->IsA<AResource>())
-			SaveResource(Camera, actorData, actor);
+			SaveResource(Camera, actorData, actor, Index);
 		else if (actor->IsA<ACamera>()) {
 			SaveCamera(actorData, actor, Index);
 
@@ -98,32 +97,31 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 			SaveGamemode(actorData, actor, Index);
 		}
 		else if (actor->IsA<AAI>()) {
-			SaveAI(Camera, actorData, actor);
+			FAIData aiData;
+			SaveAI(Camera, actorData, aiData, actor, Index);
 
 			if (actor->IsA<ACitizen>()) {
-				SaveCitizen(Camera, actorData, actor);
+				SaveCitizen(Camera, actorData, aiData, actor, Index);
 
 				citizenNum++;
 			}
+
+			actorData.dataIndex = Saves[Index].AIData.Add(aiData);
 		}
 		else if (actor->IsA<ABuilding>())
-			SaveBuilding(actorData, actor);
+			SaveBuilding(Camera, actorData, actor, Index);
 		else if (actor->IsA<AProjectile>())
-			SaveProjectile(actorData, actor);
+			SaveProjectile(actorData, actor, Index);
 		else if (actor->IsA<AAISpawner>())
-			SaveAISpawner(actorData, actor);
-
-		if (Camera->Grid->AtmosphereComponent->GetFireComponent(actor) != nullptr)
-			SetActorData("Fire0", -1, actorData);
+			SaveAISpawner(actorData, actor, Index);
 
 		SaveTimers(Camera, actorData, actor);
 
-		SaveComponents(actorData, actor);
+		SaveComponents(actorData, actor, Index);
 
-		allNewActorData.Add(actorData);
+		Saves[Index].SavedActors.Add(actorData);
 	}
 
-	Saves[Index].SavedActors = allNewActorData;
 	Saves[Index].CitizenNum = citizenNum;
 	LastTimeUpdated = FDateTime::Now();
 
@@ -133,30 +131,33 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int32 Index, TArray<AActor*> PotentialWetActors)
 {
 	AGrid* grid = Cast<AGrid>(Actor);
+	FWorldSaveData worldSaveData;
 	
-	SetActorData("Size", grid->Size, ActorData);
-	SetActorData("Chunks", grid->Chunks, ActorData);
+	worldSaveData.Size = grid->Size;
+	worldSaveData.Chunks = grid->Chunks;
 
-	Saves[Index].Stream = grid->Camera->Stream;
+	worldSaveData.Stream = grid->Camera->Stream;
 
-	for (int32 i = 0; i < grid->LavaSpawnLocations.Num(); i++)
-		SetActorData("Lava" + FString::FromInt(i), grid->LavaSpawnLocations[i], ActorData);
+	worldSaveData.LavaSpawnLocations = grid->LavaSpawnLocations;
+
+	worldSaveData.Tiles.Empty();
 
 	auto bound = grid->GetMapBounds();
 	for (TArray<FTileStruct>& row : grid->Storage) {
 		for (FTileStruct& tile : row) {
-			FString key = "Tile" + FString::FromInt(tile.X + tile.Y + bound);
+			FTileData t;
+			t.Level = tile.Level;
+			t.Fertility = tile.Fertility;
+			t.X = tile.X;
+			t.Y = tile.Y;
+			t.Rotation = tile.Rotation;
+			t.bRamp = tile.bRamp;
+			t.bRiver = tile.bRiver;
+			t.bEdge = tile.bEdge;
+			t.bMineral = tile.bMineral;
+			t.bUnique = tile.bUnique;
 
-			SetActorData(key + "Level", tile.Level, ActorData);
-			SetActorData(key + "Fertility", tile.Fertility, ActorData);
-			SetActorData(key + "X", tile.X, ActorData);
-			SetActorData(key + "Y", tile.Y, ActorData);
-			SetActorData(key + "Rotation", tile.Rotation, ActorData);
-			SetActorData(key + "bRamp", tile.bRamp, ActorData);
-			SetActorData(key + "bRiver", tile.bRiver, ActorData);
-			SetActorData(key + "bEdge", tile.bEdge, ActorData);
-			SetActorData(key + "bMineral", tile.bMineral, ActorData);
-			SetActorData(key + "bUnique", tile.bUnique, ActorData);
+			worldSaveData.Tiles.Add(t);
 		}
 	}
 
@@ -166,8 +167,8 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 
 	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
 		FHISMData data;
+		data.Name = hism->GetName();
 
-		int32 count = 0;
 		for (int32 i = 0; i < hism->GetInstanceCount(); i++) {
 			FTransform transform;
 			hism->GetInstanceTransform(i, transform);
@@ -186,33 +187,28 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 			if (index == INDEX_NONE)
 				continue;
 
-			FString key = hism->GetName() + FString::FromInt(count);
-			SetActorData(key + "WetLocation", transform, ActorData);
-			SetActorData(key + "WetValue", clouds->WetnessStruct[index].Value, ActorData);
-			SetActorData(key + "WetIncrement", clouds->WetnessStruct[index].Increment, ActorData);
+			FWetnessData wetnessData;
+			wetnessData.Location = transform.GetLocation();
+			wetnessData.Value = clouds->WetnessStruct[index].Value;
+			wetnessData.Increment = clouds->WetnessStruct[index].Increment;
 
-			count++;
+			worldSaveData.CloudsData.WetnessData.Add(wetnessData);
 		}
 
 		data.CustomDataValues = hism->PerInstanceSMCustomData;
 
-		SetActorData(hism->GetName(), data, ActorData);
+		worldSaveData.HISMData.Add(data);
 	}
 
-	FCalendarStruct calendar = grid->AtmosphereComponent->Calendar;
-	SetActorData("CalendarPeriod", calendar.Period, ActorData);
-	SetActorData("CalendarIndex", calendar.Index, ActorData);
-	SetActorData("CalendarHour", calendar.Hour, ActorData);
-	SetActorData("CalendarYear", calendar.Year, ActorData);
+	worldSaveData.AtmosphereData.Calendar = grid->AtmosphereComponent->Calendar;
+	worldSaveData.AtmosphereData.bRedSun = grid->AtmosphereComponent->bRedSun;
+	worldSaveData.AtmosphereData.WindRotation = grid->AtmosphereComponent->WindRotation;
+	worldSaveData.AtmosphereData.SunRotation = grid->AtmosphereComponent->Sun->GetRelativeRotation();
+	worldSaveData.AtmosphereData.MoonRotation = grid->AtmosphereComponent->Moon->GetRelativeRotation();
 
-	SetActorData("bRedSun", grid->AtmosphereComponent->bRedSun, ActorData);
-	SetActorData("WindRotation", grid->AtmosphereComponent->WindRotation, ActorData);
-	SetActorData("SunRotation", grid->AtmosphereComponent->Sun->GetRelativeTransform(), ActorData);
-	SetActorData("MoonRotation", grid->AtmosphereComponent->Moon->GetRelativeTransform(), ActorData);
-
-	SetActorData("DisasterChance", grid->AtmosphereComponent->NaturalDisasterComponent->DisasterChance, ActorData);
-	SetActorData("DisasterFrequency", grid->AtmosphereComponent->NaturalDisasterComponent->Frequency, ActorData);
-	SetActorData("DisasterIntensity", grid->AtmosphereComponent->NaturalDisasterComponent->Intensity, ActorData);
+	worldSaveData.NaturalDisasterData.DisasterChance = grid->AtmosphereComponent->NaturalDisasterComponent->DisasterChance;
+	worldSaveData.NaturalDisasterData.Frequency = grid->AtmosphereComponent->NaturalDisasterComponent->Frequency;
+	worldSaveData.NaturalDisasterData.Intensity = grid->AtmosphereComponent->NaturalDisasterComponent->Intensity;
 
 	for (AActor* a : PotentialWetActors) {
 		FWetnessStruct wetnessStruct;
@@ -223,53 +219,58 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 		if (index == INDEX_NONE)
 			continue;
 
-		SetActorData(a->GetName() + "WetLocation", a->GetActorTransform(), ActorData);
-		SetActorData(a->GetName() + "WetValue", clouds->WetnessStruct[index].Value, ActorData);
-		SetActorData(a->GetName() + "WetIncrement", clouds->WetnessStruct[index].Increment, ActorData);
+		FWetnessData wetnessData;
+		wetnessData.Location = a->GetActorLocation();
+		wetnessData.Value = clouds->WetnessStruct[index].Value;
+		wetnessData.Increment = clouds->WetnessStruct[index].Increment;
+
+		worldSaveData.CloudsData.WetnessData.Add(wetnessData);
 	}
 
-	int32 cloudCount = 0;
 	for (FCloudStruct cloud : grid->AtmosphereComponent->Clouds->Clouds) {
-		SetActorData("CloudTransform" + FString::FromInt(cloudCount), cloud.HISMCloud->GetRelativeTransform(), ActorData);
-		SetActorData("CloudDistance" + FString::FromInt(cloudCount), cloud.Distance, ActorData);
-		SetActorData("CloudPercipitation" + FString::FromInt(cloudCount), cloud.Precipitation != nullptr, ActorData);
-		SetActorData("CloudHide" + FString::FromInt(cloudCount), cloud.bHide, ActorData);
-		SetActorData("CloudLightningFrequency" + FString::FromInt(cloudCount), cloud.lightningFrequency, ActorData);
-		SetActorData("CloudLightningTimer" + FString::FromInt(cloudCount), cloud.lightningTimer, ActorData);
+		FCloudData data;
+		data.Transform = cloud.HISMCloud->GetRelativeTransform();
+		data.Distance = cloud.Distance;
+		data.bPrecipitation = cloud.Precipitation != nullptr;
+		data.bHide = cloud.bHide;
+		data.lightningFrequency = cloud.lightningFrequency;
+		data.lightningTimer = cloud.lightningTimer;
 
-		cloudCount++;
+		worldSaveData.CloudsData.CloudData.Add(data);
 	}
+
+	Saves[Index].WorldData = worldSaveData;
 }
 
-void UDiplosimSaveGame::SaveResource(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::SaveResource(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, int32 Index)
 {
 	AResource* resource = Cast<AResource>(Actor);
-	FHISMData data;
+	FResourceData resourceData;
 
-	int32 fireCount = 0;
 	for (int32 i = 0; i < resource->ResourceHISM->GetInstanceCount(); i++) {
 		FTransform transform;
 		resource->ResourceHISM->GetInstanceTransform(i, transform);
 
-		data.Transforms.Add(transform);
+		resourceData.HISMData.Transforms.Add(transform);
 
 		if (Camera->Grid->AtmosphereComponent->GetFireComponent(Actor, i) != nullptr)
-			SetActorData("Fire" + fireCount, i, ActorData);
-
-		fireCount++;
+			resourceData.FireInstances.Add(i);
 	}
 
-	data.CustomDataValues = resource->ResourceHISM->PerInstanceSMCustomData;
-	SetActorData("ResourceHISM", data, ActorData);
+	resourceData.HISMData.CustomDataValues = resource->ResourceHISM->PerInstanceSMCustomData;
 
 	int32 workerCount = 0;
 	for (FWorkerStruct worker : resource->WorkerStruct) {
-		int32 citizenCount = 0;
-		for (ACitizen* citizen : worker.Citizens)
-			SetActorData("Workers" + FString::FromInt(workerCount) + FString::FromInt(citizenCount), citizen->GetName(), ActorData);
+		FWorkerData workerData;
+		workerData.Instance = worker.Instance;
 
-		SetActorData("Workers" + FString::FromInt(workerCount), worker.Instance, ActorData);
+		for (ACitizen* citizen : worker.Citizens)
+			workerData.CitizenNames.Add(citizen->GetName());
+
+		resourceData.WorkersData.Add(workerData);
 	}
+
+	ActorData.dataIndex = Saves[Index].ResourceData.Add(resourceData);
 }
 
 void UDiplosimSaveGame::SaveCamera(FActorSaveData& ActorData, AActor* Actor, int32 Index)
@@ -277,7 +278,6 @@ void UDiplosimSaveGame::SaveCamera(FActorSaveData& ActorData, AActor* Actor, int
 	ACamera* camera = Cast<ACamera>(Actor);
 	Saves[Index].CameraData.ColonyName = camera->ColonyName;
 
-	Saves[Index].CameraData.ConstructionData.Empty();
 	for (FConstructionStruct constructionStruct : camera->ConstructionManager->Construction) {
 		FConstructionData data;
 		data.BuildingName = constructionStruct.Building->GetName();
@@ -324,8 +324,6 @@ void UDiplosimSaveGame::SaveCitizenManager(FActorSaveData& ActorData, AActor* Ac
 void UDiplosimSaveGame::SaveFactions(FActorSaveData& ActorData, AActor* Actor, int32 Index)
 {
 	ACamera* camera = Cast<ACamera>(Actor);
-
-	Saves[Index].CameraData.FactionData.Empty();
 
 	for (FFactionStruct faction : camera->ConquestManager->Factions) {
 		FFactionData data;
@@ -508,205 +506,191 @@ void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor, i
 	gamemodeData->TargetOpacity = gamemode->TargetOpacity;
 }
 
-void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, AActor* Actor, int32 Index)
 {
 	AAI* ai = Cast<AAI>(Actor);
-	FAIData* data = &ActorData.AIData;
 
 	ADiplosimGameModeBase* gamemode = Camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", ai);
 
-	data->Colour = ai->Colour;
+	AIData.Colour = ai->Colour;
 
 	if (ai->MovementComponent->bSetPoints)
-		data->MovementData.Points = ai->MovementComponent->TempPoints;
+		AIData.MovementData.Points = ai->MovementComponent->TempPoints;
 	else
-		data->MovementData.Points = ai->MovementComponent->Points;
+		AIData.MovementData.Points = ai->MovementComponent->Points;
 
-	data->MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
-	data->MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
-	data->MovementData.Transform = ai->MovementComponent->Transform;
+	AIData.MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
+	AIData.MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
+	AIData.MovementData.Transform = ai->MovementComponent->Transform;
 
 	if (IsValid(ai->MovementComponent->ActorToLookAt))
-		data->MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
+		AIData.MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
 
 	if (IsValid(ai->AIController->ChosenBuilding))
-		data->MovementData.ChosenBuildingName = ai->AIController->ChosenBuilding->GetName();
+		AIData.MovementData.ChosenBuildingName = ai->AIController->ChosenBuilding->GetName();
 
 	if (IsValid(ai->AIController->MoveRequest.GetGoalActor()))
-		data->MovementData.ActorName = ai->AIController->MoveRequest.GetGoalActor()->GetName();
+		AIData.MovementData.ActorName = ai->AIController->MoveRequest.GetGoalActor()->GetName();
 
 	if (IsValid(ai->AIController->MoveRequest.GetLinkedPortal()))
-		data->MovementData.LinkedPortalName = ai->AIController->MoveRequest.GetLinkedPortal()->GetName();
+		AIData.MovementData.LinkedPortalName = ai->AIController->MoveRequest.GetLinkedPortal()->GetName();
 
 	if (IsValid(ai->AIController->MoveRequest.GetUltimateGoalActor()))
-		data->MovementData.UltimateGoalName = ai->AIController->MoveRequest.GetUltimateGoalActor()->GetName();
+		AIData.MovementData.UltimateGoalName = ai->AIController->MoveRequest.GetUltimateGoalActor()->GetName();
 
-	data->MovementData.Instance = ai->AIController->MoveRequest.GetGoalInstance();
-	data->MovementData.Location = ai->AIController->MoveRequest.GetLocation();
+	AIData.MovementData.Instance = ai->AIController->MoveRequest.GetGoalInstance();
+	AIData.MovementData.Location = ai->AIController->MoveRequest.GetLocation();
 
 	if (gamemode->Snakes.Contains(ai))
-		data->bSnake = true;
+		AIData.bSnake = true;
 
 	if (faction != nullptr)
-		data->FactionName = faction->Name;
+		AIData.FactionName = faction->Name;
 }
 
-void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, AActor* Actor, int32 Index)
 {
 	ACitizen* citizen = Cast<ACitizen>(Actor);
-	FAIData* data = &ActorData.AIData;
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
 	if (faction != nullptr) {
 		if (faction->Rebels.Contains(citizen))
-			data->CitizenData.bRebel = true;
+			AIData.CitizenData.bRebel = true;
 
-		data->CitizenData.EnterLocation = citizen->BuildingComponent->EnterLocation;
+		AIData.CitizenData.EnterLocation = citizen->BuildingComponent->EnterLocation;
 	}
 
 	if (IsValid(citizen->Carrying.Type)) {
-		data->CitizenData.ResourceCarryClass = citizen->Carrying.Type->GetClass();
-		data->CitizenData.CarryAmount = citizen->Carrying.Amount;
+		AIData.CitizenData.ResourceCarryClass = citizen->Carrying.Type->GetClass();
+		AIData.CitizenData.CarryAmount = citizen->Carrying.Amount;
 	}
 
 	if (citizen->BioComponent->Mother != nullptr)
-		data->CitizenData.MothersName = citizen->BioComponent->Mother->GetName();
+		AIData.CitizenData.MothersName = citizen->BioComponent->Mother->GetName();
 
 	if (citizen->BioComponent->Father != nullptr)
-		data->CitizenData.FathersName = citizen->BioComponent->Father->GetName();
+		AIData.CitizenData.FathersName = citizen->BioComponent->Father->GetName();
 
 	if (citizen->BioComponent->Partner != nullptr)
-		data->CitizenData.PartnersName = citizen->BioComponent->Partner->GetName();
-
-	data->CitizenData.ChildrensNames.Empty();
-	data->CitizenData.SiblingsNames.Empty();
+		AIData.CitizenData.PartnersName = citizen->BioComponent->Partner->GetName();
 
 	for (ACitizen* child : citizen->BioComponent->Children)
-		data->CitizenData.ChildrensNames.Add(child->GetName());
+		AIData.CitizenData.ChildrensNames.Add(child->GetName());
 
 	for (ACitizen* sibling : citizen->BioComponent->Siblings)
-		data->CitizenData.SiblingsNames.Add(sibling->GetName());
+		AIData.CitizenData.SiblingsNames.Add(sibling->GetName());
 
-	data->CitizenData.HoursTogetherWithPartner = citizen->BioComponent->HoursTogetherWithPartner;
-	data->CitizenData.bMarried = citizen->BioComponent->bMarried;
-	data->CitizenData.Sex = citizen->BioComponent->Sex;
-	data->CitizenData.Sexuality = citizen->BioComponent->Sexuality;
-	data->CitizenData.Age = citizen->BioComponent->Age;
-	data->CitizenData.Name = citizen->BioComponent->Name;
-	data->CitizenData.EducationLevel = citizen->BioComponent->EducationLevel;
-	data->CitizenData.EducationProgress = citizen->BioComponent->EducationProgress;
-	data->CitizenData.PaidForEducationLevel = citizen->BioComponent->PaidForEducationLevel;
-	data->CitizenData.bAdopted = citizen->BioComponent->bAdopted;
-	data->CitizenData.SpeedBeforeOld = citizen->BioComponent->SpeedBeforeOld;
-	data->CitizenData.MaxHealthBeforeOld = citizen->BioComponent->MaxHealthBeforeOld;
+	AIData.CitizenData.HoursTogetherWithPartner = citizen->BioComponent->HoursTogetherWithPartner;
+	AIData.CitizenData.bMarried = citizen->BioComponent->bMarried;
+	AIData.CitizenData.Sex = citizen->BioComponent->Sex;
+	AIData.CitizenData.Sexuality = citizen->BioComponent->Sexuality;
+	AIData.CitizenData.Age = citizen->BioComponent->Age;
+	AIData.CitizenData.Name = citizen->BioComponent->Name;
+	AIData.CitizenData.EducationLevel = citizen->BioComponent->EducationLevel;
+	AIData.CitizenData.EducationProgress = citizen->BioComponent->EducationProgress;
+	AIData.CitizenData.PaidForEducationLevel = citizen->BioComponent->PaidForEducationLevel;
+	AIData.CitizenData.bAdopted = citizen->BioComponent->bAdopted;
+	AIData.CitizenData.SpeedBeforeOld = citizen->BioComponent->SpeedBeforeOld;
+	AIData.CitizenData.MaxHealthBeforeOld = citizen->BioComponent->MaxHealthBeforeOld;
 
-	data->CitizenData.Spirituality = citizen->Spirituality;
-	data->CitizenData.TimeOfAcquirement = citizen->BuildingComponent->TimeOfAcquirement;
-	data->CitizenData.VoicePitch = citizen->VoicePitch;
-	data->CitizenData.Balance = citizen->Balance;
-	data->CitizenData.HoursWorked = citizen->BuildingComponent->HoursWorked;
-	data->CitizenData.Hunger = citizen->Hunger;
-	data->CitizenData.Energy = citizen->Energy;
-	data->CitizenData.bGain = citizen->bGain;
-	data->CitizenData.bHasBeenLeader = citizen->bHasBeenLeader;
-	data->CitizenData.HealthIssues = citizen->HealthIssues;
-	data->CitizenData.Modifiers = citizen->HappinessComponent->Modifiers;
-	data->CitizenData.SadTimer = citizen->HappinessComponent->SadTimer;
-	data->CitizenData.MassStatus = citizen->HappinessComponent->MassStatus;
-	data->CitizenData.FestivalStatus = citizen->HappinessComponent->FestivalStatus;
-	data->CitizenData.bConversing = citizen->bConversing;
-	data->CitizenData.DecayingHappiness = citizen->HappinessComponent->DecayingHappiness;
-	data->CitizenData.Genetics = citizen->Genetics;
-	data->CitizenData.bSleep = citizen->bSleep;
-	data->CitizenData.HoursSleptToday = citizen->HoursSleptToday;
+	AIData.CitizenData.Spirituality = citizen->Spirituality;
+	AIData.CitizenData.TimeOfAcquirement = citizen->BuildingComponent->TimeOfAcquirement;
+	AIData.CitizenData.VoicePitch = citizen->VoicePitch;
+	AIData.CitizenData.Balance = citizen->Balance;
+	AIData.CitizenData.HoursWorked = citizen->BuildingComponent->HoursWorked;
+	AIData.CitizenData.Hunger = citizen->Hunger;
+	AIData.CitizenData.Energy = citizen->Energy;
+	AIData.CitizenData.bGain = citizen->bGain;
+	AIData.CitizenData.bHasBeenLeader = citizen->bHasBeenLeader;
+	AIData.CitizenData.HealthIssues = citizen->HealthIssues;
+	AIData.CitizenData.Modifiers = citizen->HappinessComponent->Modifiers;
+	AIData.CitizenData.SadTimer = citizen->HappinessComponent->SadTimer;
+	AIData.CitizenData.MassStatus = citizen->HappinessComponent->MassStatus;
+	AIData.CitizenData.FestivalStatus = citizen->HappinessComponent->FestivalStatus;
+	AIData.CitizenData.bConversing = citizen->bConversing;
+	AIData.CitizenData.DecayingHappiness = citizen->HappinessComponent->DecayingHappiness;
+	AIData.CitizenData.Genetics = citizen->Genetics;
+	AIData.CitizenData.bSleep = citizen->bSleep;
+	AIData.CitizenData.HoursSleptToday = citizen->HoursSleptToday;
 
-	data->MovementData.Transform.SetScale3D(FVector(1.0f));
+	AIData.MovementData.Transform.SetScale3D(FVector(1.0f));
 
-	data->CitizenData.PersonalityTraits.Empty();
 	for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
-		data->CitizenData.PersonalityTraits.Add(personality->Trait);
+		AIData.CitizenData.PersonalityTraits.Add(personality->Trait);
 }
 
-void UDiplosimSaveGame::SaveBuilding(FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::SaveBuilding(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, int32 Index)
 {
 	ABuilding* building = Cast<ABuilding>(Actor);
+	FBuildingData buildingData;
 
-	SetActorData("FactionName", building->FactionName, ActorData);
-	SetActorData("Capacity", building->Capacity, ActorData);
+	if (Camera->Grid->AtmosphereComponent->GetFireComponent(Actor) != nullptr)
+		buildingData.bOnFire = true;
 
-	SetActorData("SeedNum", building->SeedNum, ActorData);
-	SetActorData("Tier", building->Tier, ActorData);
+	buildingData.FactionName = building->FactionName;
+	buildingData.Capacity = building->Capacity;
 
-	SetActorData("Red", building->ChosenColour.R, ActorData);
-	SetActorData("Green", building->ChosenColour.G, ActorData);
-	SetActorData("Blue", building->ChosenColour.B, ActorData);
+	buildingData.Seed = building->SeedNum;
+	buildingData.ChosenColour = building->ChosenColour;
+	buildingData.Tier = building->Tier;
 
-	for (int32 i = 0; i < building->TargetList.Num(); i++) {
-		SetActorData("TargetResource" + FString::FromInt(i), building->TargetList[i].Resource.Get(), ActorData);
-		SetActorData("TargetAmount" + FString::FromInt(i), building->TargetList[i].Amount, ActorData);
-		SetActorData("TargetStored" + FString::FromInt(i), building->TargetList[i].Stored, ActorData);
-		SetActorData("TargetUse" + FString::FromInt(i), building->TargetList[i].Use, ActorData);
-	}
+	buildingData.TargetList = building->TargetList;
 
-	for (int32 i = 0; i < building->Storage.Num(); i++) {
-		SetActorData("StorageResource" + FString::FromInt(i), building->Storage[i].Resource.Get(), ActorData);
-		SetActorData("StorageAmount" + FString::FromInt(i), building->Storage[i].Amount, ActorData);
-		SetActorData("StorageStored" + FString::FromInt(i), building->Storage[i].Stored, ActorData);
-		SetActorData("StorageUse" + FString::FromInt(i), building->Storage[i].Use, ActorData);
-	}
-
-	for (int32 i = 0; i < building->Basket.Num(); i++) {
-		SetActorData("BasketID" + FString::FromInt(i), building->Basket[i].ID.ToString(), ActorData);
-		SetActorData("BasketResource" + FString::FromInt(i), building->Basket[i].Item.Resource.Get(), ActorData);
-		SetActorData("BasketAmount" + FString::FromInt(i), building->Basket[i].Item.Amount, ActorData);
-		SetActorData("BasketStored" + FString::FromInt(i), building->Basket[i].Item.Stored, ActorData);
-		SetActorData("BasketUse" + FString::FromInt(i), building->Basket[i].Item.Use, ActorData);
-	}
+	buildingData.Storage = building->Storage;
+	buildingData.Basket = building->Basket;
 
 	double* time = building->Camera->Grid->AIVisualiser->DestructingActors.Find(building);
 	if (time != nullptr)
-		SetActorData("DeathTime", *time, ActorData);
+		buildingData.DeathTime = *time;
 
-	SetActorData("bOperate", building->bOperate, ActorData);
+	buildingData.bOperate = building->bOperate;
 
-	for (int32 i = 0; i < building->Occupied.Num(); i++) {
-		if (IsValid(building->Occupied[i].Citizen)) {
-			SetActorData("OccupiedCitizen" + FString::FromInt(i), building->Occupied[i].Citizen->GetName(), ActorData);
+	TArray<FCapacityData> occData;
 
-			for (int32 j = 0; j < building->Occupied[i].Visitors.Num(); j++)
-				SetActorData("OccupiedVisitor" + FString::FromInt(i) + FString::FromInt(j), building->Occupied[i].Visitors[j]->GetName(), ActorData);
+	for (FCapacityStruct capacityStruct : building->Occupied) {
+		FCapacityData capData;
+
+		if (IsValid(capacityStruct.Citizen)) {
+			capData.CitizenName = capacityStruct.Citizen->GetName();
+
+			for (ACitizen* visitor : capacityStruct.Visitors)
+				capData.VisitorNames.Add(visitor->GetName());
 		}
 
-		SetActorData("OccupiedAmount" + FString::FromInt(i), building->Occupied[i].Amount, ActorData);
-		SetActorData("OccupiedbBlocked" + FString::FromInt(i), building->Occupied[i].bBlocked, ActorData);
+		capData.Amount = capacityStruct.Amount;
+		capData.WorkHours = capacityStruct.WorkHours;
+		capData.bBlocked = capacityStruct.bBlocked;
 
-		int32 workHoursCount = 0;
-		for (auto element : building->Occupied[i].WorkHours) {
-			SetActorData("WorkHourKey" + FString::FromInt(workHoursCount), element.Key, ActorData);
-			SetActorData("WorkHourValue" + FString::FromInt(workHoursCount), (uint8)element.Value, ActorData);
-			workHoursCount++;
-		}
+		occData.Add(capData);
 	}
+
+	buildingData.OccupiedData = occData;
+
+	ActorData.dataIndex = Saves[Index].BuildingData.Add(buildingData);
 }
 
-void UDiplosimSaveGame::SaveProjectile(FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::SaveProjectile(FActorSaveData& ActorData, AActor* Actor, int32 Index)
 {
 	AProjectile* projectile = Cast<AProjectile>(Actor);
+	FProjectileData projectileData;
 
-	SetActorData("ProjectileOwner", projectile->GetOwner()->GetName(), ActorData);
-	SetActorData("ProjectileVelocity", projectile->ProjectileMovementComponent->Velocity, ActorData);
+	projectileData.OwnerName = projectile->GetOwner()->GetName();
+	projectileData.Velocity = projectile->ProjectileMovementComponent->Velocity;
+
+	ActorData.dataIndex = Saves[Index].ProjectileData.Add(projectileData);
 }
 
-void UDiplosimSaveGame::SaveAISpawner(FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::SaveAISpawner(FActorSaveData& ActorData, AActor* Actor, int32 Index)
 {
 	AAISpawner* spawner = Cast<AAISpawner>(Actor);
+	FSpawnerData spawnerData;
 
-	SetActorData("Red", spawner->Colour.R, ActorData);
-	SetActorData("Green", spawner->Colour.G, ActorData);
-	SetActorData("Blue", spawner->Colour.B, ActorData);
-	SetActorData("IncrementSpawned", spawner->IncrementSpawned, ActorData);
+	spawnerData.Colour = spawner->Colour;
+	spawnerData.IncrementSpawned = spawner->IncrementSpawned;
+
+	ActorData.dataIndex = Saves[Index].SpawnerData.Add(spawnerData);
 }
 
 void UDiplosimSaveGame::SaveTimers(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
@@ -726,22 +710,36 @@ void UDiplosimSaveGame::SaveTimers(ACamera* Camera, FActorSaveData& ActorData, A
 	}
 }
 
-void UDiplosimSaveGame::SaveComponents(FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::SaveComponents(FActorSaveData& ActorData, AActor* Actor, int32 Index)
 {
+	FHealthData healthData;
+	FAttackData attackData;
+
 	UHealthComponent* healthComp = Actor->FindComponentByClass<UHealthComponent>();
 	if (healthComp)
-		SetActorData("Health", healthComp->GetHealth(), ActorData);
+		healthData.Health = healthComp->GetHealth();
 
 	UAttackComponent* attackComp = Actor->FindComponentByClass<UAttackComponent>();
 	if (attackComp) {
 		if (*attackComp->ProjectileClass)
-			SetActorData("ProjectileClass", attackComp->ProjectileClass->GetClass(), ActorData);
+			attackData.ProjectileClass = attackComp->ProjectileClass;
 
-		SetActorData("AttackTimer", attackComp->AttackTimer, ActorData);
-		SetActorData("bShowMercy", attackComp->bShowMercy, ActorData);
+		attackData.AttackTimer = attackComp->AttackTimer;
+		attackData.bShowMercy = attackComp->bShowMercy;
 
-		for (int32 i = 0; i < attackComp->OverlappingEnemies.Num(); i++)
-			SetActorData("Enemy" + FString::FromInt(i), attackComp->OverlappingEnemies[i]->GetName(), ActorData);
+		for (AActor* enemy : attackComp->OverlappingEnemies)
+			attackData.ActorNames.Add(enemy->GetName());
+	}
+
+	if (Actor->IsA<ABuilding>()) {
+		FBuildingData& buildingData = Saves[Index].BuildingData[ActorData.dataIndex];
+		buildingData.HealthData = healthData;
+		buildingData.AttackData = attackData;
+	}
+	else if (Actor->IsA<AAI>()) {
+		FAIData& aiData = Saves[Index].AIData[ActorData.dataIndex];
+		aiData.HealthData = healthData;
+		aiData.AttackData = attackData;
 	}
 }
 
@@ -768,65 +766,53 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 	for (AActor* a : actors)
 		a->Destroy();
 
-	TMap<FString, FActorSaveData*> aiToName;
-	TMap<FString, FActorSaveData> wetNames;
+	TMap<FString, FActorSaveData*> aiToName; 
+	TArray<FWetnessData> wetnessData;
 
 	for (FActorSaveData& actorData : Saves[Index].SavedActors) {
 		AActor* actor = nullptr;
-		FTransform transform = GetActorData<FTransform>("ActorTransform", actorData);
 
-		UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), GetActorData<UClass*>("ActorClass", actorData), foundActors);
+		UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), actorData.Class, foundActors);
 
 		if (foundActors.Num() == 1 && (foundActors[0]->IsA<ACamera>() || foundActors[0]->IsA<AGrid>() || foundActors[0]->IsA<AResource>())) {
 			actor = foundActors[0];
 
-			actor->SetActorTransform(transform);
+			actor->SetActorTransform(actorData.Transform);
 		}
 		else {
 			FActorSpawnParameters params;
 			params.bNoFail = true;
 
-			actor = Camera->GetWorld()->SpawnActor<AActor>(GetActorData<UClass*>("ActorClass", actorData), transform, params);
+			actor = Camera->GetWorld()->SpawnActor<AActor>(actorData.Class, actorData.Transform, params);
 		}
 
 		if (actor->IsA<AGrid>())
-			LoadWorld(actorData, actor, Index, wetNames);
+			LoadWorld(Saves[Index].WorldData, actor, wetnessData);
 		else if (actor->IsA<AResource>())
-			LoadResource(actorData, actor);
+			LoadResource(Camera, Saves[Index].ResourceData[actorData.dataIndex], actor);
 		else if (actor->IsA<AEggBasket>())
 			LoadEggBasket(Camera, actorData, actor);
 		else if (actor->IsA<ACamera>()) {
-			LoadCamera(actorData, actor, Index);
+			LoadCamera(actorData, Saves[Index].CameraData, actor);
 
-			LoadFactions(actorData, actor, Index);
+			LoadFactions(actorData, Saves[Index].CameraData, actor);
 
-			LoadGamemode(gamemode, actorData, actor, Index);
+			LoadGamemode(gamemode, actorData, Saves[Index].CameraData.GamemodeData, actor);
 		}
 		else if (actor->IsA<AAI>()) {
-			LoadAI(Camera, gamemode, actorData, actor, Index, aiToName);
+			LoadAI(Camera, gamemode, actorData, Saves[Index].AIData[actorData.dataIndex], Saves[Index].CameraData.GamemodeData, actor, aiToName);
 
 			if (actor->IsA<ACitizen>())
-				LoadCitizen(Camera, actorData, actor, Index);
+				LoadCitizen(Camera, actorData, Saves[Index].AIData[actorData.dataIndex], Saves[Index].CameraData, actor);
 		}
 		else if (actor->IsA<ABuilding>())
-			LoadBuilding(Camera, actorData, actor, Index, aiToName);
+			LoadBuilding(Camera, actorData, Saves[Index].BuildingData[actorData.dataIndex], Saves[Index].CameraData.ConstructionData, actor, aiToName, Index);
 		else if (actor->IsA<AProjectile>())
-			LoadProjectile(actorData, actor);
+			LoadProjectile(Saves[Index].ProjectileData[actorData.dataIndex], actor);
 		else if (actor->IsA<AAISpawner>())
-			LoadAISpawner(gamemode, actorData, actor);
+			LoadAISpawner(gamemode, Saves[Index].SpawnerData[actorData.dataIndex], actor);
 
-		int32 fireCount = 0;
-		while (true) {
-			if (!actorData.Numbers.Contains("Fire" + FString::FromInt(fireCount)))
-				break;
-
-			Camera->Grid->AtmosphereComponent->SetOnFire(actor, GetActorData<int32>("Fire" + FString::FromInt(fireCount), actorData), true);
-		}
-
-		if (actorData.Transforms.Contains(actorData.Name + "WetLocation"))
-			wetNames.Add(actorData.Name, actorData);
-
-		LoadComponents(actorData, actor);
+		LoadComponents(actorData, actor, Index);
 
 		actorData.Actor = actor;
 	}
@@ -835,157 +821,117 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		LoadTimers(Camera, Index, actorData, Saves[Index].SavedActors);
 
 		for (FActorSaveData savedData : Saves[Index].SavedActors) {
-			LoadOverlappingEnemies(Camera, actorData, actorData.Actor, savedData);
+			LoadOverlappingEnemies(Camera, actorData, actorData.Actor, savedData, Index);
 
 			InitialiseObjects(Camera, gamemode, actorData, savedData, Index);
 		}
 	}
 
-	for (auto element : wetNames)
-		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(GetActorData<FVector>(element.Key + "WetLocation", element.Value), GetActorData<float>(element.Key + "WetValue", element.Value), GetActorData<float>(element.Key + "WetIncrement", element.Value));
+	for (FWetnessData wetData : wetnessData)
+		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(wetData.Location, wetData.Value, wetData.Increment);
 }
 
-void UDiplosimSaveGame::LoadWorld(FActorSaveData& ActorData, AActor* Actor, int32 Index, TMap<FString, FActorSaveData>& WetNames)
+void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArray<FWetnessData>& WetnessData)
 {
 	AGrid* grid = Cast<AGrid>(Actor);
 
-	grid->Size = GetActorData<int32>("Size", ActorData);
-	grid->Chunks = GetActorData<int32>("Chunks", ActorData);
+	grid->Size = WorldData.Size;
+	grid->Chunks = WorldData.Chunks;
 
-	grid->Camera->Stream = Saves[Index].Stream;
+	grid->Camera->Stream = WorldData.Stream;
 
-	int32 lavaCount = 0;
-	while (true) {
-		FString key = "lava" + FString::FromInt(lavaCount);
-
-		if (!ActorData.Transforms.Contains(key))
-			break;
-
-		grid->LavaSpawnLocations.Add(GetActorData<FVector>(key, ActorData));
-		lavaCount++;
-	}
+	grid->LavaSpawnLocations = WorldData.LavaSpawnLocations;
 
 	grid->Clear();
 
 	grid->InitialiseStorage();
 	auto bound = grid->GetMapBounds();
 
-	int32 tileCount = 0;
-	while (true) {
-		FString key = "Tile" + FString::FromInt(tileCount);
-
-		if (!ActorData.Numbers.Contains(key + "Level"))
-			break;
-
-		int32 x = GetActorData<int32>(key + "X", ActorData);
-		int32 y = GetActorData<int32>(key + "Y", ActorData);
-
-		FTileStruct* tile = &grid->Storage[x + (bound / 2)][y + (bound / 2)];
-		tile->Level = GetActorData<int32>(key + "Level", ActorData);
-		tile->Fertility = GetActorData<int32>(key + "Fertility", ActorData);
-		tile->X = x;
-		tile->Y = y;
-		tile->Rotation = GetActorData<FQuat>(key + "Rotation", ActorData);
-		tile->bRamp = GetActorData<bool>(key + "bRamp", ActorData);
-		tile->bRiver = GetActorData<bool>(key + "bRiver", ActorData);
-		tile->bEdge = GetActorData<bool>(key + "bEdge", ActorData);
-		tile->bMineral = GetActorData<bool>(key + "bMineral", ActorData);
-		tile->bUnique = GetActorData<bool>(key + "bUnique", ActorData);
-
-		tileCount++;
+	for (FTileData t : WorldData.Tiles) {
+		FTileStruct* tile = &grid->Storage[t.X + (bound / 2)][t.Y + (bound / 2)];
+		tile->Level = t.Level;
+		tile->Fertility = t.Fertility;
+		tile->X = t.X;
+		tile->Y = t.Y;
+		tile->Rotation = t.Rotation;
+		tile->bRamp = t.bRamp;
+		tile->bRiver = t.bRiver;
+		tile->bEdge = t.bEdge;
+		tile->bMineral = t.bMineral;
+		tile->bUnique = t.bUnique;
 	}
 
 	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
 
-	int32 wetnessCount = 0;
 	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
-		FHISMData data = GetActorData<FHISMData>(hism->GetName(), ActorData);
+		FHISMData data;
+		data.Name = hism->GetName();
 
-		hism->AddInstances(data.Transforms, false, true, true);
-		hism->PerInstanceSMCustomData = data.CustomDataValues;
+		int32 index = WorldData.HISMData.Find(data);
+		TArray<FTransform> transforms = WorldData.HISMData[index].Transforms;
+
+		hism->AddInstances(transforms, false, true, true);
+		hism->PerInstanceSMCustomData = WorldData.HISMData[index].CustomDataValues;
 		hism->BuildTreeIfOutdated(true, true);
 
-		hism->PartialNavigationUpdates(data.Transforms);
-
-		while (true) {
-			FString key = hism->GetName() + FString::FromInt(wetnessCount);
-
-			if (!ActorData.Transforms.Contains(key + "WetLocation"))
-				break;
-
-			WetNames.Add(key, ActorData);
-
-			wetnessCount++;
-		}
+		hism->PartialNavigationUpdates(transforms);
 	}
 
-	FCalendarStruct& calendar = grid->AtmosphereComponent->Calendar;
-	calendar.Period = GetActorData<FString>("CalendarPeriod", ActorData);
-	calendar.Index = GetActorData<int32>("CalendarIndex", ActorData);
-	calendar.Hour = GetActorData<int32>("CalendarHour", ActorData);
-	calendar.Year = GetActorData<int32>("CalendarYear", ActorData);
+	grid->AtmosphereComponent->Calendar = WorldData.AtmosphereData.Calendar;
+	grid->AtmosphereComponent->bRedSun = WorldData.AtmosphereData.bRedSun;
+	grid->AtmosphereComponent->WindRotation = WorldData.AtmosphereData.WindRotation;
+	grid->AtmosphereComponent->Sun->SetRelativeRotation(WorldData.AtmosphereData.SunRotation);
+	grid->AtmosphereComponent->Moon->SetRelativeRotation(WorldData.AtmosphereData.MoonRotation);
 
-	grid->AtmosphereComponent->bRedSun = GetActorData<bool>("bRedSun", ActorData);
-	grid->AtmosphereComponent->WindRotation = GetActorData<FRotator>("WindRotation", ActorData);
-	grid->AtmosphereComponent->Sun->SetRelativeRotation(GetActorData<FRotator>("SunRotation", ActorData));
-	grid->AtmosphereComponent->Moon->SetRelativeRotation(GetActorData<FRotator>("MoonRotation", ActorData));
-
-	grid->AtmosphereComponent->NaturalDisasterComponent->DisasterChance = GetActorData<float>("DisasterChance", ActorData);
-	grid->AtmosphereComponent->NaturalDisasterComponent->Frequency = GetActorData<float>("DisasterFrequency", ActorData);
-	grid->AtmosphereComponent->NaturalDisasterComponent->Intensity = GetActorData<float>("DisasterIntensity", ActorData);
+	grid->AtmosphereComponent->NaturalDisasterComponent->DisasterChance = WorldData.NaturalDisasterData.DisasterChance;
+	grid->AtmosphereComponent->NaturalDisasterComponent->Frequency = WorldData.NaturalDisasterData.Frequency;
+	grid->AtmosphereComponent->NaturalDisasterComponent->Intensity = WorldData.NaturalDisasterData.Intensity;
 
 	if (grid->AtmosphereComponent->bRedSun)
 		grid->AtmosphereComponent->NaturalDisasterComponent->AlterSunGradually(0.15f, -1.00f);
 
 	grid->AtmosphereComponent->Clouds->ProcessRainEffect.Empty();
 	grid->AtmosphereComponent->Clouds->WetnessStruct.Empty();
+	WetnessData = WorldData.CloudsData.WetnessData;
 
-	int32 cloudCount = 0;
-	while (true) {
-		if (!ActorData.Transforms.Contains("CloudTransform" + FString::FromInt(cloudCount)))
-			break;
-
-		FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(GetActorData<FTransform>("CloudTransform" + FString::FromInt(cloudCount), ActorData), GetActorData<bool>("CloudPercipitation" + FString::FromInt(cloudCount), ActorData) ? 100 : 0);
-		cloudStruct.Distance = GetActorData<double>("CloudDistance" + FString::FromInt(cloudCount), ActorData);
-		cloudStruct.bHide = GetActorData<bool>("CloudHide" + FString::FromInt(cloudCount), ActorData);
-		cloudStruct.lightningFrequency = GetActorData<float>("CloudLightningFrequency" + FString::FromInt(cloudCount), ActorData);
-		cloudStruct.lightningTimer = GetActorData<float>("CloudLightningTimer" + FString::FromInt(cloudCount), ActorData);
-
-		cloudCount++;
+	for (FCloudData data : WorldData.CloudsData.CloudData) {
+		FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0);
+		cloudStruct.Distance = data.Distance;
+		cloudStruct.bHide = data.bHide;
+		cloudStruct.lightningFrequency = data.lightningFrequency;
+		cloudStruct.lightningTimer = data.lightningTimer; 
+		
+		grid->AtmosphereComponent->Clouds->Clouds.Add(cloudStruct);
 	}
 
 	grid->SetupEnvironment(true);
 	grid->AIVisualiser->ResetToDefaultValues();
 }
 
-void UDiplosimSaveGame::LoadResource(FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::LoadResource(ACamera* Camera, FResourceData& ResourceData, AActor* Actor)
 {
 	AResource* resource = Cast<AResource>(Actor);
 
-	FHISMData data = GetActorData<FHISMData>("ResourceHISM", ActorData);
+	resource->ResourceHISM->AddInstances(ResourceData.HISMData.Transforms, false, true, true);
+	resource->ResourceHISM->PerInstanceSMCustomData = ResourceData.HISMData.CustomDataValues;
+	resource->ResourceHISM->BuildTreeIfOutdated(true, true);
 
-	int32 workerCount = 0;
-	while (true) {
-		if (!ActorData.Numbers.Contains("Workers" + FString::FromInt(workerCount)))
-			break;
-
+	for (FWorkerData workerData : ResourceData.WorkersData) {
 		FWorkerStruct workerStruct;
-		workerStruct.Instance = GetActorData<int32>("Workers" + FString::FromInt(workerCount), ActorData);
-		resource->WorkerStruct.Add(workerStruct);
+		workerStruct.Instance = workerData.Instance;
 
-		workerCount++;
+		resource->WorkerStruct.Add(workerStruct);
 	}
 
-	resource->ResourceHISM->AddInstances(data.Transforms, false, true, true);
-	resource->ResourceHISM->PerInstanceSMCustomData = data.CustomDataValues;
-	resource->ResourceHISM->BuildTreeIfOutdated(true, true);
+	for (int32 instance : ResourceData.FireInstances)
+		Camera->Grid->AtmosphereComponent->SetOnFire(Actor, instance, true);
 }
 
 void UDiplosimSaveGame::LoadEggBasket(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
 {
 	AEggBasket* eggBasket = Cast<AEggBasket>(Actor);
 
-	FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorData<FVector>("ActorTransform", ActorData));
+	FTileStruct* tile = Camera->Grid->GetTileFromLocation(ActorData.Transform.GetLocation());
 
 	eggBasket->Grid = Camera->Grid;
 	eggBasket->Tile = tile;
@@ -993,10 +939,10 @@ void UDiplosimSaveGame::LoadEggBasket(ACamera* Camera, FActorSaveData& ActorData
 	Camera->Grid->ResourceTiles.RemoveSingle(tile);
 }
 
-void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, AActor* Actor, int32 Index)
+void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor)
 {
 	ACamera* camera = Cast<ACamera>(Actor);
-	camera->ColonyName = Saves[Index].CameraData.ColonyName;
+	camera->ColonyName = CameraData.ColonyName;
 
 	camera->Start = false;
 	camera->Cancel();
@@ -1006,19 +952,19 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, AActor* Actor, int
 
 	camera->Detach();
 	camera->MovementComponent->TargetLength = 3000.0f;
-	camera->MovementComponent->MovementLocation = GetActorData<FVector>("ActorTransform", ActorData);
+	camera->MovementComponent->MovementLocation = ActorData.Transform.GetLocation();
 
 	camera->ConstructionManager->Construction.Empty();
 
-	camera->CitizenManager->IssuePensionHour = Saves[Index].CameraData.CitizenManagerData.IssuePensionHour;
+	camera->CitizenManager->IssuePensionHour = CameraData.CitizenManagerData.IssuePensionHour;
 }
 
-void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, AActor* Actor, int32 Index)
+void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor)
 {
 	ACamera* camera = Cast<ACamera>(Actor);
 
 	camera->ConquestManager->Factions.Empty();
-	for (FFactionData data : Saves[Index].CameraData.FactionData) {
+	for (FFactionData data : CameraData.FactionData) {
 		FFactionStruct faction;
 		faction.Name = data.Name;
 		faction.FlagColour = data.FlagColour;
@@ -1088,13 +1034,11 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, AActor* Actor, i
 	}
 }
 
-void UDiplosimSaveGame::LoadGamemode(ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, AActor* Actor, int32 Index)
+void UDiplosimSaveGame::LoadGamemode(ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor)
 {
 	ACamera* camera = Cast<ACamera>(Actor);
 
-	FGamemodeData* gamemodeData = &Saves[Index].CameraData.GamemodeData;
-
-	for (FWaveData waveData : gamemodeData->WaveData) {
+	for (FWaveData waveData : GamemodeData.WaveData) {
 		FWaveStruct wave;
 		wave.SpawnLocations = waveData.SpawnLocations;
 
@@ -1111,38 +1055,35 @@ void UDiplosimSaveGame::LoadGamemode(ADiplosimGameModeBase* Gamemode, FActorSave
 		Gamemode->WavesData.Add(wave);
 	}
 
-	Gamemode->bOngoingRaid = gamemodeData->bOngoingRaid;
-	camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, gamemodeData->CrystalOpacity);
-	Gamemode->TargetOpacity = gamemodeData->TargetOpacity;
+	Gamemode->bOngoingRaid = GamemodeData.bOngoingRaid;
+	camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, GamemodeData.CrystalOpacity);
+	Gamemode->TargetOpacity = GamemodeData.TargetOpacity;
 
-	if (gamemodeData->CrystalOpacity != Gamemode->TargetOpacity)
+	if (GamemodeData.CrystalOpacity != Gamemode->TargetOpacity)
 		Gamemode->SetActorTickEnabled(true);
 }
 
-void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, AActor* Actor, int32 Index, TMap<FString, FActorSaveData*>& AIToName)
+void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FAIData& AIData, FGamemodeData& GamemodeData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName)
 {
 	AAI* ai = Cast<AAI>(Actor);
-
-	FAIData* data = &ActorData.AIData;
-
 	AIToName.Add(ActorData.Name, &ActorData);
 
 	UInstancedStaticMeshComponent* ism;
 
-	if (data->FactionName == "") {
-		if (data->bSnake)
+	if (AIData.FactionName == "") {
+		if (AIData.bSnake)
 			ism = Camera->Grid->AIVisualiser->HISMSnake;
 		else
 			ism = Camera->Grid->AIVisualiser->HISMEnemy;
 	}
 	else {
-		FFactionStruct* faction = Camera->ConquestManager->GetFaction(data->FactionName);
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(AIData.FactionName);
 
 		if (ai->IsA<AClone>()) {
 			faction->Clones.Add(ai);
 			ism = Camera->Grid->AIVisualiser->HISMClone;
 		}
-		else if (data->CitizenData.bRebel) {
+		else if (AIData.CitizenData.bRebel) {
 			faction->Rebels.Add(Cast<ACitizen>(ai));
 			ism = Camera->Grid->AIVisualiser->HISMRebel;
 		}
@@ -1152,76 +1093,72 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode,
 		}
 	}
 
-	ai->Colour = data->Colour;
+	ai->Colour = AIData.Colour;
 
-	ai->MovementComponent->Points = data->MovementData.Points;
-	ai->MovementComponent->CurrentAnim = data->MovementData.CurrentAnim;
-	ai->MovementComponent->LastUpdatedTime = data->MovementData.LastUpdatedTime;
+	ai->MovementComponent->Points = AIData.MovementData.Points;
+	ai->MovementComponent->CurrentAnim = AIData.MovementData.CurrentAnim;
+	ai->MovementComponent->LastUpdatedTime = AIData.MovementData.LastUpdatedTime;
 
-	Camera->Grid->AIVisualiser->AddInstance(ai, ism, data->MovementData.Transform);
+	Camera->Grid->AIVisualiser->AddInstance(ai, ism, AIData.MovementData.Transform);
 
 	if (!ai->IsA<AEnemy>())
 		return; 
-	
-	FGamemodeData* gmData = &Saves[Index].CameraData.GamemodeData;
 
-	if (gmData->EnemyNames.Contains(ActorData.Name))
+	if (GamemodeData.EnemyNames.Contains(ActorData.Name))
 		Gamemode->Enemies.Add(ai);
 
-	if (gmData->SnakeNames.Contains(ActorData.Name))
+	if (GamemodeData.SnakeNames.Contains(ActorData.Name))
 		Gamemode->Snakes.Add(ai);
 }
 
-void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, int32 Index)
+void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FCameraData& CameraData, AActor* Actor)
 {
 	ACitizen* citizen = Cast<ACitizen>(Actor);
 
-	FAIData* data = &ActorData.AIData;
-
-	if (IsValid(data->CitizenData.ResourceCarryClass)) {
-		citizen->Carrying.Type = Cast<AResource>(data->CitizenData.ResourceCarryClass->GetDefaultObject());
-		citizen->Carrying.Amount = data->CitizenData.CarryAmount;
+	if (IsValid(AIData.CitizenData.ResourceCarryClass)) {
+		citizen->Carrying.Type = Cast<AResource>(AIData.CitizenData.ResourceCarryClass->GetDefaultObject());
+		citizen->Carrying.Amount = AIData.CitizenData.CarryAmount;
 	}
 
-	citizen->BioComponent->HoursTogetherWithPartner = data->CitizenData.HoursTogetherWithPartner;
-	citizen->BioComponent->bMarried = data->CitizenData.bMarried;
-	citizen->BioComponent->Sex = data->CitizenData.Sex;
-	citizen->BioComponent->Sexuality = data->CitizenData.Sexuality;
-	citizen->BioComponent->Age = data->CitizenData.Age;
-	citizen->BioComponent->Name = data->CitizenData.Name;
-	citizen->BioComponent->EducationLevel = data->CitizenData.EducationLevel;
-	citizen->BioComponent->EducationProgress = data->CitizenData.EducationProgress;
-	citizen->BioComponent->PaidForEducationLevel = data->CitizenData.PaidForEducationLevel;
-	citizen->BioComponent->bAdopted = data->CitizenData.bAdopted;
-	citizen->BioComponent->SpeedBeforeOld = data->CitizenData.SpeedBeforeOld;
-	citizen->BioComponent->MaxHealthBeforeOld = data->CitizenData.MaxHealthBeforeOld;
+	citizen->BioComponent->HoursTogetherWithPartner = AIData.CitizenData.HoursTogetherWithPartner;
+	citizen->BioComponent->bMarried = AIData.CitizenData.bMarried;
+	citizen->BioComponent->Sex = AIData.CitizenData.Sex;
+	citizen->BioComponent->Sexuality = AIData.CitizenData.Sexuality;
+	citizen->BioComponent->Age = AIData.CitizenData.Age;
+	citizen->BioComponent->Name = AIData.CitizenData.Name;
+	citizen->BioComponent->EducationLevel = AIData.CitizenData.EducationLevel;
+	citizen->BioComponent->EducationProgress = AIData.CitizenData.EducationProgress;
+	citizen->BioComponent->PaidForEducationLevel = AIData.CitizenData.PaidForEducationLevel;
+	citizen->BioComponent->bAdopted = AIData.CitizenData.bAdopted;
+	citizen->BioComponent->SpeedBeforeOld = AIData.CitizenData.SpeedBeforeOld;
+	citizen->BioComponent->MaxHealthBeforeOld = AIData.CitizenData.MaxHealthBeforeOld;
 
-	citizen->Spirituality = data->CitizenData.Spirituality;
-	citizen->BuildingComponent->TimeOfAcquirement = data->CitizenData.TimeOfAcquirement;
-	citizen->VoicePitch = data->CitizenData.VoicePitch;
-	citizen->Balance = data->CitizenData.Balance;
-	citizen->BuildingComponent->HoursWorked = data->CitizenData.HoursWorked;
-	citizen->Hunger = data->CitizenData.Hunger;
-	citizen->Energy = data->CitizenData.Energy;
-	citizen->bGain = data->CitizenData.bGain;
-	citizen->bHasBeenLeader = data->CitizenData.bHasBeenLeader;
-	citizen->HealthIssues = data->CitizenData.HealthIssues;
-	citizen->HappinessComponent->Modifiers = data->CitizenData.Modifiers;
-	citizen->HappinessComponent->SadTimer = data->CitizenData.SadTimer;
-	citizen->HappinessComponent->MassStatus = data->CitizenData.MassStatus;
-	citizen->HappinessComponent->FestivalStatus = data->CitizenData.FestivalStatus;
-	citizen->HappinessComponent->DecayingHappiness = data->CitizenData.DecayingHappiness;
-	citizen->Genetics = data->CitizenData.Genetics;
-	citizen->bSleep = data->CitizenData.bSleep;
-	citizen->HoursSleptToday = data->CitizenData.HoursSleptToday;
+	citizen->Spirituality = AIData.CitizenData.Spirituality;
+	citizen->BuildingComponent->TimeOfAcquirement = AIData.CitizenData.TimeOfAcquirement;
+	citizen->VoicePitch = AIData.CitizenData.VoicePitch;
+	citizen->Balance = AIData.CitizenData.Balance;
+	citizen->BuildingComponent->HoursWorked = AIData.CitizenData.HoursWorked;
+	citizen->Hunger = AIData.CitizenData.Hunger;
+	citizen->Energy = AIData.CitizenData.Energy;
+	citizen->bGain = AIData.CitizenData.bGain;
+	citizen->bHasBeenLeader = AIData.CitizenData.bHasBeenLeader;
+	citizen->HealthIssues = AIData.CitizenData.HealthIssues;
+	citizen->HappinessComponent->Modifiers = AIData.CitizenData.Modifiers;
+	citizen->HappinessComponent->SadTimer = AIData.CitizenData.SadTimer;
+	citizen->HappinessComponent->MassStatus = AIData.CitizenData.MassStatus;
+	citizen->HappinessComponent->FestivalStatus = AIData.CitizenData.FestivalStatus;
+	citizen->HappinessComponent->DecayingHappiness = AIData.CitizenData.DecayingHappiness;
+	citizen->Genetics = AIData.CitizenData.Genetics;
+	citizen->bSleep = AIData.CitizenData.bSleep;
+	citizen->HoursSleptToday = AIData.CitizenData.HoursSleptToday;
 
-	if (data->CitizenData.bConversing)
+	if (AIData.CitizenData.bConversing)
 		Camera->PlayAmbientSound(citizen->AmbientAudioComponent, Camera->CitizenManager->GetConversationSound(citizen), citizen->VoicePitch);
 
 	for (FGeneticsStruct& genetic : citizen->Genetics)
 		citizen->ApplyGeneticAffect(genetic);
 
-	for (FString trait : data->CitizenData.PersonalityTraits) {
+	for (FString trait : AIData.CitizenData.PersonalityTraits) {
 		FPersonality personality;
 		personality.Trait = trait;
 
@@ -1231,7 +1168,7 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 		citizen->ApplyTraitAffect(Camera->CitizenManager->Personalities[index].Affects);
 	}
 
-	FCitizenManagerData cmData = Saves[Index].CameraData.CitizenManagerData;
+	FCitizenManagerData cmData = CameraData.CitizenManagerData;
 
 	if (cmData.InfectibleNames.Contains(ActorData.Name))
 		Camera->DiseaseManager->Infectible.Add(citizen);
@@ -1242,9 +1179,9 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	if (cmData.InjuredNames.Contains(ActorData.Name))
 		Camera->DiseaseManager->Injured.Add(citizen);
 
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(data->FactionName);
-	for (FFactionData factionData : Saves[Index].CameraData.FactionData) {
-		if (factionData.Name != data->FactionName || !factionData.PoliticsData.RepresentativesNames.Contains(ActorData.Name))
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(AIData.FactionName);
+	for (FFactionData factionData : CameraData.FactionData) {
+		if (factionData.Name != AIData.FactionName || !factionData.PoliticsData.RepresentativesNames.Contains(ActorData.Name))
 			continue;
 
 		faction->Politics.Representatives.Add(citizen);
@@ -1262,7 +1199,7 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	}
 }
 
-void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, int32 Index, TMap<FString, FActorSaveData*>& AIToName)
+void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData, FBuildingData& BuildingData, TArray<FConstructionData>& ConstructionData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName, int32 Index)
 {
 	ABuilding* building = Cast<ABuilding>(Actor);
 
@@ -1270,10 +1207,13 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 	building->BuildingMesh->SetCanEverAffectNavigation(true);
 	building->BuildingMesh->bReceivesDecals = true;
 
-	building->FactionName = GetActorData<FString>("FactionName", ActorData);
+	building->FactionName = BuildingData.FactionName;
+
+	if (BuildingData.bOnFire)
+		Camera->Grid->AtmosphereComponent->SetOnFire(Actor, INDEX_NONE, true);
 
 	bool bBuilt = true;
-	for (FConstructionData constructionData : Saves[Index].CameraData.ConstructionData) {
+	for (FConstructionData constructionData : ConstructionData) {
 		if (constructionData.BuildingName != ActorData.Name)
 			continue;
 
@@ -1300,161 +1240,120 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 			faction->EggTimer = Cast<ABroch>(building);
 	}
 
-	building->Capacity = GetActorData<int32>("Capacity", ActorData);
+	building->SetSeed(BuildingData.Seed);
+	building->SetTier(BuildingData.Tier);
+
+	building->Capacity = BuildingData.Capacity;
 	building->StoreSocketLocations();
 
-	building->SetSeed(GetActorData<int32>("SeedNum", ActorData));
-	building->SetTier(GetActorData<int32>("Tier", ActorData));
+	FLinearColor colour = BuildingData.ChosenColour;
+	building->SetBuildingColour(colour.R, colour.G, colour.B);
 
-	building->SetBuildingColour(GetActorData<float>("Red", ActorData), GetActorData<float>("Green", ActorData), GetActorData<float>("Blue", ActorData));
+	building->TargetList = BuildingData.TargetList;
 
-	int32 count = 0;
-	while (true) {
-		if (!ActorData.Classes.Contains("TargetResource" + FString::FromInt(count)))
-			break;
+	building->Storage = BuildingData.Storage;
+	building->Basket = BuildingData.Basket;
 
-		FItemStruct item;
-		item.Resource = GetActorData<UClass*>("TargetResource" + FString::FromInt(count), ActorData);
-		item.Amount = GetActorData<int32>("TargetAmount" + FString::FromInt(count), ActorData);
-		item.Stored = GetActorData<int32>("TargetStored" + FString::FromInt(count), ActorData);
-		item.Use = GetActorData<int32>("TargetUse" + FString::FromInt(count), ActorData);
-		building->TargetList.Add(item);
+	if (BuildingData.DeathTime != 0.0f)
+		building->Camera->Grid->AIVisualiser->DestructingActors.Add(building, BuildingData.DeathTime);
 
-		count++;
-	}
-
-	count = 0;
-	while (true) {
-		if (!ActorData.Classes.Contains("StorageResource" + FString::FromInt(count)))
-			break;
-
-		FItemStruct item;
-		item.Resource = GetActorData<UClass*>("StorageResource" + FString::FromInt(count), ActorData);
-		item.Amount = GetActorData<int32>("StorageAmount" + FString::FromInt(count), ActorData);
-		item.Stored = GetActorData<int32>("StorageStored" + FString::FromInt(count), ActorData);
-		item.Use = GetActorData<int32>("StorageUse" + FString::FromInt(count), ActorData);
-		building->Storage.Add(item);
-
-		count++;
-	}
-
-	count = 0;
-	while (true) {
-		if (!ActorData.Classes.Contains("BasketResource" + FString::FromInt(count)))
-			break;
-
-		FBasketStruct basket;
-		basket.ID = FGuid(GetActorData<FString>("BasketID" + FString::FromInt(count), ActorData));
-		basket.Item.Resource = GetActorData<UClass*>("BasketResource" + FString::FromInt(count), ActorData);
-		basket.Item.Amount = GetActorData<int32>("BasketAmount" + FString::FromInt(count), ActorData);
-		basket.Item.Stored = GetActorData<int32>("BasketStored" + FString::FromInt(count), ActorData);
-		basket.Item.Use = GetActorData<int32>("BasketUse" + FString::FromInt(count), ActorData);
-		building->Basket.Add(basket);
-
-		count++;
-	}
-
-	if (ActorData.Numbers.Contains("DeathTime"))
-		building->Camera->Grid->AIVisualiser->DestructingActors.Add(building, GetActorData<double>("DeathTime", ActorData));
-
-	building->bOperate = GetActorData<bool>("bOperate", ActorData);
+	building->bOperate = BuildingData.bOperate;
 
 	building->Occupied.Empty();
-	count = 0;
-	while (true) {
-		if (!ActorData.Classes.Contains("OccupiedAmount" + FString::FromInt(count)))
-			break;
-
+	for (FCapacityData data : BuildingData.OccupiedData) {
 		FCapacityStruct capacityStruct;
-		if (ActorData.Classes.Contains("OccupiedCitizen" + FString::FromInt(count))) {
-			FActorSaveData* aiData = *AIToName.Find(GetActorData<FString>("OccupiedCitizen" + FString::FromInt(count), ActorData));
-			capacityStruct.Citizen = Cast<ACitizen>(aiData->Actor);
-			Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, aiData, false);
 
-			int32 visitorCount = 0;
-			while (true) {
-				if (!ActorData.Classes.Contains("OccupiedVisitor" + FString::FromInt(count) + FString::FromInt(visitorCount)))
-					break;
+		if (data.CitizenName != "") {
+			FActorSaveData* actorData = *AIToName.Find(data.CitizenName);
 
-				FActorSaveData* visitorData = *AIToName.Find(GetActorData<FString>("OccupiedVisitor" + FString::FromInt(count) + FString::FromInt(visitorCount), ActorData));
+			Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, actorData, Saves[Index].AIData[actorData->dataIndex], false);
+
+			capacityStruct.Citizen = Cast<ACitizen>(actorData->Actor);
+
+			for (FString name : data.VisitorNames) {
+				FActorSaveData* visitorData = *AIToName.Find(name);
+
 				capacityStruct.Visitors.Add(Cast<ACitizen>(visitorData->Actor));
-				Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, visitorData, true);
+
+				Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, visitorData, Saves[Index].AIData[visitorData->dataIndex], true);
 			}
 		}
 
-		capacityStruct.Amount = GetActorData<int32>("OccupiedAmount" + FString::FromInt(count), ActorData);
-		capacityStruct.bBlocked = GetActorData<bool>("OccupiedBlocked" + FString::FromInt(count), ActorData);
-
-		TMap<int32, EWorkType> workHours;
-		int32 workHoursCount = 0;
-		while (true) {
-			if (!ActorData.Classes.Contains("WorkHourKey" + FString::FromInt(workHoursCount)))
-				break;
-
-			workHours.Add(GetActorData<int32>("WorkHourKey" + FString::FromInt(workHoursCount), ActorData), EWorkType(GetActorData<uint8>("WorkHourValue" + FString::FromInt(workHoursCount), ActorData)));
-		}
-		capacityStruct.WorkHours = workHours;
+		capacityStruct.Amount = data.Amount;
+		capacityStruct.WorkHours = data.WorkHours;
+		capacityStruct.bBlocked = data.bBlocked;
 
 		building->Occupied.Add(capacityStruct);
-		count++;
 	}
 }
 
-void UDiplosimSaveGame::LoadProjectile(FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::LoadProjectile(FProjectileData& ProjectileData, AActor* Actor)
 {
 	AProjectile* projectile = Cast<AProjectile>(Actor);
-
-	projectile->ProjectileMovementComponent->Velocity = GetActorData<FVector>("ProjectileVelocity", ActorData);
+	projectile->ProjectileMovementComponent->Velocity = ProjectileData.Velocity;
 }
 
-void UDiplosimSaveGame::LoadAISpawner(ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::LoadAISpawner(ADiplosimGameModeBase* Gamemode, FSpawnerData& SpawnerData, AActor* Actor)
 {
 	AAISpawner* spawner = Cast<AAISpawner>(Actor);
 
-	spawner->Colour = FLinearColor(GetActorData<float>("Red", ActorData), GetActorData<float>("Green", ActorData), GetActorData<float>("Blue", ActorData));
-	spawner->IncrementSpawned = GetActorData<int32>("IncrementSpawned", ActorData);
+	spawner->Colour = SpawnerData.Colour;
+	spawner->IncrementSpawned = SpawnerData.IncrementSpawned;
 
 	Gamemode->SnakeSpawners.Add(spawner);
 }
 
-void UDiplosimSaveGame::LoadComponents(FActorSaveData& ActorData, AActor* Actor)
+void UDiplosimSaveGame::LoadComponents(FActorSaveData& ActorData, AActor* Actor, int32 Index)
 {
+	FHealthData healthData;
+	FAttackData attackData;
+
+	if (Actor->IsA<ABuilding>()) {
+		healthData = Saves[Index].BuildingData[ActorData.dataIndex].HealthData;
+		attackData = Saves[Index].BuildingData[ActorData.dataIndex].AttackData;
+	}
+	else if (Actor->IsA<AAI>()) {
+		healthData = Saves[Index].AIData[ActorData.dataIndex].HealthData;
+		attackData = Saves[Index].AIData[ActorData.dataIndex].AttackData;
+	}
+	else
+		return;
+
 	UHealthComponent* healthComp = Actor->FindComponentByClass<UHealthComponent>();
 	if (healthComp) {
-		healthComp->Health = GetActorData<int32>("Health", ActorData);
+		healthComp->Health = healthData.Health;
 
-		if (healthComp->GetHealth() == 0 && !(Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->FactionName == ""))
+		if (healthComp->Health == 0 && !(Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->FactionName == ""))
 			healthComp->Death(nullptr);
 	}
 
 	UAttackComponent* attackComp = Actor->FindComponentByClass<UAttackComponent>();
 	if (attackComp) {
-		if (ActorData.Classes.Contains("ProjectileClass"))
-			attackComp->ProjectileClass = GetActorData<UClass*>("ProjectileClass", ActorData);
-
-		attackComp->AttackTimer = GetActorData<float>("AttackTimer", ActorData);
-		attackComp->bShowMercy = GetActorData<bool>("bShowMercy", ActorData);
+		attackComp->ProjectileClass = attackData.ProjectileClass;
+		attackComp->AttackTimer = attackData.AttackTimer;
+		attackComp->bShowMercy = attackData.bShowMercy;
 
 		if (!attackComp->OverlappingEnemies.IsEmpty())
 			attackComp->SetComponentTickEnabled(true);
 	}
 }
 
-void UDiplosimSaveGame::LoadOverlappingEnemies(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, FActorSaveData SavedData)
+void UDiplosimSaveGame::LoadOverlappingEnemies(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, FActorSaveData SavedData, int32 Index)
 {
+	FAttackData attackData;
+
+	if (Actor->IsA<ABuilding>())
+		attackData = Saves[Index].BuildingData[ActorData.dataIndex].AttackData;
+	else if (Actor->IsA<AAI>())
+		attackData = Saves[Index].AIData[ActorData.dataIndex].AttackData;
+	else 
+		return;
+
+	if (!attackData.ActorNames.Contains(SavedData.Name))
+		return;
+
 	UAttackComponent* attackComp = Actor->FindComponentByClass<UAttackComponent>();
-	int32 enemyCount = 0;
-
-	while (attackComp) {
-		FString key = "Enemy" + FString::FromInt(enemyCount);
-		if (!ActorData.Strings.Contains(key))
-			break;
-
-		if (SavedData.Name != GetActorData<FString>(key, ActorData))
-			continue;
-
-		attackComp->OverlappingEnemies.Add(SavedData.Actor);
-	}
+	attackComp->OverlappingEnemies.Add(SavedData.Actor);
 }
 
 void UDiplosimSaveGame::LoadTimers(ACamera* Camera, int32 Index, FActorSaveData& ActorData, TArray<FActorSaveData> SavedData)
@@ -1508,11 +1407,14 @@ void UDiplosimSaveGame::LoadTimers(ACamera* Camera, int32 Index, FActorSaveData&
 void UDiplosimSaveGame::InitialiseObjects(ACamera* Camera, ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index)
 {
 	if (ActorData.Actor->IsA<AProjectile>()) {
-		if (SavedData.Name == GetActorData<FString>("ProjectileOwner", ActorData))
+		if (SavedData.Name == Saves[Index].ProjectileData[ActorData.dataIndex].OwnerName)
 			Cast<AProjectile>(ActorData.Actor)->SpawnNiagaraSystems(SavedData.Actor);
 	}
 	else if (ActorData.Actor->IsA<AAI>()) {
-		InitialiseAI(Camera, ActorData, SavedData);
+		InitialiseAI(Camera, ActorData, Saves[Index].AIData[ActorData.dataIndex], SavedData);
+
+		if (ActorData.Actor->IsA<ACitizen>())
+			InitialiseCitizen(Camera, ActorData, Saves[Index].AIData[ActorData.dataIndex], SavedData);
 	}
 	else if (ActorData.Actor->IsA<ACamera>()) {
 		ACamera* camera = Cast<ACamera>(ActorData.Actor);
@@ -1526,14 +1428,14 @@ void UDiplosimSaveGame::InitialiseObjects(ACamera* Camera, ADiplosimGameModeBase
 		InitialiseGamemode(camera, Gamemode, ActorData, SavedData, Index);
 	}
 	else if (ActorData.Actor->IsA<AResource>()) {
-		InitialiseResources(Camera, ActorData, SavedData);
+		InitialiseResources(Camera, ActorData, Saves[Index].ResourceData[ActorData.dataIndex], SavedData);
 	}
 }
 
-void UDiplosimSaveGame::InitialiseAI(ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData)
+void UDiplosimSaveGame::InitialiseAI(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FActorSaveData SavedData)
 {
 	AAI* ai = Cast<AAI>(ActorData.Actor);
-	FAIMovementData* movementData = &ActorData.AIData.MovementData;
+	FAIMovementData movementData = AIData.MovementData;
 	FMoveStruct moveStruct;
 
 	/*int32 count = 0;
@@ -1553,48 +1455,45 @@ void UDiplosimSaveGame::InitialiseAI(ACamera* Camera, FActorSaveData& ActorData,
 		if (name == "")
 			count++;*/
 
-	if (SavedData.Name == movementData->ChosenBuildingName)
+	if (SavedData.Name == movementData.ChosenBuildingName)
 		ai->AIController->ChosenBuilding = Cast<ABuilding>(SavedData.Actor);
 
-	if (SavedData.Name == movementData->ActorToLookAtName)
+	if (SavedData.Name == movementData.ActorToLookAtName)
 		ai->MovementComponent->ActorToLookAt = SavedData.Actor;
 
-	if (SavedData.Name == movementData->ActorName)
+	if (SavedData.Name == movementData.ActorName)
 		moveStruct.Actor = SavedData.Actor;
 
-	if (SavedData.Name == movementData->LinkedPortalName)
+	if (SavedData.Name == movementData.LinkedPortalName)
 		moveStruct.LinkedPortal = SavedData.Actor;
 
-	if (SavedData.Name == movementData->UltimateGoalName)
+	if (SavedData.Name == movementData.UltimateGoalName)
 		moveStruct.UltimateGoal = SavedData.Actor;
 
-	if (ActorData.Actor->IsA<ACitizen>())
-		InitialiseCitizen(Camera, ActorData, SavedData);
-
-	moveStruct.Instance = ActorData.AIData.MovementData.Instance;
-	moveStruct.Location = ActorData.AIData.MovementData.Location;
+	moveStruct.Instance = AIData.MovementData.Instance;
+	moveStruct.Location = AIData.MovementData.Location;
 
 	ai->AIController->MoveRequest = moveStruct;
 }
 
-void UDiplosimSaveGame::InitialiseCitizen(ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData)
+void UDiplosimSaveGame::InitialiseCitizen(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FActorSaveData SavedData)
 {
 	ACitizen* citizen = Cast<ACitizen>(ActorData.Actor);
-	FCitizenData* citizenData = &ActorData.AIData.CitizenData;
+	FCitizenData citizenData = AIData.CitizenData;
 
-	if (SavedData.Name == citizenData->MothersName)
+	if (SavedData.Name == citizenData.MothersName)
 		citizen->BioComponent->Mother = Cast<ACitizen>(SavedData.Actor);
 
-	if (SavedData.Name == citizenData->FathersName)
+	if (SavedData.Name == citizenData.FathersName)
 		citizen->BioComponent->Father = Cast<ACitizen>(SavedData.Actor);
 
-	if (SavedData.Name == citizenData->PartnersName)
+	if (SavedData.Name == citizenData.PartnersName)
 		citizen->BioComponent->Partner = Cast<ACitizen>(SavedData.Actor);
 
-	if (citizenData->ChildrensNames.Contains(SavedData.Name))
+	if (citizenData.ChildrensNames.Contains(SavedData.Name))
 		citizen->BioComponent->Children.Add(Cast<ACitizen>(SavedData.Actor));
 
-	if (citizenData->SiblingsNames.Contains(SavedData.Name))
+	if (citizenData.SiblingsNames.Contains(SavedData.Name))
 		citizen->BioComponent->Siblings.Add(Cast<ACitizen>(SavedData.Actor));
 }
 
@@ -1740,23 +1639,19 @@ void UDiplosimSaveGame::InitialiseGamemode(ACamera* Camera, ADiplosimGameModeBas
 		Gamemode->SpawnAllEnemies();
 }
 
-void UDiplosimSaveGame::InitialiseResources(ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData)
+void UDiplosimSaveGame::InitialiseResources(ACamera* Camera, FActorSaveData& ActorData, FResourceData& ResourceData, FActorSaveData SavedData)
 {
 	AResource* resource = Cast<AResource>(ActorData.Actor);
 
 	for (int32 i = 0; i < resource->WorkerStruct.Num(); i++) {
 		FWorkerStruct& workerStruct = resource->WorkerStruct[i];
-		int32 citizenCount = 0;
+		FWorkerData workerData = ResourceData.WorkersData[i];
 
-		while (true) {
-			if (!ActorData.Strings.Contains("Workers" + FString::FromInt(i) + FString::FromInt(citizenCount)))
-				break;
+		if (!workerData.CitizenNames.Contains(SavedData.Name))
+			continue;
 
-			if (GetActorData<FString>("Workers" + FString::FromInt(i) + FString::FromInt(citizenCount), ActorData) != SavedData.Name)
-				continue;
+		workerStruct.Citizens.Add(Cast<ACitizen>(SavedData.Actor));
 
-			workerStruct.Citizens.Add(Cast<ACitizen>(SavedData.Actor));
-			citizenCount++;
-		}
+		break;
 	}
 }
