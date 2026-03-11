@@ -113,8 +113,8 @@ void USaveGameComponent::LoadSave()
 	Camera->SetCurrentResearchUI();
 
 	Camera->Grid->LoadUIInstance->RemoveFromParent();
-	Camera->PauseUIInstance->AddToViewport();
-	Camera->BuildUIInstance->AddToViewport();
+	Camera->PauseUIInstance->AddToViewport(); 
+	Camera->DisplayBuildUI();
 }
 
 void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot)

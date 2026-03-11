@@ -431,7 +431,7 @@ void UAIVisualiser::UpdateInstanceCustomData(UInstancedStaticMeshComponent* ISM,
 	if (ISM->PerInstanceSMCustomData[value] == Value)
 		return;
 
-	ISM->PerInstanceSMCustomData[value] = Value;
+	Async(EAsyncExecution::TaskGraphMainTick, [ISM, Instance, Index, Value]() { ISM->SetCustomDataValue(Instance, Index, Value); });
 }
 
 void UAIVisualiser::SetAIColour(UInstancedStaticMeshComponent* ISM, int32 Instance, FLinearColor Colour)
@@ -456,8 +456,6 @@ void UAIVisualiser::SetInstanceTransform(UInstancedStaticMeshComponent* ISM, int
 		return;
 
 	Async(EAsyncExecution::TaskGraphMainTick, [ISM, Instance, Transform]() { ISM->UpdateInstanceTransform(Instance, Transform); });
-
-	//instanceData.Transform = Transform.ToMatrixWithScale();
 }
 
 void UAIVisualiser::UpdateCitizenVisuals(UInstancedStaticMeshComponent* ISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)
@@ -487,7 +485,7 @@ void UAIVisualiser::ActivateTorch(int32 Hour, UInstancedStaticMeshComponent* ISM
 	if (settings->GetRenderTorches() && (Hour >= 18 || Hour < 6))
 		value = 1.0f;
 
-	UpdateInstanceCustomData(ISM, Instance, 11, value);
+	UpdateInstanceCustomData(ISM, Instance, 12, value);
 }
 
 void UAIVisualiser::UpdateArmyVisuals(ACamera* Camera, ACitizen* Citizen)
@@ -568,9 +566,9 @@ void UAIVisualiser::SetEyesVisuals(ACitizen* Citizen, int32 HappinessValue)
 	UpdateInstanceCustomData(element.Key, element.Value, 17, val17);
 }
 
-TTuple<class UInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)
+TTuple<UInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)
 {
-	TTuple<class UInstancedStaticMeshComponent*, int32> info = TTuple<class UInstancedStaticMeshComponent*, int32>(nullptr, INDEX_NONE);
+	TTuple<UInstancedStaticMeshComponent*, int32> info = TTuple<UInstancedStaticMeshComponent*, int32>(nullptr, INDEX_NONE);
 
 	if (!IsValid(AI))
 		return info;
@@ -644,7 +642,7 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 
 	FTransform transform = FTransform();
 
-	TTuple<class UInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
+	TTuple<UInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
 	if (!IsValid(info.Key) || info.Value == INDEX_NONE || info.Value >= info.Key->GetNumInstances())
 		return transform;
@@ -662,7 +660,7 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 
 void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 {
-	TTuple<class UInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
+	TTuple<UInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
 	if (!IsValid(info.Key) || info.Value == -1)
 		return;

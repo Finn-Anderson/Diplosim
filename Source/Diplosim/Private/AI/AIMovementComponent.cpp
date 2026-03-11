@@ -67,7 +67,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 		FVector location = Transform.GetLocation() + deltaV;
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 20.0f), location - FVector(0.0f, 0.0f, 20.0f), ECollisionChannel::ECC_GameTraceChannel1))
+		if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 30.0f), location - FVector(0.0f, 0.0f, 30.0f), ECollisionChannel::ECC_GameTraceChannel1))
 			deltaV.Z = hit.Location.Z - Transform.GetLocation().Z;
 
 		FRotator targetRotation = deltaV.Rotation();

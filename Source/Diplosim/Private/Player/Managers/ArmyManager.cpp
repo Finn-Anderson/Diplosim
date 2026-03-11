@@ -99,7 +99,7 @@ bool UArmyManager::CanJoinArmy(ACitizen* Citizen)
 
 void UArmyManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizens, bool bGroup, bool bLoad)
 {
-	if (Citizens.IsEmpty())
+	if (Citizens.IsEmpty() && !bLoad)
 		return;
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
