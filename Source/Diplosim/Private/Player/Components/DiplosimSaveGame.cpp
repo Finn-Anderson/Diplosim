@@ -235,6 +235,15 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 		data.bHide = cloud.bHide;
 		data.lightningFrequency = cloud.lightningFrequency;
 		data.lightningTimer = cloud.lightningTimer;
+		data.Opacity = cloud.HISMCloud->GetCustomPrimitiveData().Data[0];
+
+		data.HISMData.Name = cloud.HISMCloud->GetName();
+		for (int32 i = 0; i < cloud.HISMCloud->GetInstanceCount(); i++) {
+			FTransform transform;
+			cloud.HISMCloud->GetInstanceTransform(i, transform);
+
+			data.HISMData.Transforms.Add(transform);
+		}
 
 		worldSaveData.CloudsData.CloudData.Add(data);
 	}
@@ -704,8 +713,10 @@ void UDiplosimSaveGame::SaveTimers(ACamera* Camera, FActorSaveData& ActorData, A
 				continue;
 
 			param.ObjectName = param.Object->GetName();
+			param.Object = nullptr;
 		}
 
+		timer.Actor = nullptr;
 		ActorData.SavedTimers.Add(timer);
 	}
 }
@@ -753,18 +764,15 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 	gamemode->SnakeSpawners.Empty();
 	gamemode->Snakes.Empty();
 
-	TArray<AActor*> actors;
 	TArray<AActor*> foundActors;
-
 	TArray<UClass*> classes = { AAI::StaticClass(), AEggBasket::StaticClass(), ABuilding::StaticClass(), AAISpawner::StaticClass(), AProjectile::StaticClass() };
 
 	for (UClass* clss : classes) {
 		UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), clss, foundActors);
-		actors.Append(foundActors);
-	}
 
-	for (AActor* a : actors)
-		a->Destroy();
+		for (AActor* a : foundActors)
+			a->Destroy();
+	}
 
 	TMap<FString, FActorSaveData*> aiToName; 
 	TArray<FWetnessData> wetnessData;
@@ -777,7 +785,8 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		if (foundActors.Num() == 1 && (foundActors[0]->IsA<ACamera>() || foundActors[0]->IsA<AGrid>() || foundActors[0]->IsA<AResource>())) {
 			actor = foundActors[0];
 
-			actor->SetActorTransform(actorData.Transform);
+			if (actorData.Transform.GetLocation() != actor->GetActorLocation())
+				actor->SetActorTransform(actorData.Transform);
 		}
 		else {
 			FActorSpawnParameters params;
@@ -810,7 +819,7 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		else if (actor->IsA<AProjectile>())
 			LoadProjectile(Saves[Index].ProjectileData[actorData.dataIndex], actor);
 		else if (actor->IsA<AAISpawner>())
-			LoadAISpawner(gamemode, Saves[Index].SpawnerData[actorData.dataIndex], actor);
+			LoadAISpawner(Saves[Index].SpawnerData[actorData.dataIndex], actor);
 
 		LoadComponents(actorData, actor, Index);
 
@@ -895,11 +904,13 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	WetnessData = WorldData.CloudsData.WetnessData;
 
 	for (FCloudData data : WorldData.CloudsData.CloudData) {
-		FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0);
+		FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0, true, data.HISMData.Transforms);
 		cloudStruct.Distance = data.Distance;
 		cloudStruct.bHide = data.bHide;
 		cloudStruct.lightningFrequency = data.lightningFrequency;
-		cloudStruct.lightningTimer = data.lightningTimer; 
+		cloudStruct.lightningTimer = data.lightningTimer;
+
+		cloudStruct.HISMCloud->SetCustomPrimitiveDataFloat(0, data.Opacity);
 		
 		grid->AtmosphereComponent->Clouds->Clouds.Add(cloudStruct);
 	}
@@ -1293,14 +1304,12 @@ void UDiplosimSaveGame::LoadProjectile(FProjectileData& ProjectileData, AActor* 
 	projectile->ProjectileMovementComponent->Velocity = ProjectileData.Velocity;
 }
 
-void UDiplosimSaveGame::LoadAISpawner(ADiplosimGameModeBase* Gamemode, FSpawnerData& SpawnerData, AActor* Actor)
+void UDiplosimSaveGame::LoadAISpawner(FSpawnerData& SpawnerData, AActor* Actor)
 {
 	AAISpawner* spawner = Cast<AAISpawner>(Actor);
 
 	spawner->Colour = SpawnerData.Colour;
 	spawner->IncrementSpawned = SpawnerData.IncrementSpawned;
-
-	Gamemode->SnakeSpawners.Add(spawner);
 }
 
 void UDiplosimSaveGame::LoadComponents(FActorSaveData& ActorData, AActor* Actor, int32 Index)

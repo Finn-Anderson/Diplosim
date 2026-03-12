@@ -384,6 +384,9 @@ void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Soun
 		if (pitch == -1.0f)
 			pitch = Stream.FRandRange(0.8f, 1.2f);
 
+		if (IsValid(AudioComponent->GetOwner()) && AudioComponent->GetOwner()->IsA<AAI>())
+			AudioComponent->SetRelativeLocation(Cast<AAI>(AudioComponent->GetOwner())->MovementComponent->Transform.GetLocation());
+
 		AudioComponent->SetSound(Sound);
 		AudioComponent->SetPitchMultiplier(pitch);
 		AudioComponent->SetVolumeMultiplier(Settings->GetAmbientVolume() * Settings->GetMasterVolume());

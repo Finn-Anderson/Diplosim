@@ -233,6 +233,7 @@ void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
 	}
 
 	Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is injured with " + conditions[index].Name, Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
+	Citizen->Camera->PlayAmbientSound(Citizen->AmbientAudioComponent, InjureSound);
 
 	Injured.Add(Citizen);
 

@@ -276,19 +276,16 @@ void UCitizenManager::CalculateConversationInteractions()
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens = faction.Citizens;
 
-			if (!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() || !faction.Rebels.IsEmpty())
-				continue;
-
 			for (ACitizen* citizen : citizens) {
 				if (Camera->SaveGameComponent->IsLoading())
 					return;
 
-				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->bConversing || citizen->bSleep || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->bEmergency))
 					continue;
 
 				bool bCitizenInReport = Camera->PoliceManager->IsInAPoliceReport(citizen, &faction);
 
-				if (citizen->bConversing || citizen->bSleep || (bCitizenInReport && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass))))
+				if (bCitizenInReport && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)))
 					continue;
 
 				float reach = citizen->Range / 15.0f;

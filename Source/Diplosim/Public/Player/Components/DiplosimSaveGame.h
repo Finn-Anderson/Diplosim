@@ -95,6 +95,9 @@ struct FCloudData
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+		FHISMData HISMData;
+
+	UPROPERTY()
 		FTransform Transform;
 	
 	UPROPERTY()
@@ -112,6 +115,9 @@ struct FCloudData
 	UPROPERTY()
 		float lightningFrequency;
 
+	UPROPERTY()
+		float Opacity;
+
 	FCloudData()
 	{
 		Transform = FTransform();
@@ -120,6 +126,7 @@ struct FCloudData
 		bHide = false;
 		lightningTimer = 0.0f;
 		lightningFrequency = 0.0f;
+		Opacity = 0.0f;
 	}
 };
 
@@ -1359,7 +1366,7 @@ private:
 
 	void LoadProjectile(FProjectileData& ProjectileData, AActor* Actor);
 
-	void LoadAISpawner(class ADiplosimGameModeBase* Gamemode, FSpawnerData& SpawnerData, AActor* Actor);
+	void LoadAISpawner(FSpawnerData& SpawnerData, AActor* Actor);
 
 	void LoadComponents(FActorSaveData& ActorData, AActor* Actor, int32 Index);
 	void LoadOverlappingEnemies(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, FActorSaveData SavedData, int32 Index);

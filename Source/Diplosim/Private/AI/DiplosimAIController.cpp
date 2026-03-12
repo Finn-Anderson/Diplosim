@@ -3,6 +3,7 @@
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
 #include "NavFilters/NavigationQueryFilter.h"
+#include "Components/BoxComponent.h"
 
 #include "AI/AI.h"
 #include "AI/Enemy.h"
@@ -498,7 +499,7 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 			targetLoc = comp->GetSocketLocation("Entrance");
 	}
 
-	if (FVector::Dist(currentLoc, targetLoc) < AI->Range)
+	if (FVector::Dist(currentLoc, targetLoc) < AI->Range / 15.0f)
 		return;
 
 	AIMoveTo(Actor, FVector::Zero(), MoveRequest.GetGoalInstance());

@@ -200,7 +200,7 @@ void UCloudComponent::ActivateCloud()
 	Grid->Camera->TimerManager->CreateTimer("Cloud", Grid, time, "ActivateCloud", {}, false, true);
 }
 
-FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bool bLoad)
+FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bool bLoad, TArray<FTransform> LoadTransforms)
 {
 	UHierarchicalInstancedStaticMeshComponent* cloud = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass());
 	cloud->SetStaticMesh(CloudMesh);
@@ -218,20 +218,25 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 	TArray<FVector> locations;
 	TArray<FTransform> transforms;
 
+	float bounds = cloud->GetStaticMesh().Get()->GetBounds().GetBox().GetSize().X / 2.0f;
+
+	
 	for (int32 i = 0; i < 200; i++) {
 		FTransform t = Transform;
 
-		float x = Grid->Camera->Stream.FRandRange(-800.0f, 800.0f) * t.GetScale3D().X;
-		float y = Grid->Camera->Stream.FRandRange(-800.0f, 800.0f) * t.GetScale3D().Y;
-		float z = Grid->Camera->Stream.FRandRange(-256.0f, 256.0f) * t.GetScale3D().Z;
-		t.SetLocation(FVector(x, y, z));
+		if (bLoad)
+			t = LoadTransforms[i];
+		else {
+			float x = Grid->Camera->Stream.FRandRange(-800.0f, 800.0f) * t.GetScale3D().X;
+			float y = Grid->Camera->Stream.FRandRange(-800.0f, 800.0f) * t.GetScale3D().Y;
+			float z = Grid->Camera->Stream.FRandRange(-256.0f, 256.0f) * t.GetScale3D().Z;
+			t.SetLocation(FVector(x, y, z));
 
-		float diff = Grid->Camera->Stream.FRandRange(20.0f, 40.0f);
-		t.SetScale3D(t.GetScale3D() * diff);
+			float diff = Grid->Camera->Stream.FRandRange(20.0f, 40.0f);
+			t.SetScale3D(t.GetScale3D() * diff);
+		}
 
 		transforms.Add(t);
-
-		float bounds = cloud->GetStaticMesh().Get()->GetBounds().GetBox().GetSize().X / 2.0f;
 
 		if (Chance > 75)
 			locations.Append(SetPrecipitationLocations(t, bounds));

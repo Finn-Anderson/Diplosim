@@ -177,9 +177,8 @@ bool UAttackComponent::IsMoraleHigh()
 	FFactionStruct* Faction = Camera->ConquestManager->GetFaction("", citizen);
 
 	FVector citizenLocation = Camera->GetTargetActorLocation(citizen);
-	FVector eggTimerLocation = Camera->GetTargetActorLocation(Faction->EggTimer);
 
-	if (IsValid(Faction->EggTimer) && FVector::Dist(citizenLocation, eggTimerLocation) < 500.0f)
+	if (IsValid(Faction->EggTimer) && FVector::Dist(citizenLocation, Camera->GetTargetActorLocation(Faction->EggTimer)) < 500.0f)
 		return true;
 
 	int32 enemiesNum = 0;

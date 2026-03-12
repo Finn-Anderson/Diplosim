@@ -1,6 +1,6 @@
 #include "AI/AIMovementComponent.h"
 
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 #include "AI/AI.h"
 #include "AI/DiplosimAIController.h"
@@ -9,6 +9,7 @@
 #include "Player/Camera.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/AttackComponent.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 UAIMovementComponent::UAIMovementComponent()
 {
@@ -59,7 +60,6 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		Velocity = CalculateVelocity(Points[0]);
 
 	FVector deltaV = Velocity * DeltaTime;
-	//AvoidCollisions(deltaV, DeltaTime);
 
 	if (!deltaV.IsNearlyZero(1e-6f))
 	{
@@ -136,47 +136,6 @@ FVector UAIMovementComponent::CalculateVelocity(FVector Vector)
 	return (Vector - Transform.GetLocation()).Rotation().Vector() * MaxSpeed;
 }
 
-void UAIMovementComponent::AvoidCollisions(FVector& DeltaV, float DeltaTime)
-{
-	if (DeltaV.IsNearlyZero(1e-6f) || AI->AttackComponent->OverlappingEnemies.IsEmpty())
-		return;
-
-	FVector currentLoc = Transform.GetLocation();
-	FVector location = Transform.GetLocation() + DeltaV;
-	float size = AIVisualiser->GetAIHISM(AI).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().X;
-
-	FOverlapsStruct overlaps;
-	overlaps.GetEverything();
-	overlaps.bBuildings = false;
-
-	TArray<AActor*> actors = AIVisualiser->GetOverlaps(AI->Camera, AI, size, overlaps, EFactionType::Both, nullptr, location);
-
-	if (actors.IsEmpty())
-		return;
-
-	FVector preferredPoint = FVector(1000000000.0f);
-
-	for (int32 i = -1; i <= 1; i += 2) {
-		FVector avoidancePoint = FVector((size * i) / FMath::Sqrt(1 + FMath::Square((location.Y - currentLoc.Y) / (location.X - currentLoc.X))) + currentLoc.X, -((size * i) * (location.X - currentLoc.X)) / ((location.Y - currentLoc.Y) * FMath::Sqrt(1 + FMath::Square((location.Y - currentLoc.Y) / (location.X - currentLoc.X)))) + currentLoc.Y, location.Z);
-		overlaps.bBuildings = true;
-
-		actors = AIVisualiser->GetOverlaps(AI->Camera, AI, size, overlaps, EFactionType::Both, nullptr, avoidancePoint);
-
-		if (!actors.IsEmpty() || FVector::Dist(currentLoc, avoidancePoint) > FVector::Dist(currentLoc, preferredPoint))
-			continue;
-
-		preferredPoint = avoidancePoint;
-	}
-
-	if (preferredPoint != FVector::Zero()) {
-		Points.EmplaceAt(0, preferredPoint);
-		Velocity = CalculateVelocity(Points[0]);
-		DeltaV = Velocity * DeltaTime;
-	}
-	else
-		DeltaV = FVector::Zero();
-}
-
 void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 {
 	TempPoints = VectorPoints;
@@ -213,6 +172,8 @@ void UAIMovementComponent::SetAnimation(EAnim Type, bool bRepeat, float Speed)
 
 	if (Type == EAnim::Decay)
 		CurrentAnim.EndTransform.SetRotation(CurrentAnim.StartTransform.GetRotation());
+	else if (Type == EAnim::Move && Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->Snakes.Contains(AI))
+		CurrentAnim.EndTransform.SetLocation(FVector(CurrentAnim.EndTransform.GetLocation().X, CurrentAnim.EndTransform.GetLocation().Y, 0.0f));
 }
 
 bool UAIMovementComponent::IsAttacking()

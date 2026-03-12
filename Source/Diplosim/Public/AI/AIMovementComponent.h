@@ -6,7 +6,7 @@
 #include "AIMovementComponent.generated.h"
 
 UCLASS()
-class DIPLOSIM_API UAIMovementComponent : public UPawnMovementComponent
+class DIPLOSIM_API UAIMovementComponent : public UNavMovementComponent
 {
 	GENERATED_BODY()
 	
@@ -66,6 +66,4 @@ private:
 	void ComputeCurrentAnimation(AActor* Goal, float DeltaTime);
 
 	FVector CalculateVelocity(FVector Vector);
-
-	void AvoidCollisions(FVector& DeltaV, float DeltaTime);
 };

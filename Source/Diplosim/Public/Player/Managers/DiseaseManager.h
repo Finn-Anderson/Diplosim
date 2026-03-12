@@ -47,6 +47,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		TArray<FConditionStruct> Injuries;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+		USoundBase* InjureSound;
+
 protected:
 	void ReadJSONFile(FString path);
 

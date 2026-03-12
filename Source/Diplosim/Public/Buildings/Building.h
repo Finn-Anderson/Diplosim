@@ -77,7 +77,8 @@ struct FSocketStruct
 	FSocketStruct()
 	{
 		Name = "";
-		SocketLocation = FVector(0.0f, 0.0f, 0.0f);
+		SocketLocation = FVector::Zero();
+		SocketRotation = FRotator::ZeroRotator;
 		Citizen = nullptr;
 	}
 

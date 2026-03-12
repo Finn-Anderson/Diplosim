@@ -115,7 +115,7 @@ public:
 	UFUNCTION()
 		void SetRainMaterialEffect(float Value, class AActor* Actor, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
 
-	FCloudStruct CreateCloud(FTransform Transform, int32 Chance, bool bLoad = false);
+	FCloudStruct CreateCloud(FTransform Transform, int32 Chance, bool bLoad = false, TArray<FTransform> LoadTransforms = {});
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		UStaticMesh* CloudMesh;
