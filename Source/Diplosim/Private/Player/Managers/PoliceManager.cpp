@@ -238,7 +238,7 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 	float distance = 1000;
 
 	for (ABuilding* building : Faction->Buildings) {
-		if (!building->IsA(Camera->PoliceManager->PoliceStationClass) || building->GetCitizensAtBuilding().IsEmpty())
+		if (!building->IsA(PoliceStationClass) || building->GetCitizensAtBuilding().IsEmpty())
 			continue;
 
 		float dist = FVector::Dist(midPoint, building->GetActorLocation());

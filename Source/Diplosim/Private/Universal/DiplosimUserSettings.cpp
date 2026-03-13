@@ -47,7 +47,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 
 	Resolution = "0x0";
 
-	ShadowLevel = 1;
+	ShadowLevel = 3;
 
 	bMotionBlur = false;
 	bDepthOfField = false;
@@ -59,8 +59,6 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	WPODistance = 5000.0f;
 
 	bIsMaximised = false;
-
-	ScreenPercentage = 100;
 
 	WindowPosition = FVector2D(0.0f);
 
@@ -168,8 +166,6 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetBloom(FCString::Atof(Value));
 	else if (FString("WPODistance").Equals(Key))
 		SetWPODistance(FCString::Atof(Value));
-	else if (FString("ScreenPercentage").Equals(Key))
-		SetScreenPercentage(FCString::Atoi(Value));
 	else if (FString("WindowPosition").Equals(Key))
 		SetWindowPos(GetWindowPosAsVector(Value));
 	else if (FString("bIsMaximised").Equals(Key))
@@ -240,7 +236,6 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bLightShafts"), GetLightShafts(), Filename);
 	GConfig->SetFloat(*Section, TEXT("Bloom"), GetBloom(), Filename);
 	GConfig->SetFloat(*Section, TEXT("WPODistance"), GetWPODistance(), Filename);
-	GConfig->SetInt(*Section, TEXT("ScreenPercentage"), GetScreenPercentage(), Filename);
 	GConfig->SetVector2D(*Section, TEXT("WindowPosition"), GetWindowPos(), Filename);
 	GConfig->SetBool(*Section, TEXT("bIsMaximised"), GetMaximised(), Filename);
 	GConfig->SetFloat(*Section, TEXT("MasterVolume"), GetMasterVolume(), Filename);
@@ -417,11 +412,27 @@ void UDiplosimUserSettings::SetAA(FString Value)
 	AAName = Value;
 
 	if (AAName == "None")
+		GEngine->Exec(GetWorld(), TEXT("r.ScreenPercentage 100"));
+	else
+		GEngine->Exec(GetWorld(), TEXT("r.ScreenPercentage 0"));
+
+	if (AAName == "None")
 		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 0"));
 	else if (AAName == "TAA")
 		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 2"));
-	else
+	else {
 		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 4"));
+
+		if (AAName == "FSR") {
+			GEngine->Exec(GetWorld(), TEXT("r.NGX.DLSS.Enable 0"));
+			GEngine->Exec(GetWorld(), TEXT("r.FidelityFX.FSR.Enabled 1"));
+		}
+		else {
+			GEngine->Exec(GetWorld(), TEXT("r.FidelityFX.FSR.Enabled 0"));
+			GEngine->Exec(GetWorld(), TEXT("r.NGX.DLSS.Enable 1"));
+
+		}
+	}
 }
 
 FString UDiplosimUserSettings::GetAA() const
@@ -613,20 +624,6 @@ float UDiplosimUserSettings::GetWPODistance() const
 		distance = 1.0f;
 
 	return distance;
-}
-
-void UDiplosimUserSettings::SetScreenPercentage(int32 Value)
-{
-	ScreenPercentage = Value;
-
-	FString cmd = "r.ScreenPercentage " + FString::FromInt(ScreenPercentage);
-
-	GEngine->Exec(GetWorld(), *cmd);
-}
-
-int32 UDiplosimUserSettings::GetScreenPercentage() const
-{
-	return ScreenPercentage;
 }
 
 void UDiplosimUserSettings::SetResolution(FString Value, bool bResizing)

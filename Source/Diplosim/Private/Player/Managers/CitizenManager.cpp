@@ -617,7 +617,7 @@ void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACiti
 	if (chance > positiveConversationLikelihood) {
 		happinessValue = -12;
 
-		Camera->PoliceManager->CalculateIfFight(&Faction, Citizen1, Citizen2, citizen1Aggressiveness, citizen2Aggressiveness);
+		Camera->PoliceManager->CalculateIfFight(faction, Citizen1, Citizen2, citizen1Aggressiveness, citizen2Aggressiveness);
 	}
 
 	Citizen1->HappinessComponent->SetDecayingHappiness(EHappinessType::Conversation, happinessValue);

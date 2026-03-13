@@ -74,9 +74,6 @@ protected:
 		float WPODistance;
 
 	UPROPERTY(Config)
-		int32 ScreenPercentage;
-
-	UPROPERTY(Config)
 		FString Resolution;
 
 	UPROPERTY(Config)
@@ -244,12 +241,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "WPO")
 		float GetWPODistance() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Screen Percentage")
-		void SetScreenPercentage(int32 Value);
-
-	UFUNCTION(BlueprintPure, Category = "Screen Percentage")
-		int32 GetScreenPercentage() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Resolution")
 		void SetResolution(FString Value, bool bResizing = false);
