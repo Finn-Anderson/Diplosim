@@ -55,6 +55,8 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bSSAO = true;
 	bVolumetricFog = true;
 	bLightShafts = true;
+	bLensFlares = true;
+	bFilmGrain = true;
 	Bloom = 0.6f;
 	WPODistance = 5000.0f;
 
@@ -162,6 +164,10 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetVolumetricFog(value.ToBool());
 	else if (FString("bLightShafts").Equals(Key))
 		SetLightShafts(value.ToBool());
+	else if (FString("bLensFlares").Equals(Key))
+		SetLensFlares(value.ToBool());
+	else if (FString("bFilmGrain").Equals(Key))
+		SetFilmGrain(value.ToBool());
 	else if (FString("Bloom").Equals(Key))
 		SetBloom(FCString::Atof(Value));
 	else if (FString("WPODistance").Equals(Key))
@@ -234,6 +240,8 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bSSAO"), GetSSAO(), Filename);
 	GConfig->SetBool(*Section, TEXT("bVolumetricFog"), GetVolumetricFog(), Filename);
 	GConfig->SetBool(*Section, TEXT("bLightShafts"), GetLightShafts(), Filename);
+	GConfig->SetBool(*Section, TEXT("bLensFlares"), GetLensFlares(), Filename);
+	GConfig->SetBool(*Section, TEXT("bFilmGrain"), GetFilmGrain(), Filename);
 	GConfig->SetFloat(*Section, TEXT("Bloom"), GetBloom(), Filename);
 	GConfig->SetFloat(*Section, TEXT("WPODistance"), GetWPODistance(), Filename);
 	GConfig->SetVector2D(*Section, TEXT("WindowPosition"), GetWindowPos(), Filename);
@@ -579,11 +587,38 @@ bool UDiplosimUserSettings::GetLightShafts() const
 	return bLightShafts;
 }
 
-void UDiplosimUserSettings::SetBloom(float Value)
+void UDiplosimUserSettings::SetLensFlares(bool Value)
 {
-	if (Bloom == Value)
+	bLensFlares = Value;
+
+	if (Camera == nullptr)
 		return;
 
+	Camera->CameraComponent->PostProcessSettings.LensFlareIntensity = 0.001f * bLensFlares;
+}
+
+bool UDiplosimUserSettings::GetLensFlares() const
+{
+	return bLensFlares;
+}
+
+void UDiplosimUserSettings::SetFilmGrain(bool Value)
+{
+	bFilmGrain = Value;
+
+	if (Camera == nullptr)
+		return;
+
+	Camera->CameraComponent->PostProcessSettings.FilmGrainIntensity = 0.1f * bFilmGrain;
+}
+
+bool UDiplosimUserSettings::GetFilmGrain() const
+{
+	return bFilmGrain;
+}
+
+void UDiplosimUserSettings::SetBloom(float Value)
+{
 	Bloom = Value;
 
 	if (Camera == nullptr)

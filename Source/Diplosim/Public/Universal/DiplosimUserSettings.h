@@ -68,6 +68,12 @@ protected:
 		bool bLightShafts;
 
 	UPROPERTY(Config)
+		bool bLensFlares;
+
+	UPROPERTY(Config)
+		bool bFilmGrain;
+
+	UPROPERTY(Config)
 		float Bloom;
 
 	UPROPERTY(Config)
@@ -229,6 +235,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Light Shafts")
 		bool GetLightShafts() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Lens Flares")
+		void SetLensFlares(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Lens Flares")
+		bool GetLensFlares() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Film Grain")
+		void SetFilmGrain(bool Value);
+
+	UFUNCTION(BlueprintPure, Category = "Film Grain")
+		bool GetFilmGrain() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Post Processing")
 		void SetBloom(float Value);
