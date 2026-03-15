@@ -280,7 +280,7 @@ void UCitizenManager::CalculateConversationInteractions()
 				if (Camera->SaveGameComponent->IsLoading())
 					return;
 
-				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->bConversing || citizen->bSleep || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->bEmergency))
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 25 || citizen->bConversing || citizen->bSleep || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->bEmergency) || citizen->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0)
 					continue;
 
 				bool bCitizenInReport = Camera->PoliceManager->IsInAPoliceReport(citizen, &faction);
@@ -306,7 +306,7 @@ void UCitizenManager::CalculateConversationInteractions()
 
 						ACitizen* c = Cast<ACitizen>(actor);
 
-						if (c->bConversing || c->bSleep || !c->AttackComponent->OverlappingEnemies.IsEmpty() || bCitizenInReport != Camera->PoliceManager->IsInAPoliceReport(c, &faction))
+						if (c->bConversing || c->bSleep || c->HealthComponent->GetHealth() <= 25 || !c->AttackComponent->OverlappingEnemies.IsEmpty() || c->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0 || bCitizenInReport != Camera->PoliceManager->IsInAPoliceReport(c, &faction))
 							continue;
 
 						citizensToTalkTo.Add(c);

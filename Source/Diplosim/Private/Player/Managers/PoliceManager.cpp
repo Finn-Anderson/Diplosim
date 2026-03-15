@@ -234,6 +234,9 @@ void UPoliceManager::PoliceInteraction(FFactionStruct* Faction, ACitizen* Citize
 
 void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen1, ACitizen* Citizen2, float Citizen1Aggressiveness, float Citizen2Aggressiveness)
 {
+	if (Faction->Citizens.Num() <= 20)
+		return;
+
 	FVector midPoint = (Camera->GetTargetActorLocation(Citizen1) + Camera->GetTargetActorLocation(Citizen2)) / 2;
 	float distance = 1000;
 
@@ -491,6 +494,9 @@ void UPoliceManager::StopFighting(ACitizen* Citizen)
 
 			for (ACitizen* assistor : report.Team1.Assistors)
 				assistor->AttackComponent->OverlappingEnemies.Remove(citizen);
+
+			citizen->AttackComponent->bShowMercy = false;
+			citizen->AIController->DefaultAction();
 		}
 
 		for (ACitizen* citizen : report.Team1.GetTeam()) {
@@ -498,6 +504,9 @@ void UPoliceManager::StopFighting(ACitizen* Citizen)
 
 			for (ACitizen* assistor : report.Team2.Assistors)
 				assistor->AttackComponent->OverlappingEnemies.Remove(citizen);
+
+			citizen->AttackComponent->bShowMercy = false;
+			citizen->AIController->DefaultAction();
 		}
 
 		break;
@@ -507,18 +516,15 @@ void UPoliceManager::StopFighting(ACitizen* Citizen)
 void UPoliceManager::CeaseAllInternalFighting(FFactionStruct* Faction)
 {
 	for (ACitizen* citizen : Faction->Citizens) {
-		if (citizen->AttackComponent->OverlappingEnemies.IsEmpty()) {
-			citizen->AIController->DefaultAction();
-
-			continue;
-		}
-
 		for (int32 i = citizen->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
 			AActor* actor = citizen->AttackComponent->OverlappingEnemies[i];
 
 			if (Faction->Citizens.Contains(actor))
 				citizen->AttackComponent->OverlappingEnemies.RemoveAt(i);
 		}
+
+		citizen->AttackComponent->bShowMercy = false;
+		citizen->AIController->DefaultAction();
 	}
 }
 

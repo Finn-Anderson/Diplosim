@@ -29,6 +29,7 @@
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/PoliceManager.h"
 #include "Universal/Projectile.h"
 #include "Universal/AttackComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
@@ -76,8 +77,16 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 
 		if (GetHealth() == 0)
 			Death(Attacker);
-		else if (GetOwner()->IsA<ACitizen>())
-			Camera->DiseaseManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Stream.RandRange(0, 100));
+		else if (GetOwner()->IsA<ACitizen>()) {
+			ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+			Camera->DiseaseManager->Injure(citizen, Camera->Stream.RandRange(0, 100));
+
+			if (citizen->AttackComponent->bShowMercy && GetHealth() < 25)
+				Camera->PoliceManager->StopFighting(citizen);
+			else if (GetHealth() == 0)
+				Camera->PoliceManager->ChangeReportToMurder(citizen);
+		}
 
 		Camera->PlayAmbientSound(HitAudioComponent, Sound);
 	});

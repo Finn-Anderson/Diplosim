@@ -19,7 +19,6 @@
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
-#include "Player/Managers/PoliceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ArmyManager.h"
@@ -264,17 +263,6 @@ void UAttackComponent::Attack(AActor* Target)
 		else
 			movementComponent->SetAnimation(EAnim::Melee, false, time);
 	}
-
-	FFactionStruct* faction1 = Camera->ConquestManager->GetFaction("", CurrentTarget);
-	FFactionStruct* faction2 = Camera->ConquestManager->GetFaction("", GetOwner());
-
-	if (faction1 == nullptr || faction2 == nullptr)
-		return;
-
-	if (bShowMercy && healthComp->Health < 25)
-		Camera->PoliceManager->StopFighting(Cast<ACitizen>(GetOwner()));
-	else if (healthComp->Health == 0)
-		Camera->PoliceManager->ChangeReportToMurder(Cast<ACitizen>(GetOwner()));
 }
 
 void UAttackComponent::Throw()
