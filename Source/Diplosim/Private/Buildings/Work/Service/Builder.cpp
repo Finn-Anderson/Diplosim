@@ -5,6 +5,8 @@
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ConquestManager.h"
@@ -46,18 +48,32 @@ void ABuilder::Enter(ACitizen* Citizen)
 		cm->FindConstruction(this);
 }
 
+void ABuilder::Leave(ACitizen* Citizen)
+{
+	Super::Leave(Citizen);
+
+	if (GetOccupied().IsEmpty() || !IsWorking(Citizen, Camera->Grid->AtmosphereComponent->Calendar.Hour))
+		Camera->ConstructionManager->RemoveBuilder(this);
+}
+
+bool ABuilder::IsAtWork(ACitizen* Citizen)
+{
+	return Super::IsAtWork(Citizen) || Camera->ConstructionManager->IsBeingConstructed(nullptr, this);
+}
+
 void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 {
-	if (CheckStored(Citizen, Building->TargetList)) {
-		FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+	if (!CheckStored(Citizen, Building->TargetList))
+		return;
 
-		float time = (size.X + size.Y + size.Z) / 500.0f * 0.2f / Citizen->GetProductivity();
+	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-		TArray<FTimerParameterStruct> params;
-		Camera->TimerManager->SetParameter(Citizen, params);
-		Camera->TimerManager->SetParameter(Building, params);
-		Camera->TimerManager->CreateTimer("Construct", this, time, "AddBuildPercentage", params, true, true);
-	}
+	float time = (size.X + size.Y + size.Z) / 500.0f * 0.2f / Citizen->GetProductivity();
+
+	TArray<FTimerParameterStruct> params;
+	Camera->TimerManager->SetParameter(Citizen, params);
+	Camera->TimerManager->SetParameter(Building, params);
+	Camera->TimerManager->CreateTimer("Construct", this, time, "AddBuildPercentage", params, true, true);
 }
 
 void ABuilder::AddBuildPercentage(ACitizen* Citizen, ABuilding* Building)
@@ -85,11 +101,10 @@ void ABuilder::Repair(ACitizen* Citizen, ABuilding* Building)
 {
 	Building->HealthComponent->AddHealth(2);
 
-	if (Building->HealthComponent->IsMaxHealth()) {
-		Done(Citizen, Building);
-
+	if (!Building->HealthComponent->IsMaxHealth())
 		return;
-	}
+
+	Done(Citizen, Building);
 }
 
 void ABuilder::Done(ACitizen* Citizen, ABuilding* Building)

@@ -198,6 +198,9 @@ void ABuilding::SetLights(int32 Hour)
 
 void ABuilding::ToggleDecalComponentVisibility(bool bVisible)
 {
+	if (!DecalComponent)
+		return;
+
 	if (!IsValid(DecalComponent->GetDecalMaterial()) || Camera->ConstructionManager->IsBeingConstructed(this, nullptr))
 		bVisible = false;
 
@@ -247,8 +250,10 @@ void ABuilding::SetSeed(int32 Seed)
 			else {
 				Capacity = Seeds[Seed].Capacity;
 
-				for (int32 i = GetOccupied().Num() - 1; i > GetCapacity(); i--)
-					RemoveCitizen(GetOccupied()[i]);
+				for (int32 i = Occupied.Num() - 1; i >= GetCapacity(); i--) {
+					RemoveCitizen(Occupied[i].Citizen);
+					Occupied.RemoveAt(i);
+				}
 			}
 		}
 
@@ -457,9 +462,6 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 
 			TargetList.RemoveAt(i);
 		}
-
-		for (int32 i = GetOccupied().Num() - 1; i > -1; i--)
-			RemoveCitizen(GetOccupied()[i]);
 
 		SetSeed(Grade);
 	}
@@ -950,8 +952,10 @@ void ABuilding::Enter(ACitizen* Citizen)
 
 	SetSocketLocation(Citizen);
 
-	if (!Inside.Contains(Citizen))
+	if (!Inside.Contains(Citizen)) {
 		Inside.Add(Citizen);
+		Camera->UpdateVisitors(this, Citizen, true);
+	}
 
 	if (GetCitizensAtBuilding().Num() == 1 && !bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Activate();
@@ -988,7 +992,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 			ABuilder* builder = Cast<ABuilder>(Citizen->BuildingComponent->Employment);
 
 			deliverTo = cm->GetBuilding(builder);
-			items = deliverTo->CostList;
+			items = deliverTo->TargetList;
 		}
 		else if (Citizen->BuildingComponent->Employment->IsA<ATrader>()) {
 			ATrader* trader = Cast<ATrader>(Citizen->BuildingComponent->Employment);
@@ -1020,6 +1024,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 	Citizen->BuildingComponent->BuildingAt = nullptr;
 
 	Inside.Remove(Citizen);
+	Camera->UpdateVisitors(this, Citizen, false);
 
 	if (GetCitizensAtBuilding().IsEmpty() && !bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Deactivate();
@@ -1140,11 +1145,10 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 	}
 	else {
 		UConstructionManager* cm = Camera->ConstructionManager;
-
 		TArray<FItemStruct> items;
 
 		if (cm->IsBeingConstructed(this, nullptr))
-			items = CostList;
+			items = TargetList;
 		else if (IsA<ATrader>())
 			items = Cast<ATrader>(this)->Orders[0].SellingItems;
 		else
@@ -1155,7 +1159,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 				continue;
 
 			if (cm->IsBeingConstructed(this, nullptr))
-				CostList[i].Stored += Citizen->Carrying.Amount;
+				TargetList[i].Stored += Citizen->Carrying.Amount;
 			else if (IsA<ATrader>())
 				Cast<ATrader>(this)->Orders[0].SellingItems[i].Stored += Citizen->Carrying.Amount;
 			else

@@ -14,6 +14,10 @@ public:
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
+	virtual void Leave(class ACitizen* Citizen) override;
+
+	virtual bool IsAtWork(class ACitizen* Citizen) override;
+
 	void CheckCosts(class ACitizen* Citizen, class ABuilding* Building);
 
 	UFUNCTION()

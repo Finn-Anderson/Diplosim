@@ -7,6 +7,8 @@
 
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
+#include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -23,11 +25,10 @@ void ATrader::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!GetOccupied().Contains(Citizen))
+	if (!GetOccupied().Contains(Citizen) || Orders.IsEmpty())
 		return;
 
-	if (Orders.IsEmpty())
-		return;
+	Orders[0].Workers.Add(Citizen);
 
 	if (Orders[0].bCancelled)
 		ReturnResource(Citizen);
@@ -40,6 +41,21 @@ void ATrader::Enter(ACitizen* Citizen)
 			Camera->TimerManager->CreateTimer("Order", this, Orders[0].Wait, "SubmitOrder", params, false);
 		}
 	}
+}
+
+void ATrader::Leave(ACitizen* Citizen)
+{
+	Super::Leave(Citizen);
+
+	if (!GetOccupied().Contains(Citizen) || Orders.IsEmpty() || IsWorking(Citizen, Camera->Grid->AtmosphereComponent->Calendar.Hour))
+		return;
+
+	Orders[0].Workers.RemoveSingle(Citizen);
+}
+
+bool ATrader::IsAtWork(ACitizen* Citizen)
+{
+	return Super::IsAtWork(Citizen) || (!Orders.IsEmpty() && Orders[0].Workers.Contains(Citizen));
 }
 
 void ATrader::SubmitOrder(class ACitizen* Citizen)
@@ -106,10 +122,14 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 		Camera->DisplayInteract(this);
 
 	if (Orders.Num() > 0) {
-		if (Orders[0].bCancelled)
-			ReturnResource(Citizen);
-		else
-			CheckStored(Citizen, Orders[0].SellingItems);
+		for (ACitizen* c : GetCitizensAtBuilding()) {
+			Orders[0].Workers.Add(c);
+
+			if (Orders[0].bCancelled)
+				ReturnResource(c);
+			else
+				CheckStored(c, Orders[0].SellingItems);
+		}
 	}
 }
 

@@ -52,6 +52,19 @@ void UConstructionManager::RemoveBuilding(class ABuilding* Building)
 		camera->WidgetComponent->SetHiddenInGame(true);
 }
 
+void UConstructionManager::RemoveBuilder(ABuilder* Builder)
+{
+	FConstructionStruct constructionStruct;
+	constructionStruct.Builder = Builder;
+
+	int32 index = Construction.Find(constructionStruct);
+
+	if (index == INDEX_NONE)
+		return;
+
+	Construction[index].Builder = nullptr;
+}
+
 void UConstructionManager::FindBuilder(class ABuilding* Building)
 {
 	FFactionStruct* faction = Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName);
@@ -67,11 +80,7 @@ void UConstructionManager::FindBuilder(class ABuilding* Building)
 	ABuilder* target = nullptr;
 
 	for (ABuilder* builder : foundBuilders) {
-		FConstructionStruct constructionStruct;
-		constructionStruct.Builder = builder;
-		constructionStruct.Building = builder;
-
-		if (Construction.Contains(constructionStruct) || builder->GetOccupied().IsEmpty() || builder->GetOccupied()[0]->BuildingComponent->BuildingAt != builder)
+		if (IsBeingConstructed(builder, builder) || builder->GetOccupied().IsEmpty() || builder->IsAtWork(builder->GetOccupied()[0]))
 			continue;
 
 		bool bCanMove = builder->GetOccupied()[0]->AIController->CanMoveTo(Building->GetActorLocation());

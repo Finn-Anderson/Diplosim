@@ -125,7 +125,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 			DisplayInfluencedBuildings(building, false);
 
-			if (building->DecalComponent->GetDecalMaterial() != nullptr)
+			if (building->DecalComponent && building->DecalComponent->GetDecalMaterial() != nullptr)
 				building->DecalComponent->SetVisibility(false);
 		}
 		else {
@@ -140,7 +140,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 			DisplayInfluencedBuildings(building, true);
 
-			if (building->DecalComponent->GetDecalMaterial() != nullptr)
+			if (building->DecalComponent && building->DecalComponent->GetDecalMaterial() != nullptr)
 				building->DecalComponent->SetVisibility(true);
 		}
 	}

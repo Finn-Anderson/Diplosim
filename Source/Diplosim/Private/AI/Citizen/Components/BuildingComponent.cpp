@@ -99,17 +99,17 @@ void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 	if (HasRecentlyAcquired(1, TimeToCompleteDay) || Job->GetCapacity() == Job->GetOccupied().Num() || !CanWork(Job) || !WillWork())
 		return;
 
+	FCapacityStruct* capacityStruct = Job->GetBestWorkHours(citizen);
+
+	if (capacityStruct == nullptr)
+		return;
+
 	AWork* chosenWorkplace = Cast<AWork>(AllocatedBuildings[1]);
 
 	if (!IsValid(chosenWorkplace)) {
 		AllocatedBuildings[1] = Job;
 	}
 	else {
-		FCapacityStruct* capacityStruct = Job->GetBestWorkHours(citizen);
-
-		if (capacityStruct == nullptr)
-			return;
-
 		int32 diff = (capacityStruct->Amount * Job->GetHoursInADay(nullptr, capacityStruct)) - chosenWorkplace->GetWage(citizen);
 
 		int32* happiness = citizen->HappinessComponent->Modifiers.Find("Work Happiness");

@@ -36,7 +36,7 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 
 	Citizen->BuildingComponent->Employment = this;
 
-	AddToWorkHours(Citizen, true); 
+	AddToWorkHours(Citizen, true);
 
 	if (IsWorking(Citizen)) {
 		bool bAttendingEvent = Camera->EventsManager->IsAttendingEvent(Citizen);
@@ -74,28 +74,27 @@ void AWork::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!IsWorking(Citizen) && GetOccupied().Contains(Citizen))
+	if (!GetOccupied().Contains(Citizen))
+		return;
+
+	if (!IsWorking(Citizen))
 		Citizen->AIController->DefaultAction();
 
-	if (GetOccupied().Contains(Citizen) && !Camera->Grid->AIVisualiser->DoesCitizenHaveHat(Citizen))
+	if (!Camera->Grid->AIVisualiser->DoesCitizenHaveHat(Citizen))
 		Camera->Grid->AIVisualiser->AddCitizenToHISMHat(Citizen, WorkHat);
 }
 
 void AWork::AddToWorkHours(ACitizen* Citizen, bool bAdd)
 {
-	int32 index = INDEX_NONE;
-
 	if (bAdd) {
 		FCapacityStruct* capacityStruct = GetBestWorkHours(Citizen);
 		capacityStruct->Citizen = Citizen;
-
-		index = Occupied.Find(*capacityStruct);
 	}
 	else {
 		FCapacityStruct capacityStruct;
 		capacityStruct.Citizen = Citizen;
 
-		index = Occupied.Find(capacityStruct);
+		int32 index = Occupied.Find(capacityStruct);
 
 		Occupied[index].Citizen = nullptr;
 	}

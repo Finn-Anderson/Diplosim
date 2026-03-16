@@ -9,7 +9,7 @@ AFort::AFort()
 
 int32 AFort::GetZ()
 {
-	return FMath::Clamp(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 100.0f, 1, 5);
+	return FMath::CeilToInt(BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 75.0f);
 }
 
 void AFort::Enter(ACitizen* Citizen)

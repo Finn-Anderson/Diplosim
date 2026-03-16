@@ -54,6 +54,8 @@ public:
 
 	void RemoveBuilding(class ABuilding* Building);
 
+	void RemoveBuilder(class ABuilder* Builder);
+
 	void FindBuilder(class ABuilding* Building);
 
 	void FindConstruction(class ABuilder* Builder);

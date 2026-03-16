@@ -27,6 +27,9 @@ struct FQueueStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FItemStruct> BuyingItems;
 
+	UPROPERTY()
+		TArray<ACitizen*> Workers;
+
 	FQueueStruct()
 	{
 		OrderWidget = nullptr;
@@ -72,6 +75,10 @@ public:
 	ATrader();
 
 	virtual void Enter(class ACitizen* Citizen) override;
+
+	virtual void Leave(class ACitizen* Citizen) override;
+
+	virtual bool IsAtWork(class ACitizen* Citizen) override;
 
 	UFUNCTION()
 		void SubmitOrder(class ACitizen* Citizen);

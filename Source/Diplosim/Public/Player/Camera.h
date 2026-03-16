@@ -157,6 +157,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateEventInfoDisplay();
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateVisitors(class ABuilding* Building, class ACitizen* Citizen, bool bAdd);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;

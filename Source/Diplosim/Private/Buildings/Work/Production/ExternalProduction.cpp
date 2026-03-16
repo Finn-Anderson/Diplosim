@@ -25,11 +25,10 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (IsCapacityFull())
+	if (!GetOccupied().Contains(Citizen) || IsCapacityFull())
 		return;
 
-	if (GetOccupied().Contains(Citizen))
-		Production(Citizen);
+	Production(Citizen);
 }
 
 bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)

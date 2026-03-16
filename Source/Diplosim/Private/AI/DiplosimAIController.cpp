@@ -486,6 +486,8 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AResource>())
 		return;
 
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
 	FVector targetLoc = Camera->GetTargetActorLocation(Actor);
 	FVector currentLoc = Camera->GetTargetActorLocation(AI);
 
@@ -499,7 +501,10 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 			targetLoc = comp->GetSocketLocation("Entrance");
 	}
 
-	if (FVector::Dist(currentLoc, targetLoc) < AI->Range / 15.0f)
+	FNavLocation navLoc;
+	nav->ProjectPointToNavigation(targetLoc, navLoc, FVector(400.0f, 400.0f, 40.0f));
+
+	if (FVector::Dist(currentLoc, navLoc) < AI->Range / 15.0f)
 		return;
 
 	AIMoveTo(Actor, FVector::Zero(), MoveRequest.GetGoalInstance());
