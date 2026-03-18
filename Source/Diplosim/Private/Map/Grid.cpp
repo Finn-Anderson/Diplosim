@@ -104,6 +104,7 @@ AGrid::AGrid()
 	CrystalMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -1000.0f));
 	CrystalMesh->SetupAttachment(GetRootComponent());
 
+	Bounds = 0;
 	Size = 22500;
 	Chunks = 1;
 	Peaks = 2;
@@ -169,9 +170,14 @@ void AGrid::BeginPlay()
 	nav->OnNavigationGenerationFinishedDelegate.Add(delegate);
 }
 
+void AGrid::SetMapBounds()
+{
+	Bounds = FMath::FloorToInt32(FMath::Sqrt((double)Size)) * Chunks;
+}
+
 int32 AGrid::GetMapBounds()
 {
-	return FMath::FloorToInt32(FMath::Sqrt((double)Size)) * Chunks;
+	return Bounds;
 }
 
 void AGrid::Load()
@@ -248,6 +254,7 @@ void AGrid::SetupMap()
 	HISMSea->AddInstance(seaTransform);
 	HISMSea->BuildTreeIfOutdated(true, true);
 
+	SetMapBounds();
 	auto bound = GetMapBounds();
 
 	InitialiseStorage();
@@ -256,6 +263,7 @@ void AGrid::SetupMap()
 	Camera->UpdateMapAIUI();
 
 	PeaksList.Empty();
+	LavaTiles.Empty();
 
 	TArray<FTileStruct*> chooseableTiles = {};
 
@@ -403,6 +411,9 @@ void AGrid::SetupMap()
 			}
 		}
 
+		if (level == MaxLevel)
+			LavaTiles.Add(chosenTile);
+
 		chosenTile->Level = level;
 
 		for (auto& element : chosenTile->AdjacentTiles)
@@ -487,7 +498,7 @@ void AGrid::PaveRivers()
 		}
 	}
 
-	for (int32 i = 0; i < Rivers; i++) {
+	for (int32 i = 0; i < Rivers * Chunks; i++) {
 		if (riverStartTiles.IsEmpty())
 			break;
 
@@ -543,18 +554,17 @@ void AGrid::SetupTileInformation()
 			for (FTileStruct& tile : row)
 				GetDistToLava(&tile, distToLava);
 
-		int32 charredAmount = Size * (PercentageGround / 100.0f) * 0.03f;
+		distToLava.ValueSort([](float A, float B) { return A < B; });
 
-		while (charredAmount > 0 && !distToLava.IsEmpty()) {
-			TTuple<FTileStruct*, float> closestLava;
-			for (auto element : distToLava)
-				if (closestLava.Key == nullptr || closestLava.Value > element.Value)
-					closestLava = element;
+		int32 charredAmount = Size * Chunks * (PercentageGround / 100.0f) * 0.03f;
 
-			closestLava.Key->Fertility = 0;
+		for (auto element : distToLava) {
+			if (charredAmount == 0)
+				break;
 
-			ChosenDistToLava.Add(closestLava);
-			distToLava.Remove(closestLava.Key);
+			element.Key->Fertility = 0;
+
+			ChosenDistToLava.Add(element.Key);
 			charredAmount--;
 		}
 	}
@@ -625,8 +635,6 @@ void AGrid::SpawnMinerals()
 					if (ValidMineralTiles[j].Contains(tile))
 						ValidMineralTiles.RemoveAt(j);
 			}
-
-			ResourceStruct.Resource->ResourceHISM->BuildTreeIfOutdated(true, true);
 		}
 	}
 
@@ -833,16 +841,11 @@ void AGrid::GetDistToLava(FTileStruct* Tile, TMap<FTileStruct*, float>& DistToLa
 		return;
 
 	float distance = 1000000000.0f;
-	for (TArray<FTileStruct>& row : Storage) {
-		for (FTileStruct& t : row) {
-			if (t.Level != MaxLevel)
-				continue;
+	for (FTileStruct* lavaTile : LavaTiles) {
+		float dist = FVector::Dist(FVector(Tile->X, Tile->Y, Tile->Level), FVector(lavaTile->X, lavaTile->Y, lavaTile->Level));
 
-			float dist = FVector::Dist(FVector(Tile->X, Tile->Y, Tile->Level), FVector(t.X, t.Y, t.Level));
-
-			if (distance > dist)
-				distance = dist;
-		}
+		if (distance > dist)
+			distance = dist;
 	}
 
 	DistToLava.Add(Tile, distance);
@@ -1030,7 +1033,7 @@ void AGrid::CalculateTile(FTileStruct* Tile)
 	Tile->Rotation = transform.GetRotation();
 }
 
-void AGrid::AddCalculatedTile(UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform)
+void AGrid::AddCalculatedTile(UInstancedStaticMeshComponent* HISM, FTransform Transform)
 {
 	if (CalculatedTiles.Contains(HISM)) {
 		TArray<FTransform>* t = CalculatedTiles.Find(HISM);
@@ -1139,9 +1142,13 @@ void AGrid::GenerateTiles()
 				if (!element.Key->GetOwner()->IsA<AVegetation>() || bTree)
 					colour = FLinearColor(GroundColours[tile->Fertility]);
 
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 5] = 1.0f;
+
 				if (tile->Fertility == 0) {
 					float distance = *ChosenDistToLava.Find(tile);
 					colour *= FMath::Pow(distance - 0.7f, 2.0f);
+
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 5] = 0.0f;
 				}
 				else if (bTree)
 					colour *= Camera->Stream.FRandRange(0.5f, 1.0f);
@@ -1160,7 +1167,9 @@ void AGrid::GenerateTiles()
 		}
 
 		element.Key->PartialNavigationUpdates({ element.Value });
-		element.Key->BuildTreeIfOutdated(false, true);
+
+		if (element.Key->IsA<UHierarchicalInstancedStaticMeshComponent>())
+			Cast<UHierarchicalInstancedStaticMeshComponent>(element.Key)->BuildTreeIfOutdated(false, true);
 	}
 
 	CalculatedTiles.Empty();
@@ -1287,35 +1296,43 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 		GenerateVegetation(Vegetation, StartingTile, element.Value, Amount, Scale, bTree);
 }
 
-void AGrid::RemoveTree(AResource* Resource, int32 Instance)
+void AGrid::RemoveTree(AResource* Resource, TArray<int32> Instances)
 {
-	int32 lastInstance = Resource->ResourceHISM->GetInstanceCount() - 1;
+	for (int32 i = Resource->WorkerStruct.Num() - 1; i > -1; i--) {
+		FWorkerStruct& workerStruct = Resource->WorkerStruct[i];
 
-	FWorkerStruct workerStruct;
-	workerStruct.Instance = lastInstance;
+		if (Instances.Contains(workerStruct.Instance))
+			Resource->RemoveWorker(nullptr, workerStruct.Instance);
 
-	int32 index = Resource->WorkerStruct.Find(workerStruct);
+		int32 count = 0;
+		for (int32 instance : Instances) {
+			if (instance > workerStruct.Instance)
+				break;
 
-	if (index != INDEX_NONE) {
-		Resource->WorkerStruct[index].Instance = Instance;
+			count++;
+		}
 
-		for (ACitizen* citizen : Resource->WorkerStruct[index].Citizens) {
-			citizen->AIController->MoveRequest.SetGoalInstance(Instance);
+		workerStruct.Instance -= count;
+
+		for (ACitizen* citizen : workerStruct.Citizens) {
+			citizen->AIController->MoveRequest.SetGoalInstance(workerStruct.Instance);
 
 			break;
 		}
 	}
 
-	UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(Resource, Instance);
-	if (fireComp)
-		fireComp->Deactivate();
+	for (int32 instance : Instances) {
+		UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(Resource, instance);
+		if (fireComp)
+			fireComp->Deactivate();
 
-	if (Camera->WidgetComponent->GetAttachParentActor() == Resource && Camera->AttachedTo.Instance == Instance) {
-		Camera->Detach();
-		Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
+		if (Camera->WidgetComponent->GetAttachParentActor() == Resource && Camera->AttachedTo.Instance == instance) {
+			Camera->Detach();
+			Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
+		}
 	}
-	
-	Resource->ResourceHISM->RemoveInstance(Instance);
+
+	Resource->ResourceHISM->RemoveInstances(Instances);
 }
 
 void AGrid::SpawnEggBasket()

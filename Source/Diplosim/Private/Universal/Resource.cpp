@@ -1,6 +1,6 @@
 #include "Universal/Resource.h"
 
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 #include "AI/Citizen/Citizen.h"
@@ -10,7 +10,7 @@ AResource::AResource()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	ResourceHISM = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("ResourceMesh"));
+	ResourceHISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("ResourceMesh"));
 	ResourceHISM->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	ResourceHISM->SetCollisionObjectType(ECollisionChannel::ECC_Destructible);
 	ResourceHISM->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
@@ -21,7 +21,7 @@ AResource::AResource()
 	ResourceHISM->bCastDynamicShadow = true;
 	ResourceHISM->CastShadow = true;
 	ResourceHISM->bWorldPositionOffsetWritesVelocity = false;
-	ResourceHISM->bAutoRebuildTreeOnInstanceChanges = false;
+	ResourceHISM->bSupportRemoveAtSwap = false;
 
 	SetRootComponent(ResourceHISM);
 

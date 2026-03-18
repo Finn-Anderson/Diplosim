@@ -7,27 +7,24 @@ AGate::AGate()
 {
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = false;
 
-	RightGate = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightGate"));
-	RightGate->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	RightGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-	RightGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	RightGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
-	RightGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	RightGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
-	RightGate->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	RightGate->SetupAttachment(BuildingMesh, "RightGateSocket");
-	RightGate->SetCanEverAffectNavigation(true);
+	TMap<USkeletalMeshComponent**, FName> gates;
+	gates.Add(&RightGate, TEXT("RightGate"));
+	gates.Add(&LeftGate, TEXT("LeftGate"));
 
-	LeftGate = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftGate"));
-	LeftGate->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	LeftGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-	LeftGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	LeftGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
-	LeftGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	LeftGate->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
-	LeftGate->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	LeftGate->SetupAttachment(BuildingMesh, "LeftGateSocket");
-	LeftGate->SetCanEverAffectNavigation(true);
+	for (auto& element : gates) {
+		auto hism = CreateDefaultSubobject<USkeletalMeshComponent>(element.Value);
+		*element.Key = hism;
+		hism->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
+		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
+		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
+		hism->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		hism->SetupAttachment(BuildingMesh, *(element.Value.ToString() + "Socket"));
+		hism->SetCanEverAffectNavigation(true);
+		hism->SetRelativeLocation(FVector(0.0f, 0.0f, -0.01f));
+	}
 
 	bOpen = false;
 }

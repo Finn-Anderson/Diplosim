@@ -21,16 +21,15 @@ AVegetation::AVegetation()
 
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
-	if (Yield == 0) {
+	if (ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10] == 0.0f) {
+		Camera->Grid->RemoveTree(this, { Instance });
+
+		return;
+	}
+	else if (Yield == 0) {
 		UNiagaraComponent* fireComp = Camera->Grid->AtmosphereComponent->GetFireComponent(this, Instance);
 		if (fireComp)
 			fireComp->Deactivate();
-	}
-
-	if (ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10] == 0.0f) {
-		Camera->Grid->RemoveTree(this, Instance);
-
-		return;
 	}
 
 	FTransform transform;

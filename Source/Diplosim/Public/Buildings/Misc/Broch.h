@@ -18,5 +18,5 @@ public:
 	void SpawnCitizens();
 
 private:
-	void GetNavigableInstances(class UNavigationSystemV1* Nav, FNavLocation Origin, UHierarchicalInstancedStaticMeshComponent* HISM, TArray<int32>& Instances);
+	void GetNavigableInstances(class UNavigationSystemV1* Nav, FNavLocation Origin, class UHierarchicalInstancedStaticMeshComponent* HISM, TArray<int32>& Instances);
 };

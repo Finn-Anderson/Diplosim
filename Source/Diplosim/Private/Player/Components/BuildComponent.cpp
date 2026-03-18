@@ -103,9 +103,6 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (Buildings[0]->IsA<ARoad>() && !Buildings[0]->IsHidden())
 			Cast<ARoad>(Buildings[0])->SetTier(Cast<ARoad>(Buildings[0])->Tier);
 
-		if (FVector::Dist(prevLocation, location) <= 100.0f)
-			prevLocation = FVector::Zero();
-
 		SetTreeStatus(Buildings[0], false, false, prevLocation);
 	}
 
@@ -207,35 +204,30 @@ void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRe
 {
 	TArray<FResourceHISMStruct> vegetation;
 	vegetation.Append(Camera->Grid->TreeStruct);
-	vegetation.Append(Camera->Grid->FlowerStruct);
+	if (bDestroy)
+		vegetation.Append(Camera->Grid->FlowerStruct);
 
 	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 
 	for (FResourceHISMStruct resource : vegetation) {
-		UHierarchicalInstancedStaticMeshComponent* hism = resource.Resource->ResourceHISM;
+		UInstancedStaticMeshComponent* hism = resource.Resource->ResourceHISM;
+		float radius = FMath::Sqrt(FMath::Square(size.X) + FMath::Square(size.Y));
 
-		TArray<int32> instances = hism->GetInstancesOverlappingSphere(Building->GetActorLocation(), FMath::Sqrt(FMath::Square(size.X) + FMath::Square(size.Y)) + 50.0f);
-
-		if (PrevLocation != FVector::Zero())
-			instances.Append(hism->GetInstancesOverlappingSphere(PrevLocation, FMath::Sqrt(FMath::Square(size.X) + FMath::Square(size.Y)) + 50.0f));
-
+		TArray<int32> instances = hism->GetInstancesOverlappingSphere(Building->GetActorLocation(), radius);
 		instances.Sort();
 
-		for (int32 i = instances.Num() - 1; i > -1; i--) {
-			FTransform transform;
-			hism->GetInstanceTransform(instances[i], transform);
+		for (int32 instance : hism->GetInstancesOverlappingSphere(PrevLocation, radius)) {
+			if (!bRemoveBuilding && instances.Contains(instance))
+				continue;
 
-			if (bRemoveBuilding || FMath::Abs(transform.GetLocation().X - Building->GetActorLocation().X) > size.X + 25.0f || FMath::Abs(transform.GetLocation().Y - Building->GetActorLocation().Y) > size.Y + 25.0f)
-				hism->PerInstanceSMCustomData[instances[i] * hism->NumCustomDataFloats + 1] = 1.0f;
-			else if (bDestroy)
-				Camera->Grid->RemoveTree(resource.Resource, instances[i]);
-			else 
-				hism->PerInstanceSMCustomData[instances[i] * hism->NumCustomDataFloats + 1] = 0.0f;
-
-			hism->bIsOutOfDate = true;
+			hism->SetCustomDataValue(instance, 1, 1.0f);
 		}
 
-		hism->BuildTreeIfOutdated(true, false);
+		if (bDestroy)
+			Camera->Grid->RemoveTree(resource.Resource, instances);
+		else if (!bRemoveBuilding)
+			for (int32 instance : instances)
+				hism->SetCustomDataValue(instance, 1, 0.0f);
 	}
 }
 
@@ -578,7 +570,7 @@ void UBuildComponent::RemoveBuilding()
 	for (ABuilding* building : Buildings) {
 		DisplayInfluencedBuildings(building, false);
 
-		SetTreeStatus(building, false, true);
+		SetTreeStatus(building, false, true, building->GetActorLocation());
 
 		building->DestroyBuilding(true, IsValid(BuildingToMove));
 	}
@@ -630,7 +622,7 @@ void UBuildComponent::EndPathPlace()
 	Buildings[0]->BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
-		SetTreeStatus(Buildings[i], false, true);
+		SetTreeStatus(Buildings[i], false, true, Buildings[i]->GetActorLocation());
 
 		Buildings[i]->DestroyBuilding();
 

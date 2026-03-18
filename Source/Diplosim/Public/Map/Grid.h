@@ -178,6 +178,8 @@ public:
 		TArray<FVector> LavaSpawnLocations;
 
 	// Map
+	void SetMapBounds();
+
 	int32 GetMapBounds();
 
 	void Load();
@@ -219,7 +221,7 @@ public:
 
 	void CalculateTile(FTileStruct* Tile);
 
-	void AddCalculatedTile(UHierarchicalInstancedStaticMeshComponent* HISM, FTransform Transform);
+	void AddCalculatedTile(UInstancedStaticMeshComponent* HISM, FTransform Transform);
 
 	void FixEdgeZClipping(FTileStruct* Tile);
 
@@ -240,9 +242,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Colours")
 		TArray<FColor> GroundColours;
 
-	TMap<UHierarchicalInstancedStaticMeshComponent*, TArray<FTransform>> CalculatedTiles;
+	UPROPERTY()
+		int32 Bounds;
+
+	TMap<UInstancedStaticMeshComponent*, TArray<FTransform>> CalculatedTiles;
 
 	TArray<FTileStruct*> PeaksList;
+
+	TArray<FTileStruct*> LavaTiles;
 
 	TMap<FTileStruct*, float> ChosenDistToLava;
 
@@ -262,7 +269,7 @@ public:
 
 	void GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStruct* StartingTile, FTileStruct* Tile, int32 Amount, float Scale, bool bTree);
 
-	void RemoveTree(class AResource* Resource, int32 Instance);
+	void RemoveTree(class AResource* Resource, TArray<int32> Instances);
 
 	FTransform GetTransform(FTileStruct* Tile);
 

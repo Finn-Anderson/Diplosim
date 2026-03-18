@@ -39,7 +39,7 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		class UHierarchicalInstancedStaticMeshComponent* ResourceHISM;
+		class UInstancedStaticMeshComponent* ResourceHISM;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		 TSubclassOf<class AResource> DroppedResource;

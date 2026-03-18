@@ -853,6 +853,7 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 
 	grid->Clear();
 
+	grid->SetMapBounds();
 	grid->InitialiseStorage();
 	auto bound = grid->GetMapBounds();
 
@@ -925,7 +926,7 @@ void UDiplosimSaveGame::LoadResource(ACamera* Camera, FResourceData& ResourceDat
 
 	resource->ResourceHISM->AddInstances(ResourceData.HISMData.Transforms, false, true, true);
 	resource->ResourceHISM->PerInstanceSMCustomData = ResourceData.HISMData.CustomDataValues;
-	resource->ResourceHISM->BuildTreeIfOutdated(true, true);
+	resource->ResourceHISM->SetCustomDataValue(0, 0, ResourceData.HISMData.CustomDataValues[0]);
 
 	for (FWorkerData workerData : ResourceData.WorkersData) {
 		FWorkerStruct workerStruct;
