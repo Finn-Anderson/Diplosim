@@ -117,8 +117,6 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 	FVector widgetLocation = location;
 	if (Actor->IsA<ATrader>() && !Camera->BuildComponent->Buildings.Contains(Actor))
 		widgetLocation.Z += z / 2.0f + 5.0f;
-	else if (Actor->IsA<ARoad>() && !Camera->BuildComponent->Buildings.Contains(Actor))
-		widgetLocation.Z += z;
 	else
 		widgetLocation.Z += z - 8.0f;
 
@@ -128,6 +126,8 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 		return FVector::Zero();
 
 	location.Z += z / 2.0f + 5.0f;
+	if (Actor->IsA<ARoad>())
+		location.Z += 5.0f;
 
 	return location;
 }

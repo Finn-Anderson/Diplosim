@@ -251,7 +251,7 @@ void AGrid::SetupMap()
 {
 	FTransform seaTransform;
 	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
-	seaTransform.SetScale3D(FVector(Chunks, Chunks, 1.0f));
+	seaTransform.SetScale3D(FVector(FMath::Sqrt((float)Chunks), FMath::Sqrt((float)Chunks), 1.0f));
 	HISMSea->AddInstance(seaTransform);
 	HISMSea->BuildTreeIfOutdated(true, true);
 
@@ -1389,7 +1389,7 @@ void AGrid::Clear()
 	AtmosphereComponent->Clouds->Clear();
 
 	TArray<AActor*> baskets;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEggBasket::StaticClass(), baskets);
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), EggBasketClass, baskets);
 
 	for (AActor* actor : baskets)
 		actor->Destroy();

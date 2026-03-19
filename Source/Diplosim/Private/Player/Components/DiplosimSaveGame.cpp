@@ -140,24 +140,23 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 
 	worldSaveData.LavaSpawnLocations = grid->LavaSpawnLocations;
 
-	worldSaveData.Tiles.Empty();
+	if (Tiles.IsEmpty()) {
+		for (TArray<FTileStruct>& row : grid->Storage) {
+			for (FTileStruct& tile : row) {
+				FTileData t;
+				t.Level = tile.Level;
+				t.Fertility = tile.Fertility;
+				t.X = tile.X;
+				t.Y = tile.Y;
+				t.Rotation = tile.Rotation;
+				t.bRamp = tile.bRamp;
+				t.bRiver = tile.bRiver;
+				t.bEdge = tile.bEdge;
+				t.bMineral = tile.bMineral;
+				t.bUnique = tile.bUnique;
 
-	auto bound = grid->GetMapBounds();
-	for (TArray<FTileStruct>& row : grid->Storage) {
-		for (FTileStruct& tile : row) {
-			FTileData t;
-			t.Level = tile.Level;
-			t.Fertility = tile.Fertility;
-			t.X = tile.X;
-			t.Y = tile.Y;
-			t.Rotation = tile.Rotation;
-			t.bRamp = tile.bRamp;
-			t.bRiver = tile.bRiver;
-			t.bEdge = tile.bEdge;
-			t.bMineral = tile.bMineral;
-			t.bUnique = tile.bUnique;
-
-			worldSaveData.Tiles.Add(t);
+				Tiles.Add(t);
+			}
 		}
 	}
 
@@ -857,7 +856,7 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	grid->InitialiseStorage();
 	auto bound = grid->GetMapBounds();
 
-	for (FTileData t : WorldData.Tiles) {
+	for (FTileData t : Tiles) {
 		FTileStruct* tile = &grid->Storage[t.X + (bound / 2)][t.Y + (bound / 2)];
 		tile->Level = t.Level;
 		tile->Fertility = t.Fertility;

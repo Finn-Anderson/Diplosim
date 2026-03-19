@@ -174,7 +174,7 @@ void UCloudComponent::ActivateCloud()
 
 	transform.SetRotation((Grid->AtmosphereComponent->WindRotation + FRotator(0.0f, 180.0f, 0.0f)).Quaternion());
 
-	FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f;
+	FVector spawnLoc = transform.GetRotation().Vector() * 20000.0f * FMath::Sqrt((float)Grid->Chunks);
 	spawnLoc.Z = Height + Grid->Camera->Stream.FRandRange(-200.0f, 200.0f);
 
 	FVector limit = (transform.GetRotation().Rotator() + FRotator(0.0f, 90.0f, 0.0f)).Vector();

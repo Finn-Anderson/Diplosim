@@ -29,6 +29,8 @@ AFestival::AFestival()
 	BoxAreaAffect->SetupAttachment(BuildingMesh);
 	BoxAreaAffect->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
 	BoxAreaAffect->SetBoxExtent(FVector(150.0f, 150.0f, 20.0f));
+	BoxAreaAffect->SetCollisionResponseToAllChannels(ECR_Ignore);
+	BoxAreaAffect->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Block);
 	BoxAreaAffect->SetCanEverAffectNavigation(true);
 	BoxAreaAffect->bDynamicObstacle = true;
 
@@ -43,14 +45,6 @@ AFestival::AFestival()
 	bCanHostFestival = true;
 
 	bHideCitizen = false;
-}
-
-void AFestival::BeginPlay()
-{
-	Super::BeginPlay();
-
-	BoxAreaAffect->OnComponentBeginOverlap.AddDynamic(this, &AFestival::OnCitizenOverlapBegin);
-	BoxAreaAffect->OnComponentEndOverlap.AddDynamic(this, &AFestival::OnCitizenOverlapEnd);
 }
 
 void AFestival::Tick(float DeltaTime)
@@ -78,22 +72,6 @@ void AFestival::Tick(float DeltaTime)
 		socket.Citizen->MovementComponent->Transform.SetLocation(socket.SocketLocation);
 		socket.Citizen->MovementComponent->Transform.SetRotation((socket.SocketRotation + FRotator(0.0f, 90.0f, 0.0f)).Quaternion());
 	}
-}
-
-void AFestival::OnCitizenOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (!OtherActor->IsA<AAI>())
-		return;
-
-	Cast<AAI>(OtherActor)->MovementComponent->SpeedMultiplier += (0.15f * Tier);
-}
-
-void AFestival::OnCitizenOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (!OtherActor->IsA<AAI>())
-		return;
-
-	Cast<AAI>(OtherActor)->MovementComponent->SpeedMultiplier -= (0.15f * Tier);
 }
 
 void AFestival::OnBuilt()

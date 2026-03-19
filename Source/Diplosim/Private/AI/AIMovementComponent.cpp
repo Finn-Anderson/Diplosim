@@ -3,10 +3,14 @@
 #include "Components/InstancedStaticMeshComponent.h"
 
 #include "AI/AI.h"
+#include "AI/Clone.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
+#include "Buildings/Misc/Festival.h"
+#include "Buildings/Misc/Road.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
+#include "Player/Components/BuildComponent.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/AttackComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
@@ -18,6 +22,7 @@ UAIMovementComponent::UAIMovementComponent()
 	InitialSpeed = 200.0f;
 	MaxSpeed = InitialSpeed;
 	SpeedMultiplier = 1.0f;
+	RoadMultiplier = 1.0f;
 
 	LastUpdatedTime = 0.0f;
 	Transform = FTransform(FQuat::Identity, FVector(0.0f));
@@ -133,7 +138,33 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 
 FVector UAIMovementComponent::CalculateVelocity(FVector Vector)
 {
-	return (Vector - Transform.GetLocation()).Rotation().Vector() * MaxSpeed;
+	CalculateRoadBonus();
+
+	return (Vector - Transform.GetLocation()).Rotation().Vector() * GetMaximumSpeed();
+}
+
+void UAIMovementComponent::CalculateRoadBonus()
+{
+	if (!AI->IsA<ACitizen>() && !AI->IsA<AClone>())
+		return;
+
+	float cost = 1.0f;
+
+	FHitResult hit;
+	if (GetWorld()->LineTraceSingleByChannel(hit, Transform.GetLocation() + FVector(0.0f, 0.0f, 10.0f), Transform.GetLocation() - FVector(0.0f, 0.0f, 10.0f), ECollisionChannel::ECC_Vehicle))
+		if ((hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA<AFestival>()) && !AI->Camera->BuildComponent->Buildings.Contains(hit.GetActor()))
+			cost = 1.15f * Cast<ABuilding>(hit.GetActor())->GetTier();
+
+	if (RoadMultiplier == cost)
+		return;
+
+	RoadMultiplier = cost;
+	
+	int32 energy = 100;
+	if (IsA<ACitizen>())
+		energy = Cast<ACitizen>(AI)->Energy;
+
+	SetMaxSpeed(energy);
 }
 
 void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
@@ -149,7 +180,7 @@ void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 
 void UAIMovementComponent::SetMaxSpeed(int32 Energy)
 {
-	MaxSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, InitialSpeed * 0.3f, InitialSpeed) * SpeedMultiplier;
+	MaxSpeed = FMath::Clamp(FMath::LogX(InitialSpeed, InitialSpeed * (Energy / 100.0f)) * InitialSpeed, InitialSpeed * 0.3f, InitialSpeed) * SpeedMultiplier * RoadMultiplier;
 }
 
 float UAIMovementComponent::GetMaximumSpeed()

@@ -36,6 +36,9 @@ public:
 		float SpeedMultiplier;
 
 	UPROPERTY()
+		float RoadMultiplier;
+
+	UPROPERTY()
 		class AAI* AI;
 
 	UPROPERTY()
@@ -66,4 +69,6 @@ private:
 	void ComputeCurrentAnimation(AActor* Goal, float DeltaTime);
 
 	FVector CalculateVelocity(FVector Vector);
+
+	void CalculateRoadBonus();
 };

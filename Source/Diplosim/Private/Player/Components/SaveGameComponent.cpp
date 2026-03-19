@@ -62,6 +62,7 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index)
 {
+	Camera->PController->DisableInput(Camera->PController);
 	Camera->SetPause(false);
 
 	CurrentID = SlotName;
@@ -125,6 +126,7 @@ void USaveGameComponent::OnNavMeshGenerated()
 
 	Camera->PauseUIInstance->AddToViewport();
 	Camera->DisplayBuildUI();
+	Camera->PController->EnableInput(Camera->PController);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 

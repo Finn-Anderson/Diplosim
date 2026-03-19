@@ -92,11 +92,10 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		FVector prevLocation = Buildings[0]->GetActorLocation();
 
 		Buildings[0]->SetActorLocation(location);
+		Buildings[0]->SetActorRotation(Rotation);
 
-		if (!Buildings[0]->IsA<ARoad>() || Cast<ARoad>(Buildings[0])->SeedNum != 0)
-			Buildings[0]->SetActorRotation(Rotation);
-		else if (!Buildings[0]->IsHidden())
-			Cast<ARoad>(Buildings[0])->SetTier(Cast<ARoad>(Buildings[0])->Tier);
+		if (Buildings[0]->IsA<ARoad>() && !Buildings[0]->IsHidden())
+			Cast<ARoad>(Buildings[0])->RegenerateMesh(true);
 
 		if (Buildings[0]->IsA<AWall>())
 			Cast<AWall>(Buildings[0])->SetRotationMesh(Rotation.Yaw);
@@ -155,7 +154,7 @@ void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
 		Location.Z = FMath::RoundHalfFromZero(hit2.Location.Z);
 
 	if (hit2.GetComponent() == Camera->Grid->HISMRiver && Building->IsA<ARoad>()) {
-		Location.Z = FMath::RoundHalfFromZero(Location.Z / 100.0f) * 100.0f;
+		Location.Z += 20.0f;
 	}
 	else if (IsValid(hit2.GetComponent()) && Building->IsA(FoundationClass)) {
 		if (hit2.GetComponent() == Camera->Grid->HISMRiver)
@@ -277,11 +276,12 @@ void UBuildComponent::SetBuildingsOnPath()
 			SpawnBuilding(Buildings[0]->GetClass(), Buildings[0]->FactionName, location);
 
 			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
+			Buildings.Last()->SetTier(Buildings[0]->GetTier());
 
 			if (Buildings[0]->IsA<AWall>())
 				Cast<AWall>(Buildings.Last())->SetRotationMesh(Rotation.Yaw); 
 			else if (Buildings[0]->IsA<ARoad>())
-				Cast<ARoad>(Buildings.Last())->SetTier(Cast<ARoad>(Buildings[0])->Tier);
+				Cast<ARoad>(Buildings.Last())->RegenerateMesh(true);
 
 			SetTreeStatus(Buildings.Last(), false);
 		}

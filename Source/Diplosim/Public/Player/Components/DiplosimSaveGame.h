@@ -265,9 +265,6 @@ struct FWorldSaveData
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-		TArray<FTileData> Tiles;
-
-	UPROPERTY()
 		TArray<FHISMData> HISMData;
 
 	UPROPERTY()
@@ -1312,13 +1309,16 @@ class DIPLOSIM_API UDiplosimSaveGame : public USaveGame
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
-	TArray<FSave> Saves;
+		TArray<FSave> Saves;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
-	FString ColonyName;
+		FString ColonyName;
 
 	UPROPERTY()
-	FDateTime LastTimeUpdated;
+		FDateTime LastTimeUpdated;
+
+	UPROPERTY()
+		TArray<FTileData> Tiles;
 
 	void SaveGame(class ACamera* Camera, int32 Index, FString ID);
 

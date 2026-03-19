@@ -260,7 +260,7 @@ void ABuilding::SetSeed(int32 Seed)
 		if (!Seeds[Seed].Cost.IsEmpty()) {
 			CostList = Seeds[Seed].Cost;
 
-			if ((IsA<ARoad>() || IsA<AFestival>())) {
+			if (IsA<ARoad>() || IsA<AFestival>()) {
 				if (Tier == 1)
 					CostList.RemoveAt(CostList.Num() - 1);
 				else if (Tier == 2 && CostList.Num() == 3)
@@ -350,7 +350,15 @@ void ABuilding::SetSeed(int32 Seed)
 	ParticleComponent->SetAsset(Seeds[Seed].NiagaraSystem);
 
 	if (Seeds[Seed].Name != "") {
-		BuildingName = Seeds[Seed].Name;
+		FString name = "";
+		if (IsA<ARoad>() || IsA<AFestival>()) {
+			if (Tier == 1)
+				name = "Dirt ";
+			else
+				name = "Stone ";
+		}
+
+		BuildingName = name + Seeds[Seed].Name;
 
 		Camera->UpdateDisplayName();
 	}

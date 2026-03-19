@@ -738,7 +738,7 @@ void UAIBuildComponent::AIBuild(FFactionStruct* Faction, TSubclassOf<ABuilding> 
 	Camera->BuildComponent->SetTreeStatus(building, true);
 
 	if (building->IsA<ARoad>())
-		Cast<ARoad>(building)->RegenerateMesh();
+		Cast<ARoad>(building)->RegenerateMesh(true);
 
 	RemoveTileLocations(Faction, building);
 
