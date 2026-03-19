@@ -92,16 +92,17 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		FVector prevLocation = Buildings[0]->GetActorLocation();
 
 		Buildings[0]->SetActorLocation(location);
-		Buildings[0]->SetActorRotation(Rotation);
+
+		if (!Buildings[0]->IsA<ARoad>() || Cast<ARoad>(Buildings[0])->SeedNum != 0)
+			Buildings[0]->SetActorRotation(Rotation);
+		else if (!Buildings[0]->IsHidden())
+			Cast<ARoad>(Buildings[0])->SetTier(Cast<ARoad>(Buildings[0])->Tier);
 
 		if (Buildings[0]->IsA<AWall>())
 			Cast<AWall>(Buildings[0])->SetRotationMesh(Rotation.Yaw);
 
 		if (StartLocation != FVector::Zero())
 			SetBuildingsOnPath();
-
-		if (Buildings[0]->IsA<ARoad>() && !Buildings[0]->IsHidden())
-			Cast<ARoad>(Buildings[0])->SetTier(Cast<ARoad>(Buildings[0])->Tier);
 
 		SetTreeStatus(Buildings[0], false, false, prevLocation);
 	}
@@ -150,10 +151,13 @@ void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
 	FCollisionQueryParams params;
 	params.AddIgnoredActor(Building);
 
-	if (GetWorld()->LineTraceSingleByChannel(hit2, Location, FVector(Location.X, Location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
+	if (GetWorld()->LineTraceSingleByChannel(hit2, Location + FVector(0.0f, 0.0f, 50.0f), FVector(Location.X, Location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
 		Location.Z = FMath::RoundHalfFromZero(hit2.Location.Z);
 
-	if (IsValid(hit2.GetComponent()) && Building->IsA(FoundationClass)) {
+	if (hit2.GetComponent() == Camera->Grid->HISMRiver && Building->IsA<ARoad>()) {
+		Location.Z = FMath::RoundHalfFromZero(Location.Z / 100.0f) * 100.0f;
+	}
+	else if (IsValid(hit2.GetComponent()) && Building->IsA(FoundationClass)) {
 		if (hit2.GetComponent() == Camera->Grid->HISMRiver)
 			Location.Z -= 55.0f;
 		else if (hit2.GetComponent() == Camera->Grid->HISMSea)
@@ -161,8 +165,6 @@ void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
 		else if (hit2.GetComponent() == Camera->Grid->HISMRampGround)
 			Location.Z -= 50.0f;
 	}
-	else if (hit2.GetComponent() == Camera->Grid->HISMRiver && Building->IsA<ARoad>())
-		Location.Z += 20.0f;
 }
 
 TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, float Extent, FVector Location)
@@ -279,7 +281,7 @@ void UBuildComponent::SetBuildingsOnPath()
 			if (Buildings[0]->IsA<AWall>())
 				Cast<AWall>(Buildings.Last())->SetRotationMesh(Rotation.Yaw); 
 			else if (Buildings[0]->IsA<ARoad>())
-				Cast<ARoad>(Buildings.Last())->SetTier(Cast<ARoad>(Buildings.Last())->Tier);
+				Cast<ARoad>(Buildings.Last())->SetTier(Cast<ARoad>(Buildings[0])->Tier);
 
 			SetTreeStatus(Buildings.Last(), false);
 		}
@@ -325,21 +327,7 @@ TArray<FVector> UBuildComponent::CalculatePath(FTileStruct* StartTile, FTileStru
 		if (y < x || bDiagonal)
 			location.X += (i * xSign * 100.0f);
 
-		FHitResult hit(ForceInit);
-
-		if (GetWorld()->LineTraceSingleByChannel(hit, FVector(location.X, location.Y, 1000.0f), FVector(location.X, location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1))
-			location.Z = FMath::RoundHalfFromZero(hit.Location.Z);
-
-		if (IsValid(hit.GetComponent()) && Buildings[0]->IsA(FoundationClass)) {
-			if (hit.GetComponent() == Camera->Grid->HISMRiver)
-				location.Z -= 55.0f;
-			else if (hit.GetComponent() == Camera->Grid->HISMSea)
-				location.Z -= 25.0f;
-			else if (hit.GetComponent() == Camera->Grid->HISMRampGround)
-				location.Z -= 50.0f;
-		}
-		else if (hit.GetComponent() == Camera->Grid->HISMRiver && Buildings[0]->IsA<ARoad>())
-			location.Z += 20.0f;
+		GetBuildLocationZ(Buildings[0], location);
 
 		locations.Add(location);
 	}
@@ -445,9 +433,8 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		if (hit.GetComponent() == Camera->Grid->HISMRiver && Camera->Grid->HISMRiver->PerInstanceSMCustomData[hit.Item * 4] == 1.0f) {
 			if (Building->IsA<ARoad>()) {
 				ARoad* road = Cast<ARoad>(Building);
-				road->SetTier(road->GetTier());
 
-				if (road->BuildingMesh->GetStaticMesh() == road->RoadMeshes[0])
+				if (road->SeedNum == 0)
 					return false;
 
 				return true;
@@ -580,7 +567,7 @@ void UBuildComponent::RemoveBuilding()
 
 void UBuildComponent::RotateBuilding(bool Rotate)
 {
-	if (Buildings.IsEmpty() || Buildings[0]->IsA<ARoad>())
+	if (Buildings.IsEmpty())
 		return;
 
 	if (Rotate && bCanRotate) {

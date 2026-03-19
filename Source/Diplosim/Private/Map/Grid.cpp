@@ -251,6 +251,7 @@ void AGrid::SetupMap()
 {
 	FTransform seaTransform;
 	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
+	seaTransform.SetScale3D(FVector(Chunks, Chunks, 1.0f));
 	HISMSea->AddInstance(seaTransform);
 	HISMSea->BuildTreeIfOutdated(true, true);
 

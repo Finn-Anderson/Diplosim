@@ -27,7 +27,7 @@ void ABroch::SpawnCitizens()
 {
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	FNavLocation origin;
-	nav->ProjectPointToNavigation(GetActorLocation(), origin);
+	nav->ProjectPointToNavigation(GetActorLocation(), origin, FVector(300.0f, 300.0f, 40.0f));
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
@@ -53,7 +53,7 @@ void ABroch::SpawnCitizens()
 		t.SetLocation(t.GetLocation() + FVector(Camera->Stream.FRandRange(-50.0f, 50.0f), Camera->Stream.FRandRange(-50.0f, 50.0f), 100.0f));
 
 		FNavLocation navLoc;
-		nav->ProjectPointToNavigation(t.GetLocation(), navLoc);
+		nav->ProjectPointToNavigation(t.GetLocation(), navLoc, FVector(10.0f, 10.0f, 40.0f));
 
 		FActorSpawnParameters params;
 		params.bNoFail = true;
@@ -88,12 +88,12 @@ void ABroch::GetNavigableInstances(UNavigationSystemV1* Nav, FNavLocation Origin
 		transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
 
 		FNavLocation navLoc;
-		Nav->ProjectPointToNavigation(transform.GetLocation(), navLoc);
+		Nav->ProjectPointToNavigation(transform.GetLocation(), navLoc, FVector(10.0f, 10.0f, 40.0f));
 
 		double length = 10000000.0f;
 		ENavigationQueryResult::Type result = Nav->GetPathLength(Origin, navLoc, length);
 
-		if (result != ENavigationQueryResult::Success || length > 500.0f)
+		if (result != ENavigationQueryResult::Success || length > 700.0f)
 			Instances.RemoveAt(i);
 	}
 }

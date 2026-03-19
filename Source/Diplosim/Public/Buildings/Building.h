@@ -118,9 +118,6 @@ struct FSeedStruct
 		int32 TimeLength;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
-		int32 Tier;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		class UNiagaraSystem* NiagaraSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
@@ -141,7 +138,6 @@ struct FSeedStruct
 		Name = "";
 		Yield = -1;
 		TimeLength = -1;
-		Tier = 1;
 		NiagaraSystem = nullptr;
 		WorkHat = nullptr;
 	}
@@ -286,7 +282,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		int32 GetTier();
 
-	virtual void SetTier(int32 Value);
+	UFUNCTION(BlueprintCallable)
+		virtual void SetTier(int32 Value);
 
 	UFUNCTION(BlueprintCallable)
 		virtual void SetBuildingColour(float R, float G, float B);

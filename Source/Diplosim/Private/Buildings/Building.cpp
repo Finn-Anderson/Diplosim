@@ -257,14 +257,19 @@ void ABuilding::SetSeed(int32 Seed)
 			}
 		}
 
-		if (!Seeds[Seed].Cost.IsEmpty())
+		if (!Seeds[Seed].Cost.IsEmpty()) {
 			CostList = Seeds[Seed].Cost;
+
+			if ((IsA<ARoad>() || IsA<AFestival>())) {
+				if (Tier == 1)
+					CostList.RemoveAt(CostList.Num() - 1);
+				else if (Tier == 2 && CostList.Num() == 3)
+					CostList.RemoveAt(CostList.Num() - 2);
+			}
+		}
 
 		if (IsA<ATrap>())
 			Cast<ATrap>(this)->bExplode = Seeds[Seed].bExplosive;
-
-		if (IsA<ARoad>() || IsA<AFestival>())
-			SetTier(Seeds[Seed].Tier);
 	}
 	else {
 		TArray<USceneComponent*> children;
@@ -380,6 +385,7 @@ void ABuilding::SetTier(int32 Value)
 		b = 0.64448;
 	}
 
+	SetSeed(SeedNum);
 	SetBuildingColour(r, g, b);
 }
 

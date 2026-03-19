@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SaveGame.h"
 #include "Blueprint/UserWidget.h"
+#include "NavigationSystem.h"
 
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
@@ -102,9 +103,19 @@ void USaveGameComponent::LoadSave()
 
 	for (FTimerStruct timer : Camera->TimerManager->Timers)
 		Camera->TimerManager->RemoveTimer(timer.ID, timer.Actor);
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	FScriptDelegate delegate;
+	delegate.BindUFunction(this, TEXT("OnNavMeshGenerated"));
+
+	nav->OnNavigationGenerationFinishedDelegate.Add(delegate);
 	
 	CurrentSaveGame->LoadGame(Camera, CurrentIndex);
+}
 
+void USaveGameComponent::OnNavMeshGenerated()
+{
 	StartAutosaveTimer();
 
 	Checklist.bLoad = false;
@@ -112,9 +123,15 @@ void USaveGameComponent::LoadSave()
 
 	Camera->SetCurrentResearchUI();
 
-	Camera->Grid->LoadUIInstance->RemoveFromParent();
-	Camera->PauseUIInstance->AddToViewport(); 
+	Camera->PauseUIInstance->AddToViewport();
 	Camera->DisplayBuildUI();
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	FScriptDelegate delegate;
+	delegate.BindUFunction(this, TEXT("OnNavMeshGenerated"));
+
+	nav->OnNavigationGenerationFinishedDelegate.Remove(delegate);
 }
 
 void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot)

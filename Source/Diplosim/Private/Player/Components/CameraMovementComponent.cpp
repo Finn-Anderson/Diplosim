@@ -10,6 +10,7 @@
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
 #include "Buildings/Building.h"
+#include "Buildings/Misc/Road.h"
 #include "Buildings/Work/Service/Trader.h"
 #include "Map/Grid.h"
 #include "Player/Camera.h"
@@ -116,6 +117,8 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 	FVector widgetLocation = location;
 	if (Actor->IsA<ATrader>() && !Camera->BuildComponent->Buildings.Contains(Actor))
 		widgetLocation.Z += z / 2.0f + 5.0f;
+	else if (Actor->IsA<ARoad>() && !Camera->BuildComponent->Buildings.Contains(Actor))
+		widgetLocation.Z += z;
 	else
 		widgetLocation.Z += z - 8.0f;
 

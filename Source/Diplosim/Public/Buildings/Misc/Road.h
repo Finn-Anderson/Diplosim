@@ -32,10 +32,7 @@ public:
 		class UBoxComponent* BoxAreaAffect;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Roads")
-		class UHierarchicalInstancedStaticMeshComponent* HISMRoad;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Roads")
-		TArray<UStaticMesh*> RoadMeshes;
+		class UInstancedStaticMeshComponent* HISMRoad;
 
 	void RegenerateMesh();
 

@@ -99,6 +99,9 @@ public:
 
 	void LoadSave();
 
+	UFUNCTION()
+		void OnNavMeshGenerated();
+
 	UFUNCTION(BlueprintCallable)
 		void DeleteGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot);
 
