@@ -4,6 +4,8 @@
 #include "GameFramework/SaveGame.h"
 #include "Blueprint/UserWidget.h"
 #include "NavigationSystem.h"
+#include "Serialization/ArchiveLoadCompressedProxy.h"
+#include "Serialization/ArchiveSaveCompressedProxy.h"
 
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
@@ -136,21 +138,39 @@ void USaveGameComponent::OnNavMeshGenerated()
 	nav->OnNavigationGenerationFinishedDelegate.Remove(delegate);
 }
 
+void USaveGameComponent::CompressAndSave(FString SlotName, UDiplosimSaveGame* SaveGame)
+{
+	TArray<uint8> compressedBytes, bytes;
+	FArchiveSaveCompressedProxy compressor = FArchiveSaveCompressedProxy(compressedBytes, NAME_Zlib, ECompressionFlags::COMPRESS_BiasMemory);
+	UGameplayStatics::SaveGameToMemory(SaveGame, bytes);
+	compressor << bytes;
+	compressor.Flush();
+
+	const FString& saveDir = UKismetSystemLibrary::GetProjectSavedDirectory() / "SaveGames";
+	const FString filePath = saveDir + "/" + SlotName + ".sav";
+	FFileHelper::SaveArrayToFile(compressedBytes, *filePath);
+}
+
 void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot)
 {
-	if (bSlot)
+	if (bSlot) {
+		SaveGame->Saves.Empty();
+
 		UGameplayStatics::DeleteGameInSlot(SlotName, 0);
+	}
 	else {
 		SaveGame->Saves.RemoveAt(Index);
 
-		UGameplayStatics::AsyncSaveGameToSlot(SaveGame, SlotName, 0);
+		CompressAndSave(SlotName, SaveGame);
 	}
+
+	if (CurrentSaveGame->LastTimeUpdated == SaveGame->LastTimeUpdated)
+		CurrentSaveGame = SaveGame;
 }
 
 TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()
 {
 	TMap<FString, class UDiplosimSaveGame*> gameSavesList;
-
 	const FString& saveDir = UKismetSystemLibrary::GetProjectSavedDirectory() / "SaveGames";
 
 	TArray<FString> foundFiles;
@@ -158,14 +178,18 @@ TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()
 
 	IFileManager::Get().FindFiles(foundFiles, *saveDir, *ext);
 
-	TArray<FString> fileNames;
-	for (const FString& name : foundFiles)
-		fileNames.AddUnique(name.LeftChop(4));
-
 	TArray<UDiplosimSaveGame*> sortedGames;
 	TArray<FString> sortedNames;
-	for (const FString& name : fileNames) {
-		UDiplosimSaveGame* gameSave = Cast<UDiplosimSaveGame>(UGameplayStatics::LoadGameFromSlot(name, 0));
+	for (const FString& name : foundFiles) {
+		TArray<uint8> compressedBytes, bytes;
+		FFileHelper::LoadFileToArray(compressedBytes, *(saveDir + "/" + name));
+
+		FArchiveLoadCompressedProxy decompressor = FArchiveLoadCompressedProxy(compressedBytes, NAME_Zlib);
+		if (decompressor.GetError())
+			continue;
+
+		decompressor << bytes;
+		UDiplosimSaveGame* gameSave = Cast<UDiplosimSaveGame>(UGameplayStatics::LoadGameFromMemory(bytes));
 
 		if (!IsValid(gameSave))
 			continue;
@@ -180,7 +204,7 @@ TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()
 		}
 
 		sortedGames.Insert(gameSave, index);
-		sortedNames.Insert(name, index);
+		sortedNames.Insert(name.LeftChop(4), index);
 	}
 
 	for (int32 i = 0; i < sortedGames.Num(); i++)

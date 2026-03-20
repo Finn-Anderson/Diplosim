@@ -2,6 +2,7 @@
 
 #include "Components/DecalComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "NavigationSystem.h"
 
 #include "AI/Citizen/Citizen.h"
@@ -26,31 +27,19 @@ ABroch::ABroch()
 void ABroch::SpawnCitizens()
 {
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-	FNavLocation origin;
-	nav->ProjectPointToNavigation(GetActorLocation(), origin, FVector(300.0f, 300.0f, 40.0f));
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	TArray<int32> edgeInstances = Camera->Grid->HISMGround->GetInstancesOverlappingSphere(GetActorLocation(), 500.0f);
-	GetNavigableInstances(nav, origin, Camera->Grid->HISMGround, edgeInstances);
-
-	TArray<int32> flatInstances = Camera->Grid->HISMFlatGround->GetInstancesOverlappingSphere(GetActorLocation(), 500.0f);
-	GetNavigableInstances(nav, origin, Camera->Grid->HISMFlatGround, flatInstances);
+	TArray<FHitResult> hits;
+	GetWorld()->SweepMultiByChannel(hits, GetActorLocation(), GetActorLocation(), FQuat::Identity, ECC_GameTraceChannel1, FCollisionShape::MakeSphere(500.0f));
+	GetNavigableInstances(nav, hits);
 
 	for (int32 i = 0; i < Camera->CitizenNum; i++) {
-		int32 chosenNum = Camera->Stream.RandRange(0, edgeInstances.Num() + flatInstances.Num() - 1);
+		int32 chosenNum = Camera->Stream.RandRange(0, hits.Num() - 1);
 
 		FTransform t;
-		if (chosenNum > edgeInstances.Num() - 1) {
-			int32 inst = flatInstances[chosenNum - edgeInstances.Num()];
-			Camera->Grid->HISMFlatGround->GetInstanceTransform(inst, t);
-		}
-		else {
-			int32 inst = edgeInstances[chosenNum];
-			Camera->Grid->HISMGround->GetInstanceTransform(inst, t);
-		}
-
-		t.SetLocation(t.GetLocation() + FVector(Camera->Stream.FRandRange(-50.0f, 50.0f), Camera->Stream.FRandRange(-50.0f, 50.0f), 100.0f));
+		Cast<UHierarchicalInstancedStaticMeshComponent>(hits[chosenNum].GetComponent())->GetInstanceTransform(hits[chosenNum].Item, t);
+		t.SetLocation(t.GetLocation() + FVector(Camera->Stream.FRandRange(-40.0f, 40.0f), Camera->Stream.FRandRange(-40.0f, 40.0f), 100.0f));
 
 		FNavLocation navLoc;
 		nav->ProjectPointToNavigation(t.GetLocation(), navLoc, FVector(10.0f, 10.0f, 40.0f));
@@ -80,20 +69,40 @@ void ABroch::SpawnCitizens()
 	}
 }
 
-void ABroch::GetNavigableInstances(UNavigationSystemV1* Nav, FNavLocation Origin, UHierarchicalInstancedStaticMeshComponent* HISM, TArray<int32>& Instances)
+void ABroch::GetNavigableInstances(UNavigationSystemV1* Nav, TArray<FHitResult> Hits)
 {
-	for (int32 i = Instances.Num() - 1; i > -1; i--) {
+	const ANavigationData* navData = Nav->GetDefaultNavDataInstance();
+
+	FNavLocation origin;
+	Nav->ProjectPointToNavigation(GetActorLocation(), origin, FVector(300.0f, 300.0f, 40.0f));
+
+	for (int32 i = Hits.Num() - 1; i > -1; i--) {
+		if (Hits[i].GetComponent() != Camera->Grid->HISMGround && Hits[i].GetComponent() != Camera->Grid->HISMFlatGround) {
+			Hits.RemoveAt(i);
+
+			continue;
+		}
+
 		FTransform transform;
-		Camera->Grid->HISMGround->GetInstanceTransform(Instances[i], transform);
+		Cast<UHierarchicalInstancedStaticMeshComponent>(Hits[i].GetComponent())->GetInstanceTransform(Hits[i].Item, transform);
 		transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
 
 		FNavLocation navLoc;
 		Nav->ProjectPointToNavigation(transform.GetLocation(), navLoc, FVector(10.0f, 10.0f, 40.0f));
 
+		FPathFindingQuery query(this, *navData, origin.Location, navLoc.Location);
+
+		bool path = Nav->TestPathSync(query, EPathFindingMode::Hierarchical);
+		if (!path) {
+			Hits.RemoveAt(i);
+
+			continue;
+		}
+
 		double length = 10000000.0f;
-		ENavigationQueryResult::Type result = Nav->GetPathLength(Origin, navLoc, length);
+		ENavigationQueryResult::Type result = Nav->GetPathLength(origin, navLoc, length);
 
 		if (result != ENavigationQueryResult::Success || length > 700.0f)
-			Instances.RemoveAt(i);
+			Hits.RemoveAt(i);
 	}
 }

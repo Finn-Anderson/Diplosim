@@ -6,8 +6,6 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/WidgetComponent.h"
 
-#include "Kismet/KismetMathLibrary.h"
-
 #include "AI/Clone.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
@@ -125,7 +123,7 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 	Saves[Index].CitizenNum = citizenNum;
 	LastTimeUpdated = FDateTime::Now();
 
-	UGameplayStatics::AsyncSaveGameToSlot(this, ID, 0);
+	Camera->SaveGameComponent->CompressAndSave(ID, this);
 }
 
 void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int32 Index, TArray<AActor*> PotentialWetActors)

@@ -102,6 +102,8 @@ public:
 	UFUNCTION()
 		void OnNavMeshGenerated();
 
+	void CompressAndSave(FString SlotName, UDiplosimSaveGame* SaveGame);
+
 	UFUNCTION(BlueprintCallable)
 		void DeleteGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot);
 
