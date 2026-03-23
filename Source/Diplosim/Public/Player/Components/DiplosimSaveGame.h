@@ -1229,26 +1229,11 @@ struct FSave
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
+	UPROPERTY()
 		FString SaveName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
-		FString Period;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
-		int32 Day;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
-		int32 Hour;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
-		int32 CitizenNum;
 
 	UPROPERTY()
 		FRandomStream Stream;
-
-	UPROPERTY()
-		bool bAutosave;
 
 	UPROPERTY()
 		TArray<FActorSaveData> SavedActors;
@@ -1277,11 +1262,6 @@ struct FSave
 	FSave()
 	{
 		SaveName = "";
-		Period = "";
-		Day = 0;
-		Hour = 0;
-		CitizenNum = 0;
-		bAutosave = false;
 	}
 
 	void EmptyData()
@@ -1309,18 +1289,12 @@ class DIPLOSIM_API UDiplosimSaveGame : public USaveGame
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
-		TArray<FSave> Saves;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
-		FString ColonyName;
-
-	UPROPERTY()
-		FDateTime LastTimeUpdated;
+	  TArray<FSave> Saves;
 
 	UPROPERTY()
 		TArray<FTileData> Tiles;
 
-	void SaveGame(class ACamera* Camera, int32 Index, FString ID);
+	int32 SaveGame(class ACamera* Camera, int32 Index, FString ID);
 
 	void LoadGame(class ACamera* Camera, int32 Index);
 

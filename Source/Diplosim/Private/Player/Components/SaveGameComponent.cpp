@@ -28,6 +28,7 @@ USaveGameComponent::USaveGameComponent()
 void USaveGameComponent::StartNewSave()
 {
 	CurrentSaveGame = Cast<UDiplosimSaveGame>(UGameplayStatics::CreateSaveGameObject(UDiplosimSaveGame::StaticClass()));
+	CurrentSaveData = Cast<UDiplosimSaveGameData>(UGameplayStatics::CreateSaveGameObject(UDiplosimSaveGameData::StaticClass()));
 	CurrentID = FGuid::NewGuid().ToString();
 
 	SaveGameSave("", true);
@@ -49,26 +50,28 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 	else {
 		FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
 
-		CurrentSaveGame->Saves[CurrentIndex].Period = calendar.Period;
-		CurrentSaveGame->Saves[CurrentIndex].Day = calendar.Days[calendar.Index];
-		CurrentSaveGame->Saves[CurrentIndex].Hour = calendar.Hour;
+		CurrentSaveData->SavedData[CurrentIndex].Period = calendar.Period;
+		CurrentSaveData->SavedData[CurrentIndex].Day = calendar.Days[calendar.Index];
+		CurrentSaveData->SavedData[CurrentIndex].Hour = calendar.Hour;
 
-		CurrentSaveGame->Saves[CurrentIndex].bAutosave = bAutosave;
+		CurrentSaveData->SavedData[CurrentIndex].bAutosave = bAutosave;
 	}
 
-	CurrentSaveGame->SaveGame(Camera, CurrentIndex, CurrentID);
+	CurrentSaveData->LastTimeUpdated = FDateTime::Now();
+	CurrentSaveData->SavedData[CurrentIndex].CitizenNum = CurrentSaveGame->SaveGame(Camera, CurrentIndex, CurrentID);
+
+	UGameplayStatics::SaveGameToSlot(CurrentSaveData, FString(CurrentID + "Data"), 0);
 
 	if (bAutosave)
 		StartAutosaveTimer();
 }
 
-void USaveGameComponent::LoadGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index)
+void USaveGameComponent::LoadGameSave(FString SlotName, int32 Index)
 {
 	Camera->PController->DisableInput(Camera->PController);
 	Camera->SetPause(false);
 
 	CurrentID = SlotName;
-	CurrentSaveGame = SaveGame;
 	CurrentIndex = Index;
 
 	Camera->Grid->MapUIInstance->RemoveFromParent();
@@ -113,7 +116,8 @@ void USaveGameComponent::LoadSave()
 	delegate.BindUFunction(this, TEXT("OnNavMeshGenerated"));
 
 	nav->OnNavigationGenerationFinishedDelegate.Add(delegate);
-	
+
+	CurrentSaveGame = DecompressSave(CurrentID);
 	CurrentSaveGame->LoadGame(Camera, CurrentIndex);
 }
 
@@ -151,26 +155,51 @@ void USaveGameComponent::CompressAndSave(FString SlotName, UDiplosimSaveGame* Sa
 	FFileHelper::SaveArrayToFile(compressedBytes, *filePath);
 }
 
-void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot)
+UDiplosimSaveGame* USaveGameComponent::DecompressSave(FString SlotName)
 {
-	if (bSlot) {
-		SaveGame->Saves.Empty();
+	const FString& saveDir = UKismetSystemLibrary::GetProjectSavedDirectory() / "SaveGames";
 
-		UGameplayStatics::DeleteGameInSlot(SlotName, 0);
-	}
-	else {
-		SaveGame->Saves.RemoveAt(Index);
+	TArray<uint8> compressedBytes, bytes;
+	FFileHelper::LoadFileToArray(compressedBytes, *(saveDir + "/" + SlotName + ".sav"));
 
-		CompressAndSave(SlotName, SaveGame);
-	}
+	FArchiveLoadCompressedProxy decompressor = FArchiveLoadCompressedProxy(compressedBytes, NAME_Zlib);
+	decompressor << bytes;
 
-	if (CurrentSaveGame->LastTimeUpdated == SaveGame->LastTimeUpdated)
-		CurrentSaveGame = SaveGame;
+	return Cast<UDiplosimSaveGame>(UGameplayStatics::LoadGameFromMemory(bytes));;
 }
 
-TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()
+void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGameData* SaveData, int32 Index, bool bSlot)
 {
-	TMap<FString, class UDiplosimSaveGame*> gameSavesList;
+	UDiplosimSaveGame* gameSave;
+	if (CurrentSaveData->LastTimeUpdated == SaveData->LastTimeUpdated)
+		gameSave = CurrentSaveGame;
+	else
+		gameSave = DecompressSave(SlotName);
+
+	if (bSlot) {
+		gameSave->Saves.Empty();
+		SaveData->SavedData.Empty();
+
+		UGameplayStatics::DeleteGameInSlot(SlotName, 0);
+		UGameplayStatics::DeleteGameInSlot(SlotName + "Data", 0);
+	}
+	else {
+		gameSave->Saves.RemoveAt(Index);
+		SaveData->SavedData.RemoveAt(Index);
+
+		CompressAndSave(SlotName, gameSave);
+		UGameplayStatics::SaveGameToSlot(SaveData, SlotName + "Data", 0);
+	}
+
+	if (CurrentSaveData->LastTimeUpdated == SaveData->LastTimeUpdated) {
+		CurrentSaveData = SaveData;
+		CurrentSaveGame = gameSave;
+	}
+}
+
+TMap<FString, UDiplosimSaveGameData*> USaveGameComponent::LoadAllSavedGames()
+{
+	TMap<FString, UDiplosimSaveGameData*> gameSavesList;
 	const FString& saveDir = UKismetSystemLibrary::GetProjectSavedDirectory() / "SaveGames";
 
 	TArray<FString> foundFiles;
@@ -178,33 +207,24 @@ TMap<FString, class UDiplosimSaveGame*> USaveGameComponent::LoadAllSavedGames()
 
 	IFileManager::Get().FindFiles(foundFiles, *saveDir, *ext);
 
-	TArray<UDiplosimSaveGame*> sortedGames;
+	TArray<UDiplosimSaveGameData*> sortedGames;
 	TArray<FString> sortedNames;
 	for (const FString& name : foundFiles) {
-		TArray<uint8> compressedBytes, bytes;
-		FFileHelper::LoadFileToArray(compressedBytes, *(saveDir + "/" + name));
-
-		FArchiveLoadCompressedProxy decompressor = FArchiveLoadCompressedProxy(compressedBytes, NAME_Zlib);
-		if (decompressor.GetError())
+		if (!name.Contains("Data.sav"))
 			continue;
 
-		decompressor << bytes;
-		UDiplosimSaveGame* gameSave = Cast<UDiplosimSaveGame>(UGameplayStatics::LoadGameFromMemory(bytes));
-
-		if (!IsValid(gameSave))
-			continue;
+		UDiplosimSaveGameData* saveData = Cast<UDiplosimSaveGameData>(UGameplayStatics::LoadGameFromSlot(name.LeftChop(4), 0));
 
 		int32 index = 0;
-
 		for (int32 i = 0; i < sortedGames.Num(); i++) {
-			if (gameSave->LastTimeUpdated > sortedGames[i]->LastTimeUpdated)
+			if (saveData->LastTimeUpdated > sortedGames[i]->LastTimeUpdated)
 				break;
 
 			index++;
 		}
 
-		sortedGames.Insert(gameSave, index);
-		sortedNames.Insert(name.LeftChop(4), index);
+		sortedGames.Insert(saveData, index);
+		sortedNames.Insert(name.LeftChop(8), index);
 	}
 
 	for (int32 i = 0; i < sortedGames.Num(); i++)
@@ -219,16 +239,20 @@ void USaveGameComponent::CreateNewSaveStruct(FString Name, bool bAutosave)
 
 	FSave save;
 	save.SaveName = Name;
-	save.Period = calendar.Period;
-	save.Day = calendar.Days[calendar.Index];
-	save.Hour = calendar.Hour;
+
+	FSaveData saveData;
+	saveData.SaveName = Name;
+	saveData.Period = calendar.Period;
+	saveData.Day = calendar.Days[calendar.Index];
+	saveData.Hour = calendar.Hour;
 
 	if (Name == "")
-		save.SaveName = FDateTime::Now().ToString();
+		saveData.SaveName = FDateTime::Now().ToString();
 
-	save.bAutosave = bAutosave;
+	saveData.bAutosave = bAutosave;
 
-	CurrentIndex = CurrentSaveGame->Saves.Add(save);
+	CurrentIndex = CurrentSaveData->SavedData.Add(saveData);
+	CurrentSaveGame->Saves.Add(save);
 }
 
 void USaveGameComponent::CapAutosaves()
@@ -236,8 +260,8 @@ void USaveGameComponent::CapAutosaves()
 	int32 firstAutosaveIndex = INDEX_NONE;
 	int32 count = 0;
 
-	for (int32 i = 0; i < CurrentSaveGame->Saves.Num(); i++) {
-		if (!CurrentSaveGame->Saves[i].bAutosave)
+	for (int32 i = 0; i < CurrentSaveData->SavedData.Num(); i++) {
+		if (!CurrentSaveData->SavedData[i].bAutosave)
 			continue;
 
 		if (firstAutosaveIndex == INDEX_NONE)
@@ -250,6 +274,7 @@ void USaveGameComponent::CapAutosaves()
 		return;
 
 	CurrentSaveGame->Saves.RemoveAt(firstAutosaveIndex);
+	CurrentSaveData->SavedData.RemoveAt(firstAutosaveIndex);
 }
 
 void USaveGameComponent::StartAutosaveTimer()

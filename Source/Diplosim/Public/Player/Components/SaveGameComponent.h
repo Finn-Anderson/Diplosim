@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "DiplosimSaveGame.h"
+#include "DiplosimSaveGameData.h"
 #include "Components/ActorComponent.h"
 #include "SaveGameComponent.generated.h"
 
@@ -75,6 +76,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
 		class UDiplosimSaveGame* CurrentSaveGame;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
+		class UDiplosimSaveGameData* CurrentSaveData;
+
 	UPROPERTY()
 		int32 CurrentIndex;
 
@@ -91,7 +95,7 @@ public:
 		void SaveGameSave(FString Name, bool bAutosave = false);
 
 	UFUNCTION(BlueprintCallable)
-		void LoadGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index);
+		void LoadGameSave(FString SlotName, int32 Index);
 
 	bool IsLoading();
 
@@ -104,11 +108,13 @@ public:
 
 	void CompressAndSave(FString SlotName, UDiplosimSaveGame* SaveGame);
 
-	UFUNCTION(BlueprintCallable)
-		void DeleteGameSave(FString SlotName, class UDiplosimSaveGame* SaveGame, int32 Index, bool bSlot);
+	UDiplosimSaveGame* DecompressSave(FString SlotName);
 
 	UFUNCTION(BlueprintCallable)
-		TMap<FString, class UDiplosimSaveGame*> LoadAllSavedGames();
+		void DeleteGameSave(FString SlotName, class UDiplosimSaveGameData* SaveData, int32 Index, bool bSlot);
+
+	UFUNCTION(BlueprintCallable)
+		TMap<FString, class UDiplosimSaveGameData*> LoadAllSavedGames();
 
 	void CreateNewSaveStruct(FString Name, bool bAutosave);
 

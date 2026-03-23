@@ -40,7 +40,7 @@
 //
 // Saving
 //
-void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
+int32 UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 {
 	TArray<AActor*> foundActors;
 
@@ -120,10 +120,9 @@ void UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 		Saves[Index].SavedActors.Add(actorData);
 	}
 
-	Saves[Index].CitizenNum = citizenNum;
-	LastTimeUpdated = FDateTime::Now();
-
 	Camera->SaveGameComponent->CompressAndSave(ID, this);
+
+	return citizenNum;
 }
 
 void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int32 Index, TArray<AActor*> PotentialWetActors)
