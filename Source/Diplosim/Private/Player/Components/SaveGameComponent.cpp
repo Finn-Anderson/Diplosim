@@ -170,20 +170,23 @@ UDiplosimSaveGame* USaveGameComponent::DecompressSave(FString SlotName)
 
 void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGameData* SaveData, int32 Index, bool bSlot)
 {
-	UDiplosimSaveGame* gameSave;
-	if (CurrentSaveData->LastTimeUpdated == SaveData->LastTimeUpdated)
+	UDiplosimSaveGame* gameSave = nullptr;
+	if (CurrentSaveData && CurrentSaveData->LastTimeUpdated == SaveData->LastTimeUpdated)
 		gameSave = CurrentSaveGame;
-	else
-		gameSave = DecompressSave(SlotName);
 
 	if (bSlot) {
-		gameSave->Saves.Empty();
-		SaveData->SavedData.Empty();
+		if (IsValid(gameSave)) {
+			gameSave->Saves.Empty();
+			SaveData->SavedData.Empty();
+		}
 
 		UGameplayStatics::DeleteGameInSlot(SlotName, 0);
 		UGameplayStatics::DeleteGameInSlot(SlotName + "Data", 0);
 	}
 	else {
+		if (!IsValid(gameSave))
+			gameSave = DecompressSave(SlotName);
+
 		gameSave->Saves.RemoveAt(Index);
 		SaveData->SavedData.RemoveAt(Index);
 
@@ -191,7 +194,7 @@ void USaveGameComponent::DeleteGameSave(FString SlotName, UDiplosimSaveGameData*
 		UGameplayStatics::SaveGameToSlot(SaveData, SlotName + "Data", 0);
 	}
 
-	if (CurrentSaveData->LastTimeUpdated == SaveData->LastTimeUpdated) {
+	if (CurrentSaveData && CurrentSaveData->LastTimeUpdated == SaveData->LastTimeUpdated) {
 		CurrentSaveData = SaveData;
 		CurrentSaveGame = gameSave;
 	}

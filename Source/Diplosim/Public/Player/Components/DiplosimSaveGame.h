@@ -50,6 +50,9 @@ struct FAtmosphereData
 		FRotator WindRotation;
 
 	UPROPERTY()
+		int32 WindSpeed;
+
+	UPROPERTY()
 		FRotator SunRotation;
 
 	UPROPERTY()
@@ -61,6 +64,7 @@ struct FAtmosphereData
 	FAtmosphereData()
 	{
 		WindRotation = FRotator::ZeroRotator;
+		WindSpeed = 20;
 		SunRotation = FRotator(-15.0f, 15.0f, 0.0f);
 		MoonRotation = FRotator(15.0f, 195.0f, 0.0f);
 		bRedSun = false;

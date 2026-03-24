@@ -69,7 +69,7 @@ void ABroch::SpawnCitizens()
 	}
 }
 
-void ABroch::GetNavigableInstances(UNavigationSystemV1* Nav, TArray<FHitResult> Hits)
+void ABroch::GetNavigableInstances(UNavigationSystemV1* Nav, TArray<FHitResult>& Hits)
 {
 	const ANavigationData* navData = Nav->GetDefaultNavDataInstance();
 

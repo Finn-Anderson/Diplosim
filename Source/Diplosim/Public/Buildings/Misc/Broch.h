@@ -18,5 +18,5 @@ public:
 	void SpawnCitizens();
 
 private:
-	void GetNavigableInstances(class UNavigationSystemV1* Nav, TArray<FHitResult> Hits);
+	void GetNavigableInstances(class UNavigationSystemV1* Nav, TArray<FHitResult>& Hits);
 };

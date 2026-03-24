@@ -141,7 +141,7 @@ void AGrid::BeginPlay()
 
 	Camera->Grid = this;
 
-	AtmosphereComponent->ChangeWindDirection();
+	AtmosphereComponent->AlterWind();
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	HISMRiver->SetWorldPositionOffsetDisableDistance(settings->GetWPODistance());
@@ -1343,9 +1343,14 @@ void AGrid::SpawnEggBasket()
 	if (index == INDEX_NONE)
 		return;
 
-	FTransform transform = GetTransform(ResourceTiles[index]);
+	FTransform transform;
+	transform.SetLocation(FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f));
+	transform.SetRotation(ResourceTiles[index]->Rotation);
 
-	AEggBasket* eggBasket = GetWorld()->SpawnActor<AEggBasket>(EggBasketClass, transform.GetLocation(), transform.Rotator());
+	FActorSpawnParameters params;
+	params.bNoFail = true;
+
+	AEggBasket* eggBasket = GetWorld()->SpawnActor<AEggBasket>(EggBasketClass, transform, params);
 	eggBasket->Grid = this;
 	eggBasket->Tile = ResourceTiles[index];
 
@@ -1511,9 +1516,14 @@ void AGrid::SpawnAISpawners()
 		if (index == INDEX_NONE)
 			return;
 
-		FTransform transform = GetTransform(ResourceTiles[index]);
+		FTransform transform;
+		transform.SetLocation(FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f));
+		transform.SetRotation(ResourceTiles[index]->Rotation);
 
-		AAISpawner* nest = GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, transform);
+		FActorSpawnParameters params;
+		params.bNoFail = true;
+
+		AAISpawner* nest = GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, transform, params);
 		nest->SpawnAI();
 
 		ResourceTiles.RemoveAt(index);

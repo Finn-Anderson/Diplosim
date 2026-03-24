@@ -43,9 +43,10 @@ void UCloudComponent::BeginPlay()
 void UCloudComponent::TickCloud(float DeltaTime)
 {
 	for (int32 i = Clouds.Num() - 1; i > -1; i--) {
-		FCloudStruct cloudStruct = Clouds[i];
+		FCloudStruct& cloudStruct = Clouds[i];
 
-		FVector location = cloudStruct.HISMCloud->GetRelativeLocation() + Grid->AtmosphereComponent->WindRotation.Vector() * 100.0f * DeltaTime;
+		FVector speed = Grid->AtmosphereComponent->WindRotation.Vector() * DeltaTime * Grid->AtmosphereComponent->WindSpeed * 2.0f;
+		FVector location = cloudStruct.HISMCloud->GetRelativeLocation() + speed;
 
 		float bobAmount = FMath::Sin(GetWorld()->GetTimeSeconds() / 2.0f) / 10.0f;
 		location.Z += bobAmount;
@@ -77,7 +78,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 			if (newOpacity == 0.0f) {
 				cloudStruct.HISMCloud->DestroyComponent();
 
-				Clouds.Remove(cloudStruct);
+				Clouds.RemoveAt(i);
 			}
 		}
 		else if (cloudStruct.lightningFrequency != 0.0f) {
@@ -191,7 +192,7 @@ void UCloudComponent::ActivateCloud()
 		chance = 1;
 
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);
-	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation());
+	cloudStruct.Distance = FVector::Dist(spawnLoc, Grid->GetActorLocation()) + 100.0f;
 
 	Clouds.Add(cloudStruct);
 
@@ -202,7 +203,7 @@ void UCloudComponent::ActivateCloud()
 
 FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bool bLoad, TArray<FTransform> LoadTransforms)
 {
-	UHierarchicalInstancedStaticMeshComponent* cloud = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass());
+	UInstancedStaticMeshComponent* cloud = NewObject<UInstancedStaticMeshComponent>(this, UInstancedStaticMeshComponent::StaticClass());
 	cloud->SetStaticMesh(CloudMesh);
 	cloud->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
 	cloud->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -212,7 +213,6 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 	cloud->SetCanEverAffectNavigation(false);
 	cloud->SetupAttachment(Grid->GetRootComponent());
 	cloud->PrimaryComponentTick.bCanEverTick = false;
-	cloud->bAutoRebuildTreeOnInstanceChanges = false;
 	cloud->RegisterComponent();
 
 	TArray<FVector> locations;
@@ -254,8 +254,6 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 	cloud->SetCustomPrimitiveDataFloat(2, colour);
 	cloud->SetCustomPrimitiveDataFloat(3, colour);
 	cloud->SetCustomPrimitiveDataFloat(4, 0.9f);
-
-	cloud->BuildTreeIfOutdated(true, true);
 
 	FCloudStruct cloudStruct;
 	cloudStruct.HISMCloud = cloud;

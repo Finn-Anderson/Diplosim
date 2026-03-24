@@ -103,8 +103,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fire")
 		class UNiagaraSystem* FireSystem;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Wind")
 		FRotator WindRotation;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Wind")
+		int32 WindSpeed;
 
 	UPROPERTY()
 		class AGrid* Grid;
@@ -113,7 +116,7 @@ public:
 		bool bRedSun;
 
 	UFUNCTION()
-		void ChangeWindDirection();
+		void AlterWind();
 
 	void SetWindDimensions(int32 Size);
 

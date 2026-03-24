@@ -10,7 +10,7 @@ struct FCloudStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-		class UHierarchicalInstancedStaticMeshComponent* HISMCloud;
+		class UInstancedStaticMeshComponent* HISMCloud;
 
 	UPROPERTY()
 		class UNiagaraComponent* Precipitation;

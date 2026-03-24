@@ -94,6 +94,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 	NaturalDisasterComponent = CreateDefaultSubobject<UNaturalDisasterComponent>(TEXT("NaturalDisasterComponent"));
 
 	bRedSun = false;
+	WindSpeed = 20;
 }
 
 void UAtmosphereComponent::BeginPlay()
@@ -169,6 +170,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	}
 
 	if (hour != Calendar.Hour) {
+		AlterWind();
 		SetDisplayText(hour);
 
 		Grid->Camera->CitizenManager->CheckWorkStatus(hour);
@@ -188,17 +190,16 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	}
 }
 
-void UAtmosphereComponent::ChangeWindDirection()
+void UAtmosphereComponent::AlterWind()
 {
-	float yaw = Grid->Camera->Stream.FRandRange(0.0f, 360.0f);
+	int32 yaw = Grid->Camera->Stream.RandRange(-15, 15);
+	WindRotation = FRotator(0.0f, WindRotation.Yaw + yaw, 0.0f);
+	WindRotation.Normalize();
 
-	WindRotation = FRotator(0.0f, yaw, 0.0f);
+	int32 diff = FMath::RoundHalfFromZero((100 - WindSpeed - 50) / 10.0f);
+	WindSpeed = FMath::Clamp(WindSpeed + Grid->Camera->Stream.RandRange(-5 + diff, 5 + diff), 1, 100);
 
 	WindComponent->SetRelativeRotation(WindRotation + FRotator(0.0f, 180.0f, 0.0f));
-
-	int32 time = Grid->Camera->Stream.RandRange(180.0f, 600.0f);
-
-	Grid->Camera->TimerManager->CreateTimer("Wind", Grid, time, "ChangeWindDirection", {}, false);
 }
 
 void UAtmosphereComponent::SetWindDimensions(int32 Bound)
