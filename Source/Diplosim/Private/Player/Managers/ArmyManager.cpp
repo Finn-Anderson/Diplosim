@@ -4,6 +4,7 @@
 
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/AISpawner.h"
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
 #include "AI/Citizen/Components/BioComponent.h"
@@ -18,6 +19,7 @@
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/AttackComponent.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 UArmyManager::UArmyManager()
 {
@@ -77,14 +79,27 @@ void UArmyManager::EvaluateAIArmy(FFactionStruct* Faction)
 		}
 	}
 
-	for (FArmyStruct army : Faction->Armies) {
-		for (ACitizen* citizen : army.Citizens) {
+	for (int32 i = 0; i < Faction->Armies.Num(); i++) {
+		for (ACitizen* citizen : Faction->Armies[i].Citizens) {
 			if (IsValid(citizen->AIController->MoveRequest.GetGoalActor()) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 				continue;
 
-			MoveToTarget(Faction, { citizen });
+			MoveToTarget(Faction, { citizen }, i);
 		}
 	}
+}
+
+void UArmyManager::UpdateArmyIconUI(FFactionStruct* Faction1, FFactionStruct* Faction2)
+{
+	if (Faction1->Name != Camera->ColonyName && Faction2->Name != Camera->ColonyName)
+		return;
+
+	FFactionStruct* faction = Faction1;
+	if (Faction2->Name != Camera->ColonyName)
+		faction = Faction2;
+
+	for (int32 i = 0; i < faction->Armies.Num(); i++)
+		Camera->SetArmyWidgetUI(faction->Name, faction->Armies[i].WidgetComponent->GetWidget(), i);
 }
 
 bool UArmyManager::CanJoinArmy(ACitizen* Citizen)
@@ -112,9 +127,9 @@ void UArmyManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizens, b
 
 	UWidgetComponent* widgetComponent = NewObject<UWidgetComponent>(this, UWidgetComponent::StaticClass());
 	widgetComponent->SetupAttachment(Camera->Grid->GetRootComponent());
-	widgetComponent->SetRelativeLocation(Camera->GetTargetActorLocation(Citizens[0]) + FVector(0.0f, 0.0f, 300.0f));
-	widgetComponent->SetWidgetSpace(EWidgetSpace::World);
-	widgetComponent->SetDrawSize(FVector2D(0.0f));
+	widgetComponent->SetRelativeLocation(Camera->GetTargetActorLocation(Citizens[0]) + FVector(0.0f, 0.0f, 120.0f));
+	widgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	widgetComponent->SetDrawSize(FVector2D(64.0f, 100.0f));
 	widgetComponent->SetWidgetClass(ArmyUI);
 	widgetComponent->RegisterComponent();
 
@@ -145,7 +160,7 @@ void UArmyManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens)
 		for (ACitizen* citizen : Citizens)
 			citizen->AIController->AIMoveTo(faction->EggTimer);
 	else
-		MoveToTarget(faction, Citizens);
+		MoveToTarget(faction, Citizens, Index);
 
 	Camera->UpdateArmyCountUI(Index, faction->Armies[Index].Citizens.Num());
 }
@@ -160,10 +175,10 @@ void UArmyManager::RemoveFromArmy(ACitizen* Citizen)
 
 		faction->Armies[i].Citizens.Remove(Citizen);
 
-		Camera->UpdateArmyCountUI(i, faction->Armies[i].Citizens.Num());
-
 		if (faction->Armies[i].Citizens.IsEmpty())
-			faction->Armies.RemoveAt(i);
+			DestroyArmy(faction->Name, i);
+		else
+			Camera->UpdateArmyCountUI(i, faction->Armies[i].Citizens.Num());
 
 		break;
 	}
@@ -185,6 +200,11 @@ void UArmyManager::UpdateArmy(FString FactionName, int32 Index, TArray<ACitizen*
 		else
 			faction->Armies[Index].Citizens.Add(citizen);
 	}
+
+	if (faction->Armies[Index].Citizens.IsEmpty())
+		DestroyArmy(FactionName, Index);
+	else
+		Camera->UpdateArmyCountUI(Index, faction->Armies[Index].Citizens.Num());
 }
 
 bool UArmyManager::IsCitizenInAnArmy(ACitizen* Citizen)
@@ -207,11 +227,13 @@ void UArmyManager::DestroyArmy(FString FactionName, int32 Index)
 
 	if (PlayerSelectedArmyIndex == Index)
 		SetSelectedArmy(INDEX_NONE);
+
+	Camera->UpdateArmyCountUI(Index, 0);
 }
 
-TArray<ABuilding*> UArmyManager::GetReachableTargets(FFactionStruct* Faction, ACitizen* Citizen)
+TArray<AActor*> UArmyManager::GetReachableTargets(FFactionStruct* Faction, ACitizen* Citizen)
 {
-	TArray<ABuilding*> targets;
+	TArray<AActor*> targets;
 
 	for (FString name : Faction->AtWar) {
 		FFactionStruct* f = Camera->ConquestManager->GetFaction(name);
@@ -222,31 +244,49 @@ TArray<ABuilding*> UArmyManager::GetReachableTargets(FFactionStruct* Faction, AC
 			targets.Add(building);
 	}
 
+	for (AAISpawner* spawner : GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->SnakeSpawners)
+		if (Citizen->AIController->CanMoveTo(spawner->GetActorLocation()))
+			targets.Add(spawner);
+
 	return targets;
 }
 
-void UArmyManager::MoveToTarget(FFactionStruct* Faction, TArray<ACitizen*> Citizens)
+void UArmyManager::MoveToTarget(FFactionStruct* Faction, TArray<ACitizen*> Citizens, int32 Index)
 {
-	TArray<ABuilding*> targets = GetReachableTargets(Faction, Citizens[0]);
+	AActor* target = nullptr;
 
-	if (targets.IsEmpty()) {
-		for (ACitizen* citizen : Citizens)
-			RemoveFromArmy(citizen);
-
-		return;
+	if (Index != INDEX_NONE && IsValid(Faction->Armies[Index].Target)) {
+		UHealthComponent* healthComp = Faction->Armies[Index].Target->GetComponentByClass<UHealthComponent>();
+		if (healthComp->GetHealth() > 0)
+			target = Faction->Armies[Index].Target;
 	}
 
-	int32 index = Camera->Stream.RandRange(0, targets.Num() - 1);
+	if (!IsValid(target)) {
+		TArray<AActor*> targets = GetReachableTargets(Faction, Citizens[0]);
 
+		if (targets.IsEmpty()) {
+			for (ACitizen* citizen : Citizens)
+				RemoveFromArmy(citizen);
+
+			return;
+		}
+
+		int32 index = Camera->Stream.RandRange(0, targets.Num() - 1);
+		target = targets[index];
+	}
+
+	if (Index != INDEX_NONE && Faction->Armies[Index].Target != target)
+		Faction->Armies[Index].Target = target;
+	
 	for (ACitizen* citizen : Citizens)
-		citizen->AIController->AIMoveTo(targets[index]);
+		citizen->AIController->AIMoveTo(target);
 }
 
 void UArmyManager::StartRaid(FFactionStruct Faction, int32 Index)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
 
-	MoveToTarget(faction, faction->Armies[Index].Citizens);
+	MoveToTarget(faction, faction->Armies[Index].Citizens, Index);
 }
 
 ABuilding* UArmyManager::MoveArmyMember(FFactionStruct* Faction, AAI* AI, bool bReturn, ABuilding* CurrentTarget)

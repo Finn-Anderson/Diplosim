@@ -15,6 +15,8 @@ public:
 
 	void EvaluateAIArmy(FFactionStruct* Faction);
 
+	void UpdateArmyIconUI(FFactionStruct* Faction1, FFactionStruct* Faction2);
+
 	UFUNCTION(BlueprintCallable)
 		bool CanJoinArmy(class ACitizen* Citizen);
 
@@ -36,9 +38,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void DestroyArmy(FString FactionName, int32 Index);
 
-	TArray<class ABuilding*> GetReachableTargets(FFactionStruct* Faction, class ACitizen* Citizen);
+	TArray<AActor*> GetReachableTargets(FFactionStruct* Faction, class ACitizen* Citizen);
 
-	void MoveToTarget(FFactionStruct* Faction, class TArray<ACitizen*> Citizens);
+	void MoveToTarget(FFactionStruct* Faction, TArray<class ACitizen*> Citizens, int32 Index = INDEX_NONE);
 
 	UFUNCTION()
 		void StartRaid(FFactionStruct Faction, int32 Index);

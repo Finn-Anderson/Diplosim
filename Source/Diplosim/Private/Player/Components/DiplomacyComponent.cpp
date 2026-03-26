@@ -8,6 +8,7 @@
 #include "Map/Grid.h"
 #include "Player/Camera.h"
 #include "Player/Components/BuildComponent.h"
+#include "Player/Managers/ArmyManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/ResourceManager.h"
@@ -117,6 +118,9 @@ void UDiplomacyComponent::SetFactionCulture(FFactionStruct* Faction)
 	Faction->LargestReligion = biggestReligion.Key;
 
 	Faction->Flag = GetTextureFromCulture(Faction->PartyInPower, Faction->LargestReligion);
+
+	for (int32 i = 0; i < Faction->Armies.Num(); i++)
+		Camera->SetArmyWidgetUI(Faction->Name, Faction->Armies[i].WidgetComponent->GetWidget(), i);
 
 	Camera->UpdateFactionIcons(Camera->ConquestManager->Factions.Find(*Faction));
 }
@@ -427,6 +431,8 @@ void UDiplomacyComponent::Peace(FFactionStruct Faction1, FFactionStruct Faction2
 
 	f1->AtWar.Remove(f2->Name);
 	f2->AtWar.Remove(f1->Name);
+
+	Camera->ArmyManager->UpdateArmyIconUI(f1, f2);
 }
 
 void UDiplomacyComponent::Ally(FFactionStruct Faction1, FFactionStruct Faction2)
@@ -436,6 +442,8 @@ void UDiplomacyComponent::Ally(FFactionStruct Faction1, FFactionStruct Faction2)
 
 	f1->Allies.Add(f2->Name);
 	f2->Allies.Add(f1->Name);
+
+	Camera->ArmyManager->UpdateArmyIconUI(f1, f2);
 }
 
 void UDiplomacyComponent::BreakAlliance(FFactionStruct Faction1, FFactionStruct Faction2)
@@ -445,6 +453,8 @@ void UDiplomacyComponent::BreakAlliance(FFactionStruct Faction1, FFactionStruct 
 
 	f1->Allies.Remove(f2->Name);
 	f2->Allies.Remove(f1->Name);
+
+	Camera->ArmyManager->UpdateArmyIconUI(f1, f2);
 }
 
 void UDiplomacyComponent::DeclareWar(FFactionStruct Faction1, FFactionStruct Faction2)

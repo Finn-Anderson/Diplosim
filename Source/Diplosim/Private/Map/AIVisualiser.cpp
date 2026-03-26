@@ -50,18 +50,12 @@ UAIVisualiser::UAIVisualiser()
 		*element.Key = hism;
 		hism->SetupAttachment(AIContainer);
 		hism->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		hism->SetCollisionObjectType(ECC_Pawn);
 		hism->SetCollisionResponseToChannels(response);
 		hism->SetCanEverAffectNavigation(false);
 		hism->SetGenerateOverlapEvents(false);
 		hism->bSupportRemoveAtSwap = false;
 		hism->bWorldPositionOffsetWritesVelocity = false;
-
-		if (hism == HISMCitizen || hism == HISMClone)
-			hism->SetCollisionObjectType(ECC_GameTraceChannel2);
-		else if (hism == HISMRebel)
-			hism->SetCollisionObjectType(ECC_GameTraceChannel3);
-		else
-			hism->SetCollisionObjectType(ECC_GameTraceChannel4);
 
 		if (hism == HISMCitizen)
 			hism->NumCustomDataFloats = 18;
@@ -218,7 +212,6 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
 
 						UInstancedStaticMeshComponent* ism = nullptr;
-
 						if (i == 0) {
 							float opacity = 1.0f;
 							if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt->bHideCitizen)
@@ -289,11 +282,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 
 				ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
 
-				if (ai->HealthComponent->GetHealth() == 0)
-					continue;
-
 				UInstancedStaticMeshComponent* ism = nullptr;
-
 				if (i == 0)
 					ism = HISMClone;
 				else if (i == 1)

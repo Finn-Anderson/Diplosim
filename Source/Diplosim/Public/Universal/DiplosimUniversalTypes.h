@@ -723,10 +723,14 @@ struct FArmyStruct
 	UPROPERTY()
 		bool bGroup;
 
+	UPROPERTY()
+		AActor* Target;
+
 	FArmyStruct()
 	{
 		WidgetComponent = nullptr;
 		bGroup = false;
+		Target = nullptr;
 	}
 };
 

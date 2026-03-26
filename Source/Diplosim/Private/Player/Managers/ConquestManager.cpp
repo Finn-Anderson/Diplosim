@@ -261,10 +261,10 @@ void UConquestManager::ComputeAI()
 
 		DiplomacyComponent->SetFactionsHappiness(faction);
 
+		DiplomacyComponent->SetFactionCulture(&faction);
+
 		if (faction.Name == Camera->ColonyName)
 			continue;
-
-		DiplomacyComponent->SetFactionCulture(&faction);
 
 		Camera->UpdateFactionHappiness();
 
