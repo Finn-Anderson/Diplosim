@@ -7,6 +7,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "Misc/ScopeTryLock.h"
+#include "Camera/CameraComponent.h"
 
 #include "AI/Enemy.h"
 #include "AI/AIMovementComponent.h"
@@ -20,6 +21,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Components/DiplomacyComponent.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Components/SaveGameComponent.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -58,7 +60,7 @@ UAIVisualiser::UAIVisualiser()
 		hism->bWorldPositionOffsetWritesVelocity = false;
 
 		if (hism == HISMCitizen)
-			hism->NumCustomDataFloats = 18;
+			hism->NumCustomDataFloats = 19;
 		else if (hism == HISMRebel)
 			hism->NumCustomDataFloats = 14;
 		else
@@ -174,6 +176,28 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 		for (FFactionStruct faction : Camera->ConquestManager->Factions) {
 			cs.Append(faction.Citizens);
 			rebels.Append(faction.Rebels);
+
+			if (faction.PartyInPower == "")
+				continue;
+
+			UMaterialInterface* material = HISMCitizen->GetMaterial(1);
+			UMaterialInstanceDynamic* dynamicMaterial = nullptr;
+			if (material->IsA<UMaterialInstanceDynamic>())
+				dynamicMaterial = Cast<UMaterialInstanceDynamic>(material);
+			else
+				dynamicMaterial = UMaterialInstanceDynamic::Create(material, this); 
+			
+			UTexture2D* partyTexture = *Camera->ConquestManager->DiplomacyComponent->CultureTextureList.Find(faction.PartyInPower);
+			UTexture2D* religionTexture = *Camera->ConquestManager->DiplomacyComponent->CultureTextureList.Find(faction.LargestReligion);
+
+			Async(EAsyncExecution::TaskGraphMainTick, [dynamicMaterial, partyTexture, religionTexture]() {
+				dynamicMaterial->SetTextureParameterValue("Party", partyTexture);
+				dynamicMaterial->SetTextureParameterValue("Religion", religionTexture);
+			});
+
+			HISMCitizen->SetCustomPrimitiveDataFloat(0, faction.FlagColour.R);
+			HISMCitizen->SetCustomPrimitiveDataFloat(1, faction.FlagColour.G);
+			HISMCitizen->SetCustomPrimitiveDataFloat(2, faction.FlagColour.B);
 		}
 
 		if (cs.IsEmpty() && rebels.IsEmpty())
@@ -229,8 +253,6 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						SetInstanceTransform(ism, j, citizen->MovementComponent->Transform);
 
 						UpdateCitizenVisuals(ism, Camera, citizen, j);
-
-						UpdateArmyVisuals(Camera, citizen);
 
 						SetAIColour(ism, j, citizen->Colour);
 					}
@@ -475,20 +497,6 @@ void UAIVisualiser::ActivateTorch(int32 Hour, UInstancedStaticMeshComponent* ISM
 		value = 1.0f;
 
 	UpdateInstanceCustomData(ISM, Instance, 12, value);
-}
-
-void UAIVisualiser::UpdateArmyVisuals(ACamera* Camera, ACitizen* Citizen)
-{
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
-
-	for (FArmyStruct& army : faction->Armies) {
-		if (army.Citizens.IsEmpty() || army.Citizens[0] != Citizen)
-			continue;
-
-		army.WidgetComponent->SetRelativeLocation(Camera->GetTargetActorLocation(Citizen) + FVector(0.0f, 0.0f, 300.0f));
-
-		break;
-	}
 }
 
 void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)

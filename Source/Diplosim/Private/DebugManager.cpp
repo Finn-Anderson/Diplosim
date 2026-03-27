@@ -61,6 +61,18 @@ void UDebugManager::ChangeSeasonAffect(FString Season)
 	camera->Grid->AtmosphereComponent->SetSeasonAffect(Season, 0.02f);
 }
 
+void UDebugManager::SetRain(bool bChance)
+{
+	bRain = bChance;
+}
+
+void UDebugManager::SetWindSpeed(int32 Speed)
+{
+	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
+
+	camera->Grid->AtmosphereComponent->WindSpeed = Speed;
+}
+
 void UDebugManager::CompleteResearch()
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();

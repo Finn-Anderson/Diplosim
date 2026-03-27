@@ -254,8 +254,6 @@ private:
 
 	void ActivateTorch(int32 Hour, class UInstancedStaticMeshComponent* ISM, int32 Instance);
 
-	void UpdateArmyVisuals(class ACamera* Camera, class ACitizen* Citizen);
-
 	FTransform GetHatTransform(ACitizen* Citizen);
 
 	void UpdateHatTransform(class ACitizen* Citizen);

@@ -5,7 +5,7 @@
 #include "InputAction.h"
 #include "Camera/CameraComponent.h"
 #include "Components/WidgetComponent.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
@@ -100,7 +100,7 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 
 	if (Actor->IsA<AResource>()) {
 		FTransform transform;
-		Cast<UHierarchicalInstancedStaticMeshComponent>(Component)->GetInstanceTransform(Instance, transform);
+		Cast<UInstancedStaticMeshComponent>(Component)->GetInstanceTransform(Instance, transform);
 
 		location = transform.GetLocation();
 	}

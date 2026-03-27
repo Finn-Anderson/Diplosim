@@ -140,12 +140,6 @@ public:
 		void UpdateLoadingText(const FString& Message);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void SetArmyWidgetUI(const FString& FactionName, class UUserWidget* Widget, int32 Index);
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateArmyWidgetSelectionUI(class UUserWidget* Widget, bool bShow);
-
-	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateArmyCountUI(int32 Index, int32 Amount);
 
 	UFUNCTION(BlueprintImplementableEvent)

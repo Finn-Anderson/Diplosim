@@ -17,6 +17,7 @@
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/EggBasket.h"
+#include "DebugManager.h"
 
 UCloudComponent::UCloudComponent()
 {
@@ -188,7 +189,9 @@ void UCloudComponent::ActivateCloud()
 
 	int32 chance = Grid->Camera->Stream.RandRange(1, 100);
 
-	if (!Settings->GetRain())
+	if (Cast<UDebugManager>(Grid->Camera->PController->CheatManager)->bRain)
+		chance = 100;
+	else if (!Settings->GetRain())
 		chance = 1;
 
 	FCloudStruct cloudStruct = CreateCloud(transform, chance);

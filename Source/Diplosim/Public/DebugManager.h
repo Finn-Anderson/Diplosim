@@ -18,11 +18,20 @@ public:
 	UPROPERTY()
 		bool bInstantEnemies;
 
+	UPROPERTY()
+		bool bRain;
+
 	UFUNCTION(Exec)
 		void SpawnEnemies();
 
 	UFUNCTION(Exec)
 		void ChangeSeasonAffect(FString Season);
+
+	UFUNCTION(Exec)
+		void SetRain(bool bChance);
+
+	UFUNCTION(Exec)
+		void SetWindSpeed(int32 Speed);
 
 	UFUNCTION(Exec)
 		void AddEnemies(FString Category, int32 Amount);

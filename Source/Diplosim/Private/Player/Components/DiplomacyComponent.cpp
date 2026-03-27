@@ -119,9 +119,6 @@ void UDiplomacyComponent::SetFactionCulture(FFactionStruct* Faction)
 
 	Faction->Flag = GetTextureFromCulture(Faction->PartyInPower, Faction->LargestReligion);
 
-	for (int32 i = 0; i < Faction->Armies.Num(); i++)
-		Camera->SetArmyWidgetUI(Faction->Name, Faction->Armies[i].WidgetComponent->GetWidget(), i);
-
 	Camera->UpdateFactionIcons(Camera->ConquestManager->Factions.Find(*Faction));
 }
 
@@ -431,8 +428,6 @@ void UDiplomacyComponent::Peace(FFactionStruct Faction1, FFactionStruct Faction2
 
 	f1->AtWar.Remove(f2->Name);
 	f2->AtWar.Remove(f1->Name);
-
-	Camera->ArmyManager->UpdateArmyIconUI(f1, f2);
 }
 
 void UDiplomacyComponent::Ally(FFactionStruct Faction1, FFactionStruct Faction2)
@@ -442,8 +437,6 @@ void UDiplomacyComponent::Ally(FFactionStruct Faction1, FFactionStruct Faction2)
 
 	f1->Allies.Add(f2->Name);
 	f2->Allies.Add(f1->Name);
-
-	Camera->ArmyManager->UpdateArmyIconUI(f1, f2);
 }
 
 void UDiplomacyComponent::BreakAlliance(FFactionStruct Faction1, FFactionStruct Faction2)
@@ -453,8 +446,6 @@ void UDiplomacyComponent::BreakAlliance(FFactionStruct Faction1, FFactionStruct 
 
 	f1->Allies.Remove(f2->Name);
 	f2->Allies.Remove(f1->Name);
-
-	Camera->ArmyManager->UpdateArmyIconUI(f1, f2);
 }
 
 void UDiplomacyComponent::DeclareWar(FFactionStruct Faction1, FFactionStruct Faction2)
@@ -464,13 +455,6 @@ void UDiplomacyComponent::DeclareWar(FFactionStruct Faction1, FFactionStruct Fac
 
 	f1->AtWar.Add(f2->Name);
 	f2->AtWar.Add(f1->Name);
-
-	if (Faction1.Name == Camera->ColonyName)
-		for (int32 i = 0; i < Faction2.Armies.Num(); i++)
-			Camera->SetArmyWidgetUI(Faction2.Name, Faction2.Armies[i].WidgetComponent->GetWidget(), i);
-	else if (Faction2.Name == Camera->ColonyName)
-		for (int32 i = 0; i < Faction1.Armies.Num(); i++)
-			Camera->SetArmyWidgetUI(Faction1.Name, Faction1.Armies[i].WidgetComponent->GetWidget(), i);
 }
 
 void UDiplomacyComponent::Insult(FFactionStruct Faction, FFactionStruct Target)

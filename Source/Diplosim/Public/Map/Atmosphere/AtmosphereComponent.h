@@ -106,6 +106,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Wind")
 		FRotator WindRotation;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wind")
+		UMaterialParameterCollection* WindCollection;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Wind")
 		int32 WindSpeed;
 

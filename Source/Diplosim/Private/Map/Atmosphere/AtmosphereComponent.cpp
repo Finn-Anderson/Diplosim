@@ -6,6 +6,7 @@
 #include "Components/SkyAtmosphereComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Materials/MaterialParameterCollectionInstance.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -200,6 +201,10 @@ void UAtmosphereComponent::AlterWind()
 	WindSpeed = FMath::Clamp(WindSpeed + Grid->Camera->Stream.RandRange(-5 + diff, 5 + diff), 1, 100);
 
 	WindComponent->SetRelativeRotation(WindRotation + FRotator(0.0f, 180.0f, 0.0f));
+
+	UMaterialParameterCollectionInstance* Instance = GetWorld()->GetParameterCollectionInstance(WindCollection);
+	Instance->SetScalarParameterValue("WindSpeed", WindSpeed / 50.0f);
+	Instance->SetVectorParameterValue("WindRotation", FLinearColor(WindRotation.Vector()));
 }
 
 void UAtmosphereComponent::SetWindDimensions(int32 Bound)

@@ -15,8 +15,6 @@ public:
 
 	void EvaluateAIArmy(FFactionStruct* Faction);
 
-	void UpdateArmyIconUI(FFactionStruct* Faction1, FFactionStruct* Faction2);
-
 	UFUNCTION(BlueprintCallable)
 		bool CanJoinArmy(class ACitizen* Citizen);
 
@@ -51,9 +49,6 @@ public:
 		void SetSelectedArmy(int32 Index);
 
 	void PlayerMoveArmy(FVector Location);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-		TSubclassOf<class UUserWidget> ArmyUI;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
 		int32 PlayerSelectedArmyIndex;

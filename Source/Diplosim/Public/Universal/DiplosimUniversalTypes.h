@@ -717,9 +717,6 @@ struct FArmyStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
 		TArray<class ACitizen*> Citizens;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
-		class UWidgetComponent* WidgetComponent;
-
 	UPROPERTY()
 		bool bGroup;
 
@@ -728,7 +725,6 @@ struct FArmyStruct
 
 	FArmyStruct()
 	{
-		WidgetComponent = nullptr;
 		bGroup = false;
 		Target = nullptr;
 	}

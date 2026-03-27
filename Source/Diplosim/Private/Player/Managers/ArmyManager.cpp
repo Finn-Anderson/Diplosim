@@ -89,19 +89,6 @@ void UArmyManager::EvaluateAIArmy(FFactionStruct* Faction)
 	}
 }
 
-void UArmyManager::UpdateArmyIconUI(FFactionStruct* Faction1, FFactionStruct* Faction2)
-{
-	if (Faction1->Name != Camera->ColonyName && Faction2->Name != Camera->ColonyName)
-		return;
-
-	FFactionStruct* faction = Faction1;
-	if (Faction2->Name != Camera->ColonyName)
-		faction = Faction2;
-
-	for (int32 i = 0; i < faction->Armies.Num(); i++)
-		Camera->SetArmyWidgetUI(faction->Name, faction->Armies[i].WidgetComponent->GetWidget(), i);
-}
-
 bool UArmyManager::CanJoinArmy(ACitizen* Citizen)
 {
 	FFactionStruct faction = Camera->ConquestManager->GetCitizenFaction(Citizen);
@@ -125,18 +112,6 @@ void UArmyManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizens, b
 
 	AddToArmy(index, Citizens);
 
-	UWidgetComponent* widgetComponent = NewObject<UWidgetComponent>(this, UWidgetComponent::StaticClass());
-	widgetComponent->SetupAttachment(Camera->Grid->GetRootComponent());
-	widgetComponent->SetRelativeLocation(Camera->GetTargetActorLocation(Citizens[0]) + FVector(0.0f, 0.0f, 120.0f));
-	widgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	widgetComponent->SetDrawSize(FVector2D(64.0f, 100.0f));
-	widgetComponent->SetWidgetClass(ArmyUI);
-	widgetComponent->RegisterComponent();
-
-	faction->Armies[index].WidgetComponent = widgetComponent;
-
-	Camera->SetArmyWidgetUI(FactionName, widgetComponent->GetWidget(), index);
-
 	if (FactionName != Camera->ColonyName && !bLoad) {
 		FString id = FactionName + FString::FromInt(index) + "ArmyRaidTimer";
 
@@ -153,6 +128,9 @@ void UArmyManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens)
 		return;
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizens[0]);
+
+	if (faction->Armies[Index].Citizens.IsEmpty())
+		Camera->Grid->AIVisualiser->UpdateInstanceCustomData(Camera->Grid->AIVisualiser->HISMCitizen, faction->Citizens.Find(Citizens[0]), 18, 1.0f);
 
 	faction->Armies[Index].Citizens.Append(Citizens);
 
@@ -175,10 +153,14 @@ void UArmyManager::RemoveFromArmy(ACitizen* Citizen)
 
 		faction->Armies[i].Citizens.Remove(Citizen);
 
-		if (faction->Armies[i].Citizens.IsEmpty())
+		if (faction->Armies[i].Citizens.IsEmpty()) {
 			DestroyArmy(faction->Name, i);
-		else
+		}
+		else {
+			Camera->Grid->AIVisualiser->UpdateInstanceCustomData(Camera->Grid->AIVisualiser->HISMCitizen, faction->Citizens.Find(Citizen), 18, 0.0f);
+			Camera->Grid->AIVisualiser->UpdateInstanceCustomData(Camera->Grid->AIVisualiser->HISMCitizen, faction->Citizens.Find(faction->Armies[i].Citizens[0]), 18, 1.0f);
 			Camera->UpdateArmyCountUI(i, faction->Armies[i].Citizens.Num());
+		}
 
 		break;
 	}
@@ -222,7 +204,7 @@ void UArmyManager::DestroyArmy(FString FactionName, int32 Index)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	faction->Armies[Index].WidgetComponent->DestroyComponent();
+	Camera->Grid->AIVisualiser->UpdateInstanceCustomData(Camera->Grid->AIVisualiser->HISMCitizen, faction->Citizens.Find(faction->Armies[Index].Citizens[0]), 18, 0.0f);
 	faction->Armies.RemoveAt(Index);
 
 	if (PlayerSelectedArmyIndex == Index)
@@ -341,8 +323,6 @@ void UArmyManager::SetSelectedArmy(int32 Index)
 		faction = Camera->ConquestManager->GetFaction(Camera->ColonyName);
 		army = &faction->Armies[PlayerSelectedArmyIndex];
 
-		Camera->UpdateArmyWidgetSelectionUI(army->WidgetComponent->GetWidget(), false);
-
 		for (ACitizen* citizen : army->Citizens) {
 			auto aihism = Camera->Grid->AIVisualiser->GetAIHISM(citizen);
 
@@ -359,8 +339,6 @@ void UArmyManager::SetSelectedArmy(int32 Index)
 		faction = Camera->ConquestManager->GetFaction(Camera->ColonyName);
 
 	army = &faction->Armies[PlayerSelectedArmyIndex];
-
-	Camera->UpdateArmyWidgetSelectionUI(army->WidgetComponent->GetWidget(), true);
 
 	for (ACitizen* citizen : army->Citizens) {
 		auto aihism = Camera->Grid->AIVisualiser->GetAIHISM(citizen);
