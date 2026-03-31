@@ -291,10 +291,10 @@ void ACamera::Tick(float DeltaTime)
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_Visibility)) {
 		AActor* actor = hit.GetActor();
 
-		MouseHitLocation = hit.Location;
-
 		if (!hit.GetActor()->IsA<AGrid>() && !hit.GetActor()->IsA<ABuilding>() && !hit.GetActor()->IsA<AEggBasket>() && !hit.GetActor()->IsA<AResource>() && !hit.GetActor()->IsA<AAISpawner>())
 			return;
+
+		MouseHitLocation = hit.Location;
 
 		if (hit.GetActor()->IsA<AGrid>() && hit.GetComponent()->IsA<UInstancedStaticMeshComponent>())
 			HoveredActor.Actor = Grid->AIVisualiser->GetHISMAI(this, Cast<UInstancedStaticMeshComponent>(hit.GetComponent()), hit.Item);
@@ -306,6 +306,15 @@ void ACamera::Tick(float DeltaTime)
 
 		if (HoveredActor.Actor == nullptr)
 			return;
+
+		if (hit.GetActor()->IsA<ABuilding>())
+			MouseHitLocation = GetTargetActorLocation(HoveredActor.Actor);
+		else if (hit.GetActor()->IsA<AResource>()) {
+			FTransform transform;
+			Cast<UInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
+
+			MouseHitLocation = transform.GetLocation();
+		}
 
 		if (!bBulldoze)
 			PController->CurrentMouseCursor = EMouseCursor::Hand;
@@ -789,7 +798,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action(const struct FInputActionInstance& Instance)
 {
-	if (bUIMode == 2 || ClearPopupUI() || bBulldoze)
+	if (bUIMode == 2 || ClearPopupUI() || bBulldoze || bMouseCapture)
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {
@@ -811,13 +820,16 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 			return;
 		}
 
-		ArmyManager->SetSelectedArmy(INDEX_NONE);
+		ArmyManager->SetSelectedArmy(TTuple<FFactionStruct*, int32>(nullptr, INDEX_NONE));
 
 		if (!IsValid(HoveredActor.Actor))
 			return;
 
 		if (HoveredActor.Actor->IsA<AEggBasket>())
 			Cast<AEggBasket>(HoveredActor.Actor)->RedeemReward();
+		else if (HoveredActor.Actor->IsA<ACitizen>() && ArmyManager->IsCitizenInAnArmy(Cast<ACitizen>(HoveredActor.Actor))) {
+			ArmyManager->SetSelectedArmy(ArmyManager->GetArmyIndex(Cast<ACitizen>(HoveredActor.Actor)));
+		}
 		else
 			DisplayInteract(HoveredActor.Actor, HoveredActor.Component, HoveredActor.Instance);
 	}
@@ -846,10 +858,10 @@ void ACamera::Cancel()
 		bBulldoze = false;
 	else if (BuildComponent->IsComponentTickEnabled())
 		BuildComponent->RemoveBuilding();
-	else if (ArmyManager->PlayerSelectedArmyIndex > -1)
+	else if (ArmyManager->PlayerSelectedArmyData.Value > INDEX_NONE)
 		ArmyManager->PlayerMoveArmy(MouseHitLocation);
 
-	if (bBulldoze || BuildComponent->IsComponentTickEnabled() || ArmyManager->PlayerSelectedArmyIndex > -1)
+	if (bBulldoze || BuildComponent->IsComponentTickEnabled() || ArmyManager->PlayerSelectedArmyData.Value > INDEX_NONE)
 		PlayInteractSound(InteractSound);
 }
 
@@ -963,10 +975,7 @@ void ACamera::ActivateLook(const struct FInputActionInstance& Instance)
 	if (bUIMode == 2)
 		return;
 
-	if (((bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)))
-		SetMouseCapture(false, bUIMode);
-	else
-		SetMouseCapture(true, bUIMode);
+	SetMouseCapture((bool)(Instance.GetTriggerEvent() & ETriggerEvent::Started), bUIMode);
 }
 
 void ACamera::Look(const struct FInputActionInstance& Instance)

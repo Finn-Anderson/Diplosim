@@ -70,20 +70,22 @@ void AAI::MoveToBroch()
 	AIController->AIMoveTo(target);
 }
 
-bool AAI::CanReach(AActor* Actor, float Reach, int32 Instance)
+bool AAI::CanReach(AActor* Actor, float Reach, FVector Location, int32 Instance)
 {
-	FVector location = Camera->GetTargetActorLocation(Actor);
+	if (Location == FVector::Zero()) {
+		Location = Camera->GetTargetActorLocation(Actor);
 
-	if (Actor->IsA<AResource>()) {
-		FTransform transform;
-		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(Instance, transform);
+		if (Actor->IsA<AResource>()) {
+			FTransform transform;
+			Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(Instance, transform);
 
-		location = transform.GetLocation();
+			Location = transform.GetLocation();
+		}
+		else if (Actor->IsA<ABuilding>())
+			Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), Location);
+		else if (Actor->IsA<AAISpawner>())
+			Cast<AAISpawner>(Actor)->SpawnerMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), Location);
 	}
-	else if (Actor->IsA<ABuilding>())
-		Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), location);
-	else if (Actor->IsA<AAISpawner>())
-		Cast<AAISpawner>(Actor)->SpawnerMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), location);
 
-	return Reach >= FVector::Dist(MovementComponent->Transform.GetLocation(), location);
+	return Reach >= FVector::Dist(MovementComponent->Transform.GetLocation(), Location);
 }

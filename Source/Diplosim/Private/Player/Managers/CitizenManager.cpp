@@ -240,7 +240,7 @@ void UCitizenManager::CalculateGoalInteractions()
 
 				float reach = citizen->Range / 15.0f;
 
-				if (!citizen->CanReach(actor, reach, citizen->AIController->MoveRequest.GetGoalInstance()))
+				if (!citizen->CanReach(actor, reach, citizen->AIController->MoveRequest.GetLocation(), citizen->AIController->MoveRequest.GetGoalInstance()))
 					continue;
 
 				Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() {

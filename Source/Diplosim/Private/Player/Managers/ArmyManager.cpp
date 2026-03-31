@@ -1,6 +1,6 @@
 #include "Player/Managers/ArmyManager.h"
 
-#include "Components/WidgetComponent.h"
+#include "NavigationSystem.h"
 
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
@@ -25,7 +25,8 @@ UArmyManager::UArmyManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	PlayerSelectedArmyIndex = -1;
+	PlayerSelectedArmyData = TTuple<FFactionStruct*, int32>(nullptr, INDEX_NONE);
+	NumTiles = 0;
 }
 
 void UArmyManager::EvaluateAIArmy(FFactionStruct* Faction)
@@ -200,6 +201,24 @@ bool UArmyManager::IsCitizenInAnArmy(ACitizen* Citizen)
 	return false;
 }
 
+TTuple<FFactionStruct*, int32> UArmyManager::GetArmyIndex(ACitizen* Citizen)
+{
+	TTuple<FFactionStruct*, int32> data;
+	data.Key = Camera->ConquestManager->GetFaction("", Citizen);
+	data.Value = INDEX_NONE;
+
+	for (int32 i = 0; i < data.Key->Armies.Num(); i++) {
+		if (!data.Key->Armies[i].Citizens.Contains(Citizen))
+			continue;
+
+		data.Value = i;
+
+		break;
+	}
+
+	return data;
+}
+
 void UArmyManager::DestroyArmy(FString FactionName, int32 Index)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
@@ -207,8 +226,8 @@ void UArmyManager::DestroyArmy(FString FactionName, int32 Index)
 	Camera->Grid->AIVisualiser->UpdateInstanceCustomData(Camera->Grid->AIVisualiser->HISMCitizen, faction->Citizens.Find(faction->Armies[Index].Citizens[0]), 18, 0.0f);
 	faction->Armies.RemoveAt(Index);
 
-	if (PlayerSelectedArmyIndex == Index)
-		SetSelectedArmy(INDEX_NONE);
+	if (PlayerSelectedArmyData.Key == faction && PlayerSelectedArmyData.Value == Index)
+		SetSelectedArmy(TTuple<FFactionStruct*, int32>(nullptr, INDEX_NONE));
 
 	Camera->UpdateArmyCountUI(Index, 0);
 }
@@ -314,14 +333,12 @@ ABuilding* UArmyManager::MoveArmyMember(FFactionStruct* Faction, AAI* AI, bool b
 	return nullptr;
 }
 
-void UArmyManager::SetSelectedArmy(int32 Index)
+void UArmyManager::SetSelectedArmy(TTuple<FFactionStruct*, int32> SelectedArmyData)
 {
-	FFactionStruct* faction = nullptr;
 	FArmyStruct* army = nullptr;
 
-	if (PlayerSelectedArmyIndex != INDEX_NONE) {
-		faction = Camera->ConquestManager->GetFaction(Camera->ColonyName);
-		army = &faction->Armies[PlayerSelectedArmyIndex];
+	if (PlayerSelectedArmyData.Value != INDEX_NONE) {
+		army = &PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value];
 
 		for (ACitizen* citizen : army->Citizens) {
 			auto aihism = Camera->Grid->AIVisualiser->GetAIHISM(citizen);
@@ -330,59 +347,86 @@ void UArmyManager::SetSelectedArmy(int32 Index)
 		}
 	}
 
-	PlayerSelectedArmyIndex = Index;
+	PlayerSelectedArmyData = SelectedArmyData;
 
-	if (Index == INDEX_NONE)
+	if (PlayerSelectedArmyData.Value == INDEX_NONE)
 		return;
 
-	if (faction == nullptr)
-		faction = Camera->ConquestManager->GetFaction(Camera->ColonyName);
-
-	army = &faction->Armies[PlayerSelectedArmyIndex];
+	army = &PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value];
 
 	for (ACitizen* citizen : army->Citizens) {
 		auto aihism = Camera->Grid->AIVisualiser->GetAIHISM(citizen);
 
-		Camera->Grid->AIVisualiser->UpdateInstanceCustomData(aihism.Key, aihism.Value, 1, 1.0f);
+		Camera->Grid->AIVisualiser->UpdateInstanceCustomData(aihism.Key, aihism.Value, 1, 2.0f);
 	}
 }
 
 void UArmyManager::PlayerMoveArmy(FVector Location)
 {
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Camera->ColonyName);
+	if (PlayerSelectedArmyData.Key->Name != Camera->ColonyName)
+		return;
 
-	TMap<FVector, double> locations;
+	NumTiles = FMath::CeilToInt32(PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value].Citizens.Num() / 9.0f);
 
-	for (TArray<FTileStruct>& row : Camera->Grid->Storage) {
-		for (FTileStruct& tile : row) {
-			if (tile.bMineral)
-				continue;
+	ArmyTileLocations.Empty();
+	GetArmyTiles(Camera->Grid->GetTileFromLocation(Location), 0, Location);
 
-			FTransform transform = Camera->Grid->GetTransform(&tile);
-
-			for (int32 x = -1; x < 2; x += 2) {
-				for (int32 y = -1; y < 2; y += 2) {
-					FVector offset = FVector(x * 25.0f, y * 25.0f, 0.0f);
-					FVector loc = transform.GetLocation() + offset;
-
-					locations.Add(loc, Camera->ConquestManager->AIBuildComponent->CalculateTileDistance(Location, loc));
-				}
-			}
-
-		}
-	}
-
-	Camera->ConquestManager->AIBuildComponent->SortTileDistances(locations);
+	Camera->ConquestManager->AIBuildComponent->SortTileDistances(ArmyTileLocations);
 
 	TArray<FVector> locs;
-	locations.GenerateKeyArray(locs);
+	for (ACitizen* citizen : PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value].Citizens) {
+		if (locs.IsEmpty())
+			ArmyTileLocations.GenerateKeyArray(locs);
 
-	for (ACitizen* citizen : faction->Armies[PlayerSelectedArmyIndex].Citizens) {
 		if (!citizen->AIController->CanMoveTo(locs[0]))
 			continue;
 
 		citizen->AIController->AIMoveTo(Camera->Grid, locs[0]);
 
 		locs.RemoveAt(0);
+	}
+}
+
+void UArmyManager::GetArmyTiles(FTileStruct* Tile, int32 Count, FVector Origin)
+{
+	FVector tileLocation = Camera->Grid->GetTransform(Tile).GetLocation();
+
+	if (ArmyTileLocations.Contains(tileLocation))
+		return;
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	FNavLocation targetLoc;
+	nav->ProjectPointToNavigation(Origin, targetLoc, FVector(20.0f, 20.0f, 20.0f));
+
+	FNavLocation ownerLoc;
+	nav->ProjectPointToNavigation(tileLocation, ownerLoc, FVector(20.0f, 20.0f, 20.0f));
+
+	double length;
+	ENavigationQueryResult::Type result = nav->GetPathLength(GetWorld(), targetLoc.Location, ownerLoc.Location, length);
+
+	if (result != ENavigationQueryResult::Success)
+		length = 100000000000.0f;
+
+	ArmyTileLocations.Add(tileLocation, length);
+	Count++;
+
+	if (Count >= NumTiles)
+		return;
+
+	FHitResult hit;
+	for (auto& element : Tile->AdjacentTiles) {
+		if (!Tile->bRamp && Tile->Level != element.Value->Level)
+			continue;
+
+		if (Tile->bRiver) {
+			tileLocation = Camera->Grid->GetTransform(Tile).GetLocation();
+			GetWorld()->LineTraceSingleByChannel(hit, tileLocation + FVector(0.0f, 0.0f, 100.0f), tileLocation - FVector(0.0f, 0.0f, 50.0f), ECC_Vehicle);
+					
+			if (!IsValid(hit.GetActor()) || !hit.GetActor()->IsA<ABuilding>())
+				continue;
+		}
+
+		GetArmyTiles(element.Value, Count, Origin);
 	}
 }

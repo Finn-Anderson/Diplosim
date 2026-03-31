@@ -565,7 +565,7 @@ void AGrid::SetupTileInformation()
 
 			element.Key->Fertility = 0;
 
-			ChosenDistToLava.Add(element.Key);
+			ChosenDistToLava.Add(element);
 			charredAmount--;
 		}
 	}
@@ -1147,7 +1147,7 @@ void AGrid::GenerateTiles()
 
 				if (tile->Fertility == 0) {
 					float distance = *ChosenDistToLava.Find(tile);
-					colour *= FMath::Pow(distance - 0.7f, 2.0f);
+					colour *= FMath::Pow(distance / 2.0f, 2.0f);
 
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 5] = 0.0f;
 				}

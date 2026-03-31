@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Universal/DiplosimUniversalTypes.h"
+#include "Map/Grid.h"
 #include "Components/ActorComponent.h"
 #include "ArmyManager.generated.h"
 
@@ -33,6 +34,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool IsCitizenInAnArmy(ACitizen* Citizen);
 
+	TTuple<FFactionStruct*, int32> GetArmyIndex(ACitizen* Citizen);
+
 	UFUNCTION(BlueprintCallable)
 		void DestroyArmy(FString FactionName, int32 Index);
 
@@ -45,14 +48,21 @@ public:
 
 	class ABuilding* MoveArmyMember(FFactionStruct* Faction, class AAI* AI, bool bReturn = false, ABuilding* CurrentTarget = nullptr);
 
-	UFUNCTION(BlueprintCallable)
-		void SetSelectedArmy(int32 Index);
+	void SetSelectedArmy(TTuple<FFactionStruct*, int32> SelectedArmyData);
 
 	void PlayerMoveArmy(FVector Location);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army")
-		int32 PlayerSelectedArmyIndex;
+	TTuple<FFactionStruct*, int32> PlayerSelectedArmyData;
 
 	UPROPERTY()
 		class ACamera* Camera;
+
+	UPROPERTY()
+		int32 NumTiles;
+
+	UPROPERTY()
+		TMap<FVector, double> ArmyTileLocations;
+
+private:
+	void GetArmyTiles(FTileStruct* Tile, int32 Count, FVector Origin);
 };

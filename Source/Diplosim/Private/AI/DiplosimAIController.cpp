@@ -398,7 +398,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	
 	int32 reach = AI->Range / 15.0f;
 	
-	if (AI->CanReach(Actor, reach, Instance) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
+	if (AI->CanReach(Actor, reach, MoveRequest.GetLocation(), Instance) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
 		return;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
@@ -467,8 +467,6 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 		TArray<FVector> points = GetPathPoints(navLoc.Location, MoveRequest.GetLocation());
 		AI->MovementComponent->SetPoints(points);
 
-		SetFocus(Actor);
-
 		if (!AI->IsA<ACitizen>())
 			return;
 
@@ -483,7 +481,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 {
-	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AResource>())
+	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AResource>() || Actor->IsA<AGrid>())
 		return;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());

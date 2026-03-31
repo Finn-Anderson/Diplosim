@@ -18,7 +18,7 @@ protected:
 public:
 	void MoveToBroch();
 
-	bool CanReach(AActor* Actor, float Reach, int32 Instance = -1);
+	bool CanReach(AActor* Actor, float Reach, FVector Location = FVector::Zero(), int32 Instance = -1);
 
 	UPROPERTY()
 		class ACamera* Camera;
