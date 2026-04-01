@@ -18,6 +18,9 @@ ABooster::ABooster()
 
 	AISetTypeCooldown = 0;
 	bHolyPlace = false;
+
+	if (BuildingsToBoost.IsEmpty())
+		return;
 }
 
 void ABooster::Enter(ACitizen* Citizen)

@@ -37,13 +37,13 @@ public:
 
 	// Building
 	UPROPERTY(EditAnywhere)
-		class UMaterial* BlueprintMaterial;
+		class UMaterialInstance* BlueprintMaterial;
 
 	UPROPERTY(EditAnywhere)
-		class UMaterial* BlockedMaterial;
+		class UMaterialInstance* BlockedMaterial;
 
 	UPROPERTY(EditAnywhere)
-		class UMaterial* InfluencedMaterial;
+		class UMaterialInstance* InfluencedMaterial;
 
 	UPROPERTY()
 		FRotator Rotation;

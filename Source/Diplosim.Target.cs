@@ -2,10 +2,9 @@
 
 using UnrealBuildTool;
 using System.Collections.Generic;
-
 public class DiplosimTarget : TargetRules
 {
-	public DiplosimTarget( TargetInfo Target) : base(Target)
+    public DiplosimTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.Latest;
