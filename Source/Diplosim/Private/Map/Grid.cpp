@@ -54,7 +54,6 @@ AGrid::AGrid()
 	hisms.Add(&HISMLava, TEXT("HISMLava"));
 	hisms.Add(&HISMSea, TEXT("HISMSea"));
 	hisms.Add(&HISMGround, TEXT("HISMGround"));
-	hisms.Add(&HISMFlatGround, TEXT("HISMFlatGround"));
 	hisms.Add(&HISMRampGround, TEXT("HISMRampGround"));
 	hisms.Add(&HISMRiver, TEXT("HISMRiver"));
 
@@ -78,10 +77,10 @@ AGrid::AGrid()
 		if (hism == HISMLava || hism == HISMSea || hism == HISMRiver)
 			hism->SetCanEverAffectNavigation(false);
 
-		if (hism == HISMGround || hism == HISMFlatGround || hism == HISMRampGround)
-			hism->NumCustomDataFloats = 8;
+		if (hism == HISMGround || hism == HISMRampGround)
+			hism->NumCustomDataFloats = 7;
 		else if (hism == HISMRiver)
-			hism->NumCustomDataFloats = 4;
+			hism->NumCustomDataFloats = 3;
 	}
 
 	HISMGround->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
@@ -1020,7 +1019,7 @@ void AGrid::CalculateTile(FTileStruct* Tile)
 							bFlat = false;
 
 				if (bFlat) {
-					AddCalculatedTile(HISMFlatGround, transform);
+					AddCalculatedTile(HISMGround, transform);
 				}
 				else {
 					AddCalculatedTile(HISMGround, transform);
@@ -1089,33 +1088,25 @@ void AGrid::GenerateTiles()
 			FLinearColor colour = FLinearColor(Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f));
 			bool bTree = false;
 
-			if (element.Key->GetOwner()->IsA<AResource>()) {
-				if (element.Key->GetOwner()->IsA<AVegetation>()) {
-					for (FResourceHISMStruct resourceStruct : TreeStruct) {
-						if (resourceStruct.Resource->ResourceHISM != element.Key)
-							continue;
+			if (element.Key->NumCustomDataFloats > 0)
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
 
-						bTree = true;
+			if (element.Key->GetOwner()->IsA<AVegetation>()) {
+				for (FResourceHISMStruct resourceStruct : TreeStruct) {
+					if (resourceStruct.Resource->ResourceHISM != element.Key)
+						continue;
 
-						break;
-					}
+					bTree = true;
 
-					if (bTree) {
-						int32 dyingChance = Camera->Stream.RandRange(1, 100);
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 8] = transform.GetScale3D().Z;
 
-						if (dyingChance >= 99)
-							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 0.0f;
-						else
-							element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
-
-						element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 9] = transform.GetScale3D().Z;
-					}
-					else
-						element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
+					break;
 				}
-				else {
-					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
-				}
+
+				if (bTree && Camera->Stream.RandRange(1, 100) >= 99)
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 9] = 0.0f;
+				else
+					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 9] = 1.0f;
 			}
 			else if (element.Key == HISMRiver) {
 				int32 level = FMath::RoundHalfFromZero(transform.GetLocation().Z / 75.0f);
@@ -1128,10 +1119,9 @@ void AGrid::GenerateTiles()
 				colour.G /= 255.0f;
 				colour.B /= 255.0f;
 
-				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats] = 1.0f;
-				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 1] = colour.R;
-				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 2] = colour.G;
-				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 3] = colour.B;
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats] = colour.R;
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 1] = colour.G;
+				HISMRiver->PerInstanceSMCustomData[inst * HISMRiver->NumCustomDataFloats + 2] = colour.B;
 			}
 
 			FTileStruct* tile = GetTileFromLocation(transform.GetLocation());
@@ -1139,7 +1129,7 @@ void AGrid::GenerateTiles()
 			if (tile == nullptr || tile->Fertility < 0)
 				continue;
 
-			if (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround || element.Key->GetOwner()->IsA<AVegetation>()) {
+			if (element.Key == HISMGround || element.Key == HISMRampGround || element.Key->GetOwner()->IsA<AVegetation>()) {
 				if (!element.Key->GetOwner()->IsA<AVegetation>() || bTree)
 					colour = FLinearColor(GroundColours[tile->Fertility]);
 
@@ -1154,11 +1144,16 @@ void AGrid::GenerateTiles()
 				else if (bTree)
 					colour *= Camera->Stream.FRandRange(0.5f, 1.0f);
 
-				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 1] = 1.0f;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = colour.R;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = colour.G;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = colour.B;
+
+				int32 opacity = 1.0f;
+				if (element.Key == HISMGround && !tile->bEdge)
+					opacity = 0.0f;
+
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 6] = opacity;
 			}
 
 			tile->Instance = inst; 
@@ -1365,10 +1360,8 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 		HISMRiver->GetInstanceTransform(Tile->Instance, transform);
 	else if (Tile->bRamp)
 		HISMRampGround->GetInstanceTransform(Tile->Instance, transform);
-	else if(Tile->bEdge)
-		HISMGround->GetInstanceTransform(Tile->Instance, transform);
 	else
-		HISMFlatGround->GetInstanceTransform(Tile->Instance, transform);
+		HISMGround->GetInstanceTransform(Tile->Instance, transform);
 
 	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
 
@@ -1414,7 +1407,6 @@ void AGrid::Clear()
 	HISMLava->ClearInstances();
 	HISMSea->ClearInstances();
 	HISMGround->ClearInstances();
-	HISMFlatGround->ClearInstances();
 	HISMRampGround->ClearInstances();
 	HISMRiver->ClearInstances();
 

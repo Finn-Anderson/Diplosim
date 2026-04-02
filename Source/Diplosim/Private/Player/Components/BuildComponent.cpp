@@ -430,18 +430,11 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		else
 			transform = hit.GetActor()->GetTransform();
 
-		if (hit.GetComponent() == Camera->Grid->HISMRiver && Camera->Grid->HISMRiver->PerInstanceSMCustomData[hit.Item * 4] == 1.0f) {
-			if (Building->IsA<ARoad>()) {
-				ARoad* road = Cast<ARoad>(Building);
-
-				if (road->SeedNum == 0)
-					return false;
-
-				return true;
-			}
-			else if (Building->IsA(FoundationClass)) {
-				return true;
-			}
+		if (hit.GetComponent() == Camera->Grid->HISMRiver && (Building->IsA(FoundationClass) || Building->IsA<ARoad>())) {
+			if (Building->IsA<ARoad>() && Building->SeedNum == 0)
+				return false;
+			else
+				continue;
 		}
 
 		if (Building->GetClass() == hit.GetActor()->GetClass() && Building->GetActorLocation() == hit.GetActor()->GetActorLocation()) {

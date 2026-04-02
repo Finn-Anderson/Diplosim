@@ -14,14 +14,14 @@ AVegetation::AVegetation()
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	ResourceHISM->NumCustomDataFloats = 11;
+	ResourceHISM->NumCustomDataFloats = 10;
 
 	TimeLength = 30.0f;
 }
 
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 {
-	if (ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 10] == 0.0f) {
+	if (ResourceHISM->PerInstanceSMCustomData[Instance * ResourceHISM->NumCustomDataFloats + 9] == 0.0f) {
 		Camera->Grid->RemoveTree(this, { Instance });
 
 		return;
@@ -34,7 +34,7 @@ void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 
 	FTransform transform;
 	ResourceHISM->GetInstanceTransform(Instance, transform);
-	transform.SetScale3D(FVector(ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] / 10));
+	transform.SetScale3D(FVector(ResourceHISM->PerInstanceSMCustomData[Instance * ResourceHISM->NumCustomDataFloats + 8] / 10));
 
 	ResourceHISM->UpdateInstanceTransform(Instance, transform, false);
 
@@ -48,33 +48,35 @@ void AVegetation::Grow()
 {
 	for (int32 i = GrowingInstances.Num() - 1; i > -1; i--) {
 		int32 inst = GrowingInstances[i];
+		int32 tick = ResourceHISM->PerInstanceSMCustomData[inst * ResourceHISM->NumCustomDataFloats + 7] + 1.0f;
 
-		ResourceHISM->SetCustomDataValue(inst, 1, FMath::Clamp(ResourceHISM->PerInstanceSMCustomData[inst * 11 + 8] + 1.0f, 0.0f, 10.0f));
+		if (tick < 10.0f) {
+			ResourceHISM->SetCustomDataValue(inst, 7, tick);
 
-		if (ResourceHISM->PerInstanceSMCustomData[inst * 11 + 8] < 10)
 			continue;
+		}
 
 		FTransform transform;
 		ResourceHISM->GetInstanceTransform(inst, transform);
 
 		FVector scale = transform.GetScale3D();
+		float targetScale = ResourceHISM->PerInstanceSMCustomData[inst * ResourceHISM->NumCustomDataFloats + 8];
 
-		if (scale.X < ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9])
-			scale.X += ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] / 10;
+		if (scale.X < targetScale)
+			scale.X += targetScale / 10.0f;
 
-		if (scale.Y < ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9])
-			scale.Y += ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] / 10;
+		if (scale.Y < targetScale)
+			scale.Y += targetScale / 10.0f;
 
-		if (scale.Z < ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9])
-			scale.Z += ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] / 10;
+		if (scale.Z < targetScale)
+			scale.Z += targetScale / 10.0f;
 
 		transform.SetScale3D(scale);
 
 		ResourceHISM->UpdateInstanceTransform(inst, transform, false);
+		ResourceHISM->SetCustomDataValue(inst, 7, 0.0f);
 
-		ResourceHISM->PerInstanceSMCustomData[inst * 11 + 8] = 0;
-
-		if (!IsHarvestable(inst, scale))
+		if (!IsHarvestable(inst, scale, targetScale))
 			continue;
 
 		GrowingInstances.Remove(inst);
@@ -84,9 +86,9 @@ void AVegetation::Grow()
 		Camera->TimerManager->RemoveTimer("Grow", this);
 }
 
-bool AVegetation::IsHarvestable(int32 Instance, FVector Scale)
+bool AVegetation::IsHarvestable(int32 Instance, FVector Scale, float TargetScale)
 {
-	if (Scale.X < ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] || Scale.Y < ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9] || Scale.Z < ResourceHISM->PerInstanceSMCustomData[Instance * 11 + 9])
+	if (Scale.X < TargetScale || Scale.Y < TargetScale || Scale.Z < TargetScale)
 		return false;
 
 	return true;

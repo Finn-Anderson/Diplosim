@@ -39,8 +39,6 @@ void ADiplosimGameModeBase::BeginPlay()
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	settings->GameMode = this;
-
-	settings->LoadIniSettings();
 }
 
 void ADiplosimGameModeBase::Tick(float DeltaTime)
@@ -207,10 +205,7 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	spawnLocations.Add(startLocation);
 
-	TArray<int32> instances = Grid->HISMFlatGround->GetInstancesOverlappingSphere(startLocation, 1000);
-	spawnLocations.Append(GetValidLocations(Grid->HISMFlatGround, instances, validTiles));
-
-	instances = Grid->HISMGround->GetInstancesOverlappingSphere(startLocation, 1000);
+	TArray<int32> instances = Grid->HISMGround->GetInstancesOverlappingSphere(startLocation, 1000);
 	spawnLocations.Append(GetValidLocations(Grid->HISMGround, instances, validTiles));
 
 	return spawnLocations;

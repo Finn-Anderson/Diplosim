@@ -134,9 +134,6 @@ public:
 		class UHierarchicalInstancedStaticMeshComponent* HISMGround;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMFlatGround;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UHierarchicalInstancedStaticMeshComponent* HISMRampGround;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")

@@ -157,7 +157,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 		}
 	}
 
-	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
+	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
 
 	UCloudComponent* clouds = grid->AtmosphereComponent->Clouds;
 
@@ -868,7 +868,7 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 		tile->bUnique = t.bUnique;
 	}
 
-	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
+	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
 
 	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
 		FHISMData data;

@@ -423,7 +423,6 @@ void UAtmosphereComponent::SetSeasonValues(TArray<float> Values)
 {
 	TArray<UInstancedStaticMeshComponent*> hisms;
 	hisms.Add(Grid->HISMGround);
-	hisms.Add(Grid->HISMFlatGround);
 	hisms.Add(Grid->HISMRampGround);
 
 	for (FResourceHISMStruct& resourceStruct : Grid->TreeStruct)

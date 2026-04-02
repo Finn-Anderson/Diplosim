@@ -18,7 +18,7 @@ public:
 	UFUNCTION()
 		void Grow();
 
-	bool IsHarvestable(int32 Instance, FVector Scale);
+	bool IsHarvestable(int32 Instance, FVector Scale, float TargetScale);
 
 	UFUNCTION()
 		float OnFire(int32 Instance);

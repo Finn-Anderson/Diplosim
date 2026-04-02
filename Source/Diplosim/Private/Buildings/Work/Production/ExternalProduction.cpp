@@ -88,7 +88,7 @@ void AExternalProduction::Production(ACitizen* Citizen)
 
 			int32 index = element.Key->WorkerStruct.Find(workerStruct);
 
-			if (transform.GetScale3D().Z < element.Key->ResourceHISM->PerInstanceSMCustomData[inst * 11 + 9] || (index > INDEX_NONE && element.Key->WorkerStruct[index].Citizens.Num() == element.Key->MaxWorkers) || IsValid(Camera->Grid->AtmosphereComponent->GetFireComponent(element.Key, inst)))
+			if (transform.GetScale3D().Z < element.Key->ResourceHISM->PerInstanceSMCustomData[inst * element.Key->ResourceHISM->NumCustomDataFloats + 8] || (index > INDEX_NONE && element.Key->WorkerStruct[index].Citizens.Num() == element.Key->MaxWorkers) || IsValid(Camera->Grid->AtmosphereComponent->GetFireComponent(element.Key, inst)))
 				continue;
 
 			FTransform currentTransform;

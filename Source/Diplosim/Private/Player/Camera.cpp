@@ -147,6 +147,9 @@ void ACamera::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (GetWorld()->GetMapName() != "Map")
+		return;
+
 	CitizenManager->Camera = this;
 	ConquestManager->Camera = this;
 	ConquestManager->AIBuildComponent->Camera = this;
@@ -157,11 +160,6 @@ void ACamera::BeginPlay()
 	EventsManager->Camera = this;
 	PoliticsManager->Camera = this;
 	PoliceManager->Camera = this;
-
-	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
-	Settings->Camera = this;
-	Settings->SetVignette(Settings->GetVignette());
-	Settings->SetSSAO(Settings->GetSSAO());
 
 	ResourceManager->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
@@ -233,8 +231,11 @@ void ACamera::BeginPlay()
 
 	InfoUIInstance = CreateWidget<UUserWidget>(PController, InfoUI);
 
-	if (GetWorld()->GetMapName() == "Map")
-		Grid->Load();
+	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	Settings->Camera = this;
+	Settings->LoadIniSettings();
+
+	Grid->Load();
 }
 
 void ACamera::Tick(float DeltaTime)

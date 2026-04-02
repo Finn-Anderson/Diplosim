@@ -366,6 +366,11 @@ void UArmyManager::PlayerMoveArmy(FVector Location)
 	if (PlayerSelectedArmyData.Key->Name != Camera->ColonyName)
 		return;
 
+	ACitizen* captain = PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value].Citizens[0];
+
+	if (!captain->AIController->CanMoveTo(Location))
+		return;
+
 	NumTiles = FMath::CeilToInt32(PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value].Citizens.Num() / 9.0f);
 
 	ArmyTileLocations.Empty();
@@ -373,15 +378,16 @@ void UArmyManager::PlayerMoveArmy(FVector Location)
 
 	Camera->ConquestManager->AIBuildComponent->SortTileDistances(ArmyTileLocations);
 
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("%d"), ArmyTileLocations.Num()));
+
 	TArray<FVector> locs;
 	for (ACitizen* citizen : PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value].Citizens) {
 		if (locs.IsEmpty())
 			ArmyTileLocations.GenerateKeyArray(locs);
 
-		if (!citizen->AIController->CanMoveTo(locs[0]))
-			continue;
+		citizen->AIController->AIMoveTo(Camera->Grid, locs[0]); 
 
-		citizen->AIController->AIMoveTo(Camera->Grid, locs[0]);
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%d"), locs.Num()));
 
 		locs.RemoveAt(0);
 	}
@@ -406,9 +412,12 @@ void UArmyManager::GetArmyTiles(FTileStruct* Tile, int32 Count, FVector Origin)
 	ENavigationQueryResult::Type result = nav->GetPathLength(GetWorld(), targetLoc.Location, ownerLoc.Location, length);
 
 	if (result != ENavigationQueryResult::Success)
-		length = 100000000000.0f;
+		return;
 
-	ArmyTileLocations.Add(tileLocation, length);
+	for (int32 x = -33; x <= 33; x+=33)
+		for (int32 y = -33; y <= 33; y += 33)
+			ArmyTileLocations.Add(tileLocation + FVector(x, y, 0.0f), length);
+
 	Count++;
 
 	if (Count >= NumTiles)
