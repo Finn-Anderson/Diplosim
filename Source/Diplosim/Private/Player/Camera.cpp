@@ -269,6 +269,8 @@ void ACamera::Tick(float DeltaTime)
 		}
 	}
 
+	SetInteractDecalValue(DeltaTime, true);
+
 	if (bMouseCapture)
 		PController->SetMouseLocation(MousePosition.X, MousePosition.Y);
 
@@ -320,6 +322,34 @@ void ACamera::Tick(float DeltaTime)
 		if (!bBulldoze)
 			PController->CurrentMouseCursor = EMouseCursor::Hand;
 	}
+}
+
+void ACamera::SetInteractDecalValue(float NewValue, bool bAdd)
+{
+	UMaterialInterface* material = Grid->InteractDecalComponent->GetMaterial(0);
+	UMaterialInstanceDynamic* mid = nullptr;
+	if (!material->IsA<UMaterialInstanceDynamic>()) {
+		mid = UMaterialInstanceDynamic::Create(material, this);
+		Grid->InteractDecalComponent->SetMaterial(0, mid);
+	}
+	else
+		mid = Cast<UMaterialInstanceDynamic>(material);
+
+	float value = 0.0f;
+	if (bAdd) {
+		FHashedMaterialParameterInfo info;
+		info.Name = NameToScriptName("Time");
+
+		mid->GetScalarParameterValue(info, value);
+
+		NewValue += value;
+	}
+
+	if (value != 0.5f)
+		mid->SetScalarParameterValue("Time", FMath::Min(NewValue, 0.5f));
+
+	if (!bAdd)
+		Grid->InteractDecalComponent->SetRelativeLocation(MouseHitLocation);
 }
 
 void ACamera::StartGame()
@@ -497,7 +527,7 @@ bool ACamera::IsUIHoveredOver()
 
 		if (widget == Grid->LoadUIInstance || widget == MainMenuUIInstance || widget == MenuUIInstance || widget == SaveLoadGameUIInstance || widget == SettingsUIInstance)
 			mode = 2;
-		else if (!BuildComponent->IsComponentTickEnabled())
+		else
 			mode = 1;
 
 		break;
@@ -799,7 +829,7 @@ void ACamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACamera::Action(const struct FInputActionInstance& Instance)
 {
-	if (bUIMode == 2 || ClearPopupUI() || bBulldoze || bMouseCapture)
+	if (bUIMode != 0 || ClearPopupUI() || bBulldoze || bMouseCapture)
 		return;
 
 	if (BuildComponent->IsComponentTickEnabled()) {
@@ -838,7 +868,7 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 
 void ACamera::Bulldoze()
 {
-	if (bUIMode == 2 || !bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy) {
+	if (bUIMode != 0 || !bBulldoze || !IsValid(HoveredActor.Actor) || !HoveredActor.Actor->IsA<ABuilding>() || !Cast<ABuilding>(HoveredActor.Actor)->bCanDestroy) {
 		if (bBulldoze)
 			ShowWarning("Cannot bulldoze");
 
@@ -852,7 +882,7 @@ void ACamera::Bulldoze()
 
 void ACamera::Cancel()
 {
-	if (Start || bUIMode == 2)
+	if (Start || bUIMode != 0)
 		return;
 
 	if (bBulldoze)

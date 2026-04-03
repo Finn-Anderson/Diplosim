@@ -300,7 +300,7 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 	if (!IsValid(Target))
 		Target = AI;
 
-	if (!IsValid(AI) || !IsValid(Target) || !IsValid(GetWorld()))
+	if (!IsValid(AI) || !IsValid(Target))
 		return false;
 
 	UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
@@ -312,10 +312,10 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 	FNavLocation targetLoc;
-	nav->ProjectPointToNavigation(Location, targetLoc, FVector(400.0f, 400.0f, 20.0f));
+	nav->ProjectPointToNavigation(Location, targetLoc, FVector(400.0f, 400.0f, 40.0f));
 
 	FNavLocation ownerLoc;
-	nav->ProjectPointToNavigation(Camera->GetTargetActorLocation(Target), ownerLoc, FVector(400.0f, 400.0f, 20.0f));
+	nav->ProjectPointToNavigation(Camera->GetTargetActorLocation(Target), ownerLoc, FVector(400.0f, 400.0f, 40.0f));
 
 	FPathFindingQuery query(Target, *navData, ownerLoc.Location, targetLoc.Location);
 

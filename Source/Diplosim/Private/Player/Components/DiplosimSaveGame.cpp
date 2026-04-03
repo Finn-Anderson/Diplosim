@@ -877,11 +877,21 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 		int32 index = WorldData.HISMData.Find(data);
 		TArray<FTransform> transforms = WorldData.HISMData[index].Transforms;
 
-		hism->AddInstances(transforms, false, true, true);
+		TArray<int32> instances = hism->AddInstances(transforms, true, true, true);
 		hism->PerInstanceSMCustomData = WorldData.HISMData[index].CustomDataValues;
+		hism->PartialNavigationUpdates(transforms);
 		hism->BuildTreeIfOutdated(true, true);
 
-		hism->PartialNavigationUpdates(transforms);
+		if (hism == grid->HISMSea)
+			continue;
+
+		for (int32 inst : instances) {
+			FTransform transform;
+			hism->GetInstanceTransform(inst, transform);
+
+			FTileStruct* tile = grid->GetTileFromLocation(transform.GetLocation());
+			tile->Instance = inst;
+		}
 	}
 
 	grid->AtmosphereComponent->Calendar = WorldData.AtmosphereData.Calendar;

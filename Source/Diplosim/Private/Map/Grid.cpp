@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/DecalComponent.h"
 #include "Engine/StaticMeshSocket.h"
 #include "Blueprint/UserWidget.h"
 #include "NiagaraFunctionLibrary.h"
@@ -102,6 +103,11 @@ AGrid::AGrid()
 	CrystalMesh->SetComponentTickEnabled(false);
 	CrystalMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -1000.0f));
 	CrystalMesh->SetupAttachment(GetRootComponent());
+
+	InteractDecalComponent = CreateDefaultSubobject<UDecalComponent>("InteractDecalComponent");
+	InteractDecalComponent->SetupAttachment(RootComponent);
+	InteractDecalComponent->DecalSize = FVector(50.0f, 50.0f, 50.0f);
+	InteractDecalComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 
 	Bounds = 0;
 	Size = 22500;

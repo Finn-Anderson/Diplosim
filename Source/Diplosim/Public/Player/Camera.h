@@ -229,6 +229,8 @@ public:
 
 	void Tick(float DeltaTime) override;
 
+	void SetInteractDecalValue(float NewValue, bool bAdd);
+
 	void OnEggTimerPlace(class ABuilding* EggTimer);
 
 	void IntroUI();

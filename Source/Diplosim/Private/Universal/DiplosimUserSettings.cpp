@@ -519,9 +519,6 @@ void UDiplosimUserSettings::SetVignette(bool Value)
 {
 	bVignette = Value;
 
-	if (Camera == nullptr)
-		return;
-
 	if (bVignette)
 		Camera->CameraComponent->PostProcessSettings.VignetteIntensity = 0.25f;
 	else
@@ -536,9 +533,6 @@ bool UDiplosimUserSettings::GetVignette() const
 void UDiplosimUserSettings::SetSSAO(bool Value)
 {
 	bSSAO = Value;
-
-	if (Camera == nullptr)
-		return;
 
 	if (bSSAO)
 		Camera->CameraComponent->PostProcessSettings.AmbientOcclusionIntensity = 0.5f;
@@ -591,9 +585,6 @@ void UDiplosimUserSettings::SetLensFlares(bool Value)
 {
 	bLensFlares = Value;
 
-	if (Camera == nullptr)
-		return;
-
 	Camera->CameraComponent->PostProcessSettings.LensFlareIntensity = 0.001f * bLensFlares;
 }
 
@@ -606,10 +597,7 @@ void UDiplosimUserSettings::SetFilmGrain(bool Value)
 {
 	bFilmGrain = Value;
 
-	if (Camera == nullptr)
-		return;
-
-	Camera->CameraComponent->PostProcessSettings.FilmGrainIntensity = 0.1f * bFilmGrain;
+	Camera->CameraComponent->PostProcessSettings.FilmGrainIntensity = 0.2f * bFilmGrain;
 }
 
 bool UDiplosimUserSettings::GetFilmGrain() const
@@ -620,9 +608,6 @@ bool UDiplosimUserSettings::GetFilmGrain() const
 void UDiplosimUserSettings::SetBloom(float Value)
 {
 	Bloom = Value;
-
-	if (Camera == nullptr)
-		return;
 
 	Camera->CameraComponent->PostProcessSettings.BloomIntensity = Value;
 }
@@ -638,9 +623,6 @@ void UDiplosimUserSettings::SetWPODistance(float Value)
 		return;
 
 	WPODistance = Value;
-
-	if (Camera == nullptr)
-		return;
 
 	Camera->Grid->HISMRiver->SetWorldPositionOffsetDisableDistance(GetWPODistance());
 

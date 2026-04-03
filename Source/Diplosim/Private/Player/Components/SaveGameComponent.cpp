@@ -66,11 +66,12 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 		StartAutosaveTimer();
 }
 
-void USaveGameComponent::LoadGameSave(FString SlotName, int32 Index)
+void USaveGameComponent::LoadGameSave(UDiplosimSaveGameData* SaveGameData, FString SlotName, int32 Index)
 {
 	Camera->PController->DisableInput(Camera->PController);
 	Camera->SetPause(false);
 
+	CurrentSaveData = SaveGameData;
 	CurrentID = SlotName;
 	CurrentIndex = Index;
 
@@ -103,18 +104,14 @@ void USaveGameComponent::LoadGameCallback(EAsyncLoop Loop)
 
 void USaveGameComponent::LoadSave()
 {
-	Camera->SetPause(true, false);
-
 	Camera->Cancel();
 
 	for (FTimerStruct timer : Camera->TimerManager->Timers)
 		Camera->TimerManager->RemoveTimer(timer.ID, timer.Actor);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
 	FScriptDelegate delegate;
 	delegate.BindUFunction(this, TEXT("OnNavMeshGenerated"));
-
 	nav->OnNavigationGenerationFinishedDelegate.Add(delegate);
 
 	CurrentSaveGame = DecompressSave(CurrentID);
@@ -130,16 +127,15 @@ void USaveGameComponent::OnNavMeshGenerated()
 
 	Camera->SetCurrentResearchUI();
 
-	Camera->PauseUIInstance->AddToViewport();
 	Camera->DisplayBuildUI();
 	Camera->PController->EnableInput(Camera->PController);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
 	FScriptDelegate delegate;
 	delegate.BindUFunction(this, TEXT("OnNavMeshGenerated"));
-
-	nav->OnNavigationGenerationFinishedDelegate.Remove(delegate);
+	nav->OnNavigationGenerationFinishedDelegate.Remove(delegate); 
+	
+	Camera->SetPause(true, true);
 }
 
 void USaveGameComponent::CompressAndSave(FString SlotName, UDiplosimSaveGame* SaveGame)

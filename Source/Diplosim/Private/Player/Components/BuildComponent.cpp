@@ -51,6 +51,9 @@ void UBuildComponent::BeginPlay()
 
 void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	if (Camera->bUIMode != 0)
+		return;
+
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction); 
 
 	lastUpdatedTime += DeltaTime;

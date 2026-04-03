@@ -368,8 +368,11 @@ void UArmyManager::PlayerMoveArmy(FVector Location)
 
 	ACitizen* captain = PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value].Citizens[0];
 
-	if (!captain->AIController->CanMoveTo(Location))
+	if (!captain->AIController->CanMoveTo(Location)) {
+		Camera->ShowWarning("Army can not reach location");
+
 		return;
+	}
 
 	NumTiles = FMath::CeilToInt32(PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value].Citizens.Num() / 9.0f);
 
@@ -378,19 +381,17 @@ void UArmyManager::PlayerMoveArmy(FVector Location)
 
 	Camera->ConquestManager->AIBuildComponent->SortTileDistances(ArmyTileLocations);
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("%d"), ArmyTileLocations.Num()));
-
 	TArray<FVector> locs;
 	for (ACitizen* citizen : PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value].Citizens) {
 		if (locs.IsEmpty())
 			ArmyTileLocations.GenerateKeyArray(locs);
 
-		citizen->AIController->AIMoveTo(Camera->Grid, locs[0]); 
-
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%d"), locs.Num()));
+		citizen->AIController->AIMoveTo(Camera->Grid, locs[0]);
 
 		locs.RemoveAt(0);
 	}
+
+	Camera->SetInteractDecalValue(0.0f, false);
 }
 
 void UArmyManager::GetArmyTiles(FTileStruct* Tile, int32 Count, FVector Origin)

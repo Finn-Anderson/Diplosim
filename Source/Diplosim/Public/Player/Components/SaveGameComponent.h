@@ -95,7 +95,7 @@ public:
 		void SaveGameSave(FString Name, bool bAutosave = false);
 
 	UFUNCTION(BlueprintCallable)
-		void LoadGameSave(FString SlotName, int32 Index);
+		void LoadGameSave(UDiplosimSaveGameData* SaveGameData, FString SlotName, int32 Index);
 
 	bool IsLoading();
 
