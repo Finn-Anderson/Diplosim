@@ -3,8 +3,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DirectionalLightComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/WidgetComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 
 #include "AI/Clone.h"
 #include "AI/AIMovementComponent.h"
@@ -283,6 +283,8 @@ void UDiplosimSaveGame::SaveCamera(FActorSaveData& ActorData, AActor* Actor, int
 {
 	ACamera* camera = Cast<ACamera>(Actor);
 	Saves[Index].CameraData.ColonyName = camera->ColonyName;
+	Saves[Index].CameraData.TargetLength = camera->MovementComponent->TargetLength;
+	ActorData.Transform.SetRotation(camera->PController->GetControlRotation().Quaternion());
 
 	for (FConstructionStruct constructionStruct : camera->ConstructionManager->Construction) {
 		FConstructionData data;
@@ -469,6 +471,9 @@ void UDiplosimSaveGame::SaveFactions(FActorSaveData& ActorData, AActor* Actor, i
 
 			for (ACitizen* citizen : army.Citizens)
 				armyData.CitizensNames.Add(citizen->GetName());
+
+			if (IsValid(army.Target))
+				armyData.Target = army.Target->GetName();
 
 			data.ArmiesData.Add(armyData);
 		}
@@ -823,6 +828,8 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		actorData.Actor = actor;
 	}
 
+	Camera->Grid->AIVisualiser->MainLoop(Camera);
+
 	for (FActorSaveData actorData : Saves[Index].SavedActors) {
 		LoadTimers(Camera, Index, actorData, Saves[Index].SavedActors);
 
@@ -879,8 +886,7 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 
 		TArray<int32> instances = hism->AddInstances(transforms, true, true, true);
 		hism->PerInstanceSMCustomData = WorldData.HISMData[index].CustomDataValues;
-		hism->PartialNavigationUpdates(transforms);
-		hism->BuildTreeIfOutdated(true, true);
+		hism->BuildTreeIfOutdated(false, true);
 
 		if (hism == grid->HISMSea)
 			continue;
@@ -971,7 +977,8 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& Camer
 	camera->SetInteractStatus(camera->WidgetComponent->GetAttachmentRootActor(), false);
 
 	camera->Detach();
-	camera->MovementComponent->TargetLength = 3000.0f;
+	camera->MovementComponent->TargetLength = CameraData.TargetLength;
+	camera->PController->SetControlRotation(ActorData.Transform.GetRotation().Rotator());
 	camera->MovementComponent->MovementLocation = ActorData.Transform.GetLocation();
 
 	camera->ConstructionManager->Construction.Empty();
@@ -982,6 +989,10 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& Camer
 void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor)
 {
 	ACamera* camera = Cast<ACamera>(Actor);
+
+	for (FFactionStruct faction : camera->ConquestManager->Factions)
+		for (int32 i = faction.Armies.Num() - 1; i > -1; i--)
+			camera->ArmyManager->DestroyArmy(faction.Name, i);
 
 	camera->ConquestManager->Factions.Empty();
 	for (FFactionData data : CameraData.FactionData) {
@@ -1046,11 +1057,11 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& Cam
 			faction.Events.Add(event);
 		}
 
+		camera->ConquestManager->Factions.Add(faction);
+
 		// Army
 		for (FArmyData armyData : data.ArmiesData)
 			camera->ArmyManager->CreateArmy(data.Name, {}, armyData.bGroup, true);
-
-		camera->ConquestManager->Factions.Add(faction);
 	}
 }
 
@@ -1620,10 +1631,16 @@ void UDiplosimSaveGame::InitialiseFactions(ACamera* Camera, FActorSaveData& Acto
 
 		// Army
 		for (int32 i = 0; i < data.ArmiesData.Num(); i++) {
-			if (!data.ArmiesData[i].CitizensNames.Contains(SavedData.Name))
-				continue;
+			if (data.ArmiesData[i].Target == SavedData.Name) {
+				faction->Armies[i].Target = SavedData.Actor;
 
-			Camera->ArmyManager->AddToArmy(i, { Cast<ACitizen>(SavedData.Actor) });
+				break;
+			}
+			else if(data.ArmiesData[i].CitizensNames.Contains(SavedData.Name)) {
+				Camera->ArmyManager->AddToArmy(i, { Cast<ACitizen>(SavedData.Actor) }, true);
+
+				break;
+			}
 		}
 
 		Camera->ConquestManager->DiplomacyComponent->SetFactionCulture(faction);

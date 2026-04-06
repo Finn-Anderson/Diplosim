@@ -23,7 +23,7 @@ public:
 		void CreateArmy(FString FactionName, TArray<class ACitizen*> Citizens, bool bGroup = true, bool bLoad = false);
 
 	UFUNCTION(BlueprintCallable)
-		void AddToArmy(int32 Index, TArray<ACitizen*> Citizens);
+		void AddToArmy(int32 Index, TArray<ACitizen*> Citizens, bool bLoad = false);
 
 	UFUNCTION(BlueprintCallable)
 		void RemoveFromArmy(ACitizen* Citizen);

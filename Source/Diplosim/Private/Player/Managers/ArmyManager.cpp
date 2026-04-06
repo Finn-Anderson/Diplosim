@@ -111,7 +111,7 @@ void UArmyManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizens, b
 	army.bGroup = bGroup;
 	int32 index = faction->Armies.Add(army);
 
-	AddToArmy(index, Citizens);
+	AddToArmy(index, Citizens, bLoad);
 
 	if (FactionName != Camera->ColonyName && !bLoad) {
 		FString id = FactionName + FString::FromInt(index) + "ArmyRaidTimer";
@@ -123,7 +123,7 @@ void UArmyManager::CreateArmy(FString FactionName, TArray<ACitizen*> Citizens, b
 	}
 }
 
-void UArmyManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens)
+void UArmyManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens, bool bLoad)
 {
 	if (Citizens.IsEmpty())
 		return;
@@ -135,11 +135,13 @@ void UArmyManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens)
 
 	faction->Armies[Index].Citizens.Append(Citizens);
 
-	if (faction->Armies[Index].bGroup)
-		for (ACitizen* citizen : Citizens)
-			citizen->AIController->AIMoveTo(faction->EggTimer);
-	else
-		MoveToTarget(faction, Citizens, Index);
+	if (!bLoad) {
+		if (faction->Armies[Index].bGroup)
+			for (ACitizen* citizen : Citizens)
+				citizen->AIController->AIMoveTo(faction->EggTimer);
+		else
+			MoveToTarget(faction, Citizens, Index);
+	}
 
 	Camera->UpdateArmyCountUI(Index, faction->Armies[Index].Citizens.Num());
 }

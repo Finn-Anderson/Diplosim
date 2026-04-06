@@ -845,24 +845,22 @@ void ACamera::Action(const struct FInputActionInstance& Instance)
 	else if (!(bool)(Instance.GetTriggerEvent() & ETriggerEvent::Completed)) {
 		FocusedCitizen = nullptr;
 
-		if (WidgetComponent->GetAttachParent() != RootComponent && !IsValid(HoveredActor.Actor)) {
-			SetInteractStatus(WidgetComponent->GetAttachmentRootActor(), false);
-
-			return;
-		}
-
 		ArmyManager->SetSelectedArmy(TTuple<FFactionStruct*, int32>(nullptr, INDEX_NONE));
+
+		if (WidgetComponent->GetAttachParent() != RootComponent)
+			SetInteractStatus(WidgetComponent->GetAttachmentRootActor(), false);
 
 		if (!IsValid(HoveredActor.Actor))
 			return;
 
 		if (HoveredActor.Actor->IsA<AEggBasket>())
 			Cast<AEggBasket>(HoveredActor.Actor)->RedeemReward();
-		else if (HoveredActor.Actor->IsA<ACitizen>() && ArmyManager->IsCitizenInAnArmy(Cast<ACitizen>(HoveredActor.Actor))) {
-			ArmyManager->SetSelectedArmy(ArmyManager->GetArmyIndex(Cast<ACitizen>(HoveredActor.Actor)));
-		}
-		else
+		else {
+			if (HoveredActor.Actor->IsA<ACitizen>() && ArmyManager->IsCitizenInAnArmy(Cast<ACitizen>(HoveredActor.Actor)))
+				ArmyManager->SetSelectedArmy(ArmyManager->GetArmyIndex(Cast<ACitizen>(HoveredActor.Actor)));
+
 			DisplayInteract(HoveredActor.Actor, HoveredActor.Component, HoveredActor.Instance);
+		}
 	}
 }
 

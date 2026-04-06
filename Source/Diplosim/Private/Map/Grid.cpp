@@ -1345,7 +1345,7 @@ void AGrid::SpawnEggBasket()
 		return;
 
 	FTransform transform;
-	transform.SetLocation(FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f));
+	transform.SetLocation(FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f + 100.0f));
 	transform.SetRotation(ResourceTiles[index]->Rotation);
 
 	FActorSpawnParameters params;
@@ -1515,7 +1515,7 @@ void AGrid::SpawnAISpawners()
 			return;
 
 		FTransform transform;
-		transform.SetLocation(FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f));
+		transform.SetLocation(FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f + 100.0f));
 		transform.SetRotation(ResourceTiles[index]->Rotation);
 
 		FActorSpawnParameters params;

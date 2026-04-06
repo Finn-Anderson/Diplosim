@@ -439,9 +439,6 @@ void UAIVisualiser::UpdateInstanceCustomData(UInstancedStaticMeshComponent* ISM,
 {
 	int32 value = Instance * ISM->NumCustomDataFloats + Index;
 
-	if (ISM->PerInstanceSMCustomData[value] == Value)
-		return;
-
 	Async(EAsyncExecution::TaskGraphMainTick, [ISM, Instance, Index, Value]() { ISM->SetCustomDataValue(Instance, Index, Value); });
 }
 

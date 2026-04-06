@@ -1076,9 +1076,13 @@ struct FArmyData
 	UPROPERTY()
 		bool bGroup;
 
+	UPROPERTY()
+		FString Target;
+
 	FArmyData()
 	{
 		bGroup = false;
+		Target = "";
 	}
 };
 
@@ -1174,6 +1178,9 @@ struct FCameraData
 		FString ColonyName;
 
 	UPROPERTY()
+		float TargetLength;
+
+	UPROPERTY()
 		TArray<FConstructionData> ConstructionData;
 
 	UPROPERTY()
@@ -1188,6 +1195,7 @@ struct FCameraData
 	FCameraData()
 	{
 		ColonyName = "";
+		TargetLength = 3000.0f;
 	}
 };
 
