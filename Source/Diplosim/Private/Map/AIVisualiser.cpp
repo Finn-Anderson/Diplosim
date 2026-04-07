@@ -69,8 +69,7 @@ UAIVisualiser::UAIVisualiser()
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);
-	HarvestNiagaraComponent->PrimaryComponentTick.bCanEverTick = false;
-	HarvestNiagaraComponent->bAutoActivate = true;
+	HarvestNiagaraComponent->SetAutoActivate(false);
 
 	HatsContainer = CreateDefaultSubobject<USceneComponent>(TEXT("HatsContainer"));
 	HatsContainer->SetupAttachment(AIContainer);
@@ -201,7 +200,10 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 		}
 
 		if (cs.IsEmpty() && rebels.IsEmpty())
-			return;
+			return; 
+		
+		if (HarvestNiagaraComponent->IsActive() && UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(HarvestNiagaraComponent, "Locations").IsEmpty())
+			HarvestNiagaraComponent->Deactivate();
 
 		TArray<TArray<ACitizen*>> citizens;
 		citizens.Add(cs);
@@ -526,6 +528,9 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 
 FVector UAIVisualiser::AddHarvestVisual(AAI* AI, FLinearColor Colour)
 {
+	if (!HarvestNiagaraComponent->IsActive())
+		HarvestNiagaraComponent->Activate();
+
 	FVector location = AI->MovementComponent->Transform.GetLocation() + FVector(20.0f, 0.0f, 17.0f);
 
 	TArray<FVector> locations = UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(HarvestNiagaraComponent, "Locations");

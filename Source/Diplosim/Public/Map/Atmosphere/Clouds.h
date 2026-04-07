@@ -52,10 +52,7 @@ struct FWetnessStruct
 		float Value;
 
 	UPROPERTY()
-		AActor* Actor;
-
-	UPROPERTY()
-		class UHierarchicalInstancedStaticMeshComponent* HISM;
+		UPrimitiveComponent* Component;
 
 	UPROPERTY()
 		int32 Instance;
@@ -66,24 +63,22 @@ struct FWetnessStruct
 	FWetnessStruct()
 	{
 		Value = 0.0f;
-		Actor = nullptr;
-		HISM = nullptr;
-		Instance = -1;
+		Component = nullptr;
+		Instance = INDEX_NONE;
 		Increment = 0.0f;
 	}
 
-	void Create(float V, AActor* A, class UHierarchicalInstancedStaticMeshComponent* H, int32 Inst, float Inc)
+	void Create(float Val, class UPrimitiveComponent* Comp, int32 Inst, float Inc)
 	{
-		Value = V;
-		Actor = A;
-		HISM = H;
+		Value = Val;
+		Component = Comp;
 		Instance = Inst;
 		Increment = Inc;
 	}
 
 	bool operator==(const FWetnessStruct& other) const
 	{
-		return (other.Actor == Actor) || (other.HISM == HISM && other.Instance == Instance);
+		return (other.Component == Component && other.Instance == Instance);
 	}
 };
 
@@ -113,7 +108,7 @@ public:
 		void RainCollisionHandler(FVector CollisionLocation, float Value = -1.0f, float Increment = 0.0f);
 
 	UFUNCTION()
-		void SetRainMaterialEffect(float Value, class AActor* Actor, class UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance);
+		void SetRainMaterialEffect(float Value, UPrimitiveComponent* Component, int32 Instance);
 
 	FCloudStruct CreateCloud(FTransform Transform, int32 Chance, bool bLoad = false, TArray<FTransform> LoadTransforms = {});
 

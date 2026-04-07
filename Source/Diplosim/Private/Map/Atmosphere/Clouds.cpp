@@ -9,7 +9,6 @@
 #include "AI/Citizen/Citizen.h"
 #include "Buildings/Building.h"
 #include "Buildings/Misc/Broch.h"
-#include "Buildings/Misc/Road.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
@@ -117,13 +116,16 @@ void UCloudComponent::TickCloud(float DeltaTime)
 		}
 	}
 
+	if (ProcessRainEffect.IsEmpty() && WetnessStruct.IsEmpty())
+		return;
+
 	Async(EAsyncExecution::TaskGraph, [this, DeltaTime]() {
 		FScopeTryLock lock(&RainLock);
 		if (!lock.IsLocked())
 			return;
 
 		for (int32 i = ProcessRainEffect.Num() - 1; i > -1; i--) {
-			SetRainMaterialEffect(ProcessRainEffect[i].Value, ProcessRainEffect[i].Actor, ProcessRainEffect[i].HISM, ProcessRainEffect[i].Instance);
+			SetRainMaterialEffect(ProcessRainEffect[i].Value, ProcessRainEffect[i].Component, ProcessRainEffect[i].Instance);
 
 			ProcessRainEffect.RemoveAt(i);
 		}
@@ -142,17 +144,12 @@ void UCloudComponent::Clear()
 	}
 
 	for (int32 i = (WetnessStruct.Num() - 1); i > -1; i--) {
-		FString id = "Wet";
-
-		if (IsValid(WetnessStruct[i].Actor))
-			id += FString::FromInt(WetnessStruct[i].Actor->GetUniqueID());
-		else
-			id += FString::FromInt(WetnessStruct[i].HISM->GetUniqueID()) + FString::FromInt(WetnessStruct[i].Instance);
+		FString id = "Wet" + FString::FromInt(WetnessStruct[i].Component->GetUniqueID()) + FString::FromInt(WetnessStruct[i].Instance);
 
 		Grid->Camera->TimerManager->RemoveTimer(id, Grid);
 
-		if (IsValid(WetnessStruct[i].Actor) && WetnessStruct[i].Actor->IsA<ABroch>())
-			Cast<ABroch>(WetnessStruct[i].Actor)->BuildingMesh->SetCustomPrimitiveDataFloat(0, 0.0f);
+		if (WetnessStruct[i].Component->GetOwner()->IsA<ABroch>())
+			Cast<UStaticMeshComponent>(WetnessStruct[i].Component)->SetCustomPrimitiveDataFloat(0, 0.0f);
 
 		WetnessStruct.RemoveAt(i);
 	}
@@ -347,28 +344,23 @@ void UCloudComponent::RainCollisionHandler(FVector CollisionLocation, float Valu
 {
 	FHitResult hit(ForceInit);
 
-	if (GetWorld()->LineTraceSingleByChannel(hit, CollisionLocation + FVector(0.0f, 0.0f, 20.0f), CollisionLocation - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Visibility))
+	if (GetWorld()->LineTraceSingleByChannel(hit, CollisionLocation + FVector(0.0f, 0.0f, 10.0f), CollisionLocation - FVector(0.0f, 0.0f, 10.0f), ECollisionChannel::ECC_Visibility))
 	{
-		if (hit.Component == Grid->HISMSea || hit.Component == Grid->HISMLava || hit.Component == Grid->HISMRiver)
+		if (!hit.Component->IsA<UPrimitiveComponent>() || hit.Component == Grid->HISMSea || hit.Component == Grid->HISMLava || hit.Component == Grid->HISMRiver || (hit.Component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(hit.Component)->NumCustomDataFloats == 0))
 			return;
 
 		FWetnessStruct rainDrop;
 		rainDrop.Value = 1.0f;
+		rainDrop.Component = hit.Component.Get();
+		rainDrop.Instance = hit.Item;
 
-		if (hit.GetActor()->IsA<ABuilding>() || hit.GetActor()->IsA<AAI>() || hit.GetActor()->IsA<AEggBasket>()) {
-			rainDrop.Actor = hit.GetActor();
-		}
-		else if (hit.Component != nullptr && hit.Component->IsA<UHierarchicalInstancedStaticMeshComponent>()) {
-			rainDrop.HISM = Cast<UHierarchicalInstancedStaticMeshComponent>(hit.Component);
-			rainDrop.Instance = hit.Item;
-		}
-
-		if (IsValid(rainDrop.HISM) && rainDrop.HISM->NumCustomDataFloats == 0)
-			return;
+		AActor* actor = hit.Component->GetOwner();
+		if (actor->IsA<ABuilding>())
+			rainDrop.Component = Cast<ABuilding>(actor)->BuildingMesh;
 
 		if (Value > -1.0f) {
 			FWetnessStruct wetness;
-			wetness.Create(Value, rainDrop.Actor, rainDrop.HISM, rainDrop.Instance, Increment);
+			wetness.Create(Value, rainDrop.Component, rainDrop.Instance, Increment);
 
 			WetnessStruct.Add(wetness);
 		}
@@ -377,18 +369,10 @@ void UCloudComponent::RainCollisionHandler(FVector CollisionLocation, float Valu
 	}
 }
 
-void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarchicalInstancedStaticMeshComponent* HISM, int32 Instance)
+void UCloudComponent::SetRainMaterialEffect(float Value, UPrimitiveComponent* Component, int32 Instance)
 {
-	if ((!IsValid(Actor) && !IsValid(HISM)))
-		return;
-
 	if (Value == 1.0f) {
-		FString id = "Wet";
-
-		if (IsValid(Actor))
-			id += FString::FromInt(Actor->GetUniqueID());
-		else
-			id += FString::FromInt(HISM->GetUniqueID()) + FString::FromInt(Instance);
+		FString id = "Wet" + FString::FromInt(Component->GetUniqueID()) + FString::FromInt(Instance);
 
 		if (Grid->Camera->TimerManager->FindTimer(id, Grid) != nullptr) {
 			Grid->Camera->TimerManager->ResetTimer(id, Grid);
@@ -398,8 +382,7 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 		else {
 			TArray<FTimerParameterStruct> params;
 			Grid->Camera->TimerManager->SetParameter(0.0f, params);
-			Grid->Camera->TimerManager->SetParameter(Actor, params);
-			Grid->Camera->TimerManager->SetParameter(HISM, params);
+			Grid->Camera->TimerManager->SetParameter(Component, params);
 			Grid->Camera->TimerManager->SetParameter(Instance, params);
 			Grid->Camera->TimerManager->CreateTimer(id, Grid, 30, "SetRainMaterialEffect", params, false, true);
 		}
@@ -413,45 +396,35 @@ void UCloudComponent::SetRainMaterialEffect(float Value, AActor* Actor, UHierarc
 	Value = (Value - 1.0f) * -1.0f;
 
 	FWetnessStruct wetness;
-	wetness.Create(Value, Actor, HISM, Instance, increment);
+	wetness.Create(Value, Component, Instance, increment);
 
 	WetnessStruct.Add(wetness);
 }
 
 void UCloudComponent::SetGradualWetness(bool bLoad)
 {
-	TArray<UHierarchicalInstancedStaticMeshComponent*> hismsToUpdate;
-
 	for (int32 i = (WetnessStruct.Num() - 1); i > -1; i--) {
 		if (!bLoad)
 			WetnessStruct[i].Value += WetnessStruct[i].Increment;
 
-		if (WetnessStruct[i].Actor != nullptr) {
-			UStaticMeshComponent* meshComp = nullptr;
-
-			if (WetnessStruct[i].Actor->IsA<ABuilding>())
-				meshComp = Cast<ABuilding>(WetnessStruct[i].Actor)->BuildingMesh;
-			else
-				meshComp = Cast<AEggBasket>(WetnessStruct[i].Actor)->BasketMesh;
-
-			meshComp->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
-
-			if (WetnessStruct[i].Actor->IsA<ARoad>())
-				Cast<ARoad>(WetnessStruct[i].Actor)->HISMRoad->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
+		if (WetnessStruct[i].Component->IsA<UInstancedStaticMeshComponent>()) {
+			Cast<UInstancedStaticMeshComponent>(WetnessStruct[i].Component)->SetCustomDataValue(WetnessStruct[i].Instance, 0, WetnessStruct[i].Value);
 		}
 		else {
-			WetnessStruct[i].HISM->PerInstanceSMCustomData[WetnessStruct[i].Instance * WetnessStruct[i].HISM->NumCustomDataFloats] = WetnessStruct[i].Value;
+			AActor* actor = WetnessStruct[i].Component->GetOwner();
+			Cast<UStaticMeshComponent>(WetnessStruct[i].Component)->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
 
-			if (hismsToUpdate.IsEmpty() || !hismsToUpdate.Contains(WetnessStruct[i].HISM))
-				hismsToUpdate.Add(WetnessStruct[i].HISM);
+			if (actor->IsA<ABuilding>()) {
+				TArray<UStaticMeshComponent*> comps;
+				actor->GetComponents<UStaticMeshComponent*>(comps);
+
+				for (UStaticMeshComponent* mesh : comps)
+					if (mesh != WetnessStruct[i].Component)
+						mesh->SetCustomPrimitiveDataFloat(0, WetnessStruct[i].Value);
+			}
 		}
 
 		if (WetnessStruct[i].Value <= 0.0f || WetnessStruct[i].Value >= 1.0f)
 			WetnessStruct.RemoveAt(i);
 	}
-
-	AsyncTask(ENamedThreads::GameThread, [hismsToUpdate]() {
-		for (UHierarchicalInstancedStaticMeshComponent* hism : hismsToUpdate)
-			hism->BuildTreeIfOutdated(true, true);
-	});
 }

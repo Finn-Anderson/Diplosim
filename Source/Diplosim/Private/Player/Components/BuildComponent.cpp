@@ -423,7 +423,9 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			return false;
 		}
 
-		if (Camera->Grid->GetTileFromLocation(hit.Location)->bMineral && Building->FactionName != Camera->ColonyName && (!Building->IsA<AInternalProduction>() || Cast<AInternalProduction>(Building)->ResourceToOverlap == nullptr))
+		FTileStruct* tile = Camera->Grid->GetTileFromLocation(hit.Location);
+
+		if (tile == nullptr || (tile->bMineral && Building->FactionName != Camera->ColonyName && (!Building->IsA<AInternalProduction>() || Cast<AInternalProduction>(Building)->ResourceToOverlap == nullptr)))
 			return false;
 
 		FTransform transform;

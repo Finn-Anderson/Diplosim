@@ -284,7 +284,7 @@ void UDiplosimTimerManager::CallTimerFunction(FTimerStruct* Timer)
 
 		// Objects
 		SET_TYPE(USoundBase*);
-		SET_TYPE(UHierarchicalInstancedStaticMeshComponent*);
+		SET_TYPE(UPrimitiveComponent*);
 
 		// Rest
 		SET_TYPE(FVector);

@@ -175,7 +175,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 				continue;
 
 			FWetnessStruct wetnessStruct;
-			wetnessStruct.HISM = hism;
+			wetnessStruct.Component = hism;
 			wetnessStruct.Instance = i;
 
 			int32 index = clouds->WetnessStruct.Find(wetnessStruct);
@@ -209,7 +209,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 
 	for (AActor* a : PotentialWetActors) {
 		FWetnessStruct wetnessStruct;
-		wetnessStruct.Actor = a;
+		wetnessStruct.Component = a->FindComponentByClass<UStaticMeshComponent>();
 
 		int32 index = clouds->WetnessStruct.Find(wetnessStruct);
 
@@ -558,6 +558,23 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 
 	if (faction != nullptr)
 		AIData.FactionName = faction->Name;
+
+	TTuple<UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
+
+	FWetnessStruct wetnessStruct;
+	wetnessStruct.Component = info.Key;
+	wetnessStruct.Instance = info.Value;
+
+	TArray<FWetnessStruct> wetness = Camera->Grid->AtmosphereComponent->Clouds->WetnessStruct;
+	int32 index = wetness.Find(wetnessStruct);
+
+	if (index == INDEX_NONE)
+		return;
+
+	FWetnessData wetnessData;
+	wetnessData.Location = AIData.MovementData.Transform.GetLocation();
+	wetnessData.Value = wetness[index].Value;
+	wetnessData.Increment = wetness[index].Increment;
 }
 
 void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, AActor* Actor, int32 Index)
