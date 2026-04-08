@@ -66,6 +66,8 @@ AGrid::AGrid()
 		hism->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 		hism->SetCollisionResponseToChannels(response);
 		hism->SetGenerateOverlapEvents(false);
+		hism->SetComponentTickEnabled(false);
+		hism->SetMobility(EComponentMobility::Static);
 		hism->bAutoRebuildTreeOnInstanceChanges = false;
 		hism->bWorldPositionOffsetWritesVelocity = false;
 
@@ -90,6 +92,7 @@ AGrid::AGrid()
 
 	LavaComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("LavaComponent"));
 	LavaComponent->SetupAttachment(GetRootComponent());
+	LavaComponent->SetMobility(EComponentMobility::Static);
 	LavaComponent->SetAutoActivate(false);
 
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
@@ -1024,14 +1027,10 @@ void AGrid::CalculateTile(FTileStruct* Tile)
 						if (element.Value->Level < Tile->Level || (element.Value->Level == MaxLevel && Tile->Level == (MaxLevel - 1)))
 							bFlat = false;
 
-				if (bFlat) {
-					AddCalculatedTile(HISMGround, transform);
-				}
-				else {
-					AddCalculatedTile(HISMGround, transform);
+				AddCalculatedTile(HISMGround, transform);
 
+				if (!bFlat)
 					Tile->bEdge = true;
-				}
 			}
 		}
 	}
@@ -1076,18 +1075,17 @@ void AGrid::FixEdgeZClipping(FTileStruct* Tile)
 
 	FVector location = transform.GetLocation() + FVector(offsets[0], offsets[0], -100.0f);
 	transform.SetLocation(location);
-	HISMGround->UpdateInstanceTransform(Tile->Instance, transform, true);
+
+	FInstancedStaticMeshInstanceData& instanceData = HISMGround->PerInstanceSMData[Tile->Instance];
+	instanceData.Transform = transform.ToMatrixWithScale();
 }
 
 void AGrid::GenerateTiles()
 {
 	for (auto& element : CalculatedTiles) {
-		TArray<int32> instances = element.Key->AddInstances(element.Value, true, true, false);
+		TArray<int32> instances = element.Key->AddInstances(element.Value, true);
 
 		for (int32 inst : instances) {
-			if (inst == 0)
-				FNavigationSystem::RegisterComponent(*element.Key);
-
 			FTransform transform;
 			element.Key->GetInstanceTransform(inst, transform, true);
 
@@ -1142,7 +1140,8 @@ void AGrid::GenerateTiles()
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 5] = 1.0f;
 
 				if (tile->Fertility == 0) {
-					float distance = *ChosenDistToLava.Find(tile);
+					float distance = 100.0f;
+					ChosenDistToLava.RemoveAndCopyValue(tile, distance);
 					colour *= FMath::Pow(distance / 2.0f, 2.0f);
 
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 5] = 0.0f;
@@ -1167,8 +1166,6 @@ void AGrid::GenerateTiles()
 			if (element.Key == HISMGround)
 				FixEdgeZClipping(tile);
 		}
-
-		element.Key->PartialNavigationUpdates({ element.Value });
 
 		if (element.Key->IsA<UHierarchicalInstancedStaticMeshComponent>())
 			Cast<UHierarchicalInstancedStaticMeshComponent>(element.Key)->BuildTreeIfOutdated(false, true);

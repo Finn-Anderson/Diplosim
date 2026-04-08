@@ -344,7 +344,7 @@ void UCloudComponent::RainCollisionHandler(FVector CollisionLocation, float Valu
 {
 	FHitResult hit(ForceInit);
 
-	if (GetWorld()->LineTraceSingleByChannel(hit, CollisionLocation + FVector(0.0f, 0.0f, 10.0f), CollisionLocation - FVector(0.0f, 0.0f, 10.0f), ECollisionChannel::ECC_Visibility))
+	if (GetWorld()->LineTraceSingleByChannel(hit, CollisionLocation + FVector(0.0f, 0.0f, 10.0f), CollisionLocation - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_Visibility))
 	{
 		if (!hit.Component->IsA<UPrimitiveComponent>() || hit.Component == Grid->HISMSea || hit.Component == Grid->HISMLava || hit.Component == Grid->HISMRiver || (hit.Component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(hit.Component)->NumCustomDataFloats == 0))
 			return;
@@ -408,7 +408,10 @@ void UCloudComponent::SetGradualWetness(bool bLoad)
 			WetnessStruct[i].Value += WetnessStruct[i].Increment;
 
 		if (WetnessStruct[i].Component->IsA<UInstancedStaticMeshComponent>()) {
-			Cast<UInstancedStaticMeshComponent>(WetnessStruct[i].Component)->SetCustomDataValue(WetnessStruct[i].Instance, 0, WetnessStruct[i].Value);
+			UPrimitiveComponent* component = WetnessStruct[i].Component;
+			int32 instance = WetnessStruct[i].Instance;
+			float value = WetnessStruct[i].Value;
+			Async(EAsyncExecution::TaskGraphMainTick, [component, instance, value]() { Cast<UInstancedStaticMeshComponent>(component)->SetCustomDataValue(instance, 0, value); });
 		}
 		else {
 			AActor* actor = WetnessStruct[i].Component->GetOwner();
