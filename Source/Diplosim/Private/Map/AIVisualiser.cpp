@@ -203,7 +203,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 			return; 
 		
 		if (HarvestNiagaraComponent->IsActive() && UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(HarvestNiagaraComponent, "Locations").IsEmpty())
-			HarvestNiagaraComponent->Deactivate();
+			Async(EAsyncExecution::TaskGraphMainTick, [this]() {HarvestNiagaraComponent->Deactivate(); });
 
 		TArray<TArray<ACitizen*>> citizens;
 		citizens.Add(cs);
@@ -281,7 +281,8 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 		TArray<AAI*> clones;
 
 		for (FFactionStruct faction : Camera->ConquestManager->Factions)
-			clones.Append(faction.Clones);
+			if (!Camera->ConquestManager->FactionsToRemove.Contains(faction))
+				clones.Append(faction.Clones);
 
 		if (clones.IsEmpty() && gamemode->Enemies.IsEmpty() && gamemode->Snakes.IsEmpty())
 			return;
@@ -529,7 +530,7 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 FVector UAIVisualiser::AddHarvestVisual(AAI* AI, FLinearColor Colour)
 {
 	if (!HarvestNiagaraComponent->IsActive())
-		HarvestNiagaraComponent->Activate();
+		Async(EAsyncExecution::TaskGraphMainTick, [this]() {HarvestNiagaraComponent->Activate(); });
 
 	FVector location = AI->MovementComponent->Transform.GetLocation() + FVector(20.0f, 0.0f, 17.0f);
 

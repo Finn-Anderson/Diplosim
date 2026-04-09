@@ -1482,24 +1482,6 @@ void UDiplosimSaveGame::InitialiseAI(ACamera* Camera, FActorSaveData& ActorData,
 {
 	AAI* ai = Cast<AAI>(ActorData.Actor);
 	FAIMovementData movementData = AIData.MovementData;
-	FMoveStruct moveStruct;
-
-	/*int32 count = 0;
-	int32 max = 5;
-
-	TArray<FString> list = { movementData->ChosenBuildingName, movementData->ActorToLookAtName, movementData->ActorName, movementData->LinkedPortalName, movementData->UltimateGoalName };
-	if (ActorData.Actor->IsA<ACitizen>()) {
-		FCitizenData* citizenData = &ActorData.AIData.CitizenData;
-		list.Append({ citizenData->MothersName, citizenData->FathersName, citizenData->PartnersName });
-		list.Append(citizenData->ChildrensNames);
-		list.Append(citizenData->SiblingsNames);
-
-		max = 3 + citizenData->ChildrensNames.Num() + citizenData->SiblingsNames.Num();
-	}
-
-	for (FString name : list)
-		if (name == "")
-			count++;*/
 
 	if (SavedData.Name == movementData.ChosenBuildingName)
 		ai->AIController->ChosenBuilding = Cast<ABuilding>(SavedData.Actor);
@@ -1507,19 +1489,23 @@ void UDiplosimSaveGame::InitialiseAI(ACamera* Camera, FActorSaveData& ActorData,
 	if (SavedData.Name == movementData.ActorToLookAtName)
 		ai->MovementComponent->ActorToLookAt = SavedData.Actor;
 
-	if (SavedData.Name == movementData.ActorName)
-		moveStruct.Actor = SavedData.Actor;
+	if (SavedData.Name == movementData.ActorName) {
+		ai->AIController->MoveRequest.Actor = SavedData.Actor;
+		ai->AIController->MoveRequest.SetLocation(AIData.MovementData.Location);
+		ai->AIController->MoveRequest.SetGoalInstance(AIData.MovementData.Instance);
+
+		if (!SavedData.Actor->IsA<ABuilding>() || !ai->IsA<ACitizen>() || AIData.CitizenData.EnterLocation == FVector::Zero())
+			return;
+		
+		Cast<ABuilding>(SavedData.Actor)->Enter(Cast<ACitizen>(ai));
+		Cast<ACitizen>(ai)->BuildingComponent->EnterLocation = AIData.CitizenData.EnterLocation;
+	}
 
 	if (SavedData.Name == movementData.LinkedPortalName)
-		moveStruct.LinkedPortal = SavedData.Actor;
+		ai->AIController->MoveRequest.LinkedPortal = SavedData.Actor;
 
 	if (SavedData.Name == movementData.UltimateGoalName)
-		moveStruct.UltimateGoal = SavedData.Actor;
-
-	moveStruct.Instance = AIData.MovementData.Instance;
-	moveStruct.Location = AIData.MovementData.Location;
-
-	ai->AIController->MoveRequest = moveStruct;
+		ai->AIController->MoveRequest.UltimateGoal = SavedData.Actor;
 }
 
 void UDiplosimSaveGame::InitialiseCitizen(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FActorSaveData SavedData)
@@ -1541,19 +1527,16 @@ void UDiplosimSaveGame::InitialiseCitizen(ACamera* Camera, FActorSaveData& Actor
 
 	if (citizenData.SiblingsNames.Contains(SavedData.Name))
 		citizen->BioComponent->Siblings.Add(Cast<ACitizen>(SavedData.Actor));
+
+	if (IsValid(citizen->BuildingComponent->Employment))
+		Camera->Grid->AIVisualiser->AddCitizenToHISMHat(citizen, citizen->BuildingComponent->Employment->WorkHat);
 }
 
 void UDiplosimSaveGame::InitialiseConstructionManager(ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index)
 {
-	for (int32 i = 0; i < Camera->ConstructionManager->Construction.Num(); i++) {
-		FConstructionStruct construction = Camera->ConstructionManager->Construction[i];
-		FConstructionData constructionData = Saves[Index].CameraData.ConstructionData[i];
-
-		if (constructionData.BuildingName == SavedData.Name)
-			construction.Building = Cast<ABuilding>(SavedData.Actor);
-		else if (constructionData.BuilderName == SavedData.Name)
-			construction.Builder = Cast<ABuilder>(SavedData.Actor);
-	}
+	for (int32 i = 0; i < Camera->ConstructionManager->Construction.Num(); i++)
+		if (Saves[Index].CameraData.ConstructionData[i].BuilderName == SavedData.Name)
+			Camera->ConstructionManager->Construction[i].Builder = Cast<ABuilder>(SavedData.Actor);
 }
 
 void UDiplosimSaveGame::InitialiseCitizenManager(ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index)

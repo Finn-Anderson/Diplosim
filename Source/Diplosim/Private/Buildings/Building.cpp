@@ -974,9 +974,12 @@ void ABuilding::Enter(ACitizen* Citizen)
 	
 	UConstructionManager* cm = Camera->ConstructionManager;
 
-	if (bHideCitizen || cm->IsBeingConstructed(this, nullptr))
+	if (bHideCitizen || cm->IsBeingConstructed(this, nullptr)) {
+		Citizen->MovementComponent->Transform.SetLocation(GetActorLocation());
+
 		if (Camera->FocusedCitizen == Citizen)
 			Camera->Attach(this);
+	}
 
 	if (Citizen->Carrying.Amount > 0)
 		StoreResource(Citizen);
@@ -1061,6 +1064,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 	QueryParams.AddIgnoredActor(this);
 
 	FVector location = Citizen->BuildingComponent->EnterLocation;
+	Citizen->BuildingComponent->EnterLocation = FVector::Zero();
 
 	if (BuildingMesh->DoesSocketExist("Entrance")) {
 		FVector pos = BuildingMesh->GetSocketLocation("Entrance");
@@ -1142,9 +1146,9 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 	TSubclassOf<AResource> resource = Citizen->Carrying.Type->GetClass();
+	UConstructionManager* cm = Camera->ConstructionManager;
 
-	if (!resources.IsEmpty() && resources.Contains(resource)) {
-
+	if (!cm->IsBeingConstructed(this, nullptr) && !resources.IsEmpty() && resources.Contains(resource)) {
 		if (IsA<AWork>() && Cast<AWork>(this)->Boosters != 0)
 			Citizen->Carrying.Amount *= (1.50f * Cast<AWork>(this)->Boosters);
 
@@ -1156,7 +1160,6 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 		Citizen->Carry(nullptr, 0, nullptr);
 	}
 	else {
-		UConstructionManager* cm = Camera->ConstructionManager;
 		TArray<FItemStruct> items;
 
 		if (cm->IsBeingConstructed(this, nullptr))

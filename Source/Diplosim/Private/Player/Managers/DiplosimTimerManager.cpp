@@ -98,6 +98,9 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 
 void UDiplosimTimerManager::CreateTimer(FString Identifier, AActor* Actor, float Time, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread)
 {
+	if (DoesTimerExist(Identifier, Actor))
+		return;
+
 	FScopeLock lock(&TimerLock);
 
 	FTimerStruct timer;

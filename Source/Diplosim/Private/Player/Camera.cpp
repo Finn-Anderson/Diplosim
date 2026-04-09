@@ -527,7 +527,7 @@ bool ACamera::IsUIHoveredOver()
 
 		if (widget == Grid->LoadUIInstance || widget == MainMenuUIInstance || widget == MenuUIInstance || widget == SaveLoadGameUIInstance || widget == SettingsUIInstance)
 			mode = 2;
-		else
+		else if (!BuildComponent->IsComponentTickEnabled() || widget != WidgetComponent->GetWidget())
 			mode = 1;
 
 		break;

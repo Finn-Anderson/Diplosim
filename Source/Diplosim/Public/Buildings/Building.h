@@ -16,7 +16,8 @@ struct FItemStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Amount;
 
-	int32 Stored;
+	UPROPERTY()
+		int32 Stored;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 Use;
