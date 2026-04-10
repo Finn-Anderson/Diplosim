@@ -205,12 +205,14 @@ void UAtmosphereComponent::AlterWind()
 	UMaterialParameterCollectionInstance* Instance = GetWorld()->GetParameterCollectionInstance(WindCollection);
 	Instance->SetScalarParameterValue("WindSpeed", WindSpeed / 50.0f);
 	Instance->SetVectorParameterValue("WindRotation", FLinearColor(WindRotation.Vector()));
+
+	WindComponent->SetVariableFloat("SpawnRate", Grid->GetMapBounds() / 100.0f * (WindSpeed / 10.0f));
 }
 
 void UAtmosphereComponent::SetWindDimensions(int32 Bound)
 {
 	WindComponent->SetVariableVec3("Dimensions", FVector(Bound * 100.0f * 2.0f, Bound * 100.0f * 2.0f, 3000.0f));
-	WindComponent->SetVariableFloat("SpawnRate", Bound / 100.0f);
+	WindComponent->SetVariableFloat("SpawnRate", Bound / 100.0f * (WindSpeed / 10.0f));
 }
 
 void UAtmosphereComponent::SetDisplayText(int32 Hour)

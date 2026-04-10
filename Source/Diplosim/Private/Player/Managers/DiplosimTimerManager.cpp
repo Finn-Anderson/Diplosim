@@ -64,7 +64,7 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 
 			double currentTime = GetWorld()->GetTimeSeconds();
 
-			timer.Timer += (currentTime - timer.LastUpdateTime);
+			timer.Timer = FMath::Min(timer.Timer + currentTime - timer.LastUpdateTime, timer.Target);
 			timer.LastUpdateTime = currentTime;
 
 			if (timer.Timer >= timer.Target && !timer.bModifying) {
@@ -98,7 +98,8 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 
 void UDiplosimTimerManager::CreateTimer(FString Identifier, AActor* Actor, float Time, FName FunctionName, TArray<FTimerParameterStruct> Params, bool Repeat, bool OnGameThread)
 {
-	if (DoesTimerExist(Identifier, Actor))
+	FTimerStruct* t = FindTimer(Identifier, Actor);
+	if (t != nullptr && t->Target != t->Timer)
 		return;
 
 	FScopeLock lock(&TimerLock);

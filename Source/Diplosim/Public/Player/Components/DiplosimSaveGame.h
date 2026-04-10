@@ -292,11 +292,15 @@ struct FWorldSaveData
 	UPROPERTY()
 		FNaturalDisasterData NaturalDisasterData;
 
+	UPROPERTY()
+		double WorldTimer;
+
 	FWorldSaveData()
 	{
 		Stream = FRandomStream();
 		Size = 0;
 		Chunks = 0;
+		WorldTimer = 0.0f;
 	}
 };
 

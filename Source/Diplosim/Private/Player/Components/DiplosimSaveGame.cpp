@@ -129,6 +129,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 {
 	AGrid* grid = Cast<AGrid>(Actor);
 	FWorldSaveData worldSaveData;
+	worldSaveData.WorldTimer = grid->GetWorld()->GetTimeSeconds();
 	
 	worldSaveData.Size = grid->Size;
 	worldSaveData.Chunks = grid->Chunks;
@@ -533,7 +534,9 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 
 	AIData.MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
 	AIData.MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
-	AIData.MovementData.Transform = ai->MovementComponent->Transform;
+
+	TTuple<UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
+	info.Key->GetInstanceTransform(info.Value, AIData.MovementData.Transform);
 
 	if (IsValid(ai->MovementComponent->ActorToLookAt))
 		AIData.MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
@@ -558,8 +561,6 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 
 	if (faction != nullptr)
 		AIData.FactionName = faction->Name;
-
-	TTuple<UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
 
 	FWetnessStruct wetnessStruct;
 	wetnessStruct.Component = info.Key;
@@ -864,6 +865,7 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArray<FWetnessData>& WetnessData)
 {
 	AGrid* grid = Cast<AGrid>(Actor);
+	grid->GetWorld()->TimeSeconds = WorldData.WorldTimer;
 
 	grid->Size = WorldData.Size;
 	grid->Chunks = WorldData.Chunks;
@@ -955,10 +957,12 @@ void UDiplosimSaveGame::LoadResource(ACamera* Camera, FResourceData& ResourceDat
 {
 	AResource* resource = Cast<AResource>(Actor);
 
+	resource->ResourceHISM->ClearInstances();
 	resource->ResourceHISM->AddInstances(ResourceData.HISMData.Transforms, false, true, true);
 	resource->ResourceHISM->PerInstanceSMCustomData = ResourceData.HISMData.CustomDataValues;
 	resource->ResourceHISM->SetCustomDataValue(0, 0, ResourceData.HISMData.CustomDataValues[0]);
 
+	resource->WorkerStruct.Empty();
 	for (FWorkerData workerData : ResourceData.WorkersData) {
 		FWorkerStruct workerStruct;
 		workerStruct.Instance = workerData.Instance;
@@ -997,6 +1001,7 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& Camer
 	camera->MovementComponent->TargetLength = CameraData.TargetLength;
 	camera->PController->SetControlRotation(ActorData.Transform.GetRotation().Rotator());
 	camera->MovementComponent->MovementLocation = ActorData.Transform.GetLocation();
+	camera->MovementComponent->MovementLocation.Z = 800.0f;
 
 	camera->ConstructionManager->Construction.Empty();
 

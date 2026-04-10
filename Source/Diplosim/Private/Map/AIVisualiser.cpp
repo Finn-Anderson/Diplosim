@@ -121,9 +121,12 @@ void UAIVisualiser::ResetToDefaultValues()
 	for (int32 i = 0; i < HISMSnake->GetInstanceCount(); i++)
 		RemoveInstance(HISMSnake, i);
 
-	for (FHatsStruct hat : HISMHats)
+	for (FHatsStruct& hat : HISMHats) {
 		for (int32 i = 0; i < hat.ISMHat->GetInstanceCount(); i++)
 			RemoveInstance(hat.ISMHat, i);
+
+		hat.Citizens.Empty();
+	}
 
 	DestructingActors.Empty();
 }
@@ -808,8 +811,8 @@ void UAIVisualiser::AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh)
 		if (hat.ISMHat->GetStaticMesh() != HatMesh)
 			continue;
 
+		AddInstance(Citizen, hat.ISMHat, GetHatTransform(Citizen));
 		hat.Citizens.Add(Citizen);
-		hat.ISMHat->AddInstance(GetHatTransform(Citizen));
 
 		break;
 	}
@@ -823,8 +826,8 @@ void UAIVisualiser::RemoveCitizenFromHISMHat(ACitizen* Citizen)
 		if (index == INDEX_NONE)
 			continue;
 
+		RemoveInstance(hat.ISMHat, index);
 		hat.Citizens.RemoveAt(index);
-		hat.ISMHat->RemoveInstance(index);
 
 		break;
 	}

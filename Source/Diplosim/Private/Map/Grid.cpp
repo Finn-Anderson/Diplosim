@@ -66,10 +66,10 @@ AGrid::AGrid()
 		hism->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 		hism->SetCollisionResponseToChannels(response);
 		hism->SetGenerateOverlapEvents(false);
-		hism->SetComponentTickEnabled(false);
 		hism->SetMobility(EComponentMobility::Static);
 		hism->bAutoRebuildTreeOnInstanceChanges = false;
 		hism->bWorldPositionOffsetWritesVelocity = false;
+		hism->PrimaryComponentTick.bCanEverTick = false;
 
 		bool bwpo = false;
 		if (hism == HISMSea || hism == HISMRiver)
