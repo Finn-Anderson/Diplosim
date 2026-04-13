@@ -311,8 +311,6 @@ void ABuilding::SetSeed(int32 Seed)
 			if (IsA<AFarm>())
 				meshComp->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Some debug message!"));
-
 			const UStaticMeshSocket* pSocket = meshComp->GetSocketByName("ParticleSocket");
 
 			if (pSocket != nullptr) {

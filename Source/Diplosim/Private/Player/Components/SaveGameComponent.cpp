@@ -1,5 +1,6 @@
 #include "Player/Components/SaveGameComponent.h"
 
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SaveGame.h"
 #include "Blueprint/UserWidget.h"
@@ -124,6 +125,8 @@ void USaveGameComponent::OnNavMeshGenerated()
 
 	Checklist.bLoad = false;
 	Camera->Grid->AIVisualiser->MainLoop(Camera);
+
+	Camera->Grid->HISMGround->BuildTreeIfOutdated(false, true); // Fixes Distance Field not updating
 
 	Camera->SetCurrentResearchUI();
 
