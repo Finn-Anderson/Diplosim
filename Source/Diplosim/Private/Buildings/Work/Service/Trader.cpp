@@ -28,13 +28,11 @@ void ATrader::Enter(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen) || Orders.IsEmpty())
 		return;
 
-	Orders[0].Workers.Add(Citizen);
-
 	if (Orders[0].bCancelled)
 		ReturnResource(Citizen);
 	else if (CheckStored(Citizen, Orders[0].SellingItems)) {
 		if (Orders[0].Wait == 0)
-			SubmitOrder(Citizen);
+			SubmitOrder();
 		else {
 			TArray<FTimerParameterStruct> params;
 			Camera->TimerManager->SetParameter(Citizen, params);
@@ -49,16 +47,55 @@ void ATrader::Leave(ACitizen* Citizen)
 
 	if (!GetOccupied().Contains(Citizen) || Orders.IsEmpty() || IsWorking(Citizen, Camera->Grid->AtmosphereComponent->Calendar.Hour))
 		return;
+}
 
-	Orders[0].Workers.RemoveSingle(Citizen);
+bool ATrader::CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items)
+{
+	TMap< TSubclassOf<class AResource>, int32> numFetchingResource;
+	for (ACitizen* citizen : GetOccupied()) {
+		int32 index = citizen->AIController->MoveRequest.GetGoalInstance();
+		if (index == INDEX_NONE)
+			continue;
+
+		AActor* goal = citizen->AIController->MoveRequest.GetGoalActor();
+		if (IsValid(goal) && goal->IsA<ABuilding>()) {
+			FItemStruct item = Cast<ABuilding>(goal)->Storage[index];
+			int32 value = numFetchingResource.FindOrAdd(item.Resource);
+			value += 10;
+		}
+	}
+
+	for (FItemStruct item : Items) {
+		int32 fetching = 0;
+		if (numFetchingResource.Contains(item.Resource))
+			fetching += *numFetchingResource.Find(item.Resource);
+
+		if (item.Stored <= item.Amount + fetching)
+			continue;
+
+		Citizen->AIController->GetGatherSite(item.Resource);
+
+		return false;
+	}
+
+	return true;
 }
 
 bool ATrader::IsAtWork(ACitizen* Citizen)
 {
-	return Super::IsAtWork(Citizen) || (!Orders.IsEmpty() && Orders[0].Workers.Contains(Citizen));
+	bool bWorking = Super::IsAtWork(Citizen);
+
+	if (!bWorking && !Orders.IsEmpty()) {
+		AActor* goal = Citizen->AIController->MoveRequest.GetGoalActor();
+
+		if (IsValid(goal) && goal->IsA<ABuilding>() && Citizen->AIController->MoveRequest.GetGoalInstance() != INDEX_NONE)
+			bWorking = true;
+	}
+
+	return bWorking;
 }
 
-void ATrader::SubmitOrder(class ACitizen* Citizen)
+void ATrader::SubmitOrder()
 {
 	if (GetCitizensAtBuilding().IsEmpty())
 		return;
@@ -102,35 +139,7 @@ void ATrader::SubmitOrder(class ACitizen* Citizen)
 	else
 		rm->AddUniversalResource(faction, rm->Money, money);
 
-	Orders[0].OrderWidget->RemoveFromParent();
-
-	bool bRefresh = false;
-
-	if (Orders[0].bRepeat && !Orders[0].bCancelled) {
-		for (int32 i = 0; i < Orders[0].SellingItems.Num(); i++)
-			Orders[0].SellingItems[i].Stored = 0;
-
-		SetNewOrder(Orders[0]);
-
-		if (Camera->WidgetComponent->IsAttachedTo(GetRootComponent()))
-			bRefresh = true;
-	}
-
-	Orders.RemoveAt(0);
-
-	if (bRefresh)
-		Camera->DisplayInteract(this);
-
-	if (Orders.Num() > 0) {
-		for (ACitizen* c : GetCitizensAtBuilding()) {
-			Orders[0].Workers.Add(c);
-
-			if (Orders[0].bCancelled)
-				ReturnResource(c);
-			else
-				CheckStored(c, Orders[0].SellingItems);
-		}
-	}
+	ClearOrder();
 }
 
 void ATrader::ReturnResource(class ACitizen* Citizen)
@@ -183,15 +192,38 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 			Orders[0].SellingItems[i].Stored = 0;
 	}
 
-	Orders[0].OrderWidget->RemoveFromParent();
+	ClearOrder();
+}
+
+void ATrader::ClearOrder()
+{
+	if (IsValid(Orders[0].OrderWidget))
+		Orders[0].OrderWidget->RemoveFromParent();
+
+	bool bRefresh = false;
+
+	if (Orders[0].bRepeat && !Orders[0].bCancelled) {
+		for (int32 i = 0; i < Orders[0].SellingItems.Num(); i++)
+			Orders[0].SellingItems[i].Stored = 0;
+
+		SetNewOrder(Orders[0]);
+
+		if (Camera->WidgetComponent->IsAttachedTo(GetRootComponent()))
+			bRefresh = true;
+	}
 
 	Orders.RemoveAt(0);
 
+	if (bRefresh)
+		Camera->DisplayInteract(this);
+
 	if (Orders.Num() > 0) {
-		if (Orders[0].bCancelled)
-			ReturnResource(Citizen);
-		else
-			CheckStored(Citizen, Orders[0].SellingItems);
+		for (ACitizen* citizen : GetCitizensAtBuilding()) {
+			if (Orders[0].bCancelled)
+				ReturnResource(citizen);
+			else
+				CheckStored(citizen, Orders[0].SellingItems);
+		}
 	}
 }
 
@@ -214,7 +246,7 @@ void ATrader::SetNewOrder(FQueueStruct Order)
 		bInstantOrder = CheckStored(citizen, Orders[0].SellingItems);
 
 	if (bInstantOrder)
-		SubmitOrder(GetOccupied()[0]);
+		SubmitOrder();
 }
 
 void ATrader::SetOrderWidget(int32 index, UWidget* Widget)

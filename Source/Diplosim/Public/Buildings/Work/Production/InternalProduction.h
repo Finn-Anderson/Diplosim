@@ -16,6 +16,8 @@ public:
 
 	virtual void Leave(class ACitizen* Citizen) override;
 
+	virtual bool IsAtWork(class ACitizen* Citizen) override;
+
 	virtual void Production(class ACitizen* Citizen) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Production")

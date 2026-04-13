@@ -19,6 +19,7 @@
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Parliament.h"
+#include "Buildings/Work/Service/Stockpile.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -175,6 +176,9 @@ void UHealthComponent::Death(AActor* Attacker)
 
 			if (faction->Name == Camera->ColonyName)
 				Camera->NotifyLog("Bad", citizen->BioComponent->Name + " has died", faction->Name);
+
+			if (citizen->Carrying.Type != nullptr && IsValid(citizen->BuildingComponent->Employment) && !citizen->BuildingComponent->Employment->IsA<AStockpile>())
+				Camera->ResourceManager->AddCommittedResource(Camera->ConquestManager->GetFaction("", citizen), citizen->Carrying.Type->GetClass(), citizen->Carrying.Amount);
 		}
 	} 
 	else if (actor->IsA<ABuilding>()) {

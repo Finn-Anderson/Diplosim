@@ -16,6 +16,8 @@
 #include "AI/Citizen/Components/BioComponent.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Service/Builder.h"
+#include "Buildings/Work/Service/Trader.h"
+#include "Buildings/Work/Service/Stockpile.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
@@ -670,6 +672,11 @@ void UDiplosimSaveGame::SaveBuilding(ACamera* Camera, FActorSaveData& ActorData,
 	buildingData.Storage = building->Storage;
 	buildingData.Basket = building->Basket;
 
+	if (building->IsA<ATrader>())
+		buildingData.Orders = Cast<ATrader>(building)->Orders;
+	else if (building->IsA<AStockpile>())
+		buildingData.Store = Cast<AStockpile>(building)->Store;
+
 	double* time = building->Camera->Grid->AIVisualiser->DestructingActors.Find(building);
 	if (time != nullptr)
 		buildingData.DeathTime = *time;
@@ -1265,6 +1272,9 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 	if (BuildingData.bOnFire)
 		Camera->Grid->AtmosphereComponent->SetOnFire(Actor, INDEX_NONE, true);
 
+	building->SeedNum = BuildingData.Seed;
+	building->SetTier(BuildingData.Tier);
+
 	bool bBuilt = true;
 	for (FConstructionData constructionData : ConstructionData) {
 		if (constructionData.BuildingName != ActorData.Name)
@@ -1293,9 +1303,6 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 			faction->EggTimer = Cast<ABroch>(building);
 	}
 
-	building->SetSeed(BuildingData.Seed);
-	building->SetTier(BuildingData.Tier);
-
 	building->Capacity = BuildingData.Capacity;
 	building->StoreSocketLocations();
 
@@ -1306,6 +1313,11 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 
 	building->Storage = BuildingData.Storage;
 	building->Basket = BuildingData.Basket;
+
+	if (building->IsA<ATrader>())
+		Cast<ATrader>(building)->Orders = BuildingData.Orders;
+	else if (building->IsA<AStockpile>())
+		Cast<AStockpile>(building)->Store = BuildingData.Store;
 
 	if (BuildingData.DeathTime != 0.0f)
 		building->Camera->Grid->AIVisualiser->DestructingActors.Add(building, BuildingData.DeathTime);

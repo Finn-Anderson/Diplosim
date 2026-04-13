@@ -27,9 +27,6 @@ struct FQueueStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		TArray<FItemStruct> BuyingItems;
 
-	UPROPERTY()
-		TArray<ACitizen*> Workers;
-
 	FQueueStruct()
 	{
 		OrderWidget = nullptr;
@@ -78,12 +75,16 @@ public:
 
 	virtual void Leave(class ACitizen* Citizen) override;
 
+	virtual bool CheckStored(class ACitizen* Citizen, TArray<FItemStruct> Items);
+
 	virtual bool IsAtWork(class ACitizen* Citizen) override;
 
 	UFUNCTION()
-		void SubmitOrder(class ACitizen* Citizen);
+		void SubmitOrder();
 
 	void ReturnResource(class ACitizen* Citizen);
+
+	void ClearOrder();
 
 	UFUNCTION(BlueprintCallable)
 		void SetNewOrder(FQueueStruct Order);
@@ -92,10 +93,7 @@ public:
 		void SetOrderWidget(int32 index, class UWidget* Widget);
 
 	UFUNCTION(BlueprintCallable)
-	void SetOrderCancelled(int32 index, bool bCancel);
-
-	UPROPERTY()
-		FTimerHandle WaitTimer;
+		void SetOrderCancelled(int32 index, bool bCancel);
 
 	UPROPERTY(BlueprintReadOnly, Category = "Resource")
 		TArray<FQueueStruct> Orders;

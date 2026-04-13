@@ -24,10 +24,7 @@ void AStockpile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
-
-	TArray<TSubclassOf<AResource>> resources = camera->ResourceManager->GetResources(this);
+	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 
 	for (TSubclassOf<AResource> resource : resources)
 		Store.Add(resource, true);
@@ -40,9 +37,38 @@ void AStockpile::Enter(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen))
 		return;
 
-	Gathering.Remove(Citizen);
-
 	ShowBoxesInStockpile();
+}
+
+bool AStockpile::IsAtWork(ACitizen* Citizen)
+{
+	bool bWorking = Super::IsAtWork(Citizen);
+
+	if (!bWorking) {
+		AActor* goal = Citizen->AIController->MoveRequest.GetGoalActor();
+
+		if (IsValid(goal)) {
+			TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
+
+			for (TSubclassOf<AResource> resource : resources) {
+				TMap<TSubclassOf<ABuilding>, int32> buildingTypes = Camera->ResourceManager->GetBuildings(resource);
+
+				for (auto& element : buildingTypes) {
+					if (!goal->IsA(element.Key))
+						continue;
+
+					bWorking = true;
+
+					break;
+				}
+
+				if (bWorking)
+					break;
+			}
+		}
+	}
+
+	return bWorking;
 }
 
 void AStockpile::ShowBoxesInStockpile()
@@ -80,34 +106,6 @@ bool AStockpile::DoesStoreResource(TSubclassOf<class AResource> Resource)
 	return *bCan;
 }
 
-void AStockpile::SetItemToGather(TSubclassOf<class AResource> Resource, ACitizen* Citizen, ABuilding* Building)
-{
-	FItemStruct gather;
-	gather.Resource = Resource;
-	gather.Amount = 10;
-
-	Gathering.Add(Citizen, gather);
-
-	Citizen->AIController->AIMoveTo(Building);
-}
-
-FItemStruct AStockpile::GetItemToGather(class ACitizen* Citizen)
-{
-	FItemStruct gather;
-
-	FItemStruct* item = Gathering.Find(Citizen);
-
-	if (item == nullptr)
-		return gather;
-
-	bool* bCanGather = Store.Find(item->Resource);
-
-	if (!bCanGather)
-		return gather;
-
-	return *item;
-}
-
 int32 AStockpile::GetStoredResourceAmount(TSubclassOf<AResource> Resource)
 {
 	FItemStruct item;
@@ -119,4 +117,14 @@ int32 AStockpile::GetStoredResourceAmount(TSubclassOf<AResource> Resource)
 		return 0;
 
 	return Storage[index].Amount;
+}
+
+int32 AStockpile::GetFreeStorage()
+{
+	int32 amount = StorageCap;
+
+	for (auto element : Store)
+		amount -= GetStoredResourceAmount(element.Key);
+
+	return amount;
 }

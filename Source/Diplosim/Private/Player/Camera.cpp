@@ -646,7 +646,7 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 	if (!IsValid(Component))
 		Component = Actor->GetRootComponent();
 
-	if (!BuildComponent->IsComponentTickEnabled())
+	if (!BuildComponent->IsComponentTickEnabled() && !SaveGameComponent->Checklist.bLoad)
 		PlayInteractSound(InteractSound);
 	
 	SetInteractableText(Actor, Instance);

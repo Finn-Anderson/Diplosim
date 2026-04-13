@@ -417,7 +417,7 @@ public:
 	UPROPERTY()
 		TArray<FBasketStruct> Basket;
 
-	bool CheckStored(class ACitizen* Citizen, TArray<FItemStruct> Items);
+	virtual bool CheckStored(class ACitizen* Citizen, TArray<FItemStruct> Items);
 
 	void CarryResources(class ACitizen* Citizen, class ABuilding* DeliverTo, TArray<FItemStruct> Items);
 

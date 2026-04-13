@@ -5,6 +5,7 @@
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BioComponent.h"
 #include "Buildings/Work/Work.h"
+#include "Buildings/Work/Service/Trader.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Managers/CitizenManager.h"
@@ -399,6 +400,12 @@ struct FBuildingData
 
 	UPROPERTY()
 		TArray<FItemStruct> Storage;
+
+	UPROPERTY()
+		TMap<TSubclassOf<class AResource>, bool> Store;
+
+	UPROPERTY()
+		TArray<FQueueStruct> Orders;
 
 	UPROPERTY()
 		TArray<FBasketStruct> Basket;

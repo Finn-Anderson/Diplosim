@@ -1,5 +1,6 @@
 #include "Buildings/Work/Production/InternalProduction.h"
 
+#include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
@@ -60,6 +61,35 @@ void AInternalProduction::Leave(ACitizen* Citizen)
 		PauseTimer(true);
 	else
 		AlterTimer();
+}
+
+bool AInternalProduction::IsAtWork(ACitizen* Citizen)
+{
+	bool bWorking = Super::IsAtWork(Citizen);
+
+	if (!bWorking) {
+		AActor* goal = Citizen->AIController->MoveRequest.GetGoalActor();
+
+		if (IsValid(goal)) {
+			for (FItemStruct item : Intake) {
+				TMap<TSubclassOf<ABuilding>, int32> buildingTypes = Camera->ResourceManager->GetBuildings(item.Resource);
+
+				for (auto& element : buildingTypes) {
+					if (!goal->IsA(element.Key))
+						continue;
+
+					bWorking = true;
+
+					break;
+				}
+
+				if (bWorking)
+					break;
+			}
+		}
+	}
+
+	return bWorking;
 }
 
 void AInternalProduction::Production(ACitizen* Citizen)

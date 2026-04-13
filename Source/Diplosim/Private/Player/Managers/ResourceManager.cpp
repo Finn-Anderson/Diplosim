@@ -1,6 +1,8 @@
 #include "Player/Managers/ResourceManager.h"
 
+#include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
+#include "AI/Citizen/Components/BuildingComponent.h"
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Stockpile.h"
 #include "Buildings/House.h"
@@ -438,24 +440,37 @@ void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABui
 			stockpiles.Insert(stockpile, index);
 		}
 
-		TMap<AStockpile*, ACitizen*> workers;
+		TArray<ACitizen*> workers;
 
 		[&] {
 			for (AStockpile* stockpile : stockpiles) {
-				for (ACitizen* citizen : stockpile->GetCitizensAtBuilding()) {
-					if (stockpile->Gathering.Contains(citizen))
-						continue;
+				int32 amount = stockpile->GetFreeStorage();
 
-					workers.Add(stockpile, citizen);
+				for (ACitizen* citizen : stockpile->GetOccupied()) {
+					AActor* goal = citizen->AIController->MoveRequest.GetGoalActor();
+
+					if (goal == Building || (citizen->Carrying.Type != nullptr && citizen->Carrying.Type->IsA(Resource))) {
+						workersNum--;
+						amount -= 10;
+					}
+					else if (IsValid(goal) && goal->IsA<ABuilding>() && (citizen->Carrying.Type != nullptr || citizen->AIController->MoveRequest.GetGoalInstance() != INDEX_NONE))
+						amount -= 10;
+					else
+						workers.Add(citizen);
 
 					if (workers.Num() == workersNum)
 						return;
+					else if (amount <= 0)
+						break;
 				}
 			}
 		}();
 
-		for (auto& element : workers)
-			element.Key->SetItemToGather(Resource, element.Value, Building);
+		FItemStruct item;
+		item.Resource = Resource;
+
+		for (ACitizen* worker : workers)
+			worker->AIController->AIMoveTo(Building, FVector::Zero(), Building->Storage.Find(item));
 	});
 }
 

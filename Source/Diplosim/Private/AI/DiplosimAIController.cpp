@@ -256,6 +256,7 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 	TMap<TSubclassOf<class ABuilding>, int32> buildings = Camera->ResourceManager->GetBuildings(Resource);
 
 	ABuilding* target = nullptr;
+	int32 i = INDEX_NONE;
 
 	for (auto& element : buildings) {
 		TArray<ABuilding*> foundBuildings = Camera->ResourceManager->GetBuildingsOfClass(Camera->ConquestManager->GetFaction("", AI), element.Key);
@@ -271,6 +272,7 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 
 			if (target == nullptr) {
 				target = building;
+				i = index;
 
 				continue;
 			}
@@ -283,11 +285,13 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 				continue;
 
 			target = building;
+			i = index;
 		}
 	}
 
-	if (target != nullptr)
-		AIMoveTo(target);
+	if (target != nullptr) {
+		AIMoveTo(target, FVector::Zero(), i);
+	}
 	else {
 		TArray<FTimerParameterStruct> params;
 		Camera->TimerManager->SetParameter(Resource, params);
@@ -336,7 +340,7 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 				continue;
 
 			FNavLocation buildingLoc;
-			nav->ProjectPointToNavigation(building->GetActorLocation(), buildingLoc, FVector(400.0f, 400.0f, 20.0f));
+			nav->ProjectPointToNavigation(building->GetActorLocation(), buildingLoc, FVector(400.0f, 400.0f, 40.0f));
 
 			FPathFindingQuery ownerQuery(AI, *navData, ownerLoc.Location, buildingLoc.Location);
 			FPathFindingQuery targetQuery(AI, *navData, targetLoc.Location, buildingLoc.Location);

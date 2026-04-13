@@ -12,9 +12,6 @@ class DIPLOSIM_API AFarm : public AWork
 public:
 	AFarm();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
-		TArray<class UStaticMeshComponent*> CropMeshes;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
 		TSubclassOf<class AResource> Crop;
 
@@ -41,4 +38,6 @@ protected:
 	void StartTimer(class ACitizen* Citizen);
 
 	void ProductionDone(class ACitizen* Citizen);
+
+	TArray<class UStaticMeshComponent*> GetCropMeshes();
 };

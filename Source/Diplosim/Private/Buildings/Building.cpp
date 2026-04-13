@@ -1,18 +1,19 @@
 #include "Buildings/Building.h"
 
 #include "Kismet/GameplayStatics.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "Components/SphereComponent.h"
 #include "NiagaraComponent.h"
 #include "NavigationSystem.h"
 #include "Components/Widget.h"
-#include "Components/AudioComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/SphereComponent.h"
+#include "Components/AudioComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Engine/StaticMeshSocket.h"
 #include "Components/BoxComponent.h"
+#include "Engine/StaticMeshSocket.h"
+#include "ProceduralMeshComponent.h"
 
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
@@ -270,16 +271,14 @@ void ABuilding::SetSeed(int32 Seed)
 			Cast<ATrap>(this)->bExplode = Seeds[Seed].bExplosive;
 	}
 	else {
-		TArray<USceneComponent*> children;
-		BuildingMesh->GetChildrenComponents(true, children);
+		TArray<UStaticMeshComponent*> components;
+		GetComponents<UStaticMeshComponent>(components);
 
-		for (USceneComponent* component : children)
-			component->DestroyComponent();
+		for (UStaticMeshComponent* component : components)
+			if (component != BuildingMesh)
+				component->DestroyComponent();
 
 		TArray<FName> sockets = BuildingMesh->GetAllSocketNames();
-
-		if (IsA<AFarm>())
-			Cast<AFarm>(this)->CropMeshes.Empty();
 
 		for (FName socket : sockets) {
 			if (!socket.ToString().Contains("Random"))
@@ -309,11 +308,10 @@ void ABuilding::SetSeed(int32 Seed)
 			meshComp->SetCustomPrimitiveDataFloat(2, ChosenColour.G);
 			meshComp->SetCustomPrimitiveDataFloat(3, ChosenColour.B);
 
-			if (IsA<AFarm>()) {
+			if (IsA<AFarm>())
 				meshComp->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
 
-				Cast<AFarm>(this)->CropMeshes.Add(meshComp);
-			}
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Some debug message!"));
 
 			const UStaticMeshSocket* pSocket = meshComp->GetSocketByName("ParticleSocket");
 
@@ -1009,20 +1007,23 @@ void ABuilding::Enter(ACitizen* Citizen)
 			deliverTo = cm->GetBuilding(builder);
 			items = deliverTo->TargetList;
 		}
-		else if (Citizen->BuildingComponent->Employment->IsA<ATrader>()) {
-			ATrader* trader = Cast<ATrader>(Citizen->BuildingComponent->Employment);
+		else if (Citizen->BuildingComponent->Employment->IsA<AStockpile>() || Citizen->BuildingComponent->Employment->IsA<ATrader>()) {
+			deliverTo = Citizen->BuildingComponent->Employment;
 
-			deliverTo = trader;
+			FItemStruct item = Storage[Citizen->AIController->MoveRequest.GetGoalInstance()];
+			item.Amount = 10;
 
-			if (!trader->Orders[0].bCancelled)
-				items = trader->Orders[0].SellingItems;
-		}
-		else if (Citizen->BuildingComponent->Employment->IsA<AStockpile>()) {
-			AStockpile* stockpile = Cast <AStockpile>(Citizen->BuildingComponent->Employment);
+			if (Citizen->BuildingComponent->Employment->IsA<ATrader>()) {
+				ATrader* trader = Cast<ATrader>(Citizen->BuildingComponent->Employment);
+				int32 index = trader->Orders[0].SellingItems.Find(item);
+				item.Amount = FMath::Min(trader->Orders[0].SellingItems[index].Amount - trader->Orders[0].SellingItems[index].Stored, 10);
+			}
+			else {
+				AStockpile* stockpile = Cast<AStockpile>(Citizen->BuildingComponent->Employment);
+				item.Amount = FMath::Min(stockpile->GetFreeStorage(), 10);
+			}
 
-			deliverTo = stockpile;
-
-			items.Add(stockpile->GetItemToGather(Citizen));
+			items.Add(item);
 		}
 		
 		if (deliverTo == nullptr)
@@ -1166,8 +1167,11 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			items = TargetList;
 		else if (IsA<ATrader>())
 			items = Cast<ATrader>(this)->Orders[0].SellingItems;
-		else
+		else if (IsA<AInternalProduction>())
 			items = Cast<AInternalProduction>(this)->Intake;
+
+		if (items.IsEmpty())
+			return;
 
 		for (int32 i = 0; i < items.Num(); i++) {
 			if (resource != items[i].Resource)

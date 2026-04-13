@@ -8,6 +8,7 @@
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
+#include "Player/Components/SaveGameComponent.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -52,6 +53,9 @@ void ABuilder::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
+	if (!GetOccupied().Contains(Citizen))
+		return;
+
 	if (GetOccupied().IsEmpty() || !IsWorking(Citizen, Camera->Grid->AtmosphereComponent->Calendar.Hour))
 		Camera->ConstructionManager->RemoveBuilder(this);
 }
@@ -63,12 +67,12 @@ bool ABuilder::IsAtWork(ACitizen* Citizen)
 
 void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 {
-	if (!CheckStored(Citizen, Building->TargetList))
+	if (!CheckStored(Citizen, Building->TargetList) || Camera->SaveGameComponent->Checklist.bLoad)
 		return;
 
 	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-	float time = (size.X + size.Y + size.Z) / 500.0f * 0.2f / Citizen->GetProductivity();
+	float time = (size.X + size.Y + size.Z) / 5000.0f / Citizen->GetProductivity();
 
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(Citizen, params);
@@ -109,7 +113,8 @@ void ABuilder::Repair(ACitizen* Citizen, ABuilding* Building)
 
 void ABuilder::Done(ACitizen* Citizen, ABuilding* Building)
 {
-	Camera->TimerManager->RemoveTimer("Repair", GetOwner());
+	Camera->TimerManager->RemoveTimer("Repair", this);
+	Camera->TimerManager->RemoveTimer("Construct", this);
 
 	Camera->ConstructionManager->RemoveBuilding(Building);
 }
