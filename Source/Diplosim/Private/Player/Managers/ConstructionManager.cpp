@@ -45,8 +45,10 @@ void UConstructionManager::RemoveBuilding(class ABuilding* Building)
 	Construction.Remove(constructionStruct);
 
 	ACamera* camera = Cast<ACamera>(GetOwner());
+	if (!camera->WidgetComponent->IsAttachedTo(Building->GetRootComponent()))
+		return;
 
-	if (camera->WidgetComponent->IsAttachedTo(Building->GetRootComponent()) && !Building->IsA<ABroch>() && !camera->WidgetComponent->bHiddenInGame)
+	if (!Building->IsA<ABroch>() && !camera->WidgetComponent->bHiddenInGame)
 		camera->DisplayInteract(Building);
 	else
 		camera->WidgetComponent->SetHiddenInGame(true);

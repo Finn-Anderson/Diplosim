@@ -29,9 +29,7 @@ AWork::AWork()
 
 bool AWork::AddCitizen(ACitizen* Citizen)
 {
-	bool bCheck = Super::AddCitizen(Citizen);
-
-	if (!bCheck)
+	if (!Super::AddCitizen(Citizen))
 		return false;
 
 	Citizen->BuildingComponent->Employment = this;
@@ -54,9 +52,7 @@ bool AWork::AddCitizen(ACitizen* Citizen)
 
 bool AWork::RemoveCitizen(ACitizen* Citizen)
 {
-	bool bCheck = Super::RemoveCitizen(Citizen);
-
-	if (!bCheck)
+	if (!Super::RemoveCitizen(Citizen))
 		return false;
 
 	Citizen->BuildingComponent->Employment = nullptr;

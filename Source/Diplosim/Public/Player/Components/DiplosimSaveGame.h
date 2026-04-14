@@ -452,6 +452,9 @@ struct FCitizenData
 	UPROPERTY()
 		bool bRebel;
 
+	UPROPERTY()
+		bool bHat;
+
 	// Carrying
 	UPROPERTY()
 		UClass* ResourceCarryClass;
@@ -569,13 +572,11 @@ struct FCitizenData
 	UPROPERTY()
 		TArray<int32> HoursSleptToday;
 
-	UPROPERTY()
-		TArray<FString> PersonalityTraits;
-
 	FCitizenData()
 	{
 		EnterLocation = FVector::Zero();
 		bRebel = false;
+		bHat = false;
 
 		ResourceCarryClass = nullptr;
 		CarryAmount = 0;

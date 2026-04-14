@@ -326,10 +326,4 @@ void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* B
 		citizen->BuildingComponent->School = Cast<ASchool>(Building);
 	else
 		citizen->BuildingComponent->Employment = Cast<AWork>(Building);
-
-	if (AIData.BuildingAtName == BuildingName) {
-		Building->Enter(citizen);
-
-		citizen->BuildingComponent->EnterLocation = AIData.CitizenData.EnterLocation;
-	}
 }

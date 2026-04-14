@@ -798,7 +798,7 @@ void UAIVisualiser::UpdateHatTransform(ACitizen* Citizen)
 		SetInstanceTransform(hatStruct->ISMHat, index, transform);
 
 		float opacity = 1.0f;
-		if (IsValid(Citizen->BuildingComponent->BuildingAt))
+		if (IsValid(Citizen->BuildingComponent->BuildingAt) && Citizen->BuildingComponent->BuildingAt->bHideCitizen)
 			opacity = 0.0f;
 
 		UpdateInstanceCustomData(hatStruct->ISMHat, index, 1, opacity);

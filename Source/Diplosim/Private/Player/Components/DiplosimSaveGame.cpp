@@ -538,7 +538,8 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 	AIData.MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
 
 	TTuple<UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
-	info.Key->GetInstanceTransform(info.Value, AIData.MovementData.Transform);
+	if (!info.Key->GetInstanceTransform(info.Value, AIData.MovementData.Transform))
+		AIData.MovementData.Transform = ai->MovementComponent->Transform;
 
 	if (IsValid(ai->MovementComponent->ActorToLookAt))
 		AIData.MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
@@ -598,6 +599,9 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 		AIData.CitizenData.CarryAmount = citizen->Carrying.Amount;
 	}
 
+	if (Camera->Grid->AIVisualiser->DoesCitizenHaveHat(citizen))
+		AIData.CitizenData.bHat = true;
+
 	if (citizen->BioComponent->Mother != nullptr)
 		AIData.CitizenData.MothersName = citizen->BioComponent->Mother->GetName();
 
@@ -647,9 +651,6 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	AIData.CitizenData.HoursSleptToday = citizen->HoursSleptToday;
 
 	AIData.MovementData.Transform.SetScale3D(FVector(1.0f));
-
-	for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
-		AIData.CitizenData.PersonalityTraits.Add(personality->Trait);
 }
 
 void UDiplosimSaveGame::SaveBuilding(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor, int32 Index)
@@ -1013,6 +1014,9 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& Camer
 	camera->ConstructionManager->Construction.Empty();
 
 	camera->CitizenManager->IssuePensionHour = CameraData.CitizenManagerData.IssuePensionHour;
+
+	for (FPersonality personality : camera->CitizenManager->Personalities)
+		personality.Citizens.Empty();
 }
 
 void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor)
@@ -1155,10 +1159,6 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode,
 
 	ai->Colour = AIData.Colour;
 
-	ai->MovementComponent->Points = AIData.MovementData.Points;
-	ai->MovementComponent->CurrentAnim = AIData.MovementData.CurrentAnim;
-	ai->MovementComponent->LastUpdatedTime = AIData.MovementData.LastUpdatedTime;
-
 	Camera->Grid->AIVisualiser->AddInstance(ai, ism, AIData.MovementData.Transform);
 
 	if (!ai->IsA<AEnemy>())
@@ -1217,16 +1217,6 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 
 	for (FGeneticsStruct& genetic : citizen->Genetics)
 		citizen->ApplyGeneticAffect(genetic);
-
-	for (FString trait : AIData.CitizenData.PersonalityTraits) {
-		FPersonality personality;
-		personality.Trait = trait;
-
-		int32 index = Camera->CitizenManager->Personalities.Find(personality);
-		Camera->CitizenManager->Personalities[index].Citizens.Add(citizen);
-
-		citizen->ApplyTraitAffect(Camera->CitizenManager->Personalities[index].Affects);
-	}
 
 	FCitizenManagerData cmData = CameraData.CitizenManagerData;
 
@@ -1331,15 +1321,13 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 		if (data.CitizenName != "") {
 			FActorSaveData* actorData = *AIToName.Find(data.CitizenName);
 
-			Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, actorData, Saves[Index].AIData[actorData->dataIndex], false);
-
 			capacityStruct.Citizen = Cast<ACitizen>(actorData->Actor);
+			Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, actorData, Saves[Index].AIData[actorData->dataIndex], false);
 
 			for (FString name : data.VisitorNames) {
 				FActorSaveData* visitorData = *AIToName.Find(name);
 
 				capacityStruct.Visitors.Add(Cast<ACitizen>(visitorData->Actor));
-
 				Camera->SaveGameComponent->SetupCitizenBuilding(ActorData.Name, building, visitorData, Saves[Index].AIData[visitorData->dataIndex], true);
 			}
 		}
@@ -1511,6 +1499,10 @@ void UDiplosimSaveGame::InitialiseAI(ACamera* Camera, FActorSaveData& ActorData,
 		ai->AIController->MoveRequest.SetLocation(AIData.MovementData.Location);
 		ai->AIController->MoveRequest.SetGoalInstance(AIData.MovementData.Instance);
 
+		ai->MovementComponent->Points = AIData.MovementData.Points;
+		ai->MovementComponent->CurrentAnim = AIData.MovementData.CurrentAnim;
+		ai->MovementComponent->LastUpdatedTime = AIData.MovementData.LastUpdatedTime;
+
 		if (!SavedData.Actor->IsA<ABuilding>() || !ai->IsA<ACitizen>() || AIData.CitizenData.EnterLocation == FVector::Zero())
 			return;
 		
@@ -1545,7 +1537,7 @@ void UDiplosimSaveGame::InitialiseCitizen(ACamera* Camera, FActorSaveData& Actor
 	if (citizenData.SiblingsNames.Contains(SavedData.Name))
 		citizen->BioComponent->Siblings.Add(Cast<ACitizen>(SavedData.Actor));
 
-	if (IsValid(citizen->BuildingComponent->Employment))
+	if (citizenData.bHat && citizen->BuildingComponent->Employment == SavedData.Actor)
 		Camera->Grid->AIVisualiser->AddCitizenToHISMHat(citizen, citizen->BuildingComponent->Employment->WorkHat);
 }
 
@@ -1558,7 +1550,12 @@ void UDiplosimSaveGame::InitialiseConstructionManager(ACamera* Camera, FActorSav
 
 void UDiplosimSaveGame::InitialiseCitizenManager(ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index)
 {
+	if (!SavedData.Actor->IsA<ACitizen>())
+		return;
+
 	FCitizenManagerData cmData = Saves[Index].CameraData.CitizenManagerData;
+
+	ACitizen* citizen = Cast<ACitizen>(SavedData.Actor);
 
 	int32 count = 0;
 	for (FPersonalityData personalityData : cmData.PersonalitiesData) {
@@ -1570,8 +1567,10 @@ void UDiplosimSaveGame::InitialiseCitizenManager(ACamera* Camera, FActorSaveData
 
 		int32 index = Camera->CitizenManager->Personalities.Find(personality);
 
-		Camera->CitizenManager->Personalities[index].Citizens.Add(Cast<ACitizen>(SavedData.Actor));
+		Camera->CitizenManager->Personalities[index].Citizens.Add(citizen);
 		count++;
+
+		citizen->ApplyTraitAffect(Camera->CitizenManager->Personalities[index].Affects);
 
 		if (count == 2)
 			break;

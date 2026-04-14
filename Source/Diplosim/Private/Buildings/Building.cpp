@@ -297,6 +297,7 @@ void ABuilding::SetSeed(int32 Seed)
 
 			UStaticMeshComponent* meshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass());
 			meshComp->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+			meshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 			meshComp->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 			meshComp->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 			meshComp->SetStaticMesh(Seeds[Seed].Meshes[num]);
@@ -956,7 +957,9 @@ void ABuilding::Enter(ACitizen* Citizen)
 	
 	Citizen->BuildingComponent->BuildingAt = this;
 	Citizen->BuildingComponent->EnterLocation = Citizen->MovementComponent->Transform.GetLocation();
-	Citizen->AIController->StopMovement();
+
+	if (!IsA<AFarm>())
+		Citizen->AIController->StopMovement();
 
 	SetSocketLocation(Citizen);
 

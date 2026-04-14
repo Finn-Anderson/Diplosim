@@ -125,7 +125,8 @@ public:
 
 	void SetDisplayText(int32 Hour);
 
-	int32 GetTimeToCompleteDay();
+	UFUNCTION(BlueprintCallable)
+		int32 GetTimeToCompleteDay();
 
 	// Fire
 	void SetOnFire(AActor* Actor, int32 Instance = INDEX_NONE, bool bLoad = false);

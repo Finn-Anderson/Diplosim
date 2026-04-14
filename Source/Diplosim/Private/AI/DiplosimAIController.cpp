@@ -379,6 +379,8 @@ TArray<FVector> ADiplosimAIController::GetPathPoints(FVector StartLocation, FVec
 	if (path == nullptr)
 		return {};
 
+	path->EnableRecalculationOnInvalidation(ENavigationOptionFlag::Disable);
+
 	return path->PathPoints;
 }
 
