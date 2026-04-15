@@ -624,8 +624,6 @@ void ABuilding::OnBuilt()
 	if (IsA(Camera->BuildComponent->FoundationClass))
 		BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Block);
 
-	Camera->ConstructionManager->RemoveBuilding(this);
-
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 	faction->Buildings.Add(this);
 

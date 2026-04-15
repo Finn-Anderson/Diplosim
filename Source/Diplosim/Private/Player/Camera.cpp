@@ -262,7 +262,6 @@ void ACamera::Tick(float DeltaTime)
 
 			DiseaseManager->CalculateDisease(this);
 
-			PoliceManager->CalculateVandalism();
 			PoliceManager->ProcessReports();
 
 			ConquestManager->CheckLoadFactionLock();
@@ -317,6 +316,13 @@ void ACamera::Tick(float DeltaTime)
 			Cast<UInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
 
 			MouseHitLocation = transform.GetLocation();
+		}
+		else if (hit.GetActor()->IsA<ACitizen>() && IsValid(Cast<ACitizen>(hit.GetActor())->BuildingComponent->BuildingAt) && Cast<ACitizen>(hit.GetActor())->BuildingComponent->BuildingAt->bHideCitizen) {
+			HoveredActor.Actor = Cast<ACitizen>(hit.GetActor())->BuildingComponent->BuildingAt;
+			HoveredActor.Component = Cast<ABuilding>(HoveredActor.Actor)->BuildingMesh;
+			HoveredActor.Instance = INDEX_NONE;
+
+			MouseHitLocation = GetTargetActorLocation(HoveredActor.Actor);
 		}
 
 		if (!bBulldoze)

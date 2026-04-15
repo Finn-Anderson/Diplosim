@@ -399,9 +399,6 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	}
 
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen)) {
-		if (!personality->Citizens.Contains(Citizen))
-			continue;
-
 		personality->Citizens.Remove(Citizen);
 
 		if (Camera->InfoUIInstance->IsInViewport())
@@ -415,6 +412,10 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		Citizen->BuildingComponent->RemoveCitizenFromHouse(Citizen);
 
 	Camera->ArmyManager->RemoveFromArmy(Citizen);
+
+	Camera->DiseaseManager->Infectible.Remove(Citizen);
+	Camera->DiseaseManager->Infected.Remove(Citizen);
+	Camera->DiseaseManager->Injured.Remove(Citizen);
 
 	if (Camera->InfoUIInstance->IsInViewport())
 		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Citizen->Spirituality.Faith);

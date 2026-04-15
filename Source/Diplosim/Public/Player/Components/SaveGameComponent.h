@@ -14,7 +14,6 @@ enum class EAsyncLoop : uint8
 	Disease,
 	Interactions,
 	Conversations,
-	Vandalism,
 	Report,
 	Fighting,
 	CitizenMovement,

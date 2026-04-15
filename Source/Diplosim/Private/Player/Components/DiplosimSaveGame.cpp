@@ -1015,8 +1015,12 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& Camer
 
 	camera->CitizenManager->IssuePensionHour = CameraData.CitizenManagerData.IssuePensionHour;
 
-	for (FPersonality personality : camera->CitizenManager->Personalities)
+	for (FPersonality& personality : camera->CitizenManager->Personalities)
 		personality.Citizens.Empty();
+
+	camera->DiseaseManager->Infectible.Empty();
+	camera->DiseaseManager->Infected.Empty();
+	camera->DiseaseManager->Injured.Empty();
 }
 
 void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor)

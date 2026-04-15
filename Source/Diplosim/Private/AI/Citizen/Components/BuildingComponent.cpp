@@ -42,7 +42,7 @@ UBuildingComponent::UBuildingComponent()
 void UBuildingComponent::FindEducation(ASchool* Education, int32 TimeToCompleteDay)
 {
 	if (!IsValid(AllocatedBuildings[0]))
-		SetAcquiredTime(0, -1000.0f);
+		SetAcquiredTime(0, -10000.0f);
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
@@ -92,7 +92,7 @@ void UBuildingComponent::FindEducation(ASchool* Education, int32 TimeToCompleteD
 void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 {
 	if (!IsValid(AllocatedBuildings[1]))
-		SetAcquiredTime(1, -1000.0f);
+		SetAcquiredTime(1, -10000.0f);
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
@@ -142,7 +142,7 @@ void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TArray<ACitizen*> Roommates)
 {
 	if (!IsValid(AllocatedBuildings[2]))
-		SetAcquiredTime(2, -1000.0f);
+		SetAcquiredTime(2, -10000.0f);
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 

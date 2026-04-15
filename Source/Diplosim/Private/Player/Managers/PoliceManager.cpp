@@ -38,12 +38,6 @@ void UPoliceManager::CalculateVandalism()
 		if (!lock.IsLocked())
 			return;
 
-		if (Camera->SaveGameComponent->IsLoading()) {
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Vandalism);
-
-			return;
-		}
-
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 			TArray<ACitizen*> citizens = faction.Citizens;
 
@@ -51,9 +45,6 @@ void UPoliceManager::CalculateVandalism()
 				continue;
 
 			for (ACitizen* citizen : citizens) {
-				if (Camera->SaveGameComponent->IsLoading())
-					return;
-
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 					continue;
 
@@ -71,7 +62,7 @@ void UPoliceManager::CalculateVandalism()
 				if (aggressiveness == 0)
 					continue;
 
-				int32 max = (1000 + (citizen->HappinessComponent->GetHappiness() - 50) * 16) / aggressiveness;
+				int32 max = citizen->HappinessComponent->GetHappiness() / aggressiveness + 50;
 
 				if (Camera->Stream.RandRange(1, max) != max)
 					continue;
@@ -83,9 +74,6 @@ void UPoliceManager::CalculateVandalism()
 				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, reach, requestedOverlaps, EFactionType::Same, &faction);
 
 				for (AActor* actor : actors) {
-					if (Camera->SaveGameComponent->IsLoading())
-						return;
-
 					if (actor->IsA<ABroch>() || actor->IsA<ARoad>() || actor->IsA<AFestival>())
 						continue;
 

@@ -66,13 +66,15 @@ int32 UHappinessComponent::GetHappiness()
 {
 	int32 value = 50;
 
-	TArray<int32> values;
-	Modifiers.GenerateValueArray(values);
+	if (!Modifiers.IsEmpty()) {
+		TArray<int32> values;
+		Modifiers.GenerateValueArray(values);
 
-	for (int32 v : values)
-		value += v;
+		for (int32 v : values)
+			value += v;
 
-	value = FMath::Clamp(value, 0, 100);
+		value = FMath::Clamp(value, 0, 100);
+	}
 
 	return value;
 }

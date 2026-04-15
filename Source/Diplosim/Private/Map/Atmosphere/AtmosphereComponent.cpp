@@ -33,7 +33,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	SetComponentTickInterval(1.0f/24.0f);
 
-	Speed = 0.025f;
+	Speed = 0.0125f;
 
 	Skybox = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Skybox"));
 	Skybox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -178,6 +178,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 		Grid->Camera->CitizenManager->CheckCitizenStatus(hour);
 		Grid->Camera->CitizenManager->IssuePensions(hour);
 
+		Grid->Camera->PoliceManager->CalculateVandalism();
 		Grid->Camera->PoliceManager->ItterateThroughSentences();
 
 		if (hour == 6)
@@ -277,14 +278,6 @@ void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Instance, bool bLoad)
 		else {
 			time = healthComp->GetHealth();
 
-			if (!bLoad) {
-				healthComp->TakeHealth(50.0f, Actor);
-
-				Grid->Camera->TimerManager->CreateTimer("OnFire", Actor, 5.0f, "OnFire", {}, true);
-			}
-			else
-				time -= Grid->Camera->TimerManager->GetElapsedTime("OnFire", Actor);
-
 			fire = UNiagaraFunctionLibrary::SpawnSystemAttached(FireSystem, Actor->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 
 			mesh = Actor->GetComponentByClass<UStaticMeshComponent>()->GetStaticMesh();
@@ -298,6 +291,14 @@ void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Instance, bool bLoad)
 					if (citizen->AIController->MoveRequest.GetGoalActor() == building || building->GetCitizensAtBuilding().Contains(citizen))
 						citizen->AIController->DefaultAction();
 			}
+
+			if (!bLoad) {
+				healthComp->TakeHealth(25, Actor);
+
+				Grid->Camera->TimerManager->CreateTimer("OnFire", Actor, 5.0f, "OnFire", {}, true);
+			}
+			else
+				time -= Grid->Camera->TimerManager->GetElapsedTime("OnFire", Actor);
 		}
 	}
 

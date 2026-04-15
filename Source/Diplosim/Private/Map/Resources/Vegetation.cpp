@@ -14,7 +14,7 @@ AVegetation::AVegetation()
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	ResourceHISM->NumCustomDataFloats = 10;
+	ResourceHISM->NumCustomDataFloats = 11;
 
 	TimeLength = 30.0f;
 }
@@ -75,6 +75,7 @@ void AVegetation::Grow()
 
 		ResourceHISM->UpdateInstanceTransform(inst, transform, false);
 		ResourceHISM->SetCustomDataValue(inst, 7, 0.0f);
+		ResourceHISM->SetCustomDataValue(inst, 10, scale.Z);
 
 		if (!IsHarvestable(inst, scale, targetScale))
 			continue;

@@ -1111,6 +1111,8 @@ void AGrid::GenerateTiles()
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 9] = 0.0f;
 				else
 					element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 9] = 1.0f;
+
+				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 10] = 1.0f;
 			}
 			else if (element.Key == HISMRiver) {
 				int32 level = FMath::RoundHalfFromZero(transform.GetLocation().Z / 75.0f);
