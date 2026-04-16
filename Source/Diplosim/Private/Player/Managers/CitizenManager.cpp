@@ -178,7 +178,7 @@ void UCitizenManager::CitizenGeneralLoop()
 
 				happinessCount += happiness;
 
-				if (Camera->PoliticsManager->GetMembersParty(citizen) != nullptr && Camera->PoliticsManager->GetMembersParty(citizen)->Party == "Shell Breakers")
+				if (Camera->PoliticsManager->GetCitizenParty(citizen) == "Shell Breakers")
 					rebelCount++;
 
 				if (!IsValid(citizen->BuildingComponent->Employment))

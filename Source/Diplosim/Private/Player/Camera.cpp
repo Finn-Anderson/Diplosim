@@ -309,16 +309,16 @@ void ACamera::Tick(float DeltaTime)
 		if (HoveredActor.Actor == nullptr)
 			return;
 
-		if (hit.GetActor()->IsA<ABuilding>())
+		if (HoveredActor.Actor->IsA<ABuilding>())
 			MouseHitLocation = GetTargetActorLocation(HoveredActor.Actor);
-		else if (hit.GetActor()->IsA<AResource>()) {
+		else if (HoveredActor.Actor->IsA<AResource>()) {
 			FTransform transform;
-			Cast<UInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
+			Cast<UInstancedStaticMeshComponent>(HoveredActor.Component)->GetInstanceTransform(HoveredActor.Instance, transform);
 
 			MouseHitLocation = transform.GetLocation();
 		}
-		else if (hit.GetActor()->IsA<ACitizen>() && IsValid(Cast<ACitizen>(hit.GetActor())->BuildingComponent->BuildingAt) && Cast<ACitizen>(hit.GetActor())->BuildingComponent->BuildingAt->bHideCitizen) {
-			HoveredActor.Actor = Cast<ACitizen>(hit.GetActor())->BuildingComponent->BuildingAt;
+		else if (HoveredActor.Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(HoveredActor.Actor)->BuildingComponent->BuildingAt) && Cast<ACitizen>(HoveredActor.Actor)->BuildingComponent->BuildingAt->bHideCitizen) {
+			HoveredActor.Actor = Cast<ACitizen>(HoveredActor.Actor)->BuildingComponent->BuildingAt;
 			HoveredActor.Component = Cast<ABuilding>(HoveredActor.Actor)->BuildingMesh;
 			HoveredActor.Instance = INDEX_NONE;
 

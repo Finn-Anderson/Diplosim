@@ -255,7 +255,7 @@ void UBuildingComponent::SetJobHouseEducation(int32 TimeToCompleteDay, TArray<AC
 			School->RemoveVisitor(School->GetOccupant(citizen), citizen);
 		else if (i == 1 && IsValid(Employment))
 			Employment->RemoveCitizen(citizen);
-		else if (i == 2 && IsValid(House))
+		else if (i == 2)
 			RemoveCitizenFromHouse(citizen, Roommates);
 
 		if (i == 0) {
@@ -280,8 +280,10 @@ void UBuildingComponent::SetJobHouseEducation(int32 TimeToCompleteDay, TArray<AC
 			else {
 				house->AddCitizen(citizen);
 
-				for (ACitizen* c : Roommates)
+				for (ACitizen* c : Roommates) {
 					house->AddVisitor(citizen, c);
+					c->BuildingComponent->SetAcquiredTime(i, GetWorld()->GetTimeSeconds());
+				}
 			}
 		}
 
@@ -294,7 +296,12 @@ TArray<ACitizen*> UBuildingComponent::GetRoomates()
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
 	TArray<ACitizen*> citizens = citizen->BioComponent->Children;
-	citizens.Append(citizen->BioComponent->Siblings);
+	
+	if (citizen->BioComponent->Mother != nullptr)
+		citizens.Add(citizen->BioComponent->Mother.Get());
+
+	if (citizen->BioComponent->Father != nullptr)
+		citizens.Add(citizen->BioComponent->Father.Get());
 
 	TArray<ACitizen*> roommates;
 
@@ -456,7 +463,7 @@ void UBuildingComponent::RemoveFromHouse()
 
 void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitizen* Partner)
 {
-	if (!IsValid(House) && !IsValid(Partner->BuildingComponent->House))
+	if ((!IsValid(House) || House->IsAVisitor(Citizen)) && (!IsValid(Partner->BuildingComponent->House) || Partner->BuildingComponent->House->IsAVisitor(Partner)))
 		return;
 
 	bool bThisHouse = true;
@@ -479,12 +486,9 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 		bThisHouse = false;
 	}
 
-	if ((bThisHouse && House->IsAVisitor(Citizen)) || (!bThisHouse && Partner->BuildingComponent->House->IsAVisitor(Partner)))
-		return;
-
 	if (bThisHouse) {
 		if (IsValid(Partner->BuildingComponent->House))
-			Partner->BuildingComponent->House->RemoveCitizen(Partner);
+			RemoveCitizenFromHouse(Partner, {});
 		else if (IsValid(Partner->BuildingComponent->Orphanage))
 			Partner->BuildingComponent->Orphanage->RemoveVisitor(Partner->BuildingComponent->Orphanage->GetOccupant(Partner), Partner);
 
@@ -492,7 +496,7 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 	}
 	else {
 		if (IsValid(House))
-			House->RemoveCitizen(Citizen);
+			RemoveCitizenFromHouse(Citizen, {});
 		else if (IsValid(Orphanage))
 			Orphanage->RemoveVisitor(Orphanage->GetOccupant(Citizen), Citizen);
 
@@ -508,29 +512,38 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 //
 void UBuildingComponent::RemoveCitizenFromHouse(ACitizen* Citizen, TArray<ACitizen*> Roommates)
 {
-	AHouse* house = House;
+	Roommates.Add(Citizen);
 
-	if (house->GetOccupied().Contains(Citizen)) {
-		TArray<ACitizen*> leftoverCitizens;
+	for (ACitizen* citizen : Roommates) {
+		AHouse* house = citizen->BuildingComponent->House;
 
-		for (ACitizen* c : house->GetVisitors(Citizen))
-			if (!Roommates.Contains(c))
-				leftoverCitizens.Add(c);
+		if (!IsValid(house))
+			continue;
 
-		house->RemoveCitizen(Citizen);
+		ACitizen* occupant = house->GetOccupant(Citizen);
 
-		if (!leftoverCitizens.IsEmpty()) {
-			int32 index = Citizen->Camera->Stream.RandRange(0, leftoverCitizens.Num() - 1);
+		if (occupant == Citizen) {
+			TArray<ACitizen*> leftoverCitizens;
 
-			ACitizen* newOccupant = leftoverCitizens[index];
-			leftoverCitizens.RemoveAt(index);
+			for (ACitizen* c : house->GetVisitors(Citizen))
+				if (!Roommates.Contains(c))
+					leftoverCitizens.Add(c);
 
-			house->AddCitizen(newOccupant);
+			house->RemoveCitizen(Citizen);
 
-			for (ACitizen* c : leftoverCitizens)
-				house->AddVisitor(newOccupant, c);
+			if (!leftoverCitizens.IsEmpty()) {
+				int32 index = Citizen->Camera->Stream.RandRange(0, leftoverCitizens.Num() - 1);
+
+				ACitizen* newOccupant = leftoverCitizens[index];
+				leftoverCitizens.RemoveAt(index);
+
+				house->AddCitizen(newOccupant);
+
+				for (ACitizen* c : leftoverCitizens)
+					house->AddVisitor(newOccupant, c);
+			}
 		}
+		else
+			house->RemoveVisitor(occupant, Citizen);
 	}
-	else
-		house->RemoveVisitor(house->GetOccupant(Citizen), Citizen);
 }

@@ -423,6 +423,9 @@ struct FBuildingData
 		TArray<FCapacityData> OccupiedData;
 
 	UPROPERTY()
+		float CropHeight;
+
+	UPROPERTY()
 		FHealthData HealthData;
 
 	UPROPERTY()
@@ -438,6 +441,7 @@ struct FBuildingData
 		DeathTime = 0.0f;
 		bOperate = true;
 		bOnFire = false;
+		CropHeight = 0.0f;
 	}
 };
 

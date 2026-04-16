@@ -16,7 +16,7 @@ AVegetation::AVegetation()
 	ResourceHISM->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	ResourceHISM->NumCustomDataFloats = 11;
 
-	TimeLength = 30.0f;
+	TimeLength = 60.0f;
 }
 
 void AVegetation::YieldStatus(int32 Instance, int32 Yield)
@@ -32,11 +32,14 @@ void AVegetation::YieldStatus(int32 Instance, int32 Yield)
 			fireComp->Deactivate();
 	}
 
+	float scale = ResourceHISM->PerInstanceSMCustomData[Instance * ResourceHISM->NumCustomDataFloats + 8] / 10;
+
 	FTransform transform;
 	ResourceHISM->GetInstanceTransform(Instance, transform);
-	transform.SetScale3D(FVector(ResourceHISM->PerInstanceSMCustomData[Instance * ResourceHISM->NumCustomDataFloats + 8] / 10));
+	transform.SetScale3D(FVector(scale));
 
 	ResourceHISM->UpdateInstanceTransform(Instance, transform, false);
+	ResourceHISM->SetCustomDataValue(Instance, 10, scale);
 
 	GrowingInstances.Add(Instance);
 

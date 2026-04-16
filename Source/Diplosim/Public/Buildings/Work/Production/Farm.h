@@ -24,6 +24,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
 		bool bAffectedByFerility;
 
+	UPROPERTY()
+		float CropHeight;
+
 	UFUNCTION(BlueprintCallable)
 		int32 GetFertility();
 

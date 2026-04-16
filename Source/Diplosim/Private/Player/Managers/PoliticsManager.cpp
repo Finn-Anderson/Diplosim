@@ -189,7 +189,7 @@ FPartyStruct* UPoliticsManager::GetMembersParty(ACitizen* Citizen)
 
 	if (faction != nullptr) {
 		for (FPartyStruct& party : faction->Politics.Parties) {
-			if (!party.Members.Contains(Citizen))
+			if (!IsValid(Citizen) || party.Members.IsEmpty() || !party.Members.Contains(Citizen))
 				continue;
 
 			partyStruct = &party;

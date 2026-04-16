@@ -113,7 +113,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (building->IsHidden())
 			continue;
 
-		if ((StartLocation == FVector::Zero() && !IsValidLocation(building, 0.9f)) || !CheckBuildCosts()) {
+		if ((StartLocation == FVector::Zero() && !IsValidLocation(building, 0.75f)) || !CheckBuildCosts()) {
 			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
 			if (building->IsA<AResearch>()) {
@@ -275,7 +275,7 @@ void UBuildComponent::SetBuildingsOnPath()
 	for (FVector location : locations) {
 		Buildings[0]->SetActorLocation(location);
 
-		if (IsValidLocation(Buildings[0], 0.9f)) {
+		if (IsValidLocation(Buildings[0], 0.75f)) {
 			SpawnBuilding(Buildings[0]->GetClass(), Buildings[0]->FactionName, location);
 
 			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
@@ -632,7 +632,7 @@ void UBuildComponent::Place(bool bQuick)
 		if (building->IsHidden() && Buildings.Num() > 1)
 			continue;
 
-		if (!IsValidLocation(building, 0.9f) || (Buildings.Num() == 1 && !building->bUnique)) {
+		if (!IsValidLocation(building, 0.75f) || (Buildings.Num() == 1 && !building->bUnique)) {
 			Camera->ShowWarning("Invalid location");
 
 			EndPathPlace();

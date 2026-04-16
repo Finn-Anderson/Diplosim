@@ -310,7 +310,7 @@ void ABuilding::SetSeed(int32 Seed)
 			meshComp->SetCustomPrimitiveDataFloat(3, ChosenColour.B);
 
 			if (IsA<AFarm>())
-				meshComp->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
+				meshComp->SetRelativeScale3D(FVector(1.0f, 1.0f, Cast<AFarm>(this)->CropHeight));
 
 			const UStaticMeshSocket* pSocket = meshComp->GetSocketByName("ParticleSocket");
 
@@ -372,24 +372,27 @@ int32 ABuilding::GetTier()
 void ABuilding::SetTier(int32 Value)
 {
 	Tier = Value;
-	
-	float r = 0;
-	float g = 0;
-	float b = 0;
-
-	if (Value == 1) {
-		r = 0.473531;
-		g = 0.361307;
-		b = 0.187821;
-	}
-	else if (Value == 2) {
-		r = 0.571125;
-		g = 0.590619;
-		b = 0.64448;
-	}
 
 	SetSeed(SeedNum);
-	SetBuildingColour(r, g, b);
+
+	if (IsA<ARoad>() || IsA<AFestival>()) {
+		float r = 0;
+		float g = 0;
+		float b = 0;
+
+		if (Value == 1) {
+			r = 0.473531;
+			g = 0.361307;
+			b = 0.187821;
+		}
+		else if (Value == 2) {
+			r = 0.571125;
+			g = 0.590619;
+			b = 0.64448;
+		}
+
+		SetBuildingColour(r, g, b);
+	}
 }
 
 void ABuilding::SetBuildingColour(float R, float G, float B)

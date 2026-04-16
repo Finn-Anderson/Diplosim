@@ -83,7 +83,7 @@ void ACitizen::CitizenSetup(FFactionStruct* Faction)
 
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
-	Camera->TimerManager->CreateTimer("Birthday", this, timeToCompleteDay / 10.0f, "Birthday", {}, true);
+	Camera->TimerManager->CreateTimer("Birthday", this, timeToCompleteDay / 12.0f, "Birthday", {}, true);
 
 	Camera->TimerManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, "Eat", {}, true);
 
@@ -472,7 +472,7 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 {
 	AIController->StopMovement();
 
-	float time = Camera->Stream.RandRange(6.0f, 10.0f);
+	float time = Camera->Stream.RandRange(3.0f, 6.0f);
 	time /= (FMath::LogX(MovementComponent->InitialSpeed, MovementComponent->MaxSpeed) * GetProductivity());
 
 	MovementComponent->SetAnimation(EAnim::Melee, true);

@@ -164,7 +164,7 @@ void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, float MaxLe
 	int32 attempts = 0;
 
 	while (attempts < 5) {
-		FVector location = CentrePoint + Async(EAsyncExecution::TaskGraph, [this, innerRange, outerRange]() { return FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(innerRange, outerRange); }).Get();
+		FVector location = CentrePoint + FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(innerRange, outerRange);
 
 		FNavLocation navLoc;
 		nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));
@@ -180,7 +180,7 @@ void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, float MaxLe
 			if (AI->IsA<ACitizen>() && IsValid(Cast<ACitizen>(AI)->BuildingComponent->BuildingAt)) {
 				ACitizen* citizen = Cast<ACitizen>(AI);
 
-				Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { citizen->BuildingComponent->BuildingAt->Leave(citizen); });
+				Async(EAsyncExecution::TaskGraphMainTick, [citizen]() { if (IsValid(citizen->BuildingComponent->BuildingAt)) citizen->BuildingComponent->BuildingAt->Leave(citizen); });
 			}
 
 			break;

@@ -15,6 +15,8 @@ AFarm::AFarm()
 
 	TimeLength = 30.0f;
 
+	CropHeight = 0.0f;
+
 	bAffectedByFerility = true;
 }
 
@@ -33,12 +35,13 @@ void AFarm::Enter(ACitizen* Citizen)
 
 void AFarm::Production(ACitizen* Citizen)
 {
+	CropHeight += 0.1f;
 	TArray<UStaticMeshComponent*> meshes = GetCropMeshes();
 
 	for (UStaticMeshComponent* mesh : meshes)
-		mesh->SetRelativeScale3D(mesh->GetRelativeScale3D() + FVector(0.0f, 0.0f, 0.1f));
+		mesh->SetRelativeScale3D(FVector(1.0f, 1.0f, CropHeight));
 
-	if (meshes[0]->GetRelativeScale3D().Z >= 1.0f) {
+	if (CropHeight >= 1.0f) {
 		TArray<ACitizen*> workers = GetCitizensAtBuilding();
 
 		if (workers.IsEmpty())

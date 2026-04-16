@@ -26,6 +26,7 @@ int32 AHouse::GetSatisfactionLevel(int32 Rent)
 void AHouse::CollectRent(FFactionStruct* Faction, ACitizen* Citizen)
 {
 	TArray<ACitizen*> family;
+	family.Add(Citizen);
 	int32 total = Citizen->Balance;
 	int32 rent = GetAmount(Citizen);
 
@@ -50,19 +51,13 @@ void AHouse::CollectRent(FFactionStruct* Faction, ACitizen* Citizen)
 		RemoveCitizen(Citizen);
 	}
 	else {
-		int32 pay = FMath::Min(rent, Citizen->Balance);
-		Citizen->Balance -= pay;
-		rent -= pay;
+		for (int32 i = 0; i < rent; i++) {
+			int32 index = Camera->Stream.RandRange(0, family.Num() - 1);
 
-		if (rent > 0) {
-			for (int32 i = 0; i < rent; i++) {
-				int32 index = Camera->Stream.RandRange(0, family.Num() - 1);
+			family[index]->Balance -= 1;
 
-				family[index]->Balance -= 1;
-
-				if (family[index]->Balance == 0)
-					family.RemoveAt(index);
-			}
+			if (family[index]->Balance == 0)
+				family.RemoveAt(index);
 		}
 
 		Camera->ResourceManager->AddUniversalResource(Faction, Camera->ResourceManager->Money, rent);

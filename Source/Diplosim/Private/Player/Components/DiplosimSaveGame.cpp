@@ -15,6 +15,7 @@
 #include "AI/Citizen/Components/HappinessComponent.h"
 #include "AI/Citizen/Components/BioComponent.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
 #include "Buildings/Work/Service/Stockpile.h"
@@ -677,6 +678,8 @@ void UDiplosimSaveGame::SaveBuilding(ACamera* Camera, FActorSaveData& ActorData,
 		buildingData.Orders = Cast<ATrader>(building)->Orders;
 	else if (building->IsA<AStockpile>())
 		buildingData.Store = Cast<AStockpile>(building)->Store;
+	else if (building->IsA<AFarm>())
+		buildingData.CropHeight = Cast<AFarm>(building)->CropHeight;
 
 	double* time = building->Camera->Grid->AIVisualiser->DestructingActors.Find(building);
 	if (time != nullptr)
@@ -1312,6 +1315,8 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 		Cast<ATrader>(building)->Orders = BuildingData.Orders;
 	else if (building->IsA<AStockpile>())
 		Cast<AStockpile>(building)->Store = BuildingData.Store;
+	else if (building->IsA<AFarm>())
+		Cast<AFarm>(building)->CropHeight = BuildingData.CropHeight;
 
 	if (BuildingData.DeathTime != 0.0f)
 		building->Camera->Grid->AIVisualiser->DestructingActors.Add(building, BuildingData.DeathTime);
