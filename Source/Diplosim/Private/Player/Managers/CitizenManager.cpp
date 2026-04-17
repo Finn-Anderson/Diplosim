@@ -157,7 +157,7 @@ void UCitizenManager::CitizenGeneralLoop()
 						if (Camera->SaveGameComponent->IsLoading())
 							return;
 
-						if (!IsValid(building) || building->HealthComponent->GetHealth() == 0 || citizen->BuildingComponent->AllocatedBuildings.Contains(building) || (!building->IsA<AWork>() && !building->IsA<AHouse>()) || !citizen->AIController->CanMoveTo(building->GetActorLocation()))
+						if (!IsValid(building) || building->HealthComponent->GetHealth() == 0 || citizen->BuildingComponent->AllocatedBuildings.Contains(building) || (!building->IsA<AWork>() && !building->IsA<AHouse>()))
 							continue;
 
 						if (building->IsA<ASchool>())

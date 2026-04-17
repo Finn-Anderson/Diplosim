@@ -8,6 +8,7 @@
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Buildings/House.h"
+#include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Work/Booster.h"
 #include "Buildings/Work/Service/School.h"
@@ -48,7 +49,7 @@ void UBuildingComponent::FindEducation(ASchool* Education, int32 TimeToCompleteD
 
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
-	if (HasRecentlyAcquired(0, TimeToCompleteDay) || citizen->BioComponent->EducationLevel == 5 || !citizen->CanAffordEducationLevel() || Education->GetOccupied().IsEmpty())
+	if (HasRecentlyAcquired(0, TimeToCompleteDay) || citizen->BioComponent->EducationLevel == 5 || !citizen->CanAffordEducationLevel() || Education->GetOccupied().IsEmpty() || !citizen->AIController->CanMoveTo(citizen->Camera->GetTargetActorLocation(Education)))
 		return;
 
 	if (citizen->BioComponent->Age >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") || citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Education Age"))
@@ -96,7 +97,7 @@ void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (HasRecentlyAcquired(1, TimeToCompleteDay) || Job->GetCapacity() == Job->GetOccupied().Num() || !CanWork(Job) || !WillWork())
+	if (HasRecentlyAcquired(1, TimeToCompleteDay) || Job->GetCapacity() == Job->GetOccupied().Num() || !CanWork(Job) || !WillWork() || !citizen->AIController->CanMoveTo(citizen->Camera->GetTargetActorLocation(Job)))
 		return;
 
 	FCapacityStruct* capacityStruct = Job->GetBestWorkHours(citizen);
@@ -146,13 +147,10 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (HasRecentlyAcquired(2, TimeToCompleteDay))
+	if (HasRecentlyAcquired(2, TimeToCompleteDay) || NewHouse->Space < Roommates.Num() || !citizen->AIController->CanMoveTo(citizen->Camera->GetTargetActorLocation(NewHouse)))
 		return;
 
 	FCapacityStruct* capacityStruct = NewHouse->GetBestAvailableRoom();
-
-	if (capacityStruct == nullptr)
-		return;
 
 	int32 wages = 0;
 	ACitizen* occupant = nullptr;
@@ -163,8 +161,10 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 		wages = citizen->Balance;
 
 	if (Roommates.Num() == 0) {
-		for (ACitizen* occupier : NewHouse->GetOccupied()) {
-			TArray<ACitizen*> citizens = House->GetVisitors(occupier);
+		for (FCapacityStruct& capacity : NewHouse->Occupied) {
+			ACitizen* occupier = capacity.Citizen;
+
+			TArray<ACitizen*> citizens = capacity.Visitors;
 
 			if (citizens.Num() == NewHouse->Space || occupier->BioComponent->Partner != nullptr)
 				continue;
@@ -172,6 +172,7 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 			citizens.Add(occupier);
 
 			bool bAvailable = true;
+			int32 extraWages = 0;
 
 			for (ACitizen* c : citizens) {
 				int32 likeness = 0;
@@ -185,22 +186,27 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 				}
 
 				if (IsValid(c->BuildingComponent->Employment))
-					wages += c->BuildingComponent->Employment->GetWage(c);
+					extraWages += c->BuildingComponent->Employment->GetWage(c);
 				else
-					wages += c->Balance;
+					extraWages += c->Balance;
 			}
 
 			if (bAvailable) {
 				occupant = occupier;
+				capacityStruct = &capacity;
+				wages += extraWages;
 
 				break;
 			}
 		}
 	}
 
+	if (capacityStruct == nullptr)
+		return;
+
 	int32 newRent = capacityStruct->Amount;
 
-	if (wages < newRent || NewHouse->Space < Roommates.Num() || (!IsValid(occupant) && NewHouse->GetOccupied().Num() == NewHouse->GetCapacity()))
+	if (wages < newRent)
 		return;
 
 	AHouse* chosenHouse = Cast<AHouse>(AllocatedBuildings[2]);
@@ -296,12 +302,6 @@ TArray<ACitizen*> UBuildingComponent::GetRoomates()
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
 	TArray<ACitizen*> citizens = citizen->BioComponent->Children;
-	
-	if (citizen->BioComponent->Mother != nullptr)
-		citizens.Add(citizen->BioComponent->Mother.Get());
-
-	if (citizen->BioComponent->Father != nullptr)
-		citizens.Add(citizen->BioComponent->Father.Get());
 
 	TArray<ACitizen*> roommates;
 
@@ -311,9 +311,6 @@ TArray<ACitizen*> UBuildingComponent::GetRoomates()
 
 			continue;
 		}
-
-		if (c->BioComponent->Age >= 18 || IsValid(c->BuildingComponent->House))
-			continue;
 
 		int32 likeness = 0;
 
@@ -425,9 +422,13 @@ bool UBuildingComponent::WillWork()
 //
 void UBuildingComponent::RemoveFromHouse()
 {
-	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	if (!IsValid(House))
+		return;
 
-	if (!IsValid(House) || House->GetOccupant(citizen) == citizen)
+	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	ACitizen* occupant = House->GetOccupant(citizen);
+
+	if (occupant == citizen || occupant == citizen->BioComponent->Partner)
 		return;
 
 	TArray<ACitizen*> likedFamily = citizen->BioComponent->GetLikedFamily(false);
@@ -437,7 +438,7 @@ void UBuildingComponent::RemoveFromHouse()
 
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
-	if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age")) {
+	if (!CanWork(faction->EggTimer)) {
 		for (ABuilding* building : faction->Buildings) {
 			if (!building->IsA<AOrphanage>())
 				continue;

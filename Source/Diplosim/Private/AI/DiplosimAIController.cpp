@@ -174,6 +174,7 @@ void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, float MaxLe
 
 		if (length <= MaxLength && CanMoveTo(navLoc)) {
 			UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetActorLocation(AI), navLoc, AI, AI->NavQueryFilter);
+			path->EnableRecalculationOnInvalidation(ENavigationOptionFlag::Disable);
 
 			AI->MovementComponent->SetPoints(path->PathPoints);
 

@@ -461,12 +461,7 @@ void UPoliceManager::GetCloserToFight(ACitizen* Citizen, ACitizen* Target, FVect
 	FVector location = MidPoint;
 	location += FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(100.0f, 400.0f);
 
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
-	FNavLocation navLoc;
-	nav->ProjectPointToNavigation(location, navLoc, FVector(400.0f, 400.0f, 200.0f));
-
-	Citizen->AIController->AIMoveTo(Target, navLoc.Location);
+	Citizen->AIController->AIMoveTo(Target, location);
 }
 
 void UPoliceManager::StopFighting(ACitizen* Citizen)
