@@ -484,14 +484,15 @@ void ACitizen::StartHarvestTimer(AResource* Resource)
 
 void ACitizen::HarvestResource(AResource* Resource)
 {
-	if (!IsValid(BuildingComponent->Employment))
+	int32 instance = AIController->MoveRequest.GetGoalInstance();
+
+	if (!IsValid(BuildingComponent->Employment) || instance == INDEX_NONE)
 		return;
 
 	MovementComponent->SetAnimation(EAnim::Still);
 	LoseEnergy();
 	
 	AResource* resource = Resource->GetHarvestedResource();
-	int32 instance = AIController->MoveRequest.GetGoalInstance();
 	int32 amount = FMath::Clamp(Resource->GetYield(this, instance), 0, 10 * GetProductivity());
 
 	if (!Camera->ResourceManager->GetResources(BuildingComponent->Employment).Contains(resource->GetClass())) {

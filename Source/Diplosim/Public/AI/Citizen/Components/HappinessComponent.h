@@ -38,7 +38,7 @@ public:
 		TMap<EHappinessType, int32> DecayingHappiness;
 
 	UPROPERTY()
-		int32 SadTimer;
+		double SadTimer;
 
 private:
 	void SetHousingHappiness(class ACitizen* Citizen, FFactionStruct* Faction);
@@ -51,5 +51,5 @@ private:
 
 	void SetSexualityHappiness(class ACitizen* Citizen, FFactionStruct* Faction);
 
-	void CheckSadnessTimer(class ACitizen* Citizen, FFactionStruct* Faction);
+	void CheckSadness(class ACitizen* Citizen, FFactionStruct* Faction);
 };

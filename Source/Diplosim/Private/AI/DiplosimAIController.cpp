@@ -480,6 +480,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 		ACitizen* citizen = Cast<ACitizen>(AI);
 
 		Camera->TimerManager->RemoveTimer("Idle", citizen);
+		Camera->TimerManager->RemoveTimer("Harvest", citizen);
 
 		if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt != Actor)
 			citizen->BuildingComponent->BuildingAt->Leave(citizen); 

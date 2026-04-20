@@ -175,7 +175,7 @@ void UHealthComponent::Death(AActor* Attacker)
 			citizen->MovementComponent->SetAnimation(EAnim::Death);
 
 			if (faction->Name == Camera->ColonyName)
-				Camera->NotifyLog("Bad", citizen->BioComponent->Name + " has died", faction->Name);
+				Camera->NotifyLog("Bad", citizen->BioComponent->Name + " has died. Life is no yolk", faction->Name);
 
 			if (citizen->Carrying.Type != nullptr && IsValid(citizen->BuildingComponent->Employment) && !citizen->BuildingComponent->Employment->IsA<AStockpile>())
 				Camera->ResourceManager->AddCommittedResource(Camera->ConquestManager->GetFaction("", citizen), citizen->Carrying.Type->GetClass(), citizen->Carrying.Amount);

@@ -13,6 +13,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/EventsManager.h"
+#include "Universal/HealthComponent.h"
 
 UHappinessComponent::UHappinessComponent()
 {
@@ -26,7 +27,7 @@ UHappinessComponent::UHappinessComponent()
 	DecayingHappiness.Add(EHappinessType::WitnessedDeath, 0);
 	DecayingHappiness.Add(EHappinessType::Divorce, 0);
 
-	SadTimer = 0;
+	SadTimer = -10000.0f;
 }
 
 void UHappinessComponent::SetAttendStatus(EAttendStatus Status, bool bMass)
@@ -69,6 +70,9 @@ int32 UHappinessComponent::GetHappiness()
 	if (!Modifiers.IsEmpty()) {
 		TArray<int32> values;
 		Modifiers.GenerateValueArray(values);
+
+		if (values.IsEmpty()) 
+			return value;
 
 		for (int32 v : values)
 			value += v;
@@ -146,6 +150,8 @@ void UHappinessComponent::SetHappiness()
 
 	if (citizen->Camera->ConquestManager->GetCitizenFaction(citizen).WarFatigue >= 120)
 		Modifiers.Add("High War Fatigue", -15);
+
+	CheckSadness(citizen, faction);
 }
 
 void UHappinessComponent::SetHousingHappiness(ACitizen* Citizen, FFactionStruct* Faction)
@@ -379,27 +385,32 @@ void UHappinessComponent::SetSexualityHappiness(ACitizen* Citizen, FFactionStruc
 	Modifiers.Add("Same-Sex Laws", sameSexHappiness);
 }
 
-void UHappinessComponent::CheckSadnessTimer(ACitizen* Citizen, FFactionStruct* Faction)
+void UHappinessComponent::CheckSadness(ACitizen* Citizen, FFactionStruct* Faction)
 {
-	if (GetHappiness() < 35 && !Faction->Police.Arrested.Contains(Citizen)) {
-		if (SadTimer == 0)
-			Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is sad", Faction->Name);
+	int32 timeToCompleteDay = Citizen->Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
-		SadTimer++;
-	}
-	else {
-		SadTimer = 0;
-	}
-
-	if (SadTimer < 300 || Citizen->Camera->EventsManager->UpcomingProtest(Faction))
+	if (SadTimer + timeToCompleteDay > Citizen->GetWorld()->GetTimeSeconds() || GetHappiness() != 0 || Faction->Police.Arrested.Contains(Citizen) || Citizen->Camera->EventsManager->UpcomingProtest(Faction))
 		return;
 
-	int32 startHour = Citizen->Camera->Stream.RandRange(6, 9);
-	int32 endHour = Citizen->Camera->Stream.RandRange(12, 18);
+	SadTimer = Citizen->GetWorld()->GetTimeSeconds();
 
-	TArray<int32> hours;
-	for (int32 i = startHour; i < endHour; i++)
-		hours.Add(i);
+	Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is sad", Faction->Name);
 
-	Citizen->Camera->EventsManager->CreateEvent(Faction->Name, EEventType::Protest, nullptr, nullptr, "", 0, hours, false, {});
+	int32 chance = 90;
+	for (FPersonality* personality : Citizen->Camera->CitizenManager->GetCitizensPersonalities(Citizen))
+		if (personality->Trait == "Brave" || personality->Trait == "Inept" || personality->Trait == "Careless")
+			chance = 50;
+
+	if (Citizen->Camera->Stream.RandRange(1, 100) > chance)
+		Citizen->HealthComponent->TakeHealth(1000, Citizen);
+	else {
+		int32 startHour = Citizen->Camera->Stream.RandRange(6, 9);
+		int32 endHour = Citizen->Camera->Stream.RandRange(12, 18);
+
+		TArray<int32> hours;
+		for (int32 i = startHour; i < endHour; i++)
+			hours.Add(i);
+
+		Citizen->Camera->EventsManager->CreateEvent(Faction->Name, EEventType::Protest, nullptr, nullptr, "", 0, hours, false, {});
+	}
 }

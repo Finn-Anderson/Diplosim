@@ -142,10 +142,10 @@ void UCameraMovementComponent::SetBounds(FVector start, FVector end) {
 
 void UCameraMovementComponent::Look(const struct FInputActionInstance& Instance)
 {
-	if (!Camera->bMouseCapture)
-		return;
-
 	FVector2D value = Instance.GetValue().Get<FVector2D>();
+
+	if (!Camera->bMouseCapture && (FMath::Abs(value.X) != 1.0f || value.Y != 0.0f))
+		return;
 
 	FRotator rot = PController->GetControlRotation();
 

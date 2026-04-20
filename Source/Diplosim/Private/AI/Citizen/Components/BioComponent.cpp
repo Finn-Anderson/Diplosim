@@ -304,10 +304,8 @@ void UBioComponent::HaveChild()
 	if (!IsValid(citizen->BuildingComponent->House) || Children.Num() >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Child Policy") || faction->Citizens.Num() >= citizen->Camera->Settings->GetCitizenNum())
 		return;
 
-	ACitizen* occupant = nullptr;
-
 	if (IsValid(citizen->BuildingComponent->House)) {
-		occupant = citizen->BuildingComponent->House->GetOccupant(citizen);
+		ACitizen* occupant = citizen->BuildingComponent->House->GetOccupant(citizen);
 
 		if (citizen->BuildingComponent->House->GetVisitors(occupant).Num() == citizen->BuildingComponent->House->Space)
 			return;
@@ -341,18 +339,9 @@ void UBioComponent::HaveChild()
 	c->BioComponent->SetSex(faction->Citizens);
 	c->CitizenSetup(faction);
 
-	if (IsValid(occupant))
-		occupant->BuildingComponent->House->AddVisitor(occupant, c);
+	Adopt(c);
 
 	citizen->Camera->NotifyLog("Good", c->BioComponent->Name + " is born", faction->Name);
-
-	for (ACitizen* child : Children) {
-		c->BioComponent->Siblings.Add(child);
-		child->BioComponent->Siblings.Add(c);
-	}
-
-	Children.Add(c);
-	Partner->BioComponent->Children.Add(c);
 }
 
 TArray<ACitizen*> UBioComponent::GetLikedFamily(bool bFactorAge)
@@ -438,4 +427,26 @@ void UBioComponent::Adopt(ACitizen* Child)
 	}
 
 	Children.Add(Child);
+
+	AddChildToHouse(Child);
+}
+
+void UBioComponent::AddChildToHouse(ACitizen* Child)
+{
+	AHouse* house = nullptr;
+	ACitizen* occupant = nullptr;
+
+	if (Child->BioComponent->Mother != nullptr) {
+		house = Child->BioComponent->Mother->BuildingComponent->House;
+		occupant = Child->BioComponent->Mother.Get();
+	}
+	else {
+		house = Child->BioComponent->Father->BuildingComponent->House;
+		occupant = Child->BioComponent->Father.Get();
+	}
+
+	if (!IsValid(house))
+		return;
+
+	house->AddVisitor(house->GetOccupant(occupant), Child);
 }

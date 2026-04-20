@@ -152,7 +152,7 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 
 	FCapacityStruct* capacityStruct = NewHouse->GetBestAvailableRoom();
 
-	int32 wages = 0;
+	int32 wages, newRent = 0;
 	ACitizen* occupant = nullptr;
 
 	if (IsValid(Employment))
@@ -160,9 +160,15 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 	else
 		wages = citizen->Balance;
 
-	if (Roommates.Num() == 0) {
+	if (capacityStruct != nullptr)
+		newRent = capacityStruct->Amount;
+
+	if (Roommates.Num() == 0 && (capacityStruct == nullptr || wages < newRent)) {
 		for (FCapacityStruct& capacity : NewHouse->Occupied) {
 			ACitizen* occupier = capacity.Citizen;
+
+			if (!IsValid(occupier))
+				continue;
 
 			TArray<ACitizen*> citizens = capacity.Visitors;
 
@@ -204,7 +210,7 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 	if (capacityStruct == nullptr)
 		return;
 
-	int32 newRent = capacityStruct->Amount;
+	newRent = capacityStruct->Amount;
 
 	if (wages < newRent)
 		return;
@@ -340,7 +346,9 @@ void UBuildingComponent::SetAcquiredTime(int32 Index, float Time)
 
 bool UBuildingComponent::CanFindAnything(int32 TimeToCompleteDay, FFactionStruct* Faction)
 {
-	if (Faction->Police.Arrested.Contains(Cast<ACitizen>(GetOwner())))
+	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+	if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Work Age") || Faction->Police.Arrested.Contains(citizen))
 		return false;
 
 	for (int32 i = 0; i < 3; i++)

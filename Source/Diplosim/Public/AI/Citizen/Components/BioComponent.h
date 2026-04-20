@@ -57,6 +57,8 @@ public:
 
 	void Adopt(ACitizen* Child);
 
+	void AddChildToHouse(ACitizen* Child);
+
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		TWeakObjectPtr<class ACitizen> Mother;
 

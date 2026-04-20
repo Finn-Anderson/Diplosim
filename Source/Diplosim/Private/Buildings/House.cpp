@@ -70,7 +70,7 @@ void AHouse::Enter(ACitizen* Citizen)
 
 	Citizen->bGain = true;
 
-	Camera->TimerManager->UpdateTimerLength("Energy", this, 1);
+	Camera->TimerManager->UpdateTimerLength("Energy", Citizen, 1);
 }
 
 void AHouse::Leave(ACitizen* Citizen)
@@ -80,7 +80,7 @@ void AHouse::Leave(ACitizen* Citizen)
 	Citizen->bGain = false;
 
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
-	Camera->TimerManager->UpdateTimerLength("Energy", this, (timeToCompleteDay / 100) * Citizen->EnergyMultiplier);
+	Camera->TimerManager->UpdateTimerLength("Energy", Citizen, (timeToCompleteDay / 100) * Citizen->EnergyMultiplier);
 }
 
 bool AHouse::AddCitizen(ACitizen* Citizen)
