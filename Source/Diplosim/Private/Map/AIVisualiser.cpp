@@ -474,7 +474,9 @@ void UAIVisualiser::SetInstanceTransform(UInstancedStaticMeshComponent* ISM, int
 
 void UAIVisualiser::UpdateCitizenVisuals(UInstancedStaticMeshComponent* ISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
-	if (Camera->DiseaseManager->Injured.Contains(Citizen))
+	TTuple<bool, bool> status = Camera->DiseaseManager->HasInjuryAndInfection(Citizen);
+
+	if (status.Key)
 		UpdateInstanceCustomData(ISM, Instance, 10, 1.0f);
 	else
 		UpdateInstanceCustomData(ISM, Instance, 10, 0.0f);
@@ -484,7 +486,7 @@ void UAIVisualiser::UpdateCitizenVisuals(UInstancedStaticMeshComponent* ISM, ACa
 
 	ActivateTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour, ISM, Instance);
 
-	if (Camera->DiseaseManager->Infected.Contains(Citizen))
+	if (status.Value)
 		UpdateInstanceCustomData(ISM, Instance, 13, 1.0f);
 	else
 		UpdateInstanceCustomData(ISM, Instance, 13, 0.0f);
@@ -559,7 +561,7 @@ void UAIVisualiser::SetEyesVisuals(ACitizen* Citizen, int32 HappinessValue)
 
 	if (!Citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 		val16 = 1.0f;
-	else if (Citizen->Camera->DiseaseManager->Infected.Contains(Citizen) || Citizen->Camera->DiseaseManager->Injured.Contains(Citizen) || HappinessValue < 35)
+	else if (!Citizen->HealthIssues.IsEmpty() || HappinessValue < 35)
 		val17 = 1.0f;
 	else if (HappinessValue > 65)
 		val15 = 1.0f;

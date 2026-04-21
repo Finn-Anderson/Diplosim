@@ -15,4 +15,6 @@ public:
 	virtual bool AddCitizen(class ACitizen* Citizen) override;
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
+
+	virtual bool IsAtWork(class ACitizen* Citizen) override;
 };

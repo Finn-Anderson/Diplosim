@@ -15,6 +15,7 @@
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
 #include "Player/Components/SaveGameComponent.h"
+#include "Player/Managers/DiseaseManager.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
 
@@ -236,6 +237,7 @@ TTuple<UObject*, UFunction*> UDiplosimTimerManager::GetFunction(FTimerStruct* Ti
 
 			SET_OBJECT(citizen->BioComponent);
 			SET_OBJECT(citizen->HappinessComponent);
+			SET_OBJECT(citizen->Camera->DiseaseManager);
 		}
 	}
 

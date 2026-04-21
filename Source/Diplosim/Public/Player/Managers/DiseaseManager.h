@@ -15,31 +15,25 @@ public:
 
 	void CalculateDisease(class ACamera* Camera);
 
-	void GiveCondition(class ACitizen* Citizen, FConditionStruct Condition);
+	void GiveCondition(class ACamera* Camera, class ACitizen* Citizen, FConditionStruct Condition);
 
 	void StartDiseaseTimer(class ACamera* Camera);
 
 	UFUNCTION()
 		void SpawnDisease(class ACamera* Camera);
 
-	void Infect(class ACitizen* Citizen);
-
-	void Cure(class ACitizen* Citizen);
+	UFUNCTION()
+		void Cure(class ACitizen* Healer, class ACitizen* Citizen);
 
 	void Injure(class ACitizen* Citizen, int32 Odds);
 
-	TArray<ACitizen*> GetAvailableHealers(FFactionStruct* Faction, TArray<ACitizen*>& Ill, ACitizen* Target);
+	TArray<ACitizen*> GetAvailableHealers(FFactionStruct* Faction, TArray<ACitizen*>& Ill);
 
-	void PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Healer = nullptr);
+	void PairCitizenToHealer(FFactionStruct* Faction);
 
-	UPROPERTY()
-		TArray<class ACitizen*> Infectible;
+	TArray<ACitizen*> GetIll(FFactionStruct* Faction, bool bOnlyInfections);
 
-	UPROPERTY()
-		TArray<class ACitizen*> Infected;
-
-	UPROPERTY()
-		TArray<class ACitizen*> Injured;
+	TTuple<bool, bool> HasInjuryAndInfection(ACitizen* Citizen);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		TArray<FConditionStruct> Diseases;
@@ -55,6 +49,10 @@ protected:
 
 private:
 	void UpdateHealthText(class ACitizen* Citizen);
+
+	bool HasInfection(class ACitizen* Citizen);
+
+	bool IsInfectible(class ACitizen* Citizen);
 
 	FCriticalSection DiseaseSpreadLock;
 };

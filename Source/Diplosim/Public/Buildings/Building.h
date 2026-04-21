@@ -185,7 +185,7 @@ struct FCapacityStruct
 		for (int32 j = 0; j < 24; j++) {
 			EWorkType type = EWorkType::Freetime;
 
-			if (j >= 6 && j < 18)
+			if (j >= 6 && j < 18 && j != 12 && j != 13)
 				type = EWorkType::Work;
 
 			WorkHours.Add(j, type);

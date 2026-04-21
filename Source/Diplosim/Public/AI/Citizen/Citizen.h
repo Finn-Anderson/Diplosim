@@ -148,9 +148,6 @@ public:
 		int32 Balance;
 
 	// Health
-	UFUNCTION()
-		void Heal(ACitizen* Citizen);
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 		TArray<FConditionStruct> HealthIssues;
 

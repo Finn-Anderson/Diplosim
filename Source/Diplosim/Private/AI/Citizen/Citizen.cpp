@@ -79,7 +79,6 @@ ACitizen::ACitizen()
 void ACitizen::CitizenSetup(FFactionStruct* Faction)
 {
 	Faction->Citizens.Add(this);
-	Camera->DiseaseManager->Infectible.Add(this);
 
 	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
@@ -276,17 +275,6 @@ int32 ACitizen::GetLeftoverMoney()
 }
 
 //
-// Health
-//
-
-void ACitizen::Heal(ACitizen* Citizen)
-{		
-	Camera->DiseaseManager->Cure(Citizen);
-
-	Camera->DiseaseManager->PairCitizenToHealer(Camera->ConquestManager->GetFaction("", this), this);
-}
-
-//
 // Food
 //
 void ACitizen::Eat()
@@ -392,10 +380,7 @@ void ACitizen::Eat()
 		Hunger = FMath::Clamp(Hunger + 25, 0, 100);
 	}
 
-	if (Hunger > 25)
-		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() / FVector(0.75f, 0.75f, 1.0f));
-	else if (Hunger == 25)
-		MovementComponent->Transform.SetScale3D(MovementComponent->Transform.GetScale3D() * FVector(0.75f, 0.75f, 1.0f));
+	MovementComponent->Transform.SetScale3D(FVector(1.0f) * ReachMultiplier * (Hunger > 25 ? FVector(1.0f) : FVector(0.75f, 0.75f, 1.0f)));
 }
 
 //
@@ -457,6 +442,9 @@ void ACitizen::LoseEnergy()
 
 void ACitizen::GainEnergy()
 {
+	if (Energy == 100)
+		return;
+
 	Energy = FMath::Clamp(Energy + 1, 0, 100);
 
 	HealthComponent->AddHealth(1);

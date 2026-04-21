@@ -862,15 +862,6 @@ struct FCitizenManagerData
 		TArray<FPersonalityData> PersonalitiesData;
 
 	UPROPERTY()
-		TArray<FString> InfectibleNames;
-
-	UPROPERTY()
-		TArray<FString> InfectedNames;
-
-	UPROPERTY()
-		TArray<FString> InjuredNames;
-
-	UPROPERTY()
 		int32 IssuePensionHour;
 
 	FCitizenManagerData()

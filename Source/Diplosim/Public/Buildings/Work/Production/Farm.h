@@ -19,7 +19,7 @@ public:
 		int32 Yield;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
-		int32 TimeLength;
+		float TimeLengthHours;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crop")
 		bool bAffectedByFerility;
@@ -32,6 +32,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetYield();
+
+	int32 GetTimeLength(ACitizen* Citizen);
 
 	virtual void Enter(class ACitizen* Citizen) override;
 

@@ -134,6 +134,7 @@ void UCitizenManager::CitizenGeneralLoop()
 				continue;
 
 			Camera->PoliticsManager->PoliticsLoop(&faction);
+			bool bIll = !Camera->DiseaseManager->GetIll(&faction, true).IsEmpty();
 
 			int32 rebelCount = 0;
 			int32 happinessCount = 0;
@@ -187,7 +188,7 @@ void UCitizenManager::CitizenGeneralLoop()
 				if (citizen->BuildingComponent->Employment->IsA<AWall>())
 					Cast<AWall>(citizen->BuildingComponent->Employment)->SetEmergency(!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() || !faction.Rebels.IsEmpty());
 				else if (citizen->BuildingComponent->Employment->IsA<AClinic>())
-					Cast<AClinic>(citizen->BuildingComponent->Employment)->SetEmergency(!Camera->DiseaseManager->Infected.IsEmpty());
+					Cast<AClinic>(citizen->BuildingComponent->Employment)->SetEmergency(bIll);
 				else if (citizen->BuildingComponent->Employment->IsA<AFireStation>()) {
 					AFireStation* station = Cast<AFireStation>(citizen->BuildingComponent->Employment);
 					station->SetEmergency(!faction.BuildingsOnFire.IsEmpty());
@@ -412,10 +413,6 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 		Citizen->BuildingComponent->RemoveCitizenFromHouse(Citizen);
 
 	Camera->ArmyManager->RemoveFromArmy(Citizen);
-
-	Camera->DiseaseManager->Infectible.Remove(Citizen);
-	Camera->DiseaseManager->Infected.Remove(Citizen);
-	Camera->DiseaseManager->Injured.Remove(Citizen);
 
 	if (Camera->InfoUIInstance->IsInViewport())
 		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Citizen->Spirituality.Faith);

@@ -319,15 +319,6 @@ void UDiplosimSaveGame::SaveCitizenManager(FActorSaveData& ActorData, AActor* Ac
 		cmData.PersonalitiesData.Add(data);
 	}
 
-	for (ACitizen* citizen : camera->DiseaseManager->Infectible)
-		cmData.InfectibleNames.Add(citizen->GetName());
-
-	for (ACitizen* citizen : camera->DiseaseManager->Infected)
-		cmData.InfectedNames.Add(citizen->GetName());
-
-	for (ACitizen* citizen : camera->DiseaseManager->Injured)
-		cmData.InjuredNames.Add(citizen->GetName());
-
 	cmData.IssuePensionHour = camera->CitizenManager->IssuePensionHour;
 
 	Saves[Index].CameraData.CitizenManagerData = cmData;
@@ -1020,10 +1011,6 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& Camer
 
 	for (FPersonality& personality : camera->CitizenManager->Personalities)
 		personality.Citizens.Empty();
-
-	camera->DiseaseManager->Infectible.Empty();
-	camera->DiseaseManager->Infected.Empty();
-	camera->DiseaseManager->Injured.Empty();
 }
 
 void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor)
@@ -1224,17 +1211,6 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 
 	for (FGeneticsStruct& genetic : citizen->Genetics)
 		citizen->ApplyGeneticAffect(genetic);
-
-	FCitizenManagerData cmData = CameraData.CitizenManagerData;
-
-	if (cmData.InfectibleNames.Contains(ActorData.Name))
-		Camera->DiseaseManager->Infectible.Add(citizen);
-
-	if (cmData.InfectedNames.Contains(ActorData.Name))
-		Camera->DiseaseManager->Infected.Add(citizen);
-
-	if (cmData.InjuredNames.Contains(ActorData.Name))
-		Camera->DiseaseManager->Injured.Add(citizen);
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(AIData.FactionName);
 	for (FFactionData factionData : CameraData.FactionData) {

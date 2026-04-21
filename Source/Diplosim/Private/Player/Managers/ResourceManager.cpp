@@ -362,10 +362,14 @@ TMap<TSubclassOf<class AResource>, int32> UResourceManager::GetBuildingCapacitie
 TArray<TSubclassOf<AResource>> UResourceManager::GetResources(ABuilding* Building)
 {
 	TArray<TSubclassOf<AResource>> resources;
+	TSubclassOf<AResource> targetResource = nullptr;
+
+	if (!Building->Seeds.IsEmpty())
+		targetResource = Building->Seeds[Building->SeedNum].Resource;
 
 	for (FResourceStruct resource : ResourceList)
 		for (auto& element : resource.Buildings)
-			if (element.Key == Building->GetClass())
+			if (element.Key == Building->GetClass() && (targetResource == nullptr || targetResource == resource.Type))
 				resources.Add(resource.Type);
 
 	return resources;
@@ -641,7 +645,7 @@ int32 UResourceManager::GetCategoryTrend(FString FactionName, FString Category)
 			AFarm* farm = Cast<AFarm>(building);
 			ACitizen* citizen = farm->GetOccupied()[0];
 
-			int32 timeLength = farm->TimeLength / citizen->GetProductivity();
+			int32 timeLength = farm->GetTimeLength(citizen);
 
 			int32 timePerHour = 360 / (24 * Cast<ACamera>(GetOwner())->Grid->AtmosphereComponent->Speed) / 24;
 

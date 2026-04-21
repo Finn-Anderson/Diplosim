@@ -2,6 +2,7 @@
 
 #include "AI/Citizen/Citizen.h"
 #include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/HealthComponent.h"
@@ -13,7 +14,7 @@ AFarm::AFarm()
 
 	Yield = 5;
 
-	TimeLength = 30.0f;
+	TimeLengthHours = 4.0f;
 
 	CropHeight = 0.0f;
 
@@ -81,7 +82,7 @@ void AFarm::StartTimer(ACitizen* Citizen)
 {
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(Citizen, params);
-	Camera->TimerManager->CreateTimer("Farm", this, TimeLength / 10.0f / Citizen->GetProductivity(), "Production", params, false, true);
+	Camera->TimerManager->CreateTimer("Farm", this, GetTimeLength(Citizen) / 10.0f, "Production", params, false, true);
 }
 
 int32 AFarm::GetFertility()
@@ -100,4 +101,12 @@ int32 AFarm::GetFertility()
 int32 AFarm::GetYield()
 {
 	return Yield * GetFertility();
+}
+
+int32 AFarm::GetTimeLength(ACitizen* Citizen)
+{
+	int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
+	int32 timeLength = TimeLengthHours * timeToCompleteDay / 24.0f / Citizen->GetProductivity();
+
+	return timeLength;
 }

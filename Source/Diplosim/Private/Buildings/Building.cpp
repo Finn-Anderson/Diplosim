@@ -327,7 +327,7 @@ void ABuilding::SetSeed(int32 Seed)
 
 			farm->Crop = Seeds[Seed].Resource;
 			farm->Yield = Seeds[Seed].Yield;
-			farm->TimeLength = Seeds[Seed].TimeLength;
+			farm->TimeLengthHours = Seeds[Seed].TimeLength;
 
 			BuildingName = Seeds[Seed].Name;
 		}

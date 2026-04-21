@@ -616,10 +616,8 @@ void UPoliceManager::Arrest(ACitizen* Officer, ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
 
-	Camera->DiseaseManager->Infectible.Remove(Citizen);
-
-	if (Camera->DiseaseManager->Infected.Contains(Citizen) || Camera->DiseaseManager->Injured.Contains(Citizen))
-		Camera->DiseaseManager->Cure(Citizen);
+	if (!Citizen->HealthIssues.IsEmpty())
+		Camera->DiseaseManager->Cure(Citizen, Citizen);
 
 	Citizen->ClearCitizen();
 
@@ -720,6 +718,8 @@ void UPoliceManager::SetInNearestJail(FFactionStruct Faction, ACitizen* Officer,
 
 		faction->Police.Arrested.Add(Citizen, Camera->PoliticsManager->GetLawValue(faction->Name, law));
 
+		Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " has been arrested", faction->Name);
+
 		break;
 	}
 
@@ -742,7 +742,6 @@ void UPoliceManager::ItterateThroughSentences()
 
 		for (ACitizen* citizen : served) {
 			faction.Police.Arrested.Remove(citizen);
-			Camera->DiseaseManager->Infectible.Add(citizen);
 
 			citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 		}

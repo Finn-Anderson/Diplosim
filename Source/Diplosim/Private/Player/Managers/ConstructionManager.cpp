@@ -82,7 +82,7 @@ void UConstructionManager::FindBuilder(class ABuilding* Building)
 	ABuilder* target = nullptr;
 
 	for (ABuilder* builder : foundBuilders) {
-		if (IsBeingConstructed(builder, builder) || builder->GetOccupied().IsEmpty())
+		if (builder->GetOccupied().IsEmpty() || !builder->IsAtWork(builder->GetOccupied()[0]))
 			continue;
 
 		bool bCanMove = builder->GetOccupied()[0]->AIController->CanMoveTo(Building->GetActorLocation());

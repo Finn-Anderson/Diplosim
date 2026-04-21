@@ -94,7 +94,7 @@ bool UArmyManager::CanJoinArmy(ACitizen* Citizen)
 {
 	FFactionStruct faction = Camera->ConquestManager->GetCitizenFaction(Citizen);
 
-	if (Citizen->HealthComponent->GetHealth() == 0 || Camera->DiseaseManager->Injured.Contains(Citizen) || Camera->DiseaseManager->Infected.Contains(Citizen) || Citizen->BioComponent->Age < Camera->PoliticsManager->GetLawValue(faction.Name, "Work Age") || !Citizen->BuildingComponent->WillWork() || IsCitizenInAnArmy(Citizen))
+	if (Citizen->HealthComponent->GetHealth() == 0 || !Citizen->HealthIssues.IsEmpty() || Citizen->BioComponent->Age < Camera->PoliticsManager->GetLawValue(faction.Name, "Work Age") || !Citizen->BuildingComponent->WillWork() || IsCitizenInAnArmy(Citizen))
 		return false;
 
 	return true;

@@ -79,13 +79,6 @@ void UDiseaseManager::ReadJSONFile(FString path)
 
 void UDiseaseManager::CalculateDisease(ACamera* Camera)
 {
-	if (Infected.IsEmpty() && Injured.IsEmpty()) {
-		if (Camera->SaveGameComponent->IsLoading())
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Disease);
-
-		return;
-	}
-
 	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
 		FScopeTryLock lock(&DiseaseSpreadLock);
 		if (!lock.IsLocked())
@@ -113,16 +106,17 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 					if (condition.AcquiredTime + condition.DeathTime <= GetWorld()->GetTimeSeconds())
 						citizen->HealthComponent->TakeHealth(1000, citizen);
 
-				if (citizen->HealthComponent->GetHealth() <= 0 || (!Infected.Contains(citizen) && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsA<AClinic>())))
+				if (citizen->HealthComponent->GetHealth() <= 0)
 					continue;
 
 				if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA<AClinic>() && faction.Citizens.Contains(citizen->AIController->MoveRequest.GetGoalActor()) && citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), citizen->Range / 15.0f)) {
 					TArray<FTimerParameterStruct> params;
+					Camera->TimerManager->SetParameter(citizen, params);
 					Camera->TimerManager->SetParameter(citizen->AIController->MoveRequest.GetGoalActor(), params);
 
-					Camera->TimerManager->CreateTimer("Healing", citizen, 1.0f / citizen->GetProductivity(), "Heal", params, false);
+					Camera->TimerManager->CreateTimer("Healing", citizen, 1.0f / citizen->GetProductivity(), "Cure", params, false);
 				}
-				else if (Infectible.Contains(citizen) && Infected.Contains(citizen)) {
+				else if (HasInfection(citizen)) {
 					FOverlapsStruct requestedOverlaps;
 					requestedOverlaps.GetCitizenInteractions(false, true);
 
@@ -134,10 +128,8 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 
 						ACitizen* c = Cast<ACitizen>(actor);
 
-						if (c->HealthComponent->GetHealth() <= 0 || !Infectible.Contains(c))
+						if (c->HealthComponent->GetHealth() <= 0 || IsInfectible(c))
 							continue;
-
-						bool bInfected = false;
 
 						for (FConditionStruct condition : citizen->HealthIssues) {
 							if (c->HealthIssues.Contains(condition))
@@ -145,17 +137,9 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 
 							int32 chance = Camera->Stream.RandRange(1, 100);
 
-							if (chance <= condition.Spreadability) {
-								GiveCondition(c, condition);
-
-								bInfected = true;
-
-								Camera->NotifyLog("Bad", citizen->BioComponent->Name + " is infected with " + condition.Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
-							}
+							if (chance <= condition.Spreadability)
+								GiveCondition(Camera, c, condition);
 						}
-
-						if (bInfected && !Infected.Contains(c))
-							Infect(c);
 					}
 				}
 			}
@@ -165,10 +149,18 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 	});
 }
 
-void UDiseaseManager::GiveCondition(ACitizen* Citizen, FConditionStruct Condition)
+void UDiseaseManager::GiveCondition(ACamera* Camera, ACitizen* Citizen, FConditionStruct Condition)
 {
 	Condition.AcquiredTime = GetWorld()->GetTimeSeconds();
 	Citizen->HealthIssues.Add(Condition);
+
+	FString status = "infected";
+	if (Condition.Spreadability == 0)
+		status = "injured";
+
+	Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is " + status + " with " + Condition.Name, Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
+
+	UpdateHealthText(Citizen);
 }
 
 void UDiseaseManager::StartDiseaseTimer(ACamera* Camera)
@@ -183,26 +175,19 @@ void UDiseaseManager::StartDiseaseTimer(ACamera* Camera)
 
 void UDiseaseManager::SpawnDisease(ACamera* Camera)
 {
-	int32 index = Camera->Stream.RandRange(0, Infectible.Num() - 1);
-	ACitizen* citizen = Infectible[index];
+	for (FFactionStruct faction : Camera->ConquestManager->Factions) {
+		TArray<ACitizen*> infectible;
+		for (ACitizen* citizen : faction.Citizens)
+			if (IsInfectible(citizen))
+				infectible.Add(citizen);
 
-	index = Camera->Stream.RandRange(0, Diseases.Num() - 1);
-	GiveCondition(citizen, Diseases[index]);
+		int32 infectibleIndex = Camera->Stream.RandRange(0, infectible.Num() - 1);
+		int32 diseaseIndex = Camera->Stream.RandRange(0, Diseases.Num() - 1);
 
-	Camera->NotifyLog("Bad", citizen->BioComponent->Name + " is infected with " + Diseases[index].Name, Camera->ConquestManager->GetCitizenFaction(citizen).Name);
-
-	Infect(citizen);
+		GiveCondition(Camera, infectible[infectibleIndex], Diseases[diseaseIndex]);
+	}
 
 	StartDiseaseTimer(Camera);
-}
-
-void UDiseaseManager::Infect(ACitizen* Citizen)
-{
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen]() {
-		Infected.Add(Citizen);
-
-		UpdateHealthText(Citizen);
-	});
 }
 
 void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
@@ -221,7 +206,7 @@ void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
 		return;
 
 	index = Citizen->Camera->Stream.RandRange(0, conditions.Num() - 1);
-	GiveCondition(Citizen, conditions[index]);
+	GiveCondition(Citizen->Camera, Citizen, conditions[index]);
 
 	for (FAffectStruct affect : conditions[index].Affects) {
 		if (affect.Affect == EAffect::Movement)
@@ -232,15 +217,10 @@ void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
 			Citizen->ApplyToMultiplier("Health", affect.Amount);
 	}
 
-	Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is injured with " + conditions[index].Name, Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
 	Citizen->Camera->PlayAmbientSound(Citizen->AmbientAudioComponent, InjureSound);
-
-	Injured.Add(Citizen);
-
-	UpdateHealthText(Citizen);
 }
 
-void UDiseaseManager::Cure(ACitizen* Citizen)
+void UDiseaseManager::Cure(ACitizen* Healer, ACitizen* Citizen)
 {
 	for (FConditionStruct condition : Citizen->HealthIssues) {
 		for (FAffectStruct affect : condition.Affects) {
@@ -255,10 +235,10 @@ void UDiseaseManager::Cure(ACitizen* Citizen)
 
 	Citizen->HealthIssues.Empty();
 
-	Infected.Remove(Citizen);
-	Injured.Remove(Citizen);
-
 	Citizen->Camera->NotifyLog("Good", Citizen->BioComponent->Name + " has been healed", Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
+
+	if (Citizen != Healer)
+		Healer->AIController->DefaultAction();
 
 	UpdateHealthText(Citizen);
 }
@@ -269,7 +249,7 @@ void UDiseaseManager::UpdateHealthText(ACitizen* Citizen)
 		Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen]() { Citizen->Camera->UpdateHealthIssues(); });
 }
 
-TArray<ACitizen*> UDiseaseManager::GetAvailableHealers(FFactionStruct* Faction, TArray<ACitizen*>& Ill, ACitizen* Target)
+TArray<ACitizen*> UDiseaseManager::GetAvailableHealers(FFactionStruct* Faction, TArray<ACitizen*>& Ill)
 {
 	TArray<ACitizen*> healers;
 
@@ -284,11 +264,12 @@ TArray<ACitizen*> UDiseaseManager::GetAvailableHealers(FFactionStruct* Faction, 
 				continue;
 
 			AActor* goal = citizen->AIController->MoveRequest.GetGoalActor();
-			if (goal->IsA<ACitizen>() && Ill.Contains(Cast<ACitizen>(goal)))
+
+			if (IsValid(goal) && Ill.Contains(goal)) {
 				Ill.Remove(Cast<ACitizen>(goal));
 
-			if (IsValid(Target) && Target != citizen)
 				continue;
+			}
 
 			healers.Add(citizen);
 		}
@@ -297,14 +278,15 @@ TArray<ACitizen*> UDiseaseManager::GetAvailableHealers(FFactionStruct* Faction, 
 	return healers;
 }
 
-void UDiseaseManager::PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Healer)
+void UDiseaseManager::PairCitizenToHealer(FFactionStruct* Faction)
 {
-	TArray<ACitizen*> ill;
-	ill.Append(Infected);
-	ill.Append(Injured);
+	TArray<ACitizen*> ill = GetIll(Faction, false);
+
+	if (ill.IsEmpty())
+		return;
 
 	TArray<ACitizen*> healers;
-	healers.Append(GetAvailableHealers(Faction, ill, Healer));
+	healers.Append(GetAvailableHealers(Faction, ill));
 
 	for (ACitizen* healer : healers) {
 		ACitizen* chosenPatient = nullptr;
@@ -320,8 +302,8 @@ void UDiseaseManager::PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Hea
 				continue;
 			}
 
-			int32 curValue = Infected.Contains(chosenPatient) ? 3.0f : 1.0f;
-			int32 newValue = Infected.Contains(citizen) ? 3.0f : 1.0f;
+			int32 curValue = HasInfection(chosenPatient) ? 3.0f : 1.0f;
+			int32 newValue = HasInfection(citizen) ? 3.0f : 1.0f;
 
 			double magnitude = healer->AIController->GetClosestActor(50.0f, citizen->Camera->GetTargetActorLocation(healer), healer->Camera->GetTargetActorLocation(chosenPatient), healer->Camera->GetTargetActorLocation(citizen), true, curValue, newValue);
 
@@ -334,7 +316,44 @@ void UDiseaseManager::PairCitizenToHealer(FFactionStruct* Faction, ACitizen* Hea
 
 			ill.Remove(chosenPatient);
 		}
-		else
-			healer->AIController->DefaultAction();
 	}
+}
+
+TArray<ACitizen*> UDiseaseManager::GetIll(FFactionStruct* Faction, bool bOnlyInfections)
+{
+	TArray<ACitizen*> ill;
+
+	for (ACitizen* citizen : Faction->Citizens)
+		if (!citizen->HealthIssues.IsEmpty() && (!bOnlyInfections || HasInfection(citizen)))
+			ill.Add(citizen);
+
+	return ill;
+}
+
+TTuple<bool, bool> UDiseaseManager::HasInjuryAndInfection(ACitizen* Citizen)
+{
+	TTuple<bool, bool> status = TTuple<bool, bool>(false, false);
+
+	for (FConditionStruct condition : Citizen->HealthIssues) {
+		if (condition.Spreadability > 0)
+			status.Value = true;
+		else
+			status.Key = true;
+	}
+
+	return status;
+}
+
+bool UDiseaseManager::HasInfection(ACitizen* Citizen)
+{
+	for (FConditionStruct condition : Citizen->HealthIssues)
+		if (condition.Spreadability > 0)
+			return true;
+
+	return false;
+}
+
+bool UDiseaseManager::IsInfectible(ACitizen* Citizen)
+{
+	return !IsValid(Citizen->BuildingComponent->Employment) || !Citizen->BuildingComponent->Employment->IsA<AClinic>();
 }

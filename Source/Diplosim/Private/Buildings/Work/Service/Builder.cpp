@@ -62,7 +62,7 @@ void ABuilder::Leave(ACitizen* Citizen)
 
 bool ABuilder::IsAtWork(ACitizen* Citizen)
 {
-	return Super::IsAtWork(Citizen) || Camera->ConstructionManager->IsBeingConstructed(nullptr, this);
+	return Super::IsAtWork(Citizen) || Camera->ConstructionManager->IsBeingConstructed(this, this);
 }
 
 void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
