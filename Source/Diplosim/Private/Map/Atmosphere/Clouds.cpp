@@ -407,6 +407,12 @@ void UCloudComponent::SetGradualWetness(bool bLoad)
 		if (!bLoad)
 			WetnessStruct[i].Value += WetnessStruct[i].Increment;
 
+		if (!IsValid(WetnessStruct[i].Component)) {
+			WetnessStruct.RemoveAt(i);
+
+			continue;
+		}
+
 		if (WetnessStruct[i].Component->IsA<UInstancedStaticMeshComponent>()) {
 			UPrimitiveComponent* component = WetnessStruct[i].Component;
 			int32 instance = WetnessStruct[i].Instance;

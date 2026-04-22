@@ -10,6 +10,7 @@
 
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
+#include "Buildings/Work/Service/Orphanage.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
@@ -318,10 +319,8 @@ void USaveGameComponent::SetupCitizenBuilding(FString BuildingName, ABuilding* B
 {
 	ACitizen* citizen = Cast<ACitizen>(CitizenData->Actor);
 
-	if (Building->IsA<AHouse>())
-		citizen->BuildingComponent->House = Cast<AHouse>(Building);
-	else if (Building->IsA<AOrphanage>() && bVisitor)
-		citizen->BuildingComponent->Orphanage = Cast<AOrphanage>(Building);
+	if (Building->IsA<AHouse>() || Building->IsA<AOrphanage>())
+		citizen->BuildingComponent->House = Building;
 	else if (Building->IsA<ASchool>() && bVisitor)
 		citizen->BuildingComponent->School = Cast<ASchool>(Building);
 	else

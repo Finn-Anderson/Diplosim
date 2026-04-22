@@ -867,6 +867,8 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArray<FWetnessData>& WetnessData)
 {
 	AGrid* grid = Cast<AGrid>(Actor);
+	grid->Clear();
+
 	grid->GetWorld()->TimeSeconds = WorldData.WorldTimer;
 
 	grid->Size = WorldData.Size;
@@ -875,8 +877,6 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	grid->Camera->Stream = WorldData.Stream;
 
 	grid->LavaSpawnLocations = WorldData.LavaSpawnLocations;
-
-	grid->Clear();
 
 	grid->SetMapBounds();
 	grid->InitialiseStorage();
@@ -1245,6 +1245,13 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 	if (BuildingData.bOnFire)
 		Camera->Grid->AtmosphereComponent->SetOnFire(Actor, INDEX_NONE, true);
 
+	if (building->IsA<ATrader>())
+		Cast<ATrader>(building)->Orders = BuildingData.Orders;
+	else if (building->IsA<AStockpile>())
+		Cast<AStockpile>(building)->Store = BuildingData.Store;
+	else if (building->IsA<AFarm>())
+		Cast<AFarm>(building)->CropHeight = BuildingData.CropHeight;
+
 	building->SeedNum = BuildingData.Seed;
 	building->SetTier(BuildingData.Tier);
 
@@ -1286,13 +1293,6 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 
 	building->Storage = BuildingData.Storage;
 	building->Basket = BuildingData.Basket;
-
-	if (building->IsA<ATrader>())
-		Cast<ATrader>(building)->Orders = BuildingData.Orders;
-	else if (building->IsA<AStockpile>())
-		Cast<AStockpile>(building)->Store = BuildingData.Store;
-	else if (building->IsA<AFarm>())
-		Cast<AFarm>(building)->CropHeight = BuildingData.CropHeight;
 
 	if (BuildingData.DeathTime != 0.0f)
 		building->Camera->Grid->AIVisualiser->DestructingActors.Add(building, BuildingData.DeathTime);

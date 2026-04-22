@@ -23,6 +23,9 @@ void AOrphanage::Enter(ACitizen* Citizen)
 	Super::Enter(Citizen);
 
 	if (IsValid(GetOccupant(Citizen))) {
+		if (GetOccupied().Contains(Citizen))
+			return;
+
 		Citizen->bGain = true;
 
 		Camera->TimerManager->UpdateTimerLength("Energy", this, 1);
@@ -36,7 +39,7 @@ void AOrphanage::Leave(ACitizen* Citizen)
 {
 	Super::Leave(Citizen);
 
-	if (!IsValid(GetOccupant(Citizen)))
+	if (GetOccupied().Contains(Citizen) || !IsValid(GetOccupant(Citizen)))
 		return;
 
 	Citizen->bGain = false;
@@ -47,14 +50,14 @@ void AOrphanage::Leave(ACitizen* Citizen)
 
 void AOrphanage::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Visitor->BuildingComponent->Orphanage = this;
+	Visitor->BuildingComponent->House = this;
 
 	Super::AddVisitor(Occupant, Visitor);
 }
 
 void AOrphanage::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 {
-	Visitor->BuildingComponent->Orphanage = nullptr;
+	Visitor->BuildingComponent->House = nullptr;
 
 	Camera->TimerManager->RemoveTimer("Orphanage", Visitor);
 
@@ -115,18 +118,16 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 		ACitizen* child = favourites[index];
 		Citizen->BioComponent->Adopt(child);
 
+		RemoveVisitor(GetOccupant(child), child);
+
 		Citizen->BuildingComponent->House->AddVisitor(Citizen->BuildingComponent->House->GetOccupant(Citizen), child);
 
 		child->AIController->AIMoveTo(Citizen->BuildingComponent->House);
-
-		child->Camera->TimerManager->CreateTimer("Idle", child, 60.0f, "DefaultAction", {}, false, true);
-
-		RemoveVisitor(GetOccupant(child), child);
+		child->Camera->TimerManager->CreateTimer("Idle", child, 30.0f, "DefaultAction", {}, false, true);
 
 		favourites.RemoveAt(index);
 	}
 
 	Citizen->AIController->AIMoveTo(Citizen->BuildingComponent->House);
-
-	Citizen->Camera->TimerManager->CreateTimer("Idle", Citizen, 60.0f, "DefaultAction", {}, false, true);
+	Citizen->Camera->TimerManager->CreateTimer("Idle", Citizen, 30.0f, "DefaultAction", {}, false, true);
 }

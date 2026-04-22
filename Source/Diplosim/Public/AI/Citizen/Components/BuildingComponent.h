@@ -14,16 +14,13 @@ public:
 	UBuildingComponent();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class AHouse* House;
+		class ABuilding* House;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
 		class AWork* Employment;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
 		class ASchool* School;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		class AOrphanage* Orphanage;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
 		class ABuilding* BuildingAt;
@@ -77,6 +74,8 @@ public:
 
 	// Family
 	void RemoveFromHouse();
+
+	void FindClosestOrphanage(FFactionStruct* Faction);
 
 	void SelectPreferredPartnersHouse(ACitizen* Citizen, ACitizen* Partner);
 

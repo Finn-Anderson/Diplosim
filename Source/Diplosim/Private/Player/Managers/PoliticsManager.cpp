@@ -537,7 +537,7 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 		if (IsValid(Representative->BuildingComponent->Employment))
 			leftoverMoney += Representative->BuildingComponent->Employment->GetWage(Representative);
 
-		if (IsValid(Representative->BuildingComponent->House))
+		if (IsValid(Representative->BuildingComponent->House) && Representative->BuildingComponent->House->IsA<AHouse>())
 			leftoverMoney -= Representative->BuildingComponent->House->GetAmount(Representative);
 
 		if (leftoverMoney < Bill.Value)

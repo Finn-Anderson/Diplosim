@@ -145,9 +145,6 @@ void ACitizen::ClearCitizen()
 			BuildingComponent->House->RemoveVisitor(BuildingComponent->House->GetOccupant(this), this);
 		}
 	}
-	else if (IsValid(BuildingComponent->Orphanage)) {
-		BuildingComponent->Orphanage->RemoveVisitor(BuildingComponent->Orphanage->GetOccupant(this), this);
-	}
 
 	BioComponent->Disown();
 	BioComponent->RemovePartner();
@@ -250,7 +247,7 @@ int32 ACitizen::GetLeftoverMoney()
 {
 	int32 money = Balance;
 
-	if (IsValid(BuildingComponent->House))
+	if (IsValid(BuildingComponent->House) && BuildingComponent->House->IsA<AHouse>())
 		money -= BuildingComponent->House->GetAmount(this);
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
@@ -306,8 +303,9 @@ void ACitizen::Eat()
 	int32 quantity = FMath::Clamp(totalAmount, 0, maxF);
 
 	TMap<ACitizen*, int32> wallet;
+	bool bTax = cost > 0 && (!IsValid(BuildingComponent->House) || BuildingComponent->House->IsA<AHouse>()) && !faction->Police.Arrested.Contains(this);
 
-	if (cost > 0 && !IsValid(BuildingComponent->Orphanage) && !faction->Police.Arrested.Contains(this)) {
+	if (bTax) {
 		if (FMath::Floor(Balance / cost) < quantity) {
 			for (ACitizen* citizen : BioComponent->GetLikedFamily(true)) {
 				if (citizen->Balance <= 0)
@@ -348,7 +346,7 @@ void ACitizen::Eat()
 				foodAmounts[j] -= 1;
 				totalAmount -= 1;
 
-				if (cost > 0 && !IsValid(BuildingComponent->Orphanage) && !faction->Police.Arrested.Contains(this)) {
+				if (bTax) {
 					for (int32 k = 0; k < cost; k++) {
 						if (Balance <= 0 && !wallet.IsEmpty()) {
 							int32 index = Camera->Stream.RandRange(0, wallet.Num() - 1);
@@ -392,25 +390,18 @@ void ACitizen::CheckGainOrLoseEnergy()
 		GainEnergy();
 	else
 		LoseEnergy();
+
+	MovementComponent->SetMaxSpeed(Energy);
 }
 
 void ACitizen::LoseEnergy()
 {
 	Energy = FMath::Clamp(Energy - 1, 0, 100);
 
-	MovementComponent->SetMaxSpeed(Energy);
-
 	if (Energy > 20 || !AttackComponent->OverlappingEnemies.IsEmpty() || bWorshipping || (IsValid(BuildingComponent->Employment) && BuildingComponent->Employment->IsWorking(this)) || Camera->ArmyManager->IsCitizenInAnArmy(this))
 		return;
 
-	ABuilding* target = nullptr;
-
-	if (IsValid(BuildingComponent->House) || IsValid(BuildingComponent->Orphanage)) {
-		if (IsValid(BuildingComponent->House))
-			target = BuildingComponent->House;
-		else
-			target = BuildingComponent->Orphanage;
-
+	if (IsValid(BuildingComponent->House)) {
 		if (IsValid(BuildingComponent->Employment) && BuildingComponent->Employment->IsA<AExternalProduction>()) {
 			for (auto& element : Cast<AExternalProduction>(BuildingComponent->Employment)->GetValidResources()) {
 				for (FWorkerStruct workerStruct : element.Key->WorkerStruct) {
@@ -423,10 +414,10 @@ void ACitizen::LoseEnergy()
 				}
 			}
 		}
-	}
 
-	if (IsValid(target) && AIController->MoveRequest.GetGoalActor() != target)
-		AIController->AIMoveTo(target);
+		if (AIController->MoveRequest.GetGoalActor() != BuildingComponent->House)
+			AIController->AIMoveTo(BuildingComponent->House);
+	}
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 

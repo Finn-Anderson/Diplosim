@@ -119,7 +119,7 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 	int32 hoursLeft = Citizen->HoursSleptToday.Num();
 
-	AHouse* house = Citizen->BuildingComponent->House;
+	ABuilding* house = Citizen->BuildingComponent->House;
 
 	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33 || Citizen->Energy < 100) && !Faction->BuildingsOnFire.Contains(house)) {
 		AIMoveTo(house);

@@ -28,7 +28,7 @@ void AFarm::Enter(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen) || Camera->TimerManager->FindTimer("Farm", this))
 		return;
 
-	if (GetCropMeshes()[0]->GetRelativeScale3D().Z == 1.0f)
+	if (CropHeight >= 1.0f)
 		ProductionDone(Citizen);
 	else
 		StartTimer(Citizen);
@@ -37,9 +37,8 @@ void AFarm::Enter(ACitizen* Citizen)
 void AFarm::Production(ACitizen* Citizen)
 {
 	CropHeight += 0.1f;
-	TArray<UStaticMeshComponent*> meshes = GetCropMeshes();
 
-	for (UStaticMeshComponent* mesh : meshes)
+	for (UStaticMeshComponent* mesh : GetCropMeshes())
 		mesh->SetRelativeScale3D(FVector(1.0f, 1.0f, CropHeight));
 
 	if (CropHeight >= 1.0f) {
@@ -62,8 +61,10 @@ void AFarm::ProductionDone(ACitizen* Citizen)
 
 	StoreResource(Citizen);
 
+	CropHeight = 0.0f;
+
 	for (UStaticMeshComponent* mesh : GetCropMeshes())
-		mesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.0f));
+		mesh->SetRelativeScale3D(FVector(1.0f, 1.0f, CropHeight));
 
 	StartTimer(Citizen);
 }

@@ -232,8 +232,8 @@ TTuple<UObject*, UFunction*> UDiplosimTimerManager::GetFunction(FTimerStruct* Ti
 		if (ai->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(ai);
 
-			if (IsValid(citizen->BuildingComponent->Orphanage))
-				SET_OBJECT(citizen->BuildingComponent->Orphanage);
+			if (IsValid(citizen->BuildingComponent->House))
+				SET_OBJECT(citizen->BuildingComponent->House);
 
 			SET_OBJECT(citizen->BioComponent);
 			SET_OBJECT(citizen->HappinessComponent);

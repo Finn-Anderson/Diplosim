@@ -807,6 +807,9 @@ float ABuilding::GetAmount(ACitizen* Citizen)
 
 	int32 index = Occupied.Find(capacityStruct);
 
+	if (index == INDEX_NONE)
+		return 0;
+
 	return Occupied[index].Amount;
 }
 

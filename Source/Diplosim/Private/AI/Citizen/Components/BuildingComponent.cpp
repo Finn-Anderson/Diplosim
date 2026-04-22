@@ -26,7 +26,6 @@ UBuildingComponent::UBuildingComponent()
 	House = nullptr;
 	Employment = nullptr;
 	School = nullptr;
-	Orphanage = nullptr;
 	BuildingAt = nullptr;
 	EnterLocation = FVector::Zero();
 
@@ -142,7 +141,7 @@ void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 
 void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TArray<ACitizen*> Roommates)
 {
-	if (!IsValid(AllocatedBuildings[2]))
+	if (!IsValid(AllocatedBuildings[2]) || AllocatedBuildings[2]->IsA<AOrphanage>())
 		SetAcquiredTime(2, -10000.0f);
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
@@ -215,7 +214,9 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 	if (wages < newRent)
 		return;
 
-	AHouse* chosenHouse = Cast<AHouse>(AllocatedBuildings[2]);
+	AHouse* chosenHouse = nullptr;
+	if (AllocatedBuildings[2]->IsA<AHouse>())
+		chosenHouse = Cast<AHouse>(AllocatedBuildings[2]);
 
 	if (!IsValid(chosenHouse) || (IsValid(FoundHouseOccupant) && !IsValid(occupant))) {
 		AllocatedBuildings[2] = NewHouse;
@@ -279,9 +280,6 @@ void UBuildingComponent::SetJobHouseEducation(int32 TimeToCompleteDay, TArray<AC
 			Cast<AWork>(building)->AddCitizen(citizen);
 		}
 		else {
-			if (IsValid(Orphanage))
-				Orphanage->RemoveVisitor(Orphanage->GetOccupant(citizen), citizen);
-
 			AHouse* house = Cast<AHouse>(building);
 
 			if (FoundHouseOccupant) {
@@ -348,8 +346,15 @@ bool UBuildingComponent::CanFindAnything(int32 TimeToCompleteDay, FFactionStruct
 {
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Work Age") || Faction->Police.Arrested.Contains(citizen))
+	if (Faction->Police.Arrested.Contains(citizen))
 		return false;
+
+	if (!CanWork(Faction->EggTimer)) {
+		if (!IsValid(House))
+			FindClosestOrphanage(Faction);
+
+		return false;
+	}
 
 	for (int32 i = 0; i < 3; i++)
 		if (!HasRecentlyAcquired(i, TimeToCompleteDay))
@@ -376,7 +381,7 @@ void UBuildingComponent::RemoveOnReachingWorkAge(FFactionStruct* Faction)
 		return;
 	}
 
-	if (IsValid(Orphanage) && !citizen->Camera->TimerManager->DoesTimerExist("Orphanage", citizen)) {
+	if (IsValid(House) && House->IsA<AOrphanage>() && !citizen->Camera->TimerManager->DoesTimerExist("Orphanage", citizen)) {
 		int32 timeToCompleteDay = citizen->Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 		TArray<FTimerParameterStruct> params;
@@ -447,26 +452,33 @@ void UBuildingComponent::RemoveFromHouse()
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
 	if (!CanWork(faction->EggTimer)) {
-		for (ABuilding* building : faction->Buildings) {
-			if (!building->IsA<AOrphanage>())
+		citizen->BioComponent->Disown();
+
+		if (IsValid(House) && citizen->BioComponent->Mother->BuildingComponent->House == House)
+			RemoveCitizenFromHouse(citizen, {});
+
+		FindClosestOrphanage(faction);
+	}
+	else
+		House->RemoveVisitor(House->GetOccupant(citizen), citizen);
+}
+
+void UBuildingComponent::FindClosestOrphanage(FFactionStruct* Faction)
+{
+	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+	for (ABuilding* building : Faction->Buildings) {
+		if (!building->IsA<AOrphanage>())
+			continue;
+
+		for (ACitizen* carer : building->GetOccupied()) {
+			if (building->GetVisitors(carer).Num() == building->Space)
 				continue;
 
-			for (ACitizen* carer : building->GetOccupied()) {
-				if (building->GetVisitors(carer).Num() == building->Space)
-					continue;
+			Cast<AOrphanage>(building)->AddVisitor(carer, citizen);
 
-				House->RemoveVisitor(House->GetOccupant(carer), citizen);
-
-				citizen->BioComponent->Disown();
-
-				Cast<AOrphanage>(building)->AddVisitor(carer, citizen);
-
-				return;
-			}
+			return;
 		}
-	}
-	else {
-		House->RemoveVisitor(House->GetOccupant(citizen), citizen);
 	}
 }
 
@@ -482,9 +494,9 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 			bThisHouse = false;
 		}
 		else if (!Partner->BuildingComponent->House->IsAVisitor(Partner)) {
-			AHouse* partnersHouse = Partner->BuildingComponent->House;
+			AHouse* partnersHouse = Cast<AHouse>(Partner->BuildingComponent->House);
 
-			int32 h1 = House->GetSatisfactionLevel(House->GetAmount(Citizen)) / 10 + House->Space;
+			int32 h1 = Cast<AHouse>(House)->GetSatisfactionLevel(House->GetAmount(Citizen)) / 10 + House->Space;
 			int32 h2 = partnersHouse->GetSatisfactionLevel(partnersHouse->GetAmount(Partner)) / 10 + partnersHouse->Space;
 
 			if (h2 > h1)
@@ -498,16 +510,12 @@ void UBuildingComponent::SelectPreferredPartnersHouse(ACitizen* Citizen, ACitize
 	if (bThisHouse) {
 		if (IsValid(Partner->BuildingComponent->House))
 			RemoveCitizenFromHouse(Partner, {});
-		else if (IsValid(Partner->BuildingComponent->Orphanage))
-			Partner->BuildingComponent->Orphanage->RemoveVisitor(Partner->BuildingComponent->Orphanage->GetOccupant(Partner), Partner);
 
 		House->AddVisitor(Citizen, Partner);
 	}
 	else {
 		if (IsValid(House))
 			RemoveCitizenFromHouse(Citizen, {});
-		else if (IsValid(Orphanage))
-			Orphanage->RemoveVisitor(Orphanage->GetOccupant(Citizen), Citizen);
 
 		Partner->BuildingComponent->House->AddVisitor(Partner, Citizen);
 	}
@@ -524,7 +532,7 @@ void UBuildingComponent::RemoveCitizenFromHouse(ACitizen* Citizen, TArray<ACitiz
 	Roommates.Add(Citizen);
 
 	for (ACitizen* citizen : Roommates) {
-		AHouse* house = citizen->BuildingComponent->House;
+		ABuilding* house = citizen->BuildingComponent->House;
 
 		if (!IsValid(house))
 			continue;

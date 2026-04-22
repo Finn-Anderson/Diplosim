@@ -301,15 +301,13 @@ void UBioComponent::HaveChild()
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
-	if (!IsValid(citizen->BuildingComponent->House) || Children.Num() >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Child Policy") || faction->Citizens.Num() >= citizen->Camera->Settings->GetCitizenNum())
+	if (!IsValid(citizen->BuildingComponent->House) || !citizen->BuildingComponent->House->IsA<AHouse>() || Children.Num() >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Child Policy") || faction->Citizens.Num() >= citizen->Camera->Settings->GetCitizenNum())
 		return;
 
-	if (IsValid(citizen->BuildingComponent->House)) {
-		ACitizen* occupant = citizen->BuildingComponent->House->GetOccupant(citizen);
+	ACitizen* occupant = citizen->BuildingComponent->House->GetOccupant(citizen);
 
-		if (citizen->BuildingComponent->House->GetVisitors(occupant).Num() == citizen->BuildingComponent->House->Space)
-			return;
-	}
+	if (citizen->BuildingComponent->House->GetVisitors(occupant).Num() == citizen->BuildingComponent->House->Space)
+		return;
 
 	float chance = citizen->Camera->Stream.FRandRange(0.0f, 100.0f) * Partner->Fertility * citizen->Fertility;
 	float passMark = FMath::LogX(60.0f, Age) * 100.0f;
@@ -388,13 +386,13 @@ void UBioComponent::Disown()
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
 	if (Mother != nullptr) {
-		Mother = nullptr;
 		Mother->BioComponent->Children.Remove(citizen);
+		Mother = nullptr;
 	}
 
 	if (Father != nullptr) {
-		Father = nullptr;
 		Father->BioComponent->Children.Remove(citizen);
+		Father = nullptr;
 	}
 
 	for (ACitizen* siblings : Siblings)
@@ -433,7 +431,7 @@ void UBioComponent::Adopt(ACitizen* Child)
 
 void UBioComponent::AddChildToHouse(ACitizen* Child)
 {
-	AHouse* house = nullptr;
+	ABuilding* house = nullptr;
 	ACitizen* occupant = nullptr;
 
 	if (Child->BioComponent->Mother != nullptr) {

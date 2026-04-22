@@ -161,7 +161,12 @@ void UHappinessComponent::SetHousingHappiness(ACitizen* Citizen, FFactionStruct*
 	else {
 		Modifiers.Add("Housed", 10);
 
-		int32 satisfaction = Citizen->BuildingComponent->House->GetSatisfactionLevel(Citizen->BuildingComponent->House->GetAmount(Citizen));
+		if (!Citizen->BuildingComponent->House->IsA<AHouse>())
+			return;
+
+		AHouse* house = Cast<AHouse>(Citizen->BuildingComponent->House);
+
+		int32 satisfaction = house->GetSatisfactionLevel(house->GetAmount(Citizen));
 		int32 level = (satisfaction / 5 - 10) * 2;
 
 		if (level > 0)
