@@ -74,6 +74,8 @@ ACitizen::ACitizen()
 	bConversing = false;
 
 	bGlasses = false;
+
+	ImmunityTimer = 0;
 }
 
 void ACitizen::CitizenSetup(FFactionStruct* Faction)

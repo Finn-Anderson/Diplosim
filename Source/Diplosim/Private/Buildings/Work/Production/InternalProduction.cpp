@@ -111,7 +111,7 @@ void AInternalProduction::Production(ACitizen* Citizen)
 		}
 		else {
 			TArray<ACitizen*> workers = GetCitizensAtBuilding();
-			int32 index = Camera->Stream.RandRange(0, workers.Num());
+			int32 index = Camera->Stream.RandRange(0, workers.Num() - 1);
 
 			workers[index]->Carry(resources[0]->GetDefaultObject<AResource>(), yield, this);
 			StoreResource(workers[index]);
@@ -131,7 +131,7 @@ float AInternalProduction::GetTime()
 	float time = TimeLength;
 
 	for (ACitizen* citizen : GetCitizensAtBuilding())
-		time -= (time / GetCitizensAtBuilding().Num()) * citizen->GetProductivity() - 1.0f;
+		time -= (TimeLength / (Capacity * 2)) * citizen->GetProductivity();
 
 	return time;
 }

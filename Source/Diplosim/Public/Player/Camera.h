@@ -486,7 +486,7 @@ public:
 
 	void Detach();
 
-	FVector GetTargetActorLocation(AActor* Actor);
+	FVector GetTargetActorLocation(AActor* Actor, bool bGetEnterLocation = true);
 
 	void Lose();
 

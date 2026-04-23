@@ -997,9 +997,8 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& Camer
 	camera->Cancel();
 
 	camera->ClearPopupUI();
-	camera->SetInteractStatus(camera->WidgetComponent->GetAttachmentRootActor(), false);
+	camera->SetInteractStatus(camera, false);
 
-	camera->Detach();
 	camera->MovementComponent->TargetLength = CameraData.TargetLength;
 	camera->PController->SetControlRotation(ActorData.Transform.GetRotation().Rotator());
 	camera->MovementComponent->MovementLocation = ActorData.Transform.GetLocation();

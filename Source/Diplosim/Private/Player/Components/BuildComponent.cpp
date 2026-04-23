@@ -425,13 +425,13 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 
 		FTileStruct* tile = Camera->Grid->GetTileFromLocation(hit.Location);
 
-		if (tile == nullptr || (tile->bMineral && Building->FactionName != Camera->ColonyName && (!Building->IsA<AInternalProduction>() || Cast<AInternalProduction>(Building)->ResourceToOverlap == nullptr)))
+		if (tile == nullptr || (tile->bMineral && (Building->FactionName != Camera->ColonyName || !Building->bCanMove) && (!Building->IsA<AInternalProduction>() || Cast<AInternalProduction>(Building)->ResourceToOverlap == nullptr)))
 			return false;
 
 		FTransform transform;
 
-		if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UHierarchicalInstancedStaticMeshComponent>())
-			Cast<UHierarchicalInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
+		if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UInstancedStaticMeshComponent>())
+			Cast<UInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
 		else
 			transform = hit.GetActor()->GetTransform();
 
@@ -483,7 +483,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		}
 	}
 
-	if ((!bCoast && Building->bCoastal) || (!bResource && Building->IsA<AInternalProduction>() && !Building->IsA<ASpecial>()))
+	if ((!bCoast && Building->bCoastal) || (!bResource && Building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Building)->ResourceToOverlap)))
 		return false;
 
 	if (Camera->ConquestManager->Factions.Num() > 1) {
@@ -588,7 +588,7 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 
 void UBuildComponent::StartPathPlace()
 {
-	if (StartLocation != FVector::Zero() || Buildings[0]->bUnique || BuildingToMove)
+	if (StartLocation != FVector::Zero() || Buildings[0]->bUnique || BuildingToMove || (Buildings[0]->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Buildings[0])->ResourceToOverlap)))
 		return;
 	
 	StartLocation = Buildings[0]->GetActorLocation();
@@ -632,7 +632,7 @@ void UBuildComponent::Place(bool bQuick)
 		if (building->IsHidden() && Buildings.Num() > 1)
 			continue;
 
-		if (!IsValidLocation(building, 0.75f) || (Buildings.Num() == 1 && !building->bUnique)) {
+		if (!IsValidLocation(building, 0.75f) || (Buildings.Num() == 1 && Buildings[0]->IsHidden())) {
 			Camera->ShowWarning("Invalid location");
 
 			EndPathPlace();

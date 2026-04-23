@@ -110,6 +110,9 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 					continue;
 
 				if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA<AClinic>() && faction.Citizens.Contains(citizen->AIController->MoveRequest.GetGoalActor()) && citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), citizen->Range / 15.0f)) {
+					if (Camera->TimerManager->DoesTimerExist("Healing", citizen))
+						continue;
+
 					TArray<FTimerParameterStruct> params;
 					Camera->TimerManager->SetParameter(citizen, params);
 					Camera->TimerManager->SetParameter(citizen->AIController->MoveRequest.GetGoalActor(), params);
@@ -128,20 +131,22 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 
 						ACitizen* c = Cast<ACitizen>(actor);
 
-						if (c->HealthComponent->GetHealth() <= 0 || IsInfectible(c))
+						if (c->HealthComponent->GetHealth() <= 0 || !IsInfectible(c))
 							continue;
 
 						for (FConditionStruct condition : citizen->HealthIssues) {
-							if (c->HealthIssues.Contains(condition))
+							if (c->HealthIssues.Contains(condition) || citizen->ImmunityTimer > 0)
 								continue;
 
-							int32 chance = Camera->Stream.RandRange(1, 100);
+							int32 chance = Camera->Stream.RandRange(1, 10000);
 
 							if (chance <= condition.Spreadability)
 								GiveCondition(Camera, c, condition);
 						}
 					}
 				}
+
+				citizen->ImmunityTimer = FMath::Max(citizen->ImmunityTimer--, 0);
 			}
 
 			PairCitizenToHealer(&faction);
@@ -233,6 +238,7 @@ void UDiseaseManager::Cure(ACitizen* Healer, ACitizen* Citizen)
 		}
 	}
 
+	Citizen->ImmunityTimer = Citizen->Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay() / 4;
 	Citizen->HealthIssues.Empty();
 
 	Citizen->Camera->NotifyLog("Good", Citizen->BioComponent->Name + " has been healed", Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);

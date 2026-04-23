@@ -67,7 +67,7 @@ bool ABuilder::IsAtWork(ACitizen* Citizen)
 
 void ABuilder::CheckCosts(ACitizen* Citizen, ABuilding* Building)
 {
-	if (!CheckStored(Citizen, Building->TargetList) || Camera->SaveGameComponent->Checklist.bLoad)
+	if (!CheckStored(Citizen, Building->TargetList) || Camera->SaveGameComponent->IsLoading())
 		return;
 
 	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();

@@ -652,7 +652,7 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 	if (!IsValid(Component))
 		Component = Actor->GetRootComponent();
 
-	if (!BuildComponent->IsComponentTickEnabled() && !SaveGameComponent->Checklist.bLoad)
+	if (!BuildComponent->IsComponentTickEnabled() && !SaveGameComponent->IsLoading())
 		PlayInteractSound(InteractSound);
 	
 	SetInteractableText(Actor, Instance);
@@ -720,14 +720,14 @@ void ACamera::Detach()
 	FocusedCitizen = nullptr;
 }
 
-FVector ACamera::GetTargetActorLocation(AActor* Actor)
+FVector ACamera::GetTargetActorLocation(AActor* Actor, bool bGetEnterLocation)
 {
 	FVector location = Actor->GetActorLocation();
 
 	if (Actor->IsA<AAI>()) {
 		location = Cast<AAI>(Actor)->MovementComponent->Transform.GetLocation();
 
-		if (Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt))
+		if (Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt) && bGetEnterLocation)
 			location = Cast<ACitizen>(Actor)->BuildingComponent->EnterLocation;
 	}
 

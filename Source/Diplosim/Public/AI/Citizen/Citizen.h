@@ -151,6 +151,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 		TArray<FConditionStruct> HealthIssues;
 
+	UPROPERTY()
+		int32 ImmunityTimer;
+
 	// Resources
 	void StartHarvestTimer(class AResource* Resource);
 

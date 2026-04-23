@@ -314,6 +314,9 @@ void UHappinessComponent::SetWorkHappiness(ACitizen* Citizen, FFactionStruct* Fa
 		}
 	}
 
+	if (count == 0)
+		return;
+
 	Modifiers.Add("Work Happiness", count * 5);
 }
 

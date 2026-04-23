@@ -185,7 +185,7 @@ struct FCapacityStruct
 		for (int32 j = 0; j < 24; j++) {
 			EWorkType type = EWorkType::Freetime;
 
-			if (j >= 6 && j < 18 && j != 12 && j != 13)
+			if (j >= 6 && j < 18 && j != 11 && j != 12)
 				type = EWorkType::Work;
 
 			WorkHours.Add(j, type);
@@ -275,6 +275,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void SetSeed(int32 Seed);
+
+	void SetStorage();
 
 	void SetLights(int32 Hour);
 

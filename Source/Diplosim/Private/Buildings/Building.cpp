@@ -42,6 +42,7 @@
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/PoliceManager.h"
 #include "Player/Components/BuildComponent.h"
+#include "Player/Components/SaveGameComponent.h"
 #include "Universal/EggBasket.h"
 #include "Universal/HealthComponent.h"
 #include "DebugManager.h"
@@ -161,18 +162,6 @@ void ABuilding::BeginPlay()
 
 	BuildingMesh->SetCustomPrimitiveDataFloat(6, blink);
 
-	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
-
-	for (TSubclassOf<AResource> resource : resources) {
-		FItemStruct itemStruct;
-		itemStruct.Resource = resource;
-
-		if (Storage.Contains(itemStruct))
-			continue;
-
-		Storage.Add(itemStruct);
-	}
-
 	SetSeed(SeedNum);
 
 	SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
@@ -213,11 +202,11 @@ void ABuilding::ToggleDecalComponentVisibility(bool bVisible)
 
 void ABuilding::SetSeed(int32 Seed)
 {
-	if (Seeds.IsEmpty())
-		return;
+	if (Seeds.IsEmpty()) {
+		SetStorage();
 
-	if (FactionName == Camera->ColonyName)
-		Camera->SetInteractStatus(this, false);
+		return;
+	}
 
 	if (bAffectBuildingMesh) {
 		if (!Seeds[Seed].Meshes.IsEmpty()) {
@@ -360,8 +349,27 @@ void ABuilding::SetSeed(int32 Seed)
 
 	SeedNum = Seed;
 
-	if (FactionName == Camera->ColonyName)
+	SetStorage();
+
+	if (FactionName == Camera->ColonyName && !Camera->SaveGameComponent->IsLoading())
 		Camera->DisplayInteract(this);
+}
+
+void ABuilding::SetStorage()
+{
+	Storage.Empty();
+
+	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
+
+	for (TSubclassOf<AResource> resource : resources) {
+		FItemStruct itemStruct;
+		itemStruct.Resource = resource;
+
+		if (Storage.Contains(itemStruct))
+			continue;
+
+		Storage.Add(itemStruct);
+	}
 }
 
 int32 ABuilding::GetTier()
@@ -898,6 +906,8 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen) && (Occupied.IsEmpty() || !Occupied[0].Visitors.Contains(Citizen)))
 		return;
 
+	Citizen->MovementComponent->SetPoints({});
+
 	bool bAnim = false;
 
 	FSocketStruct socketStruct;
@@ -939,8 +949,12 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 
 	if (keys[0] == FName("All"))
 		anim = *AnimSockets.Find(keys[0]);
-	else if (index != INDEX_NONE)
-		anim = *AnimSockets.Find(SocketList[index].Name);
+	else if (index != INDEX_NONE) {
+		EAnim* anm = AnimSockets.Find(SocketList[index].Name);
+
+		if (anm != nullptr)
+			anim = *anm;
+	}
 
 	if (anim != EAnim::Still)
 		bRepeat = true;
@@ -950,7 +964,6 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 	if (!IsA<AFestival>())
 		speed = Citizen->GetProductivity();
 
-	Citizen->MovementComponent->SetPoints({});
 	Citizen->MovementComponent->SetAnimation(anim, bRepeat, speed);
 }
 
