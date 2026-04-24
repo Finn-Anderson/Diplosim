@@ -71,6 +71,8 @@ UAIVisualiser::UAIVisualiser()
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);
 	HarvestNiagaraComponent->SetAutoActivate(false);
 
+	HarvestVisualCooldownTimer = 0.0f;
+
 	HatsContainer = CreateDefaultSubobject<USceneComponent>(TEXT("HatsContainer"));
 	HatsContainer->SetupAttachment(AIContainer);
 
@@ -131,7 +133,7 @@ void UAIVisualiser::ResetToDefaultValues()
 	DestructingActors.Empty();
 }
 
-void UAIVisualiser::MainLoop(ACamera* Camera)
+void UAIVisualiser::MainLoop(ACamera* Camera, float DeltaTime)
 {
 	for (FPendingChangeStruct pending : PendingChange) {
 		if (pending.Instances.IsEmpty()) {
@@ -149,6 +151,8 @@ void UAIVisualiser::MainLoop(ACamera* Camera)
 
 	if (!PendingChange.IsEmpty())
 		PendingChange.Empty();
+
+	HarvestVisualCooldownTimer = FMath::Max(HarvestVisualCooldownTimer - DeltaTime, 0.0f);
 
 	CalculateCitizenMovement(Camera);
 
@@ -205,7 +209,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 		if (cs.IsEmpty() && rebels.IsEmpty())
 			return; 
 		
-		if (HarvestNiagaraComponent->IsActive() && UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(HarvestNiagaraComponent, "Locations").IsEmpty())
+		if (HarvestVisualCooldownTimer == 0.0f && HarvestNiagaraComponent->IsActive() && UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(HarvestNiagaraComponent, "Locations").IsEmpty())
 			Async(EAsyncExecution::TaskGraphMainTick, [this]() {HarvestNiagaraComponent->Deactivate(); });
 
 		TArray<TArray<ACitizen*>> citizens;
@@ -243,8 +247,19 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						UInstancedStaticMeshComponent* ism = nullptr;
 						if (i == 0) {
 							float opacity = 1.0f;
-							if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt->bHideCitizen)
-								opacity = 0.0f;
+							if (IsValid(citizen->BuildingComponent->BuildingAt)) {
+								if (citizen->BuildingComponent->BuildingAt->bHideCitizen)
+									opacity = 0.0f;
+								else if (!citizen->BuildingComponent->BuildingAt->SocketList.IsEmpty()) {
+									FSocketStruct socketStruct;
+									socketStruct.Citizen = citizen;
+
+									int32 index = citizen->BuildingComponent->BuildingAt->SocketList.Find(socketStruct);
+
+									if (index != INDEX_NONE)
+										citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->SocketList[index].SocketLocation);
+								}
+							}
 
 							UpdateInstanceCustomData(HISMCitizen, j, 14, opacity);
 
@@ -508,10 +523,6 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 {
 	USoundBase* sound = nullptr;
 
-	FHitResult hit(ForceInit);
-	FCollisionQueryParams params;
-	params.AddIgnoredActor(Citizen);
-
 	FLinearColor colour = FLinearColor();
 	for (FResourceStruct resourceStruct : Citizen->Camera->ResourceManager->ResourceList) {
 		if (!Resource->IsA(resourceStruct.Type))
@@ -526,6 +537,8 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 	else
 		sound = Citizen->Chops[Citizen->Camera->Stream.RandRange(0, Citizen->Chops.Num() - 1)];
 
+	HarvestVisualCooldownTimer = 5.0f;
+
 	FVector location = AddHarvestVisual(Citizen, colour);
 
 	Citizen->AmbientAudioComponent->SetRelativeLocation(location);
@@ -534,10 +547,7 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 
 FVector UAIVisualiser::AddHarvestVisual(AAI* AI, FLinearColor Colour)
 {
-	if (!HarvestNiagaraComponent->IsActive())
-		Async(EAsyncExecution::TaskGraphMainTick, [this]() {HarvestNiagaraComponent->Activate(); });
-
-	FVector location = AI->MovementComponent->Transform.GetLocation() + FVector(20.0f, 0.0f, 17.0f);
+	FVector location = AI->MovementComponent->Transform.GetLocation() + (AI->MovementComponent->Transform.Rotator().Vector() * 20.0f) + FVector(0.0f, 0.0f, 17.0f);
 
 	TArray<FVector> locations = UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(HarvestNiagaraComponent, "Locations");
 	locations.Add(location);
@@ -547,6 +557,9 @@ FVector UAIVisualiser::AddHarvestVisual(AAI* AI, FLinearColor Colour)
 
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(HarvestNiagaraComponent, "Locations", locations);
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayColor(HarvestNiagaraComponent, "Colours", colours);
+
+	if (!HarvestNiagaraComponent->IsActive())
+		Async(EAsyncExecution::TaskGraphMainTick, [this]() {HarvestNiagaraComponent->Activate(); });
 
 	return location;
 }

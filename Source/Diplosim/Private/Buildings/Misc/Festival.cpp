@@ -160,11 +160,11 @@ void AFestival::StartFestival(bool bFireFestival)
 
 void AFestival::StopFestival()
 {
-	//FestivalMesh->SetStaticMesh(nullptr);
-	//FestivalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	//FestivalMesh->UpdateNavigationBounds();
+	FestivalMesh->SetStaticMesh(nullptr);
+	FestivalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FestivalMesh->UpdateNavigationBounds();
 
-	//ParticleComponent->Deactivate();
+	ParticleComponent->Deactivate();
 
 	for (ACitizen* visitor : GetVisitors(Occupied[0].Citizen)) {
 		visitor->AIController->StopMovement();

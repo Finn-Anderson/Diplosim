@@ -117,14 +117,14 @@ struct FLawStruct
 		TArray<FLeanStruct> Lean;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
-		int32 Cooldown;
+		float Cooldown;
 
 	FLawStruct()
 	{
 		BillType = "";
 		Warning = "";
 		Value = 0.0f;
-		Cooldown = 0;
+		Cooldown = 0.0f;
 	}
 
 	int32 GetLeanIndex(FString Party = "", FString Personality = "")

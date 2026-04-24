@@ -26,7 +26,7 @@ UPoliticsManager::UPoliticsManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	AIProposeTimer = 0;
+	AIProposeTimer = 0.0f;
 
 	ReadJSONFile(FPaths::ProjectDir() + "/Content/Custom/Structs/Parties.json");
 
@@ -126,7 +126,7 @@ void UPoliticsManager::ReadJSONFile(FString path)
 	}
 }
 
-void UPoliticsManager::PoliticsLoop(FFactionStruct* Faction)
+void UPoliticsManager::PoliticsLoop(FFactionStruct* Faction, float DeltaTime)
 {
 	for (FPartyStruct& party : Faction->Politics.Parties) {
 		if (party.Leader != nullptr)
@@ -136,21 +136,21 @@ void UPoliticsManager::PoliticsLoop(FFactionStruct* Faction)
 	}
 
 	for (FLawStruct& law : Faction->Politics.Laws) {
-		if (law.Cooldown == 0)
+		if (law.Cooldown == 0.0f)
 			continue;
 
-		law.Cooldown--;
+		law.Cooldown = FMath::Max(law.Cooldown - DeltaTime, 0.0f);
 	}
 
-	AIProposeBill(Faction);
+	AIProposeBill(Faction, DeltaTime);
 }
 
-void UPoliticsManager::AIProposeBill(FFactionStruct* Faction)
+void UPoliticsManager::AIProposeBill(FFactionStruct* Faction, float DeltaTime)
 {
 	if (Faction->Politics.Representatives.IsEmpty())
 		return;
 
-	AIProposeTimer++;
+	AIProposeTimer += DeltaTime;
 
 	if (AIProposeTimer < Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay())
 		return;
@@ -308,8 +308,6 @@ void UPoliticsManager::Election(FFactionStruct Faction)
 		if (number == 0 || faction->Politics.Representatives.Num() == representatives)
 			continue;
 
-		number -= 1;
-
 		FPartyStruct partyStruct;
 		partyStruct.Party = pair.Key;
 
@@ -317,9 +315,13 @@ void UPoliticsManager::Election(FFactionStruct Faction)
 
 		FPartyStruct* party = &faction->Politics.Parties[index];
 
-		faction->Politics.Representatives.Add(party->Leader);
+		if (IsValid(party->Leader)) {
+			faction->Politics.Representatives.Add(party->Leader);
 
-		pair.Value.Remove(party->Leader);
+			pair.Value.Remove(party->Leader);
+
+			number -= 1;
+		}
 
 		for (int32 i = 0; i < number; i++) {
 			if (pair.Value.IsEmpty())
@@ -385,7 +387,7 @@ void UPoliticsManager::ProposeBill(FString FactionName, FLawStruct Bill)
 	int32 index = faction->Politics.Laws.Find(Bill);
 
 	if (faction->Politics.Laws[index].Cooldown != 0) {
-		FString string = "You must wait " + faction->Politics.Laws[index].Cooldown;
+		FString string = "You must wait " + FString::FromInt(FMath::CeilToInt32(faction->Politics.Laws[index].Cooldown));
 
 		Camera->ShowWarning(string + " seconds");
 
@@ -484,7 +486,7 @@ void UPoliticsManager::MotionBill(FFactionStruct Faction, FLawStruct Bill)
 
 		FTimerHandle tallyTimer;
 		GetWorld()->GetTimerManager().SetTimer(tallyTimer, FTimerDelegate::CreateUObject(this, &UPoliticsManager::TallyVotes, faction, Bill), 0.1f * count + 0.1f, false);
-		});
+	});
 }
 
 bool UPoliticsManager::IsInRange(TArray<int32> Range, int32 Value)
@@ -500,7 +502,7 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 	TArray<FString> verdict;
 
 	FLeanStruct partyLean;
-	partyLean.Party = GetMembersParty(Representative)->Party;
+	partyLean.Party = GetCitizenParty(Representative);
 
 	int32 index = Bill.Lean.Find(partyLean);
 
@@ -668,13 +670,13 @@ FString UPoliticsManager::GetBillPassChance(FString FactionName, FLawStruct Bill
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	faction->Politics.Predictions.Clear();
-
 	TArray<int32> results = { 0, 0, 0 };
 
 	SetElectionBillLeans(faction, &Bill);
 
 	for (int32 i = 0; i < 10; i++) {
+		faction->Politics.Predictions.Clear();
+
 		for (ACitizen* citizen : faction->Politics.Representatives)
 			GetVerdict(faction, citizen, Bill, true, true);
 
@@ -686,8 +688,6 @@ FString UPoliticsManager::GetBillPassChance(FString FactionName, FLawStruct Bill
 			results[1]++;
 		else
 			results[2]++;
-
-		faction->Politics.Predictions.Clear();
 	}
 
 	if (results[0] > results[1] + results[2])
@@ -735,33 +735,34 @@ ERaidPolicy UPoliticsManager::GetRaidPolicyStatus(ACitizen* Citizen)
 //
 // Rebel
 //
-void UPoliticsManager::ChooseRebellionType(FFactionStruct* Faction)
+void UPoliticsManager::ChooseRebellionType(FFactionStruct* Faction, float DeltaTime)
 {
 	if (Faction->Citizens.IsEmpty() || IsRebellion(Faction))
 		return;
 
-	Faction->RebelCooldownTimer--;
+	Faction->RebelCooldownTimer = FMath::Max(Faction->RebelCooldownTimer - DeltaTime, 0.0f);
 
-	if (Faction->RebelCooldownTimer < 1) {
-		int32 value = Camera->Stream.RandRange(1, 3);
+	if (Faction->RebelCooldownTimer > 0.0f)
+		return;
 
-		if (value == 3 || Faction->Politics.Representatives.IsEmpty()) {
-			Overthrow(Faction);
-		}
-		else {
-			FLawStruct lawStruct;
-			lawStruct.BillType = "Abolish";
+	int32 value = Camera->Stream.RandRange(1, 3);
 
-			int32 index = Faction->Politics.Laws.Find(lawStruct);
+	if (value == 3 || Faction->Politics.Representatives.IsEmpty()) {
+		Overthrow(Faction);
+	}
+	else {
+		FLawStruct lawStruct;
+		lawStruct.BillType = "Abolish";
 
-			ProposeBill(Faction->Name, Faction->Politics.Laws[index]);
-		}
+		int32 index = Faction->Politics.Laws.Find(lawStruct);
+
+		ProposeBill(Faction->Name, Faction->Politics.Laws[index]);
 	}
 }
 
 void UPoliticsManager::Overthrow(FFactionStruct* Faction)
 {
-	Faction->RebelCooldownTimer = 1500;
+	Faction->RebelCooldownTimer = 1500.0f;
 
 	Camera->PoliceManager->CeaseAllInternalFighting(Faction);
 

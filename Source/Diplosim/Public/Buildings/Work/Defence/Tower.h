@@ -12,10 +12,11 @@ class DIPLOSIM_API ATower : public AWall
 public:
 	ATower();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		class UAttackComponent* AttackComponent;
+
+	virtual void SetRotationMesh(int32 yaw) override;
+
+protected:
+	virtual void BeginPlay() override;
 };

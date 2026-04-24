@@ -31,3 +31,8 @@ void AFort::Leave(ACitizen* Citizen)
 
 	Citizen->Range /= GetZ();
 }
+
+void AFort::SetRotationMesh(int32 yaw)
+{
+
+}

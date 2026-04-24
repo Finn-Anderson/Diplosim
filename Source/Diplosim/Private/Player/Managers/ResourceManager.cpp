@@ -259,6 +259,9 @@ int32 UResourceManager::GetResourceAmount(FString FactionName, TSubclassOf<AReso
 
 			index = building->Storage.Find(itemStruct);
 
+			if (index == INDEX_NONE)
+				continue;
+
 			amount += building->Storage[index].Amount;
 		}
 	}

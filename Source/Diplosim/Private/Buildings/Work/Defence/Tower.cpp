@@ -22,3 +22,8 @@ void ATower::BeginPlay()
 
 	AttackComponent->Camera = Camera;
 }
+
+void ATower::SetRotationMesh(int32 yaw)
+{
+
+}

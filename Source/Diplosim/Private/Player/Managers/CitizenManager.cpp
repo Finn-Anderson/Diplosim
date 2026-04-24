@@ -116,9 +116,9 @@ void UCitizenManager::ReadJSONFile(FString path)
 	}
 }
 
-void UCitizenManager::CitizenGeneralLoop()
+void UCitizenManager::CitizenGeneralLoop(float DeltaTime)
 {
-	Async(EAsyncExecution::TaskGraph, [this]() {
+	Async(EAsyncExecution::TaskGraph, [this, DeltaTime]() {
 		FScopeTryLock lock(&CitizenGeneralLoopLock);
 		if (!lock.IsLocked())
 			return;
@@ -133,7 +133,7 @@ void UCitizenManager::CitizenGeneralLoop()
 			if (faction.Citizens.IsEmpty())
 				continue;
 
-			Camera->PoliticsManager->PoliticsLoop(&faction);
+			Camera->PoliticsManager->PoliticsLoop(&faction, DeltaTime);
 			bool bIll = !Camera->DiseaseManager->GetIll(&faction, true).IsEmpty();
 
 			int32 rebelCount = 0;
@@ -203,7 +203,7 @@ void UCitizenManager::CitizenGeneralLoop()
 			Camera->PoliceManager->RespondToReports(&faction);
 
 			if (rebelsPerc > 0.33f)
-				Async(EAsyncExecution::TaskGraphMainTick, [this, &faction]() { Camera->PoliticsManager->ChooseRebellionType(&faction); });
+				Async(EAsyncExecution::TaskGraphMainTick, [this, &faction, DeltaTime]() { Camera->PoliticsManager->ChooseRebellionType(&faction, DeltaTime); });
 
 			if (faction.Name == Camera->ColonyName) {
 				float happinessPerc = happinessCount / (faction.Citizens.Num() * 100.0f);

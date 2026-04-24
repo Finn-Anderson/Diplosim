@@ -156,7 +156,7 @@ void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
 	if (GetWorld()->LineTraceSingleByChannel(hit2, Location + FVector(0.0f, 0.0f, 50.0f), FVector(Location.X, Location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
 		Location.Z = FMath::RoundHalfFromZero(hit2.Location.Z);
 
-	if (hit2.GetComponent() == Camera->Grid->HISMRiver && Building->IsA<ARoad>()) {
+	if ((hit2.GetComponent() == Camera->Grid->HISMRiver || hit2.GetComponent() == Camera->Grid->HISMSea) && Building->IsA<ARoad>()) {
 		Location.Z += 20.0f;
 	}
 	else if (IsValid(hit2.GetComponent()) && Building->IsA(FoundationClass)) {
@@ -417,7 +417,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			return false;
 
 		if (hit.GetComponent() == Camera->Grid->HISMSea) {
-			if (Building->IsA(FoundationClass))
+			if (Building->IsA(FoundationClass) || (Building->IsA<ARoad>() && Building->SeedNum > 0))
 				continue;
 
 			return false;

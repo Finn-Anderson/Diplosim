@@ -246,12 +246,12 @@ void ACamera::Tick(float DeltaTime)
 		return;
 
 	if (CustomTimeDilation <= 1.0f) {
-		Grid->AIVisualiser->MainLoop(this);
+		Grid->AIVisualiser->MainLoop(this, DeltaTime);
 
 		LoopCount += DeltaTime;
 
 		if (LoopCount > LoopInterval) {
-			CitizenManager->CitizenGeneralLoop();
+			CitizenManager->CitizenGeneralLoop(DeltaTime);
 			CitizenManager->CalculateGoalInteractions();
 			CitizenManager->CalculateConversationInteractions();
 

@@ -31,7 +31,7 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 	if (IsCapacityFull())
 		return;
 
-	for (FItemStruct item : Intake) {
+	for (const FItemStruct& item : Intake) {
 		if (item.Use > item.Stored) {
 			CheckStored(Citizen, Intake);
 
@@ -71,7 +71,7 @@ bool AInternalProduction::IsAtWork(ACitizen* Citizen)
 		AActor* goal = Citizen->AIController->MoveRequest.GetGoalActor();
 
 		if (IsValid(goal)) {
-			for (FItemStruct item : Intake) {
+			for (const FItemStruct& item : Intake) {
 				TMap<TSubclassOf<ABuilding>, int32> buildingTypes = Camera->ResourceManager->GetBuildings(item.Resource);
 
 				for (auto& element : buildingTypes) {
@@ -120,7 +120,7 @@ void AInternalProduction::Production(ACitizen* Citizen)
 
 	SetTimer();
 
-	for (const FItemStruct item : Intake)
+	for (const FItemStruct& item : Intake)
 		if (item.Use > item.Stored)
 			for (ACitizen* citizen : GetCitizensAtBuilding())
 				CheckStored(citizen, Intake);

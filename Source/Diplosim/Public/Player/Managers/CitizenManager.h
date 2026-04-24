@@ -74,7 +74,7 @@ class DIPLOSIM_API UCitizenManager : public UActorComponent
 public:	
 	UCitizenManager();
 
-	void CitizenGeneralLoop();
+	void CitizenGeneralLoop(float DeltaTime);
 
 	void CalculateGoalInteractions();
 

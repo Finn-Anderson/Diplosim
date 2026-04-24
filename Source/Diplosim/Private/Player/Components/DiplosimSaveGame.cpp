@@ -848,7 +848,7 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		actorData.Actor = actor;
 	}
 
-	Camera->Grid->AIVisualiser->MainLoop(Camera);
+	Camera->Grid->AIVisualiser->MainLoop(Camera, 0.0f);
 
 	for (FActorSaveData actorData : Saves[Index].SavedActors) {
 		LoadTimers(Camera, Index, actorData, Saves[Index].SavedActors);

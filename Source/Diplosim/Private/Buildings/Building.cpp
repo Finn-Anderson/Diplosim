@@ -140,19 +140,15 @@ void ABuilding::BeginPlay()
 	if (!Colours.IsEmpty()) {
 		int32 index = Camera->Stream.RandRange(0, Colours.Num() - 1);
 
-		ChosenColour = Colours[index];
+		SetBuildingColour(Colours[index].R, Colours[index].G, Colours[index].B);
 	}
 	else {
 		float r = Camera->Stream.FRandRange(0.0f, 1.0f);
 		float g = Camera->Stream.FRandRange(0.0f, 1.0f);
 		float b = Camera->Stream.FRandRange(0.0f, 1.0f);
 
-		ChosenColour = FLinearColor(r, g, b);
+		SetBuildingColour(r, g, b);
 	}
-
-	BuildingMesh->SetCustomPrimitiveDataFloat(1, ChosenColour.R);
-	BuildingMesh->SetCustomPrimitiveDataFloat(2, ChosenColour.G);
-	BuildingMesh->SetCustomPrimitiveDataFloat(3, ChosenColour.B);
 
 	BuildingMesh->SetCustomPrimitiveDataFloat(5, Emissiveness);
 
@@ -162,7 +158,7 @@ void ABuilding::BeginPlay()
 
 	BuildingMesh->SetCustomPrimitiveDataFloat(6, blink);
 
-	SetSeed(SeedNum);
+	SetTier(Tier);
 
 	SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
@@ -901,12 +897,10 @@ void ABuilding::StoreSocketLocations()
 	}
 }
 
-void ABuilding::SetSocketLocation(class ACitizen* Citizen)
+void ABuilding::SetSocketLocation(ACitizen* Citizen)
 {
-	if (!GetOccupied().Contains(Citizen) && (Occupied.IsEmpty() || !Occupied[0].Visitors.Contains(Citizen)))
+	if (!GetOccupied().Contains(Citizen) || SocketList.IsEmpty())
 		return;
-
-	Citizen->MovementComponent->SetPoints({});
 
 	bool bAnim = false;
 
@@ -915,49 +909,42 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 
 	int32 index = SocketList.Find(socketStruct);
 
-	if (index != INDEX_NONE) {
-		Citizen->MovementComponent->Transform.SetLocation(SocketList[index].SocketLocation);
-		Citizen->MovementComponent->Transform.SetRotation(SocketList[index].SocketRotation.Quaternion());
-	}
-	else if (!SocketList.IsEmpty()) {
+	if (index == INDEX_NONE && !SocketList.IsEmpty()) {
 		for (int32 i = 0; i < SocketList.Num(); i++) {
 			if (SocketList[i].Citizen != nullptr)
 				continue;
 
 			SocketList[i].Citizen = Citizen;
 
-			Citizen->MovementComponent->Transform.SetLocation(SocketList[i].SocketLocation);
-			Citizen->MovementComponent->Transform.SetRotation(SocketList[i].SocketRotation.Quaternion());
-
 			index = i;
 
 			break;
 		}
 	}
-	else if (bHideCitizen || Camera->ConstructionManager->IsBeingConstructed(this, nullptr)) {
-		Citizen->MovementComponent->Transform.SetLocation(GetActorLocation());
-	}
-
-	if (AnimSockets.IsEmpty())
-		return;
 
 	EAnim anim = EAnim::Still;
 	bool bRepeat = false;
 
-	TArray<FName> keys;
-	AnimSockets.GenerateKeyArray(keys);
+	if (!AnimSockets.IsEmpty()) {
+		TArray<FName> keys;
+		AnimSockets.GenerateKeyArray(keys);
 
-	if (keys[0] == FName("All"))
-		anim = *AnimSockets.Find(keys[0]);
-	else if (index != INDEX_NONE) {
-		EAnim* anm = AnimSockets.Find(SocketList[index].Name);
+		if (keys[0] == FName("All"))
+			anim = *AnimSockets.Find(keys[0]);
+		else if (index != INDEX_NONE) {
+			EAnim* anm = AnimSockets.Find(SocketList[index].Name);
 
-		if (anm != nullptr)
-			anim = *anm;
+			if (anm != nullptr)
+				anim = *anm;
+		}
 	}
 
-	if (anim != EAnim::Still)
+	if (anim != EAnim::Still) {
 		bRepeat = true;
+
+		if (IsA<AInternalProduction>())
+			Citizen->AIController->MoveRequest.SetGoalActor(Cast<AInternalProduction>(this)->ResourceToOverlap->GetDefaultObject<AResource>());
+	}
 
 	float speed = 2.0f;
 
@@ -965,6 +952,14 @@ void ABuilding::SetSocketLocation(class ACitizen* Citizen)
 		speed = Citizen->GetProductivity();
 
 	Citizen->MovementComponent->SetAnimation(anim, bRepeat, speed);
+
+	if (index == INDEX_NONE)
+		Citizen->AIController->StopMovement();
+	else {
+		Citizen->MovementComponent->Transform.SetRotation(SocketList[index].SocketRotation.Quaternion());
+		Citizen->MovementComponent->Transform.SetLocation(SocketList[index].SocketLocation);
+	}
+
 }
 
 void ABuilding::Enter(ACitizen* Citizen)
@@ -974,11 +969,6 @@ void ABuilding::Enter(ACitizen* Citizen)
 	
 	Citizen->BuildingComponent->BuildingAt = this;
 	Citizen->BuildingComponent->EnterLocation = Citizen->MovementComponent->Transform.GetLocation();
-
-	if (!IsA<AFarm>())
-		Citizen->AIController->StopMovement();
-
-	SetSocketLocation(Citizen);
 
 	if (!Inside.Contains(Citizen)) {
 		Inside.Add(Citizen);
@@ -990,12 +980,16 @@ void ABuilding::Enter(ACitizen* Citizen)
 	
 	UConstructionManager* cm = Camera->ConstructionManager;
 
-	if (bHideCitizen || cm->IsBeingConstructed(this, nullptr)) {
+	if (bHideCitizen || (cm->IsBeingConstructed(this, nullptr) && cm->IsConstructionJob(this, nullptr))) {
 		Citizen->MovementComponent->Transform.SetLocation(GetActorLocation());
 
 		if (Camera->FocusedCitizen == Citizen)
 			Camera->Attach(this);
+
+		Citizen->AIController->StopMovement();
 	}
+	else
+		SetSocketLocation(Citizen);
 
 	if (Citizen->Carrying.Amount > 0)
 		StoreResource(Citizen);
@@ -1176,7 +1170,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 		if (extra > 0)
 			AddToBasket(resource, extra);
 
-		Citizen->Carry(nullptr, 0, nullptr);
+		Citizen->Carry(nullptr, 0, this);
 	}
 	else {
 		TArray<FItemStruct> items;
@@ -1202,7 +1196,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 			else
 				Cast<AInternalProduction>(this)->Intake[i].Stored += Citizen->Carrying.Amount;
 
-			Citizen->Carry(nullptr, 0, nullptr);
+			Citizen->Carry(nullptr, 0, this);
 
 			break;
 		}

@@ -186,7 +186,7 @@ public:
 
 	void ResetToDefaultValues();
 
-	void MainLoop(class ACamera* Camera);
+	void MainLoop(class ACamera* Camera, float DeltaTime);
 
 	void AddInstance(class AAI* AI, class UInstancedStaticMeshComponent* ISM, FTransform Transform);
 
@@ -269,4 +269,6 @@ private:
 	FCriticalSection BuildingDeathLock;
 
 	FCriticalSection BuildingRotationLock;
+
+	float HarvestVisualCooldownTimer;
 };

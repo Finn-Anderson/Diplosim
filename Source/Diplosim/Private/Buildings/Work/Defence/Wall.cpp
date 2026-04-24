@@ -62,12 +62,9 @@ void AWall::Leave(ACitizen* Citizen)
 
 void AWall::SetRotationMesh(int32 yaw)
 {
-	if (SeedNum != 0)
-		return;
-
 	FVector scale = FVector(1.0f);
 
-	if (yaw % 90 != 0)
+	if (yaw % 90 != 0 && !BuildingName.Contains("Corner"))
 		scale = FVector(1.415f, 1.0f, 1.0f);
 		
 	BuildingMesh->SetRelativeScale3D(scale);

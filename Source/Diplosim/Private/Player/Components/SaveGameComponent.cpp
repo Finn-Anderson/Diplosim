@@ -125,7 +125,7 @@ void USaveGameComponent::OnNavMeshGenerated()
 	StartAutosaveTimer();
 
 	Checklist.bLoad = false;
-	Camera->Grid->AIVisualiser->MainLoop(Camera);
+	Camera->Grid->AIVisualiser->MainLoop(Camera, 0.0f);
 
 	Camera->Grid->HISMGround->BuildTreeIfOutdated(false, true); // Fixes Distance Field not updating
 

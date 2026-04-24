@@ -158,7 +158,10 @@ int32 AWork::GetHoursInADay(ACitizen* Citizen, FCapacityStruct* CapacityStruct)
 
 		int32 index = Occupied.Find(capStruct);
 
-		CapacityStruct = &Occupied[index];
+		if (index == INDEX_NONE)
+			CapacityStruct = GetBestWorkHours(Citizen);
+		else
+			CapacityStruct = &Occupied[index];
 	}
 
 	for (auto& element : CapacityStruct->WorkHours)

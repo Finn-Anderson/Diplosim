@@ -21,9 +21,9 @@ class DIPLOSIM_API UPoliticsManager : public UActorComponent
 public:	
 	UPoliticsManager();
 
-	void PoliticsLoop(FFactionStruct* Faction);
+	void PoliticsLoop(FFactionStruct* Faction, float DeltaTime);
 
-	void AIProposeBill(FFactionStruct* Faction);
+	void AIProposeBill(FFactionStruct* Faction, float DeltaTime);
 
 	FPartyStruct* GetMembersParty(ACitizen* Citizen);
 
@@ -72,10 +72,10 @@ public:
 		class ACamera* Camera;
 
 	UPROPERTY()
-		int32 AIProposeTimer;
+		float AIProposeTimer;
 
 	// Rebel
-	void ChooseRebellionType(FFactionStruct* Faction);
+	void ChooseRebellionType(FFactionStruct* Faction, float DeltaTime);
 
 	void Overthrow(FFactionStruct* Faction);
 

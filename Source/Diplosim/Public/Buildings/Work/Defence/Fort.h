@@ -17,4 +17,6 @@ public:
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	virtual void Leave(class ACitizen* Citizen) override;
+
+	virtual void SetRotationMesh(int32 yaw) override;
 };

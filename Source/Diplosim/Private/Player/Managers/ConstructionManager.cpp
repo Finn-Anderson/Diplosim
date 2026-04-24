@@ -15,7 +15,7 @@ UConstructionManager::UConstructionManager()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UConstructionManager::AddBuilding(class ABuilding* Building, EBuildStatus Status)
+void UConstructionManager::AddBuilding(ABuilding* Building, EBuildStatus Status)
 {
 	FConstructionStruct constructionStruct;
 	constructionStruct.Building = Building;
@@ -29,7 +29,7 @@ void UConstructionManager::AddBuilding(class ABuilding* Building, EBuildStatus S
 	FindBuilder(Building);
 }
 
-void UConstructionManager::RemoveBuilding(class ABuilding* Building)
+void UConstructionManager::RemoveBuilding(ABuilding* Building)
 {
 	if (!IsBeingConstructed(Building, nullptr))
 		return;
@@ -67,7 +67,7 @@ void UConstructionManager::RemoveBuilder(ABuilder* Builder)
 	Construction[index].Builder = nullptr;
 }
 
-void UConstructionManager::FindBuilder(class ABuilding* Building)
+void UConstructionManager::FindBuilder(ABuilding* Building)
 {
 	FFactionStruct* faction = Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName);
 
@@ -117,7 +117,7 @@ void UConstructionManager::FindBuilder(class ABuilding* Building)
 	target->GetOccupied()[0]->AIController->AIMoveTo(Building);
 }
 
-void UConstructionManager::FindConstruction(class ABuilder* Builder)
+void UConstructionManager::FindConstruction(ABuilder* Builder)
 {
 	int32 constructionIndex = -1;
 	int32 repairIndex = -1;
@@ -154,7 +154,7 @@ void UConstructionManager::FindConstruction(class ABuilder* Builder)
 	}
 }
 
-bool UConstructionManager::IsBeingConstructed(class ABuilding* Building, class ABuilder* Builder)
+bool UConstructionManager::IsBeingConstructed(ABuilding* Building, ABuilder* Builder)
 {
 	FConstructionStruct constructionStruct;
 	constructionStruct.Building = Building;
@@ -166,7 +166,21 @@ bool UConstructionManager::IsBeingConstructed(class ABuilding* Building, class A
 	return true;
 }
 
-bool UConstructionManager::IsRepairJob(class ABuilding* Building, class ABuilder* Builder)
+bool UConstructionManager::IsConstructionJob(ABuilding* Building, ABuilder* Builder)
+{
+	FConstructionStruct constructionStruct;
+	constructionStruct.Building = Building;
+	constructionStruct.Builder = Builder;
+
+	int32 index = Construction.Find(constructionStruct);
+
+	if (Construction[index].Status == EBuildStatus::Damaged)
+		return false;
+
+	return true;
+}
+
+bool UConstructionManager::IsRepairJob(ABuilding* Building, ABuilder* Builder)
 {
 	FConstructionStruct constructionStruct;
 	constructionStruct.Building = Building;
@@ -180,7 +194,7 @@ bool UConstructionManager::IsRepairJob(class ABuilding* Building, class ABuilder
 	return true;
 }
 
-ABuilder* UConstructionManager::GetBuilder(class ABuilding* Building)
+ABuilder* UConstructionManager::GetBuilder(ABuilding* Building)
 {
 	FConstructionStruct constructionStruct;
 	constructionStruct.Building = Building;
@@ -193,7 +207,7 @@ ABuilder* UConstructionManager::GetBuilder(class ABuilding* Building)
 	return Construction[index].Builder;
 }
 
-ABuilding* UConstructionManager::GetBuilding(class ABuilder* Builder)
+ABuilding* UConstructionManager::GetBuilding(ABuilder* Builder)
 {
 	FConstructionStruct constructionStruct;
 	constructionStruct.Builder = Builder;
