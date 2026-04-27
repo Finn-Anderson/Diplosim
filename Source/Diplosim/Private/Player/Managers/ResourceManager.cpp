@@ -140,6 +140,9 @@ bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf
 
 		index = element.Key->Storage.Find(itemStruct);
 
+		if (index == INDEX_NONE)
+			continue;
+
 		AmountLeft -= (element.Value - element.Key->Storage[index].Amount);
 
 		int32 currentAmount = 0;

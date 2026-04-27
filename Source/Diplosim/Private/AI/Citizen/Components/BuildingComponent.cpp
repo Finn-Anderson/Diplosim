@@ -215,7 +215,7 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 		return;
 
 	AHouse* chosenHouse = nullptr;
-	if (AllocatedBuildings[2]->IsA<AHouse>())
+	if (IsValid(AllocatedBuildings[2]) && AllocatedBuildings[2]->IsA<AHouse>())
 		chosenHouse = Cast<AHouse>(AllocatedBuildings[2]);
 
 	if (!IsValid(chosenHouse) || (IsValid(FoundHouseOccupant) && !IsValid(occupant))) {

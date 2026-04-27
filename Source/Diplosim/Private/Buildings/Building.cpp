@@ -185,7 +185,7 @@ void ABuilding::ToggleDecalComponentVisibility(bool bVisible)
 	if (!DecalComponent)
 		return;
 
-	if (!IsValid(DecalComponent->GetDecalMaterial()) || Camera->ConstructionManager->IsBeingConstructed(this, nullptr))
+	if (!IsValid(DecalComponent->GetDecalMaterial()) || Camera->ConstructionManager->IsBeingConstructed(this, nullptr) || BuildingMesh->GetOverlayMaterial() == Camera->BuildComponent->BlockedMaterial)
 		bVisible = false;
 
 	if (DecalComponent->GetVisibleFlag() == bVisible)
@@ -517,7 +517,7 @@ void ABuilding::SetConstructionMesh()
 
 void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 {
-	if (bMove) {
+	if (bMove || IsHidden()) {
 		Destroy();
 
 		return;
@@ -540,7 +540,7 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 
 		cm->RemoveBuilding(this);
 	}
-	else
+	else if (HealthComponent->GetHealth() > 0)
 		for (FItemStruct items : CostList)
 			rm->AddUniversalResource(faction, items.Resource, items.Stored / 2.0f);
 

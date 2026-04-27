@@ -635,6 +635,12 @@ void ACamera::SetTimeDilation(float Dilation)
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), Dilation);
 
 	CustomTimeDilation = 1.0f / Dilation;
+
+	bool bEnabled = BuildComponent->IsComponentTickEnabled();
+
+	BuildComponent->SetComponentTickEnabled(false);
+	BuildComponent->SetComponentTickInterval(1.0f / 60.0f * Dilation);
+	BuildComponent->SetComponentTickEnabled(bEnabled);
 }
 
 void ACamera::DisplayInteractOnAI(AAI* AI)

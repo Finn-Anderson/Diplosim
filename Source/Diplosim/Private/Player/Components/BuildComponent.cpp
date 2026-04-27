@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Misc/ScopeTryLock.h"
 
 #include "AI/DiplosimAIController.h"
@@ -30,6 +31,7 @@ UBuildComponent::UBuildComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+	SetComponentTickInterval(1.0f / 60.0f);
 
 	bCanRotate = true;
 
@@ -38,8 +40,6 @@ UBuildComponent::UBuildComponent()
 	StartLocation = FVector::Zero();
 
 	BuildingToMove = nullptr;
-
-	lastUpdatedTime = 0.0f;
 }
 
 void UBuildComponent::BeginPlay()
@@ -55,14 +55,9 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		return;
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction); 
-
-	lastUpdatedTime += DeltaTime;
-
-	if (lastUpdatedTime < 1 / 60.0f)
-		return;
 	
 	FScopeTryLock lock(&BuildLock);
-	if (!lock.IsLocked() || DeltaTime > 1.0f || Buildings.IsEmpty() || Camera->IsUIHoveredOver() || Camera->bMouseCapture)
+	if (!lock.IsLocked() || DeltaTime > 1.0f || Buildings.IsEmpty() || Camera->bMouseCapture)
 		return;
 
 	FVector mouseLoc, mouseDirection;
@@ -107,6 +102,9 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			SetBuildingsOnPath();
 
 		SetTreeStatus(Buildings[0], false, false, prevLocation);
+
+		if (Camera->WidgetComponent->bHiddenInGame)
+			Camera->WidgetComponent->SetHiddenInGame(false);
 	}
 
 	for (ABuilding* building : Buildings) {
@@ -124,9 +122,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			}
 
 			DisplayInfluencedBuildings(building, false);
-
-			if (building->DecalComponent && building->DecalComponent->GetDecalMaterial() != nullptr)
-				building->DecalComponent->SetVisibility(false);
+			building->ToggleDecalComponentVisibility(false);
 		}
 		else {
 			building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
@@ -139,9 +135,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			}
 
 			DisplayInfluencedBuildings(building, true);
-
-			if (building->DecalComponent && building->DecalComponent->GetDecalMaterial() != nullptr)
-				building->DecalComponent->SetVisibility(true);
+			building->ToggleDecalComponentVisibility(true);
 		}
 	}
 }
@@ -516,6 +510,7 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 	if (StartLocation == FVector::Zero()) {
 		Camera->Detach();
 		Camera->DisplayInteract(Buildings[0]);
+		Camera->WidgetComponent->SetHiddenInGame(true);
 	}
 
 	if (!building->Seeds.IsEmpty())

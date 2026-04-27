@@ -22,9 +22,6 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY()
-		double lastUpdatedTime;
-
-	UPROPERTY()
 		bool bCanRotate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")

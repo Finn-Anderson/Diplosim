@@ -57,7 +57,7 @@ void AFarm::Production(ACitizen* Citizen)
 
 void AFarm::ProductionDone(ACitizen* Citizen)
 {
-	Citizen->Carry(Crop->GetDefaultObject<AResource>(), GetYield() * FMath::Max(Boosters * 2, 1), this);
+	Citizen->Carry(Crop->GetDefaultObject<AResource>(), GetYield(), this);
 
 	StoreResource(Citizen);
 
@@ -101,7 +101,7 @@ int32 AFarm::GetFertility()
 
 int32 AFarm::GetYield()
 {
-	return Yield * GetFertility();
+	return Yield * GetFertility() * FMath::Max(Boosters * 2, 1);
 }
 
 int32 AFarm::GetTimeLength(ACitizen* Citizen)

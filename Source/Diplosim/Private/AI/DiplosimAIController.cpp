@@ -296,7 +296,7 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 	else {
 		TArray<FTimerParameterStruct> params;
 		Camera->TimerManager->SetParameter(Resource, params);
-		Camera->TimerManager->CreateTimer("FindGatherSite", AI, 30.0f, "GetGatherSite", params, false);
+		Camera->TimerManager->CreateTimer("FindGatherSite", AI, 10.0f, "GetGatherSite", params, false);
 	}
 }
 

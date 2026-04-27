@@ -1,5 +1,7 @@
 #include "Buildings/Work/Production/InternalProduction.h"
 
+#include "NiagaraComponent.h"
+
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
 #include "Player/Camera.h"
@@ -28,12 +30,17 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen) || bNoTimer)
 		return;
 
-	if (IsCapacityFull())
+	if (IsCapacityFull()) {
+		ParticleComponent->Deactivate();
+
 		return;
+	}
 
 	for (const FItemStruct& item : Intake) {
 		if (item.Use > item.Stored) {
 			CheckStored(Citizen, Intake);
+
+			ParticleComponent->Deactivate();
 
 			return;
 		}
