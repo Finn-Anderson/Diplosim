@@ -396,13 +396,23 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void UpdateAmount(int32 Index, float NewAmount);
 
-	float GetAmount(class ACitizen* Citizen);
+	UFUNCTION(BlueprintCallable)
+		float GetAmount(class ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
+		float GetIndexAmount(int32 Index);
 
 	UFUNCTION(BlueprintCallable)
 		void GetMinMaxAmount(float& Min, float& Max);
 
 	UFUNCTION(BlueprintCallable)
 		void UpdateBlocked(int32 Index, bool bNewBlocked);
+
+	UFUNCTION(BlueprintCallable)
+		bool GetBlocked(int32 Index);
+
+	UFUNCTION(BlueprintCallable)
+		bool IsOccupied(int32 Index);
 
 	int32 GetCapacity();
 

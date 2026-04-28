@@ -814,7 +814,12 @@ float ABuilding::GetAmount(ACitizen* Citizen)
 	if (index == INDEX_NONE)
 		return 0;
 
-	return Occupied[index].Amount;
+	return GetIndexAmount(index);
+}
+
+float ABuilding::GetIndexAmount(int32 Index)
+{
+	return Occupied[Index].Amount;
 }
 
 void ABuilding::GetMinMaxAmount(float& Min, float& Max)
@@ -840,6 +845,16 @@ void ABuilding::UpdateBlocked(int32 Index, bool bNewBlocked)
 
 	if (Occupied[Index].bBlocked && IsValid(Occupied[Index].Citizen))
 		RemoveCitizen(Occupied[Index].Citizen);
+}
+
+bool ABuilding::GetBlocked(int32 Index)
+{
+	return Occupied[Index].bBlocked;
+}
+
+bool ABuilding::IsOccupied(int32 Index)
+{
+	return IsValid(Occupied[Index].Citizen);
 }
 
 int32 ABuilding::GetCapacity()
@@ -1051,6 +1066,9 @@ void ABuilding::Leave(ACitizen* Citizen)
 {
 	Citizen->BuildingComponent->BuildingAt = nullptr;
 
+	FVector location = Citizen->BuildingComponent->EnterLocation;
+	Citizen->BuildingComponent->EnterLocation = FVector::Zero();
+
 	Inside.Remove(Citizen);
 	Camera->UpdateVisitors(this, Citizen, false);
 
@@ -1076,9 +1094,6 @@ void ABuilding::Leave(ACitizen* Citizen)
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
 
-	FVector location = Citizen->BuildingComponent->EnterLocation;
-	Citizen->BuildingComponent->EnterLocation = FVector::Zero();
-
 	if (BuildingMesh->DoesSocketExist("Entrance")) {
 		FVector pos = BuildingMesh->GetSocketLocation("Entrance");
 
@@ -1086,6 +1101,9 @@ void ABuilding::Leave(ACitizen* Citizen)
 			if (hit.GetActor()->IsA<AGrid>() && hit.GetComponent() == Cast<AGrid>(hit.GetActor())->HISMGround)
 				location = pos;
 	}
+
+	if (location == FVector::Zero())
+		return;
 
 	Citizen->MovementComponent->Transform.SetLocation(location);
 }

@@ -129,7 +129,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 bool AWork::IsAtWork(ACitizen* Citizen)
 {
-	if (Citizen->BuildingComponent->BuildingAt == this)
+	if (Citizen->BuildingComponent->BuildingAt == this || Citizen->AIController->MoveRequest.GetGoalActor() == this)
 		return true;
 
 	return false;
@@ -221,11 +221,17 @@ FCapacityStruct* AWork::GetBestWorkHours(ACitizen* Citizen)
 	return bestCapacityStruct;
 }
 
-void AWork::SetNewWorkHours(int32 Index, TMap<int32, EWorkType> NewWorkHours)
+void AWork::UpdateWorkHours(int32 Index, int32 Hour, EWorkType WorkType)
 {
-	Occupied[Index].WorkHours = NewWorkHours;
+	Occupied[Index].WorkHours.Add(Hour, WorkType);
 
-	CheckWorkStatus(Camera->Grid->AtmosphereComponent->Calendar.Hour);
+	if (Hour == Camera->Grid->AtmosphereComponent->Calendar.Hour)
+		CheckWorkStatus(Hour);
+}
+
+TMap<int32, EWorkType> AWork::GetWorkHours(int32 Index)
+{
+	return Occupied[Index].WorkHours;
 }
 
 void AWork::ResetWorkHours()

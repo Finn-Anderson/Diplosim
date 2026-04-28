@@ -49,7 +49,10 @@ public:
 	FCapacityStruct* GetBestWorkHours(class ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
-		void SetNewWorkHours(int32 Index, TMap<int32, EWorkType> NewWorkHours);
+		void UpdateWorkHours(int32 Index, int32 Hour, EWorkType WorkType);
+
+	UFUNCTION(BlueprintCallable)
+		TMap<int32, EWorkType> GetWorkHours(int32 Index);
 
 	UFUNCTION(BlueprintCallable)
 		void ResetWorkHours();
