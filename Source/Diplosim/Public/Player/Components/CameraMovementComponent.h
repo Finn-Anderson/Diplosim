@@ -29,6 +29,8 @@ public:
 	// Map Bounds
 	void SetBounds(FVector start, FVector end);
 
+	void SetCameraBounds();
+
 	// Movement Functions
 	void Look(const struct FInputActionInstance& Instance);
 

@@ -1523,6 +1523,8 @@ void UDiplosimSaveGame::InitialiseCitizen(ACamera* Camera, FActorSaveData& Actor
 
 	if (citizenData.bHat && citizen->BuildingComponent->Employment == SavedData.Actor)
 		Camera->Grid->AIVisualiser->AddCitizenToHISMHat(citizen, citizen->BuildingComponent->Employment->WorkHat);
+
+	citizen->MovementComponent->SetMaxSpeed(citizen->Energy);
 }
 
 void UDiplosimSaveGame::InitialiseConstructionManager(ACamera* Camera, FActorSaveData& ActorData, FActorSaveData SavedData, int32 Index)

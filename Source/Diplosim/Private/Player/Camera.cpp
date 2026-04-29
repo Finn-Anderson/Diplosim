@@ -58,7 +58,7 @@ ACamera::ACamera()
 	SpringArmComponent->TargetArmLength = MovementComponent->TargetLength;
 	SpringArmComponent->bUsePawnControlRotation = true;
 	SpringArmComponent->bEnableCameraLag = false;
-	SpringArmComponent->bDoCollisionTest = true;
+	SpringArmComponent->bDoCollisionTest = false;
 
 	RootComponent = SpringArmComponent;
 
@@ -707,15 +707,12 @@ void ACamera::Attach(AActor* Actor, USceneComponent* Component, int32 Instance, 
 		return;
 
 	AttachedTo.bAttachCamera = true;
-	SpringArmComponent->ProbeSize = 6.0f;
 }
 
 void ACamera::Detach()
 {
 	if (!AttachedTo.bAttachCamera)
 		return;
-	
-	SpringArmComponent->ProbeSize = 12.0f;
 
 	AttachedTo.bAttachCamera = false;
 

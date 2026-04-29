@@ -425,12 +425,15 @@ void UCitizenManager::CheckWorkStatus(int32 Hour)
 {
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 		for (ACitizen* citizen : faction.Citizens) {
-			for (auto element : citizen->BuildingComponent->HoursWorked) {
-				if (!IsValid(citizen->BuildingComponent->Employment) || (citizen->BuildingComponent->HoursWorked.Contains(Hour) && !citizen->BuildingComponent->Employment->IsWorking(citizen, Hour)))
-					citizen->BuildingComponent->HoursWorked.Remove(Hour);
-				else if (!citizen->BuildingComponent->HoursWorked.Contains(Hour))
-					citizen->BuildingComponent->HoursWorked.Add(Hour, citizen->BuildingComponent->Employment->GetAmount(citizen));
-			}
+			int32 h = Hour - 1;
+			if (h < 0)
+				h += 24;
+
+			if (citizen->BuildingComponent->HoursWorked.Contains(h))
+				citizen->BuildingComponent->HoursWorked.Remove(h);
+
+			if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsWorking(citizen, h))
+				citizen->BuildingComponent->HoursWorked.Add(h, citizen->BuildingComponent->Employment->GetAmount(citizen));
 		}
 
 		for (ABuilding* building : faction.Buildings) {
