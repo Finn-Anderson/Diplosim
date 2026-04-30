@@ -20,6 +20,8 @@
 
 AWork::AWork()
 {
+	WorkHat = nullptr;
+
 	bCanAttendEvents = true;
 	bEmergency = false;
 
@@ -98,14 +100,16 @@ void AWork::AddToWorkHours(ACitizen* Citizen, bool bAdd)
 
 void AWork::CheckWorkStatus(int32 Hour)
 {
-	if (IsA<ASchool>() && !GetCitizensAtBuilding().IsEmpty())
-		Cast<ASchool>(this)->AddProgress();
-
 	for (ACitizen* citizen : GetOccupied()) {
 		bool isWorkingNow = IsWorking(citizen, Hour);
+		bool isAtWork = IsAtWork(citizen);
 
-		if ((isWorkingNow && !IsAtWork(citizen)) || (!isWorkingNow && IsAtWork(citizen)))
+		if ((isWorkingNow && !isAtWork) || (!isWorkingNow && isAtWork)) {
 			citizen->AIController->DefaultAction();
+
+			if (!isWorkingNow && isAtWork && IsA<AExternalProduction>())
+				Cast<AExternalProduction>(this)->RemoveWorkerFromResource(citizen);
+		}
 	}
 }
 

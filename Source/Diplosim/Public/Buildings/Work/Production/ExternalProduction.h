@@ -20,6 +20,8 @@ public:
 
 	virtual void Production(class ACitizen* Citizen) override;
 
+	void RemoveWorkerFromResource(class ACitizen* Citizen);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boost")
 		int32 Range;
 

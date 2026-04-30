@@ -38,12 +38,7 @@ bool AExternalProduction::RemoveCitizen(ACitizen* Citizen)
 	if (!bCheck)
 		return false;
 
-	for (auto& element : GetValidResources()) {
-		TArray<ACitizen*> workers = element.Key->RemoveWorker(Citizen, INDEX_NONE);
-
-		if (!workers.IsEmpty())
-			Camera->TimerManager->RemoveTimer("Harvest", Citizen);
-	}
+	RemoveWorkerFromResource(Citizen);
 
 	return true;
 }
@@ -119,6 +114,20 @@ void AExternalProduction::Production(ACitizen* Citizen)
 		TArray<FTimerParameterStruct> params;
 		Camera->TimerManager->SetParameter(Citizen, params);
 		Camera->TimerManager->CreateTimer("Production", this, 30, "Production", params, false);
+	}
+}
+
+void AExternalProduction::RemoveWorkerFromResource(ACitizen* Citizen)
+{
+	for (auto& element : GetValidResources()) {
+		TArray<ACitizen*> workers = element.Key->RemoveWorker(Citizen, INDEX_NONE);
+
+		if (workers.IsEmpty())
+			continue;
+
+		Camera->TimerManager->RemoveTimer("Harvest", Citizen);
+
+		break;
 	}
 }
 

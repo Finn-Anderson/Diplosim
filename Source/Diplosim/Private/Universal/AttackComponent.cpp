@@ -344,7 +344,7 @@ void UAttackComponent::Melee()
 	int32 dmg = Damage;
 	
 	if (GetOwner()->IsA<ACitizen>())
-		dmg *= 1 / (18 / FMath::Clamp(Cast<ACitizen>(GetOwner())->BioComponent->Age, 0, 18));
+		dmg *= 1 / (18 / FMath::Clamp(Cast<ACitizen>(GetOwner())->BioComponent->Age, 1, 18));
 
 	healthComp->TakeHealth(dmg * DamageMultiplier, GetOwner(), sound);
 }

@@ -16,6 +16,8 @@ public:
 
 	virtual void RemoveVisitor(class ACitizen* Occupant, class ACitizen* Visitor) override;
 
+	virtual void CheckWorkStatus(int32 Hour) override;
+
 	TArray<class ACitizen*> GetStudentsAtSchool(class ACitizen* Occupant);
 
 	void AddProgress();

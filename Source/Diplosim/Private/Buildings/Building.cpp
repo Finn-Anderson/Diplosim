@@ -160,8 +160,6 @@ void ABuilding::BeginPlay()
 
 	SetTier(Tier);
 
-	SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
-
 	InitialiseCapacityStruct();
 }
 
@@ -172,8 +170,7 @@ void ABuilding::SetLights(int32 Hour)
 		oldLights = BuildingMesh->GetCustomPrimitiveData().Data[7];
 
 	float newLights = 0.0f;
-
-	if (Hour >= 18 || Hour < 6)
+	if (!Inside.IsEmpty() && (Hour >= 18 || Hour < 6))
 		newLights = 1.0f;
 
 	if (oldLights != newLights)
@@ -513,6 +510,16 @@ void ABuilding::SetConstructionMesh()
 
 	BuildingMesh->SetRelativeScale3D(size);
 	BuildingMesh->SetStaticMesh(ConstructionMesh);
+
+	TArray<USceneComponent*> components;
+	BuildingMesh->GetChildrenComponents(false , components);
+
+	for (USceneComponent* component : components) {
+		if (!component->IsA<UStaticMeshComponent>())
+			continue;
+
+		component->SetHiddenInGame(true);
+	}
 }
 
 void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
@@ -626,6 +633,16 @@ void ABuilding::OnBuilt()
 	if (ActualMesh != nullptr) {
 		BuildingMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 		BuildingMesh->SetStaticMesh(ActualMesh);
+
+		TArray<USceneComponent*> components;
+		BuildingMesh->GetChildrenComponents(false, components);
+
+		for (USceneComponent* component : components) {
+			if (!component->IsA<UStaticMeshComponent>())
+				continue;
+
+			component->SetHiddenInGame(false);
+		}
 	}
 
 	if (IsA(Camera->BuildComponent->FoundationClass))
@@ -988,6 +1005,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 	if (!Inside.Contains(Citizen)) {
 		Inside.Add(Citizen);
 		Camera->UpdateVisitors(this, Citizen, true);
+
+		SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 	}
 
 	if (GetCitizensAtBuilding().Num() == 1 && !bConstant && ParticleComponent->GetAsset() != nullptr)
@@ -1071,6 +1090,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 
 	Inside.Remove(Citizen);
 	Camera->UpdateVisitors(this, Citizen, false);
+	SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
 	if (GetCitizensAtBuilding().IsEmpty() && !bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Deactivate();

@@ -64,6 +64,8 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		movementSpeed *= 10.0f;
 	}
 
+	ToggleArmCollision();
+
 	FVector movementLoc = SetAttachedMovementLocation(Camera->AttachedTo.Actor, Camera->AttachedTo.Component, Camera->AttachedTo.Instance);
 
 	if (movementLoc != FVector::Zero())
@@ -74,8 +76,6 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	if (Camera->GetActorLocation() != MovementLocation)
 		Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(), MovementLocation, DeltaTime, movementSpeed));
-
-	SetCameraBounds();
 
 	if (!bShake)
 		return;
@@ -142,26 +142,12 @@ void UCameraMovementComponent::SetBounds(FVector start, FVector end) {
 	MaxYBounds = start.Y;
 }
 
-void UCameraMovementComponent::SetCameraBounds()
+void UCameraMovementComponent::ToggleArmCollision()
 {
-	FVector cameraLocation = MovementLocation + (-1.0f * PController->GetControlRotation().Vector()) * TargetLength;
-	FHitResult hit;
-
-	if (GetWorld()->SweepSingleByChannel(hit, cameraLocation, cameraLocation, FQuat::Identity, ECC_Camera, FCollisionShape::MakeSphere(12.0f))) {
-		TArray<FHitResult> hits;
-
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, TEXT("Some debug message!"));
-
-		// This is fucked right now
-		if (GetWorld()->LineTraceMultiByChannel(hits, MovementLocation, hit.Location, ECC_Camera)) {
-			FHitResult lastHit = hits[hits.Num() - 1];
-			float distance = FVector::Dist(MovementLocation, lastHit.Location);
-
-			Camera->SpringArmComponent->TargetArmLength = distance;
-
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Some debug message!"));
-		}
-	}
+	if (Camera->CameraComponent->GetComponentLocation().Z < 800.0f)
+		Camera->SpringArmComponent->bDoCollisionTest = true;
+	else
+		Camera->SpringArmComponent->bDoCollisionTest = false;
 }
 
 void UCameraMovementComponent::Look(const struct FInputActionInstance& Instance)

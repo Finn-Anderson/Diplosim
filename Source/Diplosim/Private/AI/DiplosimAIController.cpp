@@ -4,6 +4,7 @@
 #include "NavigationPath.h"
 #include "NavFilters/NavigationQueryFilter.h"
 #include "Components/BoxComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 #include "AI/AI.h"
 #include "AI/Enemy.h"
@@ -402,6 +403,12 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 		if (comp && comp->DoesSocketExist("Entrance"))
 			MoveRequest.SetLocation(comp->GetSocketLocation("Entrance"));
 	}
+	else if (Actor->IsA<AResource>()) {
+		FTransform transform;
+		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(MoveRequest.GetGoalInstance(), transform);
+
+		MoveRequest.SetLocation(transform.GetLocation());
+	}
 	
 	int32 reach = AI->Range / 15.0f;
 	
@@ -489,7 +496,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 {
-	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AResource>() || Actor->IsA<AGrid>())
+	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AGrid>())
 		return;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
@@ -505,6 +512,12 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 
 		if (comp && comp->DoesSocketExist("Entrance"))
 			targetLoc = comp->GetSocketLocation("Entrance");
+	}
+	else if (Actor->IsA<AResource>()) {
+		FTransform transform;
+		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(MoveRequest.GetGoalInstance(), transform);
+
+		targetLoc = transform.GetLocation();
 	}
 
 	FNavLocation navLoc;

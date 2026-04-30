@@ -29,7 +29,7 @@ public:
 	// Map Bounds
 	void SetBounds(FVector start, FVector end);
 
-	void SetCameraBounds();
+	void ToggleArmCollision();
 
 	// Movement Functions
 	void Look(const struct FInputActionInstance& Instance);

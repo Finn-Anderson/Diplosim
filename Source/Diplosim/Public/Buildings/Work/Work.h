@@ -31,11 +31,12 @@ public:
 	UFUNCTION()
 		virtual void Production(class ACitizen* Citizen);
 
-	void CheckWorkStatus(int32 Hour);
+	virtual void CheckWorkStatus(int32 Hour);
 
 	bool IsWorking(class ACitizen* Citizen, int32 Hour = -1);
 
-	virtual bool IsAtWork(class ACitizen* Citizen);
+	UFUNCTION(BlueprintCallable)
+		virtual bool IsAtWork(class ACitizen* Citizen);
 
 	// Wage + Hours
 	virtual void InitialiseCapacityStruct() override;

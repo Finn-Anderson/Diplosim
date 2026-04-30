@@ -49,14 +49,12 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 	ComputeCurrentAnimation(goal, DeltaTime);
 
-	if (Points.IsEmpty() || AI->HealthComponent->GetHealth() == 0 || CurrentAnim.Type != EAnim::Move)
-		return;
-
-	float range = FMath::Min(150.0f * DeltaTime, AI->Range / 15.0f);
-	
 	AI->AIController->RecalculateMovement(goal);
 
-	if (!Points.IsEmpty() && FVector::DistXY(Transform.GetLocation(), Points[0]) < range)
+	if (AI->HealthComponent->GetHealth() == 0 || CurrentAnim.Type != EAnim::Move)
+		return;
+
+	if (!Points.IsEmpty() && AI->CanReach(AI, AI->Range / 15.0f, Points[0]))
 		Points.RemoveAt(0);
 
 	if (Points.IsEmpty())

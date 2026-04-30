@@ -15,6 +15,8 @@
 #include "Universal/HealthComponent.h"
 #include "Universal/AttackComponent.h"
 
+#include "Buildings/Work/Production/ExternalProduction.h"
+
 AAI::AAI()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -79,13 +81,6 @@ bool AAI::CanReach(AActor* Actor, float Reach, FVector Location, int32 Instance)
 			Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), Location);
 		else if (Actor->IsA<AAISpawner>())
 			Cast<AAISpawner>(Actor)->SpawnerMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), Location);
-	}
-
-	if (Actor->IsA<AResource>()) {
-		FTransform transform;
-		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(Instance, transform);
-
-		Location = transform.GetLocation();
 	}
 
 	return Reach >= FVector::Dist(MovementComponent->Transform.GetLocation(), Location);

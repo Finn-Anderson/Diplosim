@@ -27,6 +27,16 @@ void ASchool::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 	Super::RemoveVisitor(Occupant, Visitor);
 }
 
+void ASchool::CheckWorkStatus(int32 Hour)
+{
+	if (GetCitizensAtBuilding().IsEmpty())
+		return;
+
+	AddProgress();
+
+	Super::CheckWorkStatus(Hour);
+}
+
 TArray<ACitizen*> ASchool::GetStudentsAtSchool(ACitizen* Occupant)
 {
 	TArray<ACitizen*> citizens;
