@@ -60,12 +60,16 @@ struct FWetnessStruct
 	UPROPERTY()
 		float Increment;
 
+	UPROPERTY()
+		bool bClear;
+
 	FWetnessStruct()
 	{
 		Value = 0.0f;
 		Component = nullptr;
 		Instance = INDEX_NONE;
 		Increment = 0.0f;
+		bClear = false;
 	}
 
 	void Create(float Val, class UPrimitiveComponent* Comp, int32 Inst, float Inc)
@@ -79,6 +83,28 @@ struct FWetnessStruct
 	bool operator==(const FWetnessStruct& other) const
 	{
 		return (other.Component == Component && other.Instance == Instance);
+	}
+};
+
+USTRUCT()
+struct FLocationStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FVector Location;
+
+	UPROPERTY()
+		float Value;
+
+	UPROPERTY()
+		float Increment;
+
+	FLocationStruct()
+	{
+		Location = FVector::Zero();
+		Value = 0.0f;
+		Increment = 0.0f;
 	}
 };
 
@@ -105,10 +131,10 @@ public:
 		void UpdateSpawnedClouds();
 
 	UFUNCTION(BlueprintCallable)
-		void RainCollisionHandler(FVector CollisionLocation, float Value = -1.0f, float Increment = 0.0f);
+		void RainCollisionHandler(FVector Location, float Value = -1.0f, float Increment = 0.0f);
 
 	UFUNCTION()
-		void SetRainMaterialEffect(float Value, UPrimitiveComponent* Component, int32 Instance);
+		void SetRainMaterialEffect(float Value, UPrimitiveComponent* Component, int32 Instance, float Increment = 0.0f);
 
 	FCloudStruct CreateCloud(FTransform Transform, int32 Chance, bool bLoad = false, TArray<FTransform> LoadTransforms = {});
 
@@ -134,21 +160,19 @@ public:
 		TArray<FCloudStruct> Clouds;
 
 	UPROPERTY()
-		TArray<FWetnessStruct> WetnessStruct;
-
-	UPROPERTY()
-		TArray<FWetnessStruct> ProcessRainEffect;
-
-	UPROPERTY()
 		class UNaturalDisasterComponent* NaturalDisasterComponent;
 
 	UPROPERTY()
 		class UDiplosimUserSettings* Settings;
+
+	TDoubleLinkedList<FLocationStruct> RainDropLocations;
+
+	TDoubleLinkedList<FWetnessStruct> WetnessStruct;
 
 private:
 	FCriticalSection RainLock;
 
 	TArray<FVector> SetPrecipitationLocations(FTransform Transform, float Bounds);
 
-	void SetGradualWetness(bool bLoad = false);
+	void SetGradualWetness(float DeltaTime);
 };

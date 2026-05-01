@@ -17,7 +17,7 @@ ARoad::ARoad()
 	HealthComponent->MaxHealth = 20;
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
-	HISMRoad = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("HISMRoad"));
+	HISMRoad = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("ISMRoad"));
 	HISMRoad->SetupAttachment(RootComponent);
 	HISMRoad->SetGenerateOverlapEvents(false);
 	HISMRoad->NumCustomDataFloats = 1;

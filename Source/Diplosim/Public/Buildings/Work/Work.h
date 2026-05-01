@@ -22,6 +22,12 @@ public:
 	UPROPERTY()
 		bool bEmergency;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gradual")
+		bool bGradualShutdown;
+
+	UPROPERTY()
+		int32 GradualShutdownCounter;
+
 	virtual bool AddCitizen(class ACitizen* Citizen) override;
 
 	virtual bool RemoveCitizen(class ACitizen* Citizen) override;
@@ -34,6 +40,8 @@ public:
 	virtual void CheckWorkStatus(int32 Hour);
 
 	bool IsWorking(class ACitizen* Citizen, int32 Hour = -1);
+
+	void GradualShutdown();
 
 	UFUNCTION(BlueprintCallable)
 		virtual bool IsAtWork(class ACitizen* Citizen);

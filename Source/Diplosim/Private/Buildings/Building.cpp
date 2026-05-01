@@ -161,6 +161,9 @@ void ABuilding::BeginPlay()
 	SetTier(Tier);
 
 	InitialiseCapacityStruct();
+
+	if (ParticleComponent->GetAsset() != nullptr)
+		ParticleComponent->Activate();
 }
 
 void ABuilding::SetLights(int32 Hour)
@@ -454,6 +457,9 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 	BuildingMesh->SetCanEverAffectNavigation(true);
 
 	BuildingMesh->bReceivesDecals = true;
+
+	if (ParticleComponent->GetAsset() != nullptr)
+		ParticleComponent->Deactivate();
 
 	UResourceManager* rm = Camera->ResourceManager;
 	UConstructionManager* cm = Camera->ConstructionManager;
@@ -1092,7 +1098,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 	Camera->UpdateVisitors(this, Citizen, false);
 	SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
-	if (GetCitizensAtBuilding().IsEmpty() && !bConstant && ParticleComponent->GetAsset() != nullptr)
+	if (GetCitizensAtBuilding().IsEmpty() && !bConstant && ParticleComponent->GetAsset() != nullptr && (!IsA<AWork>() || !Cast<AWork>(this)->bGradualShutdown))
 		ParticleComponent->Deactivate();
 
 	FSocketStruct socketStruct;

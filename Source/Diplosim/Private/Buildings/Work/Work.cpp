@@ -1,6 +1,7 @@
 #include "Buildings/Work/Work.h"
 
 #include "Blueprint/UserWidget.h"
+#include "NiagaraComponent.h"
 
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
@@ -24,6 +25,9 @@ AWork::AWork()
 
 	bCanAttendEvents = true;
 	bEmergency = false;
+
+	bGradualShutdown = false;
+	GradualShutdownCounter = 0;
 
 	ForcefieldRange = 0;
 	Boosters = 0;
@@ -100,6 +104,8 @@ void AWork::AddToWorkHours(ACitizen* Citizen, bool bAdd)
 
 void AWork::CheckWorkStatus(int32 Hour)
 {
+	GradualShutdown();
+
 	for (ACitizen* citizen : GetOccupied()) {
 		bool isWorkingNow = IsWorking(citizen, Hour);
 		bool isAtWork = IsAtWork(citizen);
@@ -129,6 +135,22 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 		return true;
 
 	return false;
+}
+
+void AWork::GradualShutdown()
+{
+	if (!bGradualShutdown)
+		return;
+
+	if (GetCitizensAtBuilding().IsEmpty())
+		GradualShutdownCounter++;
+	else
+		GradualShutdownCounter = 0;
+
+	if (GradualShutdownCounter != 24)
+		return;
+
+	ParticleComponent->Deactivate();
 }
 
 bool AWork::IsAtWork(ACitizen* Citizen)

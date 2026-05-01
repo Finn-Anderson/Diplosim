@@ -2,6 +2,7 @@
 
 #include "Components/DirectionalLightComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
 
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
@@ -17,6 +18,8 @@
 UNaturalDisasterComponent::UNaturalDisasterComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+
+	Grid = nullptr;
 
 	ResetDisasterChance();
 
@@ -245,7 +248,7 @@ bool UNaturalDisasterComponent::IsProtected(FVector Location)
 {
 	for (FFactionStruct& faction : Grid->Camera->ConquestManager->Factions) {
 		for (ABuilding* building : faction.Buildings) {
-			if (!building->IsA<AWork>() || Cast<AWork>(building)->ForcefieldRange == 0 || building->GetCitizensAtBuilding().IsEmpty())
+			if (!building->IsA<AWork>() || Cast<AWork>(building)->ForcefieldRange == 0 || !building->ParticleComponent->IsActive())
 				continue;
 
 			double distance = FVector::Dist(building->GetActorLocation(), Location);

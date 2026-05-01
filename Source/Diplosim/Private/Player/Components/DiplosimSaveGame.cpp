@@ -182,15 +182,17 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 			wetnessStruct.Component = hism;
 			wetnessStruct.Instance = i;
 
-			int32 index = clouds->WetnessStruct.Find(wetnessStruct);
+			auto node = clouds->WetnessStruct.FindNode(wetnessStruct);
 
-			if (index == INDEX_NONE)
+			if (node == nullptr)
 				continue;
+
+			FWetnessStruct& wetness = node->GetValue();
 
 			FWetnessData wetnessData;
 			wetnessData.Location = transform.GetLocation();
-			wetnessData.Value = clouds->WetnessStruct[index].Value;
-			wetnessData.Increment = clouds->WetnessStruct[index].Increment;
+			wetnessData.Value = wetness.Value;
+			wetnessData.Increment = wetness.Increment;
 
 			worldSaveData.CloudsData.WetnessData.Add(wetnessData);
 		}
@@ -215,15 +217,17 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 		FWetnessStruct wetnessStruct;
 		wetnessStruct.Component = a->FindComponentByClass<UStaticMeshComponent>();
 
-		int32 index = clouds->WetnessStruct.Find(wetnessStruct);
+		auto node = clouds->WetnessStruct.FindNode(wetnessStruct);
 
-		if (index == INDEX_NONE)
+		if (node == nullptr)
 			continue;
+
+		FWetnessStruct& wetness = node->GetValue();
 
 		FWetnessData wetnessData;
 		wetnessData.Location = a->GetActorLocation();
-		wetnessData.Value = clouds->WetnessStruct[index].Value;
-		wetnessData.Increment = clouds->WetnessStruct[index].Increment;
+		wetnessData.Value = wetness.Value;
+		wetnessData.Increment = wetness.Increment;
 
 		worldSaveData.CloudsData.WetnessData.Add(wetnessData);
 	}
@@ -561,16 +565,17 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 	wetnessStruct.Component = info.Key;
 	wetnessStruct.Instance = info.Value;
 
-	TArray<FWetnessStruct> wetness = Camera->Grid->AtmosphereComponent->Clouds->WetnessStruct;
-	int32 index = wetness.Find(wetnessStruct);
+	auto node = Camera->Grid->AtmosphereComponent->Clouds->WetnessStruct.FindNode(wetnessStruct);
 
-	if (index == INDEX_NONE)
+	if (node == nullptr)
 		return;
+
+	FWetnessStruct& wetness = node->GetValue();
 
 	FWetnessData wetnessData;
 	wetnessData.Location = AIData.MovementData.Transform.GetLocation();
-	wetnessData.Value = wetness[index].Value;
-	wetnessData.Increment = wetness[index].Increment;
+	wetnessData.Value = wetness.Value;
+	wetnessData.Increment = wetness.Increment;
 }
 
 void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, AActor* Actor, int32 Index)
@@ -935,8 +940,6 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	if (grid->AtmosphereComponent->bRedSun)
 		grid->AtmosphereComponent->NaturalDisasterComponent->AlterSunGradually(0.15f, -1.00f);
 
-	grid->AtmosphereComponent->Clouds->ProcessRainEffect.Empty();
-	grid->AtmosphereComponent->Clouds->WetnessStruct.Empty();
 	WetnessData = WorldData.CloudsData.WetnessData;
 
 	for (FCloudData data : WorldData.CloudsData.CloudData) {
