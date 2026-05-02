@@ -22,11 +22,13 @@
 UResourceManager::UResourceManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+
+	GameMode = nullptr;
 }
 
 void UResourceManager::StoreBasket(TSubclassOf<AResource> Resource, ABuilding* Building)
 {
-	for (FBasketStruct product : Building->Basket) {
+	for (const FBasketStruct& product : Building->Basket) {
 		if (product.Item.Resource != Resource)
 			continue;
 
@@ -79,11 +81,11 @@ int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuild
 
 	int32 currentAmount = 0;
 
-	for (FItemStruct item : Building->Storage)
+	for (const FItemStruct& item : Building->Storage)
 		currentAmount += item.Amount;
 
 	int32 target = currentAmount + Amount;
-	int32 storageCap = *GetBuildingCapacities(Building, Resource).Find(Resource);
+	int32 storageCap = GetBuildingCapacity(Building, Resource);
 
 	if (target > storageCap) {
 		Building->Storage[index].Amount = storageCap;
@@ -118,12 +120,12 @@ bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf
 	TMap<ABuilding*, int32> foundBuildings;
 	for (auto& element : ResourceList[index].Buildings)
 		for (ABuilding* building : GetBuildingsOfClass(Faction, element.Key))
-			foundBuildings.Add(building, *GetBuildingCapacities(building, Resource).Find(Resource));
+			foundBuildings.Add(building, GetBuildingCapacity(building, Resource));
 
 	for (auto& element : foundBuildings) {
 		int32 currentAmount = 0;
 
-		for (FItemStruct item : element.Key->Storage)
+		for (const FItemStruct& item : element.Key->Storage)
 			currentAmount += item.Amount;
 
 		stored += currentAmount;
@@ -147,7 +149,7 @@ bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf
 
 		int32 currentAmount = 0;
 
-		for (FItemStruct item : element.Key->Storage)
+		for (const FItemStruct& item : element.Key->Storage)
 			currentAmount += item.Amount;
 
 		element.Key->Storage[index].Amount += FMath::Clamp(Amount, 0, element.Value - currentAmount);
@@ -287,7 +289,7 @@ int32 UResourceManager::GetResourceCapacity(FString FactionName, TSubclassOf<cla
 		TArray<ABuilding*> foundBuildings = GetBuildingsOfClass(faction, element.Key);
 
 		for (ABuilding* building : foundBuildings)
-			capacity += *GetBuildingCapacities(building, Resource).Find(Resource);
+			capacity += GetBuildingCapacity(building, Resource);
 	}
 
 	return capacity;
@@ -337,19 +339,19 @@ float UResourceManager::GetBuildingCapacityPercentage(ABuilding* Building)
 	return amount / capacity;
 }
 
-TMap<TSubclassOf<class AResource>, int32> UResourceManager::GetBuildingCapacities(ABuilding* Building, TSubclassOf<class AResource> Resource)
+TMap<TSubclassOf<class AResource>, int32> UResourceManager::GetBuildingCapacities(ABuilding* Building)
 {
 	TMap<TSubclassOf<class AResource>, int32> capacities;
 
 	for (FResourceStruct resource : ResourceList) {
-		if ((Resource != nullptr && resource.Type != Resource) || !resource.Buildings.Contains(Building->GetClass()))
+		if (!resource.Buildings.Contains(Building->GetClass()))
 			continue;
 
 		if (Building->IsA<AStockpile>()) {
 			AStockpile* stockpile = Cast<AStockpile>(Building);
 			int32 capacity = stockpile->StorageCap;
 
-			for (FItemStruct item : stockpile->Storage) {
+			for (const FItemStruct& item : stockpile->Storage) {
 				if (item.Resource == resource.Type)
 					continue;
 
@@ -514,7 +516,7 @@ void UResourceManager::UpdateResourceCapacityUI(ABuilding* Building)
 
 		int32 index = ResourceList.Find(resourceStruct);
 
-		Cast<ACamera>(GetOwner())->UpdateResourceCapacityText(ResourceList[index].Category);
+		camera->UpdateResourceCapacityText(ResourceList[index].Category);
 	}
 }
 

@@ -30,7 +30,7 @@ struct FMoveStruct
 		Actor = nullptr;
 		LinkedPortal = nullptr;
 		UltimateGoal = nullptr;
-		Instance = -1;
+		Instance = INDEX_NONE;
 		Location = FVector::Zero();
 	}
 
@@ -109,7 +109,7 @@ public:
 
 	TArray<FVector> GetPathPoints(FVector StartLocation, FVector EndLocation);
 
-	void AIMoveTo(AActor* Actor, FVector Location = FVector::Zero(), int32 Instance = -1);
+	void AIMoveTo(AActor* Actor, FVector Location = FVector::Zero(), int32 Instance = INDEX_NONE);
 
 	void RecalculateMovement(AActor* Actor);
 

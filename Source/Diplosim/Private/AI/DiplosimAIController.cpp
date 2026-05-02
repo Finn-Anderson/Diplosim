@@ -496,7 +496,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 {
-	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AGrid>())
+	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AGrid>() || (Actor->IsA<AResource>() && MoveRequest.GetGoalInstance() == INDEX_NONE))
 		return;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());

@@ -120,7 +120,7 @@ AResource* AResource::GetHarvestedResource()
 {
 	int32 chance = Camera->Stream.RandRange(1, 100);
 
-	if (SpecialResource != nullptr && chance > 99)
+	if (SpecialResource != nullptr && chance > 80)
 		return Cast<AResource>(SpecialResource->GetDefaultObject());
 
 	if (DroppedResource != nullptr)

@@ -93,7 +93,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Resource")
 		float GetBuildingCapacityPercentage(class ABuilding* Building);
 
-	TMap<TSubclassOf<class AResource>, int32> GetBuildingCapacities(class ABuilding* Building, TSubclassOf<class AResource> Resource = nullptr);
+	TMap<TSubclassOf<class AResource>, int32> GetBuildingCapacities(class ABuilding* Building);
 
 	TArray<TSubclassOf<class AResource>> GetResources(class ABuilding* Building);
 

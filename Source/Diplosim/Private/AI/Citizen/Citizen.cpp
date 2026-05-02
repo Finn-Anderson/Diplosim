@@ -496,9 +496,8 @@ void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 	LoseEnergy();
 
 	if (BuildingComponent->BuildingAt == Location)
-		return;
-
-	if (Location == nullptr)
+		BuildingComponent->BuildingAt->StoreResource(this);
+	else if (Location == nullptr)
 		AIController->StopMovement();
 	else
 		AIController->AIMoveTo(Location, FVector::Zero(), AIController->MoveRequest.GetGoalInstance());

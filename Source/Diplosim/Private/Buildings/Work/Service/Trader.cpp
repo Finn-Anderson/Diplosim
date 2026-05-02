@@ -163,7 +163,7 @@ void ATrader::ReturnResource(class ACitizen* Citizen)
 
 				int32 index = building->Storage.Find(itemStruct);
 
-				if (building->Storage[index].Amount + amount > *Camera->ResourceManager->GetBuildingCapacities(building, itemStruct.Resource).Find(itemStruct.Resource))
+				if (building->Storage[index].Amount + amount > Camera->ResourceManager->GetBuildingCapacity(building, itemStruct.Resource))
 					continue;
 
 				if (target == nullptr) {

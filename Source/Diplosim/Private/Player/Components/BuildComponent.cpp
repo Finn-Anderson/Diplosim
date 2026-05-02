@@ -39,7 +39,8 @@ UBuildComponent::UBuildComponent()
 
 	StartLocation = FVector::Zero();
 
-	BuildingToMove = nullptr;
+	BuildingToMove, BlockedMaterial, BlueprintMaterial, InfluencedMaterial, Camera, PlaceSound = nullptr;
+
 }
 
 void UBuildComponent::BeginPlay()
@@ -188,7 +189,7 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 		for (float y = -1.0f; y <= 1.0f; y += 0.5f)
 			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f)));
 
-	for (FVector point : points) {
+	for (const FVector& point : points) {
 		FHitResult hit(ForceInit);
 
 		if (GetWorld()->LineTraceSingleByChannel(hit, FVector(point.X, point.Y, 1000.0f), FVector(point.X, point.Y, 0.0f), ECC_Vehicle, params))
@@ -266,7 +267,7 @@ void UBuildComponent::SetBuildingsOnPath()
 		Buildings.RemoveAt(i);
 	}
 
-	for (FVector location : locations) {
+	for (const FVector& location : locations) {
 		Buildings[0]->SetActorLocation(location);
 
 		if (IsValidLocation(Buildings[0], 0.75f)) {
@@ -361,7 +362,7 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 			break;
 		}
 
-		for (FItemStruct item : cost) {
+		for (const FItemStruct& item : cost) {
 			int32 index = items.Find(item);
 
 			if (index == INDEX_NONE)
@@ -383,7 +384,7 @@ bool UBuildComponent::CheckBuildCosts()
 
 	TArray<FItemStruct> items = GetBuildCosts();
 
-	for (FItemStruct item : items) {
+	for (const FItemStruct& item : items) {
 		int32 maxAmount = rm->GetResourceAmount(Buildings[0]->FactionName, item.Resource);
 
 		if (maxAmount < item.Amount)
@@ -403,7 +404,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 	bool bCoast = false;
 	bool bResource = false;
 
-	for (FHitResult hit : hits) {
+	for (const FHitResult& hit : hits) {
 		if (hit.GetActor()->IsHidden() || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
 
@@ -649,7 +650,7 @@ void UBuildComponent::Place(bool bQuick)
 
 		TArray<FHitResult> hits = GetBuildingOverlaps(building);
 
-		for (FHitResult hit : hits) {
+		for (const FHitResult& hit : hits) {
 			if (building->GetClass() != hit.GetActor()->GetClass() || building->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum || building->GetActorLocation() != hit.GetActor()->GetActorLocation())
 				continue;
 
@@ -742,8 +743,15 @@ void UBuildComponent::Place(bool bQuick)
 
 		return;
 	}
+
+	TArray<ABuilding*> bs = Buildings;
+
+	if (bQuick)
+		ResetBuilding(b);
+	else
+		DetachBuilding();
 	
-	for (ABuilding* building : Buildings) {
+	for (ABuilding* building : bs) {
 		TArray<UDecalComponent*> decalComponents;
 		building->GetComponents<UDecalComponent>(decalComponents);
 
@@ -758,12 +766,7 @@ void UBuildComponent::Place(bool bQuick)
 	}
 
 	if (Camera->Start)
-		Camera->OnEggTimerPlace(Buildings[0]);
-
-	if (bQuick)
-		ResetBuilding(b);
-	else
-		DetachBuilding();
+		Camera->OnEggTimerPlace(b);
 }
 
 void UBuildComponent::QuickPlace()

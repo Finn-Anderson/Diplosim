@@ -4,6 +4,7 @@
 
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
+#include "Buildings/Misc/Broch.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -106,22 +107,28 @@ void AInternalProduction::Production(ACitizen* Citizen)
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 
 	if (!resources.IsEmpty()) {
+		AResource* resource = Cast<AResource>(resources[0]->GetDefaultObject())->GetHarvestedResource();
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
 		float yield = MinYield;
 
 		if (MinYield != MaxYield)
 			yield = Camera->Stream.RandRange(MinYield, MaxYield);
 
 		if (bMultiplicitive) {
-			yield = FMath::CeilToInt32(Camera->ResourceManager->GetResourceAmount(FactionName, resources[0]) * yield);
+			yield = FMath::CeilToInt32(Camera->ResourceManager->GetResourceAmount(FactionName, resource->GetClass()) * yield);
 
-			Camera->ResourceManager->AddUniversalResource(Camera->ConquestManager->GetFaction(FactionName), resources[0], yield);
+			Camera->ResourceManager->AddUniversalResource(faction, resource->GetClass(), yield);
 		}
 		else {
 			TArray<ACitizen*> workers = GetCitizensAtBuilding();
 			int32 index = Camera->Stream.RandRange(0, workers.Num() - 1);
 
-			workers[index]->Carry(resources[0]->GetDefaultObject<AResource>(), yield, this);
-			StoreResource(workers[index]);
+			AActor* location = this;
+			if (!resources.Contains(resource->GetClass()))
+				location = faction->EggTimer;
+
+			workers[index]->Carry(resource, yield, location);
 		}
 	}
 
