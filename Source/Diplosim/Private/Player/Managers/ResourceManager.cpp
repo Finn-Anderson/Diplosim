@@ -79,12 +79,7 @@ int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuild
 
 	int32 index = Building->Storage.Find(itemStruct);
 
-	int32 currentAmount = 0;
-
-	for (const FItemStruct& item : Building->Storage)
-		currentAmount += item.Amount;
-
-	int32 target = currentAmount + Amount;
+	int32 target = Building->Storage[index].Amount + Amount;
 	int32 storageCap = GetBuildingCapacity(Building, Resource);
 
 	if (target > storageCap) {
@@ -123,12 +118,12 @@ bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf
 			foundBuildings.Add(building, GetBuildingCapacity(building, Resource));
 
 	for (auto& element : foundBuildings) {
-		int32 currentAmount = 0;
+		FItemStruct itemStruct;
+		itemStruct.Resource = Resource;
 
-		for (const FItemStruct& item : element.Key->Storage)
-			currentAmount += item.Amount;
+		int32 i = element.Key->Storage.Find(itemStruct);
 
-		stored += currentAmount;
+		stored += element.Key->Storage[i].Amount;
 		capacity += element.Value;
 	}
 

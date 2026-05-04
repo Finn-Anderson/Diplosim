@@ -95,10 +95,9 @@ public:
 
 	void Idle(FFactionStruct* Faction, class ACitizen* Citizen);
 
-	void Wander(FVector CentrePoint, bool bTimer, float MaxLength = 5000.0f, bool bRaid = false);
+	void Wander(FVector CentrePoint, bool bTimer, class ABuilding* Building = nullptr, float MaxLength = 5000.0f, bool bRaid = false);
 
-	UFUNCTION()
-		void ChooseIdleBuilding(class ACitizen* Citizen);
+	class ABuilding* ChooseIdleBuilding(class ACitizen* Citizen);
 
 	double GetClosestActor(float Range, FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, bool bProjectLocation = true, int32 CurrentValue = 1, int32 NewValue = 1);
 
@@ -119,9 +118,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 		FMoveStruct MoveRequest;
-
-	UPROPERTY()
-		class ABuilding* ChosenBuilding;
 
 	UPROPERTY()
 		class ACamera* Camera;

@@ -79,7 +79,17 @@ bool AInternalProduction::IsAtWork(ACitizen* Citizen)
 		AActor* goal = Citizen->AIController->MoveRequest.GetGoalActor();
 
 		if (IsValid(goal)) {
-			for (const FItemStruct& item : Intake) {
+			TArray<FItemStruct> items = Intake;
+
+			if (IsValid(Citizen->Carrying.Type)) {
+				FItemStruct item;
+				item.Resource = Citizen->Carrying.Type->GetClass();
+				item.Amount = Citizen->Carrying.Amount;
+
+				items.Add(item);
+			}
+
+			for (const FItemStruct& item : items) {
 				TMap<TSubclassOf<ABuilding>, int32> buildingTypes = Camera->ResourceManager->GetBuildings(item.Resource);
 
 				for (auto& element : buildingTypes) {
@@ -107,7 +117,10 @@ void AInternalProduction::Production(ACitizen* Citizen)
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 
 	if (!resources.IsEmpty()) {
-		AResource* resource = Cast<AResource>(resources[0]->GetDefaultObject())->GetHarvestedResource();
+		AResource* r = Cast<AResource>(resources[0]->GetDefaultObject());
+		r->Camera = Camera;
+
+		AResource* resource = r->GetHarvestedResource();
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 		float yield = MinYield;

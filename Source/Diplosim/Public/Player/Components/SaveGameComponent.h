@@ -20,7 +20,8 @@ enum class EAsyncLoop : uint8
 	AIMovement,
 	BuildingDeath,
 	BuildingRotation,
-	Faction
+	Faction,
+	Rain
 };
 
 USTRUCT()

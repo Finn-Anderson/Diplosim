@@ -64,7 +64,7 @@ void ADiplosimAIController::DefaultAction()
 				if (raidPolicy == ERaidPolicy::Home && !faction->BuildingsOnFire.Contains(citizen->BuildingComponent->House))
 					AIMoveTo(citizen->BuildingComponent->House);
 				else
-					Wander(faction->EggTimer->GetActorLocation(), true, 500.0f, true);
+					Wander(faction->EggTimer->GetActorLocation(), true, nullptr, 500.0f, true);
 
 				return;
 			}
@@ -122,26 +122,31 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 	ABuilding* house = Citizen->BuildingComponent->House;
 
-	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33 || Citizen->Energy < 100) && !Faction->BuildingsOnFire.Contains(house)) {
+	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33 || Citizen->Energy < 100) && !Faction->BuildingsOnFire.Contains(house))
 		AIMoveTo(house);
-	}
 	else {
 		int32 time = Camera->Stream.RandRange(5, 20);
+		ABuilding* building = house;
+		bool bArrested = Faction->Police.Arrested.Contains(Citizen);
 
-		if (IsValid(ChosenBuilding) && ChosenBuilding->bHideCitizen && chance < 66 && !Faction->Police.Arrested.Contains(Citizen) && !Faction->BuildingsOnFire.Contains(ChosenBuilding)) {
-			AIMoveTo(ChosenBuilding);
+		if (bArrested)
+			building = Citizen->BuildingComponent->BuildingAt;
+		else if (chance < 66)
+			building = ChooseIdleBuilding(Citizen);
+
+		if (!bArrested && IsValid(building) && building->bHideCitizen && !Faction->BuildingsOnFire.Contains(building)) {
+			AIMoveTo(building);
 
 			time = Camera->Stream.RandRange(20, 60);
 		}
-		else {
-			Wander(Faction->EggTimer->GetActorLocation(), false);
-		}
+		else
+			Wander(Faction->EggTimer->GetActorLocation(), false, building);
 
 		Camera->TimerManager->CreateTimer("Idle", AI, time, "DefaultAction", {}, false);
 	}
 }
 
-void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, float MaxLength, bool bRaid)
+void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, ABuilding* Building, float MaxLength, bool bRaid)
 {
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
@@ -149,17 +154,25 @@ void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, float MaxLe
 	int32 innerRange = 200;
 	int32 outerRange = 1000;
 
-	if (!bRaid && IsValid(ChosenBuilding) && !ChosenBuilding->IsA<ABroch>()) {
-		FVector size = ChosenBuilding->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+	if (!bRaid && IsValid(Building)) {
+		FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-		innerRange = 0;
+		if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->House == Building) {
+			if (size.X > size.Y)
+				innerRange = size.X;
+			else
+				innerRange = size.Y;
+		}
+		else {
+			innerRange = 0;
 
-		if (size.X > size.Y)
-			outerRange = size.X;
-		else
-			outerRange = size.Y;
+			if (size.X > size.Y)
+				outerRange = size.X;
+			else
+				outerRange = size.Y;
+		}
 
-		CentrePoint = ChosenBuilding->GetActorLocation();
+		CentrePoint = Building->GetActorLocation();
 	}
 
 	int32 attempts = 0;
@@ -197,12 +210,12 @@ void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, float MaxLe
 	Camera->TimerManager->CreateTimer("Wander", AI, Camera->Stream.RandRange(5, 20), "DefaultAction", {}, false);
 }
 
-void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
+ABuilding* ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
 
 	if (faction->Police.Arrested.Contains(Citizen))
-		return;
+		return nullptr;
 
 	TArray<ABuilding*> buildings;
 	buildings.Add(nullptr);
@@ -216,7 +229,7 @@ void ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 
 	int32 index = Camera->Stream.RandRange(0, buildings.Num() - 1);
 
-	ChosenBuilding = buildings[index];
+	return buildings[index];
 }
 
 double ADiplosimAIController::GetClosestActor(float Range, FVector TargetLocation, FVector CurrentLocation, FVector NewLocation, bool bProjectLocation, int32 CurrentValue, int32 NewValue)

@@ -13,6 +13,7 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
+#include "Player/Components/SaveGameComponent.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/EggBasket.h"
@@ -375,22 +376,28 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 		if (!loopLock.IsLocked())
 			return;
 
+		if (Grid->Camera->SaveGameComponent->IsLoading()) {
+			Grid->Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Rain);
+
+			return;
+		}
+
 		for (auto node = RainDropLocations.GetHead(); node != nullptr; node = node->GetNextNode()) {
+			if (Grid->Camera->SaveGameComponent->IsLoading() || !IsValid(this))
+				return;
+
 			FLocationStruct& locationStruct = node->GetValue();
 			FHitResult hit;
 
-			if (!IsValid(this))
-				return;
-
 			if (GetWorld()->LineTraceSingleByChannel(hit, locationStruct.Location + FVector(0.0f, 0.0f, 10.0f), FVector(locationStruct.Location.X, locationStruct.Location.Y, 0.0f), ECollisionChannel::ECC_Visibility))
 			{
-				if (!hit.Component->IsA<UPrimitiveComponent>() || hit.Component == Grid->HISMSea || hit.Component == Grid->HISMLava || hit.Component == Grid->HISMRiver || (hit.Component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(hit.Component)->NumCustomDataFloats == 0)) {
+				UPrimitiveComponent* component = hit.GetComponent();
+
+				if (!IsValid(component) || !component->IsA<UPrimitiveComponent>() || component == Grid->HISMSea || component == Grid->HISMLava || component == Grid->HISMRiver || (component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(component)->NumCustomDataFloats == 0)) {
 					RainDropLocations.RemoveNode(node);
 
 					continue;
 				}
-
-				UPrimitiveComponent* component = hit.GetComponent();
 
 				if (hit.GetActor()->IsA<ABuilding>())
 					component = Cast<ABuilding>(hit.GetActor())->BuildingMesh;
@@ -416,10 +423,10 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 		}
 
 		for (auto node = WetnessStruct.GetHead(); node != nullptr; node = node->GetNextNode()) {
-			FWetnessStruct& wetness = node->GetValue();
-
-			if (!IsValid(this))
+			if (Grid->Camera->SaveGameComponent->IsLoading() || !IsValid(this))
 				return;
+
+			FWetnessStruct& wetness = node->GetValue();
 
 			if (!IsValid(wetness.Component) || wetness.bClear) {
 				if (wetness.bClear) {

@@ -18,6 +18,7 @@
 #include "Buildings/Work/Service/Research.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Resources/Vegetation.h"
 #include "Player/Camera.h"
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ConquestManager.h"
@@ -88,7 +89,7 @@ void UAIVisualiser::BeginPlay()
 	Super::BeginPlay();
 
 	for (auto& element : HatsMeshesList) {
-		FString name = element.Key->GetName() + "Component";
+		FString name = element.Key->GetName() + "Hat";
 
 		FHatsStruct hatsStruct;
 		hatsStruct.ISMHat = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass(), *name);
@@ -532,10 +533,15 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 		colour = *HarvestVisuals.Find(category);
 	}
 
+	TArray<USoundBase*> sounds;
 	if (Resource->IsA<AMineral>())
-		sound = Citizen->Mines[Citizen->Camera->Stream.RandRange(0, Citizen->Mines.Num() - 1)];
+		sounds = Citizen->Mines;
+	else if (Resource->IsA<AVegetation>())
+		sounds = Citizen->Chops;
 	else
-		sound = Citizen->Chops[Citizen->Camera->Stream.RandRange(0, Citizen->Chops.Num() - 1)];
+		sounds = Citizen->Anvils;
+
+	sound = sounds[Citizen->Camera->Stream.RandRange(0, sounds.Num() - 1)];
 
 	HarvestVisualCooldownTimer = 5.0f;
 

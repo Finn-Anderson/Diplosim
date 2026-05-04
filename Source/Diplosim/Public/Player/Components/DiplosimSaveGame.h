@@ -643,9 +643,6 @@ struct FAIMovementData
 
 	// AI Controller
 	UPROPERTY()
-		FString ChosenBuildingName;
-
-	UPROPERTY()
 		FString ActorName;
 
 	UPROPERTY()
@@ -666,7 +663,6 @@ struct FAIMovementData
 		Transform = FTransform();
 		ActorToLookAtName = "";
 
-		ChosenBuildingName = "";
 		ActorName = "";
 		LinkedPortalName = "";
 		UltimateGoalName = "";

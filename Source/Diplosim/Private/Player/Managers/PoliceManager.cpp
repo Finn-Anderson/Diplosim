@@ -685,7 +685,6 @@ void UPoliceManager::SetInNearestJail(FFactionStruct Faction, ACitizen* Officer,
 
 	Citizen->BuildingComponent->BuildingAt = target;
 
-	Citizen->AIController->ChosenBuilding = target;
 	Citizen->AIController->Idle(faction, Citizen);
 
 	FPartyStruct* party = Camera->PoliticsManager->GetMembersParty(Citizen);

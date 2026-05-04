@@ -86,16 +86,9 @@ void ACitizen::CitizenSetup(FFactionStruct* Faction)
 
 	Camera->TimerManager->CreateTimer("Birthday", this, timeToCompleteDay / 12.0f, "Birthday", {}, true);
 
-	Camera->TimerManager->CreateTimer("Eat", this, (timeToCompleteDay / 200) * HungerMultiplier, "Eat", {}, true);
+	Camera->TimerManager->CreateTimer("Eat", this, (timeToCompleteDay / 200.0f) * HungerMultiplier, "Eat", {}, true);
 
-	Camera->TimerManager->CreateTimer("Energy", this, (timeToCompleteDay / 100) * EnergyMultiplier, "CheckGainOrLoseEnergy", {}, true);
-
-	TArray<FTimerParameterStruct> params;
-	Camera->TimerManager->SetParameter(this, params);
-	Camera->TimerManager->CreateTimer("ChooseIdleBuilding", this, 60, "ChooseIdleBuilding", params, true);
-
-	if (BioComponent->Mother != nullptr && BioComponent->Mother->BuildingComponent->BuildingAt != nullptr)
-		BioComponent->Mother->BuildingComponent->BuildingAt->Enter(this);
+	Camera->TimerManager->CreateTimer("Energy", this, (timeToCompleteDay / 100.0f) * EnergyMultiplier, "CheckGainOrLoseEnergy", {}, true);
 
 	GenerateGenetics(Faction);
 	ApplyResearch(Faction);
@@ -119,8 +112,10 @@ void ACitizen::CitizenSetup(FFactionStruct* Faction)
 
 	VoicePitch = Camera->Stream.FRandRange(minPitch, maxPitch);
 
-	AIController->ChooseIdleBuilding(this);
-	AIController->DefaultAction();
+	if (BioComponent->Mother != nullptr && BioComponent->Mother->BuildingComponent->BuildingAt != nullptr)
+		BioComponent->Mother->BuildingComponent->BuildingAt->Enter(this);
+	else
+		AIController->DefaultAction();
 }
 
 void ACitizen::ClearCitizen()

@@ -540,9 +540,6 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 	if (IsValid(ai->MovementComponent->ActorToLookAt))
 		AIData.MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
 
-	if (IsValid(ai->AIController->ChosenBuilding))
-		AIData.MovementData.ChosenBuildingName = ai->AIController->ChosenBuilding->GetName();
-
 	if (IsValid(ai->AIController->MoveRequest.GetGoalActor()))
 		AIData.MovementData.ActorName = ai->AIController->MoveRequest.GetGoalActor()->GetName();
 
@@ -1475,9 +1472,6 @@ void UDiplosimSaveGame::InitialiseAI(ACamera* Camera, FActorSaveData& ActorData,
 	AAI* ai = Cast<AAI>(ActorData.Actor);
 	FAIMovementData movementData = AIData.MovementData;
 
-	if (SavedData.Name == movementData.ChosenBuildingName)
-		ai->AIController->ChosenBuilding = Cast<ABuilding>(SavedData.Actor);
-
 	if (SavedData.Name == movementData.ActorToLookAtName)
 		ai->MovementComponent->ActorToLookAt = SavedData.Actor;
 
@@ -1489,12 +1483,6 @@ void UDiplosimSaveGame::InitialiseAI(ACamera* Camera, FActorSaveData& ActorData,
 		ai->MovementComponent->Points = AIData.MovementData.Points;
 		ai->MovementComponent->CurrentAnim = AIData.MovementData.CurrentAnim;
 		ai->MovementComponent->LastUpdatedTime = AIData.MovementData.LastUpdatedTime;
-
-		if (!SavedData.Actor->IsA<ABuilding>() || !ai->IsA<ACitizen>() || AIData.CitizenData.EnterLocation == FVector::Zero())
-			return;
-		
-		Cast<ABuilding>(SavedData.Actor)->Enter(Cast<ACitizen>(ai));
-		Cast<ACitizen>(ai)->BuildingComponent->EnterLocation = AIData.CitizenData.EnterLocation;
 	}
 
 	if (SavedData.Name == movementData.LinkedPortalName)
@@ -1526,6 +1514,11 @@ void UDiplosimSaveGame::InitialiseCitizen(ACamera* Camera, FActorSaveData& Actor
 
 	if (citizenData.bHat && citizen->BuildingComponent->Employment == SavedData.Actor)
 		Camera->Grid->AIVisualiser->AddCitizenToHISMHat(citizen, citizen->BuildingComponent->Employment->WorkHat);
+
+	if (SavedData.Name == AIData.MovementData.ActorName && AIData.CitizenData.EnterLocation != FVector::Zero()) {
+		Cast<ABuilding>(SavedData.Actor)->Enter(citizen);
+		citizen->BuildingComponent->EnterLocation = AIData.CitizenData.EnterLocation;
+	}
 
 	citizen->MovementComponent->SetMaxSpeed(citizen->Energy);
 }
