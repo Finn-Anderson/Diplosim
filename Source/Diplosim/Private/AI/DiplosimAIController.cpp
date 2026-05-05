@@ -122,16 +122,16 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 	ABuilding* house = Citizen->BuildingComponent->House;
 
-	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 33 || Citizen->Energy < 100) && !Faction->BuildingsOnFire.Contains(house))
+	if (IsValid(house) && (hoursLeft - 1 <= Citizen->IdealHoursSlept || chance < 30 || Citizen->Energy < 100) && !Faction->BuildingsOnFire.Contains(house))
 		AIMoveTo(house);
 	else {
 		int32 time = Camera->Stream.RandRange(5, 20);
-		ABuilding* building = house;
+		ABuilding* building = nullptr;
 		bool bArrested = Faction->Police.Arrested.Contains(Citizen);
 
 		if (bArrested)
 			building = Citizen->BuildingComponent->BuildingAt;
-		else if (chance < 66)
+		else if (chance < 50)
 			building = ChooseIdleBuilding(Citizen);
 
 		if (!bArrested && IsValid(building) && building->bHideCitizen && !Faction->BuildingsOnFire.Contains(building)) {
@@ -220,6 +220,9 @@ ABuilding* ADiplosimAIController::ChooseIdleBuilding(ACitizen* Citizen)
 	TArray<ABuilding*> buildings;
 	buildings.Add(nullptr);
 
+	for (int32 i = 0; i < 3; i++)
+		buildings.Add(Citizen->BuildingComponent->House);
+
 	for (ABuilding* building : faction->Buildings) {
 		if (!IsValid(building) || building->IsA<ARoad>() || (building->IsA<AHouse>() && building->Inside.IsEmpty()) || !CanMoveTo(building->GetActorLocation()))
 			continue;
@@ -304,9 +307,8 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 		}
 	}
 
-	if (target != nullptr) {
+	if (target != nullptr)
 		AIMoveTo(target, FVector::Zero(), i);
-	}
 	else {
 		TArray<FTimerParameterStruct> params;
 		Camera->TimerManager->SetParameter(Resource, params);

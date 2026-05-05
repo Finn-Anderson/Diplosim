@@ -47,6 +47,8 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 		}
 	}
 
+	SetSocketLocation(Citizen);
+
 	FTimerStruct* timer = Camera->TimerManager->FindTimer("Internal", this);
 
 	if (timer == nullptr)
@@ -145,12 +147,16 @@ void AInternalProduction::Production(ACitizen* Citizen)
 		}
 	}
 
-	SetTimer();
+	if (!IsCapacityFull())
+		SetTimer();
 
-	for (const FItemStruct& item : Intake)
+	for (FItemStruct& item : Intake) {
+		item.Stored -= item.Use;
+
 		if (item.Use > item.Stored)
 			for (ACitizen* citizen : GetCitizensAtBuilding())
 				CheckStored(citizen, Intake);
+	}
 }
 
 float AInternalProduction::GetTime()

@@ -96,6 +96,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 
 	bRedSun = false;
 	WindSpeed = 20;
+	TargetWindSpeed = WindSpeed;
 }
 
 void UAtmosphereComponent::BeginPlay()
@@ -194,12 +195,17 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 void UAtmosphereComponent::AlterWind()
 {
-	int32 yaw = Grid->Camera->Stream.RandRange(-15, 15);
+	int32 yaw = Grid->Camera->Stream.RandRange(-45, 45);
 	WindRotation = FRotator(0.0f, WindRotation.Yaw + yaw, 0.0f);
 	WindRotation.Normalize();
 
-	int32 diff = FMath::RoundHalfFromZero((100 - WindSpeed - 50) / 10.0f);
-	WindSpeed = FMath::Clamp(WindSpeed + Grid->Camera->Stream.RandRange(-5 + diff, 5 + diff), 1, 100);
+	if (Grid->Camera->Stream.RandRange(1, 10) == 10)
+		TargetWindSpeed = Grid->Camera->Stream.RandRange(1, 19) * 5;
+
+	int32 diff = FMath::Clamp(TargetWindSpeed - WindSpeed, -5, 5);
+	int32 min = FMath::Max(-5 + diff, -5);
+	int32 max = FMath::Min(5 + diff, 5);
+	WindSpeed = FMath::Clamp(WindSpeed + Grid->Camera->Stream.RandRange(min, max), 1, 100);
 
 	WindComponent->SetRelativeRotation(WindRotation + FRotator(0.0f, 180.0f, 0.0f));
 

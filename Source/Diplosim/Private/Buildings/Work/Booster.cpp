@@ -1,6 +1,7 @@
 #include "Buildings/Work/Booster.h"
 
 #include "Kismet/KismetSystemLibrary.h"
+#include "Components/DecalComponent.h"
 
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
@@ -15,6 +16,7 @@
 ABooster::ABooster()
 {
 	Range = 100.0f;
+	DecalComponent->DecalSize = FVector(Range);
 
 	AISetTypeCooldown = 0;
 	bHolyPlace = false;

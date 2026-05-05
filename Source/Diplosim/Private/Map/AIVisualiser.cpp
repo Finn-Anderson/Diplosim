@@ -523,14 +523,19 @@ void UAIVisualiser::ActivateTorch(int32 Hour, UInstancedStaticMeshComponent* ISM
 void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 {
 	USoundBase* sound = nullptr;
+	FVector location = Citizen->MovementComponent->Transform.GetLocation();
 
-	FLinearColor colour = FLinearColor();
-	for (FResourceStruct resourceStruct : Citizen->Camera->ResourceManager->ResourceList) {
-		if (!Resource->IsA(resourceStruct.Type))
-			continue;
+	if (IsValid(Citizen->BuildingComponent->Employment) && !Citizen->BuildingComponent->Employment->bHideCitizen) {
+		FLinearColor colour = FLinearColor();
+		for (FResourceStruct resourceStruct : Citizen->Camera->ResourceManager->ResourceList) {
+			if (!Resource->IsA(resourceStruct.Type))
+				continue;
 
-		FString category = resourceStruct.Category;
-		colour = *HarvestVisuals.Find(category);
+			FString category = resourceStruct.Category;
+			colour = *HarvestVisuals.Find(category);
+		}
+
+		location = AddHarvestVisual(Citizen, colour);
 	}
 
 	TArray<USoundBase*> sounds;
@@ -544,8 +549,6 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 	sound = sounds[Citizen->Camera->Stream.RandRange(0, sounds.Num() - 1)];
 
 	HarvestVisualCooldownTimer = 5.0f;
-
-	FVector location = AddHarvestVisual(Citizen, colour);
 
 	Citizen->AmbientAudioComponent->SetRelativeLocation(location);
 	Citizen->Camera->PlayAmbientSound(Citizen->AmbientAudioComponent, sound);

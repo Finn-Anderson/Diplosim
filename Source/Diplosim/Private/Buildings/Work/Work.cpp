@@ -285,6 +285,8 @@ void AWork::Production(ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
+	Boosters = 0;
+
 	for (ABuilding* building : faction->Buildings) {
 		if (!building->IsA<ABooster>())
 			continue;

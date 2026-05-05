@@ -72,6 +72,7 @@ ACitizen::ACitizen()
 
 	VoicePitch = 1.0f;
 	bConversing = false;
+	bWorshipping = false;
 
 	bGlasses = false;
 

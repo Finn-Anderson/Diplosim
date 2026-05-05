@@ -196,6 +196,14 @@ void ABuilding::ToggleDecalComponentVisibility(bool bVisible)
 	Camera->BuildComponent->DisplayInfluencedBuildings(this, bVisible);
 }
 
+bool ABuilding::GetDecalComponentVisibility()
+{
+	if (!DecalComponent)
+		return false;
+
+	return DecalComponent->GetVisibleFlag();
+}
+
 void ABuilding::SetSeed(int32 Seed)
 {
 	if (Seeds.IsEmpty()) {
@@ -353,7 +361,12 @@ void ABuilding::SetSeed(int32 Seed)
 
 void ABuilding::SetStorage()
 {
-	Storage.Empty();
+	for (int32 i = Storage.Num() - 1; i > -1; i--) {
+		if (Storage[i].Amount > 0)
+			continue;
+
+		Storage.RemoveAt(i);
+	}
 
 	TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
 
@@ -980,8 +993,10 @@ void ABuilding::SetSocketLocation(ACitizen* Citizen)
 		return;
 
 	if (anim != EAnim::Still) {
-		if (IsA<AInternalProduction>())
-			Citizen->AIController->MoveRequest.SetGoalActor(Cast<AInternalProduction>(this)->ResourceToOverlap->GetDefaultObject<AResource>());
+		if (IsA<AInternalProduction>()) {
+			Citizen->AIController->MoveRequest.SetGoalActor(Camera->ResourceManager->GetResources(this)[0]->GetDefaultObject<AResource>());
+			Citizen->AIController->MoveRequest.SetGoalInstance(INDEX_NONE);
+		}
 
 		float speed = 2.0f;
 		if (!IsA<AFestival>())
@@ -994,7 +1009,6 @@ void ABuilding::SetSocketLocation(ACitizen* Citizen)
 		Citizen->MovementComponent->Transform.SetRotation(SocketList[index].SocketRotation.Quaternion());
 		Citizen->MovementComponent->Transform.SetLocation(SocketList[index].SocketLocation);
 	}
-
 }
 
 void ABuilding::Enter(ACitizen* Citizen)
@@ -1056,7 +1070,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 			deliverTo = cm->GetBuilding(builder);
 			items = deliverTo->TargetList;
 		}
-		else if (Citizen->BuildingComponent->Employment->IsA<AStockpile>() || Citizen->BuildingComponent->Employment->IsA<ATrader>()) {
+		else if (Citizen->AIController->MoveRequest.GetGoalInstance() != INDEX_NONE && (Citizen->BuildingComponent->Employment->IsA<AStockpile>() || Citizen->BuildingComponent->Employment->IsA<ATrader>() || Citizen->BuildingComponent->Employment->IsA<AInternalProduction>())) {
 			deliverTo = Citizen->BuildingComponent->Employment;
 
 			FItemStruct item = Storage[Citizen->AIController->MoveRequest.GetGoalInstance()];
@@ -1067,7 +1081,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 				int32 index = trader->Orders[0].SellingItems.Find(item);
 				item.Amount = FMath::Min(trader->Orders[0].SellingItems[index].Amount - trader->Orders[0].SellingItems[index].Stored, 10);
 			}
-			else {
+			else if (Citizen->BuildingComponent->Employment->IsA<AStockpile>()) {
 				AStockpile* stockpile = Cast<AStockpile>(Citizen->BuildingComponent->Employment);
 				item.Amount = FMath::Min(stockpile->GetFreeStorage(), 10);
 			}
@@ -1142,7 +1156,7 @@ bool ABuilding::CheckInstant()
 bool ABuilding::CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items)
 {
 	for (FItemStruct item : Items) {
-		if (item.Stored == item.Amount)
+		if (item.Stored == item.Amount + item.Use)
 			continue;
 
 		Citizen->AIController->GetGatherSite(item.Resource);
@@ -1184,7 +1198,7 @@ void ABuilding::CarryResources(ACitizen* Citizen, ABuilding* DeliverTo, TArray<F
 
 	Camera->ResourceManager->TakeLocalResource(resource, this, amount);
 
-	if (!DeliverTo->IsA<AStockpile>()) {
+	if (Camera->ConstructionManager->IsBeingConstructed(DeliverTo, nullptr)) {
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
 		Camera->ResourceManager->TakeCommittedResource(faction, resource, amount);

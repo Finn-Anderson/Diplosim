@@ -112,6 +112,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Wind")
 		int32 WindSpeed;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Wind")
+		int32 TargetWindSpeed;
+
 	UPROPERTY()
 		class AGrid* Grid;
 

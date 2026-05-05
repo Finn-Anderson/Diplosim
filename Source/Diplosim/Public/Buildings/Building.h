@@ -282,6 +282,8 @@ public:
 
 	void ToggleDecalComponentVisibility(bool bVisible);
 
+	bool GetDecalComponentVisibility();
+
 	UFUNCTION(BlueprintCallable)
 		int32 GetTier();
 

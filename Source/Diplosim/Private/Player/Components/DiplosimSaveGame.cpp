@@ -206,6 +206,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 	worldSaveData.AtmosphereData.bRedSun = grid->AtmosphereComponent->bRedSun;
 	worldSaveData.AtmosphereData.WindRotation = grid->AtmosphereComponent->WindRotation;
 	worldSaveData.AtmosphereData.WindSpeed = grid->AtmosphereComponent->WindSpeed;
+	worldSaveData.AtmosphereData.TargetWindSpeed = grid->AtmosphereComponent->TargetWindSpeed;
 	worldSaveData.AtmosphereData.SunRotation = grid->AtmosphereComponent->Sun->GetRelativeRotation();
 	worldSaveData.AtmosphereData.MoonRotation = grid->AtmosphereComponent->Moon->GetRelativeRotation();
 
@@ -927,6 +928,7 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	grid->AtmosphereComponent->bRedSun = WorldData.AtmosphereData.bRedSun;
 	grid->AtmosphereComponent->WindRotation = WorldData.AtmosphereData.WindRotation;
 	grid->AtmosphereComponent->WindSpeed = WorldData.AtmosphereData.WindSpeed;
+	grid->AtmosphereComponent->TargetWindSpeed = WorldData.AtmosphereData.TargetWindSpeed;
 	grid->AtmosphereComponent->Sun->SetRelativeRotation(WorldData.AtmosphereData.SunRotation);
 	grid->AtmosphereComponent->Moon->SetRelativeRotation(WorldData.AtmosphereData.MoonRotation);
 

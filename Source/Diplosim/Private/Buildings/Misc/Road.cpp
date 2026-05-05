@@ -28,7 +28,6 @@ ARoad::ARoad()
 	BoxAreaAffect->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
 	BoxAreaAffect->SetBoxExtent(FVector(50.0f, 50.0f, 20.0f));
 	BoxAreaAffect->SetCollisionResponseToAllChannels(ECR_Ignore);
-	BoxAreaAffect->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Block);
 	BoxAreaAffect->SetCanEverAffectNavigation(true);
 	BoxAreaAffect->bDynamicObstacle = true;
 }

@@ -282,6 +282,8 @@ void UBuildComponent::SetBuildingsOnPath()
 				Cast<ARoad>(Buildings.Last())->RegenerateMesh(true);
 
 			SetTreeStatus(Buildings.Last(), false);
+
+			Buildings.Last()->ToggleDecalComponentVisibility(Buildings[0]->GetDecalComponentVisibility());
 		}
 	}
 

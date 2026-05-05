@@ -368,8 +368,12 @@ void UCloudComponent::SetRainMaterialEffect(float Value, UPrimitiveComponent* Co
 
 void UCloudComponent::SetGradualWetness(float DeltaTime)
 {
-	if (WetnessStruct.IsEmpty() && RainDropLocations.IsEmpty())
+	if (WetnessStruct.IsEmpty() && RainDropLocations.IsEmpty()) {
+		if (Grid->Camera->SaveGameComponent->IsLoading())
+			Grid->Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Rain);
+
 		return;
+	}
 
 	Async(EAsyncExecution::TaskGraph, [this, DeltaTime]() {
 		FScopeTryLock loopLock(&RainLock);

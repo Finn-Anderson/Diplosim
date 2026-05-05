@@ -186,6 +186,9 @@ void UDiseaseManager::SpawnDisease(ACamera* Camera)
 			if (IsInfectible(citizen))
 				infectible.Add(citizen);
 
+		if (infectible.IsEmpty())
+			continue;
+
 		int32 infectibleIndex = Camera->Stream.RandRange(0, infectible.Num() - 1);
 		int32 diseaseIndex = Camera->Stream.RandRange(0, Diseases.Num() - 1);
 

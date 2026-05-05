@@ -121,9 +121,12 @@ bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf
 		FItemStruct itemStruct;
 		itemStruct.Resource = Resource;
 
-		int32 i = element.Key->Storage.Find(itemStruct);
+		index = element.Key->Storage.Find(itemStruct);
 
-		stored += element.Key->Storage[i].Amount;
+		if (index == INDEX_NONE)
+			continue;
+
+		stored += element.Key->Storage[index].Amount;
 		capacity += element.Value;
 	}
 
@@ -204,6 +207,9 @@ bool UResourceManager::TakeUniversalResource(FFactionStruct* Faction, TSubclassO
 
 		index = building->Storage.Find(itemStruct);
 
+		if (index == INDEX_NONE)
+			continue;
+
 		stored += building->Storage[index].Amount;
 	}
 
@@ -218,6 +224,9 @@ bool UResourceManager::TakeUniversalResource(FFactionStruct* Faction, TSubclassO
 		itemStruct.Resource = Resource;
 
 		index = building->Storage.Find(itemStruct);
+
+		if (index == INDEX_NONE)
+			continue;
 
 		AmountLeft -= building->Storage[index].Amount - Min;
 
