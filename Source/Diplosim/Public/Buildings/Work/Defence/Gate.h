@@ -12,30 +12,23 @@ class DIPLOSIM_API AGate : public AWall
 public:
 	AGate();
 
+	void Tick(float DeltaTime) override;
+
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	void OpenGate();
 
 	void CloseGate();
 
-	UFUNCTION()
-		void UpdateNavigation();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate")
+		class UStaticMeshComponent* RightGate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate")
-		class USkeletalMeshComponent* RightGate;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate")
-		class USkeletalMeshComponent* LeftGate;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate")
-		class UAnimationAsset* CloseAnim;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate")
-		class UAnimationAsset* OpenAnim;
+		class UStaticMeshComponent* LeftGate;
 
 protected:
 	UPROPERTY()
 		bool bOpen;
 
-	void SetTimer();
+	void UpdateNavigation();
 };

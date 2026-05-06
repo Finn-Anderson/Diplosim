@@ -112,7 +112,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (building->IsHidden())
 			continue;
 
-		if ((StartLocation == FVector::Zero() && !IsValidLocation(building, 0.75f)) || !CheckBuildCosts()) {
+		if ((StartLocation == FVector::Zero() && !IsValidLocation(building, 1.0f)) || !CheckBuildCosts()) {
 			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
 			if (building->IsA<AResearch>()) {
@@ -187,7 +187,7 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 
 	for (float x = -1.0f; x <= 1.0f; x += 0.5f)
 		for (float y = -1.0f; y <= 1.0f; y += 0.5f)
-			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f)));
+			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f) - FVector(20.0f * x, 20.0f * y, 0.0f)));
 
 	for (const FVector& point : points) {
 		FHitResult hit(ForceInit);
@@ -270,7 +270,7 @@ void UBuildComponent::SetBuildingsOnPath()
 	for (const FVector& location : locations) {
 		Buildings[0]->SetActorLocation(location);
 
-		if (IsValidLocation(Buildings[0], 0.75f)) {
+		if (IsValidLocation(Buildings[0], 1.0f)) {
 			SpawnBuilding(Buildings[0]->GetClass(), Buildings[0]->FactionName, location);
 
 			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
@@ -630,7 +630,7 @@ void UBuildComponent::Place(bool bQuick)
 		if (building->IsHidden() && Buildings.Num() > 1)
 			continue;
 
-		if (!IsValidLocation(building, 0.75f) || (Buildings.Num() == 1 && Buildings[0]->IsHidden())) {
+		if (!IsValidLocation(building, 1.0f) || (Buildings.Num() == 1 && Buildings[0]->IsHidden())) {
 			Camera->ShowWarning("Invalid location");
 
 			EndPathPlace();

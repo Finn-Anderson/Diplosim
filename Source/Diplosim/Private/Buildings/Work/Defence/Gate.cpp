@@ -5,28 +5,52 @@
 
 AGate::AGate()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	SetActorTickInterval(1 / 90.0f);
+
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = false;
 
-	TMap<USkeletalMeshComponent**, FName> gates;
+	TMap<UStaticMeshComponent**, FName> gates;
 	gates.Add(&RightGate, TEXT("RightGate"));
 	gates.Add(&LeftGate, TEXT("LeftGate"));
 
 	for (auto& element : gates) {
-		auto hism = CreateDefaultSubobject<USkeletalMeshComponent>(element.Value);
-		*element.Key = hism;
-		hism->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
-		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
-		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-		hism->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
-		hism->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		hism->SetupAttachment(BuildingMesh, *(element.Value.ToString() + "Socket"));
-		hism->SetCanEverAffectNavigation(true);
-		hism->SetRelativeLocation(FVector(0.0f, 0.0f, -0.01f));
+		auto gate = CreateDefaultSubobject<UStaticMeshComponent>(element.Value);
+		*element.Key = gate;
+		gate->SetCollisionEnabled(BuildingMesh->GetCollisionEnabled());
+		gate->SetCollisionObjectType(BuildingMesh->GetCollisionObjectType());
+		gate->SetCollisionResponseToChannels(BuildingMesh->GetCollisionResponseToChannels());
+		gate->SetGenerateOverlapEvents(BuildingMesh->GetGenerateOverlapEvents());
+		gate->SetupAttachment(BuildingMesh, *(element.Value.ToString() + "Socket"));
+		gate->SetCanEverAffectNavigation(true);
+		gate->SetRelativeLocation(FVector(0.0f, 0.0f, -3.5f));
+
+		if (gate == RightGate)
+			gate->SetRelativeRotation(FRotator(0.0f, 0.0f, 180.0f));
 	}
 
 	bOpen = false;
+}
+
+void AGate::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	FRotator rotation = FRotator(0.0f, 1.0f, 0.0f);
+	if (bOpen)
+		rotation *= -1.0f;
+
+	rotation *= (1.0f / FMath::Max(FMath::Abs(RightGate->GetRelativeRotation().Yaw - 140.0f) / 40.0f * 8.0f, 2.0f));
+
+	RightGate->SetRelativeRotation(RightGate->GetRelativeRotation() + rotation);
+	LeftGate->SetRelativeRotation(LeftGate->GetRelativeRotation() - rotation);
+
+	if (FMath::Floor(RightGate->GetRelativeRotation().Yaw) == 180.0f || FMath::CeilToInt32(RightGate->GetRelativeRotation().Yaw) == 100.0f) {
+		SetActorTickEnabled(false);
+
+		UpdateNavigation();
+	}
 }
 
 void AGate::Enter(ACitizen* Citizen)
@@ -41,12 +65,9 @@ void AGate::OpenGate()
 	if (bOpen || GetCitizensAtBuilding().IsEmpty())
 		return;
 
-	RightGate->PlayAnimation(OpenAnim, false);
-	LeftGate->PlayAnimation(OpenAnim, false);
+	SetActorTickEnabled(true);
 
 	bOpen = true;
-
-	SetTimer();
 }
 
 void AGate::CloseGate()
@@ -54,24 +75,13 @@ void AGate::CloseGate()
 	if (!bOpen || GetCitizensAtBuilding().IsEmpty())
 		return;
 
-	RightGate->PlayAnimation(CloseAnim, false);
-	LeftGate->PlayAnimation(CloseAnim, false);
+	SetActorTickEnabled(true);
 
 	bOpen = false;
-
-	SetTimer();
 }
 
 void AGate::UpdateNavigation()
 {
-	RightGate->SetCanEverAffectNavigation(!RightGate->CanEverAffectNavigation());
-	LeftGate->SetCanEverAffectNavigation(!LeftGate->CanEverAffectNavigation());
-}
-
-void AGate::SetTimer()
-{
-	if (Camera->TimerManager->DoesTimerExist("Gate", this))
-		Camera->TimerManager->UpdateTimerLength("Gate", this, 3.0f);
-	else
-		Camera->TimerManager->CreateTimer("Gate", this, 3.0f, "UpdateNavigation", {}, false);
+	RightGate->SetCanEverAffectNavigation(!bOpen);
+	LeftGate->SetCanEverAffectNavigation(!bOpen);
 }
