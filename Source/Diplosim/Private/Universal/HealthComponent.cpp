@@ -232,9 +232,10 @@ void UHealthComponent::Death(AActor* Attacker)
 		UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DeathSystem, origin);
 
 		if (actor->IsA<AEnemy>()) {
-			actor->SetActorHiddenInGame(true);
+			AEnemy* enemy = Cast<AEnemy>(actor);
+			enemy->MovementComponent->Transform.SetLocation(enemy->MovementComponent->Transform.GetLocation() - FVector(0.0f, 0.0f, 1000.0f));
 
-			deathComp->SetColorParameter("Colour", Cast<AEnemy>(actor)->Colour);
+			deathComp->SetColorParameter("Colour", enemy->Colour);
 		}
 		else if (actor->IsA<ABuilding>() || actor->IsA<AAISpawner>()) {
 			UStaticMeshComponent* mesh = actor->GetComponentByClass<UStaticMeshComponent>();

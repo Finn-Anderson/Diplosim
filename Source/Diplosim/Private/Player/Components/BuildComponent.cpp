@@ -14,6 +14,7 @@
 #include "Buildings/Work/Service/Research.h"
 #include "Buildings/Work/Booster.h"
 #include "Buildings/Work/Defence/Wall.h"
+#include "Buildings/Work/Defence/Gate.h"
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Map/Grid.h"
@@ -40,7 +41,6 @@ UBuildComponent::UBuildComponent()
 	StartLocation = FVector::Zero();
 
 	BuildingToMove, BlockedMaterial, BlueprintMaterial, InfluencedMaterial, Camera, PlaceSound = nullptr;
-
 }
 
 void UBuildComponent::BeginPlay()
@@ -192,7 +192,7 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 	for (const FVector& point : points) {
 		FHitResult hit(ForceInit);
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, FVector(point.X, point.Y, 1000.0f), FVector(point.X, point.Y, 0.0f), ECC_Vehicle, params))
+		if (GetWorld()->LineTraceSingleByChannel(hit, point + FVector(0.0f, 0.0f, size.Z + 10.0f), FVector(point.X, point.Y, 0.0f), ECC_Vehicle, params))
 			hits.Add(hit);
 	}
 
@@ -410,7 +410,7 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		if (hit.GetActor()->IsHidden() || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
 
-		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !(Building->IsA(FoundationClass) || Building->IsA(RampClass))))
+		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !Building->IsA(FoundationClass)))
 			return false;
 
 		if (hit.GetComponent() == Camera->Grid->HISMSea) {
@@ -439,13 +439,17 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 				continue;
 		}
 
-		if (Building->GetClass() == hit.GetActor()->GetClass() && Building->GetActorLocation() == hit.GetActor()->GetActorLocation()) {
-			if (Building->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum)
-				return false;
-			else
+		if (Building->GetActorLocation() == transform.GetLocation()) {
+			if (Building->GetClass() == hit.GetActor()->GetClass()) {
+				if (Building->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum)
+					return false;
+				else
+					continue;
+			}
+			else if ((Building->IsA<ARoad>() || hit.GetActor()->IsA<ARoad>()) && (Building->IsA<AGate>() || hit.GetActor()->IsA<AGate>()))
 				continue;
 		}
-
+		
 		if (Building->IsA<ARoad>() && hit.GetActor()->IsA<ARoad>())
 			continue;
 

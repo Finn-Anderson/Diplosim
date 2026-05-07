@@ -255,8 +255,8 @@ void ACamera::Tick(float DeltaTime)
 			CitizenManager->CalculateGoalInteractions();
 			CitizenManager->CalculateConversationInteractions();
 
-			ConquestManager->CalculateAIFighting();
-			ConquestManager->CalculateBuildingFighting();
+			ConquestManager->CalculateAIFighting(DeltaTime);
+			ConquestManager->CalculateBuildingFighting(DeltaTime);
 
 			TimerManager->TimerLoop(this);
 

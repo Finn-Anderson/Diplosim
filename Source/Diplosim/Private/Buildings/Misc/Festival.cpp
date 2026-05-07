@@ -51,7 +51,7 @@ void AFestival::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (DeltaTime > 1.0f)
+	if (DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
 
 	FVector location = GetActorLocation();

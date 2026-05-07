@@ -143,6 +143,8 @@ void AGrid::BeginPlay()
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera = PController->GetPawn<ACamera>();
 
+	Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->Grid = this;
+
 	MapUIInstance = CreateWidget<UUserWidget>(PController, MapUI);
 
 	LoadUIInstance = CreateWidget<UUserWidget>(PController, LoadUI);

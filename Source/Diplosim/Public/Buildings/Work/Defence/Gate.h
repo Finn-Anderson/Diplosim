@@ -29,6 +29,4 @@ public:
 protected:
 	UPROPERTY()
 		bool bOpen;
-
-	void UpdateNavigation();
 };

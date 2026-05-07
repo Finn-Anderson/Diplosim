@@ -2,6 +2,7 @@
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 
 #include "AI/Enemy.h"
@@ -36,6 +37,9 @@ void ADiplosimGameModeBase::BeginPlay()
 
 	if (GetWorld()->GetMapName() != "Map")
 		return;
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Camera = PController->GetPawn<ACamera>();
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	settings->GameMode = this;
@@ -321,7 +325,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 	GetWorld()->GetTimerManager().SetTimer(crystalTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::ShowRaidCrystal, false, FVector(0.0f, 0.0f, -1000.0f)), 0.1f * count, false);
 
 	for (ASpecial* building : Grid->SpecialBuildings) {
-		if (!building->IsA<ACloneLab>())
+		if (!IsValid(building) || !building->IsA<ACloneLab>())
 			continue;
 
 		Cast<ACloneLab>(building)->StartCloneLab();

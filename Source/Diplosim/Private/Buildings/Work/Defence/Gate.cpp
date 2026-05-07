@@ -24,7 +24,6 @@ AGate::AGate()
 		gate->SetGenerateOverlapEvents(BuildingMesh->GetGenerateOverlapEvents());
 		gate->SetupAttachment(BuildingMesh, *(element.Value.ToString() + "Socket"));
 		gate->SetCanEverAffectNavigation(true);
-		gate->SetRelativeLocation(FVector(0.0f, 0.0f, -3.5f));
 
 		if (gate == RightGate)
 			gate->SetRelativeRotation(FRotator(0.0f, 0.0f, 180.0f));
@@ -37,6 +36,9 @@ void AGate::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (DeltaTime < 0.001f || DeltaTime > 1.0f)
+		return;
+
 	FRotator rotation = FRotator(0.0f, 1.0f, 0.0f);
 	if (bOpen)
 		rotation *= -1.0f;
@@ -46,11 +48,8 @@ void AGate::Tick(float DeltaTime)
 	RightGate->SetRelativeRotation(RightGate->GetRelativeRotation() + rotation);
 	LeftGate->SetRelativeRotation(LeftGate->GetRelativeRotation() - rotation);
 
-	if (FMath::Floor(RightGate->GetRelativeRotation().Yaw) == 180.0f || FMath::CeilToInt32(RightGate->GetRelativeRotation().Yaw) == 100.0f) {
+	if (FMath::Floor(RightGate->GetRelativeRotation().Yaw) == 180.0f || FMath::CeilToInt32(RightGate->GetRelativeRotation().Yaw) == 100.0f)
 		SetActorTickEnabled(false);
-
-		UpdateNavigation();
-	}
 }
 
 void AGate::Enter(ACitizen* Citizen)
@@ -78,10 +77,4 @@ void AGate::CloseGate()
 	SetActorTickEnabled(true);
 
 	bOpen = false;
-}
-
-void AGate::UpdateNavigation()
-{
-	RightGate->SetCanEverAffectNavigation(!bOpen);
-	LeftGate->SetCanEverAffectNavigation(!bOpen);
 }

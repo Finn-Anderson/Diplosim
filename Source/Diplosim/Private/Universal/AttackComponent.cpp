@@ -51,7 +51,7 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 	ProjectileClass = OtherClass;
 }
 
-void UAttackComponent::PickTarget()
+void UAttackComponent::PickTarget(float DeltaTime)
 {
 	AActor* favoured = nullptr;
 	AAI* ai = nullptr;
@@ -118,7 +118,7 @@ void UAttackComponent::PickTarget()
 	}
 
 	if ((*ProjectileClass || ai->CanReach(favoured, reach)))
-		Attack(favoured);
+		Attack(favoured, DeltaTime);
 	else if (CurrentTarget != favoured)
 		ai->AIController->AIMoveTo(favoured);
 
@@ -206,7 +206,7 @@ bool UAttackComponent::IsMoraleHigh()
 	return morale > 0.0f;
 }
 
-void UAttackComponent::Attack(AActor* Target)
+void UAttackComponent::Attack(AActor* Target, float DeltaTime)
 {
 	if (!IsValid(Target))
 		return;
@@ -216,17 +216,8 @@ void UAttackComponent::Attack(AActor* Target)
 	if (healthComp->Health == 0)
 		return;
 
-	float time = AttackTime;
-
-	if (GetOwner()->IsA<AWall>()) {
-		AWall* defensiveBuilding = Cast<AWall>(GetOwner());
-
-		for (ACitizen* citizen : defensiveBuilding->GetCitizensAtBuilding())
-			time -= (time / defensiveBuilding->GetCitizensAtBuilding().Num()) * citizen->GetProductivity() - 1.0f;
-	}
-
 	if (AttackTimer > 0.0f) {
-		AttackTimer -= 0.1f;
+		AttackTimer -= DeltaTime;
 
 		return;
 	}
@@ -243,6 +234,15 @@ void UAttackComponent::Attack(AActor* Target)
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
 	if ((GetOwner()->IsA<ABuilding>() && *ProjectileClass) || (GetOwner()->IsA<AEnemy>() && !gamemode->IsSnakeFaction(GetOwner()) && !*ProjectileClass)) {
+		float time = AttackTime;
+
+		if (GetOwner()->IsA<AWall>()) {
+			AWall* defensiveBuilding = Cast<AWall>(GetOwner());
+
+			for (ACitizen* citizen : defensiveBuilding->GetCitizensAtBuilding())
+				time -= (time / defensiveBuilding->GetCitizensAtBuilding().Num()) * citizen->GetProductivity() - 1.0f;
+		}
+
 		AttackTimer = time;
 
 		if (*ProjectileClass)
@@ -251,7 +251,7 @@ void UAttackComponent::Attack(AActor* Target)
 			Melee();
 	}
 	else {
-		time = 2.0f;
+		float time = 2.0f;
 
 		if (GetOwner()->IsA<ACitizen>())
 			time *= Cast<ACitizen>(GetOwner())->GetProductivity();
@@ -322,8 +322,10 @@ void UAttackComponent::Throw()
 
 	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
 
-	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
-	projectile->SpawnNiagaraSystems(GetOwner());
+	Async(EAsyncExecution::TaskGraphMainTick, [this, startLoc, ang]() {
+		AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
+		projectile->SpawnNiagaraSystems(GetOwner());
+	});
 }
 
 void UAttackComponent::Melee()

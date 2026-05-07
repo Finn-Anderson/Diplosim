@@ -33,7 +33,7 @@ public:
 
 	void SetProjectileClass(TSubclassOf<class AProjectile> OtherClass);
 
-	void PickTarget();
+	void PickTarget(float DeltaTime);
 
 	void ClearAttacks();
 
@@ -82,5 +82,5 @@ private:
 
 	bool IsMoraleHigh();
 
-	void Attack(AActor* Target);
+	void Attack(AActor* Target, float DeltaTime);
 };

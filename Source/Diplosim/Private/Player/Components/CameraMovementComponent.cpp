@@ -116,9 +116,11 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 	else
 		z = Actor->GetComponentByClass<UStaticMeshComponent>()->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
+	float amount = z / 2.0f + 5.0f;
+
 	FVector widgetLocation = location;
-	if ((Actor->IsA<ATrader>() && !Camera->BuildComponent->Buildings.Contains(Actor)) || Actor->IsA<AAI>())
-		widgetLocation.Z += z / 2.0f + 5.0f;
+	if ((Actor->IsA<ATrader>() && !Camera->BuildComponent->Buildings.Contains(Actor)) || Actor->IsA<AAI>() || amount <= Camera->SpringArmComponent->ProbeSize)
+		widgetLocation.Z += amount;
 	else
 		widgetLocation.Z += z - 8.0f;
 
@@ -127,9 +129,8 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 	if (!Camera->AttachedTo.bAttachCamera)
 		return FVector::Zero();
 
-	float amount = z / 2.0f + 5.0f;
 	if (amount <= Camera->SpringArmComponent->ProbeSize)
-		amount = Camera->SpringArmComponent->ProbeSize;
+		amount = Camera->SpringArmComponent->ProbeSize + 3.0f;
 
 	location.Z += amount;
 

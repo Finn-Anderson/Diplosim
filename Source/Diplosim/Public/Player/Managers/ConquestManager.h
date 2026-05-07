@@ -44,9 +44,9 @@ public:
 
 	void ComputeAI();
 
-	void CalculateAIFighting();
+	void CalculateAIFighting(float DeltaTime);
 
-	void CalculateBuildingFighting();
+	void CalculateBuildingFighting(float DeltaTime);
 
 	void CheckLoadFactionLock();
 

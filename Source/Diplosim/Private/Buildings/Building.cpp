@@ -13,7 +13,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
 #include "Engine/StaticMeshSocket.h"
-#include "ProceduralMeshComponent.h"
 
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
