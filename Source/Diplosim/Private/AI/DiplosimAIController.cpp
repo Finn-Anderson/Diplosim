@@ -558,7 +558,10 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 	if (FVector::Dist(currentLoc, navLoc) < AI->Range / 15.0f)
 		return;
 
-	AIMoveTo(Actor, navLoc.Location, MoveRequest.GetGoalInstance());
+	if (Actor->IsA<ABroch>())
+		AI->MoveToBroch();
+	else
+		AIMoveTo(Actor, navLoc.Location, MoveRequest.GetGoalInstance());
 }
 
 void ADiplosimAIController::StartMovement()

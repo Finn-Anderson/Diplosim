@@ -12,10 +12,8 @@ class DIPLOSIM_API AProjectile : public AActor
 public:	
 	AProjectile();
 
-protected:
-	virtual void BeginPlay() override;
+	void Tick(float DeltaTime) override;
 
-public:	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")
 		class UStaticMeshComponent* ProjectileMesh;
 
@@ -46,13 +44,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		bool bDamageFallOff;
 
-	UFUNCTION()
-		void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-
 	void SpawnNiagaraSystems(AActor* Launcher);
 
 private:
-	void Explode();
+	void OnHit(AActor* Actor, UActorComponent* Component, int32 Instance);
+
+	void Explode(class ACamera* Camera);
 
 	void HitActor(AActor* Actor);
 };

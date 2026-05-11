@@ -129,7 +129,7 @@ FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
 {
 	FFavourabilityStruct Favourability;
 
-	if (!IsValid(Actor) || Actor->IsA<ATrap>())
+	if (!IsValid(Actor))
 		return Favourability;
 
 	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
@@ -199,7 +199,7 @@ bool UAttackComponent::IsMoraleHigh()
 	if (morale <= 0.0f) {
 		Camera->ArmyManager->RemoveFromArmy(citizen);
 
-		if (IsValid(Faction->EggTimer))
+		if (IsValid(Faction->EggTimer) && citizen->AIController->MoveRequest.GetGoalActor() != Faction->EggTimer)
 			citizen->AIController->AIMoveTo(Faction->EggTimer);
 	}
 
@@ -282,15 +282,12 @@ void UAttackComponent::Throw()
 	double g = FMath::Abs(GetWorld()->GetGravityZ());
 	double v = projectileMovement->InitialSpeed;
 
-	FVector startLoc = Camera->GetTargetActorLocation(GetOwner()) + FVector(0.0f, 0.0f, z);
+	FVector startLoc = Camera->GetTargetActorLocation(GetOwner()) + FVector(0.0f, 0.0f, z / 2.0f);
 
 	FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget);
 	targetLoc += CurrentTarget->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
 
 	FRotator lookAt = (targetLoc - startLoc).Rotation();
-
-	if (GetOwner()->IsA<AAI>())
-		startLoc += lookAt.Vector();
 
 	double angle = 0.0f;
 	double d = 0.0f;

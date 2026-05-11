@@ -148,6 +148,9 @@ void UHealthComponent::Death(AActor* Attacker)
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", actor);
 
+	if (Camera->AttachedTo.Actor == actor)
+		Camera->SetInteractStatus(Camera, false);
+
 	if (actor->IsA<ABroch>()) {
 		if (faction->Name == Camera->ColonyName)
 			Camera->Lose();
@@ -218,8 +221,7 @@ void UHealthComponent::Death(AActor* Attacker)
 	Camera->Grid->AtmosphereComponent->ClearFire(actor);
 
 	if (DeathSystem != nullptr) {
-		FVector origin;
-		FVector extent;
+		FVector origin, extent;
 		actor->GetActorBounds(false, origin, extent);
 
 		FVector location = Camera->GetTargetActorLocation(actor);
@@ -248,9 +250,6 @@ void UHealthComponent::Death(AActor* Attacker)
 			UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, origin, 0.0f, 2000.0f, 10000000.0f / (dimensions.X * dimensions.Y * dimensions.Z));
 		}
 	}
-
-	if (Camera->AttachedTo.Actor == actor)
-		Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
 
 	if (!IsValid(Attacker))
 		return;

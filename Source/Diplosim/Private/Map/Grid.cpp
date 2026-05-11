@@ -39,7 +39,7 @@ AGrid::AGrid()
 	response.GameTraceChannel1 = ECR_Block;
 	response.WorldStatic = ECR_Ignore;
 	response.WorldDynamic = ECR_Overlap;
-	response.Pawn = ECR_Ignore;
+	response.Pawn = ECR_Block;
 	response.PhysicsBody = ECR_Ignore;
 	response.Vehicle = ECR_Block;
 	response.Destructible = ECR_Ignore;

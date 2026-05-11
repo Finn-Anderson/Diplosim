@@ -38,6 +38,7 @@ UAIVisualiser::UAIVisualiser()
 	FCollisionResponseContainer response;
 	response.SetAllChannels(ECR_Ignore);
 	response.Visibility = ECR_Block;
+	response.Pawn = ECR_Block;
 
 	AIContainer = CreateDefaultSubobject<USceneComponent>(TEXT("AIContainer"));
 
@@ -371,14 +372,17 @@ void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
 
 			AActor* actor = actors[i];
 			double deathTime = *DestructingActors.Find(actor);
-
-			UStaticMeshComponent* mesh = actor->GetComponentByClass<UStaticMeshComponent>();
-			FVector dimensions = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
-
 			double alpha = FMath::Clamp((GetWorld()->GetTimeSeconds() - deathTime) / 10.0f, 0.0f, 1.0f);
+
+			UStaticMeshComponent* mainMesh = actor->GetComponentByClass<UStaticMeshComponent>();
+			FVector dimensions = mainMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 			float z = dimensions.Z + 1.0f;
 
-			mesh->SetCustomPrimitiveDataFloat(8, FMath::Lerp(0.0f, -z, alpha));
+			TArray<UStaticMeshComponent*> meshes;
+			actor->GetComponents<UStaticMeshComponent>(meshes);
+
+			for (UStaticMeshComponent* mesh : meshes)
+				mesh->SetCustomPrimitiveDataFloat(8, FMath::Lerp(0.0f, -z, alpha));
 
 			if (alpha == 1.0f) {
 				DestructingActors.Remove(actor);

@@ -6,6 +6,7 @@
 #include "AI/Clone.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
+#include "AI/Citizen/Components/BuildingComponent.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Defence/Trap.h"
 #include "Buildings/Work/Defence/Gate.h"
@@ -36,6 +37,8 @@ UConquestManager::UConquestManager()
 
 	AINum = 2;
 	MaxAINum = 2;
+
+	BuildingFightCheckAftermathCount = 0;
 }
 
 FFactionStruct UConquestManager::InitialiseFaction(FString Name)
@@ -368,8 +371,10 @@ void UConquestManager::CalculateAIFighting(float DeltaTime)
 
 					UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
-					if ((healthComp && healthComp->GetHealth() <= 0) || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))))
+					if ((healthComp && healthComp->GetHealth() <= 0) || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))) || actor->IsA<ATrap>() || (actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(actor)->BuildingComponent->BuildingAt)))
 						continue;
+
+					GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, actor->GetName());
 
 					ai->AttackComponent->OverlappingEnemies.Add(actor);
 				}
@@ -394,9 +399,15 @@ void UConquestManager::CalculateBuildingFighting(float DeltaTime)
 			return;
 		}
 
+		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+
+		BuildingFightCheckAftermathCount = FMath::Max(BuildingFightCheckAftermathCount--, 0);
+
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-			if (faction.Rebels.IsEmpty() && GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty())
+			if (faction.Rebels.IsEmpty() && gamemode->Enemies.IsEmpty() && gamemode->Snakes.IsEmpty() && BuildingFightCheckAftermathCount == 0)
 				continue;
+
+			BuildingFightCheckAftermathCount = 2;
 
 			for (ABuilding* building : faction.Buildings) {
 				if (Camera->SaveGameComponent->IsLoading())
@@ -419,7 +430,7 @@ void UConquestManager::CalculateBuildingFighting(float DeltaTime)
 					FOverlapsStruct requestedOverlaps;
 					requestedOverlaps.GetCitizenEnemies();
 
-					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, trap->ActivateRange, requestedOverlaps, EFactionType::Both);
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, trap->ActivateRange, requestedOverlaps, EFactionType::Different);
 
 					if (!actors.IsEmpty())
 						trap->StartTrapFuse();
@@ -430,7 +441,7 @@ void UConquestManager::CalculateBuildingFighting(float DeltaTime)
 					FOverlapsStruct requestedOverlaps;
 					requestedOverlaps.GetCitizenEnemies();
 
-					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, rangeComp->GetUnscaledSphereRadius(), requestedOverlaps, EFactionType::Both);
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, rangeComp->GetUnscaledSphereRadius(), requestedOverlaps, EFactionType::Different);
 
 					if (building->IsA<AGate>()) {
 						AGate* gate = Cast<AGate>(building);

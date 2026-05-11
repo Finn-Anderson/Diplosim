@@ -655,6 +655,11 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 	if (!IsValid(Actor) || Grid->AIVisualiser->DestructingActors.Contains(Actor))
 		return;
 
+	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
+
+	if (healthComp && healthComp->GetHealth() == 0)
+		return;
+
 	if (!IsValid(Component))
 		Component = Actor->GetRootComponent();
 

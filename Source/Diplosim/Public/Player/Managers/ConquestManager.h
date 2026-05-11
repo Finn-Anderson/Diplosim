@@ -82,6 +82,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Factions")
 		TArray<TSubclassOf<class ABuilding>> BuildingClassDefaultAmount;
 
+	UPROPERTY()
+		int32 BuildingFightCheckAftermathCount;
+
 	// UI
 	UFUNCTION(BlueprintCallable)
 		void DisplayConquestNotification(FString Message, FString Owner, bool bChoice);

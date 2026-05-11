@@ -663,6 +663,13 @@ void UDiplosimSaveGame::SaveBuilding(ACamera* Camera, FActorSaveData& ActorData,
 	buildingData.ChosenColour = building->ChosenColour;
 	buildingData.Tier = building->Tier;
 
+	TArray<UStaticMeshComponent*> components;
+	building->GetComponents<UStaticMeshComponent>(components);
+	components.Remove(building->BuildingMesh);
+
+	for (UStaticMeshComponent* component : components)
+		buildingData.ChildMeshRotations.Add(component->GetRelativeRotation());
+
 	buildingData.TargetList = building->TargetList;
 
 	buildingData.Storage = building->Storage;
@@ -1097,6 +1104,7 @@ void UDiplosimSaveGame::LoadGamemode(ADiplosimGameModeBase* Gamemode, FActorSave
 {
 	ACamera* camera = Cast<ACamera>(Actor);
 
+	Gamemode->WavesData.Empty();
 	for (FWaveData waveData : GamemodeData.WaveData) {
 		FWaveStruct wave;
 		wave.SpawnLocations = waveData.SpawnLocations;
@@ -1256,6 +1264,14 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 	building->SeedNum = BuildingData.Seed;
 	building->SetTier(BuildingData.Tier);
 
+	TArray<UStaticMeshComponent*> components;
+	building->GetComponents<UStaticMeshComponent>(components);
+	components.Remove(building->BuildingMesh);
+
+	for (int32 i = 0; i < components.Num(); i++)
+		if (BuildingData.ChildMeshRotations.Num() - 1 > i)
+			components[i]->SetRelativeRotation(BuildingData.ChildMeshRotations[i]);
+
 	bool bBuilt = true;
 	for (FConstructionData constructionData : ConstructionData) {
 		if (constructionData.BuildingName != ActorData.Name)
@@ -1266,11 +1282,13 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 		constructionStruct.BuildPercentage = constructionData.BuildPercentage;
 		constructionStruct.Building = building;
 
-		if (constructionStruct.Status == EBuildStatus::Construction)
+		if (constructionStruct.Status == EBuildStatus::Construction) {
 			constructionStruct.Building->SetConstructionMesh();
 
+			bBuilt = false;
+		}
+
 		Camera->ConstructionManager->Construction.Add(constructionStruct);
-		bBuilt = false;
 
 		break;
 	}

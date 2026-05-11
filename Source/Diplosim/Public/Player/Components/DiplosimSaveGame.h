@@ -430,6 +430,9 @@ struct FBuildingData
 		float CropHeight;
 
 	UPROPERTY()
+		TArray<FRotator> ChildMeshRotations;
+
+	UPROPERTY()
 		FHealthData HealthData;
 
 	UPROPERTY()

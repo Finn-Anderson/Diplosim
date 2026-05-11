@@ -26,7 +26,7 @@ AGate::AGate()
 		gate->SetCanEverAffectNavigation(true);
 
 		if (gate == RightGate)
-			gate->SetRelativeRotation(FRotator(0.0f, 0.0f, 180.0f));
+			gate->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 	}
 
 	bOpen = false;
@@ -48,7 +48,7 @@ void AGate::Tick(float DeltaTime)
 	RightGate->SetRelativeRotation(RightGate->GetRelativeRotation() + rotation);
 	LeftGate->SetRelativeRotation(LeftGate->GetRelativeRotation() - rotation);
 
-	if (FMath::Floor(RightGate->GetRelativeRotation().Yaw) == 180.0f || FMath::CeilToInt32(RightGate->GetRelativeRotation().Yaw) == 100.0f)
+	if ((FMath::Abs(FMath::FloorToInt32(RightGate->GetRelativeRotation().Yaw)) == 180 && !bOpen) || (FMath::CeilToInt32(RightGate->GetRelativeRotation().Yaw) == 100 && bOpen))
 		SetActorTickEnabled(false);
 }
 

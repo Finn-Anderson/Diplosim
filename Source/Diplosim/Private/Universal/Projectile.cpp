@@ -7,8 +7,10 @@
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 
+#include "AI/AI.h"
 #include "Buildings/Work/Defence/Tower.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
@@ -18,13 +20,13 @@
 
 AProjectile::AProjectile()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickInterval(0.1f);
 
 	ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AIMesh"));
 	ProjectileMesh->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
-	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Overlap);
-	ProjectileMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	ProjectileMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ProjectileMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
 	ProjectileMesh->bCastDynamicShadow = true;
 	ProjectileMesh->CastShadow = true;
 
@@ -48,11 +50,16 @@ AProjectile::AProjectile()
 	bDamageFallOff = true;
 }
 
-void AProjectile::BeginPlay()
+void AProjectile::Tick(float DeltaTime)
 {
-	Super::BeginPlay();
-	
-	ProjectileMesh->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
+	FHitResult hit;
+	FVector origin, extent;
+	GetActorBounds(false, origin, extent);
+
+	if (GetWorld()->SweepSingleByChannel(hit, origin, origin, ProjectileMesh->GetRelativeRotation().Quaternion(), ECC_Vehicle, FCollisionShape::MakeCapsule(extent)))
+		OnHit(hit.GetActor(), hit.GetComponent(), hit.Item);
+
+	DrawDebugCapsule(GetWorld(), origin, extent.Z, extent.X, ProjectileMesh->GetRelativeRotation().Quaternion(), FColor::Red, false, 1.0f);
 }
 
 void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
@@ -64,48 +71,49 @@ void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
 	if (TrailSystem)
 		trail = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailSystem, ProjectileMesh, FName("Trail1"), FVector(0.0f), FRotator(0.0f), EAttachLocation::Type::KeepRelativeOffset, true);
 
-	if (Launcher->IsA<ATower>()) {
-		FLinearColor colour = Cast<ATower>(Launcher)->ChosenColour;
-
-		ProjectileMesh->SetCustomPrimitiveDataFloat(0, colour.R);
-		ProjectileMesh->SetCustomPrimitiveDataFloat(1, colour.G);
-		ProjectileMesh->SetCustomPrimitiveDataFloat(2, colour.B);
-
-		if (TrailSystem)
-			trail->SetVariableLinearColor(TEXT("Colour"), colour);
-	}
-}
-
-void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) 
-{
-	if (OtherActor == GetOwner())
+	if (!Launcher->IsA<ATower>())
 		return;
 
+	FLinearColor colour = Cast<ATower>(Launcher)->ChosenColour;
+
+	ProjectileMesh->SetCustomPrimitiveDataFloat(0, colour.R);
+	ProjectileMesh->SetCustomPrimitiveDataFloat(1, colour.G);
+	ProjectileMesh->SetCustomPrimitiveDataFloat(2, colour.B);
+
+	if (TrailSystem)
+		trail->SetVariableLinearColor(TEXT("Colour"), colour);
+}
+
+void AProjectile::OnHit(AActor* Actor, UActorComponent* Component, int32 Instance)
+{
+	if (Actor == GetOwner())
+		return;
+
+	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	ACamera* camera = PController->GetPawn<ACamera>();
+
 	if (bExplode)
-		Explode();
-	else
-		HitActor(OtherActor);
+		Explode(camera);
+	else if (Component->IsA<UInstancedStaticMeshComponent>())
+		HitActor(camera->Grid->AIVisualiser->GetHISMAI(camera, Cast<UInstancedStaticMeshComponent>(Component), Instance));
 
 	Destroy();
 }
 
-void AProjectile::Explode()
+void AProjectile::Explode(ACamera* Camera)
 {
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	ACamera* camera = PController->GetPawn<ACamera>();
-
 	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
 
 	TArray<AActor*> ignore;
-	ignore.Add(camera->Grid);
+	ignore.Add(Camera->Grid);
 
-	for (FResourceHISMStruct resourceStruct : camera->Grid->MineralStruct)
+	for (FResourceHISMStruct resourceStruct : Camera->Grid->MineralStruct)
 		ignore.Add(resourceStruct.Resource);
 
-	for (FResourceHISMStruct resourceStruct : camera->Grid->FlowerStruct)
+	for (FResourceHISMStruct resourceStruct : Camera->Grid->FlowerStruct)
 		ignore.Add(resourceStruct.Resource);
 
-	FFactionStruct* faction = camera->ConquestManager->GetFaction("", GetOwner());
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", GetOwner());
 
 	if (faction != nullptr)
 		ignore.Append(faction->Buildings);
@@ -114,7 +122,7 @@ void AProjectile::Explode()
 	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), Radius, objects, nullptr, ignore, actors);
 
 	for (AActor* actor : actors) {
-		if (GetOwner()->IsA<UNaturalDisasterComponent>() && camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(actor->GetActorLocation()))
+		if (GetOwner()->IsA<UNaturalDisasterComponent>() && Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(actor->GetActorLocation()))
 			continue;
 
 		HitActor(actor);
@@ -131,6 +139,9 @@ void AProjectile::Explode()
 
 void AProjectile::HitActor(AActor* Actor)
 {
+	if (!IsValid(Actor))
+		return;
+
 	UHealthComponent* healthComponent = Actor->GetComponentByClass<UHealthComponent>();
 
 	if (!healthComponent || healthComponent->GetHealth() == 0)

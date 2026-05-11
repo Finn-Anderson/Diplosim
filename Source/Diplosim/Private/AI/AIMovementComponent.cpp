@@ -121,7 +121,7 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 
 		CurrentAnim.StartTransform = FTransform();
 
-		if (CurrentAnim.StartTransform.GetLocation() == endLocation || (CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat) || CurrentAnim.Type == EAnim::Decay)
+		if ((CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat) || CurrentAnim.bOneWay)
 			CurrentAnim.bPlay = false;
 
 		if (CurrentAnim.Alpha == 1.0f && (CurrentAnim.Type == EAnim::Melee || CurrentAnim.Type == EAnim::Throw)) {
