@@ -57,7 +57,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	if (CurrentAnim.Type != EAnim::Move)
 		return;
 
-	if (!Points.IsEmpty() && AI->CanReach(AI, AI->Range / 15.0f, Points[0]))
+	if (!Points.IsEmpty() && AI->CanReach(AI, 5.0f, Points[0]))
 		Points.RemoveAt(0);
 
 	if (Points.IsEmpty())

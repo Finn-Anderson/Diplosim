@@ -374,8 +374,6 @@ void UConquestManager::CalculateAIFighting(float DeltaTime)
 					if ((healthComp && healthComp->GetHealth() <= 0) || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))) || actor->IsA<ATrap>() || (actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(actor)->BuildingComponent->BuildingAt)))
 						continue;
 
-					GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, actor->GetName());
-
 					ai->AttackComponent->OverlappingEnemies.Add(actor);
 				}
 

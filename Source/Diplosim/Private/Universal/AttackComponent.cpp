@@ -282,10 +282,11 @@ void UAttackComponent::Throw()
 	double g = FMath::Abs(GetWorld()->GetGravityZ());
 	double v = projectileMovement->InitialSpeed;
 
-	FVector startLoc = Camera->GetTargetActorLocation(GetOwner()) + FVector(0.0f, 0.0f, z / 2.0f);
+	FVector startLoc = Camera->GetTargetActorLocation(GetOwner(), false) + FVector(0.0f, 0.0f, z / 2.0f);
 
-	FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget);
-	targetLoc += CurrentTarget->GetVelocity() * (FVector::Dist(startLoc, targetLoc) / v);
+	FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget, false);
+	//if (CurrentTarget->IsA<AAI>())
+		//targetLoc += Cast<AAI>(CurrentTarget)->MovementComponent->Velocity * (FVector::Dist(startLoc, targetLoc) / v);
 
 	FRotator lookAt = (targetLoc - startLoc).Rotation();
 
@@ -297,7 +298,7 @@ void UAttackComponent::Throw()
 	FCollisionQueryParams queryParams;
 	queryParams.AddIgnoredActor(GetOwner());
 
-	FVector endLoc = Camera->GetTargetActorLocation(CurrentTarget);
+	FVector endLoc = Camera->GetTargetActorLocation(CurrentTarget, false);
 
 	if (GetWorld()->LineTraceSingleByChannel(hit, startLoc, endLoc, ECollisionChannel::ECC_PhysicsBody, queryParams)) {
 		if (hit.GetActor()->IsA<AEnemy>()) {
@@ -322,6 +323,7 @@ void UAttackComponent::Throw()
 	Async(EAsyncExecution::TaskGraphMainTick, [this, startLoc, ang]() {
 		AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 		projectile->SpawnNiagaraSystems(GetOwner());
+		projectile->FactionName = Camera->ConquestManager->GetFaction("", GetOwner())->Name;
 	});
 }
 
@@ -340,10 +342,10 @@ void UAttackComponent::Melee()
 
 	UHealthComponent* healthComp = CurrentTarget->GetComponentByClass<UHealthComponent>();
 	
-	int32 dmg = Damage;
-	
+	float dmg = Damage;
+
 	if (GetOwner()->IsA<ACitizen>())
-		dmg *= 1 / (18 / FMath::Clamp(Cast<ACitizen>(GetOwner())->BioComponent->Age, 1, 18));
+		dmg *= 1.0f / (18.0f / FMath::Clamp(Cast<ACitizen>(GetOwner())->BioComponent->Age, 1.0f, 18.0f));
 
 	healthComp->TakeHealth(dmg * DamageMultiplier, GetOwner(), sound);
 }

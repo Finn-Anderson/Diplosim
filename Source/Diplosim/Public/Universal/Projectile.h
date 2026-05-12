@@ -44,6 +44,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		bool bDamageFallOff;
 
+	UPROPERTY()
+		FString FactionName;
+
 	void SpawnNiagaraSystems(AActor* Launcher);
 
 private:
@@ -51,5 +54,5 @@ private:
 
 	void Explode(class ACamera* Camera);
 
-	void HitActor(AActor* Actor);
+	void HitActor(class ACamera* Camera, AActor* Actor);
 };

@@ -25,7 +25,7 @@ void AEnemy::Zap(FVector Location)
 {
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Location]() {
 		ZapComponent->SetVariableLinearColor("Colour", Colour);
-		ZapComponent->SetVariablePosition("StartLocation", MovementComponent->Transform.GetLocation() + Camera->Grid->AIVisualiser->GetAIHISM(this).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().Z / 2.0f);
+		ZapComponent->SetVariablePosition("StartLocation", MovementComponent->Transform.GetLocation() + Camera->Grid->AIVisualiser->GetAIHISM(this).Key->GetStaticMesh()->GetBounds().Origin);
 		ZapComponent->SetVariablePosition("EndLocation", Location);
 
 		ZapComponent->Activate();

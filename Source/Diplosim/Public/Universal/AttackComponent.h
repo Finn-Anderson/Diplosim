@@ -63,7 +63,7 @@ public:
 		AActor* CurrentTarget;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Attack")
-		int32 DamageMultiplier;
+		float DamageMultiplier;
 
 	UPROPERTY()
 		class ACamera* Camera;

@@ -419,7 +419,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
 		FVector location = FVector::Zero();
 
-		if (comp && comp->DoesSocketExist("Entrance"))
+		if (Actor->IsA<ACitizen>() && comp && comp->DoesSocketExist("Entrance"))
 			location = comp->GetSocketLocation("Entrance");
 		else
 			comp->GetClosestPointOnCollision(AILocation, location);

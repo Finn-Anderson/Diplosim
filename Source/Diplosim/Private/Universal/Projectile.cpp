@@ -21,7 +21,7 @@
 AProjectile::AProjectile()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	SetActorTickInterval(0.1f);
+	SetActorTickInterval(1/60.0f);
 
 	ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AIMesh"));
 	ProjectileMesh->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
@@ -48,18 +48,22 @@ AProjectile::AProjectile()
 
 	bExplode = false;
 	bDamageFallOff = true;
+
+	FactionName = "";
 }
 
 void AProjectile::Tick(float DeltaTime)
 {
+	Super::Tick(DeltaTime);
+
+	if (DeltaTime < 0.001f || DeltaTime > 1.0f)
+		return;
+
 	FHitResult hit;
-	FVector origin, extent;
-	GetActorBounds(false, origin, extent);
+	FVector size = ProjectileMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 
-	if (GetWorld()->SweepSingleByChannel(hit, origin, origin, ProjectileMesh->GetRelativeRotation().Quaternion(), ECC_Vehicle, FCollisionShape::MakeCapsule(extent)))
+	if (GetWorld()->SweepSingleByChannel(hit, GetActorLocation(), GetActorLocation(), (ProjectileMesh->GetRelativeRotation() + FRotator(90.0f, 0.0f, 0.0f)).Quaternion(), ECC_Pawn, FCollisionShape::MakeCapsule(size.Z, size.X)))
 		OnHit(hit.GetActor(), hit.GetComponent(), hit.Item);
-
-	DrawDebugCapsule(GetWorld(), origin, extent.Z, extent.X, ProjectileMesh->GetRelativeRotation().Quaternion(), FColor::Red, false, 1.0f);
 }
 
 void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
@@ -95,7 +99,7 @@ void AProjectile::OnHit(AActor* Actor, UActorComponent* Component, int32 Instanc
 	if (bExplode)
 		Explode(camera);
 	else if (Component->IsA<UInstancedStaticMeshComponent>())
-		HitActor(camera->Grid->AIVisualiser->GetHISMAI(camera, Cast<UInstancedStaticMeshComponent>(Component), Instance));
+		HitActor(camera, camera->Grid->AIVisualiser->GetHISMAI(camera, Cast<UInstancedStaticMeshComponent>(Component), Instance));
 
 	Destroy();
 }
@@ -125,7 +129,7 @@ void AProjectile::Explode(ACamera* Camera)
 		if (GetOwner()->IsA<UNaturalDisasterComponent>() && Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(actor->GetActorLocation()))
 			continue;
 
-		HitActor(actor);
+		HitActor(Camera, actor);
 	}
 
 	UNiagaraComponent* explosion = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionSystem, GetActorLocation());
@@ -137,9 +141,9 @@ void AProjectile::Explode(ACamera* Camera)
 	UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, Radius * 6, 1.0f);
 }
 
-void AProjectile::HitActor(AActor* Actor)
+void AProjectile::HitActor(ACamera* Camera, AActor* Actor)
 {
-	if (!IsValid(Actor))
+	if (!IsValid(Actor) || Camera->ConquestManager->GetFactionFromActor(Actor).Name == FactionName)
 		return;
 
 	UHealthComponent* healthComponent = Actor->GetComponentByClass<UHealthComponent>();
@@ -147,8 +151,8 @@ void AProjectile::HitActor(AActor* Actor)
 	if (!healthComponent || healthComponent->GetHealth() == 0)
 		return;
 
-	int32 multiplier = 1.0f;
-	int32 dmg = Damage;
+	float multiplier = 1.0f;
+	float dmg = Damage;
 	USoundBase* sound = nullptr;
 
 	UAttackComponent* attackComponent = GetOwner()->FindComponentByClass<UAttackComponent>();
