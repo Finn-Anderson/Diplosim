@@ -2,23 +2,28 @@
   "Parties": [
     {
       "Party": "Chicken Winged",
-      "Agreeable": [ "Diligent", "Reserved", "Conscientious" ]
+      "Agreeable": [ "Diligent", "Reserved", "Conscientious" ],
+      "Colour":  "#532EE8FF"
     },
     {
       "Party": "Free Range",
-      "Agreeable": [ "Lazy", "Careless" ]
+      "Agreeable": [ "Lazy", "Careless" ],
+      "Colour": "#4B8B3BFF"
     },
     {
       "Party": "The Scrambled Coalition",
-      "Agreeable": [ "Inept", "Lethargic", "Idler" ]
+      "Agreeable": [ "Inept", "Lethargic", "Idler" ],
+      "Colour": "#B551BDFF"
     },
     {
       "Party": "Golden Yolk",
-      "Agreeable": [ "Outgoing", "Energetic", "Workaholic" ]
+      "Agreeable": [ "Outgoing", "Energetic", "Workaholic" ],
+      "Colour": "#EFBF04FF"
     },
     {
       "Party": "Shell Breakers",
-      "Agreeable": [ "Cruel" ]
+      "Agreeable": [ "Cruel" ],
+      "Colour": "#ED164DFF"
     }
   ]
 }

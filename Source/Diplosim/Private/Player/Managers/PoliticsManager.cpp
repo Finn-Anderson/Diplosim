@@ -111,8 +111,10 @@ void UPoliticsManager::ReadJSONFile(FString path)
 				else if (v.Value->Type == EJson::String) {
 					FString value = v.Value->AsString();
 
-					if (element.Key == "Parties")
+					if (v.Key == "Party")
 						party.Party = value;
+					else if (v.Key == "Colour")
+						party.Colour = FLinearColor(FColor::FromHex(value));
 					else
 						law.BillType = value;
 				}
@@ -209,6 +211,16 @@ FString UPoliticsManager::GetCitizenParty(ACitizen* Citizen)
 		return "Undecided";
 
 	return partyStruct->Party;
+}
+
+FLinearColor UPoliticsManager::GetCitizenPartyColour(ACitizen* Citizen)
+{
+	FPartyStruct* partyStruct = GetMembersParty(Citizen);
+
+	if (partyStruct == nullptr)
+		return FLinearColor();
+
+	return partyStruct->Colour;
 }
 
 FPartyStruct UPoliticsManager::GetPartyFromName(FString FactionName, FString PartyName)

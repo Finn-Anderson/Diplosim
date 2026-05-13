@@ -90,16 +90,18 @@ void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
 
 void AProjectile::OnHit(AActor* Actor, UActorComponent* Component, int32 Instance)
 {
-	if (Actor == GetOwner())
-		return;
-
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	ACamera* camera = PController->GetPawn<ACamera>();
+
+	AAI* ai = camera->Grid->AIVisualiser->GetHISMAI(camera, Cast<UInstancedStaticMeshComponent>(Component), Instance);
+
+	if (Actor->GetClass() == GetOwner()->GetClass() || (IsValid(ai) && ai->GetClass() == GetOwner()->GetClass()))
+		return;
 
 	if (bExplode)
 		Explode(camera);
 	else if (Component->IsA<UInstancedStaticMeshComponent>())
-		HitActor(camera, camera->Grid->AIVisualiser->GetHISMAI(camera, Cast<UInstancedStaticMeshComponent>(Component), Instance));
+		HitActor(camera, ai);
 
 	Destroy();
 }

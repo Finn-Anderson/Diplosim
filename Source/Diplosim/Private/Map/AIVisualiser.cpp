@@ -96,6 +96,7 @@ void UAIVisualiser::BeginPlay()
 		hatsStruct.ISMHat = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass(), *name);
 		hatsStruct.ISMHat->SetStaticMesh(element.Key);
 		hatsStruct.ISMHat->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		hatsStruct.ISMHat->SetCollisionResponseToAllChannels(ECR_Ignore);
 		hatsStruct.ISMHat->SetCanEverAffectNavigation(false);
 		hatsStruct.ISMHat->SetGenerateOverlapEvents(false);
 		hatsStruct.ISMHat->bWorldPositionOffsetWritesVelocity = false;

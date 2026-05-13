@@ -35,6 +35,8 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 {
 	LastUpdatedTime = GetWorld()->GetTimeSeconds();
 
+	Velocity = FVector::Zero();
+
 	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
 
@@ -60,9 +62,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	if (!Points.IsEmpty() && AI->CanReach(AI, 5.0f, Points[0]))
 		Points.RemoveAt(0);
 
-	if (Points.IsEmpty())
-		Velocity = FVector::Zero();
-	else
+	if (!Points.IsEmpty())
 		Velocity = CalculateVelocity(Points[0]);
 
 	FVector deltaV = Velocity * DeltaTime;

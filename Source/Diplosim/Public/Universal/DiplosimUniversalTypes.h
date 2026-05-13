@@ -27,6 +27,9 @@ struct FPartyStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FString> Agreeable;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
+		FLinearColor Colour;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Politics")
 		TMap<class ACitizen*, TEnumAsByte<ESway>> Members;
 
@@ -37,6 +40,7 @@ struct FPartyStruct
 	{
 		Party = "";
 		Leader = nullptr;
+		Colour = FLinearColor();
 	}
 
 	bool operator==(const FPartyStruct& other) const

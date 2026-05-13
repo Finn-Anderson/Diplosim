@@ -31,6 +31,9 @@ public:
 		FString GetCitizenParty(ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
+		FLinearColor GetCitizenPartyColour(ACitizen* Citizen);
+
+	UFUNCTION(BlueprintCallable)
 		FPartyStruct GetPartyFromName(FString FactionName, FString PartyName);
 
 	void SelectNewLeader(FPartyStruct* Party);
