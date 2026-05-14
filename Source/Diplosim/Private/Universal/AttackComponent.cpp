@@ -104,7 +104,7 @@ void UAttackComponent::PickTarget(float DeltaTime)
 	int32 reach = 0.0f;
 
 	if (ai != nullptr)
-		reach = ai->Range / 15.0f;
+		reach = ai->GetReach();
 
 	if (favoured == nullptr) {
 		AttackTimer = 0.0f;
@@ -284,16 +284,16 @@ void UAttackComponent::Throw()
 
 	FVector startLoc = Camera->GetTargetActorLocation(GetOwner(), false) + FVector(0.0f, 0.0f, z / 2.0f);
 	FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget, false);
+	if (CurrentTarget->IsA<AAI>())
+		targetLoc += Cast<AAI>(CurrentTarget)->MovementComponent->Velocity * (FVector::Dist(startLoc, targetLoc) / v) * 2.0f;
 	FRotator lookAt = (targetLoc - startLoc).Rotation();
 
 	FVector groundedLocation = FVector(startLoc.X, startLoc.Y, targetLoc.Z);
 	double d = FVector::Dist(groundedLocation, targetLoc);
-
 	double h = startLoc.Z - targetLoc.Z;
-
 	double phi = FMath::Atan(d / h);
 
-	double angle = (FMath::Acos(((g * FMath::Square(d)) / FMath::Square(v) - h) / FMath::Sqrt(FMath::Square(h) + FMath::Square(d))) + phi) / 2 * (180.0f / PI);
+	double angle = (FMath::Acos(((g * FMath::Square(d)) / FMath::Square(v) - h) / FMath::Sqrt(FMath::Square(h) + FMath::Square(d))) + phi) / 2.0f * (180.0f / PI);
 
 	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
 

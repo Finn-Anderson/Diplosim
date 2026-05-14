@@ -37,6 +37,7 @@ AAI::AAI()
 
 	InitialRange = 400.0f;
 	Range = InitialRange;
+	ReachPercentageOfRange = 6.75f;
 }
 
 void AAI::BeginPlay()
@@ -75,7 +76,7 @@ void AAI::MoveToBroch()
 bool AAI::CanReach(AActor* Actor, float Reach, FVector Location, int32 Instance)
 {
 	if (Location == FVector::Zero()) {
-		Location = Camera->GetTargetActorLocation(Actor);
+		Location = AIController->GetActualLocation(Actor);
 
 		if (Actor->IsA<ABuilding>())
 			Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), Location);
@@ -84,4 +85,9 @@ bool AAI::CanReach(AActor* Actor, float Reach, FVector Location, int32 Instance)
 	}
 
 	return Reach >= FVector::Dist(MovementComponent->Transform.GetLocation(), Location);
+}
+
+float AAI::GetReach()
+{
+	return Range * (ReachPercentageOfRange / 100.0f);
 }

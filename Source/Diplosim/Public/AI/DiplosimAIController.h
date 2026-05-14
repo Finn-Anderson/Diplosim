@@ -112,6 +112,8 @@ public:
 
 	void RecalculateMovement(AActor* Actor);
 
+	FVector GetActualLocation(AActor* Actor);
+
 	void StartMovement();
 
 	virtual void StopMovement() override;

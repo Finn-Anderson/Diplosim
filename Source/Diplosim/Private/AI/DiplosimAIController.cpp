@@ -185,10 +185,10 @@ void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, ABuilding* 
 		nav->ProjectPointToNavigation(location, navLoc, FVector(1.0f, 1.0f, 200.0f));
 
 		double length = 0.0f;
-		nav->GetPathLength(Camera->GetTargetActorLocation(AI), navLoc, length);
+		nav->GetPathLength(GetActualLocation(AI), navLoc, length);
 
 		if (length <= MaxLength && CanMoveTo(navLoc)) {
-			UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetActorLocation(AI), navLoc, AI, AI->NavQueryFilter);
+			UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), GetActualLocation(AI), navLoc, AI, AI->NavQueryFilter);
 			path->EnableRecalculationOnInvalidation(ENavigationOptionFlag::Disable);
 
 			AI->MovementComponent->SetPoints(path->PathPoints);
@@ -298,7 +298,7 @@ void ADiplosimAIController::GetGatherSite(TSubclassOf<AResource> Resource)
 
 			int32 targetIndex = target->Storage.Find(itemStruct);
 
-			double magnitude = GetClosestActor(400.0f, Camera->GetTargetActorLocation(AI), target->GetActorLocation(), building->GetActorLocation(), true, target->Storage[targetIndex].Amount, building->Storage[index].Amount);
+			double magnitude = GetClosestActor(400.0f, GetActualLocation(AI), target->GetActorLocation(), building->GetActorLocation(), true, target->Storage[targetIndex].Amount, building->Storage[index].Amount);
 
 			if (magnitude <= 0.0f)
 				continue;
@@ -337,7 +337,7 @@ bool ADiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 	nav->ProjectPointToNavigation(Location, targetLoc, FVector(400.0f, 400.0f, 40.0f));
 
 	FNavLocation ownerLoc;
-	nav->ProjectPointToNavigation(Camera->GetTargetActorLocation(Target), ownerLoc, FVector(400.0f, 400.0f, 40.0f));
+	nav->ProjectPointToNavigation(GetActualLocation(Target), ownerLoc, FVector(400.0f, 400.0f, 40.0f));
 
 	FPathFindingQuery query(Target, *navData, ownerLoc.Location, targetLoc.Location);
 
@@ -407,36 +407,21 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	if (!IsValid(AI) || !IsValid(Actor))
 		return;
 
-	FVector AILocation = Camera->GetTargetActorLocation(AI);
+	FVector AILocation = GetActualLocation(AI);
 
 	MoveRequest.SetGoalActor(Actor);
 	MoveRequest.SetGoalInstance(Instance);
-	MoveRequest.SetLocation(Camera->GetTargetActorLocation(Actor));
+	MoveRequest.SetLocation(GetActualLocation(Actor));
 
 	if (Location != FVector::Zero())
 		MoveRequest.SetLocation(Location);
-	else if (Actor->IsA<ABuilding>()) {
-		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
-		FVector location = FVector::Zero();
-
-		if (Actor->IsA<ACitizen>() && comp && comp->DoesSocketExist("Entrance"))
-			location = comp->GetSocketLocation("Entrance");
-		else
-			comp->GetClosestPointOnCollision(AILocation, location);
-
+	else {
+		FVector location = GetActualLocation(Actor);
 		if (location != FVector::Zero())
 			MoveRequest.SetLocation(location);
 	}
-	else if (Actor->IsA<AResource>()) {
-		FTransform transform;
-		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(MoveRequest.GetGoalInstance(), transform);
-
-		MoveRequest.SetLocation(transform.GetLocation());
-	}
 	
-	int32 reach = AI->Range / 15.0f;
-	
-	if (AI->CanReach(Actor, reach, MoveRequest.GetLocation(), Instance) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
+	if (AI->CanReach(Actor, AI->GetReach(), MoveRequest.GetLocation(), Instance) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
 		return;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
@@ -482,10 +467,10 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 		if (IsValid(ownerNearestPortal) && IsValid(targetNearestPortal)) {
 			double originalPathLength = 0.0f;
-			nav->GetPathLength(Camera->GetTargetActorLocation(AI), MoveRequest.GetLocation(), originalPathLength);
+			nav->GetPathLength(GetActualLocation(AI), MoveRequest.GetLocation(), originalPathLength);
 
 			double ownerPathLength = 0.0f;
-			nav->GetPathLength(ownerNearestPortal->GetActorLocation(), Camera->GetTargetActorLocation(AI), ownerPathLength);
+			nav->GetPathLength(ownerNearestPortal->GetActorLocation(), GetActualLocation(AI), ownerPathLength);
 
 			double targetPathLength = 0.0f;
 			nav->GetPathLength(targetNearestPortal->GetActorLocation(), MoveRequest.GetLocation(), targetPathLength);
@@ -499,7 +484,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(400.0f, 400.0f, 40.0f));
 	MoveRequest.SetLocation(navLoc.Location);
 
-	nav->ProjectPointToNavigation(Camera->GetTargetActorLocation(AI), navLoc, FVector(400.0f, 400.0f, 40.0f));
+	nav->ProjectPointToNavigation(GetActualLocation(AI), navLoc, FVector(400.0f, 400.0f, 40.0f));
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Actor, navLoc]() {
 		TArray<FVector> points = GetPathPoints(navLoc.Location, MoveRequest.GetLocation());
@@ -523,45 +508,55 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AGrid>() || (Actor->IsA<AResource>() && MoveRequest.GetGoalInstance() == INDEX_NONE) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
 		return;
 
-	FVector AILocation = Camera->GetTargetActorLocation(AI);
+	FVector AILocation = GetActualLocation(AI);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	FVector targetLoc = Camera->GetTargetActorLocation(Actor);
+	FVector targetLoc = GetActualLocation(Actor);
 	FVector currentLoc = AILocation;
 
 	if (!AI->MovementComponent->Points.IsEmpty())
 		currentLoc = AI->MovementComponent->Points.Last();
 
-	if (Actor->IsA<ABuilding>()) {
-		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
-		FVector location = FVector::Zero();
-
-		if (comp && comp->DoesSocketExist("Entrance"))
-			location = comp->GetSocketLocation("Entrance");
-		else
-			comp->GetClosestPointOnCollision(AILocation, location);
-
-		if (location != FVector::Zero())
-			targetLoc = location;
-	}
-	else if (Actor->IsA<AResource>()) {
-		FTransform transform;
-		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(MoveRequest.GetGoalInstance(), transform);
-
-		targetLoc = transform.GetLocation();
-	}
+	FVector location = GetActualLocation(Actor);
+	if (location != FVector::Zero())
+		targetLoc = location;
 
 	FNavLocation navLoc;
 	nav->ProjectPointToNavigation(targetLoc, navLoc, FVector(400.0f, 400.0f, 40.0f));
 
-	if (FVector::Dist(currentLoc, navLoc) < AI->Range / 15.0f)
+	if (FVector::Dist(currentLoc, navLoc) < AI->GetReach())
 		return;
 
 	if (Actor->IsA<ABroch>())
 		AI->MoveToBroch();
 	else
 		AIMoveTo(Actor, navLoc.Location, MoveRequest.GetGoalInstance());
+}
+
+FVector ADiplosimAIController::GetActualLocation(AActor* Actor)
+{
+	FVector location = Actor->GetActorLocation();
+
+	if (Actor->IsA<AAI>()) {
+		location = Cast<AAI>(Actor)->MovementComponent->Transform.GetLocation();
+	}
+	if (Actor->IsA<ABuilding>()) {
+		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
+
+		if (comp && comp->DoesSocketExist("Entrance"))
+			location = comp->GetSocketLocation("Entrance");
+		else if (IsValid(AI))
+			comp->GetClosestPointOnCollision(AI->MovementComponent->Transform.GetLocation(), location);
+	}
+	else if (Actor->IsA<AResource>()) {
+		FTransform transform;
+		Cast<AResource>(Actor)->ResourceHISM->GetInstanceTransform(MoveRequest.GetGoalInstance(), transform);
+
+		location = transform.GetLocation();
+	}
+
+	return location;
 }
 
 void ADiplosimAIController::StartMovement()

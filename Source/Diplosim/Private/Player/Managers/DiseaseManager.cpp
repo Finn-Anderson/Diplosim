@@ -109,7 +109,9 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 				if (citizen->HealthComponent->GetHealth() <= 0)
 					continue;
 
-				if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA<AClinic>() && faction.Citizens.Contains(citizen->AIController->MoveRequest.GetGoalActor()) && citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), citizen->Range / 15.0f)) {
+				float reach = citizen->GetReach();
+
+				if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA<AClinic>() && faction.Citizens.Contains(citizen->AIController->MoveRequest.GetGoalActor()) && citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), reach)) {
 					if (Camera->TimerManager->DoesTimerExist("Healing", citizen))
 						continue;
 
@@ -123,7 +125,7 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 					FOverlapsStruct requestedOverlaps;
 					requestedOverlaps.GetCitizenInteractions(false, true);
 
-					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->Range / 15.0f, requestedOverlaps, EFactionType::Both);
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, reach, requestedOverlaps, EFactionType::Both);
 
 					for (AActor* actor : actors) {
 						if (!IsValid(actor))

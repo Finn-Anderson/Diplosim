@@ -239,9 +239,7 @@ void UCitizenManager::CalculateGoalInteractions()
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || IsValid(citizen->BuildingComponent->BuildingAt) || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || !IsValid(actor) || actor->IsA<AAI>())
 					continue;
 
-				float reach = citizen->Range / 15.0f;
-
-				if (!citizen->CanReach(actor, reach, citizen->AIController->MoveRequest.GetLocation(), citizen->AIController->MoveRequest.GetGoalInstance()))
+				if (!citizen->CanReach(actor, citizen->GetReach(), citizen->AIController->MoveRequest.GetLocation(), citizen->AIController->MoveRequest.GetGoalInstance()))
 					continue;
 
 				Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() {
@@ -289,7 +287,7 @@ void UCitizenManager::CalculateConversationInteractions()
 				if (bCitizenInReport && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)))
 					continue;
 
-				float reach = citizen->Range / 15.0f;
+				float reach = citizen->GetReach();
 				
 				if (IsValid(citizen->AIController->MoveRequest.GetGoalActor()) && IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)) {
 					Camera->PoliceManager->PoliceInteraction(&faction, citizen, reach);

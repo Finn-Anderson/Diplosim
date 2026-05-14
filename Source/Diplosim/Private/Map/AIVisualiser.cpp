@@ -142,7 +142,7 @@ void UAIVisualiser::MainLoop(ACamera* Camera, float DeltaTime)
 		if (pending.Instances.IsEmpty()) {
 			int32 instance = pending.ISM->AddInstance(pending.Transform, false);
 
-			if (IsValid(pending.AI->SpawnSystem))
+			if (IsValid(pending.AI->SpawnSystem) && DeltaTime != 0.0f)
 				UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), pending.AI->SpawnSystem, pending.Transform.GetLocation());
 
 			if (pending.ISM == HISMClone)

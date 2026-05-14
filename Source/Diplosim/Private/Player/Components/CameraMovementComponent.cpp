@@ -107,7 +107,13 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 		location = transform.GetLocation();
 	}
 	else if (Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt) && Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt->bHideCitizen)
-		location = Camera->GetTargetActorLocation(Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt);
+		location = Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt->BuildingMesh->GetComponentLocation();
+	else if (Actor->IsA<ABuilding>()) {
+		FVector origin = Cast<ABuilding>(Actor)->BuildingMesh->GetStaticMesh()->GetBounds().Origin;
+		origin.Z = 0.0f;
+
+		location += origin;
+	}
 
 	float z = 0.0f;
 

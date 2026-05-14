@@ -48,7 +48,7 @@ void UBuildingComponent::FindEducation(ASchool* Education, int32 TimeToCompleteD
 
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
-	if (HasRecentlyAcquired(0, TimeToCompleteDay) || citizen->BioComponent->EducationLevel == 5 || !citizen->CanAffordEducationLevel() || Education->GetOccupied().IsEmpty() || !citizen->AIController->CanMoveTo(citizen->Camera->GetTargetActorLocation(Education)))
+	if (HasRecentlyAcquired(0, TimeToCompleteDay) || citizen->BioComponent->EducationLevel == 5 || !citizen->CanAffordEducationLevel() || Education->GetOccupied().IsEmpty() || !citizen->AIController->CanMoveTo(citizen->AIController->GetActualLocation(Education)))
 		return;
 
 	if (citizen->BioComponent->Age >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") || citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Education Age"))
@@ -96,7 +96,7 @@ void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (HasRecentlyAcquired(1, TimeToCompleteDay) || Job->GetCapacity() == Job->GetOccupied().Num() || !CanWork(Job) || !WillWork() || !citizen->AIController->CanMoveTo(citizen->Camera->GetTargetActorLocation(Job)))
+	if (HasRecentlyAcquired(1, TimeToCompleteDay) || Job->GetCapacity() == Job->GetOccupied().Num() || !CanWork(Job) || !WillWork() || !citizen->AIController->CanMoveTo(citizen->AIController->GetActualLocation(Job)))
 		return;
 
 	FCapacityStruct* capacityStruct = Job->GetBestWorkHours(citizen);
@@ -146,7 +146,7 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (HasRecentlyAcquired(2, TimeToCompleteDay) || NewHouse->Space < Roommates.Num() || !citizen->AIController->CanMoveTo(citizen->Camera->GetTargetActorLocation(NewHouse)))
+	if (HasRecentlyAcquired(2, TimeToCompleteDay) || NewHouse->Space < Roommates.Num() || !citizen->AIController->CanMoveTo(citizen->AIController->GetActualLocation(NewHouse)))
 		return;
 
 	FCapacityStruct* capacityStruct = NewHouse->GetBestAvailableRoom();

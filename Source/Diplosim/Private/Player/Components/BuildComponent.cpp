@@ -201,6 +201,9 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 
 void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding, FVector PrevLocation)
 {
+	if (Building->IsHidden() && bDestroy)
+		return;
+
 	TArray<FResourceHISMStruct> vegetation;
 	vegetation.Append(Camera->Grid->TreeStruct);
 	if (bDestroy)
@@ -232,10 +235,11 @@ void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRe
 
 void UBuildComponent::DisplayInfluencedBuildings(class ABuilding* Building, bool bShow)
 {
-	if (!Building->IsA<ABooster>() || Building->IsHidden())
+	if (!Building->IsA<ABooster>() || (Building->IsHidden() && bShow))
 		return;
 
 	ABooster* booster = Cast<ABooster>(Building);
+	booster->DecalComponent->DecalSize = FVector(booster->Range);
 
 	TArray<ABuilding*> influencedBuildings = booster->GetAffectedBuildings();
 
@@ -673,17 +677,17 @@ void UBuildComponent::Place(bool bQuick)
 
 	ABuilding* b = Buildings[0];
 
+	for (ABuilding* building : Buildings) {
+		DisplayInfluencedBuildings(building, false);
+
+		SetTreeStatus(building, true);
+	}
+
 	if (StartLocation != FVector::Zero()) {
 		if (!bQuick)
 			Buildings[0]->DestroyBuilding();
 
 		Buildings.RemoveAt(0);
-	}
-
-	for (ABuilding* building : Buildings) {
-		DisplayInfluencedBuildings(building, false);
-
-		SetTreeStatus(building, true);
 	}
 
 	if (!Buildings.IsEmpty() && (Buildings[0]->IsA(FoundationClass) || Buildings[0]->IsA(RampClass) || Buildings[0]->IsA<ARoad>())) {

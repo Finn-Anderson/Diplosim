@@ -70,8 +70,7 @@ void UPoliceManager::CalculateVandalism()
 				FOverlapsStruct requestedOverlaps;
 				requestedOverlaps.bBuildings = true;
 
-				int32 reach = citizen->Range / 15.0f;
-				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, reach, requestedOverlaps, EFactionType::Same, &faction);
+				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->GetReach(), requestedOverlaps, EFactionType::Same, &faction);
 
 				for (AActor* actor : actors) {
 					if (actor->IsA<ABroch>() || actor->IsA<ARoad>() || actor->IsA<AFestival>())

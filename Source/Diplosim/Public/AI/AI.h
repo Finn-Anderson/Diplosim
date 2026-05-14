@@ -20,6 +20,8 @@ public:
 
 	bool CanReach(AActor* Actor, float Reach, FVector Location = FVector::Zero(), int32 Instance = -1);
 
+	float GetReach();
+
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -48,6 +50,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Range")
 		float Range;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Range", meta = (UIMin = 0.0f, UIMax = 100.0f))
+		float ReachPercentageOfRange;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
 		class UNiagaraSystem* SpawnSystem;
