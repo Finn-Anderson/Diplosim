@@ -91,11 +91,11 @@ ABuilding::ABuilding()
 
 	GroundDecalComponent = CreateDefaultSubobject<UDecalComponent>("GroundDecalComponent");
 	GroundDecalComponent->SetupAttachment(RootComponent);
+	GroundDecalComponent->FadeScreenSize = 0.0f;
 	GroundDecalComponent->DecalSize = FVector(1.0f, 100.0f, 100.0f);
 	GroundDecalComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -0.75f));
 	GroundDecalComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
-	GroundDecalComponent->SetHiddenInGame(true);
-	GroundDecalComponent->PrimaryComponentTick.bCanEverTick = false;
+	GroundDecalComponent->SetVisibility(false);
 
 	Emissiveness = 0.0f;
 	bBlink = false;
@@ -161,7 +161,7 @@ void ABuilding::BeginPlay()
 
 	InitialiseCapacityStruct();
 
-	if (ParticleComponent->GetAsset() != nullptr && HealthComponent->GetHealth() > 0)
+	if (ParticleComponent->GetAsset() != nullptr && HealthComponent->GetHealth() > 0 && !IsA<ATrap>())
 		ParticleComponent->Activate();
 }
 
@@ -215,9 +215,7 @@ void ABuilding::SetSeed(int32 Seed)
 		if (!Seeds[Seed].Meshes.IsEmpty()) {
 			BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
 
-			FVector size = Seeds[Seed].Meshes[0]->GetBounds().GetBox().GetSize();
-
-			GroundDecalComponent->DecalSize = FVector(size.X / 2.0f, size.Y / 2.0f, 1.0f);
+			FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
 			if (IsA<AFestival>())
 				Cast<AFestival>(this)->BoxAreaAffect->SetBoxExtent(FVector(size.X / 2.0f, size.Y / 2.0f, 20.0f));
@@ -259,8 +257,15 @@ void ABuilding::SetSeed(int32 Seed)
 			}
 		}
 
-		if (IsA<ATrap>())
-			Cast<ATrap>(this)->bExplode = Seeds[Seed].bExplosive;
+		if (IsA<ATrap>()) {
+			ATrap* trap = Cast<ATrap>(this);
+			trap->bExplode = Seeds[Seed].bExplosive;
+
+			if (Seeds[Seed].bExplosive)
+				DecalComponent->DecalSize = FVector(trap->Range);
+			else
+				DecalComponent->DecalSize = FVector(0.0f);
+		}
 	}
 	else {
 		TArray<UStaticMeshComponent*> components;
@@ -459,7 +464,7 @@ void ABuilding::Rebuild(FString NewFactionName)
 
 	BuildingMesh->SetCustomPrimitiveDataFloat(8, 0.0f);
 
-	GroundDecalComponent->SetHiddenInGame(true);
+	GroundDecalComponent->SetVisibility(false);
 }
 
 void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)

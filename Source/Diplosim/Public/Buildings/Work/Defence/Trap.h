@@ -30,6 +30,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trap")
+		class UMaterial* ExplosionTickOverlay;
+
 	void StartTrapFuse();
 
 	UFUNCTION()

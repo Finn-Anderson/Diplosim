@@ -148,9 +148,6 @@ void UHealthComponent::Death(AActor* Attacker)
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", actor);
 
-	if (Camera->AttachedTo.Actor == actor)
-		Camera->SetInteractStatus(Camera, false);
-
 	if (actor->IsA<ABroch>()) {
 		if (faction->Name == Camera->ColonyName)
 			Camera->Lose();
@@ -183,6 +180,8 @@ void UHealthComponent::Death(AActor* Attacker)
 			if (citizen->Carrying.Type != nullptr && IsValid(citizen->BuildingComponent->Employment) && !citizen->BuildingComponent->Employment->IsA<AStockpile>())
 				Camera->ResourceManager->AddCommittedResource(Camera->ConquestManager->GetFaction("", citizen), citizen->Carrying.Type->GetClass(), citizen->Carrying.Amount);
 		}
+		else if (actor->IsA<AEnemy>() && Camera->AttachedTo.Actor == actor)
+			Camera->AttachedTo.Actor = nullptr;
 	} 
 	else if (actor->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(actor);
@@ -275,9 +274,6 @@ void UHealthComponent::Clear(AActor* Attacker)
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 
-	if (Camera->AttachedTo.Actor == actor)
-		Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
-
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
@@ -347,7 +343,9 @@ void UHealthComponent::Clear(AActor* Attacker)
 
 		building->BuildingMesh->SetCanEverAffectNavigation(false);
 
-		building->GroundDecalComponent->SetHiddenInGame(false);
+		FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+		building->GroundDecalComponent->DecalSize = FVector(1.0f, size.Y / 2.0f, size.X / 2.0f);
+		building->GroundDecalComponent->SetVisibility(true);
 	}
 	else if (actor->IsA<AAISpawner>()) {
 		FFactionStruct* f = Camera->ConquestManager->GetFaction("", Attacker);
@@ -388,6 +386,9 @@ void UHealthComponent::Clear(AActor* Attacker)
 
 		ai->Destroy();
 	}
+
+	if (Camera->AttachedTo.Actor == actor)
+		Camera->SetInteractStatus(Camera, false);
 }
 
 void UHealthComponent::OnFire()

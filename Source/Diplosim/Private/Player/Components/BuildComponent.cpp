@@ -410,11 +410,14 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 	bool bCoast = false;
 	bool bResource = false;
 
+	if (Rotation.Pitch != 0.0f)
+		Rotation.Pitch = 0.0f;
+
 	for (const FHitResult& hit : hits) {
 		if (hit.GetActor()->IsHidden() || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
 
-		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !Building->IsA(FoundationClass)))
+		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && (!Building->IsA(FoundationClass) || !Building->IsA<ARoad>())))
 			return false;
 
 		if (hit.GetComponent() == Camera->Grid->HISMSea) {
@@ -452,6 +455,11 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			}
 			else if ((Building->IsA<ARoad>() || hit.GetActor()->IsA<ARoad>()) && (Building->IsA<AGate>() || hit.GetActor()->IsA<AGate>()))
 				continue;
+			else if (Building->IsA<ARoad>() && (hit.GetActor()->IsA(RampClass) || hit.GetComponent() == Camera->Grid->HISMRampGround)) {
+				Rotation.Pitch = 45.0f;
+
+				continue;
+			}
 		}
 		
 		if (Building->IsA<ARoad>() && hit.GetActor()->IsA<ARoad>())

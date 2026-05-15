@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/DecalComponent.h"
 
+#include "AI/AI.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
@@ -30,8 +31,12 @@ void ATrap::StartTrapFuse()
 {
 	if (FuseTime == 0.0f)
 		ActivateTrap();
-	else
+	else {
 		Camera->TimerManager->CreateTimer("Trap", this, FuseTime, "ActivateTrap", {}, false, true);
+
+		if (bExplode)
+			BuildingMesh->SetOverlayMaterial(ExplosionTickOverlay);
+	}
 }
 
 void ATrap::ActivateTrap()
@@ -47,31 +52,36 @@ void ATrap::ActivateTrap()
 		if (!healthComp)
 			continue;
 
-		int32 dmg = Damage;
+		float dmg = Damage;
 
 		if (bExplode) {
-			FVector location = actor->GetActorLocation();
+			FVector location = Camera->GetTargetActorLocation(actor, false);
 
 			if (actor->IsA<ABuilding>())
 				Cast<ABuilding>(actor)->BuildingMesh->GetClosestPointOnCollision(GetActorLocation(), location);
 
-			float distance = FVector::Dist(GetActorLocation(), actor->GetActorLocation());
+			float distance = FVector::Dist(GetActorLocation(), location);
 
-			 dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
+			dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 8.0f);
 		}
 
 		healthComp->TakeHealth(dmg, this);
 	}
 
-	UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, 1000.0f, 1.0f);
+	UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, 500.0f, 1.0f);
 
 	ParticleComponent->Activate();
 
-	float height = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z + 1.0f;
+	float z = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().Z + 1.0f;
 
-	SetActorLocation(GetActorLocation() - FVector(0.0f, 0.0f, height));
-	GroundDecalComponent->SetRelativeLocation(GroundDecalComponent->GetRelativeLocation() + FVector(0.0f, 0.0f, height));
+	TArray<UStaticMeshComponent*> meshes;
+	GetComponents<UStaticMeshComponent>(meshes);
+
+	for (UStaticMeshComponent* mesh : meshes)
+		mesh->SetCustomPrimitiveDataFloat(8, -z);
 
 	HealthComponent->Health = 0;
 	HealthComponent->Clear(this);
+
+	BuildingMesh->SetOverlayMaterial(nullptr);
 }
