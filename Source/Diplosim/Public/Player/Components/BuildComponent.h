@@ -78,6 +78,8 @@ public:
 
 	void RotateBuilding(bool Rotate);
 
+	FRotator GetBuildingRotation();
+
 	void StartPathPlace();
 
 	void EndPathPlace();

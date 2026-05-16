@@ -2,6 +2,7 @@
 
 #include "Components/BoxComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "NavigationSystem.h"
 
 #include "AI/AI.h"
 #include "AI/AIMovementComponent.h"
@@ -68,16 +69,25 @@ void ARoad::RegenerateMesh(bool bRegenerateHits)
 		if (HISMRoad->PerInstanceSMCustomData[i * HISMRoad->NumCustomDataFloats] == 1.0f)
 			HISMRoad->SetCustomDataValue(i, 0, 0.0f);
 
-	if (SeedNum == 0)
-		BuildingMesh->SetRelativeRotation(FRotator(0.0f));
-
 	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(this, 3.0f);
 
-	for (FHitResult hit : hits) {
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	for (const FHitResult& hit : hits) {
 		AActor* actor = hit.GetActor();
 
-		if ((!actor->IsA<ARoad>() && !actor->IsA<AFestival>()) || actor->IsHidden() || actor->GetActorLocation().Z != GetActorLocation().Z)
+		if ((!actor->IsA<ARoad>() && !actor->IsA<AFestival>()) || actor->IsHidden())
 			continue;
+
+		if (actor->GetActorLocation().Z != GetActorLocation().Z) {
+			if (GetActorRotation().Pitch == 0.0f && GetActorRotation().Roll == 0.0f && actor->GetActorRotation().Pitch == 0.0f && actor->GetActorRotation().Roll == 0.0f)
+				continue;
+
+			if ((GetActorRotation().Roll != 0.0f || actor->GetActorRotation().Roll != 0.0f) && (GetActorLocation().Y == actor->GetActorLocation().Y || GetActorLocation().X != actor->GetActorLocation().X))
+				continue;
+			else if (GetActorLocation().X == actor->GetActorLocation().X || GetActorLocation().Y != actor->GetActorLocation().Y)
+				continue;
+		}
 
 		FRotator rotation = (GetActorLocation() - actor->GetActorLocation()).Rotation();
 

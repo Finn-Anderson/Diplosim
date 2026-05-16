@@ -36,7 +36,7 @@ UBuildComponent::UBuildComponent()
 
 	bCanRotate = true;
 
-	Rotation.Yaw = 0.0f;
+	Rotation = FRotator(0.0f);
 
 	StartLocation = FVector::Zero();
 
@@ -74,8 +74,11 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		FVector location = hit.Location;
 		location.X = FMath::RoundHalfFromZero(location.X / 100.0f) * 100.0f;
 		location.Y = FMath::RoundHalfFromZero(location.Y / 100.0f) * 100.0f;
+		
+		FRotator rotation = GetBuildingRotation();
+		rotation.Normalize();
 
-		if (Buildings[0]->GetActorLocation().X == location.X && Buildings[0]->GetActorLocation().Y == location.Y && Buildings[0]->GetActorRotation() == Rotation)
+		if (Buildings[0]->GetActorLocation().X == location.X && Buildings[0]->GetActorLocation().Y == location.Y && Buildings[0]->GetActorRotation() == rotation)
 			return;
 
 		auto bound = Camera->Grid->GetMapBounds();
@@ -91,7 +94,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		FVector prevLocation = Buildings[0]->GetActorLocation();
 
 		Buildings[0]->SetActorLocation(location);
-		Buildings[0]->SetActorRotation(Rotation);
+		Buildings[0]->SetActorRotation(rotation);
 
 		if (Buildings[0]->IsA<ARoad>() && !Buildings[0]->IsHidden())
 			Cast<ARoad>(Buildings[0])->RegenerateMesh(true);
@@ -146,9 +149,10 @@ void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
 	FHitResult hit2(ForceInit);
 
 	FCollisionQueryParams params;
-	params.AddIgnoredActor(Building);
+	for (ABuilding* building : Buildings)
+		params.AddIgnoredActor(building);
 
-	if (GetWorld()->LineTraceSingleByChannel(hit2, Location + FVector(0.0f, 0.0f, 50.0f), FVector(Location.X, Location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
+	if (GetWorld()->LineTraceSingleByChannel(hit2, FVector(Location.X, Location.Y, 1000.0f), FVector(Location.X, Location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
 		Location.Z = FMath::RoundHalfFromZero(hit2.Location.Z);
 
 	if ((hit2.GetComponent() == Camera->Grid->HISMRiver || hit2.GetComponent() == Camera->Grid->HISMSea) && Building->IsA<ARoad>()) {
@@ -189,10 +193,14 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 		for (float y = -1.0f; y <= 1.0f; y += 0.5f)
 			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f) - FVector(20.0f * x, 20.0f * y, 0.0f)));
 
+	float height = size.Z + 10.0f;
+	if (Building->IsA<ARoad>())
+		height += 50.0f;
+
 	for (const FVector& point : points) {
 		FHitResult hit(ForceInit);
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, point + FVector(0.0f, 0.0f, size.Z + 10.0f), FVector(point.X, point.Y, 0.0f), ECC_Vehicle, params))
+		if (GetWorld()->LineTraceSingleByChannel(hit, FVector(point.X, point.Y, point.Z + height), FVector(point.X, point.Y, 0.0f), ECC_Vehicle, params))
 			hits.Add(hit);
 	}
 
@@ -410,17 +418,14 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 	bool bCoast = false;
 	bool bResource = false;
 
-	if (Rotation.Pitch != 0.0f)
-		Rotation.Pitch = 0.0f;
-
 	for (const FHitResult& hit : hits) {
 		if (hit.GetActor()->IsHidden() || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
 
-		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && (!Building->IsA(FoundationClass) || !Building->IsA<ARoad>())))
+		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !Building->IsA(FoundationClass) && !Building->IsA<ARoad>()))
 			return false;
 
-		if (hit.GetComponent() == Camera->Grid->HISMSea) {
+		if (hit.GetComponent() == Camera->Grid->HISMSea || hit.GetComponent() == Camera->Grid->HISMRiver) {
 			if (Building->IsA(FoundationClass) || (Building->IsA<ARoad>() && Building->SeedNum > 0))
 				continue;
 
@@ -439,13 +444,6 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		else
 			transform = hit.GetActor()->GetTransform();
 
-		if (hit.GetComponent() == Camera->Grid->HISMRiver && (Building->IsA(FoundationClass) || Building->IsA<ARoad>())) {
-			if (Building->IsA<ARoad>() && Building->SeedNum == 0)
-				return false;
-			else
-				continue;
-		}
-
 		if (Building->GetActorLocation() == transform.GetLocation()) {
 			if (Building->GetClass() == hit.GetActor()->GetClass()) {
 				if (Building->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum)
@@ -455,14 +453,8 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			}
 			else if ((Building->IsA<ARoad>() || hit.GetActor()->IsA<ARoad>()) && (Building->IsA<AGate>() || hit.GetActor()->IsA<AGate>()))
 				continue;
-			else if (Building->IsA<ARoad>() && (hit.GetActor()->IsA(RampClass) || hit.GetComponent() == Camera->Grid->HISMRampGround)) {
-				Rotation.Pitch = 45.0f;
-
-				continue;
-			}
 		}
-		
-		if (Building->IsA<ARoad>() && hit.GetActor()->IsA<ARoad>())
+		else if (Building->IsA<ARoad>() && (hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA(RampClass) || hit.GetComponent() == Camera->Grid->HISMRampGround))
 			continue;
 
 		if (Building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Building)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
@@ -521,7 +513,7 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 	FActorSpawnParameters params;
 	params.bNoFail = true;
 
-	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, Rotation, params);
+	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, GetBuildingRotation(), params);
 	building->FactionName = FactionName;
 
 	Buildings.Add(building);
@@ -598,6 +590,43 @@ void UBuildComponent::RotateBuilding(bool Rotate)
 	else if (!Rotate) {
 		bCanRotate = true;
 	}
+}
+
+FRotator UBuildComponent::GetBuildingRotation()
+{
+	if (Buildings.IsEmpty() || !Buildings[0]->IsA<ARoad>())
+		return Rotation;
+
+	FVector location = Buildings[0]->GetActorLocation();
+	FRotator rotation = Rotation;
+
+	FHitResult hit;
+	FCollisionQueryParams params;
+	for (ABuilding* building : Buildings)
+		params.AddIgnoredActor(building);
+
+	if (GetWorld()->LineTraceSingleByChannel(hit, FVector(location.X, location.Y, location.Z + 10.0f), FVector(location.X, location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params) && (hit.GetComponent() == Camera->Grid->HISMRampGround || hit.GetActor()->IsA(RampClass))) {
+		FTransform transform;
+		if (hit.GetComponent() == Camera->Grid->HISMRampGround)
+			Camera->Grid->HISMRampGround->GetInstanceTransform(hit.Item, transform);
+		else
+			transform = hit.GetActor()->GetTransform();
+
+		float yaw = transform.GetRotation().Rotator().Yaw;
+		if ((int32)yaw % 180 == 0)
+			rotation.Pitch = 45.0f;
+		else
+			rotation.Roll = 45.0f;
+	}
+	else {
+		rotation.Pitch = 0.0f;
+		rotation.Roll = 0.0f;
+	}
+
+	if (Buildings[0]->SeedNum == 0)
+		rotation.Yaw = 0.0f;
+
+	return rotation;
 }
 
 void UBuildComponent::StartPathPlace()
