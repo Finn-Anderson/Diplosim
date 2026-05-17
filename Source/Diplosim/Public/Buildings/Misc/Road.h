@@ -28,6 +28,9 @@ public:
 
 	void SetTier(int32 Value) override;
 
+	UPROPERTY()
+		TArray<ARoad*> LastHitRoads;
+
 protected:
 	virtual void BeginPlay() override;
 };

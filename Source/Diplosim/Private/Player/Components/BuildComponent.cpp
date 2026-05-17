@@ -96,11 +96,14 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		Buildings[0]->SetActorLocation(location);
 		Buildings[0]->SetActorRotation(rotation);
 
-		if (Buildings[0]->IsA<ARoad>() && !Buildings[0]->IsHidden())
-			Cast<ARoad>(Buildings[0])->RegenerateMesh(true);
-
 		if (Buildings[0]->IsA<AWall>())
-			Cast<AWall>(Buildings[0])->SetRotationMesh(Rotation.Yaw);
+			Cast<AWall>(Buildings.Last())->SetRotationMesh(Rotation.Yaw);
+		else if (Buildings[0]->IsA<ARoad>()) {
+			ARoad* road = Cast<ARoad>(Buildings.Last());
+			road->HISMRoad->SetRelativeRotation(FRotator(0.0f, -rotation.Yaw, 0.0f));
+
+			road->RegenerateMesh(true);
+		}
 
 		if (StartLocation != FVector::Zero())
 			SetBuildingsOnPath();
@@ -176,7 +179,7 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 	params.bTraceComplex = true;
 	params.AddIgnoredActor(Building);
 
-	if (!Buildings.IsEmpty())
+	if (!Buildings.IsEmpty() && StartLocation != FVector::Zero())
 		params.AddIgnoredActor(Buildings[0]);
 
 	FRotator rotation = Building->GetActorRotation();
@@ -271,8 +274,11 @@ void UBuildComponent::SetBuildingsOnPath()
 	TArray<FVector> locations = CalculatePath(startTile, endTile);
 
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
-		if (locations.Contains(Buildings[i]->GetActorLocation()))
+		if (locations.Contains(Buildings[i]->GetActorLocation())) {
+			locations.Remove(Buildings[i]->GetActorLocation());
+
 			continue;
+		}
 
 		Buildings[i]->DestroyBuilding();
 
@@ -438,7 +444,6 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			return false;
 
 		FTransform transform;
-
 		if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UInstancedStaticMeshComponent>())
 			Cast<UInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
 		else
@@ -446,13 +451,17 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 
 		if (Building->GetActorLocation() == transform.GetLocation()) {
 			if (Building->GetClass() == hit.GetActor()->GetClass()) {
-				if (Building->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum)
+				ABuilding* building = Cast<ABuilding>(hit.GetActor());
+
+				if (Building->SeedNum != building->SeedNum)
 					return false;
 				else
 					continue;
 			}
 			else if ((Building->IsA<ARoad>() || hit.GetActor()->IsA<ARoad>()) && (Building->IsA<AGate>() || hit.GetActor()->IsA<AGate>()))
 				continue;
+			else
+				return false;
 		}
 		else if (Building->IsA<ARoad>() && (hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA(RampClass) || hit.GetComponent() == Camera->Grid->HISMRampGround))
 			continue;
@@ -513,8 +522,12 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 	FActorSpawnParameters params;
 	params.bNoFail = true;
 
-	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, GetBuildingRotation(), params);
+	FRotator rotation = GetBuildingRotation();
+	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, rotation, params);
 	building->FactionName = FactionName;
+
+	if (building->IsA<ARoad>())
+		Cast<ARoad>(building)->HISMRoad->SetRelativeRotation(FRotator(0.0f, -rotation.Yaw, 0.0f));
 
 	Buildings.Add(building);
 
@@ -609,22 +622,18 @@ FRotator UBuildComponent::GetBuildingRotation()
 		FTransform transform;
 		if (hit.GetComponent() == Camera->Grid->HISMRampGround)
 			Camera->Grid->HISMRampGround->GetInstanceTransform(hit.Item, transform);
-		else
+		else {
 			transform = hit.GetActor()->GetTransform();
+			transform.SetRotation(transform.GetRotation() + FRotator(0.0f, 90.0f, 0.0f).Quaternion());
+		}
 
-		float yaw = transform.GetRotation().Rotator().Yaw;
-		if ((int32)yaw % 180 == 0)
-			rotation.Pitch = 45.0f;
-		else
-			rotation.Roll = 45.0f;
+		FVector targetLocation = transform.GetLocation() - transform.GetRotation().Rotator().Vector() * 50.0f + FVector(0.0f, 0.0f, 75.0f);
+		rotation = (targetLocation - location).Rotation();
 	}
 	else {
 		rotation.Pitch = 0.0f;
 		rotation.Roll = 0.0f;
 	}
-
-	if (Buildings[0]->SeedNum == 0)
-		rotation.Yaw = 0.0f;
 
 	return rotation;
 }
@@ -656,8 +665,6 @@ void UBuildComponent::EndPathPlace()
 
 		Buildings.RemoveAt(i);
 	}
-
-	Camera->DisplayInteract(Buildings[0]);
 }
 
 void UBuildComponent::Place(bool bQuick)
@@ -698,11 +705,13 @@ void UBuildComponent::Place(bool bQuick)
 		TArray<FHitResult> hits = GetBuildingOverlaps(building);
 
 		for (const FHitResult& hit : hits) {
-			if (building->GetClass() != hit.GetActor()->GetClass() || building->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum || building->GetActorLocation() != hit.GetActor()->GetActorLocation())
+			if (building->GetActorLocation() != hit.GetActor()->GetActorLocation())
 				continue;
 
-			ABuilding* b = Cast<ABuilding>(hit.GetActor());
-			b->Build(false, true, building->SeedNum);
+			if (building->GetClass() == hit.GetActor()->GetClass() && building->Tier != Cast<ABuilding>(hit.GetActor())->Tier) {
+				ABuilding* b = Cast<ABuilding>(hit.GetActor());
+				b->Build(false, true, building->Tier);
+			}
 
 			building->DestroyBuilding();
 

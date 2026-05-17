@@ -65,27 +65,44 @@ void ARoad::DestroyBuilding(bool bCheckAbove, bool bMove)
 
 void ARoad::RegenerateMesh(bool bRegenerateHits)
 {
+	if (SeedNum != 0)
+		return;
+
 	for (int32 i = 0; i < HISMRoad->GetInstanceCount(); i++)
 		if (HISMRoad->PerInstanceSMCustomData[i * HISMRoad->NumCustomDataFloats] == 1.0f)
 			HISMRoad->SetCustomDataValue(i, 0, 0.0f);
 
-	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(this, 3.0f);
+	for (int32 i = LastHitRoads.Num() - 1; i > -1; i--) {
+		LastHitRoads[i]->RegenerateMesh(false);
+
+		LastHitRoads.RemoveAt(i);
+	}
+
+	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(this, 4.0f);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
 	for (const FHitResult& hit : hits) {
 		AActor* actor = hit.GetActor();
 
-		if ((!actor->IsA<ARoad>() && !actor->IsA<AFestival>()) || actor->IsHidden())
+		if ((!actor->IsA<ARoad>() && !actor->IsA<AFestival>()) || actor->IsHidden() || actor->GetActorLocation() == GetActorLocation())
 			continue;
 
+		FRotator thisRotation = GetActorRotation();
+		FRotator actorRotation = actor->GetActorRotation();
+
 		if (actor->GetActorLocation().Z != GetActorLocation().Z) {
-			if (GetActorRotation().Pitch == 0.0f && GetActorRotation().Roll == 0.0f && actor->GetActorRotation().Pitch == 0.0f && actor->GetActorRotation().Roll == 0.0f)
+			if (thisRotation.Pitch == 0.0f && thisRotation.Roll == 0.0f && actorRotation.Pitch == 0.0f && actorRotation.Roll == 0.0f)
 				continue;
 
-			if ((GetActorRotation().Roll != 0.0f || actor->GetActorRotation().Roll != 0.0f) && (GetActorLocation().Y == actor->GetActorLocation().Y || GetActorLocation().X != actor->GetActorLocation().X))
-				continue;
-			else if (GetActorLocation().X == actor->GetActorLocation().X || GetActorLocation().Y != actor->GetActorLocation().Y)
+			int32 yaw = FMath::RoundHalfFromZero(thisRotation.Yaw);
+			if (thisRotation.Pitch == 0.0f && thisRotation.Roll == 0.0f)
+				yaw = FMath::RoundHalfFromZero(actorRotation.Yaw);
+
+			FRotator direction = (actor->GetActorLocation() - GetActorLocation()).Rotation();
+			int32 targetYaw = FMath::RoundHalfFromZero(direction.Yaw);
+
+			if (yaw != targetYaw && yaw != targetYaw + 180 && yaw != targetYaw - 180)
 				continue;
 		}
 
@@ -94,16 +111,44 @@ void ARoad::RegenerateMesh(bool bRegenerateHits)
 		if (rotation.Yaw < 0.0f)
 			rotation.Yaw += 360.0f;
 
-		int32 instance = rotation.Yaw / 45.0f;
-
 		if (actor->IsA<ARoad>() && Cast<ARoad>(actor)->SeedNum != 0 && FVector::Dist(Cast<ARoad>(actor)->BuildingMesh->GetSocketLocation("Point1"), GetActorLocation()) > 50.0f && FVector::Dist(Cast<ARoad>(actor)->BuildingMesh->GetSocketLocation("Point2"), GetActorLocation()) > 50.0f)
 			continue;
 
-		if (SeedNum == 0)
-			HISMRoad->SetCustomDataValue(instance, 0, 1.0f);
+		int32 instance = rotation.Yaw / 45.0f;
 
-		if (bRegenerateHits && actor->IsA<ARoad>() && Cast<ARoad>(actor)->SeedNum == 0)
+		if ((int32)rotation.Yaw % 90 != 0) {
+			FTileStruct* tile1 = Camera->Grid->GetTileFromLocation(GetActorLocation() + FVector(0.0f, actor->GetActorLocation().Y - GetActorLocation().Y, 0.0f));
+			if (tile1->bRamp)
+				continue;
+
+			FTileStruct* tile2 = Camera->Grid->GetTileFromLocation(GetActorLocation() + FVector(actor->GetActorLocation().X - GetActorLocation().X, 0.0f, 0.0f));
+			if (tile2->bRamp)
+				continue;
+
+			FTileStruct* tile = Camera->Grid->GetTileFromLocation(GetActorLocation());
+
+			if (tile->Level != tile1->Level || tile->Level != tile2->Level)
+				continue;
+		}
+		else {
+			FTransform transform;
+			HISMRoad->GetInstanceTransform(instance, transform);
+
+			if (thisRotation.Roll != 0.0f || thisRotation.Pitch != 0.0f)
+				transform.SetScale3D(FVector(1.0f, 0.85f, 1.0f));
+			else
+				transform.SetScale3D(FVector(1.0f, 0.67f, 1.0f));
+
+			HISMRoad->UpdateInstanceTransform(instance, transform);
+		}
+
+		HISMRoad->SetCustomDataValue(instance, 0, 1.0f);
+
+		if (bRegenerateHits && actor->IsA<ARoad>() && Cast<ARoad>(actor)->SeedNum == 0) {
 			Cast<ARoad>(actor)->RegenerateMesh(false);
+
+			LastHitRoads.Add(Cast<ARoad>(actor));
+		}
 	}
 }
 

@@ -499,7 +499,7 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 			TargetList.RemoveAt(i);
 		}
 
-		SetSeed(Grade);
+		SetTier(Grade);
 	}
 
 	if (CheckInstant()) {

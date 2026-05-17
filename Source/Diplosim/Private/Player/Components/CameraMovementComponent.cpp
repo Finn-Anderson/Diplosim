@@ -138,6 +138,9 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 	if (amount <= Camera->SpringArmComponent->ProbeSize)
 		amount = Camera->SpringArmComponent->ProbeSize + 3.0f;
 
+	if (Actor->IsA<ABuilding>() && (Actor->GetActorRotation().Pitch != 0.0f || Actor->GetActorRotation().Roll != 0.0f))
+		amount += 10.0f;
+
 	location.Z += amount;
 
 	return location;
