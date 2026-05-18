@@ -8,6 +8,7 @@
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
+#include "Player/Components/BuildComponent.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/PoliticsManager.h"
@@ -55,6 +56,7 @@ TArray<ABuilding*> ABooster::GetAffectedBuildings()
 {
 	FOverlapsStruct overlaps;
 	overlaps.bBuildings = true;
+	overlaps.bUnbuiltBuildings = true;
 
 	TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, this, Range, overlaps, EFactionType::Same);
 

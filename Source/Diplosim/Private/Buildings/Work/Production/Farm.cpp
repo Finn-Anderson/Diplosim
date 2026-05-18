@@ -47,8 +47,6 @@ void AFarm::Production(ACitizen* Citizen)
 		if (workers.IsEmpty())
 			return;
 
-		Super::Production(Citizen);
-
 		ProductionDone(workers[0]);
 	}
 	else
@@ -101,6 +99,8 @@ int32 AFarm::GetFertility()
 
 int32 AFarm::GetYield()
 {
+	Super::Production(nullptr);
+
 	return Yield * GetFertility() * FMath::Max(Boosters * 2, 1);
 }
 

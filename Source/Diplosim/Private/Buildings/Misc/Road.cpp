@@ -105,8 +105,12 @@ void ARoad::RegenerateMesh(bool bRegenerateHits)
 			if (yaw != targetYaw && yaw != targetYaw + 180 && yaw != targetYaw - 180)
 				continue;
 		}
+		
+		FVector actorLocation = actor->GetActorLocation();
+		if (actor->IsA<AFestival>())
+			Cast<UStaticMeshComponent>(actor->GetRootComponent())->GetClosestPointOnCollision(GetActorLocation(), actorLocation);
 
-		FRotator rotation = (GetActorLocation() - actor->GetActorLocation()).Rotation();
+		FRotator rotation = (GetActorLocation() - actorLocation).Rotation();
 
 		if (rotation.Yaw < 0.0f)
 			rotation.Yaw += 360.0f;
@@ -115,6 +119,9 @@ void ARoad::RegenerateMesh(bool bRegenerateHits)
 			continue;
 
 		int32 instance = rotation.Yaw / 45.0f;
+
+		FTransform transform;
+		HISMRoad->GetInstanceTransform(instance, transform);
 
 		if ((int32)rotation.Yaw % 90 != 0) {
 			FTileStruct* tile1 = Camera->Grid->GetTileFromLocation(GetActorLocation() + FVector(0.0f, actor->GetActorLocation().Y - GetActorLocation().Y, 0.0f));
@@ -129,19 +136,18 @@ void ARoad::RegenerateMesh(bool bRegenerateHits)
 
 			if (tile->Level != tile1->Level || tile->Level != tile2->Level)
 				continue;
+
+			if (actor->IsA<AFestival>())
+				transform.SetScale3D(FVector(1.0f, 1.5f, 1.0f));
 		}
 		else {
-			FTransform transform;
-			HISMRoad->GetInstanceTransform(instance, transform);
-
 			if (thisRotation.Roll != 0.0f || thisRotation.Pitch != 0.0f)
 				transform.SetScale3D(FVector(1.0f, 0.85f, 1.0f));
 			else
 				transform.SetScale3D(FVector(1.0f, 0.67f, 1.0f));
-
-			HISMRoad->UpdateInstanceTransform(instance, transform);
 		}
 
+		HISMRoad->UpdateInstanceTransform(instance, transform);
 		HISMRoad->SetCustomDataValue(instance, 0, 1.0f);
 
 		if (bRegenerateHits && actor->IsA<ARoad>() && Cast<ARoad>(actor)->SeedNum == 0) {

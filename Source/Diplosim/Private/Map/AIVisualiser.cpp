@@ -20,11 +20,12 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Resources/Vegetation.h"
 #include "Player/Camera.h"
+#include "Player/Components/BuildComponent.h"
+#include "Player/Components/DiplomacyComponent.h"
+#include "Player/Components/SaveGameComponent.h"
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Player/Components/DiplomacyComponent.h"
 #include "Player/Managers/ResourceManager.h"
-#include "Player/Components/SaveGameComponent.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
@@ -739,6 +740,9 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 	else {
 		if (RequestedOverlaps.bBuildings)
 			actorsToCheck.Append(Faction->Buildings);
+
+		if (RequestedOverlaps.bUnbuiltBuildings)
+			actorsToCheck.Append(Camera->BuildComponent->Buildings);
 
 		if (RequestedOverlaps.bCitizens)
 			actorsToCheck.Append(Faction->Citizens);

@@ -61,6 +61,9 @@ struct FOverlapsStruct
 	UPROPERTY()
 		bool bGettingCitizensEnemies;
 
+	UPROPERTY()
+		bool bUnbuiltBuildings;
+
 	FOverlapsStruct()
 	{
 		bCitizens = false;
@@ -70,6 +73,7 @@ struct FOverlapsStruct
 		bBuildings = false;
 		bResources = false;
 		bGettingCitizensEnemies = false;
+		bUnbuiltBuildings = false;
 	}
 
 	void GetCitizenInteractions(bool bIncludeBuildingsAndResources, bool bIncludeRebels)

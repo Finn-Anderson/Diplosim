@@ -13,6 +13,7 @@
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Research.h"
 #include "Buildings/Work/Booster.h"
+#include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Defence/Gate.h"
 #include "Buildings/Misc/Road.h"
@@ -449,6 +450,8 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		else
 			transform = hit.GetActor()->GetTransform();
 
+		transform.SetLocation(FVector(FMath::RoundHalfFromZero(transform.GetLocation().X), FMath::RoundHalfFromZero(transform.GetLocation().Y), FMath::RoundHalfFromZero(transform.GetLocation().Z)));
+
 		if (Building->GetActorLocation() == transform.GetLocation()) {
 			if (Building->GetClass() == hit.GetActor()->GetClass()) {
 				ABuilding* building = Cast<ABuilding>(hit.GetActor());
@@ -460,31 +463,30 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			}
 			else if ((Building->IsA<ARoad>() || hit.GetActor()->IsA<ARoad>()) && (Building->IsA<AGate>() || hit.GetActor()->IsA<AGate>()))
 				continue;
+			else if (Building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Building)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
+				if (hit.GetActor()->IsA(Cast<AInternalProduction>(Building)->ResourceToOverlap)) {
+					bResource = true;
+				}
+				else {
+					for (int32 i = 0; i < Building->Seeds.Num(); i++) {
+						if (!hit.GetActor()->IsA(Building->Seeds[i].Resource))
+							continue;
+
+						Building->SetSeed(i);
+
+						break;
+					}
+				}
+
+				continue;
+			}
 			else
 				return false;
 		}
 		else if (Building->IsA<ARoad>() && (hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA(RampClass) || hit.GetComponent() == Camera->Grid->HISMRampGround))
 			continue;
 
-		if (Building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Building)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
-			if (hit.GetActor()->IsA(Cast<AInternalProduction>(Building)->ResourceToOverlap)) {
-				bResource = true;
-			}
-			else {
-				for (int32 i = 0; i < Building->Seeds.Num(); i++) {
-					if (!hit.GetActor()->IsA(Building->Seeds[i].Resource))
-						continue;
-
-					Building->SetSeed(i); 
-					
-					break;
-				}
-			}
-
-			if (transform.GetLocation().X != Building->GetActorLocation().X || transform.GetLocation().Y != Building->GetActorLocation().Y)
-				return false;
-		}
-		else if (transform.GetLocation().Z != FMath::Floor(Building->GetActorLocation().Z) - 100.0f || hit.GetComponent() == Camera->Grid->HISMRiver) {
+		if (transform.GetLocation().Z != FMath::Floor(Building->GetActorLocation().Z) - 100.0f || hit.GetComponent() == Camera->Grid->HISMRiver) {
 			if ((Building->IsA(FoundationClass) && (hit.GetActor()->IsA(FoundationClass) || hit.GetActor()->IsA<AGrid>())) || (Building->IsA(RampClass) && (hit.GetActor()->IsA(RampClass) || hit.GetActor()->IsA<AGrid>())))
 				continue;
 
@@ -537,7 +539,11 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 		Camera->WidgetComponent->SetHiddenInGame(true);
 	}
 
-	if (!building->Seeds.IsEmpty())
+	if (IsValid(BuildingToMove)) {
+		building->SeedNum = BuildingToMove->SeedNum;
+		building->SetTier(BuildingToMove->Tier);
+	}
+	else if (!building->Seeds.IsEmpty())
 		Camera->SetSeedVisibility(true);
 }
 
@@ -756,6 +762,8 @@ void UBuildComponent::Place(bool bQuick)
 
 		BuildingToMove->SetActorLocation(Buildings[0]->GetActorLocation());
 		BuildingToMove->SetActorRotation(Buildings[0]->GetActorRotation());
+
+		BuildingToMove->SetSeed(Buildings[0]->SeedNum);
 
 		BuildingToMove->StoreSocketLocations();
 

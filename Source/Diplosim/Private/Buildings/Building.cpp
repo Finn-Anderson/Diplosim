@@ -547,6 +547,8 @@ void ABuilding::SetConstructionMesh()
 
 void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 {
+	Camera->BuildComponent->DisplayInfluencedBuildings(this, false);
+
 	if (bMove || IsHidden()) {
 		Destroy();
 
@@ -633,6 +635,9 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 
 TArray<FItemStruct> ABuilding::GetGradeCost(int32 Grade)
 {
+	if (Seeds.IsEmpty())
+		return CostList;
+
 	TArray<FItemStruct> items;
 
 	items = Seeds[Grade].Cost;
@@ -1045,6 +1050,9 @@ void ABuilding::Enter(ACitizen* Citizen)
 	}
 	else
 		SetSocketLocation(Citizen);
+
+	if (IsA<AFarm>() && !bHideCitizen)
+		Citizen->AIController->StartMovement();
 
 	if (Citizen->Carrying.Amount > 0)
 		StoreResource(Citizen);

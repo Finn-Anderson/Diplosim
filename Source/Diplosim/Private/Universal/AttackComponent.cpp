@@ -117,12 +117,12 @@ void UAttackComponent::PickTarget(float DeltaTime)
 		return;
 	}
 
+	CurrentTarget = favoured;
+
 	if ((*ProjectileClass || ai->CanReach(favoured, reach)))
 		Attack(favoured, DeltaTime);
 	else if (CurrentTarget != favoured)
 		ai->AIController->AIMoveTo(favoured);
-
-	CurrentTarget = favoured;
 }
 
 FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
@@ -273,9 +273,8 @@ void UAttackComponent::Throw()
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
 	float z = 0.0f;
-
 	if (GetOwner()->IsA<ABuilding>())
-		z = Cast<UStaticMeshComponent>(GetOwner()->GetComponentByClass(UStaticMeshComponent::StaticClass()))->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+		z = Cast<UStaticMeshComponent>(GetOwner()->GetRootComponent())->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 	else
 		z = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner())).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
@@ -290,10 +289,9 @@ void UAttackComponent::Throw()
 
 	FVector groundedLocation = FVector(startLoc.X, startLoc.Y, targetLoc.Z);
 	double d = FVector::Dist(groundedLocation, targetLoc);
-	double h = startLoc.Z - targetLoc.Z;
-	double phi = FMath::Atan(d / h);
+	double h = targetLoc.Z - startLoc.Z;
 
-	double angle = (FMath::Acos(((g * FMath::Square(d)) / FMath::Square(v) - h) / FMath::Sqrt(FMath::Square(h) + FMath::Square(d))) + phi) / 2.0f * (180.0f / PI);
+	double angle = FMath::Atan2(FMath::Square(v) + FMath::Sqrt(FMath::Pow(v, 4) - g * (g * FMath::Square(d) + 2 * h * FMath::Square(v))), g * d) * (180.0f / PI);
 
 	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
 

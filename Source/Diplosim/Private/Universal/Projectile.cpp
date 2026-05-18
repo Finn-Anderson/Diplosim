@@ -42,6 +42,7 @@ AProjectile::AProjectile()
 	AudioComponent->SetupAttachment(ProjectileMesh);
 	AudioComponent->PitchModulationMin = 0.9f;
 	AudioComponent->PitchModulationMax = 1.1f;
+	AudioComponent->bAutoDestroy = false;
 
 	Damage = 10;
 	Radius = 150.0f;
@@ -138,7 +139,7 @@ void AProjectile::Explode(ACamera* Camera)
 	if (GetOwner()->IsA<ATower>())
 		explosion->SetVariableLinearColor(TEXT("Colour"), Cast<ATower>(GetOwner())->ChosenColour);
 
-	AudioComponent->Play();
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), AudioComponent->GetSound(), GetActorLocation());
 
 	UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, Radius * 6, 1.0f);
 }
