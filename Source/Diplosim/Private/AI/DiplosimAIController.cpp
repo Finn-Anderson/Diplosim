@@ -487,6 +487,9 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	nav->ProjectPointToNavigation(GetActualLocation(AI), navLoc, FVector(400.0f, 400.0f, 40.0f));
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Actor, navLoc]() {
+		if (!IsValid(AI))
+			return;
+
 		TArray<FVector> points = GetPathPoints(navLoc.Location, MoveRequest.GetLocation());
 		AI->MovementComponent->SetPoints(points);
 
@@ -515,7 +518,9 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 	FVector targetLoc = GetActualLocation(Actor);
 	FVector currentLoc = AILocation;
 
-	if (!AI->MovementComponent->Points.IsEmpty())
+	if (!AI->MovementComponent->TempPoints.IsEmpty())
+		currentLoc = AI->MovementComponent->TempPoints.Last();
+	else if (!AI->MovementComponent->Points.IsEmpty())
 		currentLoc = AI->MovementComponent->Points.Last();
 
 	FVector location = GetActualLocation(Actor);
@@ -539,7 +544,7 @@ FVector ADiplosimAIController::GetActualLocation(AActor* Actor)
 	FVector location = Actor->GetActorLocation();
 
 	if (Actor->IsA<AAI>()) {
-		location = Cast<AAI>(Actor)->MovementComponent->Transform.GetLocation();
+		location = Cast<AAI>(Actor)->MovementComponent->GetMovementTransform().GetLocation();
 	}
 	if (Actor->IsA<ABuilding>()) {
 		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
@@ -547,7 +552,7 @@ FVector ADiplosimAIController::GetActualLocation(AActor* Actor)
 		if (comp && comp->DoesSocketExist("Entrance"))
 			location = comp->GetSocketLocation("Entrance");
 		else if (IsValid(AI))
-			comp->GetClosestPointOnCollision(AI->MovementComponent->Transform.GetLocation(), location);
+			comp->GetClosestPointOnCollision(AI->MovementComponent->GetMovementTransform().GetLocation(), location);
 	}
 	else if (Actor->IsA<AResource>()) {
 		FTransform transform;

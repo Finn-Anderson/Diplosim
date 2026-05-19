@@ -274,7 +274,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						else
 							ism = HISMRebel;
 
-						SetInstanceTransform(ism, j, citizen->MovementComponent->Transform);
+						SetInstanceTransform(ism, j, citizen->MovementComponent->GetMovementTransform());
 
 						UpdateCitizenVisuals(ism, Camera, citizen, j);
 
@@ -337,7 +337,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 				else
 					ism = HISMSnake;
 
-				SetInstanceTransform(ism, j, ai->MovementComponent->Transform);
+				SetInstanceTransform(ism, j, ai->MovementComponent->GetMovementTransform());
 
 				SetAIColour(ism, j, ai->Colour);
 			}
@@ -529,7 +529,7 @@ void UAIVisualiser::ActivateTorch(int32 Hour, UInstancedStaticMeshComponent* ISM
 void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 {
 	USoundBase* sound = nullptr;
-	FVector location = Citizen->MovementComponent->Transform.GetLocation();
+	FVector location = Citizen->MovementComponent->GetMovementTransform().GetLocation();
 
 	if (IsValid(Citizen->BuildingComponent->Employment) && !Citizen->BuildingComponent->Employment->bHideCitizen) {
 		FLinearColor colour = FLinearColor();
@@ -562,7 +562,7 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 
 FVector UAIVisualiser::AddHarvestVisual(AAI* AI, FLinearColor Colour)
 {
-	FVector location = AI->MovementComponent->Transform.GetLocation() + (AI->MovementComponent->Transform.Rotator().Vector() * 20.0f) + FVector(0.0f, 0.0f, 17.0f);
+	FVector location = AI->MovementComponent->GetMovementTransform().GetLocation() + (AI->MovementComponent->Transform.Rotator().Vector() * 20.0f) + FVector(0.0f, 0.0f, 17.0f);
 
 	TArray<FVector> locations = UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(HarvestNiagaraComponent, "Locations");
 	locations.Add(location);
@@ -808,7 +808,7 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 FTransform UAIVisualiser::GetHatTransform(ACitizen* Citizen)
 {
 	FTransform animTransform = GetAnimationPoint(Citizen);
-	FTransform transform = Citizen->MovementComponent->Transform;
+	FTransform transform = Citizen->MovementComponent->GetMovementTransform();
 
 	FVector location = transform.GetLocation() + animTransform.GetLocation();
 	transform.SetLocation(location);

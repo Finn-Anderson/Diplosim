@@ -75,16 +75,18 @@ void AAI::MoveToBroch()
 
 bool AAI::CanReach(AActor* Actor, float Reach, FVector Location, int32 Instance)
 {
+	FVector movementLocation = MovementComponent->GetMovementTransform().GetLocation();
+
 	if (Location == FVector::Zero()) {
 		Location = AIController->GetActualLocation(Actor);
 
 		if (Actor->IsA<ABuilding>())
-			Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), Location);
+			Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(movementLocation, Location);
 		else if (Actor->IsA<AAISpawner>())
-			Cast<AAISpawner>(Actor)->SpawnerMesh->GetClosestPointOnCollision(MovementComponent->Transform.GetLocation(), Location);
+			Cast<AAISpawner>(Actor)->SpawnerMesh->GetClosestPointOnCollision(movementLocation, Location);
 	}
 
-	return Reach >= FVector::Dist(MovementComponent->Transform.GetLocation(), Location);
+	return Reach >= FVector::Dist(movementLocation, Location);
 }
 
 float AAI::GetReach()

@@ -431,7 +431,7 @@ void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Soun
 			pitch = Stream.FRandRange(0.8f, 1.2f);
 
 		if (IsValid(AudioComponent->GetOwner()) && AudioComponent->GetOwner()->IsA<AAI>())
-			AudioComponent->SetRelativeLocation(Cast<AAI>(AudioComponent->GetOwner())->MovementComponent->Transform.GetLocation());
+			AudioComponent->SetRelativeLocation(Cast<AAI>(AudioComponent->GetOwner())->MovementComponent->GetMovementTransform().GetLocation());
 
 		AudioComponent->SetSound(Sound);
 		AudioComponent->SetPitchMultiplier(pitch);
@@ -735,7 +735,7 @@ FVector ACamera::GetTargetActorLocation(AActor* Actor, bool bGetEnterLocation)
 	FVector location = Actor->GetActorLocation();
 
 	if (Actor->IsA<AAI>()) {
-		location = Cast<AAI>(Actor)->MovementComponent->Transform.GetLocation();
+		location = Cast<AAI>(Actor)->MovementComponent->GetMovementTransform().GetLocation();
 
 		if (Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt) && bGetEnterLocation)
 			location = Cast<ACitizen>(Actor)->BuildingComponent->EnterLocation;

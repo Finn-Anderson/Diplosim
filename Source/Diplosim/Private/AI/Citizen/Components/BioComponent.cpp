@@ -237,7 +237,7 @@ void UBioComponent::FindPartner(FFactionStruct* Faction)
 			continue;
 		}
 
-		double magnitude = citizen->AIController->GetClosestActor(50.0f, citizen->MovementComponent->Transform.GetLocation(), chosenCitizen->MovementComponent->Transform.GetLocation(), c->MovementComponent->Transform.GetLocation(), true, curCount, count);
+		double magnitude = citizen->AIController->GetClosestActor(50.0f, citizen->MovementComponent->GetMovementTransform().GetLocation(), chosenCitizen->MovementComponent->GetMovementTransform().GetLocation(), c->MovementComponent->GetMovementTransform().GetLocation(), true, curCount, count);
 
 		if (magnitude <= 0.0f)
 			continue;
@@ -315,7 +315,7 @@ void UBioComponent::HaveChild()
 	if (chance < passMark)
 		return;
 
-	FVector location = citizen->MovementComponent->Transform.GetLocation() + citizen->MovementComponent->Transform.GetRotation().Vector() * 10.0f;
+	FVector location = citizen->MovementComponent->GetMovementTransform().GetLocation() + citizen->MovementComponent->Transform.GetRotation().Vector() * 10.0f;
 
 	if (citizen->BuildingComponent->BuildingAt != nullptr)
 		location = citizen->BuildingComponent->EnterLocation;

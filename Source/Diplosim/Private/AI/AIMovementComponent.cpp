@@ -19,16 +19,21 @@ UAIMovementComponent::UAIMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
+	AI = nullptr;
+	AIVisualiser = nullptr;
+
 	InitialSpeed = 200.0f;
 	MaxSpeed = InitialSpeed;
 	SpeedMultiplier = 1.0f;
 	RoadMultiplier = 1.0f;
 
 	LastUpdatedTime = 0.0f;
-	Transform = FTransform(FQuat::Identity, FVector(0.0f));
+	Transform = FTransform(FQuat::Identity, FVector(0.0f)); 
+	ZOffset = 0.0f;
 
 	ActorToLookAt = nullptr;
 	bSetPoints = false;
+
 }
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime)
@@ -42,13 +47,6 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 	AActor* goal = AI->AIController->MoveRequest.GetGoalActor();
 
-	if (bSetPoints) {
-		Points = TempPoints;
-
-		TempPoints.Empty();
-		bSetPoints = false;
-	}
-
 	ComputeCurrentAnimation(goal, DeltaTime);
 
 	if (AI->HealthComponent->GetHealth() == 0)
@@ -56,25 +54,29 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 	AI->AIController->RecalculateMovement(goal);
 
-	if (CurrentAnim.Type != EAnim::Move)
+	if (bSetPoints) {
+		Points = TempPoints;
+
+		TempPoints.Empty();
+		bSetPoints = false;
+	}
+
+	if (CurrentAnim.Type != EAnim::Move || Points.IsEmpty())
 		return;
 
-	if (!Points.IsEmpty() && AI->CanReach(AI, 5.0f, Points[0]))
-		Points.RemoveAt(0);
-
-	if (!Points.IsEmpty())
-		Velocity = CalculateVelocity(Points[0]);
+	Velocity = CalculateVelocity(Points[0]);
 
 	FVector deltaV = Velocity * DeltaTime;
 
-	if (!deltaV.IsNearlyZero(1e-6f))
+	if (!deltaV.IsNearlyZero(1e-6f) && !AI->CanReach(AI, 5.0f, Points[0]))
 	{
 		FHitResult hit;
 
 		FVector location = Transform.GetLocation() + deltaV;
 
+		ZOffset = 0.0f;
 		if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 30.0f), location - FVector(0.0f, 0.0f, 30.0f), ECollisionChannel::ECC_Vehicle))
-			deltaV.Z = hit.Location.Z - Transform.GetLocation().Z;
+			ZOffset = hit.Location.Z - Transform.GetLocation().Z;
 
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;
@@ -84,8 +86,12 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 		if (Transform.GetRotation().Rotator() != targetRotation)
 			Transform.SetRotation(FMath::RInterpTo(Transform.GetRotation().Rotator(), targetRotation, DeltaTime, 10.0f).Quaternion());
 	}
-	else if (CurrentAnim.Type == EAnim::Move)
-		AI->AIController->StopMovement();
+	else {
+		Points.RemoveAt(0);
+
+		if (Points.IsEmpty())
+			AI->AIController->StopMovement();
+	}
 }
 
 void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime)
@@ -214,4 +220,12 @@ bool UAIMovementComponent::IsAttacking()
 		return true;
 
 	return false;
+}
+
+FTransform UAIMovementComponent::GetMovementTransform()
+{
+	FTransform transform = Transform;
+	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, ZOffset));
+
+	return Transform;
 }

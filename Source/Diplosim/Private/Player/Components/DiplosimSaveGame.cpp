@@ -15,6 +15,7 @@
 #include "AI/Citizen/Components/HappinessComponent.h"
 #include "AI/Citizen/Components/BioComponent.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Misc/Road.h"
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
@@ -536,7 +537,7 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 
 	TTuple<UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
 	if (!info.Key->GetInstanceTransform(info.Value, AIData.MovementData.Transform))
-		AIData.MovementData.Transform = ai->MovementComponent->Transform;
+		AIData.MovementData.Transform = ai->MovementComponent->GetMovementTransform();
 
 	if (IsValid(ai->MovementComponent->ActorToLookAt))
 		AIData.MovementData.ActorToLookAtName = ai->MovementComponent->ActorToLookAt->GetName();
@@ -1263,6 +1264,13 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 
 	building->SeedNum = BuildingData.Seed;
 	building->SetTier(BuildingData.Tier);
+
+	if (building->IsA<ARoad>()) {
+		ARoad* road = Cast<ARoad>(building);
+		road->HISMRoad->SetRelativeRotation(FRotator(0.0f, -ActorData.Transform.GetRotation().Rotator().Yaw, 0.0f));
+
+		road->RegenerateMesh(true);
+	}
 
 	TArray<UStaticMeshComponent*> components;
 	building->GetComponents<UStaticMeshComponent>(components);

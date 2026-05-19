@@ -677,7 +677,7 @@ void UCitizenManager::Sacrifice(FString FactionName)
 	citizen->AIController->StopMovement();
 	citizen->MovementComponent->SetMaxSpeed(0.0f);
 
-	UNiagaraComponent* component = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SacrificeSystem, citizen->MovementComponent->Transform.GetLocation());
+	UNiagaraComponent* component = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SacrificeSystem, citizen->MovementComponent->GetMovementTransform().GetLocation());
 
 	TArray<FTimerParameterStruct> params1;
 	Camera->TimerManager->SetParameter(1000, params1);

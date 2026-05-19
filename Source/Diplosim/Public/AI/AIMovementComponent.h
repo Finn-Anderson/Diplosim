@@ -26,6 +26,8 @@ public:
 
 	bool IsAttacking();
 
+	FTransform GetMovementTransform();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float MaxSpeed;
 
@@ -46,6 +48,9 @@ public:
 
 	UPROPERTY()
 		FTransform Transform;
+
+	UPROPERTY()
+		float ZOffset;
 
 	UPROPERTY()
 		class AActor* ActorToLookAt;

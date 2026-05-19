@@ -432,23 +432,42 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !Building->IsA(FoundationClass) && !Building->IsA<ARoad>()))
 			return false;
 
+		FTransform transform;
+		if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UInstancedStaticMeshComponent>())
+			Cast<UInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
+		else
+			transform = hit.GetActor()->GetTransform();
+
 		if (hit.GetComponent() == Camera->Grid->HISMSea || hit.GetComponent() == Camera->Grid->HISMRiver) {
+			FVector location = transform.GetLocation();
+			if (hit.GetComponent() == Camera->Grid->HISMSea) {
+				auto bound = Camera->Grid->GetMapBounds();
+
+				int32 x = FMath::RoundHalfFromZero(hit.Location.X / 100.0f) * 100.0f;
+				int32 y = FMath::RoundHalfFromZero(hit.Location.Y / 100.0f) * 100.0f;
+				int32 z = location.Z;
+
+				location = FVector(x, y, z);
+			}
+
+			FRotator rotation = (location - Building->GetActorLocation()).Rotation() - FRotator(0.0f, 90.0f, 0.0f);
+			rotation.Normalize();
+
 			if (Building->IsA(FoundationClass) || (Building->IsA<ARoad>() && Building->SeedNum > 0))
 				continue;
+			else if (Building->bCoastal && FMath::IsNearlyEqual(rotation.Yaw, Building->GetActorRotation().Yaw)) {
+				bCoast = true;
 
-			return false;
+				continue;
+			}
+			else
+				return false;
 		}
 
 		FTileStruct* tile = Camera->Grid->GetTileFromLocation(hit.Location);
 
 		if (tile == nullptr || (tile->bMineral && (Building->FactionName != Camera->ColonyName || !Building->bCanMove) && (!Building->IsA<AInternalProduction>() || Cast<AInternalProduction>(Building)->ResourceToOverlap == nullptr)))
 			return false;
-
-		FTransform transform;
-		if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UInstancedStaticMeshComponent>())
-			Cast<UInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
-		else
-			transform = hit.GetActor()->GetTransform();
 
 		transform.SetLocation(FVector(FMath::RoundHalfFromZero(transform.GetLocation().X), FMath::RoundHalfFromZero(transform.GetLocation().Y), FMath::RoundHalfFromZero(transform.GetLocation().Z)));
 
@@ -489,11 +508,6 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		if (transform.GetLocation().Z != FMath::Floor(Building->GetActorLocation().Z) - 100.0f || hit.GetComponent() == Camera->Grid->HISMRiver) {
 			if ((Building->IsA(FoundationClass) && (hit.GetActor()->IsA(FoundationClass) || hit.GetActor()->IsA<AGrid>())) || (Building->IsA(RampClass) && (hit.GetActor()->IsA(RampClass) || hit.GetActor()->IsA<AGrid>())))
 				continue;
-
-			FRotator rotation = (Building->GetActorLocation() - transform.GetLocation()).Rotation();
-
-			if (Building->bCoastal && transform.GetLocation().Z < 0.0f && FMath::IsNearlyEqual(FMath::Abs(rotation.Yaw), FMath::Abs(Building->GetActorRotation().Yaw - 90.0f)))
-				bCoast = true;
 			else if (!hit.GetActor()->IsHidden())
 				return false;
 		}

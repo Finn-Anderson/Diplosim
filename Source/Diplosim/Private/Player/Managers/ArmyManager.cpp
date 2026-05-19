@@ -318,7 +318,7 @@ ABuilding* UArmyManager::MoveArmyMember(FFactionStruct* Faction, AAI* AI, bool b
 		if (building->IsA<ABroch>())
 			buildingValue = 5.0f;
 
-		double magnitude = AI->AIController->GetClosestActor(400.0f, AI->MovementComponent->Transform.GetLocation(), target->GetActorLocation(), building->GetActorLocation(), true, targetValue, buildingValue);
+		double magnitude = AI->AIController->GetClosestActor(400.0f, AI->MovementComponent->GetMovementTransform().GetLocation(), target->GetActorLocation(), building->GetActorLocation(), true, targetValue, buildingValue);
 
 		if (magnitude > 0.0f)
 			target = building;

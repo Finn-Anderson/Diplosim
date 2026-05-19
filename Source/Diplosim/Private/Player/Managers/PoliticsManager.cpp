@@ -808,7 +808,7 @@ void UPoliticsManager::SetupRebel(FFactionStruct* Faction, ACitizen* Citizen)
 	Faction->Citizens.Remove(Citizen);
 
 	Faction->Rebels.Add(Citizen);
-	aiVisualiser->AddInstance(Citizen, aiVisualiser->HISMRebel, Citizen->MovementComponent->Transform);
+	aiVisualiser->AddInstance(Citizen, aiVisualiser->HISMRebel, Citizen->MovementComponent->GetMovementTransform());
 
 	Citizen->MoveToBroch();
 }

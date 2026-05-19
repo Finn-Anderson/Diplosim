@@ -26,6 +26,8 @@ public:
 
 	void RegenerateMesh(bool bRegenerateHits);
 
+	void UpdateBoxBounds();
+
 	void SetTier(int32 Value) override;
 
 	UPROPERTY()

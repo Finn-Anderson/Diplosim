@@ -75,7 +75,7 @@ void UBuildingComponent::FindEducation(ASchool* Education, int32 TimeToCompleteD
 		AllocatedBuildings[0] = Education;
 	}
 	else {
-		FVector location = citizen->MovementComponent->Transform.GetLocation();
+		FVector location = citizen->MovementComponent->GetMovementTransform().GetLocation();
 
 		if (IsValid(AllocatedBuildings[2]))
 			location = AllocatedBuildings[2]->GetActorLocation();
@@ -117,7 +117,7 @@ void UBuildingComponent::FindJob(AWork* Job, int32 TimeToCompleteDay)
 		if (happiness != nullptr)
 			diff -= *happiness / 5;
 
-		FVector location = citizen->MovementComponent->Transform.GetLocation();
+		FVector location = citizen->MovementComponent->GetMovementTransform().GetLocation();
 
 		if (IsValid(AllocatedBuildings[1]))
 			location = AllocatedBuildings[1]->GetActorLocation();
@@ -231,7 +231,7 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 		int32 currentValue = FMath::Max(chosenHouse->GetSatisfactionLevel(oldRent) / 10 + chosenHouse->Space + oldLeftoverMoney, 0);
 		int32 newValue = FMath::Max(NewHouse->GetSatisfactionLevel(newRent) / 10 + NewHouse->Space + newLeftoverMoney, 0);
 
-		FVector workLocation = citizen->MovementComponent->Transform.GetLocation();
+		FVector workLocation = citizen->MovementComponent->GetMovementTransform().GetLocation();
 
 		if (IsValid(Employment))
 			workLocation = Employment->GetActorLocation();

@@ -20,14 +20,16 @@ ARoad::ARoad()
 
 	HISMRoad = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("ISMRoad"));
 	HISMRoad->SetupAttachment(RootComponent);
+	HISMRoad->SetCollisionEnabled(BuildingMesh->GetCollisionEnabled());
+	HISMRoad->SetCollisionObjectType(BuildingMesh->GetCollisionObjectType());
+	HISMRoad->SetCollisionResponseToChannels(BuildingMesh->GetCollisionResponseToChannels());
 	HISMRoad->SetGenerateOverlapEvents(false);
 	HISMRoad->NumCustomDataFloats = 1;
 	HISMRoad->PrimaryComponentTick.bCanEverTick = false;
 
 	BoxAreaAffect = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxAreaAffect"));
 	BoxAreaAffect->SetupAttachment(RootComponent);
-	BoxAreaAffect->SetRelativeLocation(FVector(0.0f, 0.0f, 20.0f));
-	BoxAreaAffect->SetBoxExtent(FVector(50.0f, 50.0f, 20.0f));
+	BoxAreaAffect->SetBoxExtent(FVector::Zero());
 	BoxAreaAffect->SetCollisionResponseToAllChannels(ECR_Ignore);
 	BoxAreaAffect->SetCanEverAffectNavigation(true);
 	BoxAreaAffect->bDynamicObstacle = true;
@@ -65,12 +67,16 @@ void ARoad::DestroyBuilding(bool bCheckAbove, bool bMove)
 
 void ARoad::RegenerateMesh(bool bRegenerateHits)
 {
-	if (SeedNum != 0)
-		return;
-
 	for (int32 i = 0; i < HISMRoad->GetInstanceCount(); i++)
 		if (HISMRoad->PerInstanceSMCustomData[i * HISMRoad->NumCustomDataFloats] == 1.0f)
 			HISMRoad->SetCustomDataValue(i, 0, 0.0f);
+
+	if (SeedNum != 0) {
+		if (bRegenerateHits)
+			UpdateBoxBounds();
+
+		return;
+	}
 
 	for (int32 i = LastHitRoads.Num() - 1; i > -1; i--) {
 		LastHitRoads[i]->RegenerateMesh(false);
@@ -156,6 +162,33 @@ void ARoad::RegenerateMesh(bool bRegenerateHits)
 			LastHitRoads.Add(Cast<ARoad>(actor));
 		}
 	}
+
+	if (bRegenerateHits)
+		UpdateBoxBounds();
+}
+
+void ARoad::UpdateBoxBounds()
+{
+	FBoxSphereBounds bounds;
+
+	if (SeedNum == 0) {
+		HISMRoad->SetCanEverAffectNavigation(true);
+
+		bounds = HISMRoad->Bounds;
+	}
+	else {
+		HISMRoad->SetCanEverAffectNavigation(false);
+
+		bounds = BuildingMesh->Bounds;
+	}
+
+	if (bounds.BoxExtent.Z < 5.0f)
+		bounds.BoxExtent.Z = 5.0f;
+
+	BoxAreaAffect->SetBoxExtent(bounds.BoxExtent);
+	BoxAreaAffect->SetRelativeLocation(bounds.Origin - GetActorLocation() + FVector(0.0f, 0.0f, 1.0f));
+
+	
 }
 
 void ARoad::SetTier(int32 Value)
