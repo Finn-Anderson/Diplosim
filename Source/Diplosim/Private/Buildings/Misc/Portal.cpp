@@ -12,20 +12,16 @@ APortal::APortal()
 
 void APortal::Enter(ACitizen* Citizen)
 {
-	Super::Enter(Citizen);
-
-	if (HealthComponent->GetHealth() == 0 || !IsValid(Citizen->AIController->MoveRequest.GetUltimateGoalActor()))
-		return;
-
 	AActor* linkedPortal = Citizen->AIController->MoveRequest.GetLinkedPortal();
 
-	if (!IsValid(linkedPortal) || linkedPortal->FindComponentByClass<UHealthComponent>()->GetHealth() == 0) {
+	if (!IsValid(linkedPortal)) {
 		Citizen->AIController->DefaultAction();
 
 		return;
 	}
 
 	Citizen->MovementComponent->Transform.SetLocation(linkedPortal->GetActorLocation());
+	Citizen->MovementComponent->ZOffset = 0.0f;
 
 	Citizen->AIController->AIMoveTo(Citizen->AIController->MoveRequest.GetUltimateGoalActor());
 }

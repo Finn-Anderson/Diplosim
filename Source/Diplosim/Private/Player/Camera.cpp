@@ -193,6 +193,7 @@ void ACamera::BeginPlay()
 
 	SettingsUIInstance = CreateWidget<UUserWidget>(PController, SettingsUI);
 	SaveLoadGameUIInstance = CreateWidget<UUserWidget>(PController, SaveLoadGameUI);
+	ConfirmUIInstance = CreateWidget<UUserWidget>(PController, ConfirmUI);
 	WikiUIInstance = CreateWidget<UUserWidget>(PController, WikiUI);
 
 	EventUIInstance = CreateWidget<UUserWidget>(PController, EventUI);
@@ -524,7 +525,7 @@ void ACamera::SetMouseCapture(bool bCapture, int32 bUIStatus)
 
 bool ACamera::IsUIHoveredOver()
 {
-	TArray<UUserWidget*> widgets = { Grid->LoadUIInstance, Grid->MapUIInstance, MainMenuUIInstance, BuildUIInstance, MenuUIInstance, LostUIInstance, SettingsUIInstance, SaveLoadGameUIInstance, WikiUIInstance, ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, DiplomacyNotifyUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, VisitorsUIInstance, CreateEventUIInstance, ArmyEditorUIInstance, WidgetComponent->GetWidget() };
+	TArray<UUserWidget*> widgets = { Grid->LoadUIInstance, Grid->MapUIInstance, MainMenuUIInstance, BuildUIInstance, MenuUIInstance, LostUIInstance, SettingsUIInstance, SaveLoadGameUIInstance, ConfirmUIInstance, WikiUIInstance, ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, DiplomacyNotifyUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, VisitorsUIInstance, CreateEventUIInstance, ArmyEditorUIInstance, WidgetComponent->GetWidget() };
 	int32 mode = 0;
 
 	for (UUserWidget* widget : widgets) {
@@ -562,7 +563,7 @@ void ACamera::SetWidgetPosition(UUserWidget* Widget)
 
 bool ACamera::ClearPopupUI()
 {
-	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, VisitorsUIInstance, CreateEventUIInstance, ArmyEditorUIInstance };
+	TArray<UUserWidget*> widgets = { ParliamentUIInstance, BribeUIInstance, InfoUIInstance, ResearchUIInstance, DiplomacyUIInstance, GiftUIInstance, BuildingColourUIInstance, HoursUIInstance, RentUIInstance, VisitorsUIInstance, CreateEventUIInstance, ArmyEditorUIInstance, ConfirmUIInstance };
 	bool bWasClosingWidget = false;
 
 	for (UUserWidget* widget : widgets) {
@@ -987,6 +988,7 @@ void ACamera::Menu()
 		SettingsUIInstance->RemoveFromParent();
 		WikiUIInstance->RemoveFromParent();
 		SaveLoadGameUIInstance->RemoveFromParent();
+		ConfirmUIInstance->RemoveFromParent();
 
 		if (Start && !BuildComponent->IsComponentTickEnabled())
 			MainMenuUIInstance->AddToViewport();

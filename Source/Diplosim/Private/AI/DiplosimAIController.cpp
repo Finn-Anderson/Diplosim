@@ -102,8 +102,8 @@ void ADiplosimAIController::DefaultAction()
 		else
 			Idle(faction, citizen);
 	}
-	else {
-		if (AI->IsA<AEnemy>() && Cast<AEnemy>(AI)->SpawnLocation != FVector::Zero())
+	else if (AI->IsA<AEnemy>()) {
+		if (Cast<AEnemy>(AI)->SpawnLocation != FVector::Zero())
 			Wander(Cast<AEnemy>(AI)->SpawnLocation, true);
 		else
 			AI->MoveToBroch();
@@ -114,8 +114,6 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 {
 	if (!IsValid(Citizen))
 		return;
-
-	MoveRequest.SetGoalActor(nullptr);
 
 	int32 chance = Camera->Stream.RandRange(0, 100);
 
@@ -149,6 +147,8 @@ void ADiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 void ADiplosimAIController::Wander(FVector CentrePoint, bool bTimer, ABuilding* Building, float MaxLength, bool bRaid)
 {
+	MoveRequest.SetGoalActor(nullptr);
+
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
@@ -387,7 +387,7 @@ TArray<FVector> ADiplosimAIController::GetPathPoints(FVector StartLocation, FVec
 	if (IsValid(AI) && AI->NavQueryFilter != nullptr)
 		filter = AI->NavQueryFilter;
 
-	if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt != nullptr)
+	if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->EnterLocation != FVector::Zero())
 		StartLocation = Cast<ACitizen>(AI)->BuildingComponent->EnterLocation;
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
@@ -415,11 +415,6 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 	if (Location != FVector::Zero())
 		MoveRequest.SetLocation(Location);
-	else {
-		FVector location = GetActualLocation(Actor);
-		if (location != FVector::Zero())
-			MoveRequest.SetLocation(location);
-	}
 	
 	if (AI->CanReach(Actor, AI->GetReach(), MoveRequest.GetLocation(), Instance) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
 		return;
@@ -460,12 +455,12 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 					nav->GetPathLength(MoveRequest.GetLocation(), building->GetActorLocation(), length2);
 
 					if (length2 < length1)
-						ownerNearestPortal = building;
+						targetNearestPortal = building;
 				}
 			}
 		}
 
-		if (IsValid(ownerNearestPortal) && IsValid(targetNearestPortal)) {
+		if (IsValid(ownerNearestPortal) && IsValid(targetNearestPortal) && ownerNearestPortal != targetNearestPortal) {
 			double originalPathLength = 0.0f;
 			nav->GetPathLength(GetActualLocation(AI), MoveRequest.GetLocation(), originalPathLength);
 
@@ -475,8 +470,10 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 			double targetPathLength = 0.0f;
 			nav->GetPathLength(targetNearestPortal->GetActorLocation(), MoveRequest.GetLocation(), targetPathLength);
 
-			if (originalPathLength > ownerPathLength + targetPathLength)
+			if (originalPathLength > ownerPathLength + targetPathLength) {
 				MoveRequest.SetGoalActor(ownerNearestPortal, targetNearestPortal, Actor);
+				MoveRequest.SetLocation(GetActualLocation(ownerNearestPortal));
+			}
 		}
 	}
 
@@ -508,8 +505,24 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 {
-	if (!IsValid(Actor) || !IsValid(AI) || Actor->IsA<AGrid>() || (Actor->IsA<AResource>() && MoveRequest.GetGoalInstance() == INDEX_NONE) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
+	if (IsValid(AI) && (!IsValid(Actor) || (Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->HealthComponent->GetHealth() == 0 && AI->AttackComponent->OverlappingEnemies.IsEmpty()))) {
+		if (!Camera->TimerManager->DoesTimerExist("Idle", AI))
+			DefaultAction();
+
 		return;
+	}
+
+	if (!IsValid(AI) || Actor->IsA<AGrid>() || (Actor->IsA<AResource>() && MoveRequest.GetGoalInstance() == INDEX_NONE) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
+		return;
+
+	AActor* currentPortal = MoveRequest.GetGoalActor();
+	AActor* linkedPortal = MoveRequest.GetLinkedPortal();
+
+	if (!IsValid(linkedPortal) || linkedPortal->FindComponentByClass<UHealthComponent>()->GetHealth() == 0 || (IsValid(linkedPortal) && (!IsValid(currentPortal) || currentPortal->FindComponentByClass<UHealthComponent>()->GetHealth() == 0))) {
+		AIMoveTo(MoveRequest.GetUltimateGoalActor());
+
+		return;
+	}
 
 	FVector AILocation = GetActualLocation(AI);
 
@@ -522,10 +535,6 @@ void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 		currentLoc = AI->MovementComponent->TempPoints.Last();
 	else if (!AI->MovementComponent->Points.IsEmpty())
 		currentLoc = AI->MovementComponent->Points.Last();
-
-	FVector location = GetActualLocation(Actor);
-	if (location != FVector::Zero())
-		targetLoc = location;
 
 	FNavLocation navLoc;
 	nav->ProjectPointToNavigation(targetLoc, navLoc, FVector(400.0f, 400.0f, 40.0f));

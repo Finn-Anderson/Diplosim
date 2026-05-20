@@ -8,6 +8,8 @@
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Misc/Festival.h"
+#include "Buildings/Misc/Road.h"
 #include "Buildings/Work/Defence/Trap.h"
 #include "Buildings/Work/Defence/Gate.h"
 #include "Buildings/Work/Defence/Tower.h"
@@ -366,12 +368,12 @@ void UConquestManager::CalculateAIFighting(float DeltaTime)
 					if (Camera->SaveGameComponent->IsLoading())
 						return;
 
-					if (!IsValid(actor) || ai->AttackComponent->OverlappingEnemies.Contains(actor))
+					if (!IsValid(actor) || ai->AttackComponent->OverlappingEnemies.Contains(actor) || actor->IsA<ATrap>() || actor->IsA<ARoad>() || actor->IsA<AFestival>() || actor->IsA(Camera->BuildComponent->RampClass))
 						continue;
 
 					UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
-					if ((healthComp && healthComp->GetHealth() <= 0) || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))) || actor->IsA<ATrap>() || (actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(actor)->BuildingComponent->BuildingAt)))
+					if ((healthComp && healthComp->GetHealth() <= 0) || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))) || (actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(actor)->BuildingComponent->BuildingAt)))
 						continue;
 
 					ai->AttackComponent->OverlappingEnemies.Add(actor);

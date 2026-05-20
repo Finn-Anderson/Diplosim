@@ -98,8 +98,8 @@ void UAttackComponent::PickTarget(float DeltaTime)
 			favoured = target;
 	}
 
-	if (!IsMoraleHigh())
-		return;
+	//if (!IsMoraleHigh())
+		//return; REDO BUT BETTER
 
 	int32 reach = 0.0f;
 
@@ -117,12 +117,13 @@ void UAttackComponent::PickTarget(float DeltaTime)
 		return;
 	}
 
-	CurrentTarget = favoured;
-
 	if ((*ProjectileClass || ai->CanReach(favoured, reach)))
 		Attack(favoured, DeltaTime);
-	else if (CurrentTarget != favoured)
+	else if (CurrentTarget != favoured) {
+		CurrentTarget = favoured;
+
 		ai->AIController->AIMoveTo(favoured);
+	}
 }
 
 FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
@@ -210,6 +211,9 @@ void UAttackComponent::Attack(AActor* Target, float DeltaTime)
 {
 	if (!IsValid(Target))
 		return;
+
+	if (CurrentTarget != Target)
+		CurrentTarget = Target;
 
 	UHealthComponent* healthComp = Target->GetComponentByClass<UHealthComponent>();
 

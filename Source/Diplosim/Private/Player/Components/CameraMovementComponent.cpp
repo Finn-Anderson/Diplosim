@@ -33,6 +33,8 @@ UCameraMovementComponent::UCameraMovementComponent()
 	bShake = false;
 
 	MovementLocation = FVector::Zero();
+
+	PController, Camera = nullptr;
 }
 
 void UCameraMovementComponent::BeginPlay()

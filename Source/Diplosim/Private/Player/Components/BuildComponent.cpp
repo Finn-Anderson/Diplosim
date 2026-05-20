@@ -16,7 +16,9 @@
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Defence/Gate.h"
+#include "Buildings/Misc/Festival.h"
 #include "Buildings/Misc/Road.h"
+#include "Buildings/Misc/Portal.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Map/Grid.h"
 #include "Map/Resources/Vegetation.h"
@@ -84,8 +86,8 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 		auto bound = Camera->Grid->GetMapBounds();
 
-		int32 x = FMath::FloorToInt(location.X / 100.0f + bound / 2);
-		int32 y = FMath::FloorToInt(location.Y / 100.0f + bound / 2);
+		int32 x = FMath::FloorToInt(location.X / 100.0f + bound / 2.0f);
+		int32 y = FMath::FloorToInt(location.Y / 100.0f + bound / 2.0f);
 
 		if (x < 0 || x >= bound || y < 0 || y >= bound)
 			return;
@@ -192,14 +194,14 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, flo
 		Location = Building->GetActorLocation() + rotation.RotateVector(centre);
 
 	TArray<FVector> points;
+	float xInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 100.0f), 1);
+	float yInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 100.0f), 1);
 
-	for (float x = -1.0f; x <= 1.0f; x += 0.5f)
-		for (float y = -1.0f; y <= 1.0f; y += 0.5f)
+	for (float x = -1.0f; x <= 1.1f; x += xInterval)
+		for (float y = -1.0f; y <= 1.1f; y += yInterval)
 			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f) - FVector(20.0f * x, 20.0f * y, 0.0f)));
 
-	float height = size.Z + 10.0f;
-	if (Building->IsA<ARoad>())
-		height += 50.0f;
+	float height = size.Z + 100.0f;
 
 	for (const FVector& point : points) {
 		FHitResult hit(ForceInit);
@@ -475,12 +477,12 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			if (Building->GetClass() == hit.GetActor()->GetClass()) {
 				ABuilding* building = Cast<ABuilding>(hit.GetActor());
 
-				if (Building->SeedNum != building->SeedNum)
+				if (Building->SeedNum == building->SeedNum)
 					return false;
 				else
 					continue;
 			}
-			else if ((Building->IsA<ARoad>() || hit.GetActor()->IsA<ARoad>()) && (Building->IsA<AGate>() || hit.GetActor()->IsA<AGate>()))
+			else if ((Building->IsA<ARoad>() || hit.GetActor()->IsA<ARoad>()) && (Building->IsA<AGate>() || hit.GetActor()->IsA<AGate>() || Building->IsA<APortal>() || hit.GetActor()->IsA<APortal>()))
 				continue;
 			else if (Building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Building)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
 				if (hit.GetActor()->IsA(Cast<AInternalProduction>(Building)->ResourceToOverlap)) {
@@ -503,6 +505,8 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 				return false;
 		}
 		else if (Building->IsA<ARoad>() && (hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA(RampClass) || hit.GetComponent() == Camera->Grid->HISMRampGround))
+			continue;
+		else if ((Building->IsA<APortal>() || hit.GetActor()->IsA<APortal>()) && Building->IsA<AFestival>() || hit.GetActor()->IsA<AFestival>())
 			continue;
 
 		if (transform.GetLocation().Z != FMath::Floor(Building->GetActorLocation().Z) - 100.0f || hit.GetComponent() == Camera->Grid->HISMRiver) {

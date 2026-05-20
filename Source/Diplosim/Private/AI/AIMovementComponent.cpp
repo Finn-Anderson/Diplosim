@@ -158,7 +158,7 @@ void UAIMovementComponent::CalculateRoadBonus()
 	float cost = 1.0f;
 
 	FHitResult hit;
-	if (GetWorld()->LineTraceSingleByChannel(hit, Transform.GetLocation() + FVector(0.0f, 0.0f, 10.0f), Transform.GetLocation() - FVector(0.0f, 0.0f, 10.0f), ECollisionChannel::ECC_Vehicle))
+	if (GetWorld()->LineTraceSingleByChannel(hit, Transform.GetLocation() + FVector(0.0f, 0.0f, 10.0f), Transform.GetLocation() - FVector(0.0f, 0.0f, 10.0f), ECollisionChannel::ECC_GameTraceChannel1))
 		if ((hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA<AFestival>()) && !AI->Camera->BuildComponent->Buildings.Contains(hit.GetActor()))
 			cost = 1.15f * Cast<ABuilding>(hit.GetActor())->GetTier();
 

@@ -185,14 +185,13 @@ void UHealthComponent::Death(AActor* Attacker)
 	} 
 	else if (actor->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(actor);
+		building->BuildingMesh->SetCanEverAffectNavigation(false);
 
 		for (AActor* citizen : building->Inside)
 			Cast<ACitizen>(citizen)->HealthComponent->TakeHealth(1000, Attacker);
 
 		for (ACitizen* citizen : building->GetOccupied())
 			building->RemoveCitizen(citizen);
-
-		building->BuildingMesh->SetGenerateOverlapEvents(false);
 
 		building->Storage.Empty();
 
@@ -340,8 +339,6 @@ void UHealthComponent::Clear(AActor* Attacker)
 	}
 	else if (actor->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(actor);
-
-		building->BuildingMesh->SetCanEverAffectNavigation(false);
 
 		FVector size = building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 		building->GroundDecalComponent->DecalSize = FVector(1.0f, size.Y / 2.0f, size.X / 2.0f);
