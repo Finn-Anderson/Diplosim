@@ -59,8 +59,6 @@ void AEggBasket::RedeemReward()
 	int32 amount = camera->Stream.RandRange(reward.Min, reward.Max);
 
 	camera->ResourceManager->AddUniversalResource(camera->ConquestManager->GetFaction(camera->ColonyName), reward.Resource, amount);
-	
-	Grid->ResourceTiles.Add(Tile);
 
 	Destroy();
 }

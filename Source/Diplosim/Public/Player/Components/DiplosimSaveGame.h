@@ -1349,8 +1349,6 @@ private:
 
 	void LoadResource(class ACamera* Camera, FResourceData& ResourceData, AActor* Actor);
 
-	void LoadEggBasket(class ACamera* Camera, FActorSaveData& ActorData, AActor* Actor);
-
 	void LoadCamera(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor);
 	void LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor);
 	void LoadGamemode(class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor);

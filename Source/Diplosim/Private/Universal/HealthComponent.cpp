@@ -44,6 +44,9 @@ UHealthComponent::UHealthComponent()
 	HitAudioComponent->bCanPlayMultipleInstances = true;
 
 	HealthMultiplier = 1.0f;
+	Health, MaxHealth = 0;
+
+	Camera, DeathSystem, OnHitEffect = nullptr;
 }
 
 void UHealthComponent::BeginPlay()

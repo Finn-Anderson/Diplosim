@@ -43,11 +43,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rewards")
 		TArray<FRewardStruct> Rewards;
 
-	UPROPERTY()
-		class AGrid* Grid;
-
-	FTileStruct* Tile;
-
 private:
 	FRewardStruct PickReward(class ACamera* Camera);
 };

@@ -1,5 +1,6 @@
 #include "Player/Components/DiplosimSaveGame.h"
 
+#include "NiagaraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DirectionalLightComponent.h"
@@ -832,8 +833,6 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 			LoadWorld(Saves[Index].WorldData, actor, wetnessData);
 		else if (actor->IsA<AResource>())
 			LoadResource(Camera, Saves[Index].ResourceData[actorData.dataIndex], actor);
-		else if (actor->IsA<AEggBasket>())
-			LoadEggBasket(Camera, actorData, actor);
 		else if (actor->IsA<ACamera>()) {
 			LoadCamera(actorData, Saves[Index].CameraData, actor);
 
@@ -984,18 +983,6 @@ void UDiplosimSaveGame::LoadResource(ACamera* Camera, FResourceData& ResourceDat
 
 	for (int32 instance : ResourceData.FireInstances)
 		Camera->Grid->AtmosphereComponent->SetOnFire(Actor, instance, true);
-}
-
-void UDiplosimSaveGame::LoadEggBasket(ACamera* Camera, FActorSaveData& ActorData, AActor* Actor)
-{
-	AEggBasket* eggBasket = Cast<AEggBasket>(Actor);
-
-	FTileStruct* tile = Camera->Grid->GetTileFromLocation(ActorData.Transform.GetLocation());
-
-	eggBasket->Grid = Camera->Grid;
-	eggBasket->Tile = tile;
-
-	Camera->Grid->ResourceTiles.RemoveSingle(tile);
 }
 
 void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor)
@@ -1300,6 +1287,9 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 
 		break;
 	}
+
+	if (building->bConstant && !Camera->ConstructionManager->IsBeingConstructed(building, nullptr))
+		building->ParticleComponent->Activate();
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(building->FactionName);
 	if (faction != nullptr) {

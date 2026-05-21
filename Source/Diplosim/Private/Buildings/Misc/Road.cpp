@@ -187,8 +187,6 @@ void ARoad::UpdateBoxBounds()
 
 	BoxAreaAffect->SetBoxExtent(bounds.BoxExtent);
 	BoxAreaAffect->SetRelativeLocation(bounds.Origin - GetActorLocation() + FVector(0.0f, 0.0f, 1.0f));
-
-	
 }
 
 void ARoad::SetTier(int32 Value)
@@ -200,4 +198,16 @@ void ARoad::SetTier(int32 Value)
 	HISMRoad->SetCustomPrimitiveDataFloat(1, data[1]);
 	HISMRoad->SetCustomPrimitiveDataFloat(2, data[2]);
 	HISMRoad->SetCustomPrimitiveDataFloat(3, data[3]);
+}
+
+void ARoad::RefreshRoads()
+{
+	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(this, 4.0f);
+
+	for (const FHitResult& hit : hits) {
+		AActor* actor = hit.GetActor();
+
+		if (actor->IsA<ARoad>() && Cast<ARoad>(actor)->SeedNum == 0)
+			Cast<ARoad>(actor)->RegenerateMesh(false);
+	}
 }

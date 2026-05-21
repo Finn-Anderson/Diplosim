@@ -618,7 +618,7 @@ void AGrid::SpawnMinerals()
 {
 	int32 num = ResourceTiles.Num() / 2000;
 
-	ValidMineralTiles.Empty();
+	TArray<TArray<FTileStruct*>> validMineralTiles;
 
 	for (FTileStruct* tile : ResourceTiles) {
 		bool valid = true;
@@ -629,22 +629,22 @@ void AGrid::SpawnMinerals()
 		if (!valid)
 			continue;
 
-		ValidMineralTiles.Add(tiles);
+		validMineralTiles.Add(tiles);
 	}
 
 	for (FResourceHISMStruct& ResourceStruct : MineralStruct) {
 		for (int32 i = 0; i < (num * ResourceStruct.Multiplier); i++) {
-			int32 chosenNum = Camera->Stream.RandRange(0, ValidMineralTiles.Num() - 1);
-			TArray<FTileStruct*> chosenTiles = ValidMineralTiles[chosenNum];
+			int32 chosenNum = Camera->Stream.RandRange(0, validMineralTiles.Num() - 1);
+			TArray<FTileStruct*> chosenTiles = validMineralTiles[chosenNum];
 
 			GenerateMinerals(chosenTiles[0], ResourceStruct.Resource);
 
 			for (FTileStruct* tile : chosenTiles) {
 				tile->bMineral = true;
 
-				for (int32 j = ValidMineralTiles.Num() - 1; j > -1; j--)
-					if (ValidMineralTiles[j].Contains(tile))
-						ValidMineralTiles.RemoveAt(j);
+				for (int32 j = validMineralTiles.Num() - 1; j > -1; j--)
+					if (validMineralTiles[j].Contains(tile))
+						validMineralTiles.RemoveAt(j);
 			}
 		}
 	}
@@ -734,7 +734,7 @@ void AGrid::SetupEnvironment(bool bLoad)
 	SpawnEggBasket();
 	SpawnAISpawners();
 
-	SetSpecialBuildings(ValidMineralTiles);
+	SetSpecialBuildings();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(true, false);
@@ -1058,7 +1058,7 @@ void AGrid::FixEdgeZClipping(FTileStruct* Tile)
 	TArray<float> offsets = { 0.0f, 0.01f, 0.02f, 0.03f };
 
 	for (auto& element : Tile->AdjacentTiles) {
-		if (Tile->Level != element.Value->Level || !element.Value->bEdge)
+		if (!Tile->bEdge || !element.Value->bEdge)
 			continue;
 
 		FTransform t = GetTransform(element.Value);
@@ -1338,27 +1338,6 @@ void AGrid::RemoveTree(AResource* Resource, TArray<int32> Instances)
 	Resource->ResourceHISM->RemoveInstances(Instances);
 }
 
-void AGrid::SpawnEggBasket()
-{
-	int32 index = Camera->Stream.RandRange(0, ResourceTiles.Num() - 1);
-
-	if (index == INDEX_NONE)
-		return;
-
-	FTransform transform;
-	transform.SetLocation(FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f + 100.0f));
-	transform.SetRotation(ResourceTiles[index]->Rotation);
-
-	FActorSpawnParameters params;
-	params.bNoFail = true;
-
-	AEggBasket* eggBasket = GetWorld()->SpawnActor<AEggBasket>(EggBasketClass, transform, params);
-	eggBasket->Grid = this;
-	eggBasket->Tile = ResourceTiles[index];
-
-	ResourceTiles.RemoveAt(index);
-}
-
 FTransform AGrid::GetTransform(FTileStruct* Tile)
 {
 	FTransform transform;
@@ -1369,6 +1348,9 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 		HISMRampGround->GetInstanceTransform(Tile->Instance, transform);
 	else
 		HISMGround->GetInstanceTransform(Tile->Instance, transform);
+
+	if (transform.GetLocation() == FVector::Zero())
+		transform.SetLocation(FVector(Tile->X * 100.0f, Tile->Y * 100.0f, Tile->Level * 75.0f));
 
 	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
 
@@ -1425,8 +1407,8 @@ FTileStruct* AGrid::GetTileFromLocation(FVector WorldLocation)
 {
 	auto bound = GetMapBounds();
 
-	int32 x = FMath::RoundHalfFromZero(WorldLocation.X / 100.0f) + (bound / 2);
-	int32 y = FMath::RoundHalfFromZero(WorldLocation.Y / 100.0f) + (bound / 2);
+	int32 x = FMath::RoundHalfFromZero(WorldLocation.X / 100.0f) + bound / 2.0f;
+	int32 y = FMath::RoundHalfFromZero(WorldLocation.Y / 100.0f) + bound / 2.0f;
 
 	if (x >= bound || x < 0 || y >= bound || y < 0)
 		return nullptr;
@@ -1435,9 +1417,25 @@ FTileStruct* AGrid::GetTileFromLocation(FVector WorldLocation)
 }
 
 //
-// Special Buildings
+// Grid Buildings
 //
-void AGrid::SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles)
+TArray<FTileStruct*> AGrid::GetChosenTileLocation(AActor* Actor)
+{
+	TArray<FTileStruct*> validLocations;
+
+	for (TArray<FTileStruct>& row : Storage) {
+		for (FTileStruct& tile : row) {
+			if (tile.Level < 0 || tile.bRamp || tile.bMineral || tile.bRiver || tile.bUnique || !Camera->BuildComponent->IsValidLocation(Actor, 1.0f, GetTransform(&tile).GetLocation()))
+				continue;
+
+			validLocations.Add(&tile);
+		}
+	}
+
+	return validLocations;
+}
+
+void AGrid::SetSpecialBuildings()
 {
 	for (ASpecial* building : SpecialBuildings) {
 		if (bRandSpecialBuildings) {
@@ -1453,22 +1451,10 @@ void AGrid::SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles)
 
 		building->SetActorRotation(FRotator(0.0f, yaw, 0.0f));
 
-		TArray<FTileStruct*> validLocations;
+		TArray<FTileStruct*> validLocations = GetChosenTileLocation(building);
 
-		for (TArray<FTileStruct*> tiles : ValidTiles) {
-			FTileStruct* tile = tiles[0];
-
-			building->SetActorLocation(GetTransform(tile).GetLocation());
-
-			if (!Camera->BuildComponent->IsValidLocation(building))
-				continue;
-
-			validLocations.Add(tile);
-		}
-
-		if (validLocations.IsEmpty()) {
+		if (validLocations.IsEmpty())
 			building->SetActorHiddenInGame(true);
-		}
 		else {
 			int32 chosenLocation = Camera->Stream.RandRange(0, validLocations.Num() - 1);
 			building->SetActorLocation(GetTransform(validLocations[chosenLocation]).GetLocation());
@@ -1507,24 +1493,37 @@ void AGrid::BuildSpecialBuildings()
 	}
 }
 
+void AGrid::SpawnEggBasket()
+{
+	TArray<FTileStruct*> validLocations = GetChosenTileLocation(Cast<AActor>(EggBasketClass->GetDefaultObject()));
+
+	if (validLocations.IsEmpty())
+		return;
+
+	int32 chosenLocation = Camera->Stream.RandRange(0, validLocations.Num() - 1);
+
+	FActorSpawnParameters params;
+	params.bNoFail = true;
+
+	AEggBasket* eggBasket = GetWorld()->SpawnActor<AEggBasket>(EggBasketClass, GetTransform(validLocations[chosenLocation]), params);
+}
+
 void AGrid::SpawnAISpawners()
 {
 	for (int32 i = 0; i < NumOfNests; i++) {
-		int32 index = Camera->Stream.RandRange(0, ResourceTiles.Num() - 1);
+		TArray<FTileStruct*> validLocations = GetChosenTileLocation(Cast<AActor>(AISpawnerClass->GetDefaultObject()));
 
-		if (index == INDEX_NONE)
+		if (validLocations.IsEmpty())
 			return;
 
-		FTransform transform;
-		transform.SetLocation(FVector(ResourceTiles[index]->X * 100.0f, ResourceTiles[index]->Y * 100.0f, ResourceTiles[index]->Level * 75.0f + 100.0f));
-		transform.SetRotation(ResourceTiles[index]->Rotation);
+		int32 chosenLocation = Camera->Stream.RandRange(0, validLocations.Num() - 1);
 
 		FActorSpawnParameters params;
 		params.bNoFail = true;
 
-		AAISpawner* nest = GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, transform, params);
+		AAISpawner* nest = GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, GetTransform(validLocations[chosenLocation]), params);
 		nest->SpawnAI();
 
-		ResourceTiles.RemoveAt(index);
+		Camera->BuildComponent->SetTreeStatus(nest, true);
 	}
 }

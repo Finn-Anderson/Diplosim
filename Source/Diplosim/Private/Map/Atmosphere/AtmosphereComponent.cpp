@@ -97,6 +97,9 @@ UAtmosphereComponent::UAtmosphereComponent()
 	bRedSun = false;
 	WindSpeed = 20;
 	TargetWindSpeed = WindSpeed;
+	WindRotation = FRotator(0.0f);
+
+	Grid, WindCollection, FireSystem = nullptr;
 }
 
 void UAtmosphereComponent::BeginPlay()

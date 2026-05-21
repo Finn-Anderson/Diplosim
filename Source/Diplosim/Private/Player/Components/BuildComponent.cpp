@@ -121,7 +121,7 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (building->IsHidden())
 			continue;
 
-		if ((StartLocation == FVector::Zero() && !IsValidLocation(building, 1.0f)) || !CheckBuildCosts()) {
+		if ((StartLocation == FVector::Zero() && !IsValidLocation(building)) || !CheckBuildCosts()) {
 			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
 
 			if (building->IsA<AResearch>()) {
@@ -174,48 +174,52 @@ void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
 	}
 }
 
-TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(ABuilding* Building, float Extent, FVector Location)
+TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(AActor* Actor, float Extent, FVector Location)
 {
 	TArray<FHitResult> hits;
 
 	FCollisionQueryParams params;
 	params.bTraceComplex = true;
-	params.AddIgnoredActor(Building);
+	params.AddIgnoredActor(Actor);
 
 	if (!Buildings.IsEmpty() && StartLocation != FVector::Zero())
 		params.AddIgnoredActor(Buildings[0]);
 
-	FRotator rotation = Building->GetActorRotation();
+	FRotator rotation = Actor->GetActorRotation();
 
 	FVector centre, size;
-	Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, size);
+	Cast<UStaticMeshComponent>(Actor->GetRootComponent())->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, size);
 
-	if (Location == FVector::Zero())
-		Location = Building->GetActorLocation() + rotation.RotateVector(centre);
+	if (Location == FVector::Zero() || Location == Actor->GetActorLocation())
+		Location = Actor->GetActorLocation() + rotation.RotateVector(centre);
 
 	TArray<FVector> points;
-	float xInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 100.0f), 1);
-	float yInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 100.0f), 1);
+	float xInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 50.0f), 1);
+	float yInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 50.0f), 1);
 
 	for (float x = -1.0f; x <= 1.1f; x += xInterval)
 		for (float y = -1.0f; y <= 1.1f; y += yInterval)
 			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f) - FVector(20.0f * x, 20.0f * y, 0.0f)));
 
-	float height = size.Z + 100.0f;
+	float height = size.Z + 50.0f;
 
 	for (const FVector& point : points) {
-		FHitResult hit(ForceInit);
+		TArray<FHitResult> hts;
 
-		if (GetWorld()->LineTraceSingleByChannel(hit, FVector(point.X, point.Y, point.Z + height), FVector(point.X, point.Y, 0.0f), ECC_Vehicle, params))
-			hits.Add(hit);
+		if (GetWorld()->SweepMultiByChannel(hts, FVector(point.X, point.Y, point.Z + height), FVector(point.X, point.Y, 0.0f), FQuat::Identity, ECC_Vehicle, FCollisionShape::MakeBox(FVector(5.0f)), params)) {
+			if (hts.Num() > 1)
+				hts.RemoveAt(hts.Num() - 1);
+
+			hits.Append(hts);
+		}
 	}
 
 	return hits;
 }
 
-void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding, FVector PrevLocation)
+void UBuildComponent::SetTreeStatus(AActor* Actor, bool bDestroy, bool bRemoveBuilding, FVector PrevLocation)
 {
-	if (Building->IsHidden() && bDestroy)
+	if (Actor->IsHidden() && bDestroy)
 		return;
 
 	TArray<FResourceHISMStruct> vegetation;
@@ -223,13 +227,13 @@ void UBuildComponent::SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRe
 	if (bDestroy)
 		vegetation.Append(Camera->Grid->FlowerStruct);
 
-	FVector size = Building->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
+	FVector size = Cast<UStaticMeshComponent>(Actor->GetRootComponent())->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
 
 	for (FResourceHISMStruct resource : vegetation) {
 		UInstancedStaticMeshComponent* hism = resource.Resource->ResourceHISM;
 		float radius = FMath::Sqrt(FMath::Square(size.X) + FMath::Square(size.Y));
 
-		TArray<int32> instances = hism->GetInstancesOverlappingSphere(Building->GetActorLocation(), radius);
+		TArray<int32> instances = hism->GetInstancesOverlappingSphere(Actor->GetActorLocation(), radius);
 		instances.Sort();
 
 		for (int32 instance : hism->GetInstancesOverlappingSphere(PrevLocation, radius)) {
@@ -291,7 +295,7 @@ void UBuildComponent::SetBuildingsOnPath()
 	for (const FVector& location : locations) {
 		Buildings[0]->SetActorLocation(location);
 
-		if (IsValidLocation(Buildings[0], 1.0f)) {
+		if (IsValidLocation(Buildings[0])) {
 			SpawnBuilding(Buildings[0]->GetClass(), Buildings[0]->FactionName, location);
 
 			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
@@ -377,10 +381,10 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 			continue;
 
 		for (ABuilding* b : faction->Buildings) {
-			if (!b->IsA(building->GetClass()) || b->GetActorLocation() != building->GetActorLocation())
+			if (b->GetClass() != building->GetClass() || b->GetActorLocation() != building->GetActorLocation())
 				continue;
 
-			cost = b->GetGradeCost(building->SeedNum);
+			cost = b->GetGradeCost();
 
 			break;
 		}
@@ -417,9 +421,12 @@ bool UBuildComponent::CheckBuildCosts()
 	return true;
 }
 
-bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector Location)
+bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Location)
 {
-	TArray<FHitResult> hits = GetBuildingOverlaps(Building, Extent, Location);
+	if (Location == FVector::Zero())
+		Location = Actor->GetActorLocation();
+
+	TArray<FHitResult> hits = GetBuildingOverlaps(Actor, Extent, Location);
 
 	if (hits.IsEmpty())
 		return false;
@@ -431,11 +438,11 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 		if (hit.GetActor()->IsHidden() || hit.GetActor()->IsA<AVegetation>() || hit.GetActor()->IsA<AAI>())
 			continue;
 
-		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !Building->IsA(FoundationClass) && !Building->IsA<ARoad>()))
+		if (hit.GetComponent() == Camera->Grid->HISMLava || (hit.GetComponent() == Camera->Grid->HISMRampGround && !Actor->IsA(FoundationClass) && !Actor->IsA<ARoad>()))
 			return false;
 
 		FTransform transform;
-		if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UInstancedStaticMeshComponent>())
+		if (IsValid(hit.GetComponent()) && hit.GetComponent()->IsA<UInstancedStaticMeshComponent>() && !hit.GetActor()->IsA<ARoad>())
 			Cast<UInstancedStaticMeshComponent>(hit.GetComponent())->GetInstanceTransform(hit.Item, transform);
 		else
 			transform = hit.GetActor()->GetTransform();
@@ -452,12 +459,12 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 				location = FVector(x, y, z);
 			}
 
-			FRotator rotation = (location - Building->GetActorLocation()).Rotation() - FRotator(0.0f, 90.0f, 0.0f);
+			FRotator rotation = (location - Location).Rotation() - FRotator(0.0f, 90.0f, 0.0f);
 			rotation.Normalize();
 
-			if (Building->IsA(FoundationClass) || (Building->IsA<ARoad>() && Building->SeedNum > 0))
+			if (Actor->IsA(FoundationClass) || (Actor->IsA<ARoad>() && Cast<ARoad>(Actor)->SeedNum > 0))
 				continue;
-			else if (Building->bCoastal && FMath::IsNearlyEqual(rotation.Yaw, Building->GetActorRotation().Yaw)) {
+			else if (Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->bCoastal && FMath::IsNearlyEqual(rotation.Yaw, Actor->GetActorRotation().Yaw)) {
 				bCoast = true;
 
 				continue;
@@ -468,32 +475,35 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 
 		FTileStruct* tile = Camera->Grid->GetTileFromLocation(hit.Location);
 
-		if (tile == nullptr || (tile->bMineral && (Building->FactionName != Camera->ColonyName || !Building->bCanMove) && (!Building->IsA<AInternalProduction>() || Cast<AInternalProduction>(Building)->ResourceToOverlap == nullptr)))
+		if (tile == nullptr || (tile->bMineral && (Camera->Start || (Actor->IsA<ABuilding>() && !Cast<ABuilding>(Actor)->bCanMove))))
 			return false;
+		else if (Actor->IsA<ABuilding>() && hit.GetActor()->IsA<ABuilding>() && Cast<ABuilding>(Actor)->bCanBuildOnTop != Cast<ABuilding>(hit.GetActor())->bCanBuildOnTop)
+			continue;
 
 		transform.SetLocation(FVector(FMath::RoundHalfFromZero(transform.GetLocation().X), FMath::RoundHalfFromZero(transform.GetLocation().Y), FMath::RoundHalfFromZero(transform.GetLocation().Z)));
 
-		if (Building->GetActorLocation() == transform.GetLocation()) {
-			if (Building->GetClass() == hit.GetActor()->GetClass()) {
-				ABuilding* building = Cast<ABuilding>(hit.GetActor());
+		if (Location == transform.GetLocation()) {
+			if (Actor->GetClass() == hit.GetActor()->GetClass()) {
+				if (!Actor->IsA<ABuilding>())
+					return false;
 
-				if (Building->SeedNum == building->SeedNum)
+				if (Cast<ABuilding>(Actor)->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum && Cast<ABuilding>(Actor)->Tier == Cast<ABuilding>(hit.GetActor())->Tier)
 					return false;
 				else
 					continue;
 			}
-			else if ((Building->IsA<ARoad>() || hit.GetActor()->IsA<ARoad>()) && (Building->IsA<AGate>() || hit.GetActor()->IsA<AGate>() || Building->IsA<APortal>() || hit.GetActor()->IsA<APortal>()))
-				continue;
-			else if (Building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Building)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
-				if (hit.GetActor()->IsA(Cast<AInternalProduction>(Building)->ResourceToOverlap)) {
+			else if (Actor->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Actor)->ResourceToOverlap) && hit.GetActor()->IsA<AResource>()) {
+				AInternalProduction* ipBuilding = Cast<AInternalProduction>(Actor);
+
+				if (hit.GetActor()->IsA(ipBuilding->ResourceToOverlap)) {
 					bResource = true;
 				}
 				else {
-					for (int32 i = 0; i < Building->Seeds.Num(); i++) {
-						if (!hit.GetActor()->IsA(Building->Seeds[i].Resource))
+					for (int32 i = 0; i < ipBuilding->Seeds.Num(); i++) {
+						if (!hit.GetActor()->IsA(ipBuilding->Seeds[i].Resource))
 							continue;
 
-						Building->SetSeed(i);
+						ipBuilding->SetSeed(i);
 
 						break;
 					}
@@ -504,30 +514,32 @@ bool UBuildComponent::IsValidLocation(ABuilding* Building, float Extent, FVector
 			else
 				return false;
 		}
-		else if (Building->IsA<ARoad>() && (hit.GetActor()->IsA<ARoad>() || hit.GetActor()->IsA(RampClass) || hit.GetComponent() == Camera->Grid->HISMRampGround))
-			continue;
-		else if ((Building->IsA<APortal>() || hit.GetActor()->IsA<APortal>()) && Building->IsA<AFestival>() || hit.GetActor()->IsA<AFestival>())
+		else if (Actor->IsA<ARoad>() && hit.GetComponent() == Camera->Grid->HISMRampGround)
 			continue;
 
-		if (transform.GetLocation().Z != FMath::Floor(Building->GetActorLocation().Z) - 100.0f || hit.GetComponent() == Camera->Grid->HISMRiver) {
-			if ((Building->IsA(FoundationClass) && (hit.GetActor()->IsA(FoundationClass) || hit.GetActor()->IsA<AGrid>())) || (Building->IsA(RampClass) && (hit.GetActor()->IsA(RampClass) || hit.GetActor()->IsA<AGrid>())))
+		if (transform.GetLocation().Z != FMath::Floor(Location.Z) - 100.0f || hit.GetComponent() == Camera->Grid->HISMRiver) {
+			if ((Actor->IsA(FoundationClass) && (hit.GetActor()->IsA(FoundationClass) || hit.GetActor()->IsA<AGrid>())) || (Actor->IsA(RampClass) && (hit.GetActor()->IsA(RampClass) || hit.GetActor()->IsA<AGrid>())))
 				continue;
 			else if (!hit.GetActor()->IsHidden())
 				return false;
 		}
 	}
 
-	if ((!bCoast && Building->bCoastal) || (!bResource && Building->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Building)->ResourceToOverlap)))
-		return false;
+	if (Actor->IsA<ABuilding>()) {
+		ABuilding* building = Cast<ABuilding>(Actor);
 
-	if (Camera->ConquestManager->Factions.Num() > 1) {
-		for (FFactionStruct faction : Camera->ConquestManager->Factions) {
-			if (faction.Name == Building->FactionName)
-				continue;
+		if ((!bCoast && building->bCoastal) || (!bResource && Actor->IsA<AInternalProduction>() && IsValid(Cast<AInternalProduction>(Actor)->ResourceToOverlap)))
+			return false;
 
-			for (ABuilding* building : faction.Buildings)
-				if (FVector::Dist(Building->GetActorLocation(), building->GetActorLocation()) < 500.0f)
-					return false;
+		if (Camera->ConquestManager->Factions.Num() > 1) {
+			for (FFactionStruct faction : Camera->ConquestManager->Factions) {
+				if (faction.Name == building->FactionName)
+					continue;
+
+				for (ABuilding* b : faction.Buildings)
+					if (FVector::Dist(building->GetActorLocation(), b->GetActorLocation()) < 500.0f)
+						return false;
+			}
 		}
 	}
 
@@ -706,7 +718,7 @@ void UBuildComponent::Place(bool bQuick)
 		if (building->IsHidden() && Buildings.Num() > 1)
 			continue;
 
-		if (!IsValidLocation(building, 1.0f) || (Buildings.Num() == 1 && Buildings[0]->IsHidden())) {
+		if (!IsValidLocation(building) || (Buildings.Num() == 1 && Buildings[0]->IsHidden())) {
 			Camera->ShowWarning("Invalid location");
 
 			EndPathPlace();
@@ -729,13 +741,12 @@ void UBuildComponent::Place(bool bQuick)
 		TArray<FHitResult> hits = GetBuildingOverlaps(building);
 
 		for (const FHitResult& hit : hits) {
-			if (building->GetActorLocation() != hit.GetActor()->GetActorLocation())
+			if (building->GetActorLocation() != hit.GetActor()->GetActorLocation() || building->GetClass() != hit.GetActor()->GetClass())
 				continue;
 
-			if (building->GetClass() == hit.GetActor()->GetClass() && building->Tier != Cast<ABuilding>(hit.GetActor())->Tier) {
-				ABuilding* b = Cast<ABuilding>(hit.GetActor());
-				b->Build(false, true, building->Tier);
-			}
+			ABuilding* b = Cast<ABuilding>(hit.GetActor());
+			b->SeedNum = building->SeedNum;
+			b->Build(false, true, building->Tier);
 
 			building->DestroyBuilding();
 

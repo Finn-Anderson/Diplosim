@@ -59,9 +59,9 @@ public:
 
 	void GetBuildLocationZ(class ABuilding* Building, FVector& Location);
 
-	TArray<FHitResult> GetBuildingOverlaps(class ABuilding* Building, float Extent = 1.0f, FVector Location = FVector::Zero());
+	TArray<FHitResult> GetBuildingOverlaps(AActor* Actor, float Extent = 1.0f, FVector Location = FVector::Zero());
 
-	void SetTreeStatus(ABuilding* Building, bool bDestroy, bool bRemoveBuilding = false, FVector PrevLocation = FVector::Zero());
+	void SetTreeStatus(AActor* Actor, bool bDestroy, bool bRemoveBuilding = false, FVector PrevLocation = FVector::Zero());
 
 	void DisplayInfluencedBuildings(class ABuilding* Building, bool bShow);
 
@@ -69,7 +69,7 @@ public:
 
 	TArray<FVector> CalculatePath(struct FTileStruct* StartTile, struct FTileStruct* EndTile);
 
-	bool IsValidLocation(ABuilding* Building, float Extent = 1.0f, FVector Location = FVector::Zero());
+	bool IsValidLocation(AActor* Actor, float Extent = 1.0f, FVector Location = FVector::Zero());
 
 	UFUNCTION(BlueprintCallable)
 		TArray<struct FItemStruct> GetBuildCosts();
@@ -91,7 +91,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, FString FactionName, FVector location = FVector(0.0f, 0.0f, -1000.0f));
 
-	void ResetBuilding(ABuilding* Building);
+	void ResetBuilding(class ABuilding* Building);
 
 	UFUNCTION(BlueprintCallable)
 		void DetachBuilding();

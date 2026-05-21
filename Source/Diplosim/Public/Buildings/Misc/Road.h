@@ -30,6 +30,8 @@ public:
 
 	void SetTier(int32 Value) override;
 
+	void RefreshRoads();
+
 	UPROPERTY()
 		TArray<ARoad*> LastHitRoads;
 

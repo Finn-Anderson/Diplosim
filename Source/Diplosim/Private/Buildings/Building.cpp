@@ -105,8 +105,9 @@ ABuilding::ABuilding()
 	DefaultAmount = 0.0f;
 
 	bHideCitizen = true;
+	bLight = false;
 
-	bInstantConstruction = false;
+	bInstantConstruction, bUnique, bCoastal, bCanMove, bCanDestroy, bCanBuildOnTop = false;
 
 	ActualMesh = nullptr;
 
@@ -115,10 +116,6 @@ ABuilding::ABuilding()
 	bAffectBuildingMesh = false;
 
 	BuildingName = "";
-
-	bUnique = false;
-
-	bCoastal = false;
 
 	SeedNum = 0;
 
@@ -172,11 +169,17 @@ void ABuilding::SetLights(int32 Hour)
 		oldLights = BuildingMesh->GetCustomPrimitiveData().Data[7];
 
 	float newLights = 0.0f;
-	if (!Inside.IsEmpty() && (Hour >= 18 || Hour < 6))
+	if ((Capacity == 0 || !Inside.IsEmpty()) && (Hour >= 18 || Hour < 6))
 		newLights = 1.0f;
 
-	if (oldLights != newLights)
+	if (oldLights != newLights) {
 		BuildingMesh->SetCustomPrimitiveDataFloat(7, newLights);
+
+		if (bLight)
+			ParticleComponent->SetActive(newLights == 1.0f);
+
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, GetName());
+	}
 }
 
 void ABuilding::ToggleDecalComponentVisibility(bool bVisible)
@@ -359,6 +362,9 @@ void ABuilding::SetSeed(int32 Seed)
 
 	SetStorage();
 
+	if (IsA<ARoad>())
+		Cast<ARoad>(this)->RefreshRoads();
+
 	if (FactionName == Camera->ColonyName && !Camera->SaveGameComponent->IsLoading())
 		Camera->DisplayInteract(this);
 }
@@ -488,7 +494,9 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 	if (bRebuild)
 		TargetList = GetRebuildCost();
 	else if (bUpgrade) {
-		TargetList = GetGradeCost(Grade);
+		SetTier(Grade);
+
+		TargetList = GetGradeCost();
 
 		for (int32 i = TargetList.Num() - 1; i > -1; i--) {
 			if (TargetList[i].Amount >= 0)
@@ -498,8 +506,6 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 
 			TargetList.RemoveAt(i);
 		}
-
-		SetTier(Grade);
 	}
 
 	if (CheckInstant()) {
@@ -633,14 +639,14 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 	Destroy();
 }
 
-TArray<FItemStruct> ABuilding::GetGradeCost(int32 Grade)
+TArray<FItemStruct> ABuilding::GetGradeCost()
 {
 	if (Seeds.IsEmpty())
 		return CostList;
 
 	TArray<FItemStruct> items;
 
-	items = Seeds[Grade].Cost;
+	items = Seeds[SeedNum].Cost;
 
 	for (FItemStruct item : Seeds[SeedNum].Cost) {
 		item.Amount = -item.Amount;
@@ -681,6 +687,8 @@ void ABuilding::OnBuilt()
 
 	if (bConstant && ParticleComponent->GetAsset() != nullptr)
 		ParticleComponent->Activate();
+
+	SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
 	Camera->ResourceManager->UpdateResourceCapacityUI(this);
 }

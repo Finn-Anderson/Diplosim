@@ -297,7 +297,7 @@ public:
 
 	void SetSocketLocation(class ACitizen* Citizen);
 
-	TArray<FItemStruct> GetGradeCost(int32 Grade);
+	TArray<FItemStruct> GetGradeCost();
 
 	virtual void Enter(class ACitizen* Citizen);
 
@@ -324,14 +324,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		bool bCanDestroy;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen")
-		bool bHideCitizen;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		bool bUnique;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
 		bool bCoastal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		bool bCanBuildOnTop;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen")
+		bool bHideCitizen;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen")
+		bool bLight;
 
 	UPROPERTY()
 		UStaticMesh* ActualMesh;

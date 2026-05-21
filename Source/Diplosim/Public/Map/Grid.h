@@ -253,8 +253,6 @@ public:
 
 	TMap<FTileStruct*, float> ChosenDistToLava;
 
-	TArray<TArray<FTileStruct*>> ValidMineralTiles;
-
 	TArray<FTileStruct*> SeaTiles;
 
 	TArray<TArray<FTileStruct>> Storage;
@@ -298,20 +296,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 VegetationSizeMultiplier;
 
-	// Egg Basket
-	UFUNCTION()
-		void SpawnEggBasket();
+	// Grid Buildings
+	TArray<FTileStruct*> GetChosenTileLocation(AActor* Actor);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Egg Basket")
-		TSubclassOf<class AEggBasket> EggBasketClass;
-
-	// Unique Buildings
-	void SetSpecialBuildings(TArray<TArray<FTileStruct*>> ValidTiles);
+	void SetSpecialBuildings();
 
 	UFUNCTION(BlueprintCallable)
 		void SetSpecialBuildingStatus(class ASpecial* Building, bool bShow);
 
 	void BuildSpecialBuildings();
+
+	UFUNCTION()
+		void SpawnEggBasket();
+
+	void SpawnAISpawners();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Egg Basket")
+		TSubclassOf<class AEggBasket> EggBasketClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
 		TArray<class ASpecial*> SpecialBuildings;
@@ -322,12 +323,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
 		TArray<TSubclassOf<class ASpecial>> SpecialBuildingClasses;
 
-	// AISpawners
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI Spawner")
 		TSubclassOf<class AAISpawner> AISpawnerClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI Spawner")
 		int32 NumOfNests;
-
-	void SpawnAISpawners();
 };

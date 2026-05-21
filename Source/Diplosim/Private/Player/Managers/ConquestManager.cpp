@@ -90,8 +90,6 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 		if (factions.Contains(factionsParsed[i]))
 			factions.RemoveAt(i);
 
-	TArray<FTileStruct*> validLocations;
-
 	for (int32 i = 0; i < AINum; i++) {
 		int32 index = Camera->Stream.RandRange(0, factionsParsed.Num() - 1);
 		factions.Add(factionsParsed[index]);
@@ -103,23 +101,13 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 	for (FString name : factions) {
 		FFactionStruct f = InitialiseFaction(name);
 
-		FActorSpawnParameters params;
-		params.bNoFail = true;
+		TArray<FTileStruct*> validLocations = Camera->Grid->GetChosenTileLocation(EggTimer);
 
-		ABroch* eggTimer = GetWorld()->SpawnActor<ABroch>(EggTimer->GetClass(), FVector::Zero(), FRotator::ZeroRotator, params);
-
-		for (TArray<FTileStruct*> tiles : Camera->Grid->ValidMineralTiles) {
-			FTileStruct* tile = tiles[0];
-
-			eggTimer->SetActorLocation(Camera->Grid->GetTransform(tile).GetLocation());
-
-			if (!Camera->BuildComponent->IsValidLocation(eggTimer))
-				continue;
-
+		for (int32 i = validLocations.Num() - 1; i > -1; i--) {
 			bool bTooCloseToAnotherFaction = false;
 
 			for (FFactionStruct& faction : Factions) {
-				double dist = FVector::Dist(faction.EggTimer->GetActorLocation(), eggTimer->GetActorLocation());
+				double dist = FVector::Dist(faction.EggTimer->GetActorLocation(), Camera->Grid->GetTransform(validLocations[i]).GetLocation());
 
 				if (dist > 3000.0f)
 					continue;
@@ -129,14 +117,19 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 				break;
 			}
 
-			if (!bTooCloseToAnotherFaction)
-				validLocations.Add(tile);
+			if (bTooCloseToAnotherFaction)
+				validLocations.RemoveAt(i);
 		}
 
-		int32 index = Camera->Stream.RandRange(0, validLocations.Num() - 1);
-		FTileStruct* chosenTile = validLocations[index];
+		if (validLocations.IsEmpty())
+			UE_LOGFMT(LogTemp, Fatal, "Valid Egg Timer location not found");
 
-		eggTimer->SetActorLocation(Camera->Grid->GetTransform(chosenTile).GetLocation());
+		int32 chosenLocation = Camera->Stream.RandRange(0, validLocations.Num() - 1);
+
+		FActorSpawnParameters params;
+		params.bNoFail = true;
+
+		ABroch* eggTimer = GetWorld()->SpawnActor<ABroch>(EggTimer->GetClass(), Camera->Grid->GetTransform(validLocations[chosenLocation]), params);
 		eggTimer->FactionName = f.Name;
 
 		Camera->BuildComponent->SetTreeStatus(eggTimer, true);

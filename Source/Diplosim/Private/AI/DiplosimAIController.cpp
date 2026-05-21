@@ -506,7 +506,7 @@ void ADiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 void ADiplosimAIController::RecalculateMovement(AActor* Actor)
 {
 	if (IsValid(AI) && (!IsValid(Actor) || (Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->HealthComponent->GetHealth() == 0 && AI->AttackComponent->OverlappingEnemies.IsEmpty()))) {
-		if (!Camera->TimerManager->DoesTimerExist("Idle", AI))
+		if (!Camera->TimerManager->DoesTimerExist("Wander", AI) && !Camera->TimerManager->DoesTimerExist("Idle", AI))
 			DefaultAction();
 
 		return;
