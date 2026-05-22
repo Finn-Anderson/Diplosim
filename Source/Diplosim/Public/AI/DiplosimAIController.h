@@ -25,6 +25,9 @@ struct FMoveStruct
 	UPROPERTY()
 		FVector Location;
 
+	UPROPERTY()
+		FVector UltimateLocation;
+
 	FMoveStruct()
 	{
 		Actor = nullptr;
@@ -56,6 +59,11 @@ struct FMoveStruct
 		Location = location;
 	}
 
+	void SetUltimateLocation(FVector location)
+	{
+		UltimateLocation = location;
+	}
+
 	AActor* GetGoalActor()
 	{
 		return Actor;
@@ -79,6 +87,11 @@ struct FMoveStruct
 	FVector GetLocation()
 	{
 		return Location;
+	}
+
+	FVector GetUltimateLocation()
+	{
+		return UltimateLocation;
 	}
 };
 
@@ -104,7 +117,7 @@ public:
 	UFUNCTION()
 		void GetGatherSite(TSubclassOf<class AResource> Resource);
 
-	bool CanMoveTo(FVector Location, AActor* Target = nullptr, bool bCheckForPortals = true);
+	bool CanMoveTo(FVector Location, AActor* Target = nullptr, bool bCheckForPortals = true, FVector SecondLocation = FVector::Zero());
 
 	TArray<FVector> GetPathPoints(FVector StartLocation, FVector EndLocation);
 

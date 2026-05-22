@@ -763,6 +763,9 @@ TArray<ACitizen*> ABuilding::GetVisitors(ACitizen* Occupant)
 
 	int32 index = Occupied.Find(capacityStruct);
 
+	if (index == INDEX_NONE)
+		return {};
+
 	return Occupied[index].Visitors;
 }
 
@@ -967,7 +970,7 @@ void ABuilding::StoreSocketLocations()
 
 void ABuilding::SetSocketLocation(ACitizen* Citizen)
 {
-	if (!GetOccupied().Contains(Citizen))
+	if (!GetOccupied().Contains(Citizen) && !GetVisitors(nullptr).Contains(Citizen))
 		return;
 
 	bool bAnim = false;

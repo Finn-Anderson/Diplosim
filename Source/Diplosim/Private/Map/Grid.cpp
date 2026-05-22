@@ -1098,7 +1098,7 @@ void AGrid::GenerateTiles()
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats] = 0.0f;
 
 			if (element.Key->GetOwner()->IsA<AVegetation>()) {
-				for (FResourceHISMStruct resourceStruct : TreeStruct) {
+				for (const FResourceHISMStruct& resourceStruct : TreeStruct) {
 					if (resourceStruct.Resource->ResourceHISM != element.Key)
 						continue;
 

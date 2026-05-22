@@ -206,7 +206,7 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(AActor* Actor, float Ext
 	for (const FVector& point : points) {
 		TArray<FHitResult> hts;
 
-		if (GetWorld()->SweepMultiByChannel(hts, FVector(point.X, point.Y, point.Z + height), FVector(point.X, point.Y, 0.0f), FQuat::Identity, ECC_Vehicle, FCollisionShape::MakeBox(FVector(5.0f)), params)) {
+		if (GetWorld()->SweepMultiByChannel(hts, FVector(point.X, point.Y, point.Z + height), FVector(point.X, point.Y, 0.0f), FQuat::Identity, ECC_Vehicle, FCollisionShape::MakeBox(FVector(2.5f)), params)) {
 			if (hts.Num() > 1)
 				hts.RemoveAt(hts.Num() - 1);
 
@@ -478,7 +478,8 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 		if (tile == nullptr || (tile->bMineral && (Camera->Start || (Actor->IsA<ABuilding>() && !Cast<ABuilding>(Actor)->bCanMove))))
 			return false;
 		else if (Actor->IsA<ABuilding>() && hit.GetActor()->IsA<ABuilding>() && Cast<ABuilding>(Actor)->bCanBuildOnTop != Cast<ABuilding>(hit.GetActor())->bCanBuildOnTop)
-			continue;
+			if ((!Actor->IsA<AFestival>() || !Actor->IsActorTickEnabled()) && (!hit.GetActor()->IsA<AFestival>() || !hit.GetActor()->IsActorTickEnabled()))
+				continue;
 
 		transform.SetLocation(FVector(FMath::RoundHalfFromZero(transform.GetLocation().X), FMath::RoundHalfFromZero(transform.GetLocation().Y), FMath::RoundHalfFromZero(transform.GetLocation().Z)));
 

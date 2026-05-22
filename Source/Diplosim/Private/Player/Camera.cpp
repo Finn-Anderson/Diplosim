@@ -1084,7 +1084,7 @@ void ACamera::DirectSetGameSpeed(const FInputActionInstance& Instance)
 {
 	float value = Instance.GetValue().Get<float>();
 
-	if (Start || bUIMode == 2 || GameSpeed == value)
+	if (Start || bUIMode == 2)
 		return;
 
 	SetGameSpeed(value);

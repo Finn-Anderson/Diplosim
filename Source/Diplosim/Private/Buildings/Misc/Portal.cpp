@@ -23,5 +23,5 @@ void APortal::Enter(ACitizen* Citizen)
 	Citizen->MovementComponent->Transform.SetLocation(linkedPortal->GetActorLocation());
 	Citizen->MovementComponent->ZOffset = 0.0f;
 
-	Citizen->AIController->AIMoveTo(Citizen->AIController->MoveRequest.GetUltimateGoalActor());
+	Citizen->AIController->AIMoveTo(Citizen->AIController->MoveRequest.GetUltimateGoalActor(), Citizen->AIController->MoveRequest.GetUltimateLocation());
 }

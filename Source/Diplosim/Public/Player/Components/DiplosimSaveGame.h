@@ -701,6 +701,9 @@ struct FAIData
 		bool bSnake;
 
 	UPROPERTY()
+		FVector SpawnLocation;
+
+	UPROPERTY()
 		FHealthData HealthData;
 
 	UPROPERTY()
@@ -713,6 +716,7 @@ struct FAIData
 		BuildingAtName = "";
 		Colour = FLinearColor();
 		bSnake = false;
+		SpawnLocation = FVector::Zero();
 	}
 };
 

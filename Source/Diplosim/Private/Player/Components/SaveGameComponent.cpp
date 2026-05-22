@@ -132,6 +132,9 @@ void USaveGameComponent::OnNavMeshGenerated()
 	Camera->SetCurrentResearchUI();
 
 	Camera->DisplayBuildUI();
+
+	if (!IsValid(Camera->PController))
+		Camera->PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	Camera->PController->EnableInput(Camera->PController);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());

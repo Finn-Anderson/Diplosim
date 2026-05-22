@@ -257,7 +257,7 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 		ABuilding* building = Cast<ABuilding>(actor);
 		ACitizen* occupant = nullptr;
 
-		if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || (Event->Type == EEventType::Mass && building->GetOccupied().IsEmpty()) || (Event->Type == EEventType::Festival && !Cast<AFestival>(building)->bCanHostFestival))
+		if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || (Event->Type == EEventType::Mass && building->GetOccupied().IsEmpty()) || (Event->Type == EEventType::Festival && !Cast<AFestival>(building)->CanHostFestival()))
 			continue;
 
 		bool bSpace = false;

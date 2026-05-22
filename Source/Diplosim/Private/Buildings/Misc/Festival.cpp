@@ -7,6 +7,8 @@
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
+#include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/EventsManager.h"
 #include "Universal/HealthComponent.h"
@@ -41,8 +43,6 @@ AFestival::AFestival()
 	HealthComponent->Health = HealthComponent->MaxHealth;
 
 	Capacity = 0;
-
-	bCanHostFestival = true;
 
 	bHideCitizen = false;
 }
@@ -88,6 +88,18 @@ void AFestival::OnBuilt()
 	}
 }
 
+bool AFestival::CanHostFestival()
+{
+	FOverlapsStruct overlaps;
+	overlaps.bBuildings = true;
+
+	float range = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize().X / 2.0f - 5.0f;
+
+	TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, this, range, overlaps, EFactionType::Same);
+
+	return actors.IsEmpty();
+}
+
 void AFestival::StoreSocketLocations()
 {
 	float count = 1;
@@ -123,6 +135,9 @@ void AFestival::StoreSocketLocations()
 
 void AFestival::StartFestival(bool bFireFestival)
 {
+	if (!CanHostFestival())
+		return;
+
 	int32 index = 0;
 
 	if (!bFireFestival)

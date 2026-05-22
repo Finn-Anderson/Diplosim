@@ -37,9 +37,6 @@ public:
 		class UBoxComponent* BoxAreaAffect;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Festival")
-		bool bCanHostFestival;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Festival")
 		TArray<FFestivalStruct> FestivalStruct;
 
 	void Tick(float DeltaTime) override;
@@ -49,6 +46,8 @@ public:
 	void StopFestival();
 
 	void OnBuilt() override;
+
+	bool CanHostFestival();
 
 protected:
 	virtual void StoreSocketLocations() override;

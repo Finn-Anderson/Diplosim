@@ -8,6 +8,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 
 #include "AI/Clone.h"
+#include "AI/Enemy.h"
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AISpawner.h"
@@ -555,8 +556,10 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 	AIData.MovementData.Instance = ai->AIController->MoveRequest.GetGoalInstance();
 	AIData.MovementData.Location = ai->AIController->MoveRequest.GetLocation();
 
-	if (gamemode->Snakes.Contains(ai))
+	if (gamemode->Snakes.Contains(ai)) {
 		AIData.bSnake = true;
+		AIData.SpawnLocation = Cast<AEnemy>(ai)->SpawnLocation;
+	}
 
 	if (faction != nullptr)
 		AIData.FactionName = faction->Name;
@@ -1007,6 +1010,8 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& Camer
 
 	for (FPersonality& personality : camera->CitizenManager->Personalities)
 		personality.Citizens.Empty();
+
+	camera->BuildComponent->RemoveBuilding();
 }
 
 void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor)
@@ -1126,8 +1131,10 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode,
 	UInstancedStaticMeshComponent* ism;
 
 	if (AIData.FactionName == "") {
-		if (AIData.bSnake)
+		if (AIData.bSnake) {
 			ism = Camera->Grid->AIVisualiser->HISMSnake;
+			Cast<AEnemy>(ai)->SpawnLocation = AIData.SpawnLocation;
+		}
 		else
 			ism = Camera->Grid->AIVisualiser->HISMEnemy;
 	}
