@@ -119,7 +119,7 @@ void UDiseaseManager::CalculateDisease(ACamera* Camera)
 					Camera->TimerManager->SetParameter(citizen, params);
 					Camera->TimerManager->SetParameter(citizen->AIController->MoveRequest.GetGoalActor(), params);
 
-					Camera->TimerManager->CreateTimer("Healing", citizen, 1.0f / citizen->GetProductivity(), "Cure", params, false);
+					Camera->TimerManager->CreateTimer("Healing" + citizen->GetName(), Camera, 1.0f / citizen->GetProductivity(), "Cure", params, false);
 				}
 				else if (HasInfection(citizen)) {
 					FOverlapsStruct requestedOverlaps;

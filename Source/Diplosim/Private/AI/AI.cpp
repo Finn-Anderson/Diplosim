@@ -32,8 +32,7 @@ AAI::AAI()
 
 	MovementComponent = CreateDefaultSubobject<UAIMovementComponent>(TEXT("MovementComponent"));
 
-	AIController = CreateDefaultSubobject<ADiplosimAIController>(TEXT("AIController"));
-	AIController->SetOwner(this);
+	AIController = CreateDefaultSubobject<UDiplosimAIController>(TEXT("AIController"));
 
 	InitialRange = 400.0f;
 	Range = InitialRange;

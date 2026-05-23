@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Universal/DiplosimUniversalTypes.h"
-#include "AIController.h"
+#include "Components/ActorComponent.h"
 #include "DiplosimAIController.generated.h"
 
 USTRUCT(BlueprintType)
@@ -96,12 +96,12 @@ struct FMoveStruct
 };
 
 UCLASS()
-class DIPLOSIM_API ADiplosimAIController : public AAIController
+class DIPLOSIM_API UDiplosimAIController : public UActorComponent
 {
 	GENERATED_BODY()
 	
 public:
-	ADiplosimAIController();
+	UDiplosimAIController();
 
 	UFUNCTION()
 		void DefaultAction();
@@ -129,7 +129,7 @@ public:
 
 	void StartMovement();
 
-	virtual void StopMovement() override;
+	void StopMovement();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 		FMoveStruct MoveRequest;

@@ -93,28 +93,30 @@ void UEventsManager::SortEvents(FFactionStruct* Faction)
 
 void UEventsManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 {
-	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-		for (FEventStruct& event : faction.Events) {
-			FString command = "";
-				
-			if (event.Period == Period && event.Day == Day && event.Hours.Contains(Hour)) {
-				if (!event.bStarted)
-					command = "start";
+	Async(EAsyncExecution::TaskGraph, [this, Period, Day, Hour]() {
+		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+			for (FEventStruct& event : faction.Events) {
+				FString command = "";
+
+				if (event.Period == Period && event.Day == Day && event.Hours.Contains(Hour)) {
+					if (!event.bStarted)
+						command = "start";
+				}
+				else if (event.bStarted)
+					command = "end";
+
+				if (command == "")
+					continue;
+
+				if (command == "start")
+					StartEvent(&faction, &event, Hour);
+				else
+					EndEvent(&faction, &event, Hour);
+
+				Async(EAsyncExecution::TaskGraphMainThread, [this]() { Camera->UpdateEventInfoDisplay(); });
 			}
-			else if (event.bStarted)
-				command = "end";
-
-			if (command == "")
-				continue;
-
-			if (command == "start")
-				StartEvent(&faction, &event, Hour);
-			else
-				EndEvent(&faction, &event, Hour);
-
-			Camera->UpdateEventInfoDisplay();
 		}
-	}
+	});
 }
 
 bool UEventsManager::IsAttendingEvent(ACitizen* Citizen)
@@ -130,7 +132,7 @@ bool UEventsManager::IsAttendingEvent(ACitizen* Citizen)
 	return false;
 }
 
-bool UEventsManager::IsHolliday(ACitizen* Citizen)
+bool UEventsManager::IsHoliday(ACitizen* Citizen)
 {
 	for (auto& element : OngoingEvents())
 		for (FEventStruct* event : element.Value)
@@ -330,7 +332,7 @@ void UEventsManager::StartEvent(FFactionStruct* Faction, FEventStruct* Event, in
 		Faction->Police.PoliceReports.Add(report);
 	}
 
-	Camera->ShowEvent("Event", EnumToString<EEventType>(Event->Type));
+	Async(EAsyncExecution::TaskGraphMainThread, [this, Event]() { Camera->ShowEvent("Event", EnumToString<EEventType>(Event->Type)); });
 }
 
 void UEventsManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour)

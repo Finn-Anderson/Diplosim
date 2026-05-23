@@ -43,7 +43,7 @@ public:
 		TSubclassOf<class UNavigationQueryFilter> NavQueryFilter;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-		class ADiplosimAIController* AIController;
+		class UDiplosimAIController* AIController;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range")
 		float InitialRange;

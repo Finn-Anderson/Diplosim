@@ -224,41 +224,15 @@ TTuple<UObject*, UFunction*> UDiplosimTimerManager::GetFunction(FTimerStruct* Ti
 
 	SET_OBJECT(Timer->Actor);
 
-	if (Timer->Actor->IsA<AAI>()) {
-		AAI* ai = Cast<AAI>(Timer->Actor);
-
-		SET_OBJECT(ai->AIController);
-
-		if (ai->IsA<ACitizen>()) {
-			ACitizen* citizen = Cast<ACitizen>(ai);
-
-			if (IsValid(citizen->BuildingComponent->House))
-				SET_OBJECT(citizen->BuildingComponent->House);
-
-			SET_OBJECT(citizen->BioComponent);
-			SET_OBJECT(citizen->HappinessComponent);
-			SET_OBJECT(citizen->Camera->DiseaseManager);
-		}
+	for (UActorComponent* component : Timer->Actor->GetComponents()) {
+		SET_OBJECT(component);
 	}
 
-	UHealthComponent* healthComp = Timer->Actor->FindComponentByClass<UHealthComponent>();
-	if (healthComp)
-		SET_OBJECT(healthComp);
+	for (TObjectPtr<AActor> child : Timer->Actor->Children) {
+		if (!IsValid(child))
+			continue;
 
-	if (Timer->Actor->IsA<AGrid>()) {
-		AGrid* grid = Cast<AGrid>(Timer->Actor);
-
-		SET_OBJECT(grid->AtmosphereComponent);
-		SET_OBJECT(grid->AtmosphereComponent->Clouds);
-		SET_OBJECT(grid->AtmosphereComponent->NaturalDisasterComponent);
-	}
-
-	if (Timer->Actor->IsA<ACamera>()) {
-		for (UActorComponent* component : Cast<ACamera>(Timer->Actor)->GetComponents()) {
-			SET_OBJECT(component);
-		}
-
-		SET_OBJECT(Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode()));
+		SET_OBJECT(child);
 	}
 
 	UE_LOGFMT(LogTemp, Fatal, "Function '{name}' not found with '{actor}'", Timer->FuncName.ToString(), Timer->Actor->GetName());
@@ -281,29 +255,31 @@ void UDiplosimTimerManager::CallTimerFunction(FTimerStruct* Timer)
 		FProperty* functionProperty = *it;
 		FString type = functionProperty->GetCPPType();
 
-		// Actors
-		SET_TYPE(AActor*);
-		SET_TYPE(ACamera*);
-		SET_TYPE(ABuilding*);
-		SET_TYPE(ACitizen*);
-		SET_TYPE(AResource*);
+		if (Timer->Parameters.Num() > count) {
+			// Actors
+			SET_TYPE(AActor*); 
+			SET_TYPE(ACamera*);
+			SET_TYPE(ABuilding*);
+			SET_TYPE(ACitizen*);
+			SET_TYPE(AResource*);
 
-		// Objects
-		SET_TYPE(USoundBase*);
-		SET_TYPE(UPrimitiveComponent*);
+			// Objects
+			SET_TYPE(USoundBase*);
+			SET_TYPE(UPrimitiveComponent*);
 
-		// Rest
-		SET_TYPE(FVector);
-		SET_TYPE(TArray<FVector>);
-		SET_TYPE(FLinearColor);
-		SET_TYPE(bool);
-		SET_TYPE(FFactionStruct);
-		SET_TYPE(int32);
-		SET_TYPE(float);
-		SET_TYPE(FString);
-		SET_TYPE(FGuid);
-		SET_TYPE(FLawStruct);
-		SET_TYPE(TSubclassOf<AResource>);
+			// Rest
+			SET_TYPE(FVector);
+			SET_TYPE(TArray<FVector>);
+			SET_TYPE(FLinearColor);
+			SET_TYPE(bool);
+			SET_TYPE(FFactionStruct);
+			SET_TYPE(int32);
+			SET_TYPE(float);
+			SET_TYPE(FString);
+			SET_TYPE(FGuid);
+			SET_TYPE(FLawStruct);
+			SET_TYPE(TSubclassOf<AResource>);
+		}
 
 		count++;
 	}

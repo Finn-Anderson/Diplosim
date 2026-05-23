@@ -1510,9 +1510,12 @@ void AGrid::SpawnEggBasket()
 
 void AGrid::SpawnAISpawners()
 {
-	for (int32 i = 0; i < NumOfNests; i++) {
-		TArray<FTileStruct*> validLocations = GetChosenTileLocation(Cast<AActor>(AISpawnerClass->GetDefaultObject()));
+	if (NumOfNests == 0)
+		return;
 
+	TArray<FTileStruct*> validLocations = GetChosenTileLocation(Cast<AActor>(AISpawnerClass->GetDefaultObject()));
+
+	for (int32 i = 0; i < NumOfNests; i++) {
 		if (validLocations.IsEmpty())
 			return;
 

@@ -126,8 +126,8 @@ void UHappinessComponent::SetHappiness()
 	else if (FestivalStatus == EAttendStatus::Attended)
 		Modifiers.Add("Attended Festival", 15);
 
-	if (citizen->Camera->EventsManager->IsHolliday(citizen))
-		Modifiers.Add("Holliday", 10);
+	if (citizen->Camera->EventsManager->IsHoliday(citizen))
+		Modifiers.Add("Holiday", 10);
 
 	int32 conversationHappiness = *DecayingHappiness.Find(EHappinessType::Conversation);
 	int32 familyDeathHappiness = *DecayingHappiness.Find(EHappinessType::FamilyDeath);

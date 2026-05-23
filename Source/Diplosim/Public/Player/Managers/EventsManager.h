@@ -23,7 +23,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool IsAttendingEvent(class ACitizen* Citizen);
 
-	bool IsHolliday(class ACitizen* Citizen);
+	bool IsHoliday(class ACitizen* Citizen);
 
 	void RemoveFromEvent(class ACitizen* Citizen);
 

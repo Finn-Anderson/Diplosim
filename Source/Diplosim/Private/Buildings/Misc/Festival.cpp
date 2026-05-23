@@ -74,6 +74,13 @@ void AFestival::Tick(float DeltaTime)
 	}
 }
 
+void AFestival::Enter(ACitizen* Citizen)
+{
+	Citizen->MovementComponent->SetPoints({});
+
+	Super::Enter(Citizen);
+}
+
 void AFestival::OnBuilt()
 {
 	Super::OnBuilt();
@@ -138,54 +145,58 @@ void AFestival::StartFestival(bool bFireFestival)
 	if (!CanHostFestival())
 		return;
 
-	int32 index = 0;
+	Async(EAsyncExecution::TaskGraphMainThread, [this, bFireFestival]() {
+		int32 index = 0;
 
-	if (!bFireFestival)
-		index = 1;
+		if (!bFireFestival)
+			index = 1;
 
-	FestivalMesh->SetStaticMesh(FestivalStruct[index].Mesh);
-	FestivalMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	FestivalMesh->UpdateNavigationBounds();
+		FestivalMesh->SetStaticMesh(FestivalStruct[index].Mesh);
+		FestivalMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		FestivalMesh->UpdateNavigationBounds();
 
-	ParticleComponent->SetAsset(FestivalStruct[index].ParticleSystem);
+		ParticleComponent->SetAsset(FestivalStruct[index].ParticleSystem);
 
-	float z = 2.0f;
+		float z = 2.0f;
 
-	if (!bFireFestival) {
-		TArray<FVector> locations;
+		if (!bFireFestival) {
+			TArray<FVector> locations;
 
-		TArray<FName> socketNames = FestivalMesh->GetAllSocketNames();
+			TArray<FName> socketNames = FestivalMesh->GetAllSocketNames();
 
-		for (FName socket : socketNames) {
-			FTransform transform = FestivalMesh->GetSocketTransform(socket, ERelativeTransformSpace::RTS_Actor);
+			for (FName socket : socketNames) {
+				FTransform transform = FestivalMesh->GetSocketTransform(socket, ERelativeTransformSpace::RTS_Actor);
 
-			locations.Add(transform.GetLocation());
+				locations.Add(transform.GetLocation());
+			}
+
+			UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(ParticleComponent, TEXT("SpawnLocations"), locations);
+
+			z = 1.0f;
 		}
 
-		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(ParticleComponent, TEXT("SpawnLocations"), locations);
+		FestivalMesh->SetRelativeScale3D(FVector(z));
+		ParticleComponent->Activate();
 
-		z = 1.0f;
-	}
-
-	FestivalMesh->SetRelativeScale3D(FVector(z));
-	ParticleComponent->Activate();
-
-	SetActorTickEnabled(true);
+		SetActorTickEnabled(true);
+	});
 }
 
 void AFestival::StopFestival()
 {
-	FestivalMesh->SetStaticMesh(nullptr);
-	FestivalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	FestivalMesh->UpdateNavigationBounds();
+	Async(EAsyncExecution::TaskGraphMainThread, [this]() {
+		FestivalMesh->SetStaticMesh(nullptr);
+		FestivalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		FestivalMesh->UpdateNavigationBounds();
 
-	ParticleComponent->Deactivate();
+		ParticleComponent->Deactivate();
 
-	for (ACitizen* visitor : GetVisitors(Occupied[0].Citizen)) {
-		visitor->AIController->StopMovement();
+		for (ACitizen* visitor : GetVisitors(Occupied[0].Citizen)) {
+			visitor->AIController->StopMovement();
 
-		RemoveVisitor(Occupied[0].Citizen, visitor);
-	}
+			RemoveVisitor(Occupied[0].Citizen, visitor);
+		}
 
-	SetActorTickEnabled(false);
+		SetActorTickEnabled(false);
+	});
 }

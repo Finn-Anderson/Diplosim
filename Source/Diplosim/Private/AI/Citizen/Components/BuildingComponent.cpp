@@ -386,7 +386,7 @@ void UBuildingComponent::RemoveOnReachingWorkAge(FFactionStruct* Faction)
 
 		TArray<FTimerParameterStruct> params;
 		citizen->Camera->TimerManager->SetParameter(citizen, params);
-		citizen->Camera->TimerManager->CreateTimer("Orphanage", citizen, timeToCompleteDay * 2.0f, "Kickout", params, false);
+		citizen->Camera->TimerManager->CreateTimer("Orphanage" + citizen->GetName(), House, timeToCompleteDay * 2.0f, "Kickout", params, false);
 	}
 	
 	if (IsValid(School))

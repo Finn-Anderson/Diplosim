@@ -41,6 +41,8 @@ public:
 
 	void Tick(float DeltaTime) override;
 
+	virtual void Enter(class ACitizen* Citizen) override;
+
 	void StartFestival(bool bFireFestival);
 
 	void StopFestival();
