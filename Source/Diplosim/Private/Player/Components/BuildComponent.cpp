@@ -152,25 +152,23 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
 {
-	FHitResult hit2(ForceInit);
+	FHitResult hit(ForceInit);
 
 	FCollisionQueryParams params;
 	for (ABuilding* building : Buildings)
 		params.AddIgnoredActor(building);
 
-	if (GetWorld()->LineTraceSingleByChannel(hit2, FVector(Location.X, Location.Y, 1000.0f), FVector(Location.X, Location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
-		Location.Z = FMath::RoundHalfFromZero(hit2.Location.Z);
+	if (GetWorld()->LineTraceSingleByChannel(hit, FVector(Location.X, Location.Y, 1000.0f), FVector(Location.X, Location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params)) {
+		Location.Z = FMath::RoundHalfFromZero(hit.Location.Z);
 
-	if ((hit2.GetComponent() == Camera->Grid->HISMRiver || hit2.GetComponent() == Camera->Grid->HISMSea) && Building->IsA<ARoad>()) {
-		Location.Z += 20.0f;
-	}
-	else if (IsValid(hit2.GetComponent()) && Building->IsA(FoundationClass)) {
-		if (hit2.GetComponent() == Camera->Grid->HISMRiver)
-			Location.Z -= 55.0f;
-		else if (hit2.GetComponent() == Camera->Grid->HISMSea)
-			Location.Z -= 25.0f;
-		else if (hit2.GetComponent() == Camera->Grid->HISMRampGround)
-			Location.Z -= 50.0f;
+		if ((hit.GetComponent() == Camera->Grid->HISMRiver || hit.GetComponent() == Camera->Grid->HISMSea) && (Building->IsA<ARoad>() || (Building->bCanBuildOnBridge)))
+			Location.Z += 20.0f;
+		else if (IsValid(hit.GetComponent()) && Building->IsA(FoundationClass)) {
+			if (hit.GetComponent() == Camera->Grid->HISMRiver)
+				Location.Z -= 55.0f;
+			else if (hit.GetComponent() == Camera->Grid->HISMSea || hit.GetComponent() == Camera->Grid->HISMRampGround)
+				Location.Z -= 50.0f;
+		}
 	}
 }
 
@@ -195,23 +193,27 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(AActor* Actor, float Ext
 
 	TArray<FVector> points;
 	float xInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 50.0f), 1);
-	float yInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 50.0f), 1);
+	float yInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.Y / 50.0f), 1);
+
+	float biggestDimension = size.X;
+	if (size.Y > biggestDimension)
+		biggestDimension = size.Y;
+
+	float indent = 0.0f;
+	if (FMath::RoundHalfFromZero(biggestDimension) >= 50.0f)
+		indent = 20.0f;
 
 	for (float x = -1.0f; x <= 1.1f; x += xInterval)
 		for (float y = -1.0f; y <= 1.1f; y += yInterval)
-			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f) - FVector(20.0f * x, 20.0f * y, 0.0f)));
+			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f) - FVector(indent * x, indent * y, 0.0f)));
 
 	float height = size.Z + 50.0f;
 
 	for (const FVector& point : points) {
 		TArray<FHitResult> hts;
 
-		if (GetWorld()->SweepMultiByChannel(hts, FVector(point.X, point.Y, point.Z + height), FVector(point.X, point.Y, 0.0f), FQuat::Identity, ECC_Vehicle, FCollisionShape::MakeBox(FVector(2.5f)), params)) {
-			if (hts.Num() > 1)
-				hts.RemoveAt(hts.Num() - 1);
-
+		if (GetWorld()->SweepMultiByChannel(hts, FVector(point.X, point.Y, point.Z + height), FVector(point.X, point.Y, 0.0f), FQuat::Identity, ECC_GameTraceChannel1, FCollisionShape::MakeBox(FVector(2.5f)), params))
 			hits.Append(hts);
-		}
 	}
 
 	return hits;
@@ -298,7 +300,7 @@ void UBuildComponent::SetBuildingsOnPath()
 		if (IsValidLocation(Buildings[0])) {
 			SpawnBuilding(Buildings[0]->GetClass(), Buildings[0]->FactionName, location);
 
-			Buildings.Last()->SetSeed(Buildings[0]->SeedNum);
+			Buildings.Last()->SeedNum = Buildings[0]->SeedNum;
 			Buildings.Last()->SetTier(Buildings[0]->GetTier());
 
 			if (Buildings[0]->IsA<AWall>())
@@ -449,6 +451,7 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 
 		if (hit.GetComponent() == Camera->Grid->HISMSea || hit.GetComponent() == Camera->Grid->HISMRiver) {
 			FVector location = transform.GetLocation();
+
 			if (hit.GetComponent() == Camera->Grid->HISMSea) {
 				auto bound = Camera->Grid->GetMapBounds();
 
@@ -457,6 +460,27 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 				int32 z = location.Z;
 
 				location = FVector(x, y, z);
+			}
+			else if (hit.GetComponent() == Camera->Grid->HISMRiver && Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->bCanBuildOnBridge) {
+				ARoad* bridge = nullptr;
+				for (const FHitResult& ht : hits) {
+					if (ht.GetActor()->IsA<ARoad>()) {
+						bridge = Cast<ARoad>(ht.GetActor());
+
+						break;
+					}
+				}
+
+				if (!IsValid(bridge))
+					return false;
+
+				FRotator rotation = Actor->GetActorRotation() - bridge->GetActorRotation();
+				rotation.Normalize();
+
+				if (FMath::RoundToInt32(rotation.Yaw) % 90 == 0)
+					continue;
+				else
+					return false;
 			}
 
 			FRotator rotation = (location - Location).Rotation() - FRotator(0.0f, 90.0f, 0.0f);
@@ -472,14 +496,27 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 			else
 				return false;
 		}
+		else if (hit.GetComponent() == Camera->Grid->HISMGround) {
+			UStaticMeshComponent* mesh = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
+
+			FVector location;
+			mesh->GetClosestPointOnCollision(transform.GetLocation(), location);
+
+			if (FVector::Dist(location, transform.GetLocation()) > 50.0f)
+				continue;
+		}
 
 		FTileStruct* tile = Camera->Grid->GetTileFromLocation(hit.Location);
 
 		if (tile == nullptr || (tile->bMineral && (Camera->Start || (Actor->IsA<ABuilding>() && !Cast<ABuilding>(Actor)->bCanMove))))
 			return false;
-		else if (Actor->IsA<ABuilding>() && hit.GetActor()->IsA<ABuilding>() && Cast<ABuilding>(Actor)->bCanBuildOnTop != Cast<ABuilding>(hit.GetActor())->bCanBuildOnTop)
-			if ((!Actor->IsA<AFestival>() || !Actor->IsActorTickEnabled()) && (!hit.GetActor()->IsA<AFestival>() || !hit.GetActor()->IsActorTickEnabled()))
+		else if (Actor->IsA<ABuilding>() && hit.GetActor()->IsA<ABuilding>() && !Actor->IsA(FoundationClass) && !hit.GetActor()->IsA(FoundationClass)) {
+			ABuilding* building = Cast<ABuilding>(Actor);
+			ABuilding* hitBuilding = Cast<ABuilding>(hit.GetActor());
+
+			if (building->CanBuildOnTop != hitBuilding->CanBuildOnTop && (!building->IsA<AFestival>() || !building->IsActorTickEnabled()) && (!hitBuilding->IsA<AFestival>() || !hitBuilding->IsActorTickEnabled()) && (building->CanBuildOnTop != EBuildOnTop::Bridge || hitBuilding->bCanBuildOnBridge) && (hitBuilding->CanBuildOnTop != EBuildOnTop::Bridge || building->bCanBuildOnBridge))
 				continue;
+		}
 
 		transform.SetLocation(FVector(FMath::RoundHalfFromZero(transform.GetLocation().X), FMath::RoundHalfFromZero(transform.GetLocation().Y), FMath::RoundHalfFromZero(transform.GetLocation().Z)));
 
@@ -488,7 +525,10 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 				if (!Actor->IsA<ABuilding>())
 					return false;
 
-				if (Cast<ABuilding>(Actor)->SeedNum == Cast<ABuilding>(hit.GetActor())->SeedNum && Cast<ABuilding>(Actor)->Tier == Cast<ABuilding>(hit.GetActor())->Tier)
+				ABuilding* building = Cast<ABuilding>(Actor);
+				ABuilding* hitBuilding = Cast<ABuilding>(hit.GetActor());
+
+				if (building->SeedNum == hitBuilding->SeedNum && building->Tier == hitBuilding->Tier)
 					return false;
 				else
 					continue;
@@ -519,7 +559,7 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 			continue;
 
 		if (transform.GetLocation().Z != FMath::Floor(Location.Z) - 100.0f || hit.GetComponent() == Camera->Grid->HISMRiver) {
-			if ((Actor->IsA(FoundationClass) && (hit.GetActor()->IsA(FoundationClass) || hit.GetActor()->IsA<AGrid>())) || (Actor->IsA(RampClass) && (hit.GetActor()->IsA(RampClass) || hit.GetActor()->IsA<AGrid>())))
+			if ((Actor->IsA(FoundationClass) && (hit.GetActor()->IsA<ABuilding>() || hit.GetActor()->IsA<AGrid>())) || (Actor->IsA(RampClass) && (hit.GetActor()->IsA(RampClass) || hit.GetActor()->IsA<AGrid>())))
 				continue;
 			else if (!hit.GetActor()->IsHidden())
 				return false;

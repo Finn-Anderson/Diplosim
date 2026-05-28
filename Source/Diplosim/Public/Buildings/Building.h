@@ -89,6 +89,14 @@ struct FSocketStruct
 	}
 };
 
+UENUM()
+enum class EBuildOnTop : uint8
+{
+	None,
+	Bridge,
+	All
+};
+
 USTRUCT(BlueprintType)
 struct FSeedStruct
 {
@@ -105,6 +113,12 @@ struct FSeedStruct
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		bool bExplosive;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		EBuildOnTop CanBuildOnTop;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
+		bool bCanBuildOnBridge;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		FString Name;
@@ -136,6 +150,7 @@ struct FSeedStruct
 		Health = -1;
 		Capacity = -1;
 		bExplosive = false;
+		CanBuildOnTop = EBuildOnTop::None;
 		Name = "";
 		Yield = -1;
 		TimeLength = -1;
@@ -331,7 +346,10 @@ public:
 		bool bCoastal;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
-		bool bCanBuildOnTop;
+		EBuildOnTop CanBuildOnTop;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+		bool bCanBuildOnBridge;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Citizen")
 		bool bHideCitizen;

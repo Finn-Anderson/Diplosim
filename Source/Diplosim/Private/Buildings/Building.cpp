@@ -58,6 +58,7 @@ ABuilding::ABuilding()
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+	BuildingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Overlap);
 	BuildingMesh->SetCanEverAffectNavigation(false);
 	BuildingMesh->SetGenerateOverlapEvents(false);
 	BuildingMesh->bFillCollisionUnderneathForNavmesh = true;
@@ -107,7 +108,8 @@ ABuilding::ABuilding()
 	bHideCitizen = true;
 	bLight = false;
 
-	bInstantConstruction, bUnique, bCoastal, bCanMove, bCanDestroy, bCanBuildOnTop = false;
+	bInstantConstruction = bUnique = bCoastal = bCanMove = bCanDestroy = bCanBuildOnBridge = false;
+	CanBuildOnTop = EBuildOnTop::None;
 
 	ActualMesh = nullptr;
 
@@ -154,9 +156,12 @@ void ABuilding::BeginPlay()
 
 	BuildingMesh->SetCustomPrimitiveDataFloat(6, blink);
 
-	SetTier(Tier);
-
 	InitialiseCapacityStruct();
+
+	if (Camera->SaveGameComponent->Checklist.bLoad)
+		return;
+
+	SetTier(Tier);
 
 	if (ParticleComponent->GetAsset() != nullptr && HealthComponent->GetHealth() > 0 && !IsA<ATrap>())
 		ParticleComponent->Activate();
@@ -177,8 +182,6 @@ void ABuilding::SetLights(int32 Hour)
 
 		if (bLight)
 			ParticleComponent->SetActive(newLights == 1.0f);
-
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, GetName());
 	}
 }
 
@@ -242,10 +245,7 @@ void ABuilding::SetSeed(int32 Seed)
 			else {
 				Capacity = Seeds[Seed].Capacity;
 
-				for (int32 i = Occupied.Num() - 1; i >= GetCapacity(); i--) {
-					RemoveCitizen(Occupied[i].Citizen);
-					Occupied.RemoveAt(i);
-				}
+				InitialiseCapacityStruct();
 			}
 		}
 
@@ -341,6 +341,9 @@ void ABuilding::SetSeed(int32 Seed)
 			prod->WorkHat = Seeds[Seed].WorkHat;
 		}
 	}
+
+	CanBuildOnTop = Seeds[Seed].CanBuildOnTop;
+	bCanBuildOnBridge = Seeds[Seed].bCanBuildOnBridge;
 
 	ParticleComponent->SetAsset(Seeds[Seed].NiagaraSystem);
 
@@ -709,6 +712,8 @@ void ABuilding::AlterOperate()
 //
 void ABuilding::InitialiseCapacityStruct()
 {
+	Occupied.Empty();
+
 	for (int32 i = 0; i < GetCapacity(); i++)
 		Occupied.Add(FCapacityStruct());
 }

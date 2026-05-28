@@ -30,7 +30,9 @@ ARoad::ARoad()
 	BoxAreaAffect = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxAreaAffect"));
 	BoxAreaAffect->SetupAttachment(RootComponent);
 	BoxAreaAffect->SetBoxExtent(FVector::Zero());
+	BoxAreaAffect->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	BoxAreaAffect->SetCollisionResponseToAllChannels(ECR_Ignore);
+	BoxAreaAffect->SetGenerateOverlapEvents(false);
 	BoxAreaAffect->SetCanEverAffectNavigation(true);
 	BoxAreaAffect->bDynamicObstacle = true;
 }
@@ -71,17 +73,13 @@ void ARoad::RegenerateMesh(bool bRegenerateHits)
 		if (HISMRoad->PerInstanceSMCustomData[i * HISMRoad->NumCustomDataFloats] == 1.0f)
 			HISMRoad->SetCustomDataValue(i, 0, 0.0f);
 
+	RefreshRoads();
+
 	if (SeedNum != 0) {
 		if (bRegenerateHits)
 			UpdateBoxBounds();
 
 		return;
-	}
-
-	for (int32 i = LastHitRoads.Num() - 1; i > -1; i--) {
-		LastHitRoads[i]->RegenerateMesh(false);
-
-		LastHitRoads.RemoveAt(i);
 	}
 
 	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(this, 4.0f);
@@ -186,7 +184,7 @@ void ARoad::UpdateBoxBounds()
 		bounds.BoxExtent.Z = 5.0f;
 
 	BoxAreaAffect->SetBoxExtent(bounds.BoxExtent);
-	BoxAreaAffect->SetRelativeLocation(bounds.Origin - GetActorLocation() + FVector(0.0f, 0.0f, 1.0f));
+	BoxAreaAffect->SetRelativeLocation(bounds.Origin - GetActorLocation() + FVector(0.0f, 0.0f, 5.0f));
 }
 
 void ARoad::SetTier(int32 Value)
@@ -202,12 +200,9 @@ void ARoad::SetTier(int32 Value)
 
 void ARoad::RefreshRoads()
 {
-	TArray<FHitResult> hits = Camera->BuildComponent->GetBuildingOverlaps(this, 4.0f);
+	for (int32 i = LastHitRoads.Num() - 1; i > -1; i--) {
+		LastHitRoads[i]->RegenerateMesh(false);
 
-	for (const FHitResult& hit : hits) {
-		AActor* actor = hit.GetActor();
-
-		if (actor->IsA<ARoad>() && Cast<ARoad>(actor)->SeedNum == 0)
-			Cast<ARoad>(actor)->RegenerateMesh(false);
+		LastHitRoads.RemoveAt(i);
 	}
 }

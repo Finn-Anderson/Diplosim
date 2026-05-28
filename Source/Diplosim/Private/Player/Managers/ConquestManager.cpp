@@ -406,7 +406,7 @@ void UConquestManager::CalculateBuildingFighting(float DeltaTime)
 				if (Camera->SaveGameComponent->IsLoading())
 					return;
 
-				if (!building->IsA<AGate>() && !building->IsA<ATower>() && !building->IsA<ATrap>())
+				if (!IsValid(building) || (!building->IsA<AGate>() && !building->IsA<ATower>() && !building->IsA<ATrap>()))
 					continue;
 
 				UHealthComponent* healthComp = building->GetComponentByClass<UHealthComponent>();

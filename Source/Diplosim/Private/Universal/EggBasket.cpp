@@ -19,6 +19,7 @@ AEggBasket::AEggBasket()
 	BasketMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
 	BasketMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	BasketMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Overlap);
+	BasketMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Overlap);
 	BasketMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	BasketMesh->SetCanEverAffectNavigation(true);
 
