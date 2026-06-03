@@ -6,6 +6,31 @@
 #include "AIVisualiser.generated.h"
 
 USTRUCT()
+struct FHatsToUpdateStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		class UAIInstancedStaticMeshComponent* ISM;
+
+	UPROPERTY()
+		TMap<int32, FTransform> InstanceTransformsToUpdate;
+
+	UPROPERTY()
+		TArray<int32> InstanceDataToUpdate;
+
+	FHatsToUpdateStruct()
+	{
+		ISM = nullptr;
+	}
+
+	bool operator==(const FHatsToUpdateStruct& other) const
+	{
+		return (other.ISM == ISM);
+	}
+};
+
+USTRUCT()
 struct FPendingChangeStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -196,15 +221,7 @@ public:
 
 	void RemoveInstance(class UAIInstancedStaticMeshComponent* ISM, int32 Instance);
 
-	void UpdateInstanceCustomData(class UAIInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value);
-
-	void SetAIColour(class UAIInstancedStaticMeshComponent* ISM, int32 Instance, FLinearColor Colour);
-
 	void SetHarvestVisuals(class ACitizen* Citizen, class AResource* Resource);
-
-	FVector AddHarvestVisual(class AAI* AI, FLinearColor Colour);
-
-	void SetEyesVisuals(class ACitizen* Citizen, int32 HappinessValue);
 
 	TTuple<class UAIInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
 
@@ -212,7 +229,7 @@ public:
 
 	FTransform GetAnimationPoint(class AAI* AI);
 
-	void SetAnimationPoint(class AAI* AI, FTransform Transform);
+	void SetAnimationPoint(class AAI* AI, FTransform Transform, TArray<int32>& Instances);
 
 	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction = nullptr, FVector Location = FVector::Zero());
 
@@ -252,15 +269,23 @@ private:
 
 	void CalculateBuildingRotation(ACamera* Camera);
 
+	void UpdateInstanceCustomData(class UAIInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value, TArray<int32>& Instances);
+
+	void SetAIColour(class UAIInstancedStaticMeshComponent* ISM, int32 Instance, FLinearColor Colour, TArray<int32>& Instances);
+
 	void SetInstanceTransform(class UAIInstancedStaticMeshComponent* ISM, int32 Instance, FTransform Transform, TMap<int32, FTransform>& InstanceTransformsToUpdate);
 
-	void UpdateCitizenVisuals(class UAIInstancedStaticMeshComponent* ISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
+	void UpdateCitizenVisuals(class UAIInstancedStaticMeshComponent* ISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance, TArray<int32>& Instances);
 
-	void ActivateTorch(class ACamera* Camera, class UAIInstancedStaticMeshComponent* ISM, int32 Instance);
+	void ActivateTorch(class ACamera* Camera, class UAIInstancedStaticMeshComponent* ISM, int32 Instance, TArray<int32>& Instances);
+
+	FVector AddHarvestVisual(class AAI* AI, FLinearColor Colour);
+
+	void SetEyesVisuals(class UAIInstancedStaticMeshComponent* ISM, int32 Instance, class ACitizen* Citizen, TArray<int32>& Instances);
 
 	FTransform GetHatTransform(ACitizen* Citizen);
 
-	void UpdateHatTransform(class ACitizen* Citizen);
+	void UpdateHatTransform(class ACitizen* Citizen, TArray<FHatsToUpdateStruct>& HatsToUpdate);
 
 	FHatsStruct* GetCitizenHat(ACitizen* Citizen);
 

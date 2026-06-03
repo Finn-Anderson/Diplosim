@@ -131,7 +131,7 @@ void UArmyManager::AddToArmy(int32 Index, TArray<ACitizen*> Citizens, bool bLoad
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizens[0]);
 
 	if (faction->Armies[Index].Citizens.IsEmpty())
-		Camera->Grid->AIVisualiser->UpdateInstanceCustomData(Camera->Grid->AIVisualiser->HISMCitizen, faction->Citizens.Find(Citizens[0]), 18, 1.0f);
+		Citizens[0]->bCommander = true;
 
 	faction->Armies[Index].Citizens.Append(Citizens);
 
@@ -160,8 +160,8 @@ void UArmyManager::RemoveFromArmy(ACitizen* Citizen)
 			DestroyArmy(faction->Name, i);
 		}
 		else {
-			Camera->Grid->AIVisualiser->UpdateInstanceCustomData(Camera->Grid->AIVisualiser->HISMCitizen, faction->Citizens.Find(Citizen), 18, 0.0f);
-			Camera->Grid->AIVisualiser->UpdateInstanceCustomData(Camera->Grid->AIVisualiser->HISMCitizen, faction->Citizens.Find(faction->Armies[i].Citizens[0]), 18, 1.0f);
+			Citizen->bCommander = false;
+			faction->Armies[i].Citizens[0]->bCommander = true;
 			Camera->UpdateArmyCountUI(i, faction->Armies[i].Citizens.Num());
 		}
 
@@ -225,7 +225,7 @@ void UArmyManager::DestroyArmy(FString FactionName, int32 Index)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	Camera->Grid->AIVisualiser->UpdateInstanceCustomData(Camera->Grid->AIVisualiser->HISMCitizen, faction->Citizens.Find(faction->Armies[Index].Citizens[0]), 18, 0.0f);
+	faction->Armies[Index].Citizens[0]->bCommander = false;
 	faction->Armies.RemoveAt(Index);
 
 	if (PlayerSelectedArmyData.Key == faction && PlayerSelectedArmyData.Value == Index)
@@ -342,11 +342,8 @@ void UArmyManager::SetSelectedArmy(TTuple<FFactionStruct*, int32> SelectedArmyDa
 	if (PlayerSelectedArmyData.Value != INDEX_NONE) {
 		army = &PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value];
 
-		for (ACitizen* citizen : army->Citizens) {
-			auto aihism = Camera->Grid->AIVisualiser->GetAIHISM(citizen);
-
-			Camera->Grid->AIVisualiser->UpdateInstanceCustomData(aihism.Key, aihism.Value, 1, 0.0f);
-		}
+		for (ACitizen* citizen : army->Citizens)
+			citizen->bSelected = false;
 	}
 
 	PlayerSelectedArmyData = SelectedArmyData;
@@ -356,11 +353,8 @@ void UArmyManager::SetSelectedArmy(TTuple<FFactionStruct*, int32> SelectedArmyDa
 
 	army = &PlayerSelectedArmyData.Key->Armies[PlayerSelectedArmyData.Value];
 
-	for (ACitizen* citizen : army->Citizens) {
-		auto aihism = Camera->Grid->AIVisualiser->GetAIHISM(citizen);
-
-		Camera->Grid->AIVisualiser->UpdateInstanceCustomData(aihism.Key, aihism.Value, 1, 2.0f);
-	}
+	for (ACitizen* citizen : army->Citizens)
+		citizen->bSelected = true;
 }
 
 void UArmyManager::PlayerMoveArmy(FVector Location)

@@ -13,4 +13,6 @@ public:
 	UAIInstancedStaticMeshComponent();
 
 	void BatchUpdateTransforms(TMap<int32, FTransform> InstanceTransformsToUpdate);
+
+	void BatchUpdateData(TArray<int32> Instances);
 };

@@ -52,4 +52,6 @@ private:
 	void SetSexualityHappiness(class ACitizen* Citizen, FFactionStruct* Faction);
 
 	void CheckSadness(class ACitizen* Citizen, FFactionStruct* Faction);
+
+	FCriticalSection ModifiersCriticalSection;
 };

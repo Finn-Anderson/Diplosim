@@ -118,6 +118,12 @@ public:
 	UPROPERTY()
 		bool bConversing;
 
+	UPROPERTY()
+		bool bCommander;
+
+	UPROPERTY()
+		bool bSelected;
+
 	// Audio
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* AmbientAudioComponent;

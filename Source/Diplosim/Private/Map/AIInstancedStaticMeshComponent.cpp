@@ -9,10 +9,10 @@ void UAIInstancedStaticMeshComponent::BatchUpdateTransforms(TMap<int32, FTransfo
 	if (InstanceTransformsToUpdate.IsEmpty())
 		return;
 
-	Modify();
-	SetHasPerInstancePrevTransforms(true);
-
 	Async(EAsyncExecution::TaskGraphMainTick, [this, InstanceTransformsToUpdate]() {
+		Modify();
+		SetHasPerInstancePrevTransforms(true);
+
 		for (auto& element : InstanceTransformsToUpdate) {
 			if (!PerInstanceSMData.IsValidIndex(element.Key))
 				continue;
@@ -30,6 +30,22 @@ void UAIInstancedStaticMeshComponent::BatchUpdateTransforms(TMap<int32, FTransfo
 			FBodyInstance*& InstanceBodyInstance = InstanceBodies[element.Key];
 			InstanceBodyInstance->SetBodyTransform(element.Value, TeleportFlagToEnum(true));
 			InstanceBodyInstance->UpdateBodyScale(element.Value.GetScale3D());
+		}
+	});
+}
+
+void UAIInstancedStaticMeshComponent::BatchUpdateData(TArray<int32> Instances)
+{
+	if (Instances.IsEmpty())
+		return;
+
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Instances]() {
+		for (int32 instance : Instances) {
+			TArray<float> data;
+			for (int32 i = 0; i < NumCustomDataFloats; i++)
+				data.Add(PerInstanceSMCustomData[instance * NumCustomDataFloats + i]);
+
+			SetCustomData(instance, data);
 		}
 	});
 }

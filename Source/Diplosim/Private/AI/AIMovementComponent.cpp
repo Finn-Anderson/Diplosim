@@ -36,7 +36,7 @@ UAIMovementComponent::UAIMovementComponent()
 
 }
 
-void UAIMovementComponent::ComputeMovement(float DeltaTime)
+void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Instances)
 {
 	LastUpdatedTime = GetWorld()->GetTimeSeconds();
 
@@ -47,7 +47,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 
 	AActor* goal = AI->AIController->MoveRequest.GetGoalActor();
 
-	ComputeCurrentAnimation(goal, DeltaTime);
+	ComputeCurrentAnimation(goal, DeltaTime, Instances);
 
 	if (AI->HealthComponent->GetHealth() == 0)
 		return;
@@ -94,7 +94,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	}
 }
 
-void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime)
+void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime, TArray<int32>& Instances)
 {
 	if (!CurrentAnim.bPlay)
 		return;
@@ -120,7 +120,7 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 	transform.SetLocation(FMath::Lerp(CurrentAnim.StartTransform.GetLocation(), endLocation, CurrentAnim.Alpha));
 	transform.SetRotation(FMath::Lerp(CurrentAnim.StartTransform.GetRotation(), CurrentAnim.EndTransform.GetRotation(), CurrentAnim.Alpha));
 
-	AIVisualiser->SetAnimationPoint(AI, transform);
+	AIVisualiser->SetAnimationPoint(AI, transform, Instances);
 
 	if (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f) {
 		CurrentAnim.Speed *= -1.0f;

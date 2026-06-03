@@ -173,11 +173,7 @@ void UCitizenManager::CitizenGeneralLoop(float DeltaTime)
 				}
 
 				citizen->HappinessComponent->SetHappiness();
-
-				int32 happiness = citizen->HappinessComponent->GetHappiness();
-				Camera->Grid->AIVisualiser->SetEyesVisuals(citizen, happiness);
-
-				happinessCount += happiness;
+				happinessCount += citizen->HappinessComponent->GetHappiness();
 
 				if (Camera->PoliticsManager->GetCitizenParty(citizen) == "Shell Breakers")
 					rebelCount++;

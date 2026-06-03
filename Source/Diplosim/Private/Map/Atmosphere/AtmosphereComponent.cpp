@@ -137,7 +137,7 @@ void UAtmosphereComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!IsValid(Grid) || Grid->Camera->CustomTimeDilation > 1.0f || DeltaTime > 1.0f)
+	if (!IsValid(Grid) || Grid->Camera->CustomTimeDilation > 1.0f || DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
 
 	Clouds->TickCloud(DeltaTime);

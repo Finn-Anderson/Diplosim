@@ -13,7 +13,7 @@ class DIPLOSIM_API UAIMovementComponent : public UNavMovementComponent
 public:
 	UAIMovementComponent();
 
-	void ComputeMovement(float DeltaTime);
+	void ComputeMovement(float DeltaTime, TArray<int32>& Instances);
 
 	void SetPoints(TArray<FVector> VectorPoints);
 
@@ -71,7 +71,7 @@ public:
 		bool bSetPoints;
 
 private:
-	void ComputeCurrentAnimation(AActor* Goal, float DeltaTime);
+	void ComputeCurrentAnimation(AActor* Goal, float DeltaTime, TArray<int32>& Instances);
 
 	FVector CalculateVelocity(FVector Vector, float DeltaTime);
 

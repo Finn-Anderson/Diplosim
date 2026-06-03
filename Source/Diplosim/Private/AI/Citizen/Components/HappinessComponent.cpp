@@ -65,17 +65,13 @@ void UHappinessComponent::DecayHappiness()
 
 int32 UHappinessComponent::GetHappiness()
 {
+	FScopeLock lock(&ModifiersCriticalSection);
+
 	int32 value = 50;
 
 	if (!Modifiers.IsEmpty()) {
-		TArray<int32> values;
-		Modifiers.GenerateValueArray(values);
-
-		if (values.IsEmpty()) 
-			return value;
-
-		for (int32 v : values)
-			value += v;
+		for (auto& element : Modifiers)
+			value += element.Value;
 
 		value = FMath::Clamp(value, 0, 100);
 	}
@@ -85,6 +81,8 @@ int32 UHappinessComponent::GetHappiness()
 
 void UHappinessComponent::SetHappiness()
 {
+	FScopeLock lock(&ModifiersCriticalSection);
+
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 

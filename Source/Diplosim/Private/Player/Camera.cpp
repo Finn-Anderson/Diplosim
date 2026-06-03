@@ -452,10 +452,10 @@ void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
 
 void ACamera::DisplayBuildUI()
 {
-	if (Settings->GetShowLog())
-		LogUIInstance->AddToViewport();
+	//if (Settings->GetShowLog())
+		//LogUIInstance->AddToViewport();
 
-	BuildUIInstance->AddToViewport();
+	//BuildUIInstance->AddToViewport();
 }
 
 void ACamera::ShowWarning(FString Warning)
