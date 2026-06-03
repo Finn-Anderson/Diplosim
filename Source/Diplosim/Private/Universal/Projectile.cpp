@@ -11,6 +11,7 @@
 #include "Buildings/Work/Defence/Tower.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
+#include "Map/AIInstancedStaticMeshComponent.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
@@ -94,14 +95,14 @@ void AProjectile::OnHit(AActor* Actor, UActorComponent* Component, int32 Instanc
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	ACamera* camera = PController->GetPawn<ACamera>();
 
-	AAI* ai = camera->Grid->AIVisualiser->GetHISMAI(camera, Cast<UInstancedStaticMeshComponent>(Component), Instance);
+	AAI* ai = camera->Grid->AIVisualiser->GetHISMAI(camera, Cast<UAIInstancedStaticMeshComponent>(Component), Instance);
 
 	if (Actor->GetClass() == GetOwner()->GetClass() || (IsValid(ai) && ai->GetClass() == GetOwner()->GetClass()))
 		return;
 
 	if (bExplode)
 		Explode(camera);
-	else if (Component->IsA<UInstancedStaticMeshComponent>())
+	else if (Component->IsA<UAIInstancedStaticMeshComponent>())
 		HitActor(camera, ai);
 
 	Destroy();

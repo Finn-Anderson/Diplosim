@@ -1,6 +1,5 @@
 #include "Map/AIVisualiser.h"
 
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/AudioComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
@@ -17,8 +16,10 @@
 #include "Buildings/Building.h"
 #include "Buildings/Work/Service/Research.h"
 #include "Map/Grid.h"
+#include "Map/AIInstancedStaticMeshComponent.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Resources/Vegetation.h"
+#include "Map/Resources/Mineral.h"
 #include "Player/Camera.h"
 #include "Player/Components/BuildComponent.h"
 #include "Player/Components/DiplomacyComponent.h"
@@ -27,7 +28,6 @@
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Universal/DiplosimUserSettings.h"
-#include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/AttackComponent.h"
@@ -43,7 +43,7 @@ UAIVisualiser::UAIVisualiser()
 
 	AIContainer = CreateDefaultSubobject<USceneComponent>(TEXT("AIContainer"));
 
-	TMap<UInstancedStaticMeshComponent**, FName> hisms;
+	TMap<UAIInstancedStaticMeshComponent**, FName> hisms;
 	hisms.Add(&HISMCitizen, TEXT("HISMCitizen"));
 	hisms.Add(&HISMClone, TEXT("HISMClone"));
 	hisms.Add(&HISMRebel, TEXT("HISMRebel"));
@@ -51,7 +51,7 @@ UAIVisualiser::UAIVisualiser()
 	hisms.Add(&HISMSnake, TEXT("HISMSnake"));
 
 	for (auto& element : hisms) {
-		auto hism = CreateDefaultSubobject<UInstancedStaticMeshComponent>(element.Value);
+		auto hism = CreateDefaultSubobject<UAIInstancedStaticMeshComponent>(element.Value);
 		*element.Key = hism;
 		hism->SetupAttachment(AIContainer);
 		hism->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -75,6 +75,8 @@ UAIVisualiser::UAIVisualiser()
 	HarvestNiagaraComponent->SetAutoActivate(false);
 
 	HarvestVisualCooldownTimer = 0.0f;
+	MaxCounter = 10;
+	Counter = MaxCounter;
 
 	HatsContainer = CreateDefaultSubobject<USceneComponent>(TEXT("HatsContainer"));
 	HatsContainer->SetupAttachment(AIContainer);
@@ -94,7 +96,7 @@ void UAIVisualiser::BeginPlay()
 		FString name = element.Key->GetName() + "Hat";
 
 		FHatsStruct hatsStruct;
-		hatsStruct.ISMHat = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass(), *name);
+		hatsStruct.ISMHat = NewObject<UAIInstancedStaticMeshComponent>(this, UAIInstancedStaticMeshComponent::StaticClass(), *name);
 		hatsStruct.ISMHat->SetStaticMesh(element.Key);
 		hatsStruct.ISMHat->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		hatsStruct.ISMHat->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -169,6 +171,12 @@ void UAIVisualiser::MainLoop(ACamera* Camera, float DeltaTime)
 
 void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 {
+	if (Counter != MaxCounter)
+		return;
+
+	if (HarvestVisualCooldownTimer == 0.0f && HarvestNiagaraComponent->IsActive())
+		HarvestNiagaraComponent->Deactivate();
+
 	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
 		FScopeTryLock lock(&CitizenMovementLock);
 		if (!lock.IsLocked())
@@ -212,43 +220,40 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 		if (cs.IsEmpty() && rebels.IsEmpty())
 			return; 
-		
-		if (HarvestVisualCooldownTimer == 0.0f && HarvestNiagaraComponent->IsActive() && UNiagaraDataInterfaceArrayFunctionLibrary::GetNiagaraArrayVector(HarvestNiagaraComponent, "Locations").IsEmpty())
-			Async(EAsyncExecution::TaskGraphMainTick, [this]() {HarvestNiagaraComponent->Deactivate(); });
 
 		TArray<TArray<ACitizen*>> citizens;
 		citizens.Add(cs);
 		citizens.Add(rebels);
 
-		for (int32 k = 0; k < 2; k++) {
+		MaxCounter = FMath::CeilToInt32((cs.Num() + rebels.Num()) / 500.0f);
+		Counter = 0;
+
+		for (int32 k = 0; k < MaxCounter; k++) {
 			Async(EAsyncExecution::TaskGraph, [this, Camera, citizens, k]() {
-				if (k == 0) {
-					FScopeTryLock citizenLock(&CitizenMovementLock1);
-					if (!citizenLock.IsLocked())
-						return;
-				}
-				else {
-					FScopeTryLock citizenLock(&CitizenMovementLock2);
-					if (!citizenLock.IsLocked())
-						return;
-				}
-
 				for (int32 i = 0; i < citizens.Num(); i++) {
-					if (Camera->SaveGameComponent->IsLoading())
-						return;
+					if (Camera->SaveGameComponent->IsLoading()) {
+						Counter = MaxCounter;
 
-					for (int32 j = (citizens[i].Num() * k) / 2; j < citizens[i].Num() / (2 - k); j++) {
-						if (Camera->SaveGameComponent->IsLoading())
+						return;
+					}
+
+					TMap<int32, FTransform> instanceTransformsToUpdate;
+
+					for (int32 j = (citizens[i].Num() * k) / MaxCounter; j < (citizens[i].Num() * (k + 1)) / MaxCounter; j++) {
+						if (Camera->SaveGameComponent->IsLoading()) {
+							Counter = MaxCounter;
+
 							return;
+						}
 
 						ACitizen* citizen = citizens[i][j];
 
 						if (!IsValid(citizen))
 							continue;
 
-						citizen->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime);
+						citizen->MovementComponent->ComputeMovement(FMath::Min(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime, 1.0f));
 
-						UInstancedStaticMeshComponent* ism = nullptr;
+						UAIInstancedStaticMeshComponent* ism = nullptr;
 						if (i == 0) {
 							float opacity = 1.0f;
 							if (IsValid(citizen->BuildingComponent->BuildingAt)) {
@@ -274,13 +279,20 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						else
 							ism = HISMRebel;
 
-						SetInstanceTransform(ism, j, citizen->MovementComponent->GetMovementTransform());
+						SetInstanceTransform(ism, j, citizen->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
 
 						UpdateCitizenVisuals(ism, Camera, citizen, j);
 
 						SetAIColour(ism, j, citizen->Colour);
 					}
+
+					if (i == 0)
+						HISMCitizen->BatchUpdateTransforms(instanceTransformsToUpdate);
+					else
+						HISMRebel->BatchUpdateTransforms(instanceTransformsToUpdate);
 				}
+
+				Async(EAsyncExecution::TaskGraphMainTick, [this]() { Counter++; });
 			});
 		}
 	});
@@ -318,6 +330,8 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 			if (Camera->SaveGameComponent->IsLoading())
 				return;
 
+			TMap<int32, FTransform> instanceTransformsToUpdate;
+
 			for (int32 j = 0; j < ais[i].Num(); j++) {
 				if (Camera->SaveGameComponent->IsLoading())
 					return;
@@ -329,7 +343,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 
 				ai->MovementComponent->ComputeMovement(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime);
 
-				UInstancedStaticMeshComponent* ism = nullptr;
+				UAIInstancedStaticMeshComponent* ism = nullptr;
 				if (i == 0)
 					ism = HISMClone;
 				else if (i == 1)
@@ -337,10 +351,17 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 				else
 					ism = HISMSnake;
 
-				SetInstanceTransform(ism, j, ai->MovementComponent->GetMovementTransform());
+				SetInstanceTransform(ism, j, ai->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
 
 				SetAIColour(ism, j, ai->Colour);
 			}
+
+			if (i == 0)
+				HISMClone->BatchUpdateTransforms(instanceTransformsToUpdate);
+			else if (i == 1)
+				HISMEnemy->BatchUpdateTransforms(instanceTransformsToUpdate);
+			else
+				HISMSnake->BatchUpdateTransforms(instanceTransformsToUpdate);
 		}
 	});
 }
@@ -437,7 +458,7 @@ void UAIVisualiser::CalculateBuildingRotation(ACamera* Camera)
 	});
 }
 
-void UAIVisualiser::AddInstance(class AAI* AI, UInstancedStaticMeshComponent* ISM, FTransform Transform)
+void UAIVisualiser::AddInstance(class AAI* AI, UAIInstancedStaticMeshComponent* ISM, FTransform Transform)
 {
 	AI->MovementComponent->Transform = Transform;
 
@@ -449,7 +470,7 @@ void UAIVisualiser::AddInstance(class AAI* AI, UInstancedStaticMeshComponent* IS
 	PendingChange.Add(pending);
 }
 
-void UAIVisualiser::RemoveInstance(UInstancedStaticMeshComponent* ISM, int32 Instance)
+void UAIVisualiser::RemoveInstance(UAIInstancedStaticMeshComponent* ISM, int32 Instance)
 {
 	FPendingChangeStruct pending;
 	pending.ISM = ISM;
@@ -463,21 +484,24 @@ void UAIVisualiser::RemoveInstance(UInstancedStaticMeshComponent* ISM, int32 Ins
 		PendingChange[index].Instances.Add(Instance);
 }
 
-void UAIVisualiser::UpdateInstanceCustomData(UInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value)
+void UAIVisualiser::UpdateInstanceCustomData(UAIInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value)
 {
-	int32 value = Instance * ISM->NumCustomDataFloats + Index;
+	int32 value = ISM->PerInstanceSMCustomData[Instance * ISM->NumCustomDataFloats + Index];
+
+	if (value == Value)
+		return;
 
 	Async(EAsyncExecution::TaskGraphMainTick, [ISM, Instance, Index, Value]() { ISM->SetCustomDataValue(Instance, Index, Value); });
 }
 
-void UAIVisualiser::SetAIColour(UInstancedStaticMeshComponent* ISM, int32 Instance, FLinearColor Colour)
+void UAIVisualiser::SetAIColour(UAIInstancedStaticMeshComponent* ISM, int32 Instance, FLinearColor Colour)
 {
 	UpdateInstanceCustomData(ISM, Instance, 2, Colour.R);
 	UpdateInstanceCustomData(ISM, Instance, 3, Colour.G);
 	UpdateInstanceCustomData(ISM, Instance, 4, Colour.B);
 }
 
-void UAIVisualiser::SetInstanceTransform(UInstancedStaticMeshComponent* ISM, int32 Instance, FTransform Transform)
+void UAIVisualiser::SetInstanceTransform(UAIInstancedStaticMeshComponent* ISM, int32 Instance, FTransform Transform, TMap<int32, FTransform>& InstanceTransformsToUpdate)
 {
 	FInstancedStaticMeshInstanceData& instanceData = ISM->PerInstanceSMData[Instance];
 
@@ -491,36 +515,29 @@ void UAIVisualiser::SetInstanceTransform(UInstancedStaticMeshComponent* ISM, int
 	if (instanceData.Transform == Transform.ToMatrixWithScale())
 		return;
 
-	Async(EAsyncExecution::TaskGraphMainTick, [ISM, Instance, Transform]() { ISM->UpdateInstanceTransform(Instance, Transform); });
+	InstanceTransformsToUpdate.Add(Instance, Transform);
 }
 
-void UAIVisualiser::UpdateCitizenVisuals(UInstancedStaticMeshComponent* ISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)
+void UAIVisualiser::UpdateCitizenVisuals(UAIInstancedStaticMeshComponent* ISM, ACamera* Camera, ACitizen* Citizen, int32 Instance)
 {
 	TTuple<bool, bool> status = Camera->DiseaseManager->HasInjuryAndInfection(Citizen);
 
-	if (status.Key)
-		UpdateInstanceCustomData(ISM, Instance, 10, 1.0f);
-	else
-		UpdateInstanceCustomData(ISM, Instance, 10, 0.0f);
+	UpdateInstanceCustomData(ISM, Instance, 10, status.Key);
 
 	if (Citizen->bGlasses)
 		UpdateInstanceCustomData(ISM, Instance, 11, 1.0f);
 
-	ActivateTorch(Camera->Grid->AtmosphereComponent->Calendar.Hour, ISM, Instance);
+	ActivateTorch(Camera, ISM, Instance);
 
-	if (status.Value)
-		UpdateInstanceCustomData(ISM, Instance, 13, 1.0f);
-	else
-		UpdateInstanceCustomData(ISM, Instance, 13, 0.0f);
+	UpdateInstanceCustomData(ISM, Instance, 13, status.Value);
 }
 
-void UAIVisualiser::ActivateTorch(int32 Hour, UInstancedStaticMeshComponent* ISM, int32 Instance)
+void UAIVisualiser::ActivateTorch(ACamera* Camera, UAIInstancedStaticMeshComponent* ISM, int32 Instance)
 {
-	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	int32 hour = Camera->Grid->AtmosphereComponent->Calendar.Hour;
 
 	int32 value = 0.0f;
-
-	if (settings->GetRenderTorches() && (Hour >= 18 || Hour < 6))
+	if (Camera->Settings->GetRenderTorches() && (hour >= 18 || hour < 6))
 		value = 1.0f;
 
 	UpdateInstanceCustomData(ISM, Instance, 12, value);
@@ -599,9 +616,9 @@ void UAIVisualiser::SetEyesVisuals(ACitizen* Citizen, int32 HappinessValue)
 	UpdateInstanceCustomData(element.Key, element.Value, 17, val17);
 }
 
-TTuple<UInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)
+TTuple<UAIInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)
 {
-	TTuple<UInstancedStaticMeshComponent*, int32> info = TTuple<UInstancedStaticMeshComponent*, int32>(nullptr, INDEX_NONE);
+	TTuple<UAIInstancedStaticMeshComponent*, int32> info = TTuple<UAIInstancedStaticMeshComponent*, int32>(nullptr, INDEX_NONE);
 
 	if (!IsValid(AI))
 		return info;
@@ -639,7 +656,7 @@ TTuple<UInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI)
 	return info;
 }
 
-AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UInstancedStaticMeshComponent* ISM, int32 Instance)
+AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UAIInstancedStaticMeshComponent* ISM, int32 Instance)
 {
 	AAI* ai = nullptr;
 	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
@@ -675,7 +692,7 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 
 	FTransform transform = FTransform();
 
-	TTuple<UInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
+	TTuple<UAIInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
 	if (!IsValid(info.Key) || info.Value == INDEX_NONE || info.Value >= info.Key->GetNumInstances())
 		return transform;
@@ -693,7 +710,7 @@ FTransform UAIVisualiser::GetAnimationPoint(AAI* AI)
 
 void UAIVisualiser::SetAnimationPoint(AAI* AI, FTransform Transform)
 {
-	TTuple<UInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
+	TTuple<UAIInstancedStaticMeshComponent*, int32> info = GetAIHISM(AI);
 
 	if (!IsValid(info.Key) || info.Value == -1)
 		return;
@@ -827,8 +844,11 @@ void UAIVisualiser::UpdateHatTransform(ACitizen* Citizen)
 	if (hatStruct != nullptr) {
 		int32 index = hatStruct->Citizens.Find(Citizen);
 
+		TMap<int32, FTransform> instanceTransformsToUpdate;
+
 		FTransform transform = GetHatTransform(Citizen);
-		SetInstanceTransform(hatStruct->ISMHat, index, transform);
+		SetInstanceTransform(hatStruct->ISMHat, index, transform, instanceTransformsToUpdate);
+		hatStruct->ISMHat->BatchUpdateTransforms(instanceTransformsToUpdate);
 
 		float opacity = 1.0f;
 		if (IsValid(Citizen->BuildingComponent->BuildingAt) && Citizen->BuildingComponent->BuildingAt->bHideCitizen)

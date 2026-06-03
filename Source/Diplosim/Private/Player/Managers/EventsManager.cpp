@@ -95,7 +95,8 @@ void UEventsManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 {
 	Async(EAsyncExecution::TaskGraph, [this, Period, Day, Hour]() {
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-			for (FEventStruct& event : faction.Events) {
+			for (int32 i = faction.Events.Num() - 1; i > -1; i--) {
+				FEventStruct& event = faction.Events[i];
 				FString command = "";
 
 				if (event.Period == Period && event.Day == Day && event.Hours.Contains(Hour)) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Universal/Projectile.h"
 #include "Buildings/Work/Work.h"
 #include "Wall.generated.h"
 

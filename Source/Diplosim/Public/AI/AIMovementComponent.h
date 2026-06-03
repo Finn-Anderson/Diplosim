@@ -73,7 +73,7 @@ public:
 private:
 	void ComputeCurrentAnimation(AActor* Goal, float DeltaTime);
 
-	FVector CalculateVelocity(FVector Vector);
+	FVector CalculateVelocity(FVector Vector, float DeltaTime);
 
 	void CalculateRoadBonus();
 };

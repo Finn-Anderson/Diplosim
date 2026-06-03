@@ -23,6 +23,7 @@
 #include "Buildings/Work/Service/Trader.h"
 #include "Buildings/Work/Service/Stockpile.h"
 #include "Map/Grid.h"
+#include "Map/AIInstancedStaticMeshComponent.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Map/Atmosphere/Clouds.h"
@@ -861,8 +862,6 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		actorData.Actor = actor;
 	}
 
-	Camera->Grid->AIVisualiser->MainLoop(Camera, 0.0f);
-
 	for (FActorSaveData actorData : Saves[Index].SavedActors) {
 		LoadTimers(Camera, Index, actorData, Saves[Index].SavedActors);
 
@@ -1128,7 +1127,7 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode,
 	AAI* ai = Cast<AAI>(Actor);
 	AIToName.Add(ActorData.Name, &ActorData);
 
-	UInstancedStaticMeshComponent* ism;
+	UAIInstancedStaticMeshComponent* ism;
 
 	if (AIData.FactionName == "") {
 		if (AIData.bSnake) {

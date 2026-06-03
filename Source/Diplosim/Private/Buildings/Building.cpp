@@ -21,6 +21,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Misc/Festival.h"
+#include "Buildings/Misc/Special/Special.h"
 #include "Buildings/Work/Booster.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Work/Defence/Trap.h"
@@ -198,7 +199,8 @@ void ABuilding::ToggleDecalComponentVisibility(bool bVisible)
 
 	DecalComponent->SetVisibility(bVisible);
 
-	Camera->BuildComponent->DisplayInfluencedBuildings(this, bVisible);
+	if (!Camera->SaveGameComponent->Checklist.bLoad)
+		Camera->BuildComponent->DisplayInfluencedBuildings(this, bVisible);
 }
 
 bool ABuilding::GetDecalComponentVisibility()
@@ -1014,8 +1016,11 @@ void ABuilding::SetSocketLocation(ACitizen* Citizen)
 		}
 	}
 
-	if (anim == EAnim::Still && index == INDEX_NONE)
+	if (anim == EAnim::Still && index == INDEX_NONE) {
+		Citizen->AIController->StartMovement();
+
 		return;
+	}
 
 	if (anim != EAnim::Still) {
 		if (IsA<AInternalProduction>()) {
@@ -1066,9 +1071,6 @@ void ABuilding::Enter(ACitizen* Citizen)
 	}
 	else
 		SetSocketLocation(Citizen);
-
-	if (IsA<AFarm>() && !bHideCitizen)
-		Citizen->AIController->StartMovement();
 
 	if (Citizen->Carrying.Amount > 0)
 		StoreResource(Citizen);
@@ -1245,9 +1247,6 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 	bool bIsBeingConstructed = Camera->ConstructionManager->IsBeingConstructed(this, nullptr);
 
 	if (!bIsBeingConstructed && !resources.IsEmpty() && resources.Contains(resource)) {
-		if (IsA<AWork>() && Cast<AWork>(this)->Boosters != 0)
-			Citizen->Carrying.Amount *= (1.50f * Cast<AWork>(this)->Boosters);
-
 		int32 extra = Camera->ResourceManager->AddLocalResource(resource, this, Citizen->Carrying.Amount);
 
 		if (extra > 0)

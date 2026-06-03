@@ -1,7 +1,6 @@
 #include "Universal/AttackComponent.h"
 
 #include "GameFramework/ProjectileMovementComponent.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "NavigationSystem.h"
 
@@ -9,6 +8,7 @@
 #include "AI/Enemy.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/AISpawner.h"
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BioComponent.h"
 #include "Buildings/Work/Defence/Wall.h"
@@ -17,6 +17,7 @@
 #include "Buildings/Building.h"
 #include "Buildings/Misc/Broch.h"
 #include "Map/Grid.h"
+#include "Map/AIInstancedStaticMeshComponent.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConquestManager.h"

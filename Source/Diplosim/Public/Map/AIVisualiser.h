@@ -14,7 +14,7 @@ struct FPendingChangeStruct
 		class AAI* AI;
 
 	UPROPERTY()
-		class UInstancedStaticMeshComponent* ISM;
+		class UAIInstancedStaticMeshComponent* ISM;
 
 	UPROPERTY()
 		FTransform Transform;
@@ -133,7 +133,7 @@ struct FHatsStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
-		class UInstancedStaticMeshComponent* ISMHat;
+		class UAIInstancedStaticMeshComponent* ISMHat;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
 		TArray<ACitizen*> Citizens;
@@ -165,19 +165,19 @@ public:
 		class USceneComponent* AIContainer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UInstancedStaticMeshComponent* HISMCitizen;
+		class UAIInstancedStaticMeshComponent* HISMCitizen;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UInstancedStaticMeshComponent* HISMClone;
+		class UAIInstancedStaticMeshComponent* HISMClone;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UInstancedStaticMeshComponent* HISMRebel;
+		class UAIInstancedStaticMeshComponent* HISMRebel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UInstancedStaticMeshComponent* HISMEnemy;
+		class UAIInstancedStaticMeshComponent* HISMEnemy;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UInstancedStaticMeshComponent* HISMSnake;
+		class UAIInstancedStaticMeshComponent* HISMSnake;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* HarvestNiagaraComponent;
@@ -192,13 +192,13 @@ public:
 
 	void MainLoop(class ACamera* Camera, float DeltaTime);
 
-	void AddInstance(class AAI* AI, class UInstancedStaticMeshComponent* ISM, FTransform Transform);
+	void AddInstance(class AAI* AI, class UAIInstancedStaticMeshComponent* ISM, FTransform Transform);
 
-	void RemoveInstance(class UInstancedStaticMeshComponent* ISM, int32 Instance);
+	void RemoveInstance(class UAIInstancedStaticMeshComponent* ISM, int32 Instance);
 
-	void UpdateInstanceCustomData(class UInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value);
+	void UpdateInstanceCustomData(class UAIInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value);
 
-	void SetAIColour(class UInstancedStaticMeshComponent* ISM, int32 Instance, FLinearColor Colour);
+	void SetAIColour(class UAIInstancedStaticMeshComponent* ISM, int32 Instance, FLinearColor Colour);
 
 	void SetHarvestVisuals(class ACitizen* Citizen, class AResource* Resource);
 
@@ -206,9 +206,9 @@ public:
 
 	void SetEyesVisuals(class ACitizen* Citizen, int32 HappinessValue);
 
-	TTuple<class UInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
+	TTuple<class UAIInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
 
-	class AAI* GetHISMAI(class ACamera* Camera, class UInstancedStaticMeshComponent* ISM, int32 Instance);
+	class AAI* GetHISMAI(class ACamera* Camera, class UAIInstancedStaticMeshComponent* ISM, int32 Instance);
 
 	FTransform GetAnimationPoint(class AAI* AI);
 
@@ -252,11 +252,11 @@ private:
 
 	void CalculateBuildingRotation(ACamera* Camera);
 
-	void SetInstanceTransform(class UInstancedStaticMeshComponent* ISM, int32 Instance, FTransform Transform);
+	void SetInstanceTransform(class UAIInstancedStaticMeshComponent* ISM, int32 Instance, FTransform Transform, TMap<int32, FTransform>& InstanceTransformsToUpdate);
 
-	void UpdateCitizenVisuals(class UInstancedStaticMeshComponent* ISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
+	void UpdateCitizenVisuals(class UAIInstancedStaticMeshComponent* ISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance);
 
-	void ActivateTorch(int32 Hour, class UInstancedStaticMeshComponent* ISM, int32 Instance);
+	void ActivateTorch(class ACamera* Camera, class UAIInstancedStaticMeshComponent* ISM, int32 Instance);
 
 	FTransform GetHatTransform(ACitizen* Citizen);
 
@@ -265,8 +265,8 @@ private:
 	FHatsStruct* GetCitizenHat(ACitizen* Citizen);
 
 	FCriticalSection CitizenMovementLock;
-	FCriticalSection CitizenMovementLock1;
-	FCriticalSection CitizenMovementLock2;
+	int32 MaxCounter;
+	int32 Counter;
 
 	FCriticalSection AIMovementLock;
 

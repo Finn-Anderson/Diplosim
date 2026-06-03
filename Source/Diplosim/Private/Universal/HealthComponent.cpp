@@ -3,7 +3,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/WidgetComponent.h"
 #include "Components/DecalComponent.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/AudioComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -21,6 +20,7 @@
 #include "Buildings/Misc/Parliament.h"
 #include "Buildings/Work/Service/Stockpile.h"
 #include "Map/Grid.h"
+#include "Map/AIInstancedStaticMeshComponent.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
@@ -123,7 +123,7 @@ void UHealthComponent::ApplyDamageOverlay(bool bLoad)
 			Camera->ConstructionManager->AddBuilding(Cast<ABuilding>(GetOwner()), EBuildStatus::Damaged);
 	}
 	else {
-		TTuple<class UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
+		auto info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
 		info.Key->SetCustomDataValue(info.Value, 9, opacity);
 	}
 }
@@ -140,7 +140,7 @@ void UHealthComponent::RemoveDamageOverlay()
 		}
 	}
 	else {
-		TTuple<class UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
+		auto info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
 		info.Key->SetCustomDataValue(info.Value, 9, 0.0f);
 	}
 }
@@ -361,7 +361,7 @@ void UHealthComponent::Clear(AActor* Attacker)
 	if (actor->IsA<AAI>()) {
 		AAI* ai = Cast<AAI>(actor);
 
-		TTuple<class UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
+		auto info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
 
 		Camera->Grid->AIVisualiser->RemoveInstance(info.Key, info.Value);
 

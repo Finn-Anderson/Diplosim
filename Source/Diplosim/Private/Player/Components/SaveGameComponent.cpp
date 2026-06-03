@@ -10,7 +10,9 @@
 
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
+#include "Buildings/House.h"
 #include "Buildings/Work/Service/Orphanage.h"
+#include "Buildings/Work/Service/School.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"

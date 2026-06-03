@@ -1,11 +1,11 @@
 #include "AI/Enemy.h"
 
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "NiagaraComponent.h"
 
 #include "AI/AIMovementComponent.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
+#include "Map/AIInstancedStaticMeshComponent.h"
 #include "Player/Camera.h"
 #include "Universal/HealthComponent.h"
 

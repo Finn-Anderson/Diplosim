@@ -21,6 +21,7 @@
 #include "Buildings/Building.h"
 #include "Buildings/Misc/Broch.h"
 #include "Map/Grid.h"
+#include "Map/AIInstancedStaticMeshComponent.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Components/BuildComponent.h"
@@ -243,7 +244,7 @@ void ACamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (DeltaTime > 1.0f)
+	if (DeltaTime > 1.0f || (SaveGameComponent->Checklist.bLoad && SaveGameComponent->Checklist.bIsAllChecked()))
 		return;
 
 	if (CustomTimeDilation <= 1.0f) {
@@ -300,7 +301,7 @@ void ACamera::Tick(float DeltaTime)
 		MouseHitLocation = hit.Location;
 
 		if (hit.GetActor() == Grid && hit.GetComponent()->GetAttachParent() == nullptr)
-			HoveredActor.Actor = Grid->AIVisualiser->GetHISMAI(this, Cast<UInstancedStaticMeshComponent>(hit.GetComponent()), hit.Item);
+			HoveredActor.Actor = Grid->AIVisualiser->GetHISMAI(this, Cast<UAIInstancedStaticMeshComponent>(hit.GetComponent()), hit.Item);
 		else if (!hit.GetActor()->IsA<AGrid>())
 			HoveredActor.Actor = actor;
 
@@ -646,7 +647,7 @@ void ACamera::SetTimeDilation(float Dilation)
 
 void ACamera::DisplayInteractOnAI(AAI* AI)
 {
-	TTuple<class UInstancedStaticMeshComponent*, int32> info = Grid->AIVisualiser->GetAIHISM(AI);
+	auto info = Grid->AIVisualiser->GetAIHISM(AI);
 
 	DisplayInteract(AI, info.Key, info.Value);
 }

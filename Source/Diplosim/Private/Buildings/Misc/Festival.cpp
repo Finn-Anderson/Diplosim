@@ -23,7 +23,7 @@ AFestival::AFestival()
 	FestivalMesh->SetupAttachment(BuildingMesh);
 	FestivalMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	FestivalMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECR_Ignore);
-	FestivalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FestivalMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	FestivalMesh->SetCanEverAffectNavigation(true);
 	FestivalMesh->bFillCollisionUnderneathForNavmesh = true;
 
@@ -152,8 +152,6 @@ void AFestival::StartFestival(bool bFireFestival)
 			index = 1;
 
 		FestivalMesh->SetStaticMesh(FestivalStruct[index].Mesh);
-		FestivalMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-		FestivalMesh->UpdateNavigationBounds();
 
 		ParticleComponent->SetAsset(FestivalStruct[index].ParticleSystem);
 
@@ -184,18 +182,16 @@ void AFestival::StartFestival(bool bFireFestival)
 
 void AFestival::StopFestival()
 {
+	for (ACitizen* visitor : GetVisitors(Occupied[0].Citizen)) {
+		visitor->AIController->StopMovement();
+
+		RemoveVisitor(Occupied[0].Citizen, visitor);
+	}
+
 	Async(EAsyncExecution::TaskGraphMainThread, [this]() {
 		FestivalMesh->SetStaticMesh(nullptr);
-		FestivalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		FestivalMesh->UpdateNavigationBounds();
 
 		ParticleComponent->Deactivate();
-
-		for (ACitizen* visitor : GetVisitors(Occupied[0].Citizen)) {
-			visitor->AIController->StopMovement();
-
-			RemoveVisitor(Occupied[0].Citizen, visitor);
-		}
 
 		SetActorTickEnabled(false);
 	});

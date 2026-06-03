@@ -64,7 +64,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime)
 	if (CurrentAnim.Type != EAnim::Move || Points.IsEmpty())
 		return;
 
-	Velocity = CalculateVelocity(Points[0]);
+	Velocity = CalculateVelocity(Points[0], DeltaTime);
 
 	FVector deltaV = Velocity * DeltaTime;
 
@@ -143,11 +143,19 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 	}
 }
 
-FVector UAIMovementComponent::CalculateVelocity(FVector Vector)
+FVector UAIMovementComponent::CalculateVelocity(FVector Vector, float DeltaTime)
 {
 	CalculateRoadBonus();
 
-	return (Vector - Transform.GetLocation()).Rotation().Vector() * GetMaximumSpeed();
+	float speed = GetMaximumSpeed();
+
+	if (DeltaTime > 0.05f) {
+		float distance = FVector::Dist(Vector, Transform.GetLocation());
+		if (speed > distance)
+			speed = FMath::Max(distance, 50.0f);
+	}
+
+	return (Vector - Transform.GetLocation()).Rotation().Vector() * speed;
 }
 
 void UAIMovementComponent::CalculateRoadBonus()

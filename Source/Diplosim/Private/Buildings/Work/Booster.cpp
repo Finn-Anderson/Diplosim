@@ -62,14 +62,14 @@ TArray<ABuilding*> ABooster::GetAffectedBuildings()
 
 	TArray<ABuilding*> buildings;
 
-	for (AActor* actor : actors) {
-		TArray<TSubclassOf<ABuilding>> buildingClasses;
-		BuildingsToBoost.GenerateKeyArray(buildingClasses);
+	TArray<TSubclassOf<ABuilding>> buildingClasses;
+	BuildingsToBoost.GenerateKeyArray(buildingClasses);
 
+	for (AActor* actor : actors) {
 		bool bContainsBuilding = false;
 
 		for (TSubclassOf<ABuilding> buildingClass : buildingClasses) {
-			if (actor->FindNearestCommonBaseClass(buildingClasses[0]) != buildingClass)
+			if (actor->FindNearestCommonBaseClass(buildingClass) != buildingClass)
 				continue;
 
 			bContainsBuilding = true;
