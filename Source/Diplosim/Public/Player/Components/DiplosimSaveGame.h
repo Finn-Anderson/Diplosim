@@ -1355,7 +1355,7 @@ private:
 
 	void LoadCamera(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor);
 	void LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor);
-	void LoadGamemode(class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor);
+	void LoadGamemode(FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor);
 
 	void LoadAI(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FAIData& AIData, FGamemodeData& GamemodeData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName);
 	void LoadCitizen(class ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FCameraData& CameraData, AActor* Actor);

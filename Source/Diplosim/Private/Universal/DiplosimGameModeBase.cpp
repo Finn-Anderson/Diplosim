@@ -4,8 +4,10 @@
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
+#include "Misc/ScopeTryLock.h"
 
 #include "AI/Enemy.h"
+#include "AI/AISpawner.h"
 #include "AI/Citizen/Citizen.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Defence/Wall.h"
@@ -13,6 +15,7 @@
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
+#include "Player/Components/SaveGameComponent.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -435,6 +438,13 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 	return true;
 }
 
+void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)
+{
+	for (FEnemiesStruct& enemyData : EnemiesData)
+		if (enemyData.Resources.Contains(Resource))
+			enemyData.Tally += Amount;
+}
+
 void ADiplosimGameModeBase::SetWaveTimer()
 {
 	if (!WavesData.IsEmpty()) {
@@ -448,12 +458,47 @@ void ADiplosimGameModeBase::SetWaveTimer()
 		}
 	}
 
-	Camera->TimerManager->CreateTimer("WaveTimer", this, 1680, "StartRaid", {}, true, false);
+	int32 timeToCompleteDay = Grid->AtmosphereComponent->GetTimeToCompleteDay();
+
+	Camera->TimerManager->CreateTimer("WaveTimer", this, timeToCompleteDay * 2, "StartRaid", {}, true, false);
 }
 
-void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)
+void ADiplosimGameModeBase::CheckWaveTimer()
 {
-	for (FEnemiesStruct& enemyData : EnemiesData)
-		if (enemyData.Resources.Contains(Resource))
-			enemyData.Tally += Amount;
+	if (Camera->Start) {
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Wave);
+
+			return;
+		}
+
+		return;
+	}
+
+	Async(EAsyncExecution::TaskGraph, [this]() {
+		FScopeTryLock lock(&WaveLock);
+		if (!lock.IsLocked())
+			return;
+
+		if (Camera->SaveGameComponent->IsLoading()) {
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::Wave);
+
+			return;
+		}
+
+		FString time = "Imminent";
+		float percentage = 0.0f;
+
+		float waveTimer = Camera->TimerManager->GetElapsedTime("WaveTimer", this);
+		int32 timeToCompleteDay = Grid->AtmosphereComponent->GetTimeToCompleteDay();
+
+		int32 days = FMath::RoundToInt32(waveTimer / timeToCompleteDay);
+
+		if (days >= 1)
+			time = FString::FromInt(days) + (days == 1 ? " day" : " days");
+
+		percentage = Camera->TimerManager->GetElapsedPercentage("WaveTimer", this);
+
+		Async(EAsyncExecution::TaskGraphMainThread, [this, time, percentage]() { Camera->UpdateWaveUI(time, percentage); });
+	});
 }

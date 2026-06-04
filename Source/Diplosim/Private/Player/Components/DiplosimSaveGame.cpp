@@ -51,7 +51,9 @@ int32 UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 {
 	TArray<AActor*> foundActors;
 
-	TArray<AActor*> actors = { Camera, Camera->Grid };
+	ADiplosimGameModeBase* gamemode = Camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+
+	TArray<AActor*> actors = { Camera, Camera->Grid, gamemode };
 	TArray<AActor*> potentialWetActors;
 
 	UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), AEggBasket::StaticClass(), foundActors);
@@ -98,9 +100,9 @@ int32 UDiplosimSaveGame::SaveGame(ACamera* Camera, int32 Index, FString ID)
 			SaveCitizenManager(actorData, actor, Index);
 
 			SaveFactions(actorData, actor, Index);
-
-			SaveGamemode(actorData, actor, Index);
 		}
+		else if (actor->IsA<ADiplosimGameModeBase>())
+			SaveGamemode(actorData, actor, Index);
 		else if (actor->IsA<AAI>()) {
 			FAIData aiData;
 			SaveAI(Camera, actorData, aiData, actor, Index);
@@ -488,9 +490,7 @@ void UDiplosimSaveGame::SaveFactions(FActorSaveData& ActorData, AActor* Actor, i
 
 void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor, int32 Index)
 {
-	ACamera* camera = Cast<ACamera>(Actor);
-
-	ADiplosimGameModeBase* gamemode = camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(Actor);
 	FGamemodeData* gamemodeData = &Saves[Index].CameraData.GamemodeData;
 
 	gamemodeData->WaveData.Empty();
@@ -517,7 +517,7 @@ void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor, i
 		gamemodeData->SnakeNames.Add(snake->GetName());
 
 	gamemodeData->bOngoingRaid = gamemode->bOngoingRaid;
-	gamemodeData->CrystalOpacity = camera->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0];
+	gamemodeData->CrystalOpacity = gamemode->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0];
 	gamemodeData->TargetOpacity = gamemode->TargetOpacity;
 }
 
@@ -798,9 +798,6 @@ void UDiplosimSaveGame::SaveComponents(FActorSaveData& ActorData, AActor* Actor,
 void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 {
 	ADiplosimGameModeBase* gamemode = Camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
-	gamemode->Enemies.Empty();
-	gamemode->SnakeSpawners.Empty();
-	gamemode->Snakes.Empty();
 
 	TArray<AActor*> foundActors;
 	TArray<UClass*> classes = { AAI::StaticClass(), AEggBasket::StaticClass(), ABuilding::StaticClass(), AAISpawner::StaticClass(), AProjectile::StaticClass() };
@@ -820,7 +817,7 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 
 		UGameplayStatics::GetAllActorsOfClass(Camera->GetWorld(), actorData.Class, foundActors);
 
-		if (foundActors.Num() == 1 && (foundActors[0]->IsA<ACamera>() || foundActors[0]->IsA<AGrid>() || foundActors[0]->IsA<AResource>())) {
+		if (foundActors.Num() == 1 && (foundActors[0]->IsA<ACamera>() || foundActors[0]->IsA<AGrid>() || foundActors[0]->IsA<AResource>() || foundActors[0]->IsA<ADiplosimGameModeBase>())) {
 			actor = foundActors[0];
 
 			if (actorData.Transform.GetLocation() != actor->GetActorLocation())
@@ -841,9 +838,9 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 			LoadCamera(actorData, Saves[Index].CameraData, actor);
 
 			LoadFactions(actorData, Saves[Index].CameraData, actor);
-
-			LoadGamemode(gamemode, actorData, Saves[Index].CameraData.GamemodeData, actor);
 		}
+		else if (actor->IsA<ADiplosimGameModeBase>())
+			LoadGamemode(actorData, Saves[Index].CameraData.GamemodeData, actor);
 		else if (actor->IsA<AAI>()) {
 			LoadAI(Camera, gamemode, actorData, Saves[Index].AIData[actorData.dataIndex], Saves[Index].CameraData.GamemodeData, actor, aiToName);
 
@@ -1092,11 +1089,14 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& Cam
 	}
 }
 
-void UDiplosimSaveGame::LoadGamemode(ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor)
+void UDiplosimSaveGame::LoadGamemode(FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor)
 {
-	ACamera* camera = Cast<ACamera>(Actor);
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(Actor);
+	gamemode->Enemies.Empty();
+	gamemode->SnakeSpawners.Empty();
+	gamemode->Snakes.Empty();
 
-	Gamemode->WavesData.Empty();
+	gamemode->WavesData.Empty();
 	for (FWaveData waveData : GamemodeData.WaveData) {
 		FWaveStruct wave;
 		wave.SpawnLocations = waveData.SpawnLocations;
@@ -1111,15 +1111,15 @@ void UDiplosimSaveGame::LoadGamemode(ADiplosimGameModeBase* Gamemode, FActorSave
 		wave.NumKilled = waveData.NumKilled;
 		wave.EnemiesData = waveData.EnemiesData;
 
-		Gamemode->WavesData.Add(wave);
+		gamemode->WavesData.Add(wave);
 	}
 
-	Gamemode->bOngoingRaid = GamemodeData.bOngoingRaid;
-	camera->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, GamemodeData.CrystalOpacity);
-	Gamemode->TargetOpacity = GamemodeData.TargetOpacity;
+	gamemode->bOngoingRaid = GamemodeData.bOngoingRaid;
+	gamemode->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, GamemodeData.CrystalOpacity);
+	gamemode->TargetOpacity = GamemodeData.TargetOpacity;
 
-	if (GamemodeData.CrystalOpacity != Gamemode->TargetOpacity)
-		Gamemode->SetActorTickEnabled(true);
+	if (GamemodeData.CrystalOpacity != gamemode->TargetOpacity)
+		gamemode->SetActorTickEnabled(true);
 }
 
 void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FAIData& AIData, FGamemodeData& GamemodeData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName)

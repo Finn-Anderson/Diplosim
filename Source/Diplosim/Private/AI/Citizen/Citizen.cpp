@@ -576,8 +576,6 @@ void ACitizen::SetPoliticalLeanings()
 	
 	int32 index = Camera->Stream.RandRange(0, partyList.Num() - 1);
 
-	bool bLog = false;
-
 	if (party != nullptr && party->Party == partyList[index]) {
 		int32 mark = Camera->Stream.RandRange(0, 100);
 		int32 pass = 75;
@@ -590,8 +588,6 @@ void ACitizen::SetPoliticalLeanings()
 				party->Members.Emplace(this, ESway::Radical);
 			else
 				party->Members.Emplace(this, ESway::Strong);
-
-			bLog = true;
 		}
 	}
 	else {
@@ -617,12 +613,7 @@ void ACitizen::SetPoliticalLeanings()
 			if (Camera->InfoUIInstance->IsInViewport())
 				Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party);
 		}
-
-		bLog = true;
 	}
-
-	if (bLog)
-		Camera->NotifyLog("Neutral", BioComponent->Name + " is now a " + UEnum::GetValueAsString(sway->GetValue()) + " " + party->Party, faction->Name);
 }
 
 //
@@ -691,8 +682,6 @@ void ACitizen::SetReligion(FFactionStruct* Faction)
 	int32 index = Camera->Stream.RandRange(0, religionList.Num() - 1);
 
 	Spirituality.Faith = religionList[index];
-
-	Camera->NotifyLog("Neutral", BioComponent->Name + " set their faith as " + Spirituality.Faith, Faction->Name);
 
 	if (Camera->InfoUIInstance->IsInViewport())
 		Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Spirituality.Faith); });

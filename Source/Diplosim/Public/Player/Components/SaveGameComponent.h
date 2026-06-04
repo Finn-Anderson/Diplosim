@@ -21,7 +21,8 @@ enum class EAsyncLoop : uint8
 	BuildingDeath,
 	BuildingRotation,
 	Faction,
-	Rain
+	Rain,
+	Wave
 };
 
 USTRUCT()

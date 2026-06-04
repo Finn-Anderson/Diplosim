@@ -496,7 +496,7 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 			else
 				return false;
 		}
-		else if (hit.GetComponent() == Camera->Grid->HISMGround) {
+		else if (hit.GetComponent() == Camera->Grid->HISMGround && FMath::RoundHalfFromZero(Actor->GetActorLocation().Z - 50.0f) < FMath::RoundHalfFromZero(transform.GetLocation().Z)) {
 			UStaticMeshComponent* mesh = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
 
 			FVector location;

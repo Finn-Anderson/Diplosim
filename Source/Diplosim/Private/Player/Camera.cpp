@@ -267,6 +267,10 @@ void ACamera::Tick(float DeltaTime)
 			PoliceManager->ProcessReports();
 
 			ConquestManager->CheckLoadFactionLock();
+
+			ResourceManager->GameMode->CheckWaveTimer();
+
+			LoopCount = 0.0f;
 		}
 	}
 
@@ -452,10 +456,10 @@ void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
 
 void ACamera::DisplayBuildUI()
 {
-	//if (Settings->GetShowLog())
-		//LogUIInstance->AddToViewport();
+	if (Settings->GetShowLog())
+		LogUIInstance->AddToViewport();
 
-	//BuildUIInstance->AddToViewport();
+	BuildUIInstance->AddToViewport();
 }
 
 void ACamera::ShowWarning(FString Warning)
@@ -472,7 +476,10 @@ void ACamera::ShowEvent(FString Descriptor, FString Event)
 
 void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
 {
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Type, Message, IslandName]() { DisplayNotifyLog(Type, Message, IslandName); });
+	if (IsInGameThread())
+		DisplayNotifyLog(Type, Message, IslandName);
+	else
+		Async(EAsyncExecution::TaskGraphMainTick, [this, Type, Message, IslandName]() { DisplayNotifyLog(Type, Message, IslandName); });
 }
 
 void ACamera::SetMouseCapture(bool bCapture, int32 bUIStatus)

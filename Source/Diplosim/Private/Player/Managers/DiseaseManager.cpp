@@ -165,7 +165,10 @@ void UDiseaseManager::GiveCondition(ACamera* Camera, ACitizen* Citizen, FConditi
 	if (Condition.Spreadability == 0)
 		status = "injured";
 
-	Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is " + status + " with " + Condition.Name, Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
+	FFactionStruct faction = Camera->ConquestManager->GetCitizenFaction(Citizen);
+
+	if (faction.Name == Camera->ColonyName)
+		Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is " + status + " with " + Condition.Name, faction.Name);
 
 	UpdateHealthText(Citizen);
 }
@@ -246,7 +249,10 @@ void UDiseaseManager::Cure(ACitizen* Healer, ACitizen* Citizen)
 	Citizen->ImmunityTimer = Citizen->Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay() / 4;
 	Citizen->HealthIssues.Empty();
 
-	Citizen->Camera->NotifyLog("Good", Citizen->BioComponent->Name + " has been healed", Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
+	FFactionStruct faction = Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen);
+
+	if (faction.Name == Citizen->Camera->ColonyName)
+		Citizen->Camera->NotifyLog("Good", Citizen->BioComponent->Name + " has been healed", Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
 
 	if (Citizen != Healer)
 		Healer->AIController->DefaultAction();

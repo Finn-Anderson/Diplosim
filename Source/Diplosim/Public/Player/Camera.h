@@ -104,6 +104,9 @@ public:
 		void UpdateTrends();
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateWaveUI(const FString& Days, float Percentage);
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateSpeedUI(float Speed);
 
 	UFUNCTION(BlueprintImplementableEvent)

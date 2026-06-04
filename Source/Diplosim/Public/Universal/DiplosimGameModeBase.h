@@ -131,9 +131,11 @@ public:
 
 	bool CheckEnemiesStatus();
 
+	void TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount);
+
 	void SetWaveTimer();
 
-	void TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount);
+	void CheckWaveTimer();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		TSubclassOf<class AEnemy> EnemyClass;
@@ -189,4 +191,6 @@ private:
 	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour, int32* Spawned);
 
 	int32 GetTotalSpawnedEnemies();
+
+	FCriticalSection WaveLock;
 };

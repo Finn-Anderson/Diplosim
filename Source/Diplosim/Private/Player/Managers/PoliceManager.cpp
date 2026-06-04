@@ -12,6 +12,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Misc/Festival.h"
 #include "Buildings/Misc/Road.h"
+#include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Buildings/Work/Service/School.h"
 #include "Map/Grid.h"
@@ -716,7 +717,8 @@ void UPoliceManager::SetInNearestJail(FFactionStruct Faction, ACitizen* Officer,
 
 		faction->Police.Arrested.Add(Citizen, Camera->PoliticsManager->GetLawValue(faction->Name, law));
 
-		Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " has been arrested", faction->Name);
+		if (faction->Name == Citizen->Camera->ColonyName)
+			Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " has been arrested", faction->Name);
 
 		break;
 	}
@@ -740,6 +742,9 @@ void UPoliceManager::ItterateThroughSentences()
 
 		for (ACitizen* citizen : served) {
 			faction.Police.Arrested.Remove(citizen);
+
+			if (faction.Name == citizen->Camera->ColonyName)
+				citizen->Camera->NotifyLog("Good", citizen->BioComponent->Name + " has been released from prison", faction.Name);
 
 			citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 		}
