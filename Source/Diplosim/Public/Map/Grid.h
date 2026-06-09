@@ -89,6 +89,15 @@ enum class EType : uint8
 	Mountain
 };
 
+UENUM()
+enum class EGenStatus : uint8
+{
+	Loading,
+	Incomplete,
+	Complete,
+	NavGenerated
+};
+
 UCLASS()
 class DIPLOSIM_API AGrid : public AActor
 {
@@ -115,6 +124,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ground", meta = (ClampMin = "0.0", ClampMax = "100.0", UIMin = "0.0", UIMax = "100.0"))
 		int32 PercentageGround;
+
+	UPROPERTY()
+		EGenStatus GenStatus;
 
 	//UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -297,7 +309,9 @@ public:
 		int32 VegetationSizeMultiplier;
 
 	// Grid Buildings
-	TArray<FTileStruct*> GetChosenTileLocation(AActor* Actor);
+		void GetChosenTileLocation(AActor* Actor, TArray<UClass*> Classes = {});
+
+	void SetupMapBuildings(AActor* Actor, TArray<UClass*> Classes, TArray<FTileStruct*> ValidLocations);
 
 	void SetSpecialBuildings();
 
@@ -308,8 +322,6 @@ public:
 
 	UFUNCTION()
 		void SpawnEggBasket();
-
-	void SpawnAISpawners();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Egg Basket")
 		TSubclassOf<class AEggBasket> EggBasketClass;

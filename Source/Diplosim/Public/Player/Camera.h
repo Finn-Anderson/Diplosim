@@ -147,6 +147,9 @@ public:
 		void DisplayNotifyLog(const AActor* Actor, const FString& Type, const FString& Message, const FString& IslandName);
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void ClearLog();
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateLoadingText(const FString& Message);
 
 	UFUNCTION(BlueprintImplementableEvent)

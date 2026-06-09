@@ -19,6 +19,8 @@ public:
 
 	void FinaliseFactions(class ABroch* EggTimer);
 
+	void PopulateFaction(FFactionStruct* Faction);
+
 	UFUNCTION(BlueprintCallable)
 		class ABuilding* DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<class ABuilding> BuildingClass);
 

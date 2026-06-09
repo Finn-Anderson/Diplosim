@@ -19,6 +19,7 @@
 #include "Buildings/Misc/Festival.h"
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Misc/Portal.h"
+#include "Buildings/Misc/Special/Special.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Map/Grid.h"
 #include "Map/Resources/Vegetation.h"
@@ -199,13 +200,9 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(AActor* Actor, float Ext
 	if (size.Y > biggestDimension)
 		biggestDimension = size.Y;
 
-	float indent = 0.0f;
-	if (FMath::RoundHalfFromZero(biggestDimension) >= 50.0f)
-		indent = 20.0f;
-
 	for (float x = -1.0f; x <= 1.1f; x += xInterval)
 		for (float y = -1.0f; y <= 1.1f; y += yInterval)
-			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f) - FVector(indent * x, indent * y, 0.0f)));
+			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f)));
 
 	float height = size.Z + 50.0f;
 
@@ -496,7 +493,7 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 			else
 				return false;
 		}
-		else if (hit.GetComponent() == Camera->Grid->HISMGround && FMath::RoundHalfFromZero(Actor->GetActorLocation().Z - 50.0f) < FMath::RoundHalfFromZero(transform.GetLocation().Z)) {
+		else if (!Actor->IsA<ASpecial>() && hit.GetComponent() == Camera->Grid->HISMGround && FMath::RoundHalfFromZero(Actor->GetActorLocation().Z - 50.0f) < FMath::RoundHalfFromZero(transform.GetLocation().Z)) {
 			UStaticMeshComponent* mesh = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
 
 			FVector location;

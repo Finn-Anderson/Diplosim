@@ -101,65 +101,34 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 	for (FString name : factions) {
 		FFactionStruct f = InitialiseFaction(name);
 
-		TArray<FTileStruct*> validLocations = Camera->Grid->GetChosenTileLocation(EggTimer);
-
-		for (int32 i = validLocations.Num() - 1; i > -1; i--) {
-			bool bTooCloseToAnotherFaction = false;
-
-			for (FFactionStruct& faction : Factions) {
-				double dist = FVector::Dist(faction.EggTimer->GetActorLocation(), Camera->Grid->GetTransform(validLocations[i]).GetLocation());
-
-				if (dist > 3000.0f)
-					continue;
-
-				bTooCloseToAnotherFaction = true;
-
-				break;
-			}
-
-			if (bTooCloseToAnotherFaction)
-				validLocations.RemoveAt(i);
-		}
-
-		if (validLocations.IsEmpty())
-			UE_LOGFMT(LogTemp, Fatal, "Valid Egg Timer location not found");
-
-		int32 chosenLocation = Camera->Stream.RandRange(0, validLocations.Num() - 1);
-
-		FActorSpawnParameters params;
-		params.bNoFail = true;
-
-		ABroch* eggTimer = GetWorld()->SpawnActor<ABroch>(EggTimer->GetClass(), Camera->Grid->GetTransform(validLocations[chosenLocation]), params);
-		eggTimer->FactionName = f.Name;
-
-		Camera->BuildComponent->SetTreeStatus(eggTimer, true);
-
-		f.EggTimer = eggTimer;
-		f.Buildings.Add(eggTimer);
-
 		Factions.Add(f);
 	}
 
-	for (FFactionStruct& faction : Factions) {
-		FString type = "Good";
+	Camera->Grid->GetChosenTileLocation(EggTimer);
 
-		if (faction.Name != Camera->ColonyName) {
-			AIBuildComponent->InitialiseTileLocationDistances(&faction);
-
-			type = "Neutral";
-		}
-
-		Camera->NotifyLog(faction.EggTimer, type, faction.Name + " was just founded", faction.Name);
-
-		Camera->EventsManager->SortEvents(&faction);
-
-		faction.EggTimer->SpawnCitizens();
-
-		DiplomacyComponent->SetFactionFlagColour(&faction);
-		DiplomacyComponent->SetFactionCulture(&faction);
-	}
+	PopulateFaction(&Factions[0]);
 
 	Camera->SetFactionsInDiplomacyUI();
+}
+
+void UConquestManager::PopulateFaction(FFactionStruct* Faction)
+{
+	FString type = "Good";
+
+	if (Faction->Name != Camera->ColonyName) {
+		AIBuildComponent->InitialiseTileLocationDistances(Faction);
+
+		type = "Neutral";
+	}
+
+	Camera->NotifyLog(Faction->EggTimer, type, Faction->Name + " was just founded", Faction->Name);
+
+	Camera->EventsManager->SortEvents(Faction);
+
+	Faction->EggTimer->SpawnCitizens();
+
+	DiplomacyComponent->SetFactionFlagColour(Faction);
+	DiplomacyComponent->SetFactionCulture(Faction);
 }
 
 ABuilding* UConquestManager::DoesFactionContainUniqueBuilding(FString FactionName, TSubclassOf<class ABuilding> BuildingClass)

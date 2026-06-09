@@ -17,6 +17,7 @@
 #include "AI/AISpawner.h"
 #include "AI/Citizen/Citizen.h"
 #include "Buildings/Misc/Special/Special.h"
+#include "Buildings/Misc/Broch.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Resources/Mineral.h"
@@ -207,6 +208,7 @@ void AGrid::Load()
 	Camera->UpdateMapSeed(s);
 
 	Seed = "";
+	GenStatus = EGenStatus::Loading;
 
 	Camera->UpdateLoadingText("Initialising Map");
 
@@ -712,6 +714,8 @@ void AGrid::SpawnVegetation()
 
 void AGrid::SetupEnvironment(bool bLoad)
 {
+	GenStatus = EGenStatus::Incomplete;
+
 	auto bound = GetMapBounds();
 
 	AtmosphereComponent->SetSeasonAffect(AtmosphereComponent->Calendar.Period, 1.0f);
@@ -726,23 +730,39 @@ void AGrid::SetupEnvironment(bool bLoad)
 	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
 	LavaComponent->Activate();
 
-	if (bLoad)
+	if (bLoad) {
+		GenStatus = EGenStatus::Complete;
+
 		return;
+	}
 
 	AtmosphereComponent->Clouds->ActivateCloud();
 
-	SpawnEggBasket();
-	SpawnAISpawners();
+	TArray<UClass*> classes; 
+	classes.Init(AISpawnerClass, NumOfNests);
+	classes.Add(EggBasketClass);
+	GetChosenTileLocation(Cast<AAISpawner>(AISpawnerClass->GetDefaultObject()), classes);
 
 	SetSpecialBuildings();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(true, false);
+
+	if (GenStatus == EGenStatus::NavGenerated)
+		LoadUIInstance->RemoveFromParent();
+	else
+		GenStatus = EGenStatus::Complete;
 }
 
 void AGrid::OnNavMeshGenerated()
 {
-	LoadUIInstance->RemoveFromParent();
+	if (GenStatus == EGenStatus::Loading)
+		return;
+
+	if (GenStatus == EGenStatus::Complete)
+		LoadUIInstance->RemoveFromParent();
+	else
+		GenStatus = EGenStatus::NavGenerated;
 }
 
 TArray<FTileStruct*> AGrid::CalculatePath(FTileStruct* Tile, FTileStruct* Target)
@@ -1419,7 +1439,7 @@ FTileStruct* AGrid::GetTileFromLocation(FVector WorldLocation)
 //
 // Grid Buildings
 //
-TArray<FTileStruct*> AGrid::GetChosenTileLocation(AActor* Actor)
+void AGrid::GetChosenTileLocation(AActor* Actor, TArray<UClass*> Classes)
 {
 	TArray<FTileStruct*> validLocations;
 
@@ -1432,7 +1452,88 @@ TArray<FTileStruct*> AGrid::GetChosenTileLocation(AActor* Actor)
 		}
 	}
 
-	return validLocations;
+	SetupMapBuildings(Actor, Classes, validLocations);
+}
+
+void AGrid::SetupMapBuildings(AActor* Actor, TArray<UClass*> Classes, TArray<FTileStruct*> ValidLocations)
+{
+	int32 chosenLocation = Camera->Stream.RandRange(0, ValidLocations.Num() - 1);
+	FTransform transform = GetTransform(ValidLocations[chosenLocation]);
+
+	if (Actor->IsA<ASpecial>()) {
+		ASpecial* building = Cast<ASpecial>(Actor);
+
+		building->SetActorLocation(transform.GetLocation());
+
+		ValidLocations[chosenLocation]->bUnique = true;
+
+		SetSpecialBuildingStatus(building, !building->IsHidden());
+	}
+	else if (Actor->IsA<ABroch>()) {
+		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+			if (IsValid(faction.EggTimer))
+				continue;
+
+			for (int32 i = ValidLocations.Num() - 1; i > -1; i--) {
+				bool bTooCloseToAnotherFaction = false;
+
+				for (FFactionStruct& f : Camera->ConquestManager->Factions) {
+					if (faction == f)
+						continue;
+
+					double dist = FVector::Dist(f.EggTimer->GetActorLocation(), Camera->Grid->GetTransform(ValidLocations[i]).GetLocation());
+
+					if (dist > 3000.0f)
+						continue;
+
+					bTooCloseToAnotherFaction = true;
+
+					break;
+				}
+
+				if (bTooCloseToAnotherFaction)
+					ValidLocations.RemoveAt(i);
+			}
+
+			if (ValidLocations.IsEmpty())
+				UE_LOGFMT(LogTemp, Fatal, "Valid Egg Timer location not found");
+
+			chosenLocation = Camera->Stream.RandRange(0, ValidLocations.Num() - 1);
+
+			FActorSpawnParameters params;
+			params.bNoFail = true;
+
+			ABroch* eggTimer = GetWorld()->SpawnActor<ABroch>(Cast<ABroch>(Actor)->GetClass(), GetTransform(ValidLocations[chosenLocation]), params);
+			eggTimer->FactionName = faction.Name;
+
+			Camera->Grid->GetChosenTileLocation(eggTimer);
+
+			faction.EggTimer = eggTimer;
+			faction.Buildings.Add(eggTimer);
+
+			Camera->BuildComponent->SetTreeStatus(eggTimer, true);
+
+			Camera->ConquestManager->PopulateFaction(&faction);
+		}
+	}
+	else {
+		for (UClass* c : Classes) {
+			FActorSpawnParameters params;
+			params.bNoFail = true; 
+			
+			chosenLocation = Camera->Stream.RandRange(0, ValidLocations.Num() - 1);
+			transform = GetTransform(ValidLocations[chosenLocation]);
+
+			AActor* actor = GetWorld()->SpawnActor<AActor>(c, transform, params);
+
+			if (actor->IsA<AAISpawner>()) {
+				AAISpawner* nest = Cast<AAISpawner>(actor);
+				nest->SpawnAI();
+
+				Camera->BuildComponent->SetTreeStatus(nest, true);
+			}
+		}
+	}
 }
 
 void AGrid::SetSpecialBuildings()
@@ -1451,18 +1552,7 @@ void AGrid::SetSpecialBuildings()
 
 		building->SetActorRotation(FRotator(0.0f, yaw, 0.0f));
 
-		TArray<FTileStruct*> validLocations = GetChosenTileLocation(building);
-
-		if (validLocations.IsEmpty())
-			building->SetActorHiddenInGame(true);
-		else {
-			int32 chosenLocation = Camera->Stream.RandRange(0, validLocations.Num() - 1);
-			building->SetActorLocation(GetTransform(validLocations[chosenLocation]).GetLocation());
-
-			validLocations[chosenLocation]->bUnique = true;
-		}
-
-		SetSpecialBuildingStatus(building, !building->IsHidden());
+		GetChosenTileLocation(building);
 	}
 
 	Camera->UpdateMapSpecialBuildings();
@@ -1495,38 +1585,5 @@ void AGrid::BuildSpecialBuildings()
 
 void AGrid::SpawnEggBasket()
 {
-	TArray<FTileStruct*> validLocations = GetChosenTileLocation(Cast<AActor>(EggBasketClass->GetDefaultObject()));
-
-	if (validLocations.IsEmpty())
-		return;
-
-	int32 chosenLocation = Camera->Stream.RandRange(0, validLocations.Num() - 1);
-
-	FActorSpawnParameters params;
-	params.bNoFail = true;
-
-	AEggBasket* eggBasket = GetWorld()->SpawnActor<AEggBasket>(EggBasketClass, GetTransform(validLocations[chosenLocation]), params);
-}
-
-void AGrid::SpawnAISpawners()
-{
-	if (NumOfNests == 0)
-		return;
-
-	TArray<FTileStruct*> validLocations = GetChosenTileLocation(Cast<AActor>(AISpawnerClass->GetDefaultObject()));
-
-	for (int32 i = 0; i < NumOfNests; i++) {
-		if (validLocations.IsEmpty())
-			return;
-
-		int32 chosenLocation = Camera->Stream.RandRange(0, validLocations.Num() - 1);
-
-		FActorSpawnParameters params;
-		params.bNoFail = true;
-
-		AAISpawner* nest = GetWorld()->SpawnActor<AAISpawner>(AISpawnerClass, GetTransform(validLocations[chosenLocation]), params);
-		nest->SpawnAI();
-
-		Camera->BuildComponent->SetTreeStatus(nest, true);
-	}
+	GetChosenTileLocation(Cast<AActor>(EggBasketClass->GetDefaultObject()), { EggBasketClass });
 }

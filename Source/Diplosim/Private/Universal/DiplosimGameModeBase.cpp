@@ -108,7 +108,7 @@ void ADiplosimGameModeBase::EvaluateThreats()
 
 		WavesData.Last().Threats.Add(threat.Actor);
 
-		int32 chance = Camera->Stream.RandRange(1, 30);
+		int32 chance = Async(EAsyncExecution::TaskGraphMainThread, [this]() { return Camera->Stream.RandRange(1, 30); }).Get();
 		chance -= threat.Kills;
 
 		if (chance > 15 || Cast<AWall>(threat.Actor)->GetOccupied().IsEmpty())
@@ -207,7 +207,7 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 
 	TArray<FVector> spawnLocations;
 
-	auto index = Async(EAsyncExecution::TaskGraph, [this, validTiles]() { return Camera->Stream.RandRange(0, validTiles.Num() - 1); });
+	auto index = Async(EAsyncExecution::TaskGraphMainThread, [this, validTiles]() { return Camera->Stream.RandRange(0, validTiles.Num() - 1); });
 	FVector startLocation = validTiles[index.Get()];
 
 	spawnLocations.Add(startLocation);

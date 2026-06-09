@@ -127,6 +127,7 @@ void USaveGameComponent::OnNavMeshGenerated()
 	StartAutosaveTimer();
 
 	Camera->SetCurrentResearchUI();
+	Camera->ClearLog();
 
 	Checklist.bLoad = false;
 	Camera->Grid->AIVisualiser->MainLoop(Camera, 0.0f);
