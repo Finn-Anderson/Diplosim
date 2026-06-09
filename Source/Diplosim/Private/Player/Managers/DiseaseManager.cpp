@@ -168,7 +168,7 @@ void UDiseaseManager::GiveCondition(ACamera* Camera, ACitizen* Citizen, FConditi
 	FFactionStruct faction = Camera->ConquestManager->GetCitizenFaction(Citizen);
 
 	if (faction.Name == Camera->ColonyName)
-		Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is " + status + " with " + Condition.Name, faction.Name);
+		Camera->NotifyLog(Citizen, "Bad", Citizen->BioComponent->Name + " is " + status + " with " + Condition.Name, faction.Name);
 
 	UpdateHealthText(Citizen);
 }
@@ -252,7 +252,7 @@ void UDiseaseManager::Cure(ACitizen* Healer, ACitizen* Citizen)
 	FFactionStruct faction = Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen);
 
 	if (faction.Name == Citizen->Camera->ColonyName)
-		Citizen->Camera->NotifyLog("Good", Citizen->BioComponent->Name + " has been healed", Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
+		Citizen->Camera->NotifyLog(Citizen, "Good", Citizen->BioComponent->Name + " has been healed", Citizen->Camera->ConquestManager->GetCitizenFaction(Citizen).Name);
 
 	if (Citizen != Healer)
 		Healer->AIController->DefaultAction();

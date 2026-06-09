@@ -474,12 +474,12 @@ void ACamera::ShowEvent(FString Descriptor, FString Event)
 	DisplayEvent(Descriptor, Event);
 }
 
-void ACamera::NotifyLog(FString Type, FString Message, FString IslandName)
+void ACamera::NotifyLog(AActor* Actor, FString Type, FString Message, FString IslandName)
 {
 	if (IsInGameThread())
-		DisplayNotifyLog(Type, Message, IslandName);
+		DisplayNotifyLog(Actor, Type, Message, IslandName);
 	else
-		Async(EAsyncExecution::TaskGraphMainTick, [this, Type, Message, IslandName]() { DisplayNotifyLog(Type, Message, IslandName); });
+		Async(EAsyncExecution::TaskGraphMainTick, [this, Actor, Type, Message, IslandName]() { DisplayNotifyLog(Actor, Type, Message, IslandName); });
 }
 
 void ACamera::SetMouseCapture(bool bCapture, int32 bUIStatus)
@@ -698,7 +698,7 @@ void ACamera::SetInteractStatus(AActor* Actor, bool bStatus, USceneComponent* Co
 	if (bStatus) {
 		WidgetComponent->AttachToComponent(Component, FAttachmentTransformRules::KeepWorldTransform);
 
-		MovementComponent->SetAttachedMovementLocation(Actor, Component, Instance);
+		MovementComponent->SetAttachedMovementLocation(Actor, Component, Instance, FVector::Zero());
 	}
 	else
 		WidgetComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
@@ -725,12 +725,19 @@ void ACamera::Attach(AActor* Actor, USceneComponent* Component, int32 Instance, 
 	AttachedTo.bAttachCamera = true;
 }
 
+void ACamera::SetAttachedLocation(FVector Location)
+{
+	AttachedTo.Location = Location;
+	AttachedTo.bAttachCamera = true;
+}
+
 void ACamera::Detach()
 {
 	if (!AttachedTo.bAttachCamera)
 		return;
 
 	AttachedTo.bAttachCamera = false;
+	AttachedTo.Location = FVector::Zero();
 
 	FVector location = GetActorLocation();
 	location.Z = 800.0f;

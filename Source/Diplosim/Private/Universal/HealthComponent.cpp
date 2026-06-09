@@ -177,8 +177,8 @@ void UHealthComponent::Death(AActor* Attacker)
 
 			citizen->MovementComponent->SetAnimation(EAnim::Death);
 
-			if (faction->Name == Camera->ColonyName)
-				Camera->NotifyLog("Bad", citizen->BioComponent->Name + " has died. Life is no yolk", faction->Name);
+			if (faction->Name == Camera->ColonyName && !Camera->bLost)
+				Camera->NotifyLog(citizen, "Bad", citizen->BioComponent->Name + " has died. Life is no yolk", faction->Name);
 
 			if (citizen->Carrying.Type != nullptr && IsValid(citizen->BuildingComponent->Employment) && !citizen->BuildingComponent->Employment->IsA<AStockpile>())
 				Camera->ResourceManager->AddCommittedResource(Camera->ConquestManager->GetFaction("", citizen), citizen->Carrying.Type->GetClass(), citizen->Carrying.Amount);
@@ -214,6 +214,9 @@ void UHealthComponent::Death(AActor* Attacker)
 			Camera->BribeUIInstance->RemoveFromParent();
 			Camera->ParliamentUIInstance->RemoveFromParent();
 		}
+
+		if (faction->Name == Camera->ColonyName && !Camera->bLost)
+			Camera->NotifyLog(building, "Bad", building->BuildingName + " has been destroyed", faction->Name);
 
 		if (Camera->InfoUIInstance->IsInViewport())
 			Camera->UpdateBuildingInfoDisplay(building, false);

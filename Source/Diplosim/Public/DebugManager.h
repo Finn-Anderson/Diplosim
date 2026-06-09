@@ -37,7 +37,7 @@ public:
 		void AddEnemies(FString Category, int32 Amount);
 
 	UFUNCTION(Exec)
-		void CompleteResearch();
+		void AddResearch(float Amount);
 
 	UFUNCTION(Exec)
 		void TurnOnInstantBuild(bool Value);

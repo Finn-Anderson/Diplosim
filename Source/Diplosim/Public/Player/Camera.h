@@ -19,6 +19,9 @@ struct FHoverStruct
 		int32 Instance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
+		FVector Location;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hover")
 		bool bAttachCamera;
 
 	FHoverStruct()
@@ -32,6 +35,7 @@ struct FHoverStruct
 		Actor = nullptr;
 		Component = nullptr;
 		bAttachCamera = false;
+		Location = FVector::Zero();
 	}
 };
 
@@ -113,6 +117,9 @@ public:
 		void SetCurrentResearchUI();
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void RemoveResearchUI(int32 QueueIndex);
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateMapSeed(const FString& Seed);
 
 	UFUNCTION(BlueprintImplementableEvent)
@@ -137,7 +144,7 @@ public:
 		void NotifyConquestEvent(const FString& Message, const FString& FactionName, bool bChoice);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void DisplayNotifyLog(const FString& Type, const FString& Message, const FString& IslandName);
+		void DisplayNotifyLog(const AActor* Actor, const FString& Type, const FString& Message, const FString& IslandName);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateLoadingText(const FString& Message);
@@ -459,7 +466,7 @@ public:
 		void ShowEvent(FString Descriptor, FString Event);
 
 	UFUNCTION(BlueprintCallable)
-		void NotifyLog(FString Type, FString Message, FString IslandName);
+		void NotifyLog(AActor* Actor, FString Type, FString Message, FString IslandName);
 
 	void SetMouseCapture(bool bCapture, int32 bUIStatus);
 
@@ -493,9 +500,13 @@ public:
 
 	void Attach(AActor* Actor, USceneComponent* Component = nullptr, int32 Instance = -1, bool bBuilding = false);
 
+	UFUNCTION(BlueprintCallable)
+		void SetAttachedLocation(FVector Location);
+
 	void Detach();
 
-	FVector GetTargetActorLocation(AActor* Actor, bool bGetEnterLocation = true);
+	UFUNCTION(BlueprintCallable)
+		FVector GetTargetActorLocation(AActor* Actor, bool bGetEnterLocation = true);
 
 	void Lose();
 

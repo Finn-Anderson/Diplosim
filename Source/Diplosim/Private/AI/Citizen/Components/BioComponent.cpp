@@ -339,7 +339,7 @@ void UBioComponent::HaveChild()
 
 	Adopt(c);
 
-	citizen->Camera->NotifyLog("Good", c->BioComponent->Name + " is born", faction->Name);
+	citizen->Camera->NotifyLog(c, "Good", c->BioComponent->Name + " is born", faction->Name);
 }
 
 TArray<ACitizen*> UBioComponent::GetLikedFamily(bool bFactorAge)

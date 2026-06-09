@@ -17,6 +17,7 @@
 #include "AI/Citizen/Components/HappinessComponent.h"
 #include "AI/Citizen/Components/BioComponent.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Misc/Parliament.h"
 #include "Buildings/Misc/Road.h"
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Service/Builder.h"
@@ -1304,6 +1305,8 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 
 		if (building->IsA<ABroch>())
 			faction->EggTimer = Cast<ABroch>(building);
+		else if (building->IsA<AParliament>())
+			faction->Parliament = Cast<AParliament>(building);
 	}
 
 	building->Capacity = BuildingData.Capacity;

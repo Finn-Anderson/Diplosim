@@ -791,6 +791,9 @@ struct FFactionStruct
 	UPROPERTY()
 		class ABroch* EggTimer;
 
+	UPROPERTY()
+		class AParliament* Parliament;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Faction")
 		TArray<FResearchStruct> ResearchStruct;
 
@@ -842,6 +845,7 @@ struct FFactionStruct
 		PartyInPower = "";
 		LargestReligion = "";
 		EggTimer = nullptr;
+		Parliament = nullptr;
 		RebelCooldownTimer = 0;
 		FailedBuild = 0;
 	}

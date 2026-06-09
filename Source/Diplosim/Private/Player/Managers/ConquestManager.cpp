@@ -149,7 +149,7 @@ void UConquestManager::FinaliseFactions(ABroch* EggTimer)
 			type = "Neutral";
 		}
 
-		Camera->NotifyLog(type, faction.Name + " was just founded", faction.Name);
+		Camera->NotifyLog(faction.EggTimer, type, faction.Name + " was just founded", faction.Name);
 
 		Camera->EventsManager->SortEvents(&faction);
 

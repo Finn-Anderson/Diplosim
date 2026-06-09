@@ -400,7 +400,7 @@ void UHappinessComponent::CheckSadness(ACitizen* Citizen, FFactionStruct* Factio
 
 	SadTimer = Citizen->GetWorld()->GetTimeSeconds();
 
-	Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " is sad", Faction->Name);
+	Citizen->Camera->NotifyLog(Citizen, "Bad", Citizen->BioComponent->Name + " is sad", Faction->Name);
 
 	int32 chance = 90;
 	for (FPersonality* personality : Citizen->Camera->CitizenManager->GetCitizensPersonalities(Citizen))

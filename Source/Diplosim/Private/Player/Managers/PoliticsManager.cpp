@@ -9,6 +9,7 @@
 #include "Buildings/House.h"
 #include "Buildings/Work/Work.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Misc/Parliament.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Misc/Special/CloneLab.h"
 #include "Map/Grid.h"
@@ -477,6 +478,9 @@ void UPoliticsManager::SetupBill(FFactionStruct* Faction)
 	Camera->TimerManager->SetParameter(Faction->Politics.ProposedBills[0], params);
 
 	Camera->TimerManager->CreateTimer(Faction->Name + " Bill", Camera, 60, "MotionBill", params, false);
+
+	if (Faction->Name == Camera->ColonyName)
+		Camera->NotifyLog(Faction->Parliament, "Neutral", Faction->Politics.ProposedBills[0].BillType + " is being debated", Faction->Name);
 }
 
 void UPoliticsManager::MotionBill(FFactionStruct Faction, FLawStruct Bill)

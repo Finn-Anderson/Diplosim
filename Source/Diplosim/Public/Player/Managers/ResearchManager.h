@@ -53,7 +53,7 @@ public:
 		TArray<int32> GetQueueList(FString FactionName);
 
 	UFUNCTION(BlueprintCallable)
-		void GetResearchAmount(int32 Index, FString FactionName, float& Amount, int32& Target);
+		void GetResearchAmount(int32 Index, FString FactionName, float& Amount, int32& Target, int32 QueueIndex = -1);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetResearchLevel(int32 Index, FString FactionName);
@@ -68,7 +68,7 @@ public:
 		void RemoveResearch(int32 Index, FString FactionName, bool bLast, int32 QueueIndex = -1);
 
 	UFUNCTION(BlueprintCallable)
-		void ReorderResearch(int32 OldIndex, int32 NewIndex, FString FactionName);
+		void ReorderResearch(int32 OldIndex, int32 NewIndex, FString FactionName, class UScrollBox* ScrollBox = nullptr, class UWidget* Widget = nullptr);
 
 	void Research(float Amount, FString FactionName);
 };

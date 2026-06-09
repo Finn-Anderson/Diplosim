@@ -718,7 +718,7 @@ void UPoliceManager::SetInNearestJail(FFactionStruct Faction, ACitizen* Officer,
 		faction->Police.Arrested.Add(Citizen, Camera->PoliticsManager->GetLawValue(faction->Name, law));
 
 		if (faction->Name == Citizen->Camera->ColonyName)
-			Citizen->Camera->NotifyLog("Bad", Citizen->BioComponent->Name + " has been arrested", faction->Name);
+			Citizen->Camera->NotifyLog(Citizen, "Bad", Citizen->BioComponent->Name + " has been arrested", faction->Name);
 
 		break;
 	}
@@ -744,7 +744,7 @@ void UPoliceManager::ItterateThroughSentences()
 			faction.Police.Arrested.Remove(citizen);
 
 			if (faction.Name == citizen->Camera->ColonyName)
-				citizen->Camera->NotifyLog("Good", citizen->BioComponent->Name + " has been released from prison", faction.Name);
+				citizen->Camera->NotifyLog(citizen, "Good", citizen->BioComponent->Name + " has been released from prison", faction.Name);
 
 			citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 		}

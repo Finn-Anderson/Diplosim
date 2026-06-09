@@ -73,11 +73,11 @@ void UDebugManager::SetWindSpeed(int32 Speed)
 	camera->Grid->AtmosphereComponent->WindSpeed = Speed;
 }
 
-void UDebugManager::CompleteResearch()
+void UDebugManager::AddResearch(float Amount)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
-	camera->ResearchManager->Research(100000000000.0f, camera->ColonyName);
+	camera->ResearchManager->Research(Amount, camera->ColonyName);
 }
 
 void UDebugManager::TurnOnInstantBuild(bool Value)

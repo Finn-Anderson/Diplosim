@@ -98,7 +98,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void LoadGameSave(UDiplosimSaveGameData* SaveGameData, FString SlotName, int32 Index);
 
-	bool IsLoading();
+	UFUNCTION(BlueprintCallable)
+		bool IsLoading();
 
 	void LoadGameCallback(EAsyncLoop Loop);
 

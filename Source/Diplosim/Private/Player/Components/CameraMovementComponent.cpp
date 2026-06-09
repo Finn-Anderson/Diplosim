@@ -68,7 +68,7 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	ToggleArmCollision();
 
-	FVector movementLoc = SetAttachedMovementLocation(Camera->AttachedTo.Actor, Camera->AttachedTo.Component, Camera->AttachedTo.Instance);
+	FVector movementLoc = SetAttachedMovementLocation(Camera->AttachedTo.Actor, Camera->AttachedTo.Component, Camera->AttachedTo.Instance, Camera->AttachedTo.Location);
 
 	if (movementLoc != FVector::Zero())
 		MovementLocation = movementLoc;
@@ -95,9 +95,11 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 }
 
-FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USceneComponent* Component, int32 Instance)
+FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USceneComponent* Component, int32 Instance, FVector Location)
 {
-	if (!IsValid(Actor))
+	if (Location != FVector::Zero())
+		return Location + Camera->SpringArmComponent->ProbeSize + 3.0f;
+	else if (!IsValid(Actor))
 		return FVector::Zero();
 
 	FVector location = Camera->GetTargetActorLocation(Actor, false);

@@ -51,7 +51,7 @@
       "Max Level": 20
     },
     {
-      "Name": "Increase Awareness",
+      "Name": "Increase awareness",
       "Target": 120,
       "Modifiers": [
         {
@@ -91,7 +91,7 @@
       "Max Level": 20
     },
     {
-      "Name": "Increase Speed",
+      "Name": "Increase speed",
       "Target": 120,
       "Modifiers": [
         {
@@ -101,7 +101,7 @@
       "Max Level": 20
     },
     {
-      "Name": "Increase Productivity",
+      "Name": "Increase productivity",
       "Target": 120,
       "Modifiers": [
         {

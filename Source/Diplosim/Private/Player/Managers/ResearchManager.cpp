@@ -1,6 +1,8 @@
 #include "Player/Managers/ResearchManager.h"
 
 #include "ImageUtils.h"
+#include "Components/ScrollBox.h"
+#include "Blueprint/GameViewportSubsystem.h"
 
 #include "AI/Citizen/Citizen.h"
 #include "Player/Camera.h"
@@ -139,12 +141,27 @@ TArray<int32> UResearchManager::GetQueueList(FString FactionName)
 	return faction->ResearchIndices;
 }
 
-void UResearchManager::GetResearchAmount(int32 Index, FString FactionName, float& Amount, int32& Target)
+void UResearchManager::GetResearchAmount(int32 Index, FString FactionName, float& Amount, int32& Target, int32 QueueIndex)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	Amount = faction->ResearchStruct[Index].AmountResearched;
 	Target = faction->ResearchStruct[Index].Target;
+
+	if (QueueIndex != INDEX_NONE) {
+		for (int32 i = 0; i < faction->ResearchIndices.Num(); i++) {
+			if (faction->ResearchIndices[i] != Index)
+				continue;
+
+			if (i == QueueIndex)
+				break;
+
+			Amount = 0;
+
+			return;
+		}
+	}
+
+	Amount = faction->ResearchStruct[Index].AmountResearched;
 }
 
 int32 UResearchManager::GetResearchLevel(int32 Index, FString FactionName)
@@ -165,7 +182,7 @@ void UResearchManager::SetResearch(int32 Index, FString FactionName)
 
 	faction->ResearchIndices.Add(Index);
 
-	if (FactionName == Camera->ColonyName)
+	if (FactionName == Camera->ColonyName && faction->ResearchIndices.Num() == 1)
 		Camera->SetCurrentResearchUI();
 }
 
@@ -173,28 +190,27 @@ void UResearchManager::RemoveResearch(int32 Index, FString FactionName, bool bLa
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	if (QueueIndex != INDEX_NONE) {
-		faction->ResearchIndices.RemoveAt(QueueIndex);
-	}
-	else {
-		int32 i = INDEX_NONE;
-
+	if (QueueIndex == INDEX_NONE) {
 		if (!bLast)
-			i = faction->ResearchIndices.Find(Index);
+			QueueIndex = faction->ResearchIndices.Find(Index);
 		else
-			i = faction->ResearchIndices.FindLast(Index);
+			QueueIndex = faction->ResearchIndices.FindLast(Index);
 
-		if (i == INDEX_NONE)
+		if (QueueIndex == INDEX_NONE)
 			return;
-
-		faction->ResearchIndices.RemoveAt(i);
 	}
 
-	if (FactionName == Camera->ColonyName)
-		Camera->SetCurrentResearchUI();
+	faction->ResearchIndices.RemoveAt(QueueIndex);
+
+	if (FactionName == Camera->ColonyName) {
+		Camera->RemoveResearchUI(QueueIndex);
+
+		if (QueueIndex == 0)
+			Camera->SetCurrentResearchUI();
+	}
 }
 
-void UResearchManager::ReorderResearch(int32 OldIndex, int32 NewIndex, FString FactionName)
+void UResearchManager::ReorderResearch(int32 OldIndex, int32 NewIndex, FString FactionName, UScrollBox* ScrollBox, UWidget* Widget)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
@@ -203,8 +219,13 @@ void UResearchManager::ReorderResearch(int32 OldIndex, int32 NewIndex, FString F
 
 	faction->ResearchIndices.Swap(OldIndex, NewIndex);
 
-	if (FactionName == Camera->ColonyName)
+	if (OldIndex == 0 || NewIndex == 0)
 		Camera->SetCurrentResearchUI();
+
+	if (!IsValid(ScrollBox))
+		return;
+
+	ScrollBox->ShiftChild(NewIndex, Widget);
 }
 
 void UResearchManager::Research(float Amount, FString FactionName)
@@ -233,12 +254,12 @@ void UResearchManager::Research(float Amount, FString FactionName)
 	if (research->Level != research->MaxLevel)
 		research->Target *= 1.25f;
 
-	RemoveResearch(currentIndex, FactionName, false);
+	RemoveResearch(currentIndex, FactionName, false, 0);
 
 	for (auto& element : research->Modifiers)
 		for (ACitizen* citizen : faction->Citizens)
 			citizen->ApplyToMultiplier(element.Key, element.Value);
 
 	if (FactionName == Camera->ColonyName)
-		Camera->NotifyLog("Good", "Research Complete: " + research->ResearchName, faction->Name);
+		Camera->NotifyLog(nullptr, "Good", "Research Complete: " + research->ResearchName, faction->Name);
 }
