@@ -35,6 +35,7 @@ struct FMoveStruct
 		UltimateGoal = nullptr;
 		Instance = INDEX_NONE;
 		Location = FVector::Zero();
+		UltimateLocation = FVector::Zero();
 	}
 
 	void ResetLocation()

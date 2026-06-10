@@ -178,7 +178,6 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(AActor* Actor, float Ext
 	TArray<FHitResult> hits;
 
 	FCollisionQueryParams params;
-	params.bTraceComplex = true;
 	params.AddIgnoredActor(Actor);
 
 	if (!Buildings.IsEmpty() && StartLocation != FVector::Zero())
@@ -204,12 +203,12 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(AActor* Actor, float Ext
 		for (float y = -1.0f; y <= 1.1f; y += yInterval)
 			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f)));
 
-	float height = size.Z + 50.0f;
+	float height = size.Z + 100.0f;
 
 	for (const FVector& point : points) {
 		TArray<FHitResult> hts;
 
-		if (GetWorld()->SweepMultiByChannel(hts, FVector(point.X, point.Y, point.Z + height), FVector(point.X, point.Y, 0.0f), FQuat::Identity, ECC_GameTraceChannel1, FCollisionShape::MakeBox(FVector(2.5f)), params))
+		if (GetWorld()->LineTraceMultiByChannel(hts, FVector(point.X, point.Y, point.Z + height), FVector(point.X, point.Y, 0.0f), ECC_GameTraceChannel1, params))
 			hits.Append(hts);
 	}
 

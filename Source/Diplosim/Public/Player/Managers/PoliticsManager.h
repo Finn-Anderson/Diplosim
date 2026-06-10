@@ -41,7 +41,7 @@ public:
 	void StartElectionTimer(FFactionStruct* Faction);
 
 	UFUNCTION()
-		void Election(FFactionStruct Faction);
+		void Election(FFactionStruct Faction, bool bVoted = false);
 
 	UFUNCTION(BlueprintCallable)
 		void Bribe(class ACitizen* Representative, bool bAgree);

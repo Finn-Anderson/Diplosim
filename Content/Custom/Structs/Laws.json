@@ -132,7 +132,7 @@
 				"Descriptions": [
 					{
 						"Description": "Set the number of representatives to X",
-						"Min": 0,
+						"Min": 1,
 						"Max": 100
 					}
 				],
@@ -368,7 +368,7 @@
 				"Descriptions": [
 					{
 						"Description": "Call an election every X days",
-						"Min": 0,
+						"Min": 1,
 						"Max": 100
 					}
 				],

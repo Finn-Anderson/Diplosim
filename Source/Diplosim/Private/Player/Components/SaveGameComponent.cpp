@@ -256,8 +256,11 @@ void USaveGameComponent::CreateNewSaveStruct(FString Name, bool bAutosave)
 	saveData.Day = calendar.Days[calendar.Index];
 	saveData.Hour = calendar.Hour;
 
-	if (Name == "")
-		saveData.SaveName = FDateTime::Now().ToString();
+	if (Name == "") {
+		FString datetime = FDateTime::Now().ToString();
+		save.SaveName = datetime;
+		saveData.SaveName = datetime;
+	}
 
 	saveData.bAutosave = bAutosave;
 

@@ -151,6 +151,7 @@ struct FSeedStruct
 		Capacity = -1;
 		bExplosive = false;
 		CanBuildOnTop = EBuildOnTop::None;
+		bCanBuildOnBridge = false;
 		Name = "";
 		Yield = -1;
 		TimeLength = -1;
@@ -364,7 +365,7 @@ public:
 		TArray<FItemStruct> GetRebuildCost();
 
 	UFUNCTION(BlueprintCallable)
-		virtual void Rebuild(FString NewFactionName = "");
+		virtual void Rebuild(FString NewFactionName);
 
 	virtual void Build(bool bRebuild = false, bool bUpgrade = false, int32 Grade = 0);
 

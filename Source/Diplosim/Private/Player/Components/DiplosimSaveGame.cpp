@@ -370,6 +370,7 @@ void UDiplosimSaveGame::SaveFactions(FActorSaveData& ActorData, AActor* Actor, i
 			FPartyData partyData;
 			partyData.Party = party.Party;
 			partyData.Agreeable = party.Agreeable;
+			partyData.Colour = party.Colour;
 
 			for (auto element : party.Members)
 				partyData.MembersName.Add(element.Key->GetName(), element.Value);
@@ -1049,6 +1050,7 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& Cam
 
 			party.Party = partyData.Party;
 			party.Agreeable = partyData.Agreeable;
+			party.Colour = partyData.Colour;
 
 			faction.Politics.Parties.Add(party);
 		}
@@ -1056,6 +1058,7 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& Cam
 		faction.Politics.BribeValue = data.PoliticsData.BribeValue;
 		faction.Politics.Laws = data.PoliticsData.Laws;
 		faction.Politics.ProposedBills = data.PoliticsData.ProposedBills;
+		faction.Politics.Representatives.Init(nullptr, data.PoliticsData.RepresentativesNames.Num());
 
 		// Police
 		for (FPoliceReportData reportData : data.PoliceData.PoliceReportsData) {
@@ -1221,7 +1224,8 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 		if (factionData.Name != AIData.FactionName || !factionData.PoliticsData.RepresentativesNames.Contains(ActorData.Name))
 			continue;
 
-		faction->Politics.Representatives.Add(citizen);
+		int32 index = factionData.PoliticsData.RepresentativesNames.Find(ActorData.Name);
+		faction->Politics.Representatives[index] = citizen;
 
 		if (factionData.PoliticsData.VotesData.ForNames.Contains(ActorData.Name))
 			faction->Politics.Votes.For.Add(citizen);

@@ -43,6 +43,9 @@ public:
 		void TurnOnInstantBuild(bool Value);
 
 	UFUNCTION(Exec)
+		void FillStorage();
+
+	UFUNCTION(Exec)
 		void SpawnCitizen(int32 Amount, bool bAdult);
 
 	UFUNCTION(Exec)

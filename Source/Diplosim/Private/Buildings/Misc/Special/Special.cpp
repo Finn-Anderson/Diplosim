@@ -12,20 +12,18 @@ ASpecial::ASpecial()
 
 void ASpecial::Rebuild(FString NewFactionName)
 {
-	if (!Camera->ResearchManager->IsResearched("Unlock ancient buildings", FactionName)) {
+	if (!Camera->ResearchManager->IsResearched("Unlock ancient buildings", NewFactionName)) {
 		Camera->DisplayWarning("Must research: Unlock Ancient Buildings");
-
-		FactionName = "";
 
 		return;
 	}
 
-	Super::Rebuild();
+	Super::Rebuild(NewFactionName);
 }
 
-void ASpecial::Build(bool bRebuild, bool bUpgrade, int32 Grade)
+void ASpecial::OnBuilt()
 {
-	Super::Build(bRebuild, bUpgrade, Grade);
-
 	ActualMesh = ReplacementMesh;
+
+	Super::OnBuilt();
 }

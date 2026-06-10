@@ -344,6 +344,13 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
 
+	if (faction->Politics.Representatives.Contains(Citizen)) {
+		faction->Politics.Representatives.Remove(Citizen);
+
+		if (faction->Politics.Representatives.IsEmpty())
+			Camera->PoliticsManager->Election(*faction);
+	}
+
 	for (FPartyStruct& party : faction->Politics.Parties) {
 		if (!party.Members.Contains(Citizen))
 			continue;

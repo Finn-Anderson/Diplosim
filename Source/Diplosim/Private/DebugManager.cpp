@@ -82,9 +82,22 @@ void UDebugManager::AddResearch(float Amount)
 
 void UDebugManager::TurnOnInstantBuild(bool Value)
 {
-	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
-
 	bInstantBuildCheat = Value;
+}
+
+void UDebugManager::FillStorage()
+{
+	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
+	AActor* actor = camera->AttachedTo.Actor;
+
+	if (!IsValid(actor) || !actor->IsA<ABuilding>())
+		return;
+
+	ABuilding* building = Cast<ABuilding>(actor);
+	TArray<TSubclassOf<AResource>> resources = camera->ResourceManager->GetResources(building);
+
+	for (TSubclassOf<AResource> resource : resources)
+		camera->ResourceManager->AddLocalResource(resource, building, 1000000000);
 }
 
 void UDebugManager::SpawnCitizen(int32 Amount, bool bAdult)
@@ -138,7 +151,6 @@ void UDebugManager::SetEvent(FString Type, FString Period, int32 Day, int32 Star
 void UDebugManager::DamageActor(int32 Amount)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
-
 	AActor* actor = camera->AttachedTo.Actor;
 
 	if (IsValid(camera->FocusedCitizen))

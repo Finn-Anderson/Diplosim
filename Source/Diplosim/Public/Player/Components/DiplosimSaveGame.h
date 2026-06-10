@@ -889,6 +889,9 @@ struct FPartyData
 		TArray<FString> Agreeable;
 
 	UPROPERTY()
+		FLinearColor Colour;
+
+	UPROPERTY()
 		TMap<FString, TEnumAsByte<ESway>> MembersName;
 
 	UPROPERTY()
@@ -898,6 +901,7 @@ struct FPartyData
 	{
 		Party = "";
 		LeaderName = "";
+		Colour = FLinearColor();
 	}
 };
 

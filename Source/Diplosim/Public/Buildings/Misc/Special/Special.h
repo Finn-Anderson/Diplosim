@@ -15,7 +15,7 @@ public:
 
 	virtual void Rebuild(FString NewFactionName = "") override;
 
-	virtual void Build(bool bRebuild = false, bool bUpgrade = false, int32 Grade = 0) override;
+	virtual void OnBuilt() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Portal")
 		UStaticMesh* ReplacementMesh;

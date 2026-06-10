@@ -291,7 +291,7 @@ void UPoliticsManager::StartElectionTimer(FFactionStruct* Faction)
 	Camera->TimerManager->CreateTimer(Faction->Name + " Election", Camera, timeToCompleteDay * GetLawValue(Faction->Name, "Election Timer"), "Election", params, false);
 }
 
-void UPoliticsManager::Election(FFactionStruct Faction)
+void UPoliticsManager::Election(FFactionStruct Faction, bool bVoted)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
 
@@ -316,7 +316,7 @@ void UPoliticsManager::Election(FFactionStruct Faction)
 	}
 
 	for (TPair<FString, TArray<ACitizen*>>& pair : tally) {
-		int32 number = FMath::RoundHalfFromZero(pair.Value.Num() / (float)faction->Citizens.Num() * 100.0f / representatives);
+		int32 number = FMath::RoundHalfFromZero(representatives * (pair.Value.Num() / (float)faction->Citizens.Num()));
 
 		if (number == 0 || faction->Politics.Representatives.Num() == representatives)
 			continue;
@@ -358,7 +358,6 @@ void UPoliticsManager::Election(FFactionStruct Faction)
 			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party.Party);
 
 	StartElectionTimer(faction);
-	SetupBill(faction);
 }
 
 void UPoliticsManager::Bribe(class ACitizen* Representative, bool bAgree)
@@ -383,7 +382,7 @@ void UPoliticsManager::Bribe(class ACitizen* Representative, bool bAgree)
 	if (faction->Politics.Votes.For.Contains(Representative))
 		faction->Politics.Votes.For.Remove(Representative);
 	else if (faction->Politics.Votes.Against.Contains(Representative))
-		faction->Politics.Votes.For.Remove(Representative);
+		faction->Politics.Votes.Against.Remove(Representative);
 
 	Representative->Balance += bribe;
 
