@@ -610,8 +610,14 @@ void ACitizen::SetPoliticalLeanings()
 			if (party->Party == "Shell Breakers" && Camera->PoliticsManager->IsRebellion(faction))
 				Camera->PoliticsManager->SetupRebel(faction, this);
 
-			if (Camera->InfoUIInstance->IsInViewport())
+			if (Camera->InfoUIInstance->IsInViewport()) {
 				Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party);
+
+				if (!faction->Politics.ProposedBills.IsEmpty())
+					Camera->PoliticsManager->GetVerdict(faction, this, faction->Politics.ProposedBills[0], true, false);
+				else
+					Camera->UpdateRepresentative(faction->Politics.Representatives.Find(this));
+			}
 		}
 	}
 }

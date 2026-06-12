@@ -92,12 +92,8 @@ void UDiplosimAIController::DefaultAction()
 			break;
 		}
 
-		if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsWorking(citizen) && !faction->BuildingsOnFire.Contains(citizen->BuildingComponent->Employment)) {
-			if (IsValid(MoveRequest.GetGoalActor()) && MoveRequest.GetGoalActor()->IsA<AResource>())
-				StartMovement();
-			else
-				AIMoveTo(citizen->BuildingComponent->Employment);
-		}
+		if (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsWorking(citizen) && !faction->BuildingsOnFire.Contains(citizen->BuildingComponent->Employment))
+			AIMoveTo(citizen->BuildingComponent->Employment);
 		else if (IsValid(citizen->BuildingComponent->School) && citizen->BuildingComponent->School->IsWorking(citizen->BuildingComponent->School->GetOccupant(citizen)) && !faction->BuildingsOnFire.Contains(citizen->BuildingComponent->School))
 			AIMoveTo(citizen->BuildingComponent->School);
 		else
@@ -556,21 +552,18 @@ void UDiplosimAIController::RecalculateMovement(AActor* Actor)
 		return;
 	}
 
-	AActor* currentPortal = MoveRequest.GetGoalActor();
-	AActor* linkedPortal = MoveRequest.GetLinkedPortal();
+	UHealthComponent* healthComp = Actor->FindComponentByClass<UHealthComponent>();
 
-	if (!IsValid(linkedPortal) || linkedPortal->FindComponentByClass<UHealthComponent>()->GetHealth() == 0 || (IsValid(linkedPortal) && (!IsValid(currentPortal) || currentPortal->FindComponentByClass<UHealthComponent>()->GetHealth() == 0))) {
+	if (healthComp && healthComp->GetHealth() == 0) {
 		DefaultAction();
 
 		return;
 	}
 
-	FVector AILocation = GetActualLocation(AI);
-
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
 	FVector targetLoc = GetActualLocation(Actor);
-	FVector currentLoc = AILocation;
+	FVector currentLoc = GetActualLocation(AI);
 
 	if (!AI->MovementComponent->TempPoints.IsEmpty())
 		currentLoc = AI->MovementComponent->TempPoints.Last();

@@ -250,6 +250,13 @@ void ACamera::Tick(float DeltaTime)
 	if (CustomTimeDilation <= 1.0f) {
 		Grid->AIVisualiser->MainLoop(this, DeltaTime);
 
+		for (FFactionStruct& faction : ConquestManager->Factions) {
+			if (faction.Citizens.IsEmpty())
+				continue;
+
+			PoliticsManager->PoliticsLoop(&faction, DeltaTime);
+		}
+
 		LoopCount += DeltaTime;
 
 		if (LoopCount > LoopInterval) {
@@ -469,6 +476,9 @@ void ACamera::ShowWarning(FString Warning)
 
 void ACamera::ShowEvent(FString Descriptor, FString Event)
 {
+	if (bLost)
+		return;
+
 	PlayInteractSound(EventSound);
 
 	DisplayEvent(Descriptor, Event);

@@ -133,7 +133,6 @@ void UCitizenManager::CitizenGeneralLoop(float DeltaTime)
 			if (faction.Citizens.IsEmpty())
 				continue;
 
-			Camera->PoliticsManager->PoliticsLoop(&faction, DeltaTime);
 			bool bIll = !Camera->DiseaseManager->GetIll(&faction, true).IsEmpty();
 
 			int32 rebelCount = 0;
@@ -344,13 +343,6 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
 
-	if (faction->Politics.Representatives.Contains(Citizen)) {
-		faction->Politics.Representatives.Remove(Citizen);
-
-		if (faction->Politics.Representatives.IsEmpty())
-			Camera->PoliticsManager->Election(*faction);
-	}
-
 	for (FPartyStruct& party : faction->Politics.Parties) {
 		if (!party.Members.Contains(Citizen))
 			continue;
@@ -365,6 +357,8 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 
 		break;
 	}
+
+	Camera->PoliticsManager->ClearRepresentative(faction, Citizen);
 
 	for (ACitizen* citizen : Citizen->BioComponent->GetLikedFamily(false)) {
 		int32 value = -12;

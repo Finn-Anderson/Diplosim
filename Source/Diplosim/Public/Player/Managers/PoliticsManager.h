@@ -25,6 +25,8 @@ public:
 
 	void AIProposeBill(FFactionStruct* Faction, float DeltaTime);
 
+	void ClearRepresentative(FFactionStruct* Faction, ACitizen* Citizen);
+
 	FPartyStruct* GetMembersParty(ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
@@ -53,6 +55,8 @@ public:
 		void MotionBill(FFactionStruct Faction, FLawStruct Bill);
 
 	bool IsInRange(TArray<int32> Range, int32 Value);
+
+	void GetVerdict(FFactionStruct* Faction, class ACitizen* Representative, FLawStruct Bill, bool bCanAbstain, bool bPrediction);
 
 	UFUNCTION(BlueprintCallable)
 		int32 GetLawValue(FString FactionName, FString BillType);
@@ -93,8 +97,6 @@ private:
 	void SetElectionBillLeans(FFactionStruct* Faction, FLawStruct* Bill);
 
 	void SetupBill(FFactionStruct* Faction);
-
-	void GetVerdict(FFactionStruct* Faction, class ACitizen* Representative, FLawStruct Bill, bool bCanAbstain, bool bPrediction);
 
 	void TallyVotes(FFactionStruct* Faction, FLawStruct Bill);
 };

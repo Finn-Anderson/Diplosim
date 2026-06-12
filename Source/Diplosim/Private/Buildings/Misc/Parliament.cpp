@@ -16,8 +16,12 @@ void AParliament::OnBuilt()
 	Super::OnBuilt();
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
-
 	Camera->PoliticsManager->Election(*faction);
-
 	Camera->PoliticsManager->StartElectionTimer(faction);
+
+	if (FactionName == Camera->ColonyName)
+		return;
+
+	Camera->DisplayLaws();
+	Camera->RefreshRepresentatives();
 }

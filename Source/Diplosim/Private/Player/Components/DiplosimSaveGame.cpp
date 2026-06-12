@@ -19,6 +19,7 @@
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Parliament.h"
 #include "Buildings/Misc/Road.h"
+#include "Buildings/Misc/Special/Special.h"
 #include "Buildings/Work/Production/Farm.h"
 #include "Buildings/Work/Service/Builder.h"
 #include "Buildings/Work/Service/Trader.h"
@@ -871,6 +872,13 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		}
 	}
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Camera->ColonyName);
+	if (IsValid(faction->Parliament)) {
+		Camera->DisplayLaws();
+		Camera->RefreshRepresentatives();
+		Camera->DisplayNewBill();
+	}
+
 	for (FWetnessData wetData : wetnessData)
 		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(wetData.Location, wetData.Value, wetData.Increment);
 }
@@ -1304,8 +1312,12 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(building->FactionName);
 	if (faction != nullptr) {
-		if (bBuilt)
+		if (bBuilt) {
 			faction->Buildings.Add(building);
+
+			if (building->IsA<ASpecial>())
+				building->BuildingMesh->SetStaticMesh(Cast<ASpecial>(building)->ReplacementMesh);
+		}
 
 		if (building->IsA<ABroch>())
 			faction->EggTimer = Cast<ABroch>(building);

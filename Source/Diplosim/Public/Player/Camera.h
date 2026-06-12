@@ -96,10 +96,16 @@ public:
 		void DisplayWarning(const FString& Warning);
 
 	UFUNCTION(BlueprintImplementableEvent)
+		void DisplayLaws();
+
+	UFUNCTION(BlueprintImplementableEvent)
 		void DisplayNewBill();
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void RefreshRepresentatives();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateRepresentative(int32 Index);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void SetSeedVisibility(bool bVisible);

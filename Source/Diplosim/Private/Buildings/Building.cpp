@@ -451,10 +451,10 @@ void ABuilding::Rebuild(FString NewFactionName)
 {
 	if (!Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat) {
 		for (FItemStruct item : GetRebuildCost()) {
-			int32 amount = Camera->ResourceManager->GetResourceAmount(FactionName, item.Resource);
+			int32 amount = Camera->ResourceManager->GetResourceAmount(NewFactionName, item.Resource);
 
 			if (amount < item.Amount) {
-				if (FactionName == Camera->ColonyName)
+				if (NewFactionName == Camera->ColonyName)
 					Camera->ShowWarning("Cannot afford building");
 
 				return;

@@ -185,6 +185,32 @@ void UPoliticsManager::AIProposeBill(FFactionStruct* Faction, float DeltaTime)
 	ProposeBill(Faction->Name, lawToPropose);
 }
 
+void UPoliticsManager::ClearRepresentative(FFactionStruct* Faction, ACitizen* Citizen)
+{
+	int32 index = Faction->Politics.Representatives.Find(Citizen);
+
+	if (index == INDEX_NONE)
+		return;
+
+	Faction->Politics.Representatives[index] = nullptr;
+	Faction->Politics.Votes.For.Remove(Citizen);
+	Faction->Politics.Votes.Against.Remove(Citizen);
+
+	bool bEmpty = true;
+	for (ACitizen* representative : Faction->Politics.Representatives) {
+		if (!IsValid(representative))
+			continue;
+
+		bEmpty = false;
+		break;
+	}
+
+	if (bEmpty)
+		Election(*Faction);
+	else
+		Camera->UpdateRepresentative(index);
+}
+
 FPartyStruct* UPoliticsManager::GetMembersParty(ACitizen* Citizen)
 {
 	FPartyStruct* partyStruct = nullptr;
@@ -353,6 +379,13 @@ void UPoliticsManager::Election(FFactionStruct Faction, bool bVoted)
 		}
 	}
 
+	for (int32 i = 0; i < representatives; i++) {
+		if (faction->Politics.Representatives.Num() <= i)
+			faction->Politics.Representatives.Add(nullptr);
+
+		Camera->UpdateRepresentative(i);
+	}
+
 	for (FPartyStruct party : faction->Politics.Parties)
 		if (Camera->InfoUIInstance->IsInViewport())
 			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party.Party);
@@ -390,6 +423,8 @@ void UPoliticsManager::Bribe(class ACitizen* Representative, bool bAgree)
 		faction->Politics.Votes.For.Add(Representative);
 	else
 		faction->Politics.Votes.Against.Add(Representative);
+
+	Camera->UpdateRepresentative(index);
 }
 
 void UPoliticsManager::ProposeBill(FString FactionName, FLawStruct Bill)
@@ -398,7 +433,7 @@ void UPoliticsManager::ProposeBill(FString FactionName, FLawStruct Bill)
 
 	int32 index = faction->Politics.Laws.Find(Bill);
 
-	if (faction->Politics.Laws[index].Cooldown != 0) {
+	if (faction->Politics.Laws[index].Cooldown != 0 && faction->Name == Camera->ColonyName) {
 		FString string = "You must wait " + FString::FromInt(FMath::CeilToInt32(faction->Politics.Laws[index].Cooldown));
 
 		Camera->ShowWarning(string + " seconds");
@@ -410,10 +445,12 @@ void UPoliticsManager::ProposeBill(FString FactionName, FLawStruct Bill)
 
 	faction->Politics.Laws[index].Cooldown = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
-	Camera->DisplayNewBill();
+	if (faction->Politics.ProposedBills.Num() > 1) {
+		if (faction->Name == Camera->ColonyName)
+			Camera->DisplayNewBill();
 
-	if (faction->Politics.ProposedBills.Num() > 1)
 		return;
+	}
 
 	SetupBill(faction);
 }
@@ -447,9 +484,8 @@ void UPoliticsManager::SetElectionBillLeans(FFactionStruct* Faction, FLawStruct*
 
 void UPoliticsManager::SetupBill(FFactionStruct* Faction)
 {
-	Faction->Politics.Votes.Clear();
-
-	Faction->Politics.BribeValue.Empty();
+	if (Faction->Name == Camera->ColonyName)
+		Camera->DisplayNewBill();
 
 	if (Faction->Politics.ProposedBills.IsEmpty())
 		return;
@@ -514,6 +550,9 @@ bool UPoliticsManager::IsInRange(TArray<int32> Range, int32 Value)
 
 void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representative, FLawStruct Bill, bool bCanAbstain, bool bPrediction)
 {
+	if (!IsValid(Representative))
+		return;
+
 	TArray<FString> verdict;
 
 	FLeanStruct partyLean;
@@ -595,14 +634,22 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 			Faction->Politics.Votes.For.Add(Representative);
 		else if (result == "Opposing")
 			Faction->Politics.Votes.Against.Add(Representative);
+
+		Camera->UpdateRepresentative(Faction->Politics.Representatives.Find(Representative));
 	}
 }
 
 void UPoliticsManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 {
 	bool bPassed = false;
+	int32 numFor = Faction->Politics.Votes.For.Num();
+	int32 numAgainst = Faction->Politics.Votes.Against.Num();
 
-	if (Faction->Politics.Votes.For.Num() > Faction->Politics.Votes.Against.Num()) {
+	Faction->Politics.ProposedBills.Remove(Bill);
+	Faction->Politics.Votes.Clear();
+	Faction->Politics.BribeValue.Empty();
+
+	if (numFor > numAgainst) {
 		int32 index = Faction->Politics.Laws.Find(Bill);
 
 		if (Faction->Politics.Laws[index].BillType == "Abolish") {
@@ -648,10 +695,9 @@ void UPoliticsManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 						citizen->BioComponent->RemoveMarriage();
 				}
 			}
+			else if (Faction->Politics.Laws[index].BillType == "Representatives" && Faction->Name == Camera->ColonyName)
+				Camera->RefreshRepresentatives();
 		}
-
-		if (Faction->Politics.Laws[index].BillType == "Representatives" && Camera->ParliamentUIInstance->IsInViewport())
-			Camera->RefreshRepresentatives();
 
 		bPassed = true;
 	}
@@ -670,13 +716,13 @@ void UPoliticsManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 
 		FString value = FString::FromInt(Bill.Value);
 		FString description = descriptionStruct.Description.Replace(TEXT("X"), *value);
+		if (description == "")
+			description = Bill.BillType;
 
-		Camera->LawPassed(bPassed, description, Faction->Politics.Votes.For.Num(), Faction->Politics.Votes.Against.Num());
+		Camera->LawPassed(bPassed, description, numFor, numAgainst);
 
 		Camera->LawPassedUIInstance->AddToViewport();
 	}
-
-	Faction->Politics.ProposedBills.Remove(Bill);
 
 	SetupBill(Faction);
 }
