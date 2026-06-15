@@ -3,7 +3,6 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Misc/ScopeTryLock.h"
-#include "Blueprint/UserWidget.h"
 
 #include "AI/DiplosimAIController.h"
 #include "AI/AIMovementComponent.h"

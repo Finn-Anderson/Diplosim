@@ -1110,6 +1110,9 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& Cam
 			faction.Events.Add(event);
 		}
 
+		if (faction.Name == camera->ColonyName && !data.EventsData.IsEmpty())
+			camera->UpdateEventInfoDisplay();
+
 		camera->ConquestManager->Factions.Add(faction);
 
 		// Army
@@ -1418,8 +1421,12 @@ void UDiplosimSaveGame::LoadComponents(FActorSaveData& ActorData, AActor* Actor,
 	if (healthComp) {
 		healthComp->Health = healthData.Health;
 
-		if (healthComp->Health == 0 && !(Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->FactionName == ""))
-			healthComp->Death(nullptr);
+		if (healthComp->Health == 0) {
+			if (!(Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->FactionName == ""))
+				healthComp->Death(nullptr);
+			else
+				Cast<ABuilding>(Actor)->ParticleComponent->Deactivate();
+		}
 	}
 
 	UAttackComponent* attackComp = Actor->FindComponentByClass<UAttackComponent>();
@@ -1683,7 +1690,7 @@ void UDiplosimSaveGame::InitialiseFactions(ACamera* Camera, FActorSaveData& Acto
 		}
 
 		// Events
-		for (int32 i = 0; i < faction->Police.PoliceReports.Num(); i++) {
+		for (int32 i = 0; i < faction->Events.Num(); i++) {
 			FEventStruct& event = faction->Events[i];
 			FEventData eventData = data.EventsData[i];
 
