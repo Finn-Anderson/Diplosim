@@ -232,6 +232,7 @@ void ACamera::BeginPlay()
 	ArmyEditorUIInstance = CreateWidget<UUserWidget>(PController, ArmyEditorUI);
 
 	InfoUIInstance = CreateWidget<UUserWidget>(PController, InfoUI);
+	InitialiseInfoDisplay();
 
 	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	Settings->Camera = this;

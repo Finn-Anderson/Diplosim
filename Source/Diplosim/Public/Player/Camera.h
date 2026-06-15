@@ -39,7 +39,7 @@ struct FHoverStruct
 	}
 };
 
-UENUM()
+UENUM(BlueprintType)
 enum class EInfoUpdate : uint8
 {
 	Party,
@@ -162,7 +162,13 @@ public:
 		void UpdateArmyCountUI(int32 Index, int32 Amount);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateCitizenInfoDisplay(EInfoUpdate Type, const FString& Name);
+		void InitialiseInfoDisplay();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void ClearInfoDisplay();
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateCitizenInfoDisplay(EInfoUpdate Type, const FString& Name, class ACitizen* Citizen, bool bAdd);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateBuildingInfoDisplay(class ABuilding* Building, bool bOccupants);

@@ -34,6 +34,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/ArmyManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/DiseaseManager.h"
@@ -872,14 +873,30 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		}
 	}
 
-	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Camera->ColonyName);
+	Camera->ClearInfoDisplay();
+
+	FFactionStruct* faction = nullptr;
+	for (FFactionStruct &f : Camera->ConquestManager->Factions) {
+		if (f.Name == Camera->ColonyName)
+			faction = &f;
+
+		for (ACitizen* citizen : f.Citizens) {
+			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, Camera->PoliticsManager->GetCitizenParty(citizen), citizen, true);
+
+			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, citizen->Spirituality.Faith, citizen, true);
+
+			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
+				Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, personality->Trait, citizen, true);
+		}
+	}
+
 	if (IsValid(faction->Parliament)) {
 		Camera->DisplayLaws();
 		Camera->RefreshRepresentatives();
 		Camera->DisplayNewBill();
 	}
 
-	for (FWetnessData wetData : wetnessData)
+	for (const FWetnessData wetData : wetnessData)
 		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(wetData.Location, wetData.Value, wetData.Increment);
 }
 
@@ -1609,14 +1626,19 @@ void UDiplosimSaveGame::InitialiseFactions(ACamera* Camera, FActorSaveData& Acto
 
 		// Politics
 		for (int32 i = 0; i < faction->Politics.Parties.Num(); i++) {
+			if (!SavedData.Actor->IsA<ACitizen>())
+				continue;
+
+			ACitizen* citizen = Cast<ACitizen>(SavedData.Actor);
+
 			FPartyStruct& party = faction->Politics.Parties[i];
 			FPartyData partyData = data.PoliticsData.PartiesData[i];
 
 			if (partyData.MembersName.Contains(SavedData.Name))
-				party.Members.Add(Cast<ACitizen>(SavedData.Actor), *partyData.MembersName.Find(SavedData.Name));
+				party.Members.Add(citizen, *partyData.MembersName.Find(SavedData.Name));
 
 			if (SavedData.Name == partyData.LeaderName)
-				party.Leader = Cast<ACitizen>(SavedData.Actor);
+				party.Leader = citizen;
 		}
 
 		// Police
@@ -1624,35 +1646,40 @@ void UDiplosimSaveGame::InitialiseFactions(ACamera* Camera, FActorSaveData& Acto
 			faction->Police.Arrested.Add(Cast<ACitizen>(SavedData.Actor), *data.PoliceData.ArrestedNames.Find(SavedData.Name));
 
 		for (int32 i = 0; i < faction->Police.PoliceReports.Num(); i++) {
+			if (!SavedData.Actor->IsA<ACitizen>())
+				continue;
+
+			ACitizen* citizen = Cast<ACitizen>(SavedData.Actor);
+
 			FPoliceReport& report = faction->Police.PoliceReports[i];
 			FPoliceReportData reportData = data.PoliceData.PoliceReportsData[i];
 
 			if (SavedData.Name == reportData.Team1.InstigatorName)
-				report.Team1.Instigator = Cast<ACitizen>(SavedData.Actor);
+				report.Team1.Instigator = citizen;
 
 			if (reportData.Team1.AssistorsNames.Contains(SavedData.Name))
-				report.Team1.Assistors.Add(Cast<ACitizen>(SavedData.Actor));
+				report.Team1.Assistors.Add(citizen);
 
 			if (SavedData.Name == reportData.Team2.InstigatorName)
-				report.Team2.Instigator = Cast<ACitizen>(SavedData.Actor);
+				report.Team2.Instigator = citizen;
 
 			if (reportData.Team2.AssistorsNames.Contains(SavedData.Name))
-				report.Team2.Assistors.Add(Cast<ACitizen>(SavedData.Actor));
+				report.Team2.Assistors.Add(citizen);
 
 			if (reportData.WitnessesNames.Contains(SavedData.Name))
-				report.Witnesses.Add(Cast<ACitizen>(SavedData.Actor));
+				report.Witnesses.Add(citizen);
 
 			if (SavedData.Name == reportData.RespondingOfficerName)
-				report.RespondingOfficer = Cast<ACitizen>(SavedData.Actor);
+				report.RespondingOfficer = citizen;
 
 			if (reportData.AcussesTeam1Names.Contains(SavedData.Name))
-				report.AcussesTeam1.Add(Cast<ACitizen>(SavedData.Actor));
+				report.AcussesTeam1.Add(citizen);
 
 			if (reportData.ImpartialNames.Contains(SavedData.Name))
-				report.Impartial.Add(Cast<ACitizen>(SavedData.Actor));
+				report.Impartial.Add(citizen);
 
 			if (reportData.AcussesTeam2Names.Contains(SavedData.Name))
-				report.AcussesTeam2.Add(Cast<ACitizen>(SavedData.Actor));
+				report.AcussesTeam2.Add(citizen);
 		}
 
 		// Events

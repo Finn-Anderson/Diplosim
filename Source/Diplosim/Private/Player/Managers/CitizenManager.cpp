@@ -348,12 +348,11 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 			continue;
 
 		if (party.Leader == Citizen)
-			Camera->PoliticsManager->SelectNewLeader(&party);
+			party.Leader = nullptr;
 
 		party.Members.Remove(Citizen);
 
-		if (Camera->InfoUIInstance->IsInViewport())
-			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party.Party);
+		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party.Party, Citizen, false);
 
 		break;
 	}
@@ -397,8 +396,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen)) {
 		personality->Citizens.Remove(Citizen);
 
-		if (Camera->InfoUIInstance->IsInViewport())
-			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, personality->Trait);
+		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, personality->Trait, Citizen, false);
 	}
 
 	if (IsValid(Citizen->BuildingComponent->Employment))
@@ -409,8 +407,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 
 	Camera->ArmyManager->RemoveFromArmy(Citizen);
 
-	if (Camera->InfoUIInstance->IsInViewport())
-		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Citizen->Spirituality.Faith);
+	Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Citizen->Spirituality.Faith, Citizen, false);
 }
 
 //

@@ -595,8 +595,11 @@ void ACitizen::SetPoliticalLeanings()
 			party->Members.Emplace(this, ESway::Moderate);
 		}
 		else {
-			if (party != nullptr)
+			if (party != nullptr) {
 				party->Members.Remove(this);
+
+				Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, this, false);
+			}
 
 			FPartyStruct partyStruct;
 			partyStruct.Party = partyList[index];
@@ -610,14 +613,12 @@ void ACitizen::SetPoliticalLeanings()
 			if (party->Party == "Shell Breakers" && Camera->PoliticsManager->IsRebellion(faction))
 				Camera->PoliticsManager->SetupRebel(faction, this);
 
-			if (Camera->InfoUIInstance->IsInViewport()) {
-				Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party);
+			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, this, true);
 
-				if (!faction->Politics.ProposedBills.IsEmpty())
-					Camera->PoliticsManager->GetVerdict(faction, this, faction->Politics.ProposedBills[0], true, false);
-				else
-					Camera->UpdateRepresentative(faction->Politics.Representatives.Find(this));
-			}
+			if (!faction->Politics.ProposedBills.IsEmpty())
+				Camera->PoliticsManager->GetVerdict(faction, this, faction->Politics.ProposedBills[0], true, false);
+			else
+				Camera->UpdateRepresentative(faction->Politics.Representatives.Find(this));
 		}
 	}
 }
@@ -689,8 +690,7 @@ void ACitizen::SetReligion(FFactionStruct* Faction)
 
 	Spirituality.Faith = religionList[index];
 
-	if (Camera->InfoUIInstance->IsInViewport())
-		Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Spirituality.Faith); });
+	Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Spirituality.Faith, this, true); });
 }
 
 //
@@ -872,8 +872,7 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 
 	ApplyTraitAffect(Camera->CitizenManager->Personalities[i].Affects);
 
-	if (Camera->InfoUIInstance->IsInViewport())
-		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, Camera->CitizenManager->Personalities[i].Trait);
+	Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, Camera->CitizenManager->Personalities[i].Trait, this, true);
 }
 
 void ACitizen::ApplyTraitAffect(TMap<FString, float> Affects)
