@@ -325,19 +325,26 @@ float UResourceManager::GetBuildingCapacityPercentage(ABuilding* Building)
 	int32 amount = 0;
 	float capacity = 0.0f;
 
-	for (FResourceStruct resourceStruct : ResourceList) {
-		if (!resourceStruct.Buildings.Contains(Building->GetClass()))
-			continue;
+	if (Building->IsA<AStockpile>()) {
+		AStockpile* stockpile = Cast<AStockpile>(Building);
+		capacity = stockpile->StorageCap;
+		amount = capacity - stockpile->GetFreeStorage();
+	}
+	else {
+		for (FResourceStruct resourceStruct : ResourceList) {
+			if (!resourceStruct.Buildings.Contains(Building->GetClass()))
+				continue;
 
-		FItemStruct item;
-		item.Resource = resourceStruct.Type;
+			FItemStruct item;
+			item.Resource = resourceStruct.Type;
 
-		int32 index = Building->Storage.Find(item);
+			int32 index = Building->Storage.Find(item);
 
-		if (index != INDEX_NONE)
-			amount += Building->Storage[index].Amount;
+			if (index != INDEX_NONE)
+				amount += Building->Storage[index].Amount;
 
-		capacity += *resourceStruct.Buildings.Find(Building->GetClass());
+			capacity += *resourceStruct.Buildings.Find(Building->GetClass());
+		}
 	}
 
 	return amount / capacity;

@@ -32,6 +32,8 @@ public:
 
 	int32 GetFreeStorage();
 
+	virtual bool IsCapacityFull() override;
+
 protected:
 	virtual void BeginPlay() override;
 

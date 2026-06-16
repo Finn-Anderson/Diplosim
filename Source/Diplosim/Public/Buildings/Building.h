@@ -466,4 +466,6 @@ public:
 
 	UFUNCTION()
 		void RemoveFromBasket(FGuid ID);
+
+	virtual bool IsCapacityFull();
 };

@@ -127,7 +127,7 @@ void UDiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 		if (bArrested)
 			building = Citizen->BuildingComponent->BuildingAt;
-		else if (chance < 50)
+		else if (chance < 35)
 			building = ChooseIdleBuilding(Citizen);
 
 		if (!bArrested && IsValid(building) && building->bHideCitizen && !Faction->BuildingsOnFire.Contains(building)) {
@@ -587,7 +587,7 @@ FVector UDiplosimAIController::GetActualLocation(AActor* Actor)
 	FVector location = Actor->GetActorLocation();
 
 	if (Actor->IsA<AAI>()) {
-		location = Cast<AAI>(Actor)->MovementComponent->GetMovementTransform().GetLocation();
+		location = Cast<AAI>(Actor)->MovementComponent->Transform.GetLocation();
 	}
 	if (Actor->IsA<ABuilding>()) {
 		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
@@ -595,7 +595,7 @@ FVector UDiplosimAIController::GetActualLocation(AActor* Actor)
 		if (comp && comp->DoesSocketExist("Entrance"))
 			location = comp->GetSocketLocation("Entrance");
 		else if (IsValid(AI))
-			comp->GetClosestPointOnCollision(AI->MovementComponent->GetMovementTransform().GetLocation(), location); 
+			comp->GetClosestPointOnCollision(AI->MovementComponent->Transform.GetLocation(), location); 
 	}
 	else if (Actor->IsA<AResource>()) {
 		FTransform transform;

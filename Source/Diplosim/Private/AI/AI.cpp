@@ -7,6 +7,7 @@
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AISpawner.h"
+#include "AI/Citizen/Citizen.h"
 #include "Buildings/Building.h"
 #include "Map/Grid.h"
 #include "Player/Camera.h"
@@ -74,7 +75,7 @@ void AAI::MoveToBroch()
 
 bool AAI::CanReach(AActor* Actor, float Reach, FVector Location, int32 Instance)
 {
-	FVector movementLocation = MovementComponent->GetMovementTransform().GetLocation();
+	FVector movementLocation = MovementComponent->Transform.GetLocation();
 
 	if (Location == FVector::Zero()) {
 		Location = AIController->GetActualLocation(Actor);

@@ -7,6 +7,7 @@
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Buildings/Building.h"
+#include "Universal/Resource.h"
 
 AEggBasket::AEggBasket()
 {
@@ -26,12 +27,12 @@ AEggBasket::AEggBasket()
 	RootComponent = BasketMesh;
 }
 
-FRewardStruct AEggBasket::PickReward(ACamera* Camera)
+TSubclassOf<AResource> AEggBasket::PickReward(ACamera* Camera)
 {
-	TArray<FRewardStruct> chosenRewards;
+	TArray<TSubclassOf<AResource>> chosenRewards;
 
-	for (FRewardStruct reward : Rewards) {
-		TMap<TSubclassOf<class ABuilding>, int32> buildings = Camera->ResourceManager->GetBuildings(reward.Resource);
+	for (FResourceStruct resource : Camera->ResourceManager->ResourceList) {
+		TMap<TSubclassOf<ABuilding>, int32> buildings = Camera->ResourceManager->GetBuildings(resource.Type);
 
 		for (auto& element : buildings) {
 			TArray<ABuilding*> foundBuildings = Camera->ResourceManager->GetBuildingsOfClass(Camera->ConquestManager->GetFaction(Camera->ColonyName), element.Key);
@@ -39,11 +40,21 @@ FRewardStruct AEggBasket::PickReward(ACamera* Camera)
 			if (foundBuildings.IsEmpty())
 				continue;
 
-			chosenRewards.Add(reward);
+			for (ABuilding* building : foundBuildings) {
+				if (building->IsCapacityFull())
+					continue;
+
+				chosenRewards.Add(resource.Type);
+
+				break;
+			}
 
 			break;
 		}
 	}
+
+	if (chosenRewards.IsEmpty())
+		return nullptr;
 
 	int32 index = Camera->Stream.RandRange(0, chosenRewards.Num() - 1);
 
@@ -55,11 +66,13 @@ void AEggBasket::RedeemReward()
 	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	ACamera* camera = PController->GetPawn<ACamera>();
 
-	FRewardStruct reward = PickReward(camera);
+	TSubclassOf<AResource> reward = PickReward(camera);
 
-	int32 amount = camera->Stream.RandRange(reward.Min, reward.Max);
+	if (reward != nullptr) {
+		int32 amount = camera->Stream.RandRange(10, 100);
 
-	camera->ResourceManager->AddUniversalResource(camera->ConquestManager->GetFaction(camera->ColonyName), reward.Resource, amount);
+		camera->ResourceManager->AddUniversalResource(camera->ConquestManager->GetFaction(camera->ColonyName), reward, amount);
+	}
 
 	Destroy();
 }

@@ -131,7 +131,7 @@ bool AWork::IsWorking(ACitizen* Citizen, int32 Hour)
 
 	EWorkType type = *Occupied[index].WorkHours.Find(Hour);
 
-	if ((type == EWorkType::Work && Camera->PoliticsManager->GetRaidPolicyStatus(Citizen) == ERaidPolicy::Default && !Camera->EventsManager->IsAttendingEvent(Citizen) && !Camera->EventsManager->IsHoliday(Citizen)) || bEmergency)
+	if ((type == EWorkType::Work && Camera->PoliticsManager->GetRaidPolicyStatus(Citizen) == ERaidPolicy::Default && !Camera->EventsManager->IsAttendingEvent(Citizen) && !Camera->EventsManager->IsHoliday(Citizen) && !IsCapacityFull()) || bEmergency)
 		return true;
 
 	return false;
@@ -294,22 +294,4 @@ void AWork::Production(ACitizen* Citizen)
 		if (Cast<ABooster>(building)->GetAffectedBuildings().Contains(this))
 			Boosters++;
 	}
-}
-
-bool AWork::IsCapacityFull()
-{
-	for (auto& element : Camera->ResourceManager->GetBuildingCapacities(this)) {
-		FItemStruct item;
-		item.Resource = element.Key;
-
-		int32 index = Storage.Find(item);
-
-		if (index == INDEX_NONE)
-			continue;
-
-		if (Storage[index].Amount == element.Value)
-			return true;
-	}
-
-	return false;
 }

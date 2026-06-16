@@ -65,10 +65,10 @@ bool AExternalProduction::IsAtWork(ACitizen* Citizen)
 
 void AExternalProduction::Production(ACitizen* Citizen)
 {
-	Super::Production(Citizen);
-
 	if (Citizen->BuildingComponent->BuildingAt != this)
 		return;
+
+	Super::Production(Citizen);
 
 	AResource* resource = nullptr;
 	int32 instance = INDEX_NONE;

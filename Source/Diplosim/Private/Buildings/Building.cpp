@@ -516,11 +516,9 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 	if (CheckInstant()) {
 		OnBuilt();
 
-		if (Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat)
-			return;
-
-		for (FItemStruct item : TargetList)
-			rm->TakeUniversalResource(faction, item.Resource, item.Amount, 0);
+		if (!Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat)
+			for (FItemStruct item : TargetList)
+				rm->TakeUniversalResource(faction, item.Resource, item.Amount, 0);
 	} else {
 		for (FItemStruct item : TargetList)
 			rm->AddCommittedResource(faction, item.Resource, item.Amount);
@@ -529,6 +527,9 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 
 		SetConstructionMesh();
 	}
+
+	if (FactionName == Camera->ColonyName)
+		Camera->UpdateBuildingInfoDisplay(this, true);
 }
 
 void ABuilding::SetConstructionMesh()
@@ -641,6 +642,9 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 
 	rm->UpdateResourceCapacityUI(this);
 
+	if (FactionName == Camera->ColonyName)
+		Camera->UpdateBuildingInfoDisplay(this, false);
+
 	Destroy();
 }
 
@@ -725,8 +729,8 @@ bool ABuilding::AddCitizen(ACitizen* Citizen)
 	if (GetCapacity() <= GetOccupied().Num() || !bOperate)
 		return false;
 
-	if (Camera->InfoUIInstance->IsInViewport())
-		Camera->UpdateBuildingInfoDisplay(this, true);
+	if (FactionName == Camera->ColonyName)
+		Camera->UpdateBuildingOccupantsDisplay(this);
 
 	return true;
 }
@@ -739,8 +743,8 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	if (Citizen->BuildingComponent->BuildingAt == this ||  Citizen->HealthComponent->GetHealth() != 0)
 		Leave(Citizen);
 
-	if (Camera->InfoUIInstance->IsInViewport())
-		Camera->UpdateBuildingInfoDisplay(this, true);
+	if (FactionName == Camera->ColonyName)
+		Camera->UpdateBuildingOccupantsDisplay(this);
 
 	for (ACitizen* citizen : GetVisitors(Citizen))
 		RemoveVisitor(Citizen, citizen);
@@ -814,8 +818,8 @@ void ABuilding::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 	if (!IsA<AFestival>())
 		Visitor->AIController->DefaultAction();
 
-	if (Camera->InfoUIInstance->IsInViewport())
-		Camera->UpdateBuildingInfoDisplay(this, true);
+	if (FactionName == Camera->ColonyName)
+		Camera->UpdateBuildingOccupantsDisplay(this);
 }
 
 void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
@@ -833,8 +837,8 @@ void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 
 	Visitor->AIController->DefaultAction();
 
-	if (Camera->InfoUIInstance->IsInViewport())
-		Camera->UpdateBuildingInfoDisplay(this, true);
+	if (FactionName == Camera->ColonyName)
+		Camera->UpdateBuildingOccupantsDisplay(this);
 }
 
 int32 ABuilding::GetNumOfOccupantsAndVisitors()
@@ -861,8 +865,8 @@ void ABuilding::UpdateAmount(int32 Index, float NewAmount)
 	else
 		Occupied[Index].Amount = NewAmount;
 
-	if (Camera->InfoUIInstance->IsInViewport())
-		Camera->UpdateBuildingInfoDisplay(this, false);
+	if (FactionName == Camera->ColonyName)
+		Camera->UpdateBuildingMinMaxAmountDisplay(this);
 }
 
 float ABuilding::GetAmount(ACitizen* Citizen)
@@ -1056,7 +1060,7 @@ void ABuilding::Enter(ACitizen* Citizen)
 		SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 	}
 
-	if (GetCitizensAtBuilding().Num() == 1 && !bConstant && ParticleComponent->GetAsset() != nullptr)
+	if (GetCitizensAtBuilding().Num() == 1 && !bConstant && ParticleComponent->GetAsset() != nullptr && !IsA<ATrader>())
 		ParticleComponent->Activate();
 
 	Citizen->AIController->StopMovement();
@@ -1139,7 +1143,7 @@ void ABuilding::Leave(ACitizen* Citizen)
 	Camera->UpdateVisitors(this, Citizen, false);
 	SetLights(Camera->Grid->AtmosphereComponent->Calendar.Hour);
 
-	if (GetCitizensAtBuilding().IsEmpty() && !bConstant && ParticleComponent->GetAsset() != nullptr && (!IsA<AWork>() || !Cast<AWork>(this)->bGradualShutdown))
+	if (GetCitizensAtBuilding().IsEmpty() && !bConstant && ParticleComponent->GetAsset() != nullptr && (!IsA<AWork>() || !Cast<AWork>(this)->bGradualShutdown || !IsA<ATrader>()))
 		ParticleComponent->Deactivate();
 
 	FSocketStruct socketStruct;
@@ -1319,4 +1323,22 @@ void ABuilding::RemoveFromBasket(FGuid ID)
 		return;
 
 	Basket.RemoveAt(index);
+}
+
+bool ABuilding::IsCapacityFull()
+{
+	for (auto& element : Camera->ResourceManager->GetBuildingCapacities(this)) {
+		FItemStruct item;
+		item.Resource = element.Key;
+
+		int32 index = Storage.Find(item);
+
+		if (index == INDEX_NONE)
+			continue;
+
+		if (Storage[index].Amount == element.Value)
+			return true;
+	}
+
+	return false;
 }

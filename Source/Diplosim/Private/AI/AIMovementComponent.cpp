@@ -70,18 +70,21 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 
 	if (!deltaV.IsNearlyZero(1e-6f) && !AI->CanReach(AI, 5.0f, Points[0]))
 	{
+		FCollisionQueryParams params;
+		params.AddIgnoredActor(GetOwner());
+
 		FHitResult hit;
 
 		FVector location = Transform.GetLocation() + deltaV;
 
 		ZOffset = 0.0f;
-		if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 30.0f), location - FVector(0.0f, 0.0f, 30.0f), ECollisionChannel::ECC_Vehicle))
-			ZOffset = hit.Location.Z - Transform.GetLocation().Z;
+		if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 100.0f), location - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
+			ZOffset = hit.Location.Z - location.Z;
 
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;
 
-		Transform.SetLocation(Transform.GetLocation() + deltaV);
+		Transform.SetLocation(location);
 
 		if (Transform.GetRotation().Rotator() != targetRotation)
 			Transform.SetRotation(FMath::RInterpTo(Transform.GetRotation().Rotator(), targetRotation, DeltaTime, 10.0f).Quaternion());
@@ -235,5 +238,5 @@ FTransform UAIMovementComponent::GetMovementTransform()
 	FTransform transform = Transform;
 	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, ZOffset));
 
-	return Transform;
+	return transform;
 }

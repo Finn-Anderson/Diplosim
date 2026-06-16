@@ -128,3 +128,8 @@ int32 AStockpile::GetFreeStorage()
 
 	return amount;
 }
+
+bool AStockpile::IsCapacityFull()
+{
+	return GetFreeStorage() == 0;
+}

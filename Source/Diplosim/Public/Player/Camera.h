@@ -171,7 +171,13 @@ public:
 		void UpdateCitizenInfoDisplay(EInfoUpdate Type, const FString& Name, class ACitizen* Citizen, bool bAdd);
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateBuildingInfoDisplay(class ABuilding* Building, bool bOccupants);
+		void UpdateBuildingInfoDisplay(class ABuilding* Building, bool bAdd);
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateBuildingMinMaxAmountDisplay(class ABuilding* Building);
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void UpdateBuildingOccupantsDisplay(class ABuilding* Building);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateEventInfoDisplay();

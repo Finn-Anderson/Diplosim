@@ -76,9 +76,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Forcefield")
 		int32 ForcefieldRange;
 
-protected:
-	bool IsCapacityFull();
-
 private:
 	void AddToWorkHours(class ACitizen* Citizen, bool bAdd);
 };

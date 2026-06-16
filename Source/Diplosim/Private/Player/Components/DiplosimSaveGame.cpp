@@ -816,6 +816,8 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 	TMap<FString, FActorSaveData*> aiToName; 
 	TArray<FWetnessData> wetnessData;
 
+	Camera->ClearInfoDisplay();
+
 	for (FActorSaveData& actorData : Saves[Index].SavedActors) {
 		AActor* actor = nullptr;
 
@@ -872,8 +874,6 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 			InitialiseObjects(Camera, gamemode, actorData, savedData, Index);
 		}
 	}
-
-	Camera->ClearInfoDisplay();
 
 	FFactionStruct* faction = nullptr;
 	for (FFactionStruct &f : Camera->ConquestManager->Factions) {
@@ -1110,10 +1110,10 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& Cam
 			faction.Events.Add(event);
 		}
 
+		camera->ConquestManager->Factions.Add(faction);
+
 		if (faction.Name == camera->ColonyName && !data.EventsData.IsEmpty())
 			camera->UpdateEventInfoDisplay();
-
-		camera->ConquestManager->Factions.Add(faction);
 
 		// Army
 		for (FArmyData armyData : data.ArmiesData)
@@ -1385,6 +1385,9 @@ void UDiplosimSaveGame::LoadBuilding(ACamera* Camera, FActorSaveData& ActorData,
 
 		building->Occupied.Add(capacityStruct);
 	}
+
+	if (Camera->ColonyName == building->FactionName)
+		Camera->UpdateBuildingInfoDisplay(building, true);
 }
 
 void UDiplosimSaveGame::LoadProjectile(FProjectileData& ProjectileData, AActor* Actor)
