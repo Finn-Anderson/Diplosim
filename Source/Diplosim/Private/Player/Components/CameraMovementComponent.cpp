@@ -119,6 +119,8 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 		location += origin;
 	}
 
+	Camera->WidgetComponent->SetPivot(FVector2D(0.5f, 1.1f));
+
 	float z = 0.0f;
 
 	if (Component->IsA<UInstancedStaticMeshComponent>())
@@ -129,8 +131,12 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 	float amount = z / 2.0f + 5.0f;
 
 	FVector widgetLocation = location;
-	if ((Actor->IsA<ATrader>() && !Camera->BuildComponent->Buildings.Contains(Actor)) || Actor->IsA<AAI>() || amount <= Camera->SpringArmComponent->ProbeSize)
+	if (Actor->IsA<AAI>() || amount <= Camera->SpringArmComponent->ProbeSize)
 		widgetLocation.Z += amount;
+	else if (Actor->IsA<ATrader>() && !Camera->BuildComponent->Buildings.Contains(Actor)) {
+		widgetLocation.Z += amount;
+		Camera->WidgetComponent->SetPivot(FVector2D(0.5f, 0.75f));
+	}
 	else
 		widgetLocation.Z += z - 8.0f;
 

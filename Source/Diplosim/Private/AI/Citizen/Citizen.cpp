@@ -16,6 +16,7 @@
 #include "Buildings/Work/Production/ExternalProduction.h"
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
+#include "Buildings/Work/Service/Stockpile.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -486,12 +487,72 @@ void ACitizen::HarvestResource(AResource* Resource)
 		Carry(resource, amount, BuildingComponent->Employment);
 }
 
+AActor* ACitizen::GetCarryLocation(TSubclassOf<class AResource> ResourceClass, bool bCheckValidity)
+{
+	AActor* location = nullptr;
+
+	TMap<TSubclassOf<ABuilding>, int32> buildings = Camera->ResourceManager->GetBuildings(ResourceClass);
+
+	for (auto& element : buildings) {
+		TArray<ABuilding*> foundBuildings = Camera->ResourceManager->GetBuildingsOfClass(Camera->ConquestManager->GetFaction("", this), element.Key);
+
+		if (foundBuildings.IsEmpty())
+			continue;
+
+		for (ABuilding* building : foundBuildings) {
+			if (building->IsCapacityFull() || (building->IsA<AStockpile>() && !Cast<AStockpile>(building)->DoesStoreResource(ResourceClass)))
+				continue;
+
+			if (!IsValid(location)) {
+				location = building;
+
+				if (bCheckValidity)
+					return location;
+				else
+					continue;
+			}
+
+			int32 currentValue = 1.0f;
+			if (location->IsA<AStockpile>())
+				currentValue = 4.0f;
+			else if (location == BuildingComponent->Employment)
+				currentValue = 2.0f;
+
+			int32 newValue = 1.0f;
+			if (building->IsA<AStockpile>())
+				newValue = 4.0f;
+			else if (building == BuildingComponent->Employment)
+				newValue = 2.0f;
+
+			double magnitude = AIController->GetClosestActor(400.0f, MovementComponent->Transform.GetLocation(), AIController->GetActualLocation(location), AIController->GetActualLocation(building), true, currentValue, newValue);
+
+			if (magnitude < 0)
+				continue;
+
+			location = building;
+		}
+	}
+
+	return location;
+}
+
 void ACitizen::Carry(AResource* Resource, int32 Amount, AActor* Location)
 {
 	Carrying.Type = Resource;
 	Carrying.Amount = Amount;
 
-	LoseEnergy();
+	if (IsValid(Resource)) {
+		LoseEnergy();
+
+		FItemStruct itemStruct;
+		itemStruct.Resource = Resource->GetClass();
+
+		if (BuildingComponent->Employment == Location && BuildingComponent->Employment->Storage.Contains(itemStruct)) {
+			AActor* loc = GetCarryLocation(itemStruct.Resource);
+			if (IsValid(loc))
+				Location = loc;
+		}
+	}
 
 	if (BuildingComponent->BuildingAt == Location)
 		BuildingComponent->BuildingAt->StoreResource(this);

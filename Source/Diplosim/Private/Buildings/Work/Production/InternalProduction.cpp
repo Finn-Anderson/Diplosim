@@ -31,7 +31,7 @@ void AInternalProduction::Enter(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen) || bNoTimer)
 		return;
 
-	if (IsCapacityFull()) {
+	if (!Storage.IsEmpty() && !IsValid(Citizen->GetCarryLocation(Storage[0].Resource, true))) {
 		ParticleComponent->Deactivate();
 
 		return;
@@ -147,7 +147,7 @@ void AInternalProduction::Production(ACitizen* Citizen)
 		}
 	}
 
-	if (!IsCapacityFull())
+	if (IsValid(Citizen->GetCarryLocation(Storage[0].Resource, true)))
 		SetTimer();
 
 	for (FItemStruct& item : Intake) {

@@ -6,7 +6,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
-#include "Buildings/Building.h"
+#include "Buildings/Work/Service/Stockpile.h"
 #include "Universal/Resource.h"
 
 AEggBasket::AEggBasket()
@@ -41,7 +41,7 @@ TSubclassOf<AResource> AEggBasket::PickReward(ACamera* Camera)
 				continue;
 
 			for (ABuilding* building : foundBuildings) {
-				if (building->IsCapacityFull())
+				if (building->IsCapacityFull() || (building->IsA<AStockpile>() && !Cast<AStockpile>(building)->DoesStoreResource(resource.Type)))
 					continue;
 
 				chosenRewards.Add(resource.Type);

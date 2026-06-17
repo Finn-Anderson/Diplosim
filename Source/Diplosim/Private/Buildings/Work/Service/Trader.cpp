@@ -28,6 +28,8 @@ void ATrader::Enter(ACitizen* Citizen)
 	if (!GetOccupied().Contains(Citizen) || Orders.IsEmpty())
 		return;
 
+	Citizen->AIController->MoveRequest.SetGoalInstance(INDEX_NONE);
+
 	if (Orders[0].bCancelled)
 		ReturnResource(Citizen);
 	else if (CheckStored(Citizen, Orders[0].SellingItems)) {
@@ -58,19 +60,20 @@ bool ATrader::CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items)
 			continue;
 
 		AActor* goal = citizen->AIController->MoveRequest.GetGoalActor();
-		if (IsValid(goal) && goal->IsA<ABuilding>()) {
-			FItemStruct item = Cast<ABuilding>(goal)->Storage[index];
-			int32 value = numFetchingResource.FindOrAdd(item.Resource);
-			value += 10;
-		}
+		if (!IsValid(goal) || !goal->IsA<ABuilding>())
+			continue;
+
+		FItemStruct item = Cast<ABuilding>(goal)->Storage[index];
+		int32 value = numFetchingResource.FindOrAdd(item.Resource);
+		value += 10;
 	}
 
-	for (FItemStruct item : Items) {
+	for (const FItemStruct& item : Items) {
 		int32 fetching = 0;
 		if (numFetchingResource.Contains(item.Resource))
 			fetching += *numFetchingResource.Find(item.Resource);
 
-		if (item.Stored <= item.Amount + fetching)
+		if (item.Amount <= item.Stored + fetching)
 			continue;
 
 		Citizen->AIController->GetGatherSite(item.Resource);
@@ -78,7 +81,7 @@ bool ATrader::CheckStored(ACitizen* Citizen, TArray<FItemStruct> Items)
 		return false;
 	}
 
-	return true;
+	return numFetchingResource.IsEmpty();
 }
 
 bool ATrader::IsAtWork(ACitizen* Citizen)
@@ -110,7 +113,7 @@ void ATrader::SubmitOrder()
 
 	UResourceManager* rm = Camera->ResourceManager;
 
-	for (FItemStruct item : Orders[0].SellingItems) {
+	for (const FItemStruct& item : Orders[0].SellingItems) {
 		FResourceStruct resource;
 		resource.Type = item.Resource;
 
@@ -121,7 +124,7 @@ void ATrader::SubmitOrder()
 		money += rm->ResourceList[index].Value * item.Amount;
 	}
 
-	for (FItemStruct item : Orders[0].BuyingItems) {
+	for (const FItemStruct& item : Orders[0].BuyingItems) {
 		FResourceStruct resource;
 		resource.Type = item.Resource;
 
@@ -233,7 +236,7 @@ void ATrader::SetNewOrder(FQueueStruct Order)
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	for (FItemStruct items : Order.SellingItems)
+	for (const FItemStruct& items : Order.SellingItems)
 		Camera->ResourceManager->AddCommittedResource(faction, items.Resource, items.Amount);
 
 	if (Orders.Num() != 1)
@@ -262,7 +265,7 @@ void ATrader::SetOrderCancelled(int32 index, bool bCancel)
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 
-	for (FItemStruct items : Orders[index].SellingItems)
+	for (const FItemStruct& items : Orders[index].SellingItems)
 		rm->TakeCommittedResource(faction, items.Resource, items.Amount - items.Stored);
 
 	for (ACitizen* Citizen : GetOccupied())

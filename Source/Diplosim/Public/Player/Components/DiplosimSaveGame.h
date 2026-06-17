@@ -11,6 +11,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConstructionManager.h"
+#include "Player/Managers/ResourceManager.h"
 #include "Universal/Resource.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "DiplosimSaveGame.generated.h"
@@ -709,7 +710,6 @@ struct FAIData
 	UPROPERTY()
 		FAttackData AttackData;
 
-
 	FAIData()
 	{
 		FactionName = "";
@@ -1197,6 +1197,9 @@ struct FCameraData
 
 	UPROPERTY()
 		float TargetLength;
+
+	UPROPERTY()
+		TArray<FResourceStruct> ResourceList;
 
 	UPROPERTY()
 		TArray<FConstructionData> ConstructionData;

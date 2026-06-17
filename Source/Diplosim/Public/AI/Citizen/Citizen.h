@@ -169,6 +169,8 @@ public:
 	UFUNCTION()
 		void HarvestResource(class AResource* Resource);
 
+	AActor* GetCarryLocation(TSubclassOf<class AResource> ResourceClass, bool bCheckValidity = false);
+
 	void Carry(class AResource* Resource, int32 Amount, AActor* Location);
 
 	UPROPERTY()

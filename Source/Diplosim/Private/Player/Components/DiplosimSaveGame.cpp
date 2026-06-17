@@ -304,6 +304,8 @@ void UDiplosimSaveGame::SaveCamera(FActorSaveData& ActorData, AActor* Actor, int
 	Saves[Index].CameraData.TargetLength = camera->MovementComponent->TargetLength;
 	ActorData.Transform.SetRotation(camera->PController->GetControlRotation().Quaternion());
 
+	Saves[Index].CameraData.ResourceList = camera->ResourceManager->ResourceList;
+
 	for (FConstructionStruct constructionStruct : camera->ConstructionManager->Construction) {
 		FConstructionData data;
 		data.BuildingName = constructionStruct.Building->GetName();
@@ -1026,6 +1028,8 @@ void UDiplosimSaveGame::LoadCamera(FActorSaveData& ActorData, FCameraData& Camer
 	camera->PController->SetControlRotation(ActorData.Transform.GetRotation().Rotator());
 	camera->MovementComponent->MovementLocation = ActorData.Transform.GetLocation();
 	camera->MovementComponent->MovementLocation.Z = 800.0f;
+
+	camera->ResourceManager->ResourceList = CameraData.ResourceList;
 
 	camera->ConstructionManager->Construction.Empty();
 

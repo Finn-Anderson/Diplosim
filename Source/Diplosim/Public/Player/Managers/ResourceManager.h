@@ -101,8 +101,6 @@ public:
 
 	TArray<class ABuilding*> GetBuildingsOfClass(FFactionStruct* Faction, TSubclassOf<AActor> Class);
 
-	void GetNearestStockpile(TSubclassOf<class AResource> Resource, class ABuilding* Building, int32 Amount);
-
 	void UpdateResourceUI(FFactionStruct* Faction, TSubclassOf<class AResource> Resource);
 
 	void UpdateResourceCapacityUI(ABuilding* Building);

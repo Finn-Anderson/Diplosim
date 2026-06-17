@@ -93,7 +93,8 @@ int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuild
 		Amount = 0;
 	}
 
-	GetNearestStockpile(Resource, Building, Building->Storage[index].Amount);
+	if (Building->IsA<AStockpile>())
+		UpdateResourceCapacityUI(Building);
 
 	UpdateResourceUI(Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName), Resource);
 
@@ -152,7 +153,11 @@ bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf
 
 		element.Key->Storage[index].Amount += FMath::Clamp(Amount, 0, element.Value - currentAmount);
 
-		GetNearestStockpile(Resource, element.Key, element.Key->Storage[index].Amount);
+		if (element.Key->IsA<AStockpile>()) {
+			Cast<AStockpile>(element.Key)->ShowBoxesInStockpile();
+
+			UpdateResourceCapacityUI(element.Key);
+		}
 
 		if (AmountLeft <= 0) {
 			UpdateResourceUI(Faction, Resource);
@@ -182,6 +187,9 @@ bool UResourceManager::TakeLocalResource(TSubclassOf<AResource> Resource, ABuild
 
 	if (!Building->Basket.IsEmpty())
 		StoreBasket(Resource, Building);
+	
+	if (Building->IsA<AStockpile>())
+		UpdateResourceCapacityUI(Building);
 
 	UpdateResourceUI(Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName), Resource);
 
@@ -234,6 +242,12 @@ bool UResourceManager::TakeUniversalResource(FFactionStruct* Faction, TSubclassO
 
 		if (!building->Basket.IsEmpty())
 			StoreBasket(Resource, building);
+
+		if (building->IsA<AStockpile>()) {
+			Cast<AStockpile>(building)->ShowBoxesInStockpile();
+
+			UpdateResourceCapacityUI(building);
+		}
 
 		if (AmountLeft <= 0) {
 			UpdateResourceUI(Faction, Resource);
@@ -301,6 +315,9 @@ int32 UResourceManager::GetResourceCapacity(FString FactionName, TSubclassOf<cla
 
 int32 UResourceManager::GetBuildingCapacity(ABuilding* Building, TSubclassOf<class AResource> Resource)
 {
+	if (Building->IsA<AStockpile>())
+		return Cast<AStockpile>(Building)->GetStoredResourceAmount(Resource) + Cast<AStockpile>(Building)->GetFreeStorage();
+
 	int32 capacity = 0;
 
 	FResourceStruct resourceStruct;
@@ -419,82 +436,6 @@ TArray<ABuilding*> UResourceManager::GetBuildingsOfClass(FFactionStruct* Faction
 	}
 
 	return foundBuildings;
-}
-
-void UResourceManager::GetNearestStockpile(TSubclassOf<AResource> Resource, ABuilding* Building, int32 Amount)
-{
-	FFactionStruct* faction = Cast<ACamera>(GetOwner())->ConquestManager->GetFaction(Building->FactionName);
-
-	FResourceStruct resourceStruct;
-	resourceStruct.Type = Resource;
-
-	int32 index = ResourceList.Find(resourceStruct);
-
-	if (ResourceList[index].Category == "Money" || ResourceList[index].Category == "Crystal")
-		return;
-
-	Async(EAsyncExecution::TaskGraph, [this, Resource, Building, Amount, faction]() {
-		ACamera* camera = Cast<ACamera>(GetOwner());
-		int32 workersNum = FMath::CeilToInt(Amount / 10.0f);
-		AStockpile* nearestStockpile = nullptr;
-		TArray<AStockpile*> stockpiles;
-
-		for (ABuilding* building : faction->Buildings) {
-			if (!building->IsA<AStockpile>())
-				continue;
-
-			AStockpile* stockpile = Cast<AStockpile>(building); 
-			
-			if (!stockpile->DoesStoreResource(Resource))
-				continue;
-
-			int32 index = 0;
-
-			for (AStockpile* sp : stockpiles) {
-				double stockpileDist = FVector::Dist(stockpile->GetActorLocation(), Building->GetActorLocation());
-				double spDist = FVector::Dist(sp->GetActorLocation(), Building->GetActorLocation());
-
-				if (stockpileDist > spDist)
-					index++;
-				else
-					break;
-			}
-
-			stockpiles.Insert(stockpile, index);
-		}
-
-		TArray<ACitizen*> workers;
-
-		[&] {
-			for (AStockpile* stockpile : stockpiles) {
-				int32 amount = stockpile->GetFreeStorage();
-
-				for (ACitizen* citizen : stockpile->GetOccupied()) {
-					AActor* goal = citizen->AIController->MoveRequest.GetGoalActor();
-
-					if (goal == Building || (citizen->Carrying.Type != nullptr && citizen->Carrying.Type->IsA(Resource))) {
-						workersNum--;
-						amount -= 10;
-					}
-					else if (IsValid(goal) && goal->IsA<ABuilding>() && (citizen->Carrying.Type != nullptr || citizen->AIController->MoveRequest.GetGoalInstance() != INDEX_NONE))
-						amount -= 10;
-					else
-						workers.Add(citizen);
-
-					if (workers.Num() == workersNum)
-						return;
-					else if (amount <= 0)
-						break;
-				}
-			}
-		}();
-
-		FItemStruct item;
-		item.Resource = Resource;
-
-		for (ACitizen* worker : workers)
-			worker->AIController->AIMoveTo(Building, FVector::Zero(), Building->Storage.Find(item));
-	});
 }
 
 void UResourceManager::UpdateResourceUI(FFactionStruct* Faction, TSubclassOf<AResource> Resource)

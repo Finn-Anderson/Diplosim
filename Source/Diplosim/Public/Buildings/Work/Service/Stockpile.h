@@ -23,7 +23,10 @@ public:
 
 	virtual void Enter(class ACitizen* Citizen) override;
 
-	virtual bool IsAtWork(class ACitizen* Citizen) override;
+	void ShowBoxesInStockpile();
+
+	UFUNCTION(BlueprintCallable)
+		void SetStoreResoruce(TSubclassOf<class AResource> Resource, bool bStore);
 
 	bool DoesStoreResource(TSubclassOf<class AResource> Resource);
 
@@ -36,7 +39,4 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
-private:
-	void ShowBoxesInStockpile();
 };

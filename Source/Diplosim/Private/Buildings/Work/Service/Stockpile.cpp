@@ -18,6 +18,7 @@ AStockpile::AStockpile()
 	HISMBox->SetupAttachment(GetRootComponent());
 
 	StorageCap = 2000;
+	Capacity = 0;
 }
 
 void AStockpile::BeginPlay()
@@ -34,41 +35,7 @@ void AStockpile::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!GetOccupied().Contains(Citizen))
-		return;
-
 	ShowBoxesInStockpile();
-}
-
-bool AStockpile::IsAtWork(ACitizen* Citizen)
-{
-	bool bWorking = Super::IsAtWork(Citizen);
-
-	if (!bWorking) {
-		AActor* goal = Citizen->AIController->MoveRequest.GetGoalActor();
-
-		if (IsValid(goal)) {
-			TArray<TSubclassOf<AResource>> resources = Camera->ResourceManager->GetResources(this);
-
-			for (TSubclassOf<AResource> resource : resources) {
-				TMap<TSubclassOf<ABuilding>, int32> buildingTypes = Camera->ResourceManager->GetBuildings(resource);
-
-				for (auto& element : buildingTypes) {
-					if (!goal->IsA(element.Key))
-						continue;
-
-					bWorking = true;
-
-					break;
-				}
-
-				if (bWorking)
-					break;
-			}
-		}
-	}
-
-	return bWorking;
 }
 
 void AStockpile::ShowBoxesInStockpile()
@@ -77,7 +44,7 @@ void AStockpile::ShowBoxesInStockpile()
 	
 	int32 stored = 0;
 
-	for (FItemStruct item : Storage)
+	for (const FItemStruct item : Storage)
 		stored += item.Amount;
 
 	int32 instances =  FMath::CeilToInt(stored / instPerStorage);
@@ -94,6 +61,13 @@ void AStockpile::ShowBoxesInStockpile()
 			HISMBox->AddInstance(transform);
 		}
 	}
+}
+
+void AStockpile::SetStoreResoruce(TSubclassOf<class AResource> Resource, bool bStore)
+{
+	Store.Add(Resource, bStore);
+
+	Camera->ResourceManager->UpdateResourceCapacityUI(this);
 }
 
 bool AStockpile::DoesStoreResource(TSubclassOf<class AResource> Resource)

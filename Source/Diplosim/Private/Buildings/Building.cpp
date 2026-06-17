@@ -164,7 +164,7 @@ void ABuilding::BeginPlay()
 
 	SetTier(Tier);
 
-	if (ParticleComponent->GetAsset() != nullptr && HealthComponent->GetHealth() > 0 && !IsA<ATrap>())
+	if (ParticleComponent->GetAsset() != nullptr && HealthComponent->GetHealth() > 0 && !IsA<ATrap>() && !IsA<ATrader>())
 		ParticleComponent->Activate();
 }
 
@@ -1114,6 +1114,8 @@ void ABuilding::Enter(ACitizen* Citizen)
 				ATrader* trader = Cast<ATrader>(Citizen->BuildingComponent->Employment);
 				int32 index = trader->Orders[0].SellingItems.Find(item);
 				item.Amount = FMath::Min(trader->Orders[0].SellingItems[index].Amount - trader->Orders[0].SellingItems[index].Stored, 10);
+
+				Camera->ResourceManager->TakeCommittedResource(Camera->ConquestManager->GetFaction(FactionName), item.Resource, item.Amount);
 			}
 			else if (Citizen->BuildingComponent->Employment->IsA<AStockpile>()) {
 				AStockpile* stockpile = Cast<AStockpile>(Citizen->BuildingComponent->Employment);
@@ -1277,7 +1279,7 @@ void ABuilding::StoreResource(ACitizen* Citizen)
 
 			if (bIsBeingConstructed)
 				TargetList[i].Stored += Citizen->Carrying.Amount;
-			else if (IsA<ATrader>())
+			else if (IsA<ATrader>()) 
 				Cast<ATrader>(this)->Orders[0].SellingItems[i].Stored += Citizen->Carrying.Amount;
 			else
 				Cast<AInternalProduction>(this)->Intake[i].Stored += Citizen->Carrying.Amount;

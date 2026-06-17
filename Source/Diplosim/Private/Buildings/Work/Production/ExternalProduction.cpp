@@ -25,7 +25,7 @@ void AExternalProduction::Enter(ACitizen* Citizen)
 {
 	Super::Enter(Citizen);
 
-	if (!GetOccupied().Contains(Citizen) || IsCapacityFull())
+	if (!GetOccupied().Contains(Citizen) || !IsValid(Citizen->GetCarryLocation(Storage[0].Resource, true)))
 		return;
 
 	Production(Citizen);
