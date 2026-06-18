@@ -131,7 +131,7 @@ FVector UCameraMovementComponent::SetAttachedMovementLocation(AActor* Actor, USc
 	float amount = z / 2.0f + 5.0f;
 
 	FVector widgetLocation = location;
-	if (Actor->IsA<AAI>() || amount <= Camera->SpringArmComponent->ProbeSize)
+	if (Actor->IsA<AAI>() || amount <= Camera->SpringArmComponent->ProbeSize || z > 200.0f)
 		widgetLocation.Z += amount;
 	else if (Actor->IsA<ATrader>() && !Camera->BuildComponent->Buildings.Contains(Actor)) {
 		widgetLocation.Z += amount;

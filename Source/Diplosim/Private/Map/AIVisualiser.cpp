@@ -99,7 +99,7 @@ void UAIVisualiser::BeginPlay()
 		FHatsStruct hatsStruct;
 		hatsStruct.ISMHat = NewObject<UAIInstancedStaticMeshComponent>(this, UAIInstancedStaticMeshComponent::StaticClass(), *name);
 		hatsStruct.ISMHat->SetStaticMesh(element.Key);
-		hatsStruct.ISMHat->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		hatsStruct.ISMHat->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		hatsStruct.ISMHat->SetCollisionResponseToAllChannels(ECR_Ignore);
 		hatsStruct.ISMHat->SetCanEverAffectNavigation(false);
 		hatsStruct.ISMHat->SetGenerateOverlapEvents(false);
@@ -865,31 +865,26 @@ void UAIVisualiser::UpdateHatTransform(ACitizen* Citizen, TArray<FHatsToUpdateSt
 {
 	FHatsStruct* hatStruct = GetCitizenHat(Citizen);
 
-	if (hatStruct != nullptr) {
-		int32 index = hatStruct->Citizens.Find(Citizen);
+	if (hatStruct == nullptr)
+		return;
 
-		TMap<int32, FTransform> instanceTransformsToUpdate;
-		TArray<int32> instances;
+	int32 index = hatStruct->Citizens.Find(Citizen);
 
-		FTransform transform = GetHatTransform(Citizen);
-		SetInstanceTransform(hatStruct->ISMHat, index, transform, instanceTransformsToUpdate);
+	FHatsToUpdateStruct htu;
+	htu.ISM = hatStruct->ISMHat;
+	int32 i = HatsToUpdate.Find(htu);
 
-		float opacity = 1.0f;
-		if (IsValid(Citizen->BuildingComponent->BuildingAt) && Citizen->BuildingComponent->BuildingAt->bHideCitizen)
-			opacity = 0.0f;
+	if (i == INDEX_NONE)
+		i = HatsToUpdate.Add(htu);
 
-		UpdateInstanceCustomData(hatStruct->ISMHat, index, 1, opacity, instances);
+	FTransform transform = GetHatTransform(Citizen);
+	SetInstanceTransform(hatStruct->ISMHat, index, transform, HatsToUpdate[i].InstanceTransformsToUpdate);
 
-		FHatsToUpdateStruct htu;
-		htu.ISM = hatStruct->ISMHat;
-		index = HatsToUpdate.Find(htu);
+	float opacity = 1.0f;
+	if (IsValid(Citizen->BuildingComponent->BuildingAt) && Citizen->BuildingComponent->BuildingAt->bHideCitizen)
+		opacity = 0.0f;
 
-		if (index == INDEX_NONE)
-			index = HatsToUpdate.Add(htu);
-
-		HatsToUpdate[index].InstanceTransformsToUpdate.Append(instanceTransformsToUpdate);
-		HatsToUpdate[index].InstanceDataToUpdate.Append(instances);
-	}
+	UpdateInstanceCustomData(hatStruct->ISMHat, index, 1, opacity, HatsToUpdate[i].InstanceDataToUpdate);
 }
 
 void UAIVisualiser::AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh)

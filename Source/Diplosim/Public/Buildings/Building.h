@@ -468,4 +468,7 @@ public:
 		void RemoveFromBasket(FGuid ID);
 
 	virtual bool IsCapacityFull();
+
+private:
+	void UpdateOccupantsUI();
 };

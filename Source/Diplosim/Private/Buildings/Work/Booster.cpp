@@ -91,17 +91,10 @@ bool ABooster::DoesPromoteFavouringValues(ACitizen* Citizen)
 	bool bFavouring = true;
 
 	for (auto& element : BuildingsToBoost) {
-		FReligionStruct religion;
-		religion.Faith = element.Value;
+		FString faith = Citizen->Spirituality.Faith;
+		FString party = Citizen->Camera->PoliticsManager->GetCitizenParty(Citizen);
 
-		FPartyStruct party;
-		party.Party = element.Value;
-
-		FFactionStruct* faction = Citizen->Camera->ConquestManager->GetFaction(FactionName, Citizen);
-
-		bool bContainsParty = faction->Politics.Parties.Contains(party);
-
-		if ((!Citizen->Camera->CitizenManager->Religions.Contains(religion) && !bContainsParty) || element.Value == Citizen->Spirituality.Faith || (bContainsParty && element.Value == Citizen->Camera->PoliticsManager->GetMembersParty(Citizen)->Party))
+		if (faith == element.Value || party == element.Value)
 			continue;
 
 		bFavouring = false;

@@ -424,6 +424,9 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 	if (Location == FVector::Zero())
 		Location = Actor->GetActorLocation();
 
+	if (Location.Z < 0.0f)
+		return false;
+
 	TArray<FHitResult> hits = GetBuildingOverlaps(Actor, Extent, Location);
 
 	if (hits.IsEmpty())
@@ -498,7 +501,7 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 			FVector location;
 			mesh->GetClosestPointOnCollision(transform.GetLocation(), location);
 
-			if (FVector::Dist(location, transform.GetLocation()) > 50.0f)
+			if (FVector::Dist(location, transform.GetLocation()) >= 50.0f)
 				continue;
 		}
 
@@ -612,6 +615,8 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 	}
 	else if (!building->Seeds.IsEmpty())
 		Camera->SetSeedVisibility(true);
+
+	DisplayInfluencedBuildings(building, false);
 }
 
 void UBuildComponent::ResetBuilding(ABuilding* Building)

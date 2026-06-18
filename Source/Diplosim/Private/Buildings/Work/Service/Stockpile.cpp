@@ -44,7 +44,7 @@ void AStockpile::ShowBoxesInStockpile()
 	
 	int32 stored = 0;
 
-	for (const FItemStruct item : Storage)
+	for (const FItemStruct& item : Storage)
 		stored += item.Amount;
 
 	int32 instances =  FMath::CeilToInt(stored / instPerStorage);
@@ -54,7 +54,7 @@ void AStockpile::ShowBoxesInStockpile()
 			HISMBox->RemoveInstance(i);
 	}
 	else {
-		for (int32 i = 0; i < instances - HISMBox->GetInstanceCount(); i++) {
+		for (int32 i = HISMBox->GetInstanceCount(); i < instances; i++) {
 			FTransform transform;
 			transform.SetLocation(BuildingMesh->GetSocketLocation(*FString::FromInt(i)));
 

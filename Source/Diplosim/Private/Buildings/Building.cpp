@@ -716,6 +716,17 @@ void ABuilding::AlterOperate()
 //
 // Capacity
 //
+void ABuilding::UpdateOccupantsUI()
+{
+	if (FactionName != Camera->ColonyName)
+		return;
+
+	if (IsInGameThread())
+		Camera->UpdateBuildingOccupantsDisplay(this);
+	else
+		Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->UpdateBuildingOccupantsDisplay(this); });
+}
+
 void ABuilding::InitialiseCapacityStruct()
 {
 	Occupied.Empty();
@@ -729,8 +740,7 @@ bool ABuilding::AddCitizen(ACitizen* Citizen)
 	if (GetCapacity() <= GetOccupied().Num() || !bOperate)
 		return false;
 
-	if (FactionName == Camera->ColonyName)
-		Camera->UpdateBuildingOccupantsDisplay(this);
+	UpdateOccupantsUI();
 
 	return true;
 }
@@ -743,8 +753,7 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 	if (Citizen->BuildingComponent->BuildingAt == this ||  Citizen->HealthComponent->GetHealth() != 0)
 		Leave(Citizen);
 
-	if (FactionName == Camera->ColonyName)
-		Camera->UpdateBuildingOccupantsDisplay(this);
+	UpdateOccupantsUI();
 
 	for (ACitizen* citizen : GetVisitors(Citizen))
 		RemoveVisitor(Citizen, citizen);
@@ -818,8 +827,7 @@ void ABuilding::AddVisitor(ACitizen* Occupant, ACitizen* Visitor)
 	if (!IsA<AFestival>())
 		Visitor->AIController->DefaultAction();
 
-	if (FactionName == Camera->ColonyName)
-		Camera->UpdateBuildingOccupantsDisplay(this);
+	UpdateOccupantsUI();
 }
 
 void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
@@ -837,8 +845,7 @@ void ABuilding::RemoveVisitor(ACitizen* Occupant, ACitizen* Visitor)
 
 	Visitor->AIController->DefaultAction();
 
-	if (FactionName == Camera->ColonyName)
-		Camera->UpdateBuildingOccupantsDisplay(this);
+	UpdateOccupantsUI();
 }
 
 int32 ABuilding::GetNumOfOccupantsAndVisitors()
