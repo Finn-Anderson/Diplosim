@@ -1,5 +1,6 @@
 #include "Player/Components/BuildComponent.h"
 
+#include "NavigationSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DecalComponent.h"
@@ -7,6 +8,7 @@
 #include "Misc/ScopeTryLock.h"
 
 #include "AI/DiplosimAIController.h"
+#include "AI/AIMovementComponent.h"
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BuildingComponent.h"
 #include "Buildings/Building.h"
@@ -22,6 +24,7 @@
 #include "Buildings/Misc/Special/Special.h"
 #include "Buildings/Work/Production/InternalProduction.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Resources/Vegetation.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConstructionManager.h"
@@ -617,6 +620,7 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 		Camera->SetSeedVisibility(true);
 
 	DisplayInfluencedBuildings(building, false);
+	building->ToggleDecalComponentVisibility(false);
 }
 
 void UBuildComponent::ResetBuilding(ABuilding* Building)
@@ -773,10 +777,6 @@ void UBuildComponent::Place(bool bQuick)
 
 	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 
-	FVector dimensions = Buildings[0]->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 100.0f;
-	float size = FMath::Sqrt(FMath::Sqrt((dimensions.X * dimensions.Y * dimensions.Z) / 10.0f));
-	float pitch = 1.0f / size;
-
 	for (int32 i = Buildings.Num() - 1; i > 0; i--) {
 		ABuilding* building = Buildings[i];
 
@@ -800,17 +800,48 @@ void UBuildComponent::Place(bool bQuick)
 
 	ABuilding* b = Buildings[0];
 
-	for (ABuilding* building : Buildings) {
-		DisplayInfluencedBuildings(building, false);
-
-		SetTreeStatus(building, true);
-	}
-
 	if (StartLocation != FVector::Zero()) {
 		if (!bQuick)
 			Buildings[0]->DestroyBuilding();
 
 		Buildings.RemoveAt(0);
+	}
+
+	for (ABuilding* building : Buildings) {
+		DisplayInfluencedBuildings(building, false);
+
+		SetTreeStatus(building, true);
+
+		FVector dimensions = Buildings[0]->BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
+		float size = dimensions.X;
+		if (dimensions.Y > size)
+			size = dimensions.Y;
+
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(building->FactionName);
+
+		FOverlapsStruct overlaps;
+		overlaps.GetEveryPawn();
+		TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, size, overlaps, EFactionType::Both, faction);
+
+		if (actors.IsEmpty())
+			continue;
+
+		FVector location = building->GetActorLocation();
+		if (building->BuildingMesh->DoesSocketExist("Entrance"))
+			location = building->BuildingMesh->GetSocketLocation("Entrance");
+
+		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+		FNavLocation targetLoc;
+		nav->ProjectPointToNavigation(location, targetLoc, FVector(400.0f, 400.0f, 40.0f));
+		location = targetLoc.Location;
+
+		for (AActor* actor : actors)
+			Cast<AAI>(actor)->MovementComponent->Transform.SetLocation(location);
+
+		for (ACitizen* citizen : faction->Citizens)
+			if (!actors.Contains(citizen) && !citizen->MovementComponent->Points.IsEmpty() && FVector::Dist(citizen->MovementComponent->Points.Last(), building->GetActorLocation()) < size)
+				citizen->AIController->DefaultAction();
 	}
 
 	if (!Buildings.IsEmpty() && (Buildings[0]->IsA(FoundationClass) || Buildings[0]->IsA(RampClass) || Buildings[0]->IsA<ARoad>())) {

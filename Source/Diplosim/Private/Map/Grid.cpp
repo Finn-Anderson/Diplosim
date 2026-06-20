@@ -1361,18 +1361,8 @@ void AGrid::RemoveTree(AResource* Resource, TArray<int32> Instances)
 FTransform AGrid::GetTransform(FTileStruct* Tile)
 {
 	FTransform transform;
-	
-	if (Tile->bRiver)
-		HISMRiver->GetInstanceTransform(Tile->Instance, transform);
-	else if (Tile->bRamp)
-		HISMRampGround->GetInstanceTransform(Tile->Instance, transform);
-	else
-		HISMGround->GetInstanceTransform(Tile->Instance, transform);
-
-	if (transform.GetLocation() == FVector::Zero())
-		transform.SetLocation(FVector(Tile->X * 100.0f, Tile->Y * 100.0f, Tile->Level * 75.0f));
-
-	transform.SetLocation(transform.GetLocation() + FVector(0.0f, 0.0f, 100.0f));
+	transform.SetLocation(FVector(Tile->X * 100.0f, Tile->Y * 100.0f, Tile->Level * 75.0f + 100.0f));
+	transform.SetRotation(Tile->Rotation);
 
 	return transform;
 }

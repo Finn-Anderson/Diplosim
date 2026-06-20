@@ -161,9 +161,11 @@ void UCitizenManager::CitizenGeneralLoop(float DeltaTime)
 
 						if (building->IsA<ASchool>())
 							citizen->BuildingComponent->FindEducation(Cast<ASchool>(building), timeToCompleteDay);
-						else if (building->IsA<AWork>())
+
+						if (building->IsA<AWork>())
 							citizen->BuildingComponent->FindJob(Cast<AWork>(building), timeToCompleteDay);
-						else if (building->IsA<AHouse>())
+
+						if (building->IsA<AHouse>())
 							citizen->BuildingComponent->FindHouse(Cast<AHouse>(building), timeToCompleteDay, roommates);
 					}
 

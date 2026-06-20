@@ -24,6 +24,7 @@
 #include "Map/AIInstancedStaticMeshComponent.h"
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Components/BuildComponent.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Player/Components/SaveGameComponent.h"
@@ -661,6 +662,8 @@ void ACamera::SetTimeDilation(float Dilation)
 	BuildComponent->SetComponentTickEnabled(false);
 	BuildComponent->SetComponentTickInterval(1.0f / 60.0f * Dilation);
 	BuildComponent->SetComponentTickEnabled(bEnabled);
+
+	Grid->AtmosphereComponent->NaturalDisasterComponent->SetEarthquakeSounds(Dilation);
 }
 
 void ACamera::DisplayInteractOnAI(AAI* AI)

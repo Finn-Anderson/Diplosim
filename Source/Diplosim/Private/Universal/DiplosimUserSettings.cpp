@@ -799,20 +799,22 @@ float UDiplosimUserSettings::GetPopupUISpeed() const
 
 void UDiplosimUserSettings::UpdateAmbientVolume()
 {
-	APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-
-	if (!PController)
+	if (!IsValid(Camera))
 		return;
 
-	ACamera* camera = PController->GetPawn<ACamera>();
-
-	for (FFactionStruct& faction : camera->ConquestManager->Factions) {
+	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
 		for (ACitizen* citizen : faction.Citizens)
 			citizen->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
 
 		for (ABuilding* building : faction.Buildings)
 			building->AmbientAudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
 	}
+
+	TArray<UAudioComponent*> components;
+	Camera->Grid->GetComponents<UAudioComponent>(components);
+
+	for (UAudioComponent* component : components)
+		component->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
 }
 
 FVector2D UDiplosimUserSettings::GetWindowPosAsVector(FString Value)

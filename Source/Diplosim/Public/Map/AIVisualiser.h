@@ -136,13 +136,18 @@ struct FOverlapsStruct
 		bClones = true;
 	}
 
-	void GetEverythingWithHealth()
+	void GetEveryPawn()
 	{
-		bBuildings = true;
 		bCitizens = true;
 		bRebels = true;
 		bEnemies = true;
 		bClones = true;
+	}
+
+	void GetEverythingWithHealth()
+	{
+		GetEveryPawn();
+		bBuildings = true;
 	}
 
 	void GetEverything()

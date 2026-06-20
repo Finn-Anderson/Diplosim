@@ -5,28 +5,6 @@
 #include "Components/ActorComponent.h"
 #include "NaturalDisasterComponent.generated.h"
 
-USTRUCT()
-struct FEarthquakeStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-		FVector Point;
-
-	UPROPERTY()
-		TMap<class ABuilding*, float> BuildingsInRange;
-
-	FEarthquakeStruct()
-	{
-		Point = FVector::Zero();
-	}
-
-	bool operator==(const FEarthquakeStruct& other) const
-	{
-		return (other.Point == Point);
-	}
-};
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UNaturalDisasterComponent : public UActorComponent
 {
@@ -41,8 +19,10 @@ public:
 
 	void ResetDisasterChance();
 
+	void SetEarthquakeSounds(float Dilation);
+
 	UFUNCTION()
-		void CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStruct, float Range, float Magnitude);
+		void ClearEarthquakeShakesAndSounds();
 
 	void AlterSunGradually(float Target, float Increment);
 
@@ -63,8 +43,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Natural Disaster")
 		float Frequency;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Earthquake Shake")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Earthquake")
 		TSubclassOf<class UCameraShakeBase> Shake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Earthquake")
+		class USoundBase* Sound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Purifier")
 		TSubclassOf<class AProjectile> PurifierClass;
@@ -72,12 +55,11 @@ public:
 private:
 	void GenerateEarthquake(float Magnitude);
 
-	TArray<FTileStruct> GetEarthquakePoints(float Magnitude);
-
-	void CancelEarthquake();
+	TArray<FVector> GetEarthquakePoints(float Magnitude);
 
 	void GeneratePurifier(float Magnitude);
 
 	void GenerateRedSun(float Magnitude);
 
+	bool bVisualiseEarthquakes;
 };

@@ -59,4 +59,7 @@ public:
 
 	UFUNCTION(Exec)
 		void GiveProblem(bool bInjury);
+
+	UFUNCTION(Exec)
+		void CauseNaturalDisaster();
 };

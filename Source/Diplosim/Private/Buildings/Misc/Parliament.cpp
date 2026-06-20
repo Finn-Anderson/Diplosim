@@ -19,7 +19,7 @@ void AParliament::OnBuilt()
 	Camera->PoliticsManager->Election(*faction);
 	Camera->PoliticsManager->StartElectionTimer(faction);
 
-	if (FactionName == Camera->ColonyName)
+	if (FactionName != Camera->ColonyName)
 		return;
 
 	Camera->DisplayLaws();

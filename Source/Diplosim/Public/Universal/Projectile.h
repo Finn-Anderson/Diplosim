@@ -32,6 +32,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
+		TSubclassOf<class UCameraShakeBase> MovementShake;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		int32 Damage;
 

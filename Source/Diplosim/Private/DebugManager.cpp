@@ -9,6 +9,7 @@
 #include "Buildings/Misc/Festival.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Managers/ConquestManager.h"
@@ -181,4 +182,13 @@ void UDebugManager::GiveProblem(bool bInjury)
 			camera->DiseaseManager->Injure(Cast<ACitizen>(actor), 0);
 	else
 		camera->DiseaseManager->SpawnDisease(camera);
+}
+
+void UDebugManager::CauseNaturalDisaster()
+{
+	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
+
+	UNaturalDisasterComponent* ndcomp = camera->Grid->AtmosphereComponent->NaturalDisasterComponent;
+	ndcomp->DisasterChance = 100.0f;
+	ndcomp->IncrementDisasterChance();
 }

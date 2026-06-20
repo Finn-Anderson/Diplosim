@@ -18,6 +18,7 @@
 #include "Player/Managers/ConquestManager.h"
 #include "Universal/AttackComponent.h"
 #include "Universal/HealthComponent.h"
+#include "Universal/DiplosimUserSettings.h"
 
 AProjectile::AProjectile()
 {
@@ -62,10 +63,13 @@ void AProjectile::Tick(float DeltaTime)
 		return;
 
 	FHitResult hit;
-	FVector size = ProjectileMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f;
+	FVector size = ProjectileMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f * ProjectileMesh->GetRelativeScale3D();
 
 	if (GetWorld()->SweepSingleByChannel(hit, GetActorLocation(), GetActorLocation(), (ProjectileMesh->GetRelativeRotation() + FRotator(90.0f, 0.0f, 0.0f)).Quaternion(), ECC_Pawn, FCollisionShape::MakeCapsule(size.Z, size.X)))
-		OnHit(hit.GetActor(), hit.GetComponent(), hit.Item);
+		OnHit(hit.GetActor(), hit.GetComponent(), hit.Item); 
+
+	if (IsValid(MovementShake))
+		UGameplayStatics::PlayWorldCameraShake(GetWorld(), MovementShake, GetActorLocation(), 0.0f, Radius, 1.0f);
 }
 
 void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
@@ -140,7 +144,9 @@ void AProjectile::Explode(ACamera* Camera)
 	if (GetOwner()->IsA<ATower>())
 		explosion->SetVariableLinearColor(TEXT("Colour"), Cast<ATower>(GetOwner())->ChosenColour);
 
-	UGameplayStatics::PlaySoundAtLocation(GetWorld(), AudioComponent->GetSound(), GetActorLocation());
+	explosion->SetVariableFloat(TEXT("Scale"), ProjectileMesh->GetRelativeScale3D().X);
+
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), AudioComponent->GetSound(), GetActorLocation(), Camera->Settings->GetMasterVolume() * Camera->Settings->GetAmbientVolume());
 
 	UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, GetActorLocation(), 0.0f, Radius * 6, 1.0f);
 }

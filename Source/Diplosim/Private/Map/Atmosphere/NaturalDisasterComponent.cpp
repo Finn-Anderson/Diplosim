@@ -1,12 +1,15 @@
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 
+#include "Camera/CameraShakeSourceComponent.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
 
 #include "Buildings/Building.h"
 #include "Buildings/Work/Work.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -47,13 +50,22 @@ void UNaturalDisasterComponent::IncrementDisasterChance()
 	float magnitude = Grid->Camera->Stream.FRandRange(1.0f, 5.0f) * Intensity;
 
 	int32 type = Grid->Camera->Stream.RandRange(0, 2);
+	FString text = "";
 
-	if (type == 0)
+	if (type == 0) {
 		GenerateEarthquake(magnitude);
-	else if (type == 1)
+		text = "Earthquake";
+	}
+	else if (type == 1) {
 		GeneratePurifier(magnitude);
-	else
+		text = "Purifier";
+	}
+	else {
 		GenerateRedSun(magnitude);
+		text = "Red Sun";
+	}
+
+	Grid->Camera->ShowEvent("Natural Disaster", text);
 
 	ResetDisasterChance();
 }
@@ -63,23 +75,86 @@ void UNaturalDisasterComponent::ResetDisasterChance()
 	DisasterChance = 0.0f;
 }
 
+void UNaturalDisasterComponent::SetEarthquakeSounds(float Dilation)
+{
+	TArray<UAudioComponent*> components;
+	Grid->GetComponents<UAudioComponent>(components);
+
+	for (UAudioComponent* component : components) {
+		if (!component->GetName().Contains("nd-audio"))
+			continue;
+
+		component->SetPaused(Dilation < 1.0f);
+	}
+}
+
 void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 {
 	float range = 500.0f * Magnitude;
 
-	TArray<FTimerParameterStruct> params;
-	Grid->Camera->TimerManager->SetParameter(range, params);
-	Grid->Camera->TimerManager->SetParameter(Magnitude, params);
-	Grid->Camera->TimerManager->CreateTimer("Earthquake", Grid, 4.0f * Magnitude, "CalculateEarthquakeDamage", params, true);
+	FOverlapsStruct overlaps;
+	overlaps.bBuildings = true;
+
+	int32 count = 0;
+
+	for (const FVector& point : GetEarthquakePoints(Magnitude)) {
+		TArray<AActor*> actors = Grid->AIVisualiser->GetOverlaps(Grid->Camera, Grid, range, overlaps, EFactionType::Both, nullptr, point);
+
+		for (AActor* actor : actors) {
+			if (!actor->IsA<ABuilding>() || IsProtected(actor->GetActorLocation()))
+				continue;
+
+			float d = FVector::Dist(point, actor->GetActorLocation());
+			int32 damage = FMath::Max(1.0f, range / (d / 10.0f));
+
+			Cast<ABuilding>(actor)->HealthComponent->TakeHealth(damage, Grid);
+		}
+
+		UAudioComponent* audio = NewObject<UAudioComponent>(this, UAudioComponent::StaticClass(), FName("nd-audio" + FString::FromInt(count)));
+		audio->SetupAttachment(Grid->GetRootComponent());
+		audio->SetRelativeLocation(point);
+		Grid->Camera->PlayAmbientSound(audio, Sound, 1.0f);
+		if (Grid->Camera->CustomTimeDilation > 1.0f)
+			audio->SetPaused(true);
+
+		UCameraShakeSourceComponent* shake = NewObject<UCameraShakeSourceComponent>(this, UCameraShakeSourceComponent::StaticClass(), FName("nd-shake" + FString::FromInt(count)));
+		shake->SetupAttachment(Grid->GetRootComponent());
+		shake->SetRelativeLocation(point);
+		shake->InnerAttenuationRadius = range;
+		shake->OuterAttenuationRadius = range * 6;
+		shake->StartCameraShake(Shake, 1.0f, ECameraShakePlaySpace::World);
+
+		DrawDebugLine(GetWorld(), point + FVector(0.0f, 0.0f, 1000.0f), point, FColor::Red, false, 10.0f);
+
+		count++;
+	}
+
+	Grid->Camera->TimerManager->CreateTimer("Clear Earthquake", Grid, 10.0f, "ClearEarthquakeShakesAndSounds", {}, false, true);
 }
 
-TArray<FTileStruct> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitude)
+void UNaturalDisasterComponent::ClearEarthquakeShakesAndSounds()
 {
-	int32 bounds = Grid->Storage.Num() - 1;
+	TArray<UActorComponent*> components;
+	Grid->GetComponents(components);
+
+	for (UActorComponent* component : components) {
+		if (!component->GetName().Contains("nd-"))
+			continue;
+
+		if (component->IsA<UAudioComponent>())
+			Cast<UAudioComponent>(component)->SetPaused(true);
+
+		component->DestroyComponent();
+	}
+}
+
+TArray<FVector> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitude)
+{
+	auto bound = Grid->GetMapBounds();
 	int32 distance = Magnitude * 5;
 
-	int32 iX = Grid->Camera->Stream.RandRange(0, bounds);
-	int32 iY = Grid->Camera->Stream.RandRange(0, bounds);
+	int32 iX = Grid->Camera->Stream.RandRange(0, bound - 1);
+	int32 iY = Grid->Camera->Stream.RandRange(0, bound - 1);
 
 	FTileStruct start = Grid->Storage[iX][iY];
 
@@ -98,9 +173,7 @@ TArray<FTileStruct> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitu
 
 	FTileStruct end = endLocations[chosenEnd];
 
-	TArray<FTileStruct> points;
-
-	auto bound = Grid->GetMapBounds();
+	TArray<FVector> points;
 
 	float dist = FVector2D::Distance(FVector2D(start.X, start.Y), FVector2D(end.X, end.Y));
 
@@ -130,13 +203,13 @@ TArray<FTileStruct> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitu
 	while (t <= 1.0f) {
 		FVector2D point = FMath::Pow((1 - t), 3) * p0 + 3 * FMath::Pow((1 - t), 2) * t * p1 + 3 * (1 - t) * FMath::Pow(t, 2) * p2 + FMath::Pow(t, 3) * p3;
 
-		int32 px = point.X + (bound / 2);
-		int32 py = point.Y + (bound / 2);
+		int32 px = FMath::Clamp(point.X + (bound / 2), 0, bound - 1);
+		int32 py = FMath::Clamp(point.Y + (bound / 2), 0, bound - 1);
 
-		FTileStruct tile = Grid->Storage[px][py];
+		FVector pt = Grid->GetTransform(&Grid->Storage[px][py]).GetLocation();
 
-		if (!points.Contains(tile))
-			points.Add(tile);
+		if (!points.Contains(pt))
+			points.Add(pt);
 
 		t += 0.02f;
 	}
@@ -144,70 +217,20 @@ TArray<FTileStruct> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitu
 	return points;
 }
 
-void UNaturalDisasterComponent::CalculateEarthquakeDamage(TArray<FEarthquakeStruct> EarthquakeStructs, float Range, float Magnitude)
-{
-	TArray<FEarthquakeStruct> earthquakeStructs;
-
-	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
-
-	TArray<AActor*> ignore;
-	ignore.Add(Cast<ACamera>(GetOwner())->Grid);
-
-	for (FResourceHISMStruct resourceStruct : Grid->MineralStruct)
-		ignore.Add(resourceStruct.Resource);
-
-	for (FResourceHISMStruct resourceStruct : Grid->FlowerStruct)
-		ignore.Add(resourceStruct.Resource);
-
-	TArray<AActor*> actors;
-
-	for (FTileStruct tile : GetEarthquakePoints(Magnitude)) {
-		FEarthquakeStruct estruct;
-		estruct.Point = Grid->GetTransform(&tile).GetLocation();
-
-		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), estruct.Point, Range, objects, nullptr, ignore, actors);
-
-		for (AActor* actor : actors) {
-			if (!actor->IsA<ABuilding>() || IsProtected(actor->GetActorLocation()))
-				continue;
-
-			float d = FVector::Dist(estruct.Point, actor->GetActorLocation());
-
-			estruct.BuildingsInRange.Add(Cast<ABuilding>(actor), d);
-		}
-
-		earthquakeStructs.Add(estruct);
-	}
-
-	for (FEarthquakeStruct estruct : EarthquakeStructs) {
-		for (auto& element : estruct.BuildingsInRange) {
-			int32 damage = FMath::Max(1.0f, element.Value / Range / 10.0f * Magnitude);
-
-			element.Key->HealthComponent->TakeHealth(damage, Grid);
-		}
-
-		UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, estruct.Point, 0.0f, Range, 1.0f);
-	}
-}
-
-void UNaturalDisasterComponent::CancelEarthquake()
-{
-	Grid->Camera->TimerManager->RemoveTimer("Earthquake", Grid);
-}
-
 void UNaturalDisasterComponent::GeneratePurifier(float Magnitude)
 {
-	auto bound = Grid->GetMapBounds();
-
-	int32 x = Grid->Camera->Stream.RandRange(0, bound);
-	int32 y = Grid->Camera->Stream.RandRange(0, bound);
+	int32 x = Grid->Camera->Stream.RandRange(0, Grid->Storage.Num() - 1);
+	int32 y = Grid->Camera->Stream.RandRange(0, Grid->Storage[x].Num() - 1);
 
 	FRotator rotation;
 	rotation.Yaw = Grid->Camera->Stream.RandRange(0, 359);
 	rotation.Pitch = Grid->Camera->Stream.RandRange(-90, -30);
 
-	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(PurifierClass, Grid->GetTransform(&Grid->Storage[x][y]).GetLocation() - (rotation.Vector() * 1000.0f), rotation);
-	projectile->SpawnNiagaraSystems(GetOwner());
+	FVector location = Grid->GetTransform(&Grid->Storage[x][y]).GetLocation() - (rotation.Vector() * 10000.0f);
+
+	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(PurifierClass, location, rotation);
+	projectile->ProjectileMesh->SetRelativeScale3D(FVector(Magnitude));
+	projectile->SpawnNiagaraSystems(Grid->Camera);
 	projectile->Radius *= Magnitude;
 }
 
@@ -217,7 +240,7 @@ void UNaturalDisasterComponent::GenerateRedSun(float Magnitude)
 
 	AlterSunGradually(0.15f, -0.02f);
 
-	Grid->Camera->TimerManager->CreateTimer("Red Sun", Grid, 120.0f * Magnitude, "CancelRedSun", {}, false);
+	Grid->Camera->TimerManager->CreateTimer("Red Sun", Grid, 120.0f * Magnitude, "CancelRedSun", {}, false, true);
 }
 
 void UNaturalDisasterComponent::AlterSunGradually(float Target, float Increment)
