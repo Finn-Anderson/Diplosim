@@ -207,7 +207,7 @@ void UPoliticsManager::ClearRepresentative(FFactionStruct* Faction, ACitizen* Ci
 
 	if (bEmpty)
 		Election(*Faction);
-	else
+	else if (Camera->ColonyName == Faction->Name)
 		Camera->UpdateRepresentative(index);
 }
 
@@ -390,7 +390,8 @@ void UPoliticsManager::Election(FFactionStruct Faction, bool bVoted)
 		if (faction->Politics.Representatives.Num() <= i)
 			faction->Politics.Representatives.Add(nullptr);
 
-		Camera->UpdateRepresentative(i);
+		if (Camera->ColonyName == faction->Name)
+			Camera->UpdateRepresentative(i);
 	}
 
 	StartElectionTimer(faction);
@@ -427,7 +428,8 @@ void UPoliticsManager::Bribe(class ACitizen* Representative, bool bAgree)
 	else
 		faction->Politics.Votes.Against.Add(Representative);
 
-	Camera->UpdateRepresentative(index);
+	if (Camera->ColonyName == faction->Name)
+		Camera->UpdateRepresentative(index);
 }
 
 void UPoliticsManager::ProposeBill(FString FactionName, FLawStruct Bill)
@@ -637,9 +639,10 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 			Faction->Politics.Votes.For.Add(Representative);
 		else if (result == "Opposing")
 			Faction->Politics.Votes.Against.Add(Representative);
-
-		Camera->UpdateRepresentative(Faction->Politics.Representatives.Find(Representative));
 	}
+
+	if (Camera->ColonyName == Faction->Name)
+		Camera->UpdateRepresentative(Faction->Politics.Representatives.Find(Representative));
 }
 
 void UPoliticsManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)

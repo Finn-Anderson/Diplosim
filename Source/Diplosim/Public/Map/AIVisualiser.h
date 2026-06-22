@@ -168,6 +168,9 @@ struct FHatsStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hats")
 		TArray<ACitizen*> Citizens;
 
+	UPROPERTY()
+		TArray<int32> InstancesToRemove;
+
 	FHatsStruct()
 	{
 		ISMHat = nullptr;

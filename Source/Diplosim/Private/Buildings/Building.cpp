@@ -598,6 +598,13 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 	for (FItemStruct& item : Storage)
 		rm->TakeLocalResource(item.Resource, this, item.Amount);
 
+	for (ACitizen* citizen : Inside) {
+		if (!IsValid(citizen) || GetOccupied().Contains(citizen))
+			continue;
+
+		citizen->AIController->DefaultAction();
+	}
+
 	for (ACitizen* citizen : GetOccupied()) {
 		if (!IsValid(citizen))
 			continue;

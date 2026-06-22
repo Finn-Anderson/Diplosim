@@ -8,6 +8,7 @@
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Misc/Festival.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Managers/ResourceManager.h"
@@ -108,7 +109,13 @@ void UDebugManager::SpawnCitizen(int32 Amount, bool bAdult)
 	FFactionStruct* faction = camera->ConquestManager->GetFaction(camera->ColonyName);
 
 	for (int32 i = 0; i < Amount; i++) {
-		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(Cast<ABroch>(faction->EggTimer)->CitizenClass, camera->MouseHitLocation, FRotator(0.0f));
+		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(Cast<ABroch>(faction->EggTimer)->CitizenClass, FVector::Zero(), FRotator::ZeroRotator);
+
+		FTransform transform;
+		transform.SetLocation(camera->MouseHitLocation);
+		transform.SetScale3D(FVector(0.28f));
+		camera->Grid->AIVisualiser->AddInstance(citizen, camera->Grid->AIVisualiser->HISMCitizen, transform);
+
 		citizen->CitizenSetup(faction);
 
 		if (!bAdult || !IsValid(citizen))

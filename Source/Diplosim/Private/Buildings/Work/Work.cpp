@@ -65,8 +65,6 @@ bool AWork::RemoveCitizen(ACitizen* Citizen)
 
 	AddToWorkHours(Citizen, false);
 
-	Camera->Grid->AIVisualiser->RemoveCitizenFromHISMHat(Citizen);
-
 	Citizen->AIController->DefaultAction();
 
 	return true;

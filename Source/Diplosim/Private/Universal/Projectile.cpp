@@ -114,27 +114,18 @@ void AProjectile::OnHit(AActor* Actor, UActorComponent* Component, int32 Instanc
 
 void AProjectile::Explode(ACamera* Camera)
 {
-	TArray<TEnumAsByte<EObjectTypeQuery>> objects;
-
-	TArray<AActor*> ignore;
-	ignore.Add(Camera->Grid);
-
-	for (FResourceHISMStruct resourceStruct : Camera->Grid->MineralStruct)
-		ignore.Add(resourceStruct.Resource);
-
-	for (FResourceHISMStruct resourceStruct : Camera->Grid->FlowerStruct)
-		ignore.Add(resourceStruct.Resource);
-
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", GetOwner());
-
+	EFactionType type = EFactionType::Both;
 	if (faction != nullptr)
-		ignore.Append(faction->Buildings);
+		type = EFactionType::Different;
 
-	TArray<AActor*> actors;
-	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), Radius, objects, nullptr, ignore, actors);
+	FOverlapsStruct overlaps;
+	overlaps.GetEverythingWithHealth();
+
+	TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, GetOwner(), Radius, overlaps, type, faction, GetActorLocation());
 
 	for (AActor* actor : actors) {
-		if (GetOwner()->IsA<UNaturalDisasterComponent>() && Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(actor->GetActorLocation()))
+		if (GetOwner()->IsA<ACamera>() && Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(Camera->GetTargetActorLocation(actor)))
 			continue;
 
 		HitActor(Camera, actor);

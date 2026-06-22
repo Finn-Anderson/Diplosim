@@ -65,7 +65,7 @@ void ASchool::AddProgress()
 
 	efficiency /= GetOccupied().Num();
 
-	for (int32 i = citizens.Num(); i > -1; i--) {
+	for (int32 i = citizens.Num() - 1; i > -1; i--) {
 		ACitizen* citizen = citizens[i];
 
 		citizen->BioComponent->EducationProgress += (50 * efficiency);

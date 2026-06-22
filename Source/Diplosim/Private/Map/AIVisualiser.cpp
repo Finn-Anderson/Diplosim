@@ -251,10 +251,18 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						if (!IsValid(citizen))
 							continue;
 
+						UAIInstancedStaticMeshComponent* ism = nullptr;
+						if (i == 0)
+							ism = HISMCitizen;
+						else
+							ism = HISMRebel;
+
+						if (ism->GetInstanceCount() <= j)
+							continue;
+
 						float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime, 1.0f);
 						citizen->MovementComponent->ComputeMovement(deltaTime, instances);
 
-						UAIInstancedStaticMeshComponent* ism = nullptr;
 						if (i == 0) {
 							float opacity = 1.0f;
 							if (IsValid(citizen->BuildingComponent->BuildingAt)) {
@@ -271,18 +279,14 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 								}
 							}
 
-							UpdateInstanceCustomData(HISMCitizen, j, 14, opacity, instances);
-							UpdateInstanceCustomData(HISMCitizen, j, 18, citizen->bCommander, instances);
-							UpdateInstanceCustomData(HISMCitizen, j, 1, citizen->bSelected * 2.0f, instances);
+							UpdateInstanceCustomData(ism, j, 14, opacity, instances);
+							UpdateInstanceCustomData(ism, j, 18, citizen->bCommander, instances);
+							UpdateInstanceCustomData(ism, j, 1, citizen->bSelected * 2.0f, instances);
 
 							UpdateHatTransform(citizen, hatsToUpdate);
 
-							SetEyesVisuals(HISMCitizen, j, citizen, instances);
-
-							ism = HISMCitizen;
+							SetEyesVisuals(ism, j, citizen, instances);
 						}
-						else
-							ism = HISMRebel;
 
 						SetInstanceTransform(ism, j, citizen->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
 
@@ -356,19 +360,22 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 				if (!IsValid(ai))
 					continue;
 
-				float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime, 1.0f);
-				ai->MovementComponent->ComputeMovement(deltaTime, instances);
-
 				UAIInstancedStaticMeshComponent* ism = nullptr;
-				if (i == 0) {
-					UpdateInstanceCustomData(ism, j, 1, 3.0f, instances);
-
+				if (i == 0)
 					ism = HISMClone;
-				}
 				else if (i == 1)
 					ism = HISMEnemy;
 				else
 					ism = HISMSnake;
+
+				if (ism->GetInstanceCount() <= j)
+					continue;
+
+				float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime, 1.0f);
+				ai->MovementComponent->ComputeMovement(deltaTime, instances);
+
+				if (i == 0) 
+					UpdateInstanceCustomData(ism, j, 1, 3.0f, instances);
 
 				SetInstanceTransform(ism, j, ai->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
 
@@ -419,6 +426,14 @@ void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
 			DestructingActors.GenerateKeyArray(actors);
 
 			AActor* actor = actors[i];
+
+			UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+			if (healthComp && healthComp->GetHealth() > 0) {
+				DestructingActors.Remove(actor);
+
+				continue;
+			}
+
 			double deathTime = *DestructingActors.Find(actor);
 			double alpha = FMath::Clamp((GetWorld()->GetTimeSeconds() - deathTime) / 10.0f, 0.0f, 1.0f);
 
@@ -867,6 +882,11 @@ void UAIVisualiser::UpdateHatTransform(ACitizen* Citizen, TArray<FHatsToUpdateSt
 
 	if (hatStruct == nullptr)
 		return;
+	else if (!IsValid(Citizen->BuildingComponent->Employment)) {
+		RemoveCitizenFromHISMHat(Citizen);
+
+		return;
+	}
 
 	int32 index = hatStruct->Citizens.Find(Citizen);
 
