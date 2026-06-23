@@ -30,7 +30,7 @@ void AOrphanage::Enter(ACitizen* Citizen)
 
 		Camera->TimerManager->UpdateTimerLength("Energy", this, 1);
 	}
-	else {
+	else if (IsValid(Citizen->BuildingComponent->House)) {
 		PickChildren(Citizen);
 	}
 }
@@ -113,6 +113,9 @@ void AOrphanage::PickChildren(ACitizen* Citizen)
 	int32 amount = FMath::Min(Citizen->BuildingComponent->House->Space - Citizen->BuildingComponent->House->GetVisitors(Citizen->BuildingComponent->House->GetOccupant(Citizen)).Num(), money / (maxF * cost));
 
 	for (int32 i = 0; i < amount; i++) {
+		if (favourites.IsEmpty())
+			break;
+
 		int32 index = Camera->Stream.RandRange(0, favourites.Num() - 1);
 
 		ACitizen* child = favourites[index];

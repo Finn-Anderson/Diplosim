@@ -278,6 +278,8 @@ void UCitizenManager::CalculateConversationInteractions()
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 25 || citizen->bConversing || citizen->bSleep || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->bEmergency) || citizen->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0)
 					continue;
 
+				GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, citizen->BioComponent->Name);
+
 				bool bCitizenInReport = Camera->PoliceManager->IsInAPoliceReport(citizen, &faction);
 
 				if (bCitizenInReport && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)))
@@ -313,6 +315,8 @@ void UCitizenManager::CalculateConversationInteractions()
 					int32 index = Camera->Stream.RandRange(0, citizensToTalkTo.Num() - 1);
 
 					StartConversation(&faction, citizen, citizensToTalkTo[index], false);
+
+					GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("Some debug message!"));
 				}
 			}
 		}

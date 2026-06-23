@@ -48,10 +48,7 @@ void UBuildingComponent::FindEducation(ASchool* Education, int32 TimeToCompleteD
 
 	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
 
-	if (HasRecentlyAcquired(0, TimeToCompleteDay) || citizen->BioComponent->EducationLevel == 5 || !citizen->CanAffordEducationLevel() || Education->GetOccupied().IsEmpty() || !citizen->AIController->CanMoveTo(citizen->AIController->GetActualLocation(Education)))
-		return;
-
-	if (citizen->BioComponent->Age >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") || citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Education Age"))
+	if (HasRecentlyAcquired(0, TimeToCompleteDay) || Education->GetOccupied().IsEmpty() || !citizen->AIController->CanMoveTo(citizen->AIController->GetActualLocation(Education)) || !CanLearn())
 		return;
 
 	bool bFull = true;
@@ -146,7 +143,7 @@ void UBuildingComponent::FindHouse(AHouse* NewHouse, int32 TimeToCompleteDay, TA
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (HasRecentlyAcquired(2, TimeToCompleteDay) || NewHouse->Space < Roommates.Num() || !citizen->AIController->CanMoveTo(citizen->AIController->GetActualLocation(NewHouse)))
+	if (HasRecentlyAcquired(2, TimeToCompleteDay) || !CanWork(nullptr) || NewHouse->Space < Roommates.Num() || !citizen->AIController->CanMoveTo(citizen->AIController->GetActualLocation(NewHouse)))
 		return;
 
 	FCapacityStruct* capacityStruct = NewHouse->GetBestAvailableRoom();
@@ -274,7 +271,9 @@ void UBuildingComponent::SetJobHouseEducation(int32 TimeToCompleteDay, TArray<AC
 		if (i == 0) {
 			ASchool* school = Cast<ASchool>(building);
 
-			school->AddVisitor(school->GetOccupant(citizen), citizen);
+			int32 index = school->GetOccupied().Num() - 1;
+
+			school->AddVisitor(school->GetOccupied()[index], citizen);
 		}
 		else if (i == 1) {
 			Cast<AWork>(building)->AddCitizen(citizen);
@@ -353,7 +352,8 @@ bool UBuildingComponent::CanFindAnything(int32 TimeToCompleteDay, FFactionStruct
 		if (!IsValid(House))
 			FindClosestOrphanage(Faction);
 
-		return false;
+		if (!CanLearn())
+			return false;
 	}
 
 	for (int32 i = 0; i < 3; i++)
@@ -394,7 +394,7 @@ void UBuildingComponent::RemoveOnReachingWorkAge(FFactionStruct* Faction)
 }
 
 //
-// Work
+// Work & Education
 //
 bool UBuildingComponent::CanWork(ABuilding* WorkBuilding)
 {
@@ -405,7 +405,7 @@ bool UBuildingComponent::CanWork(ABuilding* WorkBuilding)
 	if (citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age"))
 		return false;
 
-	if (WorkBuilding->IsA<ABooster>() && !Cast<ABooster>(WorkBuilding)->DoesPromoteFavouringValues(citizen))
+	if (IsValid(WorkBuilding) && WorkBuilding->IsA<ABooster>() && !Cast<ABooster>(WorkBuilding)->DoesPromoteFavouringValues(citizen))
 		return false;
 
 	return true;
@@ -430,6 +430,18 @@ bool UBuildingComponent::WillWork()
 	return true;
 }
 
+bool UBuildingComponent::CanLearn()
+{
+	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+
+	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
+
+	if (citizen->BioComponent->EducationLevel == 5 || !citizen->CanAffordEducationLevel() || citizen->BioComponent->Age >= citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age") || citizen->BioComponent->Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Education Age"))
+		return false;
+
+	return true;
+}
+
 //
 // Family
 //
@@ -441,7 +453,7 @@ void UBuildingComponent::RemoveFromHouse()
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 	ACitizen* occupant = House->GetOccupant(citizen);
 
-	if (occupant == citizen || occupant == citizen->BioComponent->Partner)
+	if (occupant == citizen || occupant == citizen->BioComponent->Partner || House->IsA<AOrphanage>())
 		return;
 
 	TArray<ACitizen*> likedFamily = citizen->BioComponent->GetLikedFamily(false);

@@ -168,26 +168,29 @@ bool ACitizen::CanAffordEducationLevel()
 {
 	if (BioComponent->EducationLevel < BioComponent->PaidForEducationLevel)
 		return true;
-	
-	int32 money = 0;
-	int32 leftoverMoney = GetLeftoverMoney();
-
-	if (leftoverMoney > 0)
-		money += leftoverMoney;
-
-	for (ACitizen* citizen : BioComponent->GetLikedFamily(false)) {
-		int32 leftover = citizen->GetLeftoverMoney();
-
-		if (leftover <= 0)
-			continue;
-
-		money += leftover;
-	}
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
+	int32 cost = Camera->PoliticsManager->GetLawValue(faction->Name, "Education Cost");
 
-	if (money < Camera->PoliticsManager->GetLawValue(faction->Name, "Education Cost"))
-		return false;
+	if (cost > 0) {
+		int32 money = 0;
+		int32 leftoverMoney = GetLeftoverMoney();
+
+		if (leftoverMoney > 0)
+			money += leftoverMoney;
+
+		for (ACitizen* citizen : BioComponent->GetLikedFamily(false)) {
+			int32 leftover = citizen->GetLeftoverMoney();
+
+			if (leftover <= 0)
+				continue;
+
+			money += leftover;
+		}
+
+		if (money < cost)
+			return false;
+	}
 
 	if (IsValid(BuildingComponent->School))
 		PayForEducationLevels();

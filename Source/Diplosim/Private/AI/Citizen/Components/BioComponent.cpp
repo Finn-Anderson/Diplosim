@@ -76,8 +76,9 @@ void UBioComponent::Birthday()
 	}
 
 	if (Age <= 18) {
-		citizen->HealthComponent->MaxHealth += 5 * citizen->HealthComponent->HealthMultiplier;
-		citizen->HealthComponent->AddHealth(5 * citizen->HealthComponent->HealthMultiplier);
+		float healthIncrement = 5 * citizen->HealthComponent->HealthMultiplier;
+		citizen->HealthComponent->MaxHealth += healthIncrement;
+		citizen->HealthComponent->AddHealth(healthIncrement);
 
 		float multiply = 1.0f;
 		if (citizen->Hunger <= 25)

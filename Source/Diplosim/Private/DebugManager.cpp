@@ -2,6 +2,7 @@
 
 #include "Components/WidgetComponent.h"
 
+#include "AI/AIMovementComponent.h"
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BioComponent.h"
 #include "Player/Camera.h"
@@ -102,7 +103,7 @@ void UDebugManager::FillStorage()
 		camera->ResourceManager->AddLocalResource(resource, building, 1000000000);
 }
 
-void UDebugManager::SpawnCitizen(int32 Amount, bool bAdult)
+void UDebugManager::SpawnCitizen(int32 Amount, int32 Age)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
@@ -111,23 +112,47 @@ void UDebugManager::SpawnCitizen(int32 Amount, bool bAdult)
 	for (int32 i = 0; i < Amount; i++) {
 		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(Cast<ABroch>(faction->EggTimer)->CitizenClass, FVector::Zero(), FRotator::ZeroRotator);
 
+		if (!IsValid(citizen))
+			continue;
+
 		FTransform transform;
 		transform.SetLocation(camera->MouseHitLocation);
 		transform.SetScale3D(FVector(0.28f));
 		camera->Grid->AIVisualiser->AddInstance(citizen, camera->Grid->AIVisualiser->HISMCitizen, transform);
 
+		citizen->BioComponent->SetSex(faction->Citizens);
 		citizen->CitizenSetup(faction);
 
-		if (!bAdult || !IsValid(citizen))
-			continue;
+		if (Age >= 5)
+			citizen->GivePersonalityTrait(citizen->BioComponent->Mother.Get());
+		if (Age == 10)
+			citizen->GivePersonalityTrait(citizen->BioComponent->Father.Get());
 
-		for (int32 j = 0; j < 2; j++)
-			citizen->GivePersonalityTrait();
+		if (Age > 18) {
+			citizen->BioComponent->MaxHealthBeforeOld = citizen->HealthComponent->MaxHealth;
+			citizen->BioComponent->SpeedBeforeOld = citizen->MovementComponent->InitialSpeed;
 
-		citizen->BioComponent->Age = 17;
+			citizen->BioComponent->SetSexuality(faction->Citizens);
+
+			citizen->SetReligion(faction);
+		}
+
+		int32 limit = FMath::Min(18, Age);
+
+		float healthIncrement = limit * 5 * citizen->HealthComponent->HealthMultiplier;
+		citizen->HealthComponent->MaxHealth += healthIncrement;
+		citizen->HealthComponent->AddHealth(healthIncrement);
+
+		float multiply = 1.0f;
+		if (citizen->Hunger <= 25)
+			multiply = 0.75f;
+
+		float scale = (limit * 0.04f) + 0.28f;
+
+		citizen->MovementComponent->Transform.SetScale3D(FVector(scale, scale, scale) * FVector(multiply, multiply, 1.0f) * citizen->ReachMultiplier);
+
+		citizen->BioComponent->Age = Age - 1;
 		citizen->BioComponent->Birthday();
-
-		citizen->HealthComponent->AddHealth(100);
 	}
 }
 

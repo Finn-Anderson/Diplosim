@@ -58,10 +58,12 @@ public:
 	UPROPERTY()
 		ACitizen* FoundHouseOccupant;
 
-	// Work
+	// Work & Education
 	bool CanWork(class ABuilding* WorkBuilding);
 
 	bool WillWork();
+
+	bool CanLearn();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Hours")
 		int32 IdealHoursWorkedMin;

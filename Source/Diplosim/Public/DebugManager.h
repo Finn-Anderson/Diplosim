@@ -46,7 +46,7 @@ public:
 		void FillStorage();
 
 	UFUNCTION(Exec)
-		void SpawnCitizen(int32 Amount, bool bAdult);
+		void SpawnCitizen(int32 Amount, int32 Age);
 
 	UFUNCTION(Exec)
 		void SetEvent(FString Type, FString Period, int32 Day, int32 StartHour, int32 EndHour, bool bRecurring, bool bFireFestival = false);

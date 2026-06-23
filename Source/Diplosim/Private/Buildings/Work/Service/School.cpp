@@ -68,7 +68,7 @@ void ASchool::AddProgress()
 	for (int32 i = citizens.Num() - 1; i > -1; i--) {
 		ACitizen* citizen = citizens[i];
 
-		citizen->BioComponent->EducationProgress += (50 * efficiency);
+		citizen->BioComponent->EducationProgress += (20 * efficiency);
 
 		if (citizen->BioComponent->EducationProgress >= 100) {
 			float progress = citizen->BioComponent->EducationProgress / 100.0f;
