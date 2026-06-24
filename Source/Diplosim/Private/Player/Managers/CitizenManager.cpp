@@ -65,17 +65,17 @@ void UCitizenManager::ReadJSONFile(FString path)
 
 				if (v.Value->Type == EJson::Array) {
 					for (auto& ev : v.Value->AsArray()) {
-						if (element.Key == "Personalities") {
-							if (v.Key == "Likes")
+						if (FString(element.Key) == "Personalities") {
+							if (FString(v.Key) == "Likes")
 								personality.Likes.Add(ev->AsString());
-							else if (v.Key == "Dislikes")
+							else if (FString(v.Key) == "Dislikes")
 								personality.Dislikes.Add(ev->AsString());
 							else {
 								FString key = "";
 								float value = 1.0f;
 
 								for (auto& bv : ev->AsObject()->Values) {
-									if (bv.Key == "Affect")
+									if (FString(bv.Key) == "Affect")
 										key = bv.Value->AsString();
 									else
 										value = bv.Value->AsNumber();
@@ -92,24 +92,24 @@ void UCitizenManager::ReadJSONFile(FString path)
 				else if (v.Value->Type == EJson::String) {
 					FString value = v.Value->AsString();
 
-					if (element.Key == "Personalities")
+					if (FString(element.Key) == "Personalities")
 						personality.Trait = value;
-					else if (element.Key == "Religions")
+					else if (FString(element.Key) == "Religions")
 						religion.Faith = value;
 				}
 				else {
 					float value = v.Value->AsNumber();
 
-					if (v.Key == "Aggressiveness")
+					if (FString(v.Key) == "Aggressiveness")
 						personality.Aggressiveness = value;
 					else
 						personality.Morale = value;
 				}
 			}
 
-			if (element.Key == "Personalities")
+			if (FString(element.Key) == "Personalities")
 				Personalities.Add(personality);
-			else if (element.Key == "Religions")
+			else
 				Religions.Add(religion);
 		}
 	}
@@ -275,22 +275,19 @@ void UCitizenManager::CalculateConversationInteractions()
 				if (Camera->SaveGameComponent->IsLoading())
 					return;
 
-				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 25 || citizen->bConversing || citizen->bSleep || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->bEmergency) || citizen->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0)
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 25 || citizen->bConversing || citizen->bSleep || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->bEmergency) || *citizen->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0)
 					continue;
-
-				GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, citizen->BioComponent->Name);
 
 				bool bCitizenInReport = Camera->PoliceManager->IsInAPoliceReport(citizen, &faction);
 
-				if (bCitizenInReport && (!IsValid(citizen->BuildingComponent->Employment) || !citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)))
-					continue;
-
 				float reach = citizen->GetReach();
 				
-				if (IsValid(citizen->AIController->MoveRequest.GetGoalActor()) && IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)) {
+				if (bCitizenInReport && IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)) {
 					Camera->PoliceManager->PoliceInteraction(&faction, citizen, reach);
 				}
-				else if (Camera->Stream.RandRange(0, 1000) == 1000) {
+				else if (!bCitizenInReport && Camera->Stream.RandRange(0, 1000) == 1000) {
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, citizen->BioComponent->Name);
+
 					FOverlapsStruct requestedOverlaps;
 					requestedOverlaps.bCitizens = true;
 
@@ -303,7 +300,9 @@ void UCitizenManager::CalculateConversationInteractions()
 
 						ACitizen* c = Cast<ACitizen>(actor);
 
-						if (c->bConversing || c->bSleep || c->HealthComponent->GetHealth() <= 25 || !c->AttackComponent->OverlappingEnemies.IsEmpty() || c->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0 || bCitizenInReport != Camera->PoliceManager->IsInAPoliceReport(c, &faction))
+						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, c->BioComponent->Name);
+
+						if (c->bConversing || c->bSleep || c->HealthComponent->GetHealth() <= 25 || !c->AttackComponent->OverlappingEnemies.IsEmpty() || c->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0 || Camera->PoliceManager->IsInAPoliceReport(c, &faction))
 							continue;
 
 						citizensToTalkTo.Add(c);
@@ -316,7 +315,7 @@ void UCitizenManager::CalculateConversationInteractions()
 
 					StartConversation(&faction, citizen, citizensToTalkTo[index], false);
 
-					GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("Some debug message!"));
+					GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, citizen->BioComponent->Name);
 				}
 			}
 		}

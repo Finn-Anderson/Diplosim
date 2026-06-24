@@ -419,28 +419,21 @@ void UDiplosimUserSettings::SetAA(FString Value)
 {
 	AAName = Value;
 
-	if (AAName == "None")
-		GEngine->Exec(GetWorld(), TEXT("r.ScreenPercentage 100"));
-	else
+	if (AAName.StartsWith("T"))
 		GEngine->Exec(GetWorld(), TEXT("r.ScreenPercentage 0"));
+	else
+		GEngine->Exec(GetWorld(), TEXT("r.ScreenPercentage 100"));
 
 	if (AAName == "None")
 		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 0"));
+	else if (AAName == "FXAA")
+		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 1"));
 	else if (AAName == "TAA")
 		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 2"));
-	else {
+	else if (AAName == "TSR")
 		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 4"));
-
-		if (AAName == "FSR") {
-			GEngine->Exec(GetWorld(), TEXT("r.NGX.DLSS.Enable 0"));
-			GEngine->Exec(GetWorld(), TEXT("r.FidelityFX.FSR.Enabled 1"));
-		}
-		else {
-			GEngine->Exec(GetWorld(), TEXT("r.FidelityFX.FSR.Enabled 0"));
-			GEngine->Exec(GetWorld(), TEXT("r.NGX.DLSS.Enable 1"));
-
-		}
-	}
+	else
+		GEngine->Exec(GetWorld(), TEXT("r.AntiAliasingMethod 5"));
 }
 
 FString UDiplosimUserSettings::GetAA() const

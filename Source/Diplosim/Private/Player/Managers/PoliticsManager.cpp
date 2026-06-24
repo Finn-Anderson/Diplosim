@@ -57,13 +57,13 @@ void UPoliticsManager::ReadJSONFile(FString path)
 					for (auto& bv : v.Value->AsObject()->Values) {
 						if (bv.Value->Type == EJson::Array) {
 							for (auto& bev : bv.Value->AsArray()) {
-								if (bv.Key == "Descriptions") {
+								if (FString(bv.Key) == "Descriptions") {
 									FDescriptionStruct description;
 
 									for (auto& pv : bev->AsObject()->Values) {
-										if (pv.Key == "Description")
+										if (FString(pv.Key) == "Description")
 											description.Description = pv.Value->AsString();
-										else if (pv.Key == "Min")
+										else if (FString(pv.Key) == "Min")
 											description.Min = FCString::Atoi(*pv.Value->AsString());
 										else
 											description.Max = FCString::Atoi(*pv.Value->AsString());
@@ -75,15 +75,15 @@ void UPoliticsManager::ReadJSONFile(FString path)
 									FLeanStruct lean;
 
 									for (auto& pv : bev->AsObject()->Values) {
-										if (pv.Key == "Party")
+										if (FString(pv.Key) == "Party")
 											lean.Party = pv.Value->AsString();
-										else if (pv.Key == "Personality")
+										else if (FString(pv.Key) == "Personality")
 											lean.Personality = pv.Value->AsString();
 										else {
 											for (auto& pev : pv.Value->AsArray()) {
 												int32 value = FCString::Atoi(*pev->AsString());
 
-												if (pv.Key == "ForRange")
+												if (FString(pv.Key) == "ForRange")
 													lean.ForRange.Add(value);
 												else
 													lean.AgainstRange.Add(value);
@@ -112,16 +112,16 @@ void UPoliticsManager::ReadJSONFile(FString path)
 				else if (v.Value->Type == EJson::String) {
 					FString value = v.Value->AsString();
 
-					if (v.Key == "Party")
+					if (FString(v.Key) == "Party")
 						party.Party = value;
-					else if (v.Key == "Colour")
+					else if (FString(v.Key) == "Colour")
 						party.Colour = FLinearColor(FColor::FromHex(value));
 					else
 						law.BillType = value;
 				}
 			}
 
-			if (element.Key == "Parties")
+			if (FString(element.Key) == "Parties")
 				InitParties.Add(party);
 			else
 				InitLaws.Add(law);
@@ -517,7 +517,7 @@ void UPoliticsManager::SetupBill(FFactionStruct* Faction)
 	Camera->TimerManager->SetParameter(*Faction, params);
 	Camera->TimerManager->SetParameter(Faction->Politics.ProposedBills[0], params);
 
-	Camera->TimerManager->CreateTimer(Faction->Name + " Bill", Camera, 60, "MotionBill", params, false);
+	Camera->TimerManager->CreateTimer(Faction->Name + " Bill", Camera, 60, "MotionBill", params, false, true);
 
 	if (Faction->Name == Camera->ColonyName)
 		Camera->NotifyLog(Faction->Parliament, "Neutral", Faction->Politics.ProposedBills[0].BillType + " is being debated", Faction->Name);
@@ -525,24 +525,16 @@ void UPoliticsManager::SetupBill(FFactionStruct* Faction)
 
 void UPoliticsManager::MotionBill(FFactionStruct Faction, FLawStruct Bill)
 {
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Bill]() {
-		FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
 
-		int32 count = 1;
+	for (ACitizen* citizen : faction->Politics.Representatives) {
+		if (faction->Politics.Votes.For.Contains(citizen) || faction->Politics.Votes.Against.Contains(citizen))
+			continue;
 
-		for (ACitizen* citizen : faction->Politics.Representatives) {
-			if (faction->Politics.Votes.For.Contains(citizen) || faction->Politics.Votes.Against.Contains(citizen))
-				continue;
+		GetVerdict(faction, citizen, Bill, false, false);
+	}
 
-			FTimerHandle verdictTimer;
-			GetWorld()->GetTimerManager().SetTimer(verdictTimer, FTimerDelegate::CreateUObject(this, &UPoliticsManager::GetVerdict, faction, citizen, Bill, false, false), 0.1f * count, false);
-
-			count++;
-		}
-
-		FTimerHandle tallyTimer;
-		GetWorld()->GetTimerManager().SetTimer(tallyTimer, FTimerDelegate::CreateUObject(this, &UPoliticsManager::TallyVotes, faction, Bill), 0.1f * count + 0.1f, false);
-	});
+	TallyVotes(faction, Bill);
 }
 
 bool UPoliticsManager::IsInRange(TArray<int32> Range, int32 Value)

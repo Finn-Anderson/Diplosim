@@ -213,7 +213,7 @@ void AGrid::Load()
 	Camera->UpdateLoadingText("Initialising Map");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupMap, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupMap, 0.001f, false);
 }
 
 void AGrid::InitialiseStorage()
@@ -441,7 +441,7 @@ void AGrid::SetupMap()
 	Camera->UpdateLoadingText("Cleaning Up Holes");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::CleanupHoles, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::CleanupHoles, 0.001f, false);
 }
 
 void AGrid::CleanupHoles()
@@ -453,7 +453,7 @@ void AGrid::CleanupHoles()
 	Camera->UpdateLoadingText("Removing Pocket Seas");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::RemovePocketSeas, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::RemovePocketSeas, 0.001f, false);
 }
 
 void AGrid::RemovePocketSeas()
@@ -554,7 +554,7 @@ void AGrid::PaveRivers()
 	Camera->UpdateLoadingText("Populating Tile Information");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupTileInformation, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupTileInformation, 0.001f, false);
 }
 
 void AGrid::SetupTileInformation()
@@ -589,7 +589,7 @@ void AGrid::SetupTileInformation()
 	Camera->UpdateLoadingText("Spawning Tiles");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnTiles, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnTiles, 0.001f, false);
 }
 
 void AGrid::SpawnTiles()
@@ -613,7 +613,7 @@ void AGrid::SpawnTiles()
 	Camera->UpdateLoadingText("Spawning Minerals");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnMinerals, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnMinerals, 0.001f, false);
 }
 
 void AGrid::SpawnMinerals()
@@ -656,7 +656,7 @@ void AGrid::SpawnMinerals()
 	Camera->UpdateLoadingText("Spawning Vegetation");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnVegetation, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SpawnVegetation, 0.001f, false);
 }
 
 void AGrid::SpawnVegetation()
@@ -709,7 +709,7 @@ void AGrid::SpawnVegetation()
 	Camera->UpdateLoadingText("Setting Up Environment");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, FTimerDelegate::CreateUObject(this, &AGrid::SetupEnvironment, false), 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, FTimerDelegate::CreateUObject(this, &AGrid::SetupEnvironment, false), 0.001f, false);
 }
 
 void AGrid::SetupEnvironment(bool bLoad)

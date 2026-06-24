@@ -25,16 +25,16 @@ public:
 
 	void SetHappiness();
 
-	UPROPERTY(BlueprintReadOnly, Category = "Happiness")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Happiness")
 		TMap<FString, int32> Modifiers;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Festival")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Festival")
 		EAttendStatus FestivalStatus;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Religion")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Religion")
 		EAttendStatus MassStatus;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Happiness")
 		TMap<EHappinessType, int32> DecayingHappiness;
 
 	UPROPERTY()

@@ -36,13 +36,13 @@ void UResearchManager::ReadJSONFile(FString Path)
 				if (v.Value->Type == EJson::Array)
 					for (auto& ev : v.Value->AsArray())
 						for (auto& bev : ev->AsObject()->Values)
-								research.Modifiers.Add(bev.Key, FCString::Atof(*bev.Value->AsString()));
+							research.Modifiers.Add(FString(bev.Key), FCString::Atof(*bev.Value->AsString()));
 				else if (v.Value->Type == EJson::String)
 					research.ResearchName = v.Value->AsString();
 				else {
 					int32 value = FCString::Atoi(*v.Value->AsString());
 
-					if (v.Key == "Target")
+					if (FString(v.Key) == "Target")
 						research.Target = value;
 					else
 						research.MaxLevel = value;

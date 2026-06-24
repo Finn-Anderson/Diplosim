@@ -45,7 +45,7 @@ void UDiseaseManager::ReadJSONFile(FString path)
 						FAffectStruct affect;
 
 						for (auto& bv : ev->AsObject()->Values) {
-							if (bv.Key == "Affect")
+							if (FString(bv.Key) == "Affect")
 								affect.Affect = EAffect(FCString::Atoi(*bv.Value->AsString()));
 							else
 								affect.Amount = bv.Value->AsNumber();
@@ -60,16 +60,16 @@ void UDiseaseManager::ReadJSONFile(FString path)
 				else {
 					uint8 index = FCString::Atoi(*v.Value->AsString());
 
-					if (v.Key == "Grade")
+					if (FString(v.Key) == "Grade")
 						condition.Grade = EGrade(index);
-					else if (v.Key == "Spreadability")
+					else if (FString(v.Key) == "Spreadability")
 						condition.Spreadability = index;
 					else
 						condition.DeathTime = index;
 				}
 			}
 
-			if (element.Key == "Injuries")
+			if (FString(element.Key) == "Injuries")
 				Injuries.Add(condition);
 			else
 				Diseases.Add(condition);

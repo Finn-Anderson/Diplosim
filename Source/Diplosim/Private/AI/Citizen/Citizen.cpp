@@ -680,7 +680,7 @@ void ACitizen::SetPoliticalLeanings()
 			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, this, true);
 
 			if (!faction->Politics.ProposedBills.IsEmpty())
-				Camera->PoliticsManager->GetVerdict(faction, this, faction->Politics.ProposedBills[0], true, false);
+				Async(EAsyncExecution::TaskGraphMainTick, [this, faction]() { Camera->PoliticsManager->GetVerdict(faction, this, faction->Politics.ProposedBills[0], true, false); });
 			else
 				Camera->UpdateRepresentative(faction->Politics.Representatives.Find(this));
 		}

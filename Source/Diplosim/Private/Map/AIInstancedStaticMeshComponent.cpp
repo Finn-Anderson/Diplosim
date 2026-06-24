@@ -36,10 +36,12 @@ void UAIInstancedStaticMeshComponent::BatchUpdateTransforms(TMap<int32, FTransfo
 			GetInstancePrevTransform(element.Key, prevTransform, false);
 			SetPreviousTransformById(id, prevTransform, false);
 
-			if (!InstanceBodies.IsValidIndex(element.Key))
+			TArray<FBodyInstance*> bodies = GetInstanceBodies();
+
+			if (!bodies.IsValidIndex(element.Key))
 				return;
 
-			FBodyInstance*& InstanceBodyInstance = InstanceBodies[element.Key];
+			FBodyInstance* InstanceBodyInstance = bodies[element.Key];
 			InstanceBodyInstance->SetBodyTransform(element.Value, TeleportFlagToEnum(true));
 			InstanceBodyInstance->UpdateBodyScale(element.Value.GetScale3D());
 		}
