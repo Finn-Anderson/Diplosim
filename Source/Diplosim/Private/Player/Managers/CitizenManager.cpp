@@ -196,8 +196,6 @@ void UCitizenManager::CitizenGeneralLoop(float DeltaTime)
 
 			float rebelsPerc = rebelCount / (float)faction.Citizens.Num();
 
-			Camera->PoliceManager->RespondToReports(&faction);
-
 			if (rebelsPerc > 0.33f)
 				Async(EAsyncExecution::TaskGraphMainTick, [this, &faction, DeltaTime]() { Camera->PoliticsManager->ChooseRebellionType(&faction, DeltaTime); });
 
@@ -283,11 +281,10 @@ void UCitizenManager::CalculateConversationInteractions()
 				float reach = citizen->GetReach();
 				
 				if (bCitizenInReport && IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)) {
-					Camera->PoliceManager->PoliceInteraction(&faction, citizen, reach);
+					if (citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), reach))
+						StartConversation(&faction, citizen, Cast<ACitizen>(citizen->AIController->MoveRequest.GetGoalActor()), true);
 				}
 				else if (!bCitizenInReport && Camera->Stream.RandRange(0, 1000) == 1000) {
-					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, citizen->BioComponent->Name);
-
 					FOverlapsStruct requestedOverlaps;
 					requestedOverlaps.bCitizens = true;
 
@@ -300,9 +297,7 @@ void UCitizenManager::CalculateConversationInteractions()
 
 						ACitizen* c = Cast<ACitizen>(actor);
 
-						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, c->BioComponent->Name);
-
-						if (c->bConversing || c->bSleep || c->HealthComponent->GetHealth() <= 25 || !c->AttackComponent->OverlappingEnemies.IsEmpty() || c->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0 || Camera->PoliceManager->IsInAPoliceReport(c, &faction))
+						if (c->bConversing || c->bSleep || c->HealthComponent->GetHealth() <= 25 || !c->AttackComponent->OverlappingEnemies.IsEmpty() || *c->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0 || Camera->PoliceManager->IsInAPoliceReport(c, &faction))
 							continue;
 
 						citizensToTalkTo.Add(c);
@@ -314,8 +309,6 @@ void UCitizenManager::CalculateConversationInteractions()
 					int32 index = Camera->Stream.RandRange(0, citizensToTalkTo.Num() - 1);
 
 					StartConversation(&faction, citizen, citizensToTalkTo[index], false);
-
-					GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, citizen->BioComponent->Name);
 				}
 			}
 		}
@@ -568,7 +561,7 @@ USoundBase* UCitizenManager::GetConversationSound(ACitizen* Citizen)
 	return convo;
 }
 
-void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citizen1, ACitizen* Citizen2, bool bInterrogation)
+void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citizen1, ACitizen* Citizen2, bool bArrest)
 {
 	Citizen1->MovementComponent->ActorToLookAt = Citizen2;
 	Citizen2->MovementComponent->ActorToLookAt = Citizen1;
@@ -576,19 +569,20 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 	USoundBase* convo1 = GetConversationSound(Citizen1);
 	USoundBase* convo2 = GetConversationSound(Citizen2);
 	
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen1, Citizen2, bInterrogation, convo1, convo2]() {
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen1, Citizen2, bArrest, convo1, convo2]() {
 		TArray<FTimerParameterStruct> params;
 		Camera->TimerManager->SetParameter(*Faction, params);
 		Camera->TimerManager->SetParameter(Citizen1, params);
 		Camera->TimerManager->SetParameter(Citizen2, params);
 
-		if (bInterrogation)
-			Camera->TimerManager->CreateTimer("Interrogate", Camera, 6.0f, "InterrogateWitnesses", params, false);
+		if (bArrest)
+			Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Arrest", Camera, 6.0f, "Arrest", params, false);
 		else
-			Camera->TimerManager->CreateTimer("Interact", Camera, 6.0f, "Interact", params, false);
+			Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Interact", Camera, 6.0f, "Interact", params, false);
 
 		Camera->PlayAmbientSound(Citizen1->AmbientAudioComponent, convo1, Citizen1->VoicePitch);
-		Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);
+		if (!bArrest)
+			Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);
 	});
 }
 
@@ -619,11 +613,6 @@ void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACiti
 
 	Citizen1->HappinessComponent->SetDecayingHappiness(EHappinessType::Conversation, happinessValue);
 	Citizen2->HappinessComponent->SetDecayingHappiness(EHappinessType::Conversation, happinessValue);
-
-	if (!Citizen1->AttackComponent->OverlappingEnemies.IsEmpty()) {
-		Citizen1->AIController->StartMovement();
-		Citizen2->AIController->StartMovement();
-	}
 }
 
 //

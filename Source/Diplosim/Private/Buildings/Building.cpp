@@ -413,14 +413,14 @@ void ABuilding::SetTier(int32 Value)
 		float b = 0;
 
 		if (Value == 1) {
-			r = 0.473531;
-			g = 0.361307;
-			b = 0.187821;
+			r = 0.473531f;
+			g = 0.361307f;
+			b = 0.187821f;
 		}
 		else if (Value == 2) {
-			r = 0.571125;
-			g = 0.590619;
-			b = 0.64448;
+			r = 0.571125f;
+			g = 0.590619f;
+			b = 0.64448f;
 		}
 
 		SetBuildingColour(r, g, b);
@@ -638,14 +638,7 @@ void ABuilding::DestroyBuilding(bool bCheckAbove, bool bMove)
 			tile->bRamp = false;
 	}
 
-	if (IsA(Camera->PoliceManager->PoliceStationClass)) {
-		for (ACitizen* citizen : faction->Citizens) {
-			if (citizen->BuildingComponent->BuildingAt != this || GetOccupied().Contains(citizen) || !faction->Police.Arrested.Contains(citizen))
-				continue;
-
-			Camera->PoliceManager->SetInNearestJail(*faction, nullptr, citizen);
-		}
-	}
+	Camera->PoliceManager->RepositionCriminals(this);
 
 	rm->UpdateResourceCapacityUI(this);
 
@@ -764,6 +757,9 @@ bool ABuilding::RemoveCitizen(ACitizen* Citizen)
 
 	for (ACitizen* citizen : GetVisitors(Citizen))
 		RemoveVisitor(Citizen, citizen);
+
+	if (GetOccupied().IsEmpty())
+		Camera->PoliceManager->RepositionCriminals(this);
 
 	return true;
 }

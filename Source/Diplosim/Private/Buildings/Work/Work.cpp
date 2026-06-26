@@ -17,6 +17,7 @@
 #include "Player/Managers/EventsManager.h"
 #include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/PoliceManager.h"
 #include "Universal/HealthComponent.h"
 
 AWork::AWork()
@@ -153,7 +154,7 @@ void AWork::GradualShutdown()
 
 bool AWork::IsAtWork(ACitizen* Citizen)
 {
-	if (Citizen->BuildingComponent->BuildingAt == this || Citizen->AIController->MoveRequest.GetGoalActor() == this)
+	if (Citizen->BuildingComponent->BuildingAt == this || Citizen->AIController->MoveRequest.GetGoalActor() == this || (IsA(Camera->PoliceManager->PoliceStationClass) && Camera->PoliceManager->IsInAPoliceReport(Citizen, Camera->ConquestManager->GetFaction("", Citizen))))
 		return true;
 
 	return false;

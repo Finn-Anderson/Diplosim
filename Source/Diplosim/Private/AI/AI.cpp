@@ -78,12 +78,12 @@ bool AAI::CanReach(AActor* Actor, float Reach, FVector Location, int32 Instance)
 	FVector movementLocation = MovementComponent->Transform.GetLocation();
 
 	if (Location == FVector::Zero()) {
-		Location = AIController->GetActualLocation(Actor);
-
 		if (Actor->IsA<ABuilding>())
 			Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(movementLocation, Location);
 		else if (Actor->IsA<AAISpawner>())
 			Cast<AAISpawner>(Actor)->SpawnerMesh->GetClosestPointOnCollision(movementLocation, Location);
+		else
+			Location = AIController->GetActualLocation(Actor);
 	}
 
 	return Reach >= FVector::Dist(movementLocation, Location);

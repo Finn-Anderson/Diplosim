@@ -21,6 +21,9 @@ public:
 	UPROPERTY()
 		bool bRain;
 
+	UPROPERTY()
+		bool bFight;
+
 	UFUNCTION(Exec)
 		void SpawnEnemies();
 
@@ -62,4 +65,7 @@ public:
 
 	UFUNCTION(Exec)
 		void CauseNaturalDisaster();
+
+	UFUNCTION(Exec)
+		void SetFight(bool bChance);
 };

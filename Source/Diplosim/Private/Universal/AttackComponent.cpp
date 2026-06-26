@@ -59,6 +59,26 @@ void UAttackComponent::PickTarget(float DeltaTime)
 	if (GetOwner()->IsA<AAI>())
 		ai = Cast<AAI>(GetOwner());
 
+	if (bShowMercy && ai->HealthComponent->GetHealth() <= ai->HealthComponent->MaxHealth / 4.0f) {
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", ai);
+
+		for (int32 i = OverlappingEnemies.Num() - 1; i > -1; i--) {
+			if (!faction->Citizens.Contains(OverlappingEnemies[i]))
+				continue;
+
+			ACitizen* citizen = Cast<ACitizen>(OverlappingEnemies[i]);
+			citizen->AttackComponent->OverlappingEnemies.RemoveAt(i);
+
+			if (citizen->AttackComponent->OverlappingEnemies.IsEmpty()) {
+				citizen->AttackComponent->bShowMercy = false;
+
+				citizen->AIController->DefaultAction();
+			}
+		}
+
+		OverlappingEnemies.Empty();
+	}
+
 	for (int32 i = OverlappingEnemies.Num() - 1; i > -1; i--) {
 		AActor* target = OverlappingEnemies[i];
 		FFavourabilityStruct targetFavourability = GetActorFavourability(target);

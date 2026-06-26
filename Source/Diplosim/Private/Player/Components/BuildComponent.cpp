@@ -892,16 +892,7 @@ void UBuildComponent::Place(bool bQuick)
 				builder->GetOccupied()[0]->AIController->RecalculateMovement(BuildingToMove);
 		}
 
-		if (BuildingToMove->IsA(Camera->PoliceManager->PoliceStationClass)) {
-			FFactionStruct* faction = Camera->ConquestManager->GetFaction(BuildingToMove->FactionName);
-
-			for (ACitizen* citizen : faction->Citizens) {
-				if (citizen->BuildingComponent->BuildingAt != BuildingToMove || !faction->Police.Arrested.Contains(citizen))
-					continue;
-
-				Camera->PoliceManager->SetInNearestJail(*faction, nullptr, citizen);
-			}
-		}
+		Camera->PoliceManager->RepositionCriminals(BuildingToMove);
 
 		BuildingToMove = nullptr;
 

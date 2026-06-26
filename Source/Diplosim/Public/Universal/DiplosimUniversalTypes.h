@@ -556,47 +556,16 @@ struct FPoliceReport
 		EReportType Type;
 
 	UPROPERTY()
-		FVector Location;
-
-	UPROPERTY()
-		FFightTeam Team1;
-
-	UPROPERTY()
-		FFightTeam Team2;
-
-	UPROPERTY()
-		TMap<class ACitizen*, float> Witnesses;
-
-	UPROPERTY()
-		class ACitizen* RespondingOfficer;
-
-	UPROPERTY()
-		TArray<class ACitizen*> AcussesTeam1;
-
-	UPROPERTY()
-		TArray<class ACitizen*> Impartial;
-
-	UPROPERTY()
-		TArray<class ACitizen*> AcussesTeam2;
+		TArray<class ACitizen*> Wanted;
 
 	FPoliceReport()
 	{
 		Type = EReportType::Fighting;
-		Location = FVector::Zero();
-		RespondingOfficer = nullptr;
-	}
-
-	bool Contains(class ACitizen* Citizen)
-	{
-		if (Team1.Instigator == Citizen || Team1.Assistors.Contains(Citizen) || Team2.Instigator == Citizen || Team2.Assistors.Contains(Citizen))
-			return true;
-
-		return false;
 	}
 
 	bool operator==(const FPoliceReport& other) const
 	{
-		return (other.Team1 == Team1 && other.Team2 == Team2);
+		return (other.Type == Type && other.Wanted == Wanted);
 	}
 };
 

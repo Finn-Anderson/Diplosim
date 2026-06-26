@@ -415,34 +415,9 @@ void UDiplosimSaveGame::SaveFactions(FActorSaveData& ActorData, AActor* Actor, i
 		for (FPoliceReport report : faction.Police.PoliceReports) {
 			FPoliceReportData reportData;
 			reportData.Type = report.Type;
-			reportData.Location = report.Location;
 
-			if (IsValid(report.Team1.Instigator))
-				reportData.Team1.InstigatorName = report.Team1.Instigator->GetName();
-
-			for (ACitizen* citizen : report.Team1.Assistors)
-				reportData.Team1.AssistorsNames.Add(citizen->GetName());
-
-			if (IsValid(report.Team2.Instigator))
-				reportData.Team2.InstigatorName = report.Team2.Instigator->GetName();
-
-			for (ACitizen* citizen : report.Team2.Assistors)
-				reportData.Team2.AssistorsNames.Add(citizen->GetName());
-
-			for (auto element : report.Witnesses)
-				reportData.WitnessesNames.Add(element.Key->GetName(), element.Value);
-
-			if (IsValid(report.RespondingOfficer))
-				reportData.RespondingOfficerName = report.RespondingOfficer->GetName();
-
-			for (ACitizen* citizen : report.AcussesTeam1)
-				reportData.AcussesTeam1Names.Add(citizen->GetName());
-
-			for (ACitizen* citizen : report.Impartial)
-				reportData.ImpartialNames.Add(citizen->GetName());
-
-			for (ACitizen* citizen : report.AcussesTeam2)
-				reportData.AcussesTeam2Names.Add(citizen->GetName());
+			for (ACitizen* citizen : report.Wanted)
+				reportData.WantedNames.Add(citizen->GetName());
 
 			policeData.PoliceReportsData.Add(reportData);
 		}
@@ -1093,7 +1068,6 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& Cam
 		for (FPoliceReportData reportData : data.PoliceData.PoliceReportsData) {
 			FPoliceReport report;
 			report.Type = reportData.Type;
-			report.Location = reportData.Location;
 
 			faction.Police.PoliceReports.Add(report);
 		}
@@ -1668,32 +1642,8 @@ void UDiplosimSaveGame::InitialiseFactions(ACamera* Camera, FActorSaveData& Acto
 			FPoliceReport& report = faction->Police.PoliceReports[i];
 			FPoliceReportData reportData = data.PoliceData.PoliceReportsData[i];
 
-			if (SavedData.Name == reportData.Team1.InstigatorName)
-				report.Team1.Instigator = citizen;
-
-			if (reportData.Team1.AssistorsNames.Contains(SavedData.Name))
-				report.Team1.Assistors.Add(citizen);
-
-			if (SavedData.Name == reportData.Team2.InstigatorName)
-				report.Team2.Instigator = citizen;
-
-			if (reportData.Team2.AssistorsNames.Contains(SavedData.Name))
-				report.Team2.Assistors.Add(citizen);
-
-			if (reportData.WitnessesNames.Contains(SavedData.Name))
-				report.Witnesses.Add(citizen);
-
-			if (SavedData.Name == reportData.RespondingOfficerName)
-				report.RespondingOfficer = citizen;
-
-			if (reportData.AcussesTeam1Names.Contains(SavedData.Name))
-				report.AcussesTeam1.Add(citizen);
-
-			if (reportData.ImpartialNames.Contains(SavedData.Name))
-				report.Impartial.Add(citizen);
-
-			if (reportData.AcussesTeam2Names.Contains(SavedData.Name))
-				report.AcussesTeam2.Add(citizen);
+			if (reportData.WantedNames.Contains(SavedData.Name))
+				report.Wanted.Add(citizen);
 		}
 
 		// Events

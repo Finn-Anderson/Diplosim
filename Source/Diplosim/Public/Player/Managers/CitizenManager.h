@@ -111,7 +111,7 @@ public:
 	// Conversations
 	USoundBase* GetConversationSound(ACitizen* Citizen);
 
-	void StartConversation(FFactionStruct* Faction, class ACitizen* Citizen1, class ACitizen* Citizen2, bool bInterrogation);
+	void StartConversation(FFactionStruct* Faction, class ACitizen* Citizen1, class ACitizen* Citizen2, bool bArrest);
 
 	UFUNCTION()
 		void Interact(FFactionStruct Faction, class ACitizen* Citizen1, class ACitizen* Citizen2);

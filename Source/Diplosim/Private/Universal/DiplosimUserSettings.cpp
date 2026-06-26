@@ -8,6 +8,7 @@
 #include "Misc/FileHelper.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/SkyLightComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
 
@@ -38,6 +39,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bRenderWind = true;
 	bRain = true;
 
+	SkyLightBrightness = 1.5f;
 	SunBrightness = 10.0f;
 	MoonBrightness = 0.5f;
 
@@ -140,6 +142,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetRenderWind(value.ToBool());
 	else if (FString("bRain").Equals(Key))
 		SetRain(value.ToBool());
+	else if (FString("SkyLightBrightness").Equals(Key))
+		SetSkyLightBrightness(FCString::Atof(Value));
 	else if (FString("SunBrightness").Equals(Key))
 		SetSunBrightness(FCString::Atof(Value));
 	else if (FString("MoonBrightness").Equals(Key))
@@ -228,6 +232,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetBool(*Section, TEXT("bRenderClouds"), GetRenderClouds(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRenderWind"), GetRenderWind(), Filename);
 	GConfig->SetBool(*Section, TEXT("bRain"), GetRain(), Filename);
+	GConfig->SetFloat(*Section, TEXT("SkyLightBrightness"), GetSkyLightBrightness(), Filename);
 	GConfig->SetFloat(*Section, TEXT("SunBrightness"), GetSunBrightness(), Filename);
 	GConfig->SetFloat(*Section, TEXT("MoonBrightness"), GetMoonBrightness(), Filename);
 	GConfig->SetString(*Section, TEXT("AAName"), *GetAA(), Filename);
@@ -383,6 +388,21 @@ void UDiplosimUserSettings::SetRenderWind(bool Value)
 bool UDiplosimUserSettings::GetRenderWind() const
 {
 	return bRenderWind;
+}
+
+void UDiplosimUserSettings::SetSkyLightBrightness(float Value)
+{
+	SkyLightBrightness = Value;
+
+	if (Atmosphere == nullptr)
+		return;
+
+	Atmosphere->SkyLight->SetIntensity(SkyLightBrightness);
+}
+
+float UDiplosimUserSettings::GetSkyLightBrightness() const
+{
+	return SkyLightBrightness;
 }
 
 void UDiplosimUserSettings::SetSunBrightness(float Value)

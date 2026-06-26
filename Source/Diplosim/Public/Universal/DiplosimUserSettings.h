@@ -35,6 +35,9 @@ protected:
 		bool bRenderWind;
 
 	UPROPERTY(Config)
+		float SkyLightBrightness;
+
+	UPROPERTY(Config)
 		float SunBrightness;
 
 	UPROPERTY(Config)
@@ -169,6 +172,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Wind")
 		bool GetRenderWind() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Brightness")
+		void SetSkyLightBrightness(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "Brightness")
+		float GetSkyLightBrightness() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Brightness")
 		void SetSunBrightness(float Value);

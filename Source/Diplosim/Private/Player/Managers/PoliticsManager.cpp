@@ -22,6 +22,7 @@
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/PoliceManager.h"
 #include "Universal/DiplosimGameModeBase.h"
+#include "Universal/AttackComponent.h"
 
 UPoliticsManager::UPoliticsManager()
 {
@@ -849,6 +850,7 @@ void UPoliticsManager::SetupRebel(FFactionStruct* Faction, ACitizen* Citizen)
 {
 	Citizen->Energy = 100;
 	Citizen->Hunger = 100;
+	Citizen->AttackComponent->bShowMercy = false;
 
 	UAIVisualiser* aiVisualiser = Camera->Grid->AIVisualiser;
 	aiVisualiser->RemoveInstance(aiVisualiser->HISMCitizen, Faction->Citizens.Find(Citizen));

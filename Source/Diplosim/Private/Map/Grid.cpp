@@ -475,7 +475,7 @@ void AGrid::RemovePocketSeas()
 	Camera->UpdateLoadingText("Paving Rivers");
 
 	FTimerHandle RenderTimer;
-	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::PaveRivers, 0.001, false);
+	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::PaveRivers, 0.001f, false);
 }
 
 void AGrid::PaveRivers()

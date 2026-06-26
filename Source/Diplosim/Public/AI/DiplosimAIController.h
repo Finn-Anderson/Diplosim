@@ -132,6 +132,8 @@ public:
 
 	void StopMovement();
 
+	void ClearMovementTimers();
+
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 		FMoveStruct MoveRequest;
 

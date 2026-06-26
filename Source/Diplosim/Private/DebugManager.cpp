@@ -24,6 +24,8 @@ UDebugManager::UDebugManager()
 {
 	bInstantBuildCheat = false;
 	bInstantEnemies = false;
+	bRain = false;
+	bFight = false;
 }
 
 void UDebugManager::SpawnEnemies()
@@ -223,4 +225,9 @@ void UDebugManager::CauseNaturalDisaster()
 	UNaturalDisasterComponent* ndcomp = camera->Grid->AtmosphereComponent->NaturalDisasterComponent;
 	ndcomp->DisasterChance = 100.0f;
 	ndcomp->IncrementDisasterChance();
+}
+
+void UDebugManager::SetFight(bool bChance)
+{
+	bFight = bChance;
 }

@@ -955,23 +955,6 @@ struct FPoliticsData
 };
 
 USTRUCT()
-struct FFightTeamData
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-		FString InstigatorName;
-
-	UPROPERTY()
-		TArray<FString> AssistorsNames;
-
-	FFightTeamData()
-	{
-		InstigatorName = "";
-	}
-};
-
-USTRUCT()
 struct FPoliceReportData
 {
 	GENERATED_USTRUCT_BODY()
@@ -980,34 +963,11 @@ struct FPoliceReportData
 		EReportType Type;
 
 	UPROPERTY()
-		FVector Location;
-
-	UPROPERTY()
-		FFightTeamData Team1;
-
-	UPROPERTY()
-		FFightTeamData Team2;
-
-	UPROPERTY()
-		TMap<FString, float> WitnessesNames;
-
-	UPROPERTY()
-		FString RespondingOfficerName;
-
-	UPROPERTY()
-		TArray<FString> AcussesTeam1Names;
-
-	UPROPERTY()
-		TArray<FString> ImpartialNames;
-
-	UPROPERTY()
-		TArray<FString> AcussesTeam2Names;
+		TArray<FString> WantedNames;
 
 	FPoliceReportData()
 	{
 		Type = EReportType::Fighting;
-		Location = FVector::Zero();
-		RespondingOfficerName = "";
 	}
 };
 

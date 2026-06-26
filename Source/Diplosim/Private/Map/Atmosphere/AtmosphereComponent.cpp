@@ -44,7 +44,7 @@ UAtmosphereComponent::UAtmosphereComponent()
 	SkyLight->SetMobility(EComponentMobility::Movable);
 	SkyLight->SetRealTimeCaptureEnabled(true);
 	SkyLight->SetCastShadows(false);
-	SkyLight->SetIntensity(2.0f);
+	SkyLight->SetIntensity(1.5f);
 
 	Sun = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Sun"));
 	Sun->SetMobility(EComponentMobility::Movable);
@@ -126,6 +126,7 @@ void UAtmosphereComponent::BeginPlay()
 
 	Sun->SetIntensity(settings->GetSunBrightness());
 	Moon->SetIntensity(settings->GetMoonBrightness());
+	SkyLight->SetIntensity(settings->GetSkyLightBrightness());
 
 	float lightShaftIntensity = 0.0f;
 

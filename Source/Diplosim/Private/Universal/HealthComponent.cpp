@@ -81,16 +81,8 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 
 		if (GetHealth() == 0)
 			Death(Attacker);
-		else if (GetOwner()->IsA<ACitizen>()) {
-			ACitizen* citizen = Cast<ACitizen>(GetOwner());
-
-			Camera->DiseaseManager->Injure(citizen, Camera->Stream.RandRange(0, 100));
-
-			if (citizen->AttackComponent->bShowMercy && GetHealth() < 25)
-				Camera->PoliceManager->StopFighting(citizen);
-			else if (GetHealth() == 0)
-				Camera->PoliceManager->ChangeReportToMurder(citizen);
-		}
+		else if (GetOwner()->IsA<ACitizen>())
+			Camera->DiseaseManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Stream.RandRange(0, 100));
 
 		Camera->PlayAmbientSound(HitAudioComponent, Sound);
 	});
@@ -182,6 +174,8 @@ void UHealthComponent::Death(AActor* Attacker)
 
 			if (citizen->Carrying.Type != nullptr && IsValid(citizen->BuildingComponent->Employment) && !citizen->BuildingComponent->Employment->IsA<AStockpile>())
 				Camera->ResourceManager->AddCommittedResource(Camera->ConquestManager->GetFaction("", citizen), citizen->Carrying.Type->GetClass(), citizen->Carrying.Amount);
+
+			Camera->PoliceManager->ChangeReportToMurder(citizen, Cast<ACitizen>(Attacker));
 		}
 		else if (actor->IsA<AEnemy>() && Camera->AttachedTo.Actor == actor)
 			Camera->AttachedTo.Actor = nullptr;

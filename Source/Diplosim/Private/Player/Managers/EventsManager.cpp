@@ -326,9 +326,7 @@ void UEventsManager::StartEvent(FFactionStruct* Faction, FEventStruct* Event, in
 	if (Event->Type == EEventType::Protest && Camera->PoliticsManager->GetLawValue(Faction->Name, "Protest Length") > 0) {
 		FPoliceReport report;
 		report.Type = EReportType::Protest;
-		report.Team1.Instigator = Event->Attendees[0];
-		report.Team1.Assistors = Event->Attendees;
-		report.Team1.Assistors.RemoveAt(0);
+		report.Wanted.Append(Event->Attendees);
 
 		Faction->Police.PoliceReports.Add(report);
 	}

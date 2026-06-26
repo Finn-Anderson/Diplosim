@@ -17,29 +17,27 @@ public:
 
 	void ProcessReports();
 
-	void PoliceInteraction(FFactionStruct* Faction, class ACitizen* Citizen, float Reach);
-
 	void CalculateIfFight(FFactionStruct* Faction, class ACitizen* Citizen1, class ACitizen* Citizen2, float Citizen1Aggressiveness, float Citizen2Aggressiveness);
-
-	void RespondToReports(FFactionStruct* Faction);
 
 	bool IsCarelessWitness(class ACitizen* Citizen);
 
-	void CreatePoliceReport(FFactionStruct* Faction, class ACitizen* Witness, class ACitizen* Accused, EReportType ReportType, int32 Index);
+	bool IsPoliceOfficer(class ACitizen* Citizen);
+
+	void CreatePoliceReport(FFactionStruct* Faction, EReportType ReportType, class ACitizen* Accused, bool bShowMercy, AActor* Defender);
 
 	bool IsInAPoliceReport(class ACitizen* Citizen, FFactionStruct* Faction);
 
-	void ChangeReportToMurder(class ACitizen* Citizen);
-
-	void StopFighting(class ACitizen* Citizen);
+	void ChangeReportToMurder(class ACitizen* Citizen, class ACitizen* Attacker);
 
 	void CeaseAllInternalFighting(FFactionStruct* Faction);
 
-	UFUNCTION()
-		void InterrogateWitnesses(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen);
+	void RepositionCriminals(class ABuilding* Building);
 
 	UFUNCTION()
-		void SetInNearestJail(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen);
+		void Arrest(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen);
+
+	UFUNCTION()
+		void Jail(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen);
 
 	void ItterateThroughSentences();
 
@@ -53,12 +51,6 @@ public:
 		class ACamera* Camera;
 
 private:
-	void GetCloserToFight(class ACitizen* Citizen, class ACitizen* Target, FVector MidPoint);
-
-	void GotoClosestWantedMan(class ACitizen* Officer);
-
-	void Arrest(class ACitizen* Officer, class ACitizen* Citizen);
-
 	FCriticalSection VandalismInteractionsLock;
 	FCriticalSection ReportInteractionsLock;
 };

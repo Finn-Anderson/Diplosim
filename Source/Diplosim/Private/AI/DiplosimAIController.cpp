@@ -530,10 +530,8 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 
 		ACitizen* citizen = Cast<ACitizen>(AI);
 
-		if (IsValid(Actor)) {
-			Camera->TimerManager->RemoveTimer("Idle", citizen);
-			Camera->TimerManager->RemoveTimer("Harvest", citizen);
-		}
+		if (IsValid(Actor))
+			ClearMovementTimers();
 
 		if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt != Actor)
 			citizen->BuildingComponent->BuildingAt->Leave(citizen); 
@@ -614,8 +612,11 @@ void UDiplosimAIController::StartMovement()
 	
 	AI->MovementComponent->SetAnimation(EAnim::Move, true, 6.0f);
 
-	if (AI->IsA<ACitizen>() && IsValid(MoveRequest.GetGoalActor()))
+	if (AI->IsA<ACitizen>() && IsValid(MoveRequest.GetGoalActor())) {
 		Camera->TimerManager->PauseTimer("Idle", AI, false);
+		Camera->TimerManager->PauseTimer("Wander", AI, false);
+		Camera->TimerManager->PauseTimer("Harvest", AI, false);
+	}
 }
 
 void UDiplosimAIController::StopMovement()
@@ -625,6 +626,18 @@ void UDiplosimAIController::StopMovement()
 
 	AI->MovementComponent->SetAnimation(EAnim::Still);
 
-	if (AI->IsA<ACitizen>() && !AI->MovementComponent->Points.IsEmpty() && IsValid(MoveRequest.GetGoalActor()))
+	if (AI->IsA<ACitizen>() && !AI->MovementComponent->Points.IsEmpty() && IsValid(MoveRequest.GetGoalActor())) {
 		Camera->TimerManager->PauseTimer("Idle", AI, true);
+		Camera->TimerManager->PauseTimer("Wander", AI, true);
+		Camera->TimerManager->PauseTimer("Harvest", AI, true);
+	}
+}
+
+void UDiplosimAIController::ClearMovementTimers()
+{
+	ACitizen* citizen = Cast<ACitizen>(AI);
+
+	Camera->TimerManager->RemoveTimer("Idle", citizen);
+	Camera->TimerManager->RemoveTimer("Wander", citizen);
+	Camera->TimerManager->RemoveTimer("Harvest", citizen);
 }
