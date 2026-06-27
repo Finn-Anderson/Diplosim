@@ -33,6 +33,8 @@ public:
 
 	void RepositionCriminals(class ABuilding* Building);
 
+	bool IsInJail(class ACitizen* Citizen);
+
 	UFUNCTION()
 		void Arrest(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen);
 
@@ -53,4 +55,6 @@ public:
 private:
 	FCriticalSection VandalismInteractionsLock;
 	FCriticalSection ReportInteractionsLock;
+
+	void StopFight(ACitizen* Citizen);
 };

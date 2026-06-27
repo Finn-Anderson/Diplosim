@@ -35,11 +35,11 @@ public:
 
 	void PickTarget(float DeltaTime);
 
-	void ClearAttacks();
-
 	void Throw();
 
 	void Melee();
+
+	void ClearAttacks();
 
 	UPROPERTY()
 		TArray<AActor*> OverlappingEnemies;
@@ -83,4 +83,6 @@ private:
 	bool IsMoraleHigh();
 
 	void Attack(AActor* Target, float DeltaTime);
+
+	bool bClearAttacks;
 };

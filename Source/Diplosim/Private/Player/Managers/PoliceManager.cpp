@@ -116,9 +116,16 @@ void UPoliceManager::ProcessReports()
 						continue;
 
 					if (IsInAPoliceReport(officer, &faction)) {
-						pursuitedWanted.Add(Cast<ACitizen>(officer->AIController->MoveRequest.GetGoalActor()));
+						ACitizen* wanted = Cast<ACitizen>(officer->AIController->MoveRequest.GetGoalActor());
 
-						continue;
+						if (IsValid(wanted) && wanted->HealthComponent->GetHealth() > 0) {
+							pursuitedWanted.Add(wanted);
+
+							if (officer->CanReach(wanted, officer->Range * 2.0f))
+								StopFight(wanted);
+
+							continue;
+						}
 					}
 
 					availableOfficers.Add(officer);
@@ -133,6 +140,10 @@ void UPoliceManager::ProcessReports()
 					return;
 
 				FPoliceReport report = faction.Police.PoliceReports[i];
+
+				for (int32 j = report.Wanted.Num() - 1; j > -1; j--)
+					if (!IsValid(report.Wanted[j]))
+						report.Wanted.RemoveAt(j);
 
 				if (report.Wanted.IsEmpty()) {
 					faction.Police.PoliceReports.RemoveAt(i);
@@ -151,6 +162,9 @@ void UPoliceManager::ProcessReports()
 					ACitizen* chosenOfficer = nullptr;
 
 					for (ACitizen* officer : availableOfficers) {
+						if (!officer->AIController->CanMoveTo(Camera->GetTargetActorLocation(wanted), officer, true, Camera->GetTargetActorLocation(officer)))
+							continue;
+
 						if (!IsValid(chosenOfficer)) {
 							chosenOfficer = officer;
 
@@ -167,8 +181,6 @@ void UPoliceManager::ProcessReports()
 
 					if (!IsValid(chosenOfficer))
 						return;
-
-					Camera->Grid->AIVisualiser->ToggleOfficerLights(chosenOfficer, 1.0f);
 
 					chosenOfficer->AIController->AIMoveTo(wanted);
 
@@ -252,10 +264,6 @@ void UPoliceManager::CreatePoliceReport(FFactionStruct* Faction, EReportType Rep
 	overlaps.bCitizens = true;
 
 	TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, Accused, Accused->InitialRange, overlaps, EFactionType::Same, Faction, Location);
-
-	if (actors.IsEmpty())
-		return;
-
 	actors.Remove(Defender);
 
 	TArray<ACitizen*> team1 = { Accused };
@@ -282,23 +290,25 @@ void UPoliceManager::CreatePoliceReport(FFactionStruct* Faction, EReportType Rep
 		if (IsValid(Defender) && Defender->IsA<ACitizen>())
 			Camera->CitizenManager->PersonalityComparison(citizen, Cast<ACitizen>(Defender), count2, citizenAggressiveness, c2Aggressiveness);
 
-		if (ReportType == EReportType::Vandalism) {
-			if (citizen->BuildingComponent->BuildingAt == Defender || citizen->BuildingComponent->House == Defender) {
-				team2.Add(citizen);
-				lean++;
-			}
-		}
-		else {
-			int32 value = FMath::Abs(count1 - count2);
-
-			if (Camera->Stream.RandRange(0, 100) < citizenAggressiveness * value * 20) {
-				if (count1 > count2) {
-					team1.Add(citizen);
-					lean--;
-				}
-				else {
+		if (!IsPoliceOfficer(citizen)) {
+			if (ReportType == EReportType::Vandalism) {
+				if (citizen->BuildingComponent->BuildingAt == Defender || citizen->BuildingComponent->House == Defender) {
 					team2.Add(citizen);
 					lean++;
+				}
+			}
+			else {
+				int32 value = FMath::Abs(count1 - count2);
+
+				if (Camera->Stream.RandRange(0, 100) < citizenAggressiveness * value * 2.5f) {
+					if (count1 > count2) {
+						team1.Add(citizen);
+						lean--;
+					}
+					else {
+						team2.Add(citizen);
+						lean++;
+					}
 				}
 			}
 		}
@@ -306,7 +316,7 @@ void UPoliceManager::CreatePoliceReport(FFactionStruct* Faction, EReportType Rep
 		if (team1.Contains(citizen) || team2.Contains(citizen))
 			continue;
 
-		lean += (count2 - count1) * 2;
+		lean += (count2 - count1) * 3;
 	}
 
 	for (ACitizen* citizen1 : team1) {
@@ -328,11 +338,27 @@ void UPoliceManager::CreatePoliceReport(FFactionStruct* Faction, EReportType Rep
 		}
 	}
 
+	FString law = "Fighting Length";
+
+	if (report.Type == EReportType::Murder)
+		law = "Murder Length";
+	else if (report.Type == EReportType::Vandalism)
+		law = "Vandalism Length";
+	else if (report.Type == EReportType::Protest)
+		law = "Protest Length";
+
+	if (Camera->PoliticsManager->GetLawValue(Faction->Name, law) == 0)
+		return;
+
 	if (FMath::Abs(lean) > actors.Num()) {
 		if (lean > 0)
 			report.Wanted.Append(team1);
 		else
 			report.Wanted.Append(team2);
+	}
+	else {
+		report.Wanted.Append(team1);
+		report.Wanted.Append(team2);
 	}
 
 	Faction->Police.PoliceReports.Add(report);
@@ -361,12 +387,8 @@ void UPoliceManager::ChangeReportToMurder(ACitizen* Citizen, ACitizen* Attacker)
 		if (report.Type == EReportType::Fighting)
 			report.Type = EReportType::Murder;
 
-		if (report.Wanted.Contains(Citizen)) {
+		if (report.Wanted.Contains(Citizen))
 			report.Wanted.Remove(Citizen);
-
-			if (report.Wanted.IsEmpty())
-				faction->Police.PoliceReports.Remove(report);
-		}
 
 		break;
 	}
@@ -402,6 +424,11 @@ void UPoliceManager::RepositionCriminals(ABuilding* Building)
 	}
 }
 
+bool UPoliceManager::IsInJail(ACitizen* Citizen)
+{
+	return Camera->ConquestManager->GetFaction("", Citizen)->Police.Arrested.Contains(Citizen);
+}
+
 void UPoliceManager::Arrest(FFactionStruct Faction, ACitizen* Officer, ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
@@ -414,32 +441,8 @@ void UPoliceManager::Arrest(FFactionStruct Faction, ACitizen* Officer, ACitizen*
 	Officer->AIController->StopMovement();
 	Citizen->AIController->StopMovement();
 
-	for (FPoliceReport& report : faction->Police.PoliceReports) {
-		if (!report.Wanted.Contains(Citizen))
-			continue;
-
-		FString law = "Fighting Length";
-
-		if (report.Type == EReportType::Murder)
-			law = "Murder Length";
-		else if (report.Type == EReportType::Vandalism)
-			law = "Vandalism Length";
-		else if (report.Type == EReportType::Protest)
-			law = "Protest Length";
-
-		if (Camera->PoliticsManager->GetLawValue(faction->Name, law) == 0) {
-			report.Wanted.Remove(Citizen);
-
-			Officer->AIController->DefaultAction();
-			Citizen->AIController->StartMovement();
-
-			return;
-		}
-
-		break;
-	}
-
-	UNiagaraFunctionLibrary::SpawnSystemAttached(ArrestSystem, Citizen->GetRootComponent(), "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
+	FTransform transform = Citizen->MovementComponent->GetMovementTransform();
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ArrestSystem, transform.GetLocation(), transform.GetRotation().Rotator(), transform.GetScale3D());
 
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(*faction, params);
@@ -486,12 +489,17 @@ void UPoliceManager::Jail(FFactionStruct Faction, ACitizen* Officer, ACitizen* C
 
 			for (auto& element : arrested)
 				element.Key->AIController->DefaultAction();
+
+			return;
 		}
 	}
 
-	Citizen->MovementComponent->Transform.SetLocation(Officer->BuildingComponent->Employment->GetActorLocation());
+	Citizen->MovementComponent->Transform.SetLocation(Officer->BuildingComponent->Employment->GetActorLocation() + FVector(Camera->Stream.RandRange(-80, 80), Camera->Stream.RandRange(-80, 80), 0.0f));
 	Citizen->BuildingComponent->BuildingAt = Officer->BuildingComponent->Employment;
+	Citizen->MovementComponent->SetPoints({});
+	Citizen->AttackComponent->ClearAttacks();
 	Citizen->AIController->Idle(faction, Citizen);
+	Citizen->bConversing = false;
 
 	FPartyStruct* party = Camera->PoliticsManager->GetMembersParty(Citizen);
 
@@ -505,35 +513,36 @@ void UPoliceManager::Jail(FFactionStruct Faction, ACitizen* Officer, ACitizen* C
 	if (faction->Politics.Representatives.Contains(Citizen))
 		faction->Politics.Representatives.Remove(Citizen);
 
+	FString law = "";
+
 	for (FPoliceReport report : faction->Police.PoliceReports) {
-		if (report.Wanted.Contains(Citizen))
+		if (!report.Wanted.Contains(Citizen))
 			continue;
 
-		FString law = "Fighting Length";
-
-		if (report.Type == EReportType::Murder)
-			law = "Murder Length";
-		else if (report.Type == EReportType::Vandalism)
-			law = "Vandalism Length";
-		else if (report.Type == EReportType::Protest)
-			law = "Protest Length";
-
-		faction->Police.Arrested.Add(Citizen, Camera->PoliticsManager->GetLawValue(faction->Name, law));
-
-		if (faction->Name == Citizen->Camera->ColonyName)
-			Citizen->Camera->NotifyLog(Citizen, "Bad", Citizen->BioComponent->Name + " has been arrested", faction->Name);
+		if (law == "") {
+			if (report.Type == EReportType::Fighting)
+				law = "Fighting Length";
+			else if (report.Type == EReportType::Murder)
+				law = "Murder Length";
+			else if (report.Type == EReportType::Vandalism)
+				law = "Vandalism Length";
+			else
+				law = "Protest Length";
+		}
 
 		report.Wanted.Remove(Citizen);
-
-		break;
 	}
+
+	faction->Police.Arrested.Add(Citizen, Camera->PoliticsManager->GetLawValue(faction->Name, law));
+
+	if (faction->Name == Citizen->Camera->ColonyName)
+		Citizen->Camera->NotifyLog(Citizen, "Bad", Citizen->BioComponent->Name + " has been arrested", faction->Name);
 
 	if (Officer->AIController->MoveRequest.GetGoalActor() != Citizen || Officer->HealthComponent->GetHealth() == 0)
 		return;
 
-	Camera->Grid->AIVisualiser->ToggleOfficerLights(Officer, 0.0f);
-
 	Officer->AIController->DefaultAction();
+	Officer->bConversing = false;
 }
 
 void UPoliceManager::ItterateThroughSentences()
@@ -558,5 +567,19 @@ void UPoliceManager::ItterateThroughSentences()
 
 			citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 		}
+	}
+}
+
+void UPoliceManager::StopFight(ACitizen* Citizen)
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
+
+	for (FPoliceReport report : faction->Police.PoliceReports) {
+		if (!report.Wanted.Contains(Citizen))
+			continue;
+
+		for (ACitizen* citizen : report.Wanted)
+			if (IsValid(citizen))
+				citizen->AttackComponent->ClearAttacks();
 	}
 }

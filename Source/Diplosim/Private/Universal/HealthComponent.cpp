@@ -81,8 +81,10 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 
 		if (GetHealth() == 0)
 			Death(Attacker);
-		else if (GetOwner()->IsA<ACitizen>())
-			Camera->DiseaseManager->Injure(Cast<ACitizen>(GetOwner()), Camera->Stream.RandRange(0, 100));
+		else if (GetOwner()->IsA<ACitizen>()) {
+			ACitizen* citizen = Cast<ACitizen>(GetOwner());
+			Camera->DiseaseManager->Injure(citizen, Camera->Stream.RandRange(0, 100));
+		}
 
 		Camera->PlayAmbientSound(HitAudioComponent, Sound);
 	});

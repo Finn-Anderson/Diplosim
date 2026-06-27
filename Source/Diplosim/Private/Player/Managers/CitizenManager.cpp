@@ -230,13 +230,16 @@ void UCitizenManager::CalculateGoalInteractions()
 
 				AActor* actor = citizen->AIController->MoveRequest.GetGoalActor();
 
-				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || IsValid(citizen->BuildingComponent->BuildingAt) || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || !IsValid(actor) || actor->IsA<AAI>())
+				if (!IsValid(citizen) || !IsValid(actor) || citizen->HealthComponent->GetHealth() <= 0 || IsValid(citizen->BuildingComponent->BuildingAt) || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 					continue;
 
-				if (!citizen->CanReach(actor, citizen->GetReach(), citizen->AIController->MoveRequest.GetLocation(), citizen->AIController->MoveRequest.GetGoalInstance()))
+				if (!citizen->CanReach(actor, citizen->GetReach()))
 					continue;
 
-				Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() {
+				FString factionName = faction.Name;
+				Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor, factionName]() {
+					FFactionStruct* faction = Camera->ConquestManager->GetFaction(factionName);
+
 					if (actor->IsA<AResource>() && Camera->TimerManager->FindTimer("Harvest", citizen) == nullptr) {
 						AResource* r = Cast<AResource>(actor);
 
@@ -246,6 +249,9 @@ void UCitizenManager::CalculateGoalInteractions()
 						ABuilding* b = Cast<ABuilding>(actor);
 
 						b->Enter(citizen);
+					}
+					else if (!citizen->bConversing && actor->IsA<ACitizen>() && Camera->PoliceManager->IsInAPoliceReport(citizen, faction) && Camera->PoliceManager->IsPoliceOfficer(citizen)) {
+						StartConversation(faction, citizen, Cast<ACitizen>(actor), true);
 					}
 				});
 			}
@@ -275,20 +281,12 @@ void UCitizenManager::CalculateConversationInteractions()
 
 				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 25 || citizen->bConversing || citizen->bSleep || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || (IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->bEmergency) || *citizen->HappinessComponent->DecayingHappiness.Find(EHappinessType::Conversation) != 0)
 					continue;
-
-				bool bCitizenInReport = Camera->PoliceManager->IsInAPoliceReport(citizen, &faction);
-
-				float reach = citizen->GetReach();
 				
-				if (bCitizenInReport && IsValid(citizen->BuildingComponent->Employment) && citizen->BuildingComponent->Employment->IsA(Camera->PoliceManager->PoliceStationClass)) {
-					if (citizen->CanReach(citizen->AIController->MoveRequest.GetGoalActor(), reach))
-						StartConversation(&faction, citizen, Cast<ACitizen>(citizen->AIController->MoveRequest.GetGoalActor()), true);
-				}
-				else if (!bCitizenInReport && Camera->Stream.RandRange(0, 1000) == 1000) {
+				if (!Camera->PoliceManager->IsInAPoliceReport(citizen, &faction) && Camera->Stream.RandRange(0, 1000) == 1000) {
 					FOverlapsStruct requestedOverlaps;
 					requestedOverlaps.bCitizens = true;
 
-					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, reach, requestedOverlaps, EFactionType::Same, &faction);
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->GetReach(), requestedOverlaps, EFactionType::Same, &faction);
 					TArray<ACitizen*> citizensToTalkTo;
 
 					for (AActor* actor : actors) {
@@ -576,7 +574,7 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 		Camera->TimerManager->SetParameter(Citizen2, params);
 
 		if (bArrest)
-			Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Arrest", Camera, 6.0f, "Arrest", params, false);
+			Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Arrest", Camera, 4.0f, "Arrest", params, false, true);
 		else
 			Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Interact", Camera, 6.0f, "Interact", params, false);
 

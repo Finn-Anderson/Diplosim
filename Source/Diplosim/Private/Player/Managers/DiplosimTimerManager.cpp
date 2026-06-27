@@ -48,12 +48,12 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 			if (Camera->SaveGameComponent->IsLoading())
 				return;
 
-			FTimerStruct& timer = node->GetValue();
-
-			if (!IsValid(this))
+			if (!IsValid(this) || !node)
 				return;
 
-			if (!IsValid(timer.Actor)) {
+			FTimerStruct& timer = node->GetValue();
+
+			if (!IsValid(timer.Actor) || (timer.Actor->FindComponentByClass<UHealthComponent>() && timer.Actor->FindComponentByClass<UHealthComponent>()->GetHealth() == 0)) {
 				FScopeLock lock(&TimerLock);
 				Timers.RemoveNode(node);
 

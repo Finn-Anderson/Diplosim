@@ -878,9 +878,6 @@ void UBuildComponent::Place(bool bQuick)
 
 				BuildingToMove->SetSocketLocation(citizen);
 			}
-			else {
-				citizen->AIController->RecalculateMovement(BuildingToMove);
-			}
 		}
 
 		UConstructionManager* cm = Camera->ConstructionManager;

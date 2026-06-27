@@ -73,7 +73,7 @@ void AAI::MoveToBroch()
 	AIController->AIMoveTo(target);
 }
 
-bool AAI::CanReach(AActor* Actor, float Reach, FVector Location, int32 Instance)
+bool AAI::CanReach(AActor* Actor, float Reach, FVector Location)
 {
 	FVector movementLocation = MovementComponent->Transform.GetLocation();
 

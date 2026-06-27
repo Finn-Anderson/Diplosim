@@ -49,7 +49,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 
 	ComputeCurrentAnimation(goal, DeltaTime, Instances);
 
-	if (AI->HealthComponent->GetHealth() == 0)
+	if (AI->HealthComponent->GetHealth() == 0 || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->bConversing))
 		return;
 
 	AI->AIController->RecalculateMovement(goal);

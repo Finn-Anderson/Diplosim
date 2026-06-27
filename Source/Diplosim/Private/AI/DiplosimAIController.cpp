@@ -72,7 +72,7 @@ void UDiplosimAIController::DefaultAction()
 			}
 		}
 
-		if (citizen->bConversing || Camera->PoliceManager->IsInAPoliceReport(citizen, faction) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty() || Camera->EventsManager->IsAttendingEvent(citizen))
+		if (!citizen->AttackComponent->OverlappingEnemies.IsEmpty() || Camera->EventsManager->IsAttendingEvent(citizen))
 			return;
 
 		for (auto& element : Camera->EventsManager->OngoingEvents()) {
@@ -447,7 +447,7 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(100.0f, 100.0f, 200.0f));
 	MoveRequest.SetLocation(navLoc);
 	
-	if (AI->CanReach(Actor, AI->GetReach(), MoveRequest.GetLocation(), Instance) || (IsValid(Actor) && AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
+	if (AI->CanReach(Actor, AI->GetReach(), MoveRequest.GetLocation()) || (IsValid(Actor) && AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
 		return;
 
 	FNavLocation navAILoc;
@@ -533,7 +533,7 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 		if (IsValid(Actor))
 			ClearMovementTimers();
 
-		if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt != Actor)
+		if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt != Actor && !citizen->Camera->PoliceManager->IsInJail(citizen))
 			citizen->BuildingComponent->BuildingAt->Leave(citizen); 
 	});
 }

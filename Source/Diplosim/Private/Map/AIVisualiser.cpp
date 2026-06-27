@@ -28,6 +28,7 @@
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Managers/PoliceManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
@@ -113,7 +114,8 @@ void UAIVisualiser::BeginPlay()
 
 void UAIVisualiser::ResetToDefaultValues()
 {
-	PendingChange.Empty();
+	CitizenPendingChange.Empty();
+	AIPendingChange.Empty();
 
 	for (int32 i = 0; i < HISMCitizen->GetInstanceCount(); i++)
 		RemoveInstance(HISMCitizen, i);
@@ -142,20 +144,6 @@ void UAIVisualiser::ResetToDefaultValues()
 
 void UAIVisualiser::MainLoop(ACamera* Camera, float DeltaTime)
 {
-	for (FPendingChangeStruct pending : PendingChange) {
-		if (pending.Instances.IsEmpty()) {
-			int32 instance = pending.ISM->AddInstance(pending.Transform, false);
-
-			if (IsValid(pending.AI->SpawnSystem) && DeltaTime != 0.0f)
-				UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), pending.AI->SpawnSystem, pending.Transform.GetLocation());
-		}
-		else
-			pending.ISM->RemoveInstances(pending.Instances);
-	}
-
-	if (!PendingChange.IsEmpty())
-		PendingChange.Empty();
-
 	HarvestVisualCooldownTimer = FMath::Max(HarvestVisualCooldownTimer - DeltaTime, 0.0f);
 
 	CalculateCitizenMovement(Camera);
@@ -174,6 +162,16 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 	if (HarvestVisualCooldownTimer == 0.0f && HarvestNiagaraComponent->IsActive())
 		HarvestNiagaraComponent->Deactivate();
+
+	for (FPendingChangeStruct pending : CitizenPendingChange) {
+		if (pending.Instances.IsEmpty())
+			CreateInstance(pending);
+		else
+			DeleteInstance(pending);
+	}
+
+	if (!CitizenPendingChange.IsEmpty())
+		CitizenPendingChange.Empty();
 
 	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
 		FScopeTryLock lock(&CitizenMovementLock);
@@ -265,7 +263,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 						if (i == 0) {
 							float opacity = 1.0f;
-							if (IsValid(citizen->BuildingComponent->BuildingAt)) {
+							if (IsValid(citizen->BuildingComponent->BuildingAt) && !Camera->PoliceManager->IsInJail(citizen)) {
 								if (citizen->BuildingComponent->BuildingAt->bHideCitizen)
 									opacity = 0.0f;
 								else if (!citizen->BuildingComponent->BuildingAt->SocketList.IsEmpty()) {
@@ -318,6 +316,20 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 {
+	FScopeTryLock lock(&AIMovementLock);
+	if (!lock.IsLocked())
+		return;
+
+	for (FPendingChangeStruct pending : AIPendingChange) {
+		if (pending.Instances.IsEmpty())
+			CreateInstance(pending);
+		else
+			DeleteInstance(pending);
+	}
+
+	if (!AIPendingChange.IsEmpty())
+		AIPendingChange.Empty();
+
 	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
 		FScopeTryLock lock(&AIMovementLock);
 		if (!lock.IsLocked())
@@ -494,7 +506,7 @@ void UAIVisualiser::CalculateBuildingRotation(ACamera* Camera)
 	});
 }
 
-void UAIVisualiser::AddInstance(class AAI* AI, UAIInstancedStaticMeshComponent* ISM, FTransform Transform)
+void UAIVisualiser::AddInstance(AAI* AI, UAIInstancedStaticMeshComponent* ISM, FTransform Transform)
 {
 	AI->MovementComponent->Transform = Transform;
 
@@ -503,7 +515,10 @@ void UAIVisualiser::AddInstance(class AAI* AI, UAIInstancedStaticMeshComponent* 
 	pending.ISM = ISM;
 	pending.Transform = Transform;
 
-	PendingChange.Add(pending);
+	if (AI->IsA<ACitizen>())
+		CitizenPendingChange.Add(pending);
+	else
+		AIPendingChange.Add(pending);
 }
 
 void UAIVisualiser::RemoveInstance(UAIInstancedStaticMeshComponent* ISM, int32 Instance)
@@ -512,12 +527,37 @@ void UAIVisualiser::RemoveInstance(UAIInstancedStaticMeshComponent* ISM, int32 I
 	pending.ISM = ISM;
 	pending.Instances = { Instance };
 
-	int32 index = PendingChange.Find(pending);
+	int32 index = INDEX_NONE;
+	
+	if (ISM == HISMCitizen || ISM == HISMRebel) {
+		index = CitizenPendingChange.Find(pending);
 
-	if (index == INDEX_NONE)
-		PendingChange.Add(pending);
-	else
-		PendingChange[index].Instances.Add(Instance);
+		if (index == INDEX_NONE)
+			CitizenPendingChange.Add(pending);
+		else
+			CitizenPendingChange[index].Instances.Add(Instance);
+	}
+	else {
+		index = AIPendingChange.Find(pending);
+
+		if (index == INDEX_NONE)
+			AIPendingChange.Add(pending);
+		else
+			AIPendingChange[index].Instances.Add(Instance);
+	}
+}
+
+void UAIVisualiser::CreateInstance(FPendingChangeStruct PendingChange)
+{
+	int32 instance = PendingChange.ISM->AddInstance(PendingChange.Transform, false);
+
+	if (IsValid(PendingChange.AI->SpawnSystem))
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), PendingChange.AI->SpawnSystem, PendingChange.Transform.GetLocation());
+}
+
+void UAIVisualiser::DeleteInstance(FPendingChangeStruct PendingChange)
+{
+	PendingChange.ISM->RemoveInstances(PendingChange.Instances);
 }
 
 void UAIVisualiser::UpdateInstanceCustomData(UAIInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value, TArray<int32>& Instances)
@@ -905,6 +945,15 @@ void UAIVisualiser::UpdateHatTransform(ACitizen* Citizen, TArray<FHatsToUpdateSt
 		opacity = 0.0f;
 
 	UpdateInstanceCustomData(hatStruct->ISMHat, index, 1, opacity, HatsToUpdate[i].InstanceDataToUpdate);
+
+	if (hatStruct->ISMHat->NumCustomDataFloats < 3)
+		return;
+
+	float lights = 0.0f;
+	if (Citizen->Camera->PoliceManager->IsPoliceOfficer(Citizen) && Citizen->Camera->PoliceManager->IsInAPoliceReport(Citizen, Citizen->Camera->ConquestManager->GetFaction("", Citizen)))
+		lights = 1.0f;
+
+	UpdateInstanceCustomData(hatStruct->ISMHat, index, 2, lights, HatsToUpdate[i].InstanceDataToUpdate);
 }
 
 void UAIVisualiser::AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh)
@@ -954,16 +1003,4 @@ FHatsStruct* UAIVisualiser::GetCitizenHat(ACitizen* Citizen)
 bool UAIVisualiser::DoesCitizenHaveHat(ACitizen* Citizen)
 {
 	return GetCitizenHat(Citizen) != nullptr;
-}
-
-void UAIVisualiser::ToggleOfficerLights(ACitizen* Citizen, float Value)
-{
-	for (FHatsStruct& hat : HISMHats) {
-		if (!hat.Citizens.Contains(Citizen))
-			continue;
-
-		int32 instance = hat.Citizens.Find(Citizen);
-
-		hat.ISMHat->PerInstanceSMCustomData[instance * hat.ISMHat->NumCustomDataFloats + 1] = Value;
-	}
 }

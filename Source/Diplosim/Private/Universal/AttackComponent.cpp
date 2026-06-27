@@ -42,6 +42,7 @@ UAttackComponent::UAttackComponent()
 
 	bShowMercy = false;
 	bFactorMorale = false;
+	bClearAttacks = false;
 }
 
 void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
@@ -59,28 +60,19 @@ void UAttackComponent::PickTarget(float DeltaTime)
 	if (GetOwner()->IsA<AAI>())
 		ai = Cast<AAI>(GetOwner());
 
-	if (bShowMercy && ai->HealthComponent->GetHealth() <= ai->HealthComponent->MaxHealth / 4.0f) {
-		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", ai);
-
-		for (int32 i = OverlappingEnemies.Num() - 1; i > -1; i--) {
-			if (!faction->Citizens.Contains(OverlappingEnemies[i]))
-				continue;
-
-			ACitizen* citizen = Cast<ACitizen>(OverlappingEnemies[i]);
-			citizen->AttackComponent->OverlappingEnemies.RemoveAt(i);
-
-			if (citizen->AttackComponent->OverlappingEnemies.IsEmpty()) {
-				citizen->AttackComponent->bShowMercy = false;
-
-				citizen->AIController->DefaultAction();
-			}
-		}
-
+	if (bClearAttacks) {
 		OverlappingEnemies.Empty();
+
+		bClearAttacks = false;
 	}
 
 	for (int32 i = OverlappingEnemies.Num() - 1; i > -1; i--) {
+		if (i >= OverlappingEnemies.Num())
+			continue;
+
 		AActor* target = OverlappingEnemies[i];
+		UAttackComponent* targetAttackComp = target->FindComponentByClass<UAttackComponent>();
+		UHealthComponent* targetHealthComp = target->FindComponentByClass<UHealthComponent>();
 		FFavourabilityStruct targetFavourability = GetActorFavourability(target);
 
 		bool withinRange = true;
@@ -90,7 +82,7 @@ void UAttackComponent::PickTarget(float DeltaTime)
 		else if (GetOwner()->IsA<AAI>() && *ProjectileClass)
 			withinRange = ai->CanReach(target, ai->Range);
 
-		if (targetFavourability.Hp == 0 || targetFavourability.Hp == 10000000 || !withinRange) {
+		if (targetFavourability.Hp <= (bShowMercy ? targetHealthComp->MaxHealth / 4 : 0) || targetFavourability.Hp == 10000000 || !withinRange || (targetAttackComp && !targetAttackComp->OverlappingEnemies.Contains(ai))) {
 			OverlappingEnemies.RemoveAt(i);
 
 			continue;
@@ -352,7 +344,5 @@ void UAttackComponent::Melee()
 
 void UAttackComponent::ClearAttacks()
 {
-	OverlappingEnemies.Empty();
-
-	AttackTimer = 0.0f;
+	bClearAttacks = true;
 }

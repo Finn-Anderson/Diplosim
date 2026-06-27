@@ -229,6 +229,10 @@ public:
 
 	void RemoveInstance(class UAIInstancedStaticMeshComponent* ISM, int32 Instance);
 
+	void CreateInstance(FPendingChangeStruct PendingChange);
+
+	void DeleteInstance(FPendingChangeStruct PendingChange);
+
 	void SetHarvestVisuals(class ACitizen* Citizen, class AResource* Resource);
 
 	TTuple<class UAIInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
@@ -242,7 +246,10 @@ public:
 	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction = nullptr, FVector Location = FVector::Zero());
 
 	UPROPERTY()
-		TArray<FPendingChangeStruct> PendingChange;
+		TArray<FPendingChangeStruct> CitizenPendingChange;
+
+	UPROPERTY()
+		TArray<FPendingChangeStruct> AIPendingChange;
 
 	UPROPERTY()
 		TMap<class AActor*, double> DestructingActors;
@@ -265,8 +272,6 @@ public:
 	void RemoveCitizenFromHISMHat(ACitizen* Citizen);
 
 	bool DoesCitizenHaveHat(ACitizen* Citizen);
-
-	void ToggleOfficerLights(ACitizen* Citizen, float Value);
 
 private:
 	void CalculateCitizenMovement(class ACamera* Camera);
