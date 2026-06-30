@@ -6,6 +6,7 @@
 #include "AI/Clone.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/Citizen/Citizen.h"
+#include "AI/Citizen/Components/BuildingComponent.h"
 #include "Buildings/Misc/Festival.h"
 #include "Buildings/Misc/Road.h"
 #include "Map/AIVisualiser.h"
@@ -33,7 +34,7 @@ UAIMovementComponent::UAIMovementComponent()
 
 	ActorToLookAt = nullptr;
 	bSetPoints = false;
-
+	bReleaseFromJail = false;
 }
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Instances)
@@ -54,11 +55,21 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 
 	AI->AIController->RecalculateMovement(goal);
 
-	if (bSetPoints) {
+	if (bSetPoints || bReleaseFromJail) {
 		Points = TempPoints;
 
 		TempPoints.Empty();
 		bSetPoints = false;
+
+		if (bReleaseFromJail) {
+			ACitizen* citizen = Cast<ACitizen>(AI);
+			AI->AIController->StopMovement();
+			Transform.SetLocation(citizen->BuildingComponent->EnterLocation);
+			citizen->BuildingComponent->EnterLocation = FVector::Zero();
+			citizen->AIController->DefaultAction();
+
+			bReleaseFromJail = false;
+		}
 	}
 
 	if (CurrentAnim.Type != EAnim::Move || Points.IsEmpty())

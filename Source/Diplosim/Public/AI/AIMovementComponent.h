@@ -70,6 +70,9 @@ public:
 	UPROPERTY()
 		bool bSetPoints;
 
+	UPROPERTY()
+		bool bReleaseFromJail;
+
 private:
 	void ComputeCurrentAnimation(AActor* Goal, float DeltaTime, TArray<int32>& Instances);
 

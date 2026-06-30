@@ -528,22 +528,22 @@ void UAIVisualiser::RemoveInstance(UAIInstancedStaticMeshComponent* ISM, int32 I
 	pending.Instances = { Instance };
 
 	int32 index = INDEX_NONE;
-	
-	if (ISM == HISMCitizen || ISM == HISMRebel) {
-		index = CitizenPendingChange.Find(pending);
 
-		if (index == INDEX_NONE)
-			CitizenPendingChange.Add(pending);
-		else
-			CitizenPendingChange[index].Instances.Add(Instance);
-	}
-	else {
+	if (ISM == HISMClone || ISM == HISMEnemy || ISM == HISMSnake) {
 		index = AIPendingChange.Find(pending);
 
 		if (index == INDEX_NONE)
 			AIPendingChange.Add(pending);
 		else
 			AIPendingChange[index].Instances.Add(Instance);
+	}
+	else {
+		index = CitizenPendingChange.Find(pending);
+
+		if (index == INDEX_NONE)
+			CitizenPendingChange.Add(pending);
+		else
+			CitizenPendingChange[index].Instances.Add(Instance);
 	}
 }
 

@@ -129,27 +129,6 @@ void ACitizen::ClearCitizen()
 	else if (IsValid(BuildingComponent->School))
 		BuildingComponent->School->RemoveVisitor(BuildingComponent->School->GetOccupant(this), this);
 
-	if (IsValid(BuildingComponent->House)) {
-		if (BuildingComponent->House->GetOccupied().Contains(this)) {
-			if (BioComponent->Partner != nullptr) {
-				BuildingComponent->House->RemoveVisitor(this, BioComponent->Partner.Get());
-
-				int32 index = BuildingComponent->House->GetOccupied().Find(this);
-
-				BuildingComponent->House->Occupied[index].Citizen = BioComponent->Partner.Get();
-			}
-			else {
-				BuildingComponent->House->RemoveCitizen(this);
-			}
-		}
-		else {
-			BuildingComponent->House->RemoveVisitor(BuildingComponent->House->GetOccupant(this), this);
-		}
-	}
-
-	BioComponent->Disown();
-	BioComponent->RemovePartner();
-
 	Camera->EventsManager->RemoveFromEvent(this);
 }
 

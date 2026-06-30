@@ -47,12 +47,12 @@ void UPoliceManager::CalculateVandalism()
 				continue;
 
 			for (ACitizen* citizen : citizens) {
-				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || citizen->IsHidden() || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
+				if (!IsValid(citizen) || citizen->HealthComponent->GetHealth() <= 0 || faction.Police.Arrested.Contains(citizen) || !citizen->AttackComponent->OverlappingEnemies.IsEmpty())
 					continue;
 
-				FPartyStruct* partyStruct = Camera->PoliticsManager->GetMembersParty(citizen);
+				FString party = Camera->PoliticsManager->GetCitizenParty(citizen);
 
-				if (citizen->bConversing || citizen->bSleep || IsValid(citizen->BuildingComponent->BuildingAt) || partyStruct == nullptr || partyStruct->Party != "Shell Breakers")
+				if (citizen->bConversing || citizen->bSleep || IsValid(citizen->BuildingComponent->BuildingAt) || party != "Shell Breakers")
 					continue;
 
 				int32 aggressiveness = 0;
@@ -75,7 +75,7 @@ void UPoliceManager::CalculateVandalism()
 				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->GetReach(), requestedOverlaps, EFactionType::Same, &faction);
 
 				for (AActor* actor : actors) {
-					if (actor->IsA<ABroch>() || actor->IsA<ARoad>() || actor->IsA<AFestival>())
+					if (actor->IsA<ABroch>() || actor->IsA<ARoad>() || actor->IsA<AFestival>() || citizen->BuildingComponent->House == actor)
 						continue;
 
 					Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() { Camera->Grid->AtmosphereComponent->SetOnFire(actor); });
@@ -193,7 +193,7 @@ void UPoliceManager::ProcessReports()
 
 void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen1, ACitizen* Citizen2, float Citizen1Aggressiveness, float Citizen2Aggressiveness)
 {
-	if (Faction->Citizens.Num() <= 20 || Faction->Police.Arrested.Contains(Citizen1) || Faction->Police.Arrested.Contains(Citizen2))
+	if (Faction->Citizens.Num() <= 20 || Faction->Police.Arrested.Contains(Citizen1) || Faction->Police.Arrested.Contains(Citizen2) || IsPoliceOfficer(Citizen1) || IsPoliceOfficer(Citizen2))
 		return;
 
 	FVector midPoint = (Camera->GetTargetActorLocation(Citizen1) + Camera->GetTargetActorLocation(Citizen2)) / 2;
@@ -212,12 +212,6 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 
 		break;
 	}
-
-	if (IsValid(Citizen1->BuildingComponent->Employment) && Citizen1->BuildingComponent->Employment->IsA(PoliceStationClass))
-		Citizen1Aggressiveness *= 0.5f;
-
-	if (IsValid(Citizen2->BuildingComponent->Employment) && Citizen2->BuildingComponent->Employment->IsA(PoliceStationClass))
-		Citizen2Aggressiveness *= 0.5f;
 
 	int32 aggressorValue = Camera->Stream.FRandRange(0.0f, Citizen1Aggressiveness + Citizen2Aggressiveness);
 
@@ -276,7 +270,7 @@ void UPoliceManager::CreatePoliceReport(FFactionStruct* Faction, EReportType Rep
 	for (AActor* actor : actors) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
 
-		if (IsCarelessWitness(citizen))
+		if (IsCarelessWitness(citizen) || Faction->Police.Arrested.Contains(citizen))
 			continue;
 
 		int32 count1 = 0;
@@ -437,6 +431,8 @@ void UPoliceManager::Arrest(FFactionStruct Faction, ACitizen* Officer, ACitizen*
 		Camera->DiseaseManager->Cure(Citizen, Citizen);
 
 	Citizen->ClearCitizen();
+	Citizen->AttackComponent->ClearAttacks();
+	Citizen->MovementComponent->SetPoints({});
 
 	Officer->AIController->StopMovement();
 	Citizen->AIController->StopMovement();
@@ -495,9 +491,7 @@ void UPoliceManager::Jail(FFactionStruct Faction, ACitizen* Officer, ACitizen* C
 	}
 
 	Citizen->MovementComponent->Transform.SetLocation(Officer->BuildingComponent->Employment->GetActorLocation() + FVector(Camera->Stream.RandRange(-80, 80), Camera->Stream.RandRange(-80, 80), 0.0f));
-	Citizen->BuildingComponent->BuildingAt = Officer->BuildingComponent->Employment;
-	Citizen->MovementComponent->SetPoints({});
-	Citizen->AttackComponent->ClearAttacks();
+	Citizen->BuildingComponent->EnterLocation = Officer->BuildingComponent->Employment->BuildingMesh->GetSocketLocation("Entrance");
 	Citizen->AIController->Idle(faction, Citizen);
 	Citizen->bConversing = false;
 
@@ -562,10 +556,10 @@ void UPoliceManager::ItterateThroughSentences()
 		for (ACitizen* citizen : served) {
 			faction.Police.Arrested.Remove(citizen);
 
+			citizen->MovementComponent->bReleaseFromJail = true;
+
 			if (faction.Name == citizen->Camera->ColonyName)
 				citizen->Camera->NotifyLog(citizen, "Good", citizen->BioComponent->Name + " has been released from prison", faction.Name);
-
-			citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->BuildingMesh->GetSocketLocation("Entrance"));
 		}
 	}
 }

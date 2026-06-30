@@ -102,8 +102,8 @@ struct FSeedStruct
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
-		UTexture2D* Texture;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation", meta = (AllowedClasses = "/Script/Engine.Texture2D, /Script/Engine.MaterialInterface"))
+		UObject* Texture;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Randomisation")
 		int32 Health;

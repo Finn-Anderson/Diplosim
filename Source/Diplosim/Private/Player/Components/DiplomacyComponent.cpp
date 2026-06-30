@@ -40,7 +40,7 @@ void UDiplomacyComponent::InitCultureList()
 		for (auto& element : jsonObject->Values)
 			for (auto& e : element.Value->AsArray())
 				for (auto& v : e->AsObject()->Values)
-					if (v.Value->Type == EJson::String)
+					if (v.Value->Type == EJson::String && FString(v.Key) != "Colour")
 						CultureTextureList.Add(v.Value->AsString(), nullptr);
 	}
 }

@@ -933,7 +933,7 @@
 			"Bills": {
 				"Descriptions": [
 					{
-						"Description": "Set murder jail lentgh to X hours",
+						"Description": "Set murder jail length to X hours",
 						"Min": 0,
 						"Max": 600
 					}
@@ -981,7 +981,7 @@
 			"Bills": {
 				"Descriptions": [
 					{
-						"Description": "Set vandalism jail lentgh to X hours",
+						"Description": "Set vandalism jail length to X hours",
 						"Min": 0,
 						"Max": 600
 					}
@@ -1029,7 +1029,7 @@
 			"Bills": {
 				"Descriptions": [
 					{
-						"Description": "Set protesting jail lentgh to X hours",
+						"Description": "Set protesting jail length to X hours",
 						"Min": 0,
 						"Max": 600
 					}
