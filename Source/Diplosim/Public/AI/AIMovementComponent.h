@@ -71,7 +71,7 @@ public:
 		bool bSetPoints;
 
 	UPROPERTY()
-		bool bReleaseFromJail;
+		FVector SetPosition;
 
 private:
 	void ComputeCurrentAnimation(AActor* Goal, float DeltaTime, TArray<int32>& Instances);

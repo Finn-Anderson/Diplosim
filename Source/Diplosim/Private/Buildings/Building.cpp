@@ -372,6 +372,9 @@ void ABuilding::SetSeed(int32 Seed)
 
 	if (FactionName == Camera->ColonyName && !Camera->SaveGameComponent->IsLoading())
 		Camera->DisplayInteract(this);
+
+	if (Camera->BuildComponent->Buildings.Contains(this))
+		Camera->BuildComponent->DisplayValidLocation();
 }
 
 void ABuilding::SetStorage()

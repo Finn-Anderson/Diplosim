@@ -112,7 +112,7 @@ void UPoliceManager::ProcessReports()
 					continue;
 
 				for (ACitizen* officer : building->GetOccupied()) {
-					if (!IsValid(officer))
+					if (!IsValid(officer) || !Cast<AWork>(building)->IsWorking(officer))
 						continue;
 
 					if (IsInAPoliceReport(officer, &faction)) {
@@ -142,7 +142,7 @@ void UPoliceManager::ProcessReports()
 				FPoliceReport report = faction.Police.PoliceReports[i];
 
 				for (int32 j = report.Wanted.Num() - 1; j > -1; j--)
-					if (!IsValid(report.Wanted[j]))
+					if (!IsValid(report.Wanted[j]) || IsInJail(report.Wanted[j]))
 						report.Wanted.RemoveAt(j);
 
 				if (report.Wanted.IsEmpty()) {
@@ -186,6 +186,13 @@ void UPoliceManager::ProcessReports()
 
 					availableOfficers.Remove(chosenOfficer);
 				}
+			}
+
+			for (ACitizen* officer : availableOfficers) {
+				if (officer->BuildingComponent->BuildingAt == officer->BuildingComponent->Employment || officer->AIController->MoveRequest.GetGoalActor() == officer->BuildingComponent->Employment)
+					continue;
+
+				officer->AIController->DefaultAction();
 			}
 		}
 	});
@@ -414,7 +421,7 @@ void UPoliceManager::RepositionCriminals(ABuilding* Building)
 		if (citizen->BuildingComponent->BuildingAt != Building || Building->GetOccupied().Contains(citizen) || !faction->Police.Arrested.Contains(citizen))
 			continue;
 
-		Camera->PoliceManager->Jail(*faction, Building->GetOccupied().IsEmpty() ? nullptr : Building->GetOccupied()[0], citizen);
+		Camera->PoliceManager->Jail(*faction, Building->GetOccupied().IsEmpty() ? nullptr : Building->GetOccupied()[0], citizen, Building);
 	}
 }
 
@@ -444,15 +451,19 @@ void UPoliceManager::Arrest(FFactionStruct Faction, ACitizen* Officer, ACitizen*
 	Camera->TimerManager->SetParameter(*faction, params);
 	Camera->TimerManager->SetParameter(Officer, params);
 	Camera->TimerManager->SetParameter(Citizen, params);
+	Camera->TimerManager->SetParameter(Officer->BuildingComponent->Employment, params);
 
 	Camera->TimerManager->CreateTimer(Citizen->GetName() + "Jail", Camera, 2.0f, "Jail", params, false);
 }
 
-void UPoliceManager::Jail(FFactionStruct Faction, ACitizen* Officer, ACitizen* Citizen)
+void UPoliceManager::Jail(FFactionStruct Faction, ACitizen* Officer, ACitizen* Citizen, ABuilding* Jail)
 {
+	if (!IsValid(Citizen) || Citizen->HealthComponent->GetHealth() == 0)
+		return;
+
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
 
-	if (!IsValid(Officer)) {
+	if (!IsValid(Jail)) {
 		for (ABuilding* building : faction->Buildings) {
 			if (Camera->SaveGameComponent->IsLoading())
 				return;
@@ -460,26 +471,21 @@ void UPoliceManager::Jail(FFactionStruct Faction, ACitizen* Officer, ACitizen* C
 			if (!building->IsA(PoliceStationClass) || building->GetOccupied().IsEmpty())
 				continue;
 
-			for (ACitizen* officer : building->GetOccupied()) {
-				if (!IsValid(officer))
-					continue;
+			if (!IsValid(Jail)) {
+				Jail = building;
 
-				if (!IsValid(Officer)) {
-					Officer = officer;
-
-					continue;
-				}
-
-				double magnitude = Officer->AIController->GetClosestActor(1.0f, Camera->GetTargetActorLocation(Citizen), Camera->GetTargetActorLocation(Officer), Camera->GetTargetActorLocation(officer));
-
-				if (magnitude < 0.0f)
-					continue;
-
-				Officer = officer;
+				continue;
 			}
+
+			double magnitude = Citizen->AIController->GetClosestActor(1.0f, Camera->GetTargetActorLocation(Citizen), Camera->GetTargetActorLocation(Jail), Camera->GetTargetActorLocation(building));
+
+			if (magnitude < 0.0f)
+				continue;
+
+			Jail = building;
 		}
 
-		if (!IsValid(Officer)) {
+		if (!IsValid(Jail)) {
 			TMap<ACitizen*, int32> arrested = faction->Police.Arrested;
 			faction->Police.Arrested.Empty();
 
@@ -490,10 +496,9 @@ void UPoliceManager::Jail(FFactionStruct Faction, ACitizen* Officer, ACitizen* C
 		}
 	}
 
-	Citizen->MovementComponent->Transform.SetLocation(Officer->BuildingComponent->Employment->GetActorLocation() + FVector(Camera->Stream.RandRange(-80, 80), Camera->Stream.RandRange(-80, 80), 0.0f));
-	Citizen->BuildingComponent->EnterLocation = Officer->BuildingComponent->Employment->BuildingMesh->GetSocketLocation("Entrance");
-	Citizen->AIController->Idle(faction, Citizen);
 	Citizen->bConversing = false;
+	Citizen->MovementComponent->SetPosition = Camera->GetTargetActorLocation(Jail) + FVector(Camera->Stream.RandRange(-80, 80), Camera->Stream.RandRange(-80, 80), 0.0f);
+	Citizen->BuildingComponent->BuildingAt = Jail;
 
 	FPartyStruct* party = Camera->PoliticsManager->GetMembersParty(Citizen);
 
@@ -532,11 +537,11 @@ void UPoliceManager::Jail(FFactionStruct Faction, ACitizen* Officer, ACitizen* C
 	if (faction->Name == Citizen->Camera->ColonyName)
 		Citizen->Camera->NotifyLog(Citizen, "Bad", Citizen->BioComponent->Name + " has been arrested", faction->Name);
 
-	if (Officer->AIController->MoveRequest.GetGoalActor() != Citizen || Officer->HealthComponent->GetHealth() == 0)
+	if (!IsValid(Officer) || Officer->BuildingComponent->Employment != Jail || Officer->AIController->MoveRequest.GetGoalActor() != Citizen || Officer->HealthComponent->GetHealth() == 0)
 		return;
 
-	Officer->AIController->DefaultAction();
 	Officer->bConversing = false;
+	Officer->AIController->DefaultAction();
 }
 
 void UPoliceManager::ItterateThroughSentences()
@@ -551,12 +556,15 @@ void UPoliceManager::ItterateThroughSentences()
 				served.Add(element.Key);
 		}
 
-		Camera->ResourceManager->AddUniversalResource(&faction, Camera->ResourceManager->Money, faction.Police.Arrested.Num());
+		Camera->ResourceManager->AddUniversalResource(&faction, Camera->ResourceManager->Money, FMath::RoundHalfFromZero(faction.Police.Arrested.Num() / 4.0f));
 
 		for (ACitizen* citizen : served) {
 			faction.Police.Arrested.Remove(citizen);
 
-			citizen->MovementComponent->bReleaseFromJail = true;
+			citizen->MovementComponent->SetPoints({});
+			citizen->AIController->StopMovement();
+			citizen->MovementComponent->SetPosition = citizen->BuildingComponent->BuildingAt->BuildingMesh->GetSocketLocation("Entrance");
+			citizen->BuildingComponent->BuildingAt = nullptr;
 
 			if (faction.Name == citizen->Camera->ColonyName)
 				citizen->Camera->NotifyLog(citizen, "Good", citizen->BioComponent->Name + " has been released from prison", faction.Name);

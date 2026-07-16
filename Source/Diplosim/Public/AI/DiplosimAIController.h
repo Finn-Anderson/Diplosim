@@ -124,6 +124,8 @@ public:
 
 	void AIMoveTo(AActor* Actor, FVector Location = FVector::Zero(), int32 Instance = INDEX_NONE);
 
+	void SetNewMovementPath(AActor* Actor, FNavLocation NavLocation);
+
 	void RecalculateMovement(AActor* Actor);
 
 	FVector GetActualLocation(AActor* Actor);

@@ -57,6 +57,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class USoundBase* PlaceSound;
 
+	void DisplayValidLocation();
+
 	void GetBuildLocationZ(class ABuilding* Building, FVector& Location);
 
 	TArray<FHitResult> GetBuildingOverlaps(AActor* Actor, float Extent = 1.0f, FVector Location = FVector::Zero());

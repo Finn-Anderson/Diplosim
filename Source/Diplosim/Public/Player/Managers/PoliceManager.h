@@ -39,7 +39,7 @@ public:
 		void Arrest(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen);
 
 	UFUNCTION()
-		void Jail(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen);
+		void Jail(FFactionStruct Faction, class ACitizen* Officer, class ACitizen* Citizen, class ABuilding* Jail);
 
 	void ItterateThroughSentences();
 

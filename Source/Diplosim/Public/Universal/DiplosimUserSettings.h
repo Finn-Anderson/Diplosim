@@ -270,7 +270,7 @@ public:
 		float GetWPODistance() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Resolution")
-		void SetResolution(FString Value, bool bResizing = false);
+		void SetResolution(FString Value);
 
 	UFUNCTION(BlueprintPure, Category = "Resolution")
 		FString GetResolution() const;

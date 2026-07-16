@@ -593,6 +593,8 @@ int32 UResourceManager::GetCategoryTrend(FString FactionName, FString Category)
 			else if (building->IsA<AHouse>())
 				for (FCapacityStruct capacityStruct : Cast<AHouse>(building)->Occupied)
 					overallTrend += capacityStruct.Amount;
+
+			overallTrend += FMath::RoundHalfFromZero(faction->Police.Arrested.Num() / 4.0f);
 		}
 	}
 	else if (Category == "Food") {

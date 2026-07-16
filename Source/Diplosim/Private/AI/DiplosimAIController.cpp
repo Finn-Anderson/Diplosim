@@ -52,6 +52,9 @@ void UDiplosimAIController::DefaultAction()
 		ACitizen* citizen = Cast<ACitizen>(AI);
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
+		if (faction->Police.Arrested.Contains(citizen))
+			Idle(faction, citizen);
+
 		for (FArmyStruct army : faction->Armies)
 			if (army.Citizens.Contains(citizen))
 				return;
@@ -518,24 +521,30 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 		}
 	}
 
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Actor, navAILoc]() {
-		if (!IsValid(AI))
-			return;
+	if (IsInGameThread())
+		SetNewMovementPath(Actor, navAILoc);
+	else
+		Async(EAsyncExecution::TaskGraphMainTick, [this, Actor, navAILoc]() { SetNewMovementPath(Actor, navAILoc); });
+}
 
-		TArray<FVector> points = GetPathPoints(navAILoc, MoveRequest.GetLocation());
-		AI->MovementComponent->SetPoints(points);
+void UDiplosimAIController::SetNewMovementPath(AActor* Actor, FNavLocation NavLocation)
+{
+	if (!IsValid(AI))
+		return;
 
-		if (!AI->IsA<ACitizen>())
-			return;
+	TArray<FVector> points = GetPathPoints(NavLocation, MoveRequest.GetLocation());
+	AI->MovementComponent->SetPoints(points);
 
-		ACitizen* citizen = Cast<ACitizen>(AI);
+	if (IsValid(Actor))
+		ClearMovementTimers();
 
-		if (IsValid(Actor))
-			ClearMovementTimers();
+	if (!AI->IsA<ACitizen>())
+		return;
 
-		if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt != Actor && !citizen->Camera->PoliceManager->IsInJail(citizen))
-			citizen->BuildingComponent->BuildingAt->Leave(citizen); 
-	});
+	ACitizen* citizen = Cast<ACitizen>(AI);
+
+	if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt != Actor && !citizen->Camera->PoliceManager->IsInJail(citizen))
+		citizen->BuildingComponent->BuildingAt->Leave(citizen);
 }
 
 void UDiplosimAIController::RecalculateMovement(AActor* Actor)

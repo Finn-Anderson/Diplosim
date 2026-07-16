@@ -34,7 +34,7 @@ UAIMovementComponent::UAIMovementComponent()
 
 	ActorToLookAt = nullptr;
 	bSetPoints = false;
-	bReleaseFromJail = false;
+	SetPosition = FVector::Zero();
 }
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Instances)
@@ -53,22 +53,24 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 	if (AI->HealthComponent->GetHealth() == 0 || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->bConversing))
 		return;
 
-	AI->AIController->RecalculateMovement(goal);
+	if (SetPosition == FVector::Zero())
+		AI->AIController->RecalculateMovement(goal);
 
-	if (bSetPoints || bReleaseFromJail) {
+	if (bSetPoints || SetPosition != FVector::Zero()) {
 		Points = TempPoints;
 
 		TempPoints.Empty();
 		bSetPoints = false;
 
-		if (bReleaseFromJail) {
-			ACitizen* citizen = Cast<ACitizen>(AI);
-			AI->AIController->StopMovement();
-			Transform.SetLocation(citizen->BuildingComponent->EnterLocation);
-			citizen->BuildingComponent->EnterLocation = FVector::Zero();
-			citizen->AIController->DefaultAction();
+		if (SetPosition != FVector::Zero()) {
+			Transform.SetLocation(SetPosition);
 
-			bReleaseFromJail = false;
+			SetPosition = FVector::Zero();
+
+			if (AI->AIController->MoveRequest.GetUltimateLocation() != FVector::Zero())
+				AI->AIController->AIMoveTo(AI->AIController->MoveRequest.GetUltimateGoalActor(), AI->AIController->MoveRequest.GetUltimateLocation());
+			else if (Points.IsEmpty())
+				AI->AIController->DefaultAction();
 		}
 	}
 

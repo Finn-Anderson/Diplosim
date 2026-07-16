@@ -72,9 +72,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 
 		ApplyDamageOverlay();
 
-		FTimerStruct* foundTimer = Camera->TimerManager->FindTimer("RemoveDamageOverlay", GetOwner());
-
-		if (foundTimer == nullptr)
+		if (Camera->TimerManager->DoesTimerExist("RemoveDamageOverlay", GetOwner()))
 			Camera->TimerManager->CreateTimer("RemoveDamageOverlay", GetOwner(), 0.25f, "RemoveDamageOverlay", {}, false, true);
 		else
 			Camera->TimerManager->ResetTimer("RemoveDamageOverlay", GetOwner());
@@ -162,7 +160,7 @@ void UHealthComponent::Death(AActor* Attacker)
 
 		Cast<AAI>(actor)->AIController->StopMovement();
 
-		Camera->TimerManager->CreateTimer("Decay", GetOwner(), 6.0f, "AIDecay", {}, false, true);
+		Camera->TimerManager->CreateTimer("Decay", actor, 6.0f, "AIDecay", {}, false, true);
 
 		if (actor->IsA<ACitizen>()) {
 			ACitizen* citizen = Cast<ACitizen>(actor);
@@ -177,7 +175,8 @@ void UHealthComponent::Death(AActor* Attacker)
 			if (citizen->Carrying.Type != nullptr && IsValid(citizen->BuildingComponent->Employment) && !citizen->BuildingComponent->Employment->IsA<AStockpile>())
 				Camera->ResourceManager->AddCommittedResource(Camera->ConquestManager->GetFaction("", citizen), citizen->Carrying.Type->GetClass(), citizen->Carrying.Amount);
 
-			Camera->PoliceManager->ChangeReportToMurder(citizen, Cast<ACitizen>(Attacker));
+			if (Attacker->IsA<ACitizen>())
+				Camera->PoliceManager->ChangeReportToMurder(citizen, Cast<ACitizen>(Attacker));
 		}
 		else if (actor->IsA<AEnemy>() && Camera->AttachedTo.Actor == actor)
 			Camera->AttachedTo.Actor = nullptr;
@@ -274,6 +273,8 @@ void UHealthComponent::Clear(AActor* Attacker)
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", actor);
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+
+	RemoveDamageOverlay();
 
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);

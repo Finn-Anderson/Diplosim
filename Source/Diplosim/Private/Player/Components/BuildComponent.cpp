@@ -121,6 +121,11 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			Camera->WidgetComponent->SetHiddenInGame(false);
 	}
 
+	DisplayValidLocation();
+}
+
+void UBuildComponent::DisplayValidLocation()
+{
 	for (ABuilding* building : Buildings) {
 		if (building->IsHidden())
 			continue;

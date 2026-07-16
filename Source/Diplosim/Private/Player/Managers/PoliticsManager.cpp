@@ -502,12 +502,10 @@ void UPoliticsManager::SetupBill(FFactionStruct* Faction)
 		GetVerdict(Faction, citizen, Faction->Politics.ProposedBills[0], true, false);
 
 	for (ACitizen* citizen : Faction->Politics.Representatives) {
-		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return Camera->Stream.RandRange(2, 20); }).Get();
+		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return Camera->Stream.RandRange(2, 40); }).Get();
 
 		if (Faction->Politics.Votes.For.Contains(citizen) || Faction->Politics.Votes.Against.Contains(citizen))
-			bribe *= 4;
-
-		bribe *= (uint8)*GetMembersParty(citizen)->Members.Find(citizen);
+			bribe *= 5;
 
 		Faction->Politics.BribeValue.Add(bribe);
 	}

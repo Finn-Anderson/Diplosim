@@ -97,12 +97,7 @@ void UDiplosimUserSettings::OnWindowResize(FViewport* Viewport, uint32 Value)
 	if (GetResolution() == res)
 		return;
 
-	if (GEngine->GameViewport->GetWindow()->GetNativeWindow()->IsMaximized())
-		SetMaximised(true);
-	else
-		SetMaximised(false);
-
-	SetResolution(res, true);
+	SetResolution(res);
 
 	GConfig->SetString(*Section, TEXT("Resolution"), *GetResolution(), Filename);
 	GConfig->SetBool(*Section, TEXT("bIsMaximised"), GetMaximised(), Filename);
@@ -198,6 +193,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 
 void UDiplosimUserSettings::LoadIniSettings()
 {
+	GEngine->Exec(GetWorld(), TEXT("r.FullScreenMode 2"));
+
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
 	if (!PlatformFile.FileExists(*Filename))
@@ -208,8 +205,6 @@ void UDiplosimUserSettings::LoadIniSettings()
 	GConfig->LoadFile(Filename);
 
 	GConfig->ForEachEntry(_keyValueSink, *Section, Filename);
-
-	GEngine->Exec(GetWorld(), TEXT("r.FullScreenMode 2"));
 
 	if (Resolution == "0x0") {
 		TArray<FIntPoint> resolutions;
@@ -656,15 +651,12 @@ float UDiplosimUserSettings::GetWPODistance() const
 	return distance;
 }
 
-void UDiplosimUserSettings::SetResolution(FString Value, bool bResizing)
+void UDiplosimUserSettings::SetResolution(FString Value)
 {
 	Resolution = Value;
 
 	if (Camera)
 		Camera->UpdateResolutionText();
-
-	if (bResizing)
-		return;
 
 	FSlateApplicationBase::Get().GetPlatformCursor()->Lock(nullptr);
 
@@ -672,7 +664,10 @@ void UDiplosimUserSettings::SetResolution(FString Value, bool bResizing)
 
 	GEngine->Exec(GetWorld(), *cmd);
 
-	SetMaximised(false);
+	if (GEngine->GameViewport->GetWindow()->GetNativeWindow()->IsMaximized())
+		SetMaximised(true);
+	else
+		SetMaximised(false);
 }
 
 FString UDiplosimUserSettings::GetResolution() const

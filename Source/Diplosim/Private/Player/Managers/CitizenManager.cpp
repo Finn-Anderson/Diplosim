@@ -338,6 +338,9 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", Citizen);
 
+	if (faction->Police.Arrested.Contains(Citizen))
+		faction->Police.Arrested.Remove(Citizen);
+
 	for (FPartyStruct& party : faction->Politics.Parties) {
 		if (!party.Members.Contains(Citizen))
 			continue;
