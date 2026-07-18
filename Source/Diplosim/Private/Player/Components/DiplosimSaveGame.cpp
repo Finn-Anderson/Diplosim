@@ -746,8 +746,10 @@ void UDiplosimSaveGame::SaveComponents(FActorSaveData& ActorData, AActor* Actor,
 	FAttackData attackData;
 
 	UHealthComponent* healthComp = Actor->FindComponentByClass<UHealthComponent>();
-	if (healthComp)
+	if (healthComp) {
 		healthData.Health = healthComp->GetHealth();
+		healthData.MaxHealth = healthComp->MaxHealth;
+	}
 
 	UAttackComponent* attackComp = Actor->FindComponentByClass<UAttackComponent>();
 	if (attackComp) {
@@ -1401,6 +1403,7 @@ void UDiplosimSaveGame::LoadComponents(FActorSaveData& ActorData, AActor* Actor,
 	UHealthComponent* healthComp = Actor->FindComponentByClass<UHealthComponent>();
 	if (healthComp) {
 		healthComp->Health = healthData.Health;
+		healthComp->MaxHealth = healthData.MaxHealth;
 
 		if (healthComp->Health == 0) {
 			if (!(Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->FactionName == ""))

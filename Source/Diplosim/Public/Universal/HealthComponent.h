@@ -44,6 +44,8 @@ public:
 
 	bool IsMaxHealth();
 
+	int32 CalcMaxHealth();
+
 	int32 GetHealth();
 
 	UFUNCTION()

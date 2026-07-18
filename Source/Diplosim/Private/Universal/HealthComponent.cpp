@@ -72,7 +72,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 
 		ApplyDamageOverlay();
 
-		if (Camera->TimerManager->DoesTimerExist("RemoveDamageOverlay", GetOwner()))
+		if (!Camera->TimerManager->DoesTimerExist("RemoveDamageOverlay", GetOwner()))
 			Camera->TimerManager->CreateTimer("RemoveDamageOverlay", GetOwner(), 0.25f, "RemoveDamageOverlay", {}, false, true);
 		else
 			Camera->TimerManager->ResetTimer("RemoveDamageOverlay", GetOwner());
@@ -91,6 +91,15 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 bool UHealthComponent::IsMaxHealth()
 {
 	return Health == MaxHealth;
+}
+
+int32 UHealthComponent::CalcMaxHealth()
+{
+	int32 max = MaxHealth;
+	if (GetOwner()->IsA<ACitizen>())
+		max = FMath::Clamp(10 + (5 * Cast<ACitizen>(GetOwner())->BioComponent->Age), 0, 100) * HealthMultiplier;
+	
+	return max;
 }
 
 int32 UHealthComponent::GetHealth()

@@ -62,10 +62,9 @@ void ABroch::SpawnCitizens()
 			citizen->GivePersonalityTrait();
 
 		citizen->BioComponent->Age = 17;
-		citizen->BioComponent->Birthday();
+		citizen->BioComponent->Birthday(); 
 		
-		citizen->HealthComponent->MaxHealth = 100 * citizen->HealthComponent->HealthMultiplier;
-		citizen->HealthComponent->AddHealth(100 * citizen->HealthComponent->HealthMultiplier);
+		citizen->HealthComponent->Health = citizen->HealthComponent->CalcMaxHealth();
 	}
 }
 

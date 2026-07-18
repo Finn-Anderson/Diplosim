@@ -57,7 +57,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 
 		cloudStruct.HISMCloud->SetRelativeLocation(location);
 
-		if (cloudStruct.Precipitation != nullptr)
+		if (IsValid(cloudStruct.Precipitation))
 			cloudStruct.Precipitation->SetVariableVec3(TEXT("CloudLocation"), cloudStruct.HISMCloud->GetRelativeLocation());
 
 		float oldOpacity = cloudStruct.HISMCloud->GetCustomPrimitiveData().Data[0];
@@ -74,8 +74,10 @@ void UCloudComponent::TickCloud(float DeltaTime)
 		double distance = FVector::Dist(location, Grid->GetActorLocation());
 
 		if (distance > cloudStruct.Distance) {
-			if (cloudStruct.Precipitation != nullptr)
+			if (IsValid(cloudStruct.Precipitation)) {
 				cloudStruct.Precipitation->Deactivate();
+				cloudStruct.Precipitation = nullptr;
+			}
 
 			Clouds[i].bHide = true;
 
@@ -126,7 +128,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 void UCloudComponent::Clear()
 {
 	for (FCloudStruct cloudStruct : Clouds) {
-		if (cloudStruct.Precipitation != nullptr)
+		if (IsValid(cloudStruct.Precipitation))
 			cloudStruct.Precipitation->DestroyComponent();
 
 		cloudStruct.HISMCloud->DestroyComponent();
@@ -211,7 +213,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 			float x = Grid->Camera->Stream.FRandRange(-800.0f, 800.0f) * t.GetScale3D().X;
 			float y = Grid->Camera->Stream.FRandRange(-800.0f, 800.0f) * t.GetScale3D().Y;
 			float z = Grid->Camera->Stream.FRandRange(-256.0f, 256.0f) * t.GetScale3D().Z;
-			t.SetLocation(FVector(x, y, z));
+			t.SetLocation(FVector(x, y, Transform.GetLocation().Z + z));
 
 			float diff = Grid->Camera->Stream.FRandRange(20.0f, 40.0f);
 			t.SetScale3D(t.GetScale3D() * diff);
@@ -242,6 +244,8 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 	if (Chance <= 75)
 		return cloudStruct;
 
+	FVector rotation = cloud->GetRelativeRotation().RotateVector(FVector::Zero());
+
 	UNiagaraComponent* precipitation = UNiagaraFunctionLibrary::SpawnSystemAttached(CloudSystem, cloud, "", FVector::Zero(), FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true, false);
 	precipitation->SetVariableVec3(TEXT("CloudLocation"), cloud->GetRelativeLocation());
 	precipitation->SetVariableObject(TEXT("Callback"), Grid);
@@ -249,7 +253,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 	float spawnRate = 0.0f;
 
 	float gravity = -980.0f;
-	float lifetime = (cloud->GetRelativeLocation().Z - Height + 200.0f) / 800.0f + 3.0f;
+	float lifetime = cloud->GetRelativeLocation().Z / FMath::Abs(gravity);
 
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(precipitation, TEXT("SpawnLocations"), locations);
 	spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y * Grid->Camera->Stream.FRandRange(0.5f, 1.5f);
@@ -295,7 +299,7 @@ TArray<FVector> UCloudComponent::SetPrecipitationLocations(FTransform Transform,
 
 			FVector vector = FVector(Transform.GetLocation().X + xCoord, Transform.GetLocation().Y + yCoord, Transform.GetLocation().Z);
 
-			locations.Add(vector);
+			locations.Add(Transform.GetRotation().RotateVector(vector));
 		}
 	}
 
@@ -305,7 +309,7 @@ TArray<FVector> UCloudComponent::SetPrecipitationLocations(FTransform Transform,
 void UCloudComponent::UpdateSpawnedClouds()
 {
 	for (FCloudStruct cloudStruct : Clouds) {
-		if (cloudStruct.Precipitation == nullptr)
+		if (!IsValid(cloudStruct.Precipitation))
 			continue;
 
 		int32 spawnRate = 400.0f * cloudStruct.Precipitation->GetRelativeScale3D().X * cloudStruct.Precipitation->GetRelativeScale3D().Y;
@@ -323,6 +327,8 @@ void UCloudComponent::UpdateSpawnedClouds()
 
 void UCloudComponent::RainCollisionHandler(FVector Location, float Value, float Increment)
 {
+	FScopeLock lock(&RainDropLock);
+
 	FLocationStruct locationStruct;
 	locationStruct.Location = Location;
 	locationStruct.Value = Value;
@@ -333,32 +339,27 @@ void UCloudComponent::RainCollisionHandler(FVector Location, float Value, float 
 
 void UCloudComponent::SetRainMaterialEffect(float Value, UPrimitiveComponent* Component, int32 Instance, float Increment)
 {
+	FScopeLock lock(&WetnessLock);
+
 	if (Increment == 0.0f) {
-		if (Value == 1.0f) {
-			FString id = "Wet" + FString::FromInt(Component->GetUniqueID()) + FString::FromInt(Instance);
-
-			if (Grid->Camera->TimerManager->FindTimer(id, Grid) != nullptr) {
-				Grid->Camera->TimerManager->ResetTimer(id, Grid);
-
-				return;
-			}
-			else {
-				TArray<FTimerParameterStruct> params;
-				Grid->Camera->TimerManager->SetParameter(0.0f, params);
-				Grid->Camera->TimerManager->SetParameter(Component, params);
-				Grid->Camera->TimerManager->SetParameter(Instance, params);
-				Grid->Camera->TimerManager->SetParameter(0.0f, params);
-				Grid->Camera->TimerManager->CreateTimer(id, Grid, 30.0f, "SetRainMaterialEffect", params, false, true);
-			}
-		}
-
 		Increment = 0.02f;
 
-		if (Value == 0.0f)
-			Increment *= -1.0f;
-	}
+		FString id = "Wet" + FString::FromInt(Component->GetUniqueID()) + FString::FromInt(Instance);
 
-	Value = (Value - 1.0f) * -1.0f;
+		if (Grid->Camera->TimerManager->FindTimer(id, Grid) != nullptr) {
+			Grid->Camera->TimerManager->ResetTimer(id, Grid);
+
+			return;
+		}
+		else {
+			TArray<FTimerParameterStruct> params;
+			Grid->Camera->TimerManager->SetParameter(1.0f, params);
+			Grid->Camera->TimerManager->SetParameter(Component, params);
+			Grid->Camera->TimerManager->SetParameter(Instance, params);
+			Grid->Camera->TimerManager->SetParameter(Increment * -1.0f, params);
+			Grid->Camera->TimerManager->CreateTimer(id, Grid, 30.0f, "SetRainMaterialEffect", params, false, true);
+		}
+	}
 
 	FWetnessStruct wetness;
 	wetness.Create(Value, Component, Instance, Increment);
@@ -393,11 +394,12 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 			FLocationStruct& locationStruct = node->GetValue();
 			FHitResult hit;
 
-			if (GetWorld()->LineTraceSingleByChannel(hit, locationStruct.Location + FVector(0.0f, 0.0f, 10.0f), FVector(locationStruct.Location.X, locationStruct.Location.Y, 0.0f), ECollisionChannel::ECC_Visibility))
+			if (GetWorld()->LineTraceSingleByChannel(hit, locationStruct.Location, FVector(locationStruct.Location.X, locationStruct.Location.Y, 0.0f), ECollisionChannel::ECC_Visibility))
 			{
 				UPrimitiveComponent* component = hit.GetComponent();
 
-				if (!IsValid(component) || !component->IsA<UPrimitiveComponent>() || component == Grid->HISMSea || component == Grid->HISMLava || component == Grid->HISMRiver || (component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(component)->NumCustomDataFloats == 0)) {
+				if (!IsValid(hit.GetActor()) || !IsValid(component) || !component->IsA<UPrimitiveComponent>() || component == Grid->HISMSea || component == Grid->HISMLava || component == Grid->HISMRiver || (component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(component)->NumCustomDataFloats == 0)) {
+					FScopeLock lock(&RainDropLock);
 					RainDropLocations.RemoveNode(node);
 
 					continue;
@@ -406,23 +408,10 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 				if (hit.GetActor()->IsA<ABuilding>())
 					component = Cast<ABuilding>(hit.GetActor())->BuildingMesh;
 
-				if (locationStruct.Value == -1.0f) {
-					float displacement = FMath::Abs(locationStruct.Location.Z - hit.Location.Z);
-					float time = FMath::Sqrt((2*displacement) / 980);
-
-					FString id = "SetWetEffect" + FString::FromInt(component->GetUniqueID()) + FString::FromInt(hit.Item);
-
-					TArray<FTimerParameterStruct> params;
-					Grid->Camera->TimerManager->SetParameter(1.0f, params);
-					Grid->Camera->TimerManager->SetParameter(component, params);
-					Grid->Camera->TimerManager->SetParameter(hit.Item, params);
-					Grid->Camera->TimerManager->SetParameter(0.0f, params);
-					Grid->Camera->TimerManager->CreateTimer(id, Grid, time, "SetRainMaterialEffect", params, false);
-				}
-				else
-					SetRainMaterialEffect(locationStruct.Value, component, hit.Item, locationStruct.Increment);
+				SetRainMaterialEffect(locationStruct.Value, component, hit.Item, locationStruct.Increment);
 			}
 
+			FScopeLock lock(&RainDropLock);
 			RainDropLocations.RemoveNode(node); 
 		}
 
@@ -437,10 +426,11 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 					FString id = "Wet" + FString::FromInt(wetness.Component->GetUniqueID()) + FString::FromInt(wetness.Instance);
 					Grid->Camera->TimerManager->RemoveTimer(id, Grid);
 
-					if (wetness.Component->GetOwner()->IsA<ABroch>())
-						Cast<UStaticMeshComponent>(wetness.Component)->SetCustomPrimitiveDataFloat(0, 0.0f);
+					if (IsValid(wetness.Component))
+						wetness.Component->SetCustomPrimitiveDataFloat(0, 0.0f);
 				}
 
+				FScopeLock lock(&WetnessLock);
 				WetnessStruct.RemoveNode(wetness);
 
 				continue;
@@ -456,7 +446,7 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 			}
 			else {
 				AActor* actor = wetness.Component->GetOwner();
-				Cast<UStaticMeshComponent>(wetness.Component)->SetCustomPrimitiveDataFloat(0, wetness.Value);
+				wetness.Component->SetCustomPrimitiveDataFloat(0, wetness.Value);
 
 				if (actor->IsA<ABuilding>()) {
 					TArray<UStaticMeshComponent*> comps;
@@ -471,6 +461,7 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 			if (wetness.Value > 0.0f && wetness.Value < 1.0f)
 				continue;
 
+			FScopeLock lock(&WetnessLock);
 			WetnessStruct.RemoveNode(wetness);
 		}
 	});

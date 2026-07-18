@@ -141,7 +141,8 @@ public:
 	// Seasons
 	void SetSeasonAffect(FString Period, float Increment);
 
-	void AlterSeasonAffectGradually(FString Period, float Increment);
+	UFUNCTION()
+		void AlterSeasonAffectGradually(FString Period, float Increment);
 
 	void SetSeasonValues(TArray<float> Values);
 };

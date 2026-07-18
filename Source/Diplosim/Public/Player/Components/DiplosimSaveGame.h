@@ -316,11 +316,15 @@ struct FHealthData
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	int32 Health;
+		int32 Health;
+
+	UPROPERTY()
+		int32 MaxHealth;
 
 	FHealthData()
 	{
 		Health = 0;
+		MaxHealth = 0;
 	}
 };
 

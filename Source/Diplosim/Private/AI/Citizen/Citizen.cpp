@@ -944,7 +944,7 @@ void ACitizen::ApplyToMultiplier(FString Affect, float Amount)
 	else if (Affect == "Health") {
 		HealthComponent->HealthMultiplier += Amount;
 
-		HealthComponent->MaxHealth = FMath::Clamp(10 + (5 * BioComponent->Age), 0, 100) * HealthComponent->HealthMultiplier;
+		HealthComponent->MaxHealth = HealthComponent->CalcMaxHealth();
 
 		if (HealthComponent->Health > HealthComponent->MaxHealth)
 			HealthComponent->Health = HealthComponent->MaxHealth;

@@ -171,6 +171,8 @@ public:
 
 private:
 	FCriticalSection RainLock;
+	FCriticalSection RainDropLock;
+	FCriticalSection WetnessLock;
 
 	TArray<FVector> SetPrecipitationLocations(FTransform Transform, float Bounds);
 
