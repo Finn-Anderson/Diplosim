@@ -71,7 +71,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	AmbientVolume = 1.0f;
 
 	UIScale = 1.0f;
-	AutosaveTimer = 30;
+	AutosaveTimer = 1.0f;
 	PopupUISpeed = 1.0f;
 
 	Atmosphere = nullptr;
@@ -186,7 +186,7 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 	else if (FString("bShowLog").Equals(Key))
 		SetShowLog(value.ToBool());
 	else if (FString("AutosaveTimer").Equals(Key))
-		SetAutosaveTimer(FCString::Atoi(Value));
+		SetAutosaveTimer(FCString::Atof(Value));
 	else if (FString("PopupUISpeed").Equals(Key))
 		SetPopupUISpeed(FCString::Atof(Value));
 }
@@ -251,7 +251,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetFloat(*Section, TEXT("AmbientVolume"), GetAmbientVolume(), Filename);
 	GConfig->SetFloat(*Section, TEXT("UIScale"), GetUIScale(), Filename);
 	GConfig->SetBool(*Section, TEXT("bShowLog"), GetShowLog(), Filename);
-	GConfig->SetInt(*Section, TEXT("AutosaveTimer"), GetAutosaveTimer(), Filename);
+	GConfig->SetFloat(*Section, TEXT("AutosaveTimer"), GetAutosaveTimer(), Filename);
 	GConfig->SetFloat(*Section, TEXT("PopupUISpeed"), GetPopupUISpeed(), Filename);
 
 	GConfig->Flush(false, Filename);
@@ -777,7 +777,7 @@ bool UDiplosimUserSettings::GetShowLog() const
 	return bShowLog;
 }
 
-void UDiplosimUserSettings::SetAutosaveTimer(int32 Value)
+void UDiplosimUserSettings::SetAutosaveTimer(float Value)
 {
 	if (AutosaveTimer == Value)
 		return;
@@ -787,10 +787,10 @@ void UDiplosimUserSettings::SetAutosaveTimer(int32 Value)
 	if (!IsValid(Camera))
 		return;
 
-	Camera->SaveGameComponent->UpdateAutosave(AutosaveTimer * 60);
+	Camera->SaveGameComponent->UpdateAutosave(AutosaveTimer * Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay());
 }
 
-int32 UDiplosimUserSettings::GetAutosaveTimer() const
+float UDiplosimUserSettings::GetAutosaveTimer() const
 {
 	return AutosaveTimer;
 }

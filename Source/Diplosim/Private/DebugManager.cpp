@@ -26,6 +26,8 @@ UDebugManager::UDebugManager()
 	bInstantEnemies = false;
 	bRain = false;
 	bFight = false;
+
+	Happiness = 0;
 }
 
 void UDebugManager::SpawnEnemies()
@@ -230,4 +232,9 @@ void UDebugManager::CauseNaturalDisaster()
 void UDebugManager::SetFight(bool bChance)
 {
 	bFight = bChance;
+}
+
+void UDebugManager::SetHappiness(int32 Value)
+{
+	Happiness = Value;
 }

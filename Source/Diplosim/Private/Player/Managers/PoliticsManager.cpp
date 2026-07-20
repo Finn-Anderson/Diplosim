@@ -615,9 +615,11 @@ void UPoliticsManager::GetVerdict(FFactionStruct* Faction, ACitizen* Representat
 		verdict.Append({ "Opposing", "Opposing", "Opposing" });
 	}
 
-	auto value = Async(EAsyncExecution::TaskGraph, [this, verdict]() { return Camera->Stream.RandRange(0, verdict.Num() - 1); });
+	index = Camera->Stream.RandRange(0, verdict.Num() - 1);
 
-	FString result = verdict[value.Get()];
+	FString result = verdict[index];
+	if (Bill.BillType == "Abolish" && partyLean.Party == "Shell Breakers")
+		result = "Agreeing";
 
 	if (bPrediction) {
 		if (result == "Agreeing")
@@ -803,6 +805,8 @@ void UPoliticsManager::ChooseRebellionType(FFactionStruct* Faction, float DeltaT
 	if (Faction->RebelCooldownTimer > 0.0f)
 		return;
 
+	Faction->RebelCooldownTimer = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
+
 	int32 value = Camera->Stream.RandRange(1, 3);
 
 	if (value == 3 || Faction->Politics.Representatives.IsEmpty()) {
@@ -820,13 +824,11 @@ void UPoliticsManager::ChooseRebellionType(FFactionStruct* Faction, float DeltaT
 
 void UPoliticsManager::Overthrow(FFactionStruct* Faction)
 {
-	Faction->RebelCooldownTimer = 1500.0f;
-
 	Camera->PoliceManager->CeaseAllInternalFighting(Faction);
 
 	for (ACitizen* citizen : Faction->Citizens) {
-		if (Camera->PoliticsManager->GetMembersParty(citizen) == nullptr || Camera->PoliticsManager->GetMembersParty(citizen)->Party != "Shell Breakers")
-			return;
+		if (Camera->PoliticsManager->GetCitizenParty(citizen) != "Shell Breakers")
+			continue;
 
 		if (Faction->Politics.Representatives.Contains(citizen))
 			Faction->Politics.Representatives.Remove(citizen);
@@ -835,13 +837,15 @@ void UPoliticsManager::Overthrow(FFactionStruct* Faction)
 	}
 
 	for (ASpecial* building : Camera->Grid->SpecialBuildings) {
-		if (!building->IsA<ACloneLab>())
+		if (!IsValid(building) || !building->IsA<ACloneLab>())
 			continue;
 
 		Cast<ACloneLab>(building)->StartCloneLab();
 
 		break;
 	}
+
+	Camera->ShowEvent("Disaster", "Rebellion");
 }
 
 void UPoliticsManager::SetupRebel(FFactionStruct* Faction, ACitizen* Citizen)

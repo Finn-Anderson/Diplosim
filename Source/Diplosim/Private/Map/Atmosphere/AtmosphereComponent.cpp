@@ -251,7 +251,7 @@ void UAtmosphereComponent::SetDisplayText(int32 Hour)
 
 int32 UAtmosphereComponent::GetTimeToCompleteDay()
 {
-	return 360 / (24 * Grid->AtmosphereComponent->Speed);
+	return 360 / (24 * FMath::Sqrt(FMath::Square(Grid->AtmosphereComponent->Speed) + FMath::Square(Grid->AtmosphereComponent->Speed)));
 }
 
 //

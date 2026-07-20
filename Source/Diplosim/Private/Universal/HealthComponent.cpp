@@ -72,11 +72,6 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 
 		ApplyDamageOverlay();
 
-		if (!Camera->TimerManager->DoesTimerExist("RemoveDamageOverlay", GetOwner()))
-			Camera->TimerManager->CreateTimer("RemoveDamageOverlay", GetOwner(), 0.25f, "RemoveDamageOverlay", {}, false, true);
-		else
-			Camera->TimerManager->ResetTimer("RemoveDamageOverlay", GetOwner());
-
 		if (GetHealth() == 0)
 			Death(Attacker);
 		else if (GetOwner()->IsA<ACitizen>()) {
@@ -123,10 +118,8 @@ void UHealthComponent::ApplyDamageOverlay(bool bLoad)
 		if (!bLoad && GetOwner()->IsA<ABuilding>())
 			Camera->ConstructionManager->AddBuilding(Cast<ABuilding>(GetOwner()), EBuildStatus::Damaged);
 	}
-	else {
-		auto info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
-		info.Key->SetCustomDataValue(info.Value, 9, opacity);
-	}
+	else
+		Cast<AAI>(GetOwner())->DamageOverlayTimer = 0.4;
 }
 
 void UHealthComponent::RemoveDamageOverlay()
@@ -140,10 +133,8 @@ void UHealthComponent::RemoveDamageOverlay()
 			mesh->SetCustomPrimitiveDataFloat(11, 0.0f);
 		}
 	}
-	else {
-		auto info = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner()));
-		info.Key->SetCustomDataValue(info.Value, 9, 0.0f);
-	}
+	else
+		Cast<AAI>(GetOwner())->DamageOverlayTimer = 0.25;
 }
 
 void UHealthComponent::Death(AActor* Attacker)
@@ -195,7 +186,8 @@ void UHealthComponent::Death(AActor* Attacker)
 		building->BuildingMesh->SetCanEverAffectNavigation(false);
 
 		for (AActor* citizen : building->Inside)
-			Cast<ACitizen>(citizen)->HealthComponent->TakeHealth(1000, Attacker);
+			if (IsValid(citizen))
+				Cast<ACitizen>(citizen)->HealthComponent->TakeHealth(1000, Attacker);
 
 		for (ACitizen* citizen : building->GetOccupied())
 			building->RemoveCitizen(citizen);
@@ -262,7 +254,7 @@ void UHealthComponent::Death(AActor* Attacker)
 	if (!IsValid(Attacker))
 		return;
 
-	Camera->TimerManager->RemoveAllTimers(actor, {"RemoveDamageOverlay", "Decay"});
+	Camera->TimerManager->RemoveAllTimers(actor, {"Decay"});
 
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(Attacker, params);

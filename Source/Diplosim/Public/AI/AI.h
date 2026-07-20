@@ -59,4 +59,7 @@ public:
 
 	UPROPERTY()
 		FLinearColor Colour;
+
+	UPROPERTY()
+		float DamageOverlayTimer;
 };

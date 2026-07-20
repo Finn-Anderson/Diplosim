@@ -38,6 +38,7 @@ AAI::AAI()
 	InitialRange = 400.0f;
 	Range = InitialRange;
 	ReachPercentageOfRange = 6.75f;
+	DamageOverlayTimer = 0.0f;
 }
 
 void AAI::BeginPlay()

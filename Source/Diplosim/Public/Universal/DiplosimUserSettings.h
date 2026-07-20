@@ -107,7 +107,7 @@ protected:
 		bool bShowLog;
 
 	UPROPERTY(Config)
-		int32 AutosaveTimer;
+		float AutosaveTimer;
 
 	UPROPERTY(Config)
 		float PopupUISpeed;
@@ -318,10 +318,10 @@ public:
 		bool GetShowLog() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Accessibility")
-		void SetAutosaveTimer(int32 Value);
+		void SetAutosaveTimer(float Value);
 
 	UFUNCTION(BlueprintPure, Category = "Accessibility")
-		int32 GetAutosaveTimer() const;
+		float GetAutosaveTimer() const;
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 		void SetPopupUISpeed(float Value);

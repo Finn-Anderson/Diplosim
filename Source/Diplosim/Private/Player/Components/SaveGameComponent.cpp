@@ -46,10 +46,10 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 	CurrentIndex = CurrentSaveGame->Saves.Find(s);
 
 	if (CurrentIndex == INDEX_NONE) {
-		CreateNewSaveStruct(Name, bAutosave);
-
 		if (bAutosave)
 			CapAutosaves();
+
+		CreateNewSaveStruct(Name, bAutosave);
 	}
 	else {
 		FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
@@ -283,7 +283,7 @@ void USaveGameComponent::CapAutosaves()
 		count++;
 	}
 
-	if (count <= 3)
+	if (count < 3)
 		return;
 
 	CurrentSaveGame->Saves.RemoveAt(firstAutosaveIndex);
@@ -292,22 +292,16 @@ void USaveGameComponent::CapAutosaves()
 
 void USaveGameComponent::StartAutosaveTimer()
 {
-	int32 time = Camera->Settings->GetAutosaveTimer();
+	float time = Camera->Settings->GetAutosaveTimer();
 
-	if (time == 0)
+	if (time == 0.0f)
 		return;
 
-	FTimerStruct* timer = Camera->TimerManager->FindTimer("AutosaveTimer", Camera);
+	TArray<FTimerParameterStruct> params;
+	Camera->TimerManager->SetParameter("", params);
+	Camera->TimerManager->SetParameter(true, params);
 
-	if (timer == nullptr) {
-		TArray<FTimerParameterStruct> params;
-		Camera->TimerManager->SetParameter("", params);
-		Camera->TimerManager->SetParameter(true, params);
-
-		Camera->TimerManager->CreateTimer("AutosaveTimer", Camera, time * 60.0f, "SaveGameSave", params, false, true);
-	}
-	else
-		timer->Timer = 0.0f;
+	Camera->TimerManager->CreateTimer("AutosaveTimer", Camera, time * Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay(), "SaveGameSave", params, false, true);
 }
 
 void USaveGameComponent::UpdateAutosave(int32 NewTime)

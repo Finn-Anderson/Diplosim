@@ -641,7 +641,7 @@ void ACitizen::SetPoliticalLeanings()
 			if (party != nullptr) {
 				party->Members.Remove(this);
 
-				Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, this, false);
+				Async(EAsyncExecution::TaskGraphMainTick, [this, party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, this, false); });
 			}
 
 			FPartyStruct partyStruct;
@@ -656,7 +656,7 @@ void ACitizen::SetPoliticalLeanings()
 			if (party->Party == "Shell Breakers" && Camera->PoliticsManager->IsRebellion(faction))
 				Camera->PoliticsManager->SetupRebel(faction, this);
 
-			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, this, true);
+			Async(EAsyncExecution::TaskGraphMainTick, [this, party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, this, true); });
 
 			if (!faction->Politics.ProposedBills.IsEmpty())
 				Async(EAsyncExecution::TaskGraphMainTick, [this, faction]() { Camera->PoliticsManager->GetVerdict(faction, this, faction->Politics.ProposedBills[0], true, false); });

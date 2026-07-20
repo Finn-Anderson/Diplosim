@@ -403,6 +403,9 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	if (IsValid(Citizen->BuildingComponent->House))
 		Citizen->BuildingComponent->RemoveCitizenFromHouse(Citizen);
 
+	if (IsValid(Citizen->BuildingComponent->BuildingAt))
+		Citizen->BuildingComponent->BuildingAt->Inside.Remove(Citizen);
+
 	Camera->ArmyManager->RemoveFromArmy(Citizen);
 
 	Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Citizen->Spirituality.Faith, Citizen, false);

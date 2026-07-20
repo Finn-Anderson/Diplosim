@@ -290,6 +290,8 @@ private:
 
 	void UpdateCitizenVisuals(class UAIInstancedStaticMeshComponent* ISM, class ACamera* Camera, class ACitizen* Citizen, int32 Instance, TArray<int32>& Instances);
 
+	void UpdateDamageVisuals(class UAIInstancedStaticMeshComponent* ISM, class AAI* AI, int32 Instance, float DeltaTime, TArray<int32>& Instances);
+
 	void ActivateTorch(class ACamera* Camera, class UAIInstancedStaticMeshComponent* ISM, int32 Instance, TArray<int32>& Instances);
 
 	FVector AddHarvestVisual(class AAI* AI, FLinearColor Colour);

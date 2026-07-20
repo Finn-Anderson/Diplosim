@@ -289,6 +289,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						SetInstanceTransform(ism, j, citizen->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
 
 						UpdateCitizenVisuals(ism, Camera, citizen, j, instances);
+						UpdateDamageVisuals(ism, citizen, j, deltaTime, instances);
 
 						SetAIColour(ism, j, citizen->Colour, instances);
 					}
@@ -390,6 +391,8 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 					UpdateInstanceCustomData(ism, j, 1, 3.0f, instances);
 
 				SetInstanceTransform(ism, j, ai->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
+
+				UpdateDamageVisuals(ism, ai, j, deltaTime, instances);
 
 				SetAIColour(ism, j, ai->Colour, instances);
 			}
@@ -609,6 +612,12 @@ void UAIVisualiser::UpdateCitizenVisuals(UAIInstancedStaticMeshComponent* ISM, A
 	ActivateTorch(Camera, ISM, Instance, Instances);
 
 	UpdateInstanceCustomData(ISM, Instance, 13, status.Value, Instances);
+}
+
+void UAIVisualiser::UpdateDamageVisuals(UAIInstancedStaticMeshComponent* ISM, AAI* AI, int32 Instance, float DeltaTime, TArray<int32>& Instances)
+{
+	AI->DamageOverlayTimer = FMath::Max(AI->DamageOverlayTimer - DeltaTime, 0.0f);
+	UpdateInstanceCustomData(ISM, Instance, 9, AI->DamageOverlayTimer > 0.0f ? 1.0f : 0.0f, Instances);
 }
 
 void UAIVisualiser::ActivateTorch(ACamera* Camera, UAIInstancedStaticMeshComponent* ISM, int32 Instance, TArray<int32>& Instances)

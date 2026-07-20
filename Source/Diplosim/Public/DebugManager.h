@@ -24,6 +24,9 @@ public:
 	UPROPERTY()
 		bool bFight;
 
+	UPROPERTY()
+		int32 Happiness;
+
 	UFUNCTION(Exec)
 		void SpawnEnemies();
 
@@ -68,4 +71,7 @@ public:
 
 	UFUNCTION(Exec)
 		void SetFight(bool bChance);
+
+	UFUNCTION(Exec)
+		void SetHappiness(int32 Value);
 };

@@ -14,6 +14,7 @@
 #include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/EventsManager.h"
 #include "Universal/HealthComponent.h"
+#include "DebugManager.h"
 
 UHappinessComponent::UHappinessComponent()
 {
@@ -69,6 +70,9 @@ int32 UHappinessComponent::GetHappiness()
 
 	int32 value = 50;
 
+	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	value += Cast<UDebugManager>(citizen->Camera->PController->CheatManager)->Happiness;
+
 	if (!Modifiers.IsEmpty()) {
 		for (auto& element : Modifiers)
 			value += element.Value;
@@ -88,7 +92,7 @@ void UHappinessComponent::SetHappiness()
 
 	Modifiers.Empty();
 
-	if (faction->Police.Arrested.Contains(citizen)) {
+	if (!faction->Police.Arrested.IsEmpty() && faction->Police.Arrested.Contains(citizen)) {
 		Modifiers.Add("Arrested", -50);
 
 		return;

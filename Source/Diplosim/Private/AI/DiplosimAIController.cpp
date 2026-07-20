@@ -130,7 +130,7 @@ void UDiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 		if (bArrested)
 			building = Citizen->BuildingComponent->BuildingAt;
-		else if (chance < 33)
+		else if (chance < 32)
 			building = ChooseIdleBuilding(Citizen);
 
 		if (!bArrested && IsValid(building) && building->bHideCitizen && !Faction->BuildingsOnFire.Contains(building)) {
