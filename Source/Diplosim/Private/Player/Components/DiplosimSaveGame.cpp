@@ -473,6 +473,7 @@ void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor, i
 {
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(Actor);
 	FGamemodeData* gamemodeData = &Saves[Index].CameraData.GamemodeData;
+	gamemodeData->EnemiesData = gamemode->EnemiesData;
 
 	gamemodeData->WaveData.Empty();
 	for (FWaveStruct wave : gamemode->WavesData) {
@@ -486,7 +487,6 @@ void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor, i
 			waveData.Threats.Add(threat->GetName());
 
 		waveData.NumKilled = wave.NumKilled;
-		waveData.EnemiesData = wave.EnemiesData;
 
 		gamemodeData->WaveData.Add(waveData);
 	}
@@ -497,7 +497,6 @@ void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor, i
 	for (AAI* snake : gamemode->Snakes)
 		gamemodeData->SnakeNames.Add(snake->GetName());
 
-	gamemodeData->bOngoingRaid = gamemode->bOngoingRaid;
 	gamemodeData->CrystalOpacity = gamemode->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0];
 	gamemodeData->TargetOpacity = gamemode->TargetOpacity;
 }
@@ -1104,6 +1103,7 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& Cam
 void UDiplosimSaveGame::LoadGamemode(FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor)
 {
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(Actor);
+	gamemode->EnemiesData = GamemodeData.EnemiesData;
 	gamemode->Enemies.Empty();
 	gamemode->SnakeSpawners.Empty();
 	gamemode->Snakes.Empty();
@@ -1121,12 +1121,10 @@ void UDiplosimSaveGame::LoadGamemode(FActorSaveData& ActorData, FGamemodeData& G
 		}
 
 		wave.NumKilled = waveData.NumKilled;
-		wave.EnemiesData = waveData.EnemiesData;
 
 		gamemode->WavesData.Add(wave);
 	}
 
-	gamemode->bOngoingRaid = GamemodeData.bOngoingRaid;
 	gamemode->Grid->CrystalMesh->SetCustomPrimitiveDataFloat(0, GamemodeData.CrystalOpacity);
 	gamemode->TargetOpacity = GamemodeData.TargetOpacity;
 
@@ -1704,9 +1702,6 @@ void UDiplosimSaveGame::InitialiseGamemode(ACamera* Camera, ADiplosimGameModeBas
 		if (waveData.Threats.Contains(SavedData.Name))
 			wave.Threats.Add(SavedData.Actor);
 	}
-
-	if (!Gamemode->bSpawnedAllEnemies())
-		Gamemode->SpawnAllEnemies();
 }
 
 void UDiplosimSaveGame::InitialiseResources(ACamera* Camera, FActorSaveData& ActorData, FResourceData& ResourceData, FActorSaveData SavedData)

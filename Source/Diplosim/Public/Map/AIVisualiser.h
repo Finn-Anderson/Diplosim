@@ -229,7 +229,7 @@ public:
 
 	void RemoveInstance(class UAIInstancedStaticMeshComponent* ISM, int32 Instance);
 
-	void CreateInstance(FPendingChangeStruct PendingChange);
+	void CreateInstance(FPendingChangeStruct PendingChange, ACamera* Camera);
 
 	void DeleteInstance(FPendingChangeStruct PendingChange);
 

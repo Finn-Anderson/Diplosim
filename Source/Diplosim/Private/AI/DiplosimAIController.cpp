@@ -578,7 +578,7 @@ void UDiplosimAIController::RecalculateMovement(AActor* Actor)
 		currentLoc = AI->MovementComponent->Points.Last();
 
 	FNavLocation navLoc;
-	nav->ProjectPointToNavigation(targetLoc, navLoc, FVector(100.0f, 100.0f, 200.0f));
+	nav->ProjectPointToNavigation(targetLoc, navLoc, FVector(200.0f, 200.0f, 30.0f));
 
 	if (FVector::Dist(currentLoc, navLoc) < AI->GetReach())
 		return;

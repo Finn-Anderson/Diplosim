@@ -803,16 +803,12 @@ struct FWaveData
 	UPROPERTY()
 		int32 NumKilled;
 
-	UPROPERTY()
-		TArray<FEnemiesStruct> EnemiesData;
-
 	FWaveData()
 	{
 		SpawnLocations = {};
 		DiedTo = {};
 		Threats = {};
 		NumKilled = 0;
-		EnemiesData = {};
 	}
 };
 
@@ -829,6 +825,9 @@ struct FGamemodeData
 
 	UPROPERTY()
 		TArray<FString> SnakeNames;
+
+	UPROPERTY()
+		TArray<FEnemiesStruct> EnemiesData;
 
 	UPROPERTY()
 		bool bOngoingRaid;

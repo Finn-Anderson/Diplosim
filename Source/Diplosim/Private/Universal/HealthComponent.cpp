@@ -337,9 +337,6 @@ void UHealthComponent::Clear(AActor* Attacker)
 		}
 		else
 			gamemode->WavesData.Last().SetDiedTo(Attacker);
-
-		if (gamemode->CheckEnemiesStatus())
-			gamemode->SetWaveTimer();
 	}
 	else if (actor->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(actor);
@@ -377,8 +374,12 @@ void UHealthComponent::Clear(AActor* Attacker)
 		else if (ai->IsA<AEnemy>()) {
 			AEnemy* enemy = Cast<AEnemy>(ai);
 
-			if (gamemode->Enemies.Contains(enemy))
+			if (gamemode->Enemies.Contains(enemy)) {
 				gamemode->Enemies.Remove(enemy);
+
+				if (gamemode->CheckEnemiesStatus())
+					gamemode->SetWaveTimer();
+			}
 			else
 				gamemode->Snakes.Remove(enemy);
 		}

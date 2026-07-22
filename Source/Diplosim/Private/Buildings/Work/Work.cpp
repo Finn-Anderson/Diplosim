@@ -165,6 +165,8 @@ bool AWork::IsAtWork(ACitizen* Citizen)
 //
 void AWork::InitialiseCapacityStruct()
 {
+	Occupied.Empty();
+
 	for (int32 i = 0; i < GetCapacity(); i++) {
 		FCapacityStruct capacityStruct;
 		capacityStruct.Amount = Camera->ConquestManager->GetBuildingClassAmount(FactionName, GetClass());

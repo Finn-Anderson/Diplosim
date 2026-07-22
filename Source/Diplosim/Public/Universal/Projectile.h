@@ -48,6 +48,12 @@ public:
 		bool bDamageFallOff;
 
 	UPROPERTY()
+		AActor* ActorToTrack;
+
+	UPROPERTY()
+		bool bBegunTracking;
+
+	UPROPERTY()
 		FString FactionName;
 
 	void SpawnNiagaraSystems(AActor* Launcher);

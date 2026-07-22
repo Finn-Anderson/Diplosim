@@ -200,7 +200,7 @@ void UPoliceManager::ProcessReports()
 
 void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen1, ACitizen* Citizen2, float Citizen1Aggressiveness, float Citizen2Aggressiveness)
 {
-	if (Faction->Citizens.Num() <= 20 || Faction->Police.Arrested.Contains(Citizen1) || Faction->Police.Arrested.Contains(Citizen2) || IsPoliceOfficer(Citizen1) || IsPoliceOfficer(Citizen2))
+	if (Faction->Citizens.Num() <= 20 || !GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() || !Faction->Rebels.IsEmpty() || Faction->Police.Arrested.Contains(Citizen1) || Faction->Police.Arrested.Contains(Citizen2) || IsPoliceOfficer(Citizen1) || IsPoliceOfficer(Citizen2))
 		return;
 
 	FVector midPoint = (Camera->GetTargetActorLocation(Citizen1) + Camera->GetTargetActorLocation(Citizen2)) / 2;
@@ -400,14 +400,8 @@ void UPoliceManager::ChangeReportToMurder(ACitizen* Citizen, ACitizen* Attacker)
 void UPoliceManager::CeaseAllInternalFighting(FFactionStruct* Faction)
 {
 	for (ACitizen* citizen : Faction->Citizens) {
-		for (int32 i = citizen->AttackComponent->OverlappingEnemies.Num() - 1; i > -1; i--) {
-			AActor* actor = citizen->AttackComponent->OverlappingEnemies[i];
+		citizen->AttackComponent->ClearAttacks();
 
-			if (Faction->Citizens.Contains(actor))
-				citizen->AttackComponent->OverlappingEnemies.RemoveAt(i);
-		}
-
-		citizen->AttackComponent->bShowMercy = false;
 		citizen->AIController->DefaultAction();
 	}
 }

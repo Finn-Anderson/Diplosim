@@ -165,7 +165,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 	for (FPendingChangeStruct pending : CitizenPendingChange) {
 		if (pending.Instances.IsEmpty())
-			CreateInstance(pending);
+			CreateInstance(pending, Camera);
 		else
 			DeleteInstance(pending);
 	}
@@ -323,7 +323,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 
 	for (FPendingChangeStruct pending : AIPendingChange) {
 		if (pending.Instances.IsEmpty())
-			CreateInstance(pending);
+			CreateInstance(pending, Camera);
 		else
 			DeleteInstance(pending);
 	}
@@ -550,11 +550,11 @@ void UAIVisualiser::RemoveInstance(UAIInstancedStaticMeshComponent* ISM, int32 I
 	}
 }
 
-void UAIVisualiser::CreateInstance(FPendingChangeStruct PendingChange)
+void UAIVisualiser::CreateInstance(FPendingChangeStruct PendingChange, ACamera* Camera)
 {
 	int32 instance = PendingChange.ISM->AddInstance(PendingChange.Transform, false);
 
-	if (IsValid(PendingChange.AI->SpawnSystem))
+	if (IsValid(PendingChange.AI->SpawnSystem) && Camera->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0] > 0.0f)
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), PendingChange.AI->SpawnSystem, PendingChange.Transform.GetLocation());
 }
 

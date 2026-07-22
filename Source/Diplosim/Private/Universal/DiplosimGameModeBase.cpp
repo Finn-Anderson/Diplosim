@@ -31,7 +31,6 @@ ADiplosimGameModeBase::ADiplosimGameModeBase()
 	TargetOpacity = 0.0f;
 	
 	Grid = nullptr;
-	bOngoingRaid = false;
 }
 
 void ADiplosimGameModeBase::BeginPlay()
@@ -72,6 +71,11 @@ void ADiplosimGameModeBase::Tick(float DeltaTime)
 bool ADiplosimGameModeBase::IsSnakeFaction(AActor* Actor)
 {
 	return Snakes.Contains(Actor) || SnakeSpawners.Contains(Actor);
+}
+
+bool ADiplosimGameModeBase::IsEnemy(AActor* Actor)
+{
+	return Enemies.Contains(Actor) || IsSnakeFaction(Actor);
 }
 
 void ADiplosimGameModeBase::EvaluateThreats()
@@ -206,10 +210,7 @@ TArray<FVector> ADiplosimGameModeBase::PickSpawnPoints()
 		return validTiles;
 
 	TArray<FVector> spawnLocations;
-
-	auto index = Async(EAsyncExecution::TaskGraphMainThread, [this, validTiles]() { return Camera->Stream.RandRange(0, validTiles.Num() - 1); });
-	FVector startLocation = validTiles[index.Get()];
-
+	FVector startLocation = validTiles[Camera->Stream.RandRange(0, validTiles.Num() - 1)];
 	spawnLocations.Add(startLocation);
 
 	TArray<int32> instances = Grid->HISMGround->GetInstancesOverlappingSphere(startLocation, 1000);
@@ -289,11 +290,8 @@ void ADiplosimGameModeBase::SetRaidInformation()
 	WavesData.Add(waveStruct);
 
 	WavesData.Last().SpawnLocations = spawnLocations;
-	WavesData.Last().EnemiesData = EnemiesData;
 
 	EvaluateThreats();
-
-	bOngoingRaid = true;
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this]() { ShowRaidCrystal(true, WavesData.Last().SpawnLocations[0] + FVector(0.0f, 0.0f, 500.0f)); });
 
@@ -312,11 +310,11 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 	int32 count = 1;
 
 	for (int32 i = 0; i < EnemiesData.Num(); i++) {
-		int32 num = FMath::Floor(EnemiesData[i].Tally / 200.0f) - WavesData.Last().EnemiesData[i].Spawned;
+		int32 num = FMath::Floor(EnemiesData[i].Tally / 200.0f);
 
 		for (int32 j = 0; j < num; j++) {
 			FTimerHandle spawnTimer;
-			GetWorld()->GetTimerManager().SetTimer(spawnTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, WavesData.Last().SpawnLocations, EnemiesData[i].Colour, &WavesData.Last().EnemiesData[i].Spawned), 0.1f * count, false);
+			GetWorld()->GetTimerManager().SetTimer(spawnTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, WavesData.Last().SpawnLocations, EnemiesData[i].Colour), 0.1f * count, false);
 
 			count++;
 		}
@@ -339,7 +337,7 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 	Camera->ShowEvent("Event", "Raid");
 }
 
-void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour, int32* Spawned)
+void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour)
 {
 	int32 index = Camera->Stream.RandRange(0, spawnLocations.Num() - 1);
 
@@ -362,34 +360,6 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations,
 	Grid->AIVisualiser->AddInstance(enemy, Grid->AIVisualiser->HISMEnemy, transform);
 
 	enemy->MoveToBroch();
-
-	Spawned++;
-}
-
-int32 ADiplosimGameModeBase::GetTotalSpawnedEnemies()
-{
-	int32 count = 0;
-
-	for (int32 i = 0; i < WavesData.Last().EnemiesData.Num(); i++)
-		count += WavesData.Last().EnemiesData[i].Spawned;
-
-	return count;
-}
-
-bool ADiplosimGameModeBase::bSpawnedAllEnemies()
-{
-	if (WavesData.IsEmpty())
-		return true;
-
-	int32 total = 0;
-	int32 spawned = 0;
-
-	for (int32 i = 0; i < WavesData.Last().EnemiesData.Num(); i++) {
-		total = FMath::Floor(WavesData.Last().EnemiesData[i].Tally / 200.0f);
-		spawned = WavesData.Last().EnemiesData[i].Spawned;
-	}
-
-	return total == spawned;
 }
 
 void ADiplosimGameModeBase::StartRaid()
@@ -420,22 +390,7 @@ void ADiplosimGameModeBase::StartRaid()
 
 bool ADiplosimGameModeBase::CheckEnemiesStatus()
 {
-	if (!UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies() || Camera->TimerManager->FindTimer("SpawnEnemies", this) != nullptr)
-		return false;
-	
-	if (bOngoingRaid) {
-		int32 tally = 0;
-
-		for (FDiedToStruct death : WavesData.Last().DiedTo)
-			tally += death.Kills; 
-
-		if (tally != GetTotalSpawnedEnemies())
-			return false;
-
-		bOngoingRaid = false;
-	}
-
-	return true;
+	return UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies() && Grid->CrystalMesh->GetCustomPrimitiveData().Data[0] <= 0.0f && Enemies.IsEmpty();
 }
 
 void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)

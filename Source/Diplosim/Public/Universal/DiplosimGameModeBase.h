@@ -18,13 +18,9 @@ struct FEnemiesStruct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		FLinearColor Colour;
 
-	UPROPERTY()
-		int32 Spawned;
-
 	FEnemiesStruct()
 	{
 		Tally = 0;
-		Spawned = 0;
 		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
 	}
 };
@@ -69,16 +65,12 @@ struct FWaveStruct
 	UPROPERTY()
 		int32 NumKilled;
 
-	UPROPERTY()
-		TArray<FEnemiesStruct> EnemiesData;
-
 	FWaveStruct()
 	{
 		SpawnLocations = {};
 		DiedTo = {};
 		Threats = {};
 		NumKilled = 0;
-		EnemiesData = {};
 	}
 
 	void SetDiedTo(AActor* Attacker)
@@ -121,10 +113,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool IsSnakeFaction(AActor* Actor);
 
+	UFUNCTION(BlueprintCallable)
+		bool IsEnemy(AActor* Actor);
+
 	UFUNCTION()
 		void SpawnAllEnemies();
-
-	bool bSpawnedAllEnemies();
 
 	UFUNCTION()
 		void StartRaid();
@@ -168,9 +161,6 @@ public:
 		TArray<FEnemiesStruct> EnemiesData;
 
 	UPROPERTY()
-		bool bOngoingRaid;
-
-	UPROPERTY()
 		float TargetOpacity;
 
 private:
@@ -188,9 +178,7 @@ private:
 
 	void SetRaidInformation();
 
-	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour, int32* Spawned);
-
-	int32 GetTotalSpawnedEnemies();
+	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour);
 
 	FCriticalSection WaveLock;
 };

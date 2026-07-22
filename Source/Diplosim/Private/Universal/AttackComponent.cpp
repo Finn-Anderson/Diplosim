@@ -82,7 +82,7 @@ void UAttackComponent::PickTarget(float DeltaTime)
 		else if (GetOwner()->IsA<AAI>() && *ProjectileClass)
 			withinRange = ai->CanReach(target, ai->Range);
 
-		if (targetFavourability.Hp <= (bShowMercy ? targetHealthComp->MaxHealth / 4 : 0) || targetFavourability.Hp == 10000000 || !withinRange || (targetAttackComp && !targetAttackComp->OverlappingEnemies.Contains(ai))) {
+		if (targetFavourability.Hp <= (bShowMercy ? targetHealthComp->MaxHealth / 4 : 0) || targetFavourability.Hp == 10000000 || !withinRange) {
 			OverlappingEnemies.RemoveAt(i);
 
 			continue;
@@ -300,8 +300,8 @@ void UAttackComponent::Throw()
 
 	FVector startLoc = Camera->GetTargetActorLocation(GetOwner(), false) + FVector(0.0f, 0.0f, z / 2.0f);
 	FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget, false);
-	if (CurrentTarget->IsA<AAI>())
-		targetLoc += Cast<AAI>(CurrentTarget)->MovementComponent->Velocity * (FVector::Dist(startLoc, targetLoc) / v) * 2.0f;
+	if (CurrentTarget->IsA<AAI>() && !GetOwner()->IsA<AAI>())
+		targetLoc += Cast<AAI>(CurrentTarget)->MovementComponent->Velocity * (FVector::Dist(startLoc, targetLoc) / v);
 	FRotator lookAt = (targetLoc - startLoc).Rotation();
 
 	FVector groundedLocation = FVector(startLoc.X, startLoc.Y, targetLoc.Z);
@@ -315,6 +315,7 @@ void UAttackComponent::Throw()
 	Async(EAsyncExecution::TaskGraphMainTick, [this, startLoc, ang]() {
 		AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
 		projectile->SpawnNiagaraSystems(GetOwner());
+		projectile->ActorToTrack = CurrentTarget->IsA<AAI>() && GetOwner()->IsA<AAI>() ? CurrentTarget : nullptr;
 		projectile->FactionName = Camera->ConquestManager->GetFaction("", GetOwner())->Name;
 	});
 }
@@ -345,4 +346,5 @@ void UAttackComponent::Melee()
 void UAttackComponent::ClearAttacks()
 {
 	bClearAttacks = true;
+	bShowMercy = false;
 }
