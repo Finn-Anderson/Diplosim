@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "AI/AI.h"
+#include "AI/AIMovementComponent.h"
 #include "Buildings/Work/Defence/Tower.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -52,9 +53,6 @@ AProjectile::AProjectile()
 	bExplode = false;
 	bDamageFallOff = true;
 
-	ActorToTrack = nullptr;
-	bBegunTracking = false;
-
 	FactionName = "";
 }
 
@@ -64,16 +62,6 @@ void AProjectile::Tick(float DeltaTime)
 
 	if (DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
-
-	if (!IsValid(ActorToTrack)) {
-		if (!bBegunTracking && FVector::Dist(ProjectileMovementComponent->Velocity, FVector::Zero()) < 10.0f) {
-			ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
-			bBegunTracking = true;
-		}
-
-		if (bBegunTracking)
-			SetActorRotation((GetActorLocation() - GetOwner<AAI>()->Camera->GetTargetActorLocation(ActorToTrack)).Rotation());
-	}
 
 	FHitResult hit;
 	FVector size = ProjectileMesh->GetStaticMesh()->GetBounds().GetBox().GetSize() / 2.0f * ProjectileMesh->GetRelativeScale3D();
@@ -182,5 +170,5 @@ void AProjectile::HitActor(ACamera* Camera, AActor* Actor)
 		dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
 	}
 
-	healthComponent->TakeHealth(dmg * multiplier, this, sound);
+	healthComponent->TakeHealth(dmg * multiplier, GetOwner(), sound);
 }

@@ -411,17 +411,19 @@ bool UDiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 
 TArray<FVector> UDiplosimAIController::GetPathPoints(FVector StartLocation, FVector EndLocation)
 {
-	TSubclassOf<UNavigationQueryFilter> filter = nullptr;
+	TSubclassOf<UNavigationQueryFilter> filter = {};
 
-	if (IsValid(AI) && AI->NavQueryFilter != nullptr)
-		filter = AI->NavQueryFilter;
+	if (IsValid(AI)) {
+		if (IsValid(AI->NavQueryFilter))
+			filter = AI->NavQueryFilter;
 
-	if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->EnterLocation != FVector::Zero())
-		StartLocation = Cast<ACitizen>(AI)->BuildingComponent->EnterLocation;
+		if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->EnterLocation != FVector::Zero())
+			StartLocation = Cast<ACitizen>(AI)->BuildingComponent->EnterLocation;
+	}
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
-	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), StartLocation, EndLocation, AI, filter);
+	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), StartLocation, EndLocation, nullptr, filter);
 
 	if (path == nullptr)
 		return {};
@@ -447,7 +449,7 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
 	FNavLocation navLoc;
-	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(100.0f, 100.0f, 200.0f));
+	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(200.0f, 200.0f, 30.0f));
 	MoveRequest.SetLocation(navLoc);
 	
 	if (AI->CanReach(Actor, AI->GetReach(), MoveRequest.GetLocation()) || (IsValid(Actor) && AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
@@ -468,7 +470,7 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 				continue;
 
 			FNavLocation navBuildingLoc;
-			nav->ProjectPointToNavigation(GetActualLocation(building), navBuildingLoc, FVector(100.0f, 100.0f, 200.0f));
+			nav->ProjectPointToNavigation(GetActualLocation(building), navBuildingLoc, FVector(200.0f, 200.0f, 30.0f));
 
 			double length1 = 0.0f;
 			double length2 = 0.0f;
@@ -477,7 +479,7 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 				ownerNearestPortal = building;
 			else {
 				FNavLocation navPortalLoc;
-				nav->ProjectPointToNavigation(GetActualLocation(ownerNearestPortal), navPortalLoc, FVector(100.0f, 100.0f, 200.0f));
+				nav->ProjectPointToNavigation(GetActualLocation(ownerNearestPortal), navPortalLoc, FVector(200.0f, 200.0f, 30.0f));
 
 				nav->GetPathLength(navAILoc, navPortalLoc, length1);
 				nav->GetPathLength(navAILoc, navBuildingLoc, length2);
@@ -490,7 +492,7 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 				targetNearestPortal = building;
 			else {
 				FNavLocation navPortalLoc;
-				nav->ProjectPointToNavigation(GetActualLocation(targetNearestPortal), navPortalLoc, FVector(100.0f, 100.0f, 200.0f));
+				nav->ProjectPointToNavigation(GetActualLocation(targetNearestPortal), navPortalLoc, FVector(200.0f, 200.0f, 30.0f));
 
 				nav->GetPathLength(MoveRequest.GetLocation(), navPortalLoc, length1);
 				nav->GetPathLength(MoveRequest.GetLocation(), navBuildingLoc, length2);
@@ -515,8 +517,9 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 				MoveRequest.SetGoalActor(ownerNearestPortal, targetNearestPortal, Actor);
 				MoveRequest.SetLocation(GetActualLocation(ownerNearestPortal));
 
-				nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(100.0f, 100.0f, 200.0f));
-				MoveRequest.SetLocation(navLoc);
+				FNavLocation newNavLoc;
+				nav->ProjectPointToNavigation(MoveRequest.GetLocation(), newNavLoc, FVector(200.0f, 200.0f, 30.0f));
+				MoveRequest.SetLocation(newNavLoc);
 			}
 		}
 	}
@@ -583,10 +586,10 @@ void UDiplosimAIController::RecalculateMovement(AActor* Actor)
 	if (FVector::Dist(currentLoc, navLoc) < AI->GetReach())
 		return;
 
-	if (Actor->IsA<ABroch>())
+	if (GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.Contains(AI))
 		AI->MoveToBroch();
 	else
-		AIMoveTo(Actor, navLoc.Location, MoveRequest.GetGoalInstance());
+		AIMoveTo(Actor, navLoc, MoveRequest.GetGoalInstance());
 }
 
 FVector UDiplosimAIController::GetActualLocation(AActor* Actor)
@@ -599,10 +602,13 @@ FVector UDiplosimAIController::GetActualLocation(AActor* Actor)
 	if (Actor->IsA<ABuilding>()) {
 		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
 
-		if (comp && comp->DoesSocketExist("Entrance"))
+		if (!comp)
+			return location;
+
+		if (comp->DoesSocketExist("Entrance") && CanMoveTo(comp->GetSocketLocation("Entrance")))
 			location = comp->GetSocketLocation("Entrance");
-		else if (IsValid(AI))
-			comp->GetClosestPointOnCollision(AI->MovementComponent->Transform.GetLocation(), location); 
+		else
+			location = GetClosestNavigablePointOnCollision(Actor, comp);
 	}
 	else if (Actor->IsA<AResource>()) {
 		FTransform transform;
@@ -612,6 +618,57 @@ FVector UDiplosimAIController::GetActualLocation(AActor* Actor)
 	}
 
 	return location;
+}
+
+FVector UDiplosimAIController::GetClosestNavigablePointOnCollision(AActor* Actor, UStaticMeshComponent* Component)
+{
+	FVector closestPoint = FVector::Zero();
+	double closestLength = 100000000000000.0f;
+	TArray<FVector> points;
+
+	FRotator rotation = Actor->GetActorRotation();
+
+	FVector centre, size;
+	Component->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, size);
+
+	FVector location = Actor->GetActorLocation() + rotation.RotateVector(centre);
+	location.Z = Actor->GetActorLocation().Z;
+
+	float xInterval = 2.0f / (FMath::RoundHalfFromZero(size.X / 50.0f) + 1);
+	float yInterval = 2.0f / (FMath::RoundHalfFromZero(size.Y / 50.0f) + 1);
+
+	float biggestDimension = size.X;
+	if (size.Y > biggestDimension)
+		biggestDimension = size.Y;
+
+	for (float x = -1.0f; x <= 1.1f; x += xInterval) {
+		points.Add(location + rotation.RotateVector(size * FVector(x, -1.0f, 0.0f)));
+		points.Add(location + rotation.RotateVector(size * FVector(x, 1.0f, 0.0f)));
+	}
+
+	for (float y = -1.0f; y <= 1.1f; y += yInterval) {
+		points.Add(location + rotation.RotateVector(size * FVector(-1.0f, y, 0.0f)));
+		points.Add(location + rotation.RotateVector(size * FVector(1.0f, y, 0.0f)));
+	}
+
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+
+	for (const FVector& point : points) {
+		if (!CanMoveTo(point))
+			continue;
+
+		double length = 0.0f;
+		FNavLocation navLoc;
+		nav->ProjectPointToNavigation(point, navLoc, FVector(200.0f, 200.0f, 30.0f));
+		nav->GetPathLength(GetActualLocation(AI), navLoc, length);
+
+		if (length < closestLength) {
+			closestPoint = point;
+			closestLength = length;
+		}
+	}
+
+	return closestPoint;
 }
 
 void UDiplosimAIController::StartMovement()

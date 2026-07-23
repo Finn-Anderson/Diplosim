@@ -122,6 +122,12 @@ public:
 	UFUNCTION()
 		void StartRaid();
 
+	UFUNCTION()
+		void ShowRaidCrystal(bool bShow, FVector Location);
+
+	UFUNCTION()
+		void SpawnAtValidLocation(FLinearColor Colour);
+
 	bool CheckEnemiesStatus();
 
 	void TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount);
@@ -174,11 +180,7 @@ private:
 
 	TArray<FVector> GetValidLocations(class UHierarchicalInstancedStaticMeshComponent* HISMComponent, TArray<int32> Instances, TArray<FVector> ValidTiles);
 
-	void ShowRaidCrystal(bool bShow, FVector Location = FVector(0.0f, 0.0f, -1000.0f));
-
 	void SetRaidInformation();
-
-	void SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour);
 
 	FCriticalSection WaveLock;
 };

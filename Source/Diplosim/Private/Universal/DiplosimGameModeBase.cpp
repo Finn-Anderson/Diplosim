@@ -242,7 +242,8 @@ void ADiplosimGameModeBase::ShowRaidCrystal(bool bShow, FVector Location)
 
 	TargetOpacity = bShow ? 1.0f : 0.0f;
 
-	Camera->Grid->CrystalMesh->SetRelativeLocation(Location);
+	if (Location != FVector::Zero())
+		Camera->Grid->CrystalMesh->SetRelativeLocation(Location);
 
 	if (!bShow)
 		return;
@@ -313,8 +314,9 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 		int32 num = FMath::Floor(EnemiesData[i].Tally / 200.0f);
 
 		for (int32 j = 0; j < num; j++) {
-			FTimerHandle spawnTimer;
-			GetWorld()->GetTimerManager().SetTimer(spawnTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::SpawnAtValidLocation, WavesData.Last().SpawnLocations, EnemiesData[i].Colour), 0.1f * count, false);
+			TArray<FTimerParameterStruct> params;
+			Camera->TimerManager->SetParameter(EnemiesData[i].Colour, params);
+			Camera->TimerManager->CreateTimer("SpawnEnemy" + i + j, this, 0.1f * count, "SpawnAtValidLocation", params, false, true);
 
 			count++;
 		}
@@ -322,8 +324,10 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 		EnemiesData[i].Tally = EnemiesData[i].Tally % 200;
 	}
 
-	FTimerHandle crystalTimer;
-	GetWorld()->GetTimerManager().SetTimer(crystalTimer, FTimerDelegate::CreateUObject(this, &ADiplosimGameModeBase::ShowRaidCrystal, false, FVector(0.0f, 0.0f, -1000.0f)), 0.1f * count, false);
+	TArray<FTimerParameterStruct> params;
+	Camera->TimerManager->SetParameter(false, params);
+	Camera->TimerManager->SetParameter(FVector::Zero(), params);
+	Camera->TimerManager->CreateTimer("ShowRaidCrystal", this, 0.1f * count, "ShowRaidCrystal", params, false, true);
 
 	for (ASpecial* building : Grid->SpecialBuildings) {
 		if (!IsValid(building) || !building->IsA<ACloneLab>())
@@ -337,15 +341,15 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 	Camera->ShowEvent("Event", "Raid");
 }
 
-void ADiplosimGameModeBase::SpawnAtValidLocation(TArray<FVector> spawnLocations, FLinearColor Colour)
+void ADiplosimGameModeBase::SpawnAtValidLocation(FLinearColor Colour)
 {
-	int32 index = Camera->Stream.RandRange(0, spawnLocations.Num() - 1);
+	int32 index = Camera->Stream.RandRange(0, WavesData.Last().SpawnLocations.Num() - 1);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
 	FNavLocation navLocation;
-	nav->ProjectPointToNavigation(spawnLocations[index], navLocation, FVector(100.0f, 100.0f, 50.0f));
+	nav->ProjectPointToNavigation(WavesData.Last().SpawnLocations[index], navLocation, FVector(100.0f, 100.0f, 50.0f));
 
 	FActorSpawnParameters params;
 	params.bNoFail = true;

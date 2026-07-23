@@ -4,25 +4,6 @@
 #include "Components/ActorComponent.h"
 #include "AttackComponent.generated.h"
 
-USTRUCT()
-struct FFavourabilityStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	int32 Hp;
-
-	int32 Dmg;
-
-	double Dist;
-
-	FFavourabilityStruct()
-	{
-		Hp = 10000000;
-		Dmg = 1;
-		Dist = 10000000.0f;
-	}
-};
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UAttackComponent : public UActorComponent
 {
@@ -33,7 +14,7 @@ public:
 
 	void SetProjectileClass(TSubclassOf<class AProjectile> OtherClass);
 
-	void PickTarget(float DeltaTime);
+	void PickTarget();
 
 	void Throw();
 
@@ -78,11 +59,13 @@ public:
 		bool bFactorMorale;
 
 private:
-	FFavourabilityStruct GetActorFavourability(AActor* Actor);
+	AActor* GetFavouredActor(AActor* CurrentFavoured, AActor* Actor);
 
 	bool IsMoraleHigh();
 
-	void Attack(AActor* Target, float DeltaTime);
+	void Attack(AActor* Target);
 
 	bool bClearAttacks;
+
+	double LastUpdateTime;
 };

@@ -55,7 +55,7 @@ public:
 		void RemoveDamageOverlay();
 
 	// Death
-	void Death(AActor* Attacker);
+	void Death(AActor* Attacker, bool bLoad = false);
 
 	UFUNCTION()
 		void AIDecay();

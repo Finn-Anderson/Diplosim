@@ -79,7 +79,10 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 			Camera->DiseaseManager->Injure(citizen, Camera->Stream.RandRange(0, 100));
 		}
 
-		Camera->PlayAmbientSound(HitAudioComponent, Sound);
+		UAudioComponent* comp = HitAudioComponent;
+		if (Attacker->IsA<AEnemy>() && Sound == Cast<AEnemy>(Attacker)->AttackComponent->ZapSound)
+			comp = Cast<AEnemy>(Attacker)->HealthComponent->HitAudioComponent;
+		Camera->PlayAmbientSound(comp, Sound);
 	});
 }
 
@@ -115,11 +118,19 @@ void UHealthComponent::ApplyDamageOverlay(bool bLoad)
 			mesh->SetCustomPrimitiveDataFloat(11, opacity);
 		}
 
-		if (!bLoad && GetOwner()->IsA<ABuilding>())
+		if (bLoad)
+			return;
+
+		if (GetOwner()->IsA<ABuilding>())
 			Camera->ConstructionManager->AddBuilding(Cast<ABuilding>(GetOwner()), EBuildStatus::Damaged);
+
+		if (Camera->TimerManager->DoesTimerExist("DamageOverlay", GetOwner()))
+			Camera->TimerManager->ResetTimer("DamageOverlay", GetOwner());
+		else
+			Camera->TimerManager->CreateTimer("DamageOverlay", GetOwner(), 0.4f, "RemoveDamageOverlay", {}, false, true);
 	}
 	else
-		Cast<AAI>(GetOwner())->DamageOverlayTimer = 0.4;
+		Cast<AAI>(GetOwner())->DamageOverlayTimer = 0.4f;
 }
 
 void UHealthComponent::RemoveDamageOverlay()
@@ -137,7 +148,7 @@ void UHealthComponent::RemoveDamageOverlay()
 		Cast<AAI>(GetOwner())->DamageOverlayTimer = 0.25;
 }
 
-void UHealthComponent::Death(AActor* Attacker)
+void UHealthComponent::Death(AActor* Attacker, bool bLoad)
 {
 	AActor* actor = GetOwner();
 
@@ -251,10 +262,10 @@ void UHealthComponent::Death(AActor* Attacker)
 		}
 	}
 
-	if (!IsValid(Attacker))
+	if (bLoad)
 		return;
 
-	Camera->TimerManager->RemoveAllTimers(actor, {"Decay"});
+	Camera->TimerManager->RemoveAllTimers(actor, {"DamageOverlay", "Decay"});
 
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(Attacker, params);
@@ -274,8 +285,6 @@ void UHealthComponent::Clear(AActor* Attacker)
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", actor);
 
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-
-	RemoveDamageOverlay();
 
 	if (actor->IsA<ACitizen>()) {
 		ACitizen* citizen = Cast<ACitizen>(actor);
@@ -325,18 +334,7 @@ void UHealthComponent::Clear(AActor* Attacker)
 		}
 	}
 	else if (actor->IsA<AEnemy>() && gamemode->Enemies.Contains(actor)) {
-		if (Attacker->IsA<AProjectile>()) {
-			AActor* a = nullptr;
-
-			if (Attacker->GetOwner()->IsA<AWall>())
-				a = Attacker->GetOwner();
-			else
-				a = Cast<ACitizen>(Attacker->GetOwner())->BuildingComponent->Employment;
-
-			gamemode->WavesData.Last().SetDiedTo(a);
-		}
-		else
-			gamemode->WavesData.Last().SetDiedTo(Attacker);
+		gamemode->WavesData.Last().SetDiedTo(Attacker);
 	}
 	else if (actor->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(actor);

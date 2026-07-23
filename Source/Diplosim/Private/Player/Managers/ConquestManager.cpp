@@ -264,9 +264,9 @@ void UConquestManager::ComputeAI()
 	FactionsToRemove.Empty();
 }
 
-void UConquestManager::CalculateAIFighting(float DeltaTime)
+void UConquestManager::CalculateAIFighting()
 {
-	Async(EAsyncExecution::TaskGraph, [this, DeltaTime]() {
+	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&AIFightLock);
 		if (!lock.IsLocked())
 			return;
@@ -342,15 +342,15 @@ void UConquestManager::CalculateAIFighting(float DeltaTime)
 				}
 
 				if (!ai->AttackComponent->OverlappingEnemies.IsEmpty())
-					ai->AttackComponent->PickTarget(DeltaTime);
+					ai->AttackComponent->PickTarget();
 			}
 		}
 	});
 }
 
-void UConquestManager::CalculateBuildingFighting(float DeltaTime)
+void UConquestManager::CalculateBuildingFighting()
 {
-	Async(EAsyncExecution::TaskGraph, [this, DeltaTime]() {
+	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&BuildingFightLock);
 		if (!lock.IsLocked())
 			return;
@@ -432,7 +432,7 @@ void UConquestManager::CalculateBuildingFighting(float DeltaTime)
 						}
 
 						if (!tower->AttackComponent->OverlappingEnemies.IsEmpty())
-							tower->AttackComponent->PickTarget(DeltaTime);
+							tower->AttackComponent->PickTarget();
 					}
 				}
 			}

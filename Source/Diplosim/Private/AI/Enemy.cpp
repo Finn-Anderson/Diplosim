@@ -23,11 +23,14 @@ AEnemy::AEnemy()
 
 void AEnemy::Zap(FVector Location)
 {
+	if (!IsValid(ZapComponent->GetFXSystemAsset()))
+		return;
+
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Location]() {
 		ZapComponent->SetVariableLinearColor("Colour", Colour);
 		ZapComponent->SetVariablePosition("StartLocation", MovementComponent->Transform.GetLocation() + Camera->Grid->AIVisualiser->GetAIHISM(this).Key->GetStaticMesh()->GetBounds().Origin);
 		ZapComponent->SetVariablePosition("EndLocation", Location);
 
-		ZapComponent->Activate();
+		ZapComponent->Activate(true);
 	});
 }

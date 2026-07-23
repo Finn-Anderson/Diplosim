@@ -1405,7 +1405,7 @@ void UDiplosimSaveGame::LoadComponents(FActorSaveData& ActorData, AActor* Actor,
 
 		if (healthComp->Health == 0) {
 			if (!(Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->FactionName == ""))
-				healthComp->Death(nullptr);
+				healthComp->Death(nullptr, true);
 			else
 				Cast<ABuilding>(Actor)->ParticleComponent->Deactivate();
 		}

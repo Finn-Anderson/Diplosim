@@ -144,4 +144,7 @@ public:
 
 	UPROPERTY()
 		class AAI* AI;
+
+private:
+	FVector GetClosestNavigablePointOnCollision(AActor* Actor, UStaticMeshComponent* Component);
 };

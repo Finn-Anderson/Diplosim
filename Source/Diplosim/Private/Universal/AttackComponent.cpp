@@ -3,6 +3,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
 #include "NavigationSystem.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "AI/AI.h"
 #include "AI/Enemy.h"
@@ -32,13 +33,16 @@ UAttackComponent::UAttackComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	Damage = 10;
+	DamageMultiplier = 1.0f;
 
 	AttackTime = 1.0f;
 	AttackTimer = 0.0f;
+	LastUpdateTime = 0.0f;
 
+	Camera = nullptr;
 	CurrentTarget = nullptr;
-
-	DamageMultiplier = 1.0f;
+	OnHitSound = nullptr;
+	ZapSound = nullptr;
 
 	bShowMercy = false;
 	bFactorMorale = false;
@@ -53,7 +57,7 @@ void UAttackComponent::SetProjectileClass(TSubclassOf<AProjectile> OtherClass)
 	ProjectileClass = OtherClass;
 }
 
-void UAttackComponent::PickTarget(float DeltaTime)
+void UAttackComponent::PickTarget()
 {
 	AActor* favoured = nullptr;
 	AAI* ai = nullptr;
@@ -66,49 +70,52 @@ void UAttackComponent::PickTarget(float DeltaTime)
 		bClearAttacks = false;
 	}
 
-	for (int32 i = OverlappingEnemies.Num() - 1; i > -1; i--) {
-		if (i >= OverlappingEnemies.Num())
-			continue;
-
-		AActor* target = OverlappingEnemies[i];
-		UAttackComponent* targetAttackComp = target->FindComponentByClass<UAttackComponent>();
-		UHealthComponent* targetHealthComp = target->FindComponentByClass<UHealthComponent>();
-		FFavourabilityStruct targetFavourability = GetActorFavourability(target);
-
-		bool withinRange = true;
-
-		if (GetOwner()->IsA<AWall>())
-			withinRange = FVector::Dist(Camera->GetTargetActorLocation(GetOwner()), Camera->GetTargetActorLocation(target)) <= Cast<AWall>(GetOwner())->RangeComponent->GetScaledSphereRadius();
-		else if (GetOwner()->IsA<AAI>() && *ProjectileClass)
-			withinRange = ai->CanReach(target, ai->Range);
-
-		if (targetFavourability.Hp <= (bShowMercy ? targetHealthComp->MaxHealth / 4 : 0) || targetFavourability.Hp == 10000000 || !withinRange) {
-			OverlappingEnemies.RemoveAt(i);
-
-			continue;
-		}
-
-		TArray<TWeakObjectPtr<AActor>> threats;
-		ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-
-		if (GetOwner()->IsA<AEnemy>() && !gamemode->IsSnakeFaction(GetOwner()))
-			threats = gamemode->WavesData.Last().Threats;
-
-		if (!threats.IsEmpty() && threats.Contains(target)) {
-			if (target->IsA<AWall>() && Cast<AWall>(target)->RangeComponent->CanEverAffectNavigation() == true)
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	if (gamemode->Enemies.Contains(GetOwner()) && !gamemode->WavesData.Last().Threats.IsEmpty()) {
+		for (const TWeakObjectPtr<AActor>& threat : gamemode->WavesData.Last().Threats) {
+			if (threat == nullptr || !OverlappingEnemies.Contains(threat.Get()))
 				continue;
 
-			favoured = target;
+			if (favoured == nullptr) {
+				favoured = threat.Get();
 
-			break;
+				continue;
+			}
+
+			favoured = GetFavouredActor(favoured, threat.Get());
 		}
+	}
 
-		FFavourabilityStruct favouredFavourability = GetActorFavourability(favoured);
+	if (favoured == nullptr) {
+		for (int32 i = OverlappingEnemies.Num() - 1; i > -1; i--) {
+			if (i >= OverlappingEnemies.Num())
+				continue;
 
-		double favourability = (favouredFavourability.Hp * favouredFavourability.Dist / favouredFavourability.Dmg) - (targetFavourability.Hp * targetFavourability.Dist / targetFavourability.Dmg);
+			AActor* target = OverlappingEnemies[i];
+			UAttackComponent* targetAttackComp = target->FindComponentByClass<UAttackComponent>();
+			UHealthComponent* targetHealthComp = target->FindComponentByClass<UHealthComponent>();
 
-		if (favourability > 0.0f)
-			favoured = target;
+			bool withinRange = true;
+
+			if (GetOwner()->IsA<AWall>())
+				withinRange = FVector::Dist(Camera->GetTargetActorLocation(GetOwner()), Camera->GetTargetActorLocation(target)) <= Cast<AWall>(GetOwner())->RangeComponent->GetScaledSphereRadius();
+			else if (GetOwner()->IsA<AAI>() && *ProjectileClass)
+				withinRange = ai->CanReach(target, ai->Range);
+
+			if (targetHealthComp->GetHealth() <= (bShowMercy ? targetHealthComp->MaxHealth / 4 : 0) || !withinRange) {
+				OverlappingEnemies.RemoveAt(i);
+
+				continue;
+			}
+
+			if (favoured == nullptr) {
+				favoured = target;
+
+				continue;
+			}
+
+			favoured = GetFavouredActor(favoured, target);
+		}
 	}
 
 	//if (!IsMoraleHigh())
@@ -131,7 +138,7 @@ void UAttackComponent::PickTarget(float DeltaTime)
 	}
 
 	if ((*ProjectileClass || ai->CanReach(favoured, reach)))
-		Attack(favoured, DeltaTime);
+		Attack(favoured);
 	else if (CurrentTarget != favoured) {
 		CurrentTarget = favoured;
 
@@ -139,46 +146,27 @@ void UAttackComponent::PickTarget(float DeltaTime)
 	}
 }
 
-FFavourabilityStruct UAttackComponent::GetActorFavourability(AActor* Actor)
+AActor* UAttackComponent::GetFavouredActor(AActor* CurrentFavoured, AActor* Actor)
 {
-	FFavourabilityStruct Favourability;
+	FVector location = Camera->GetTargetActorLocation(GetOwner());
 
-	if (!IsValid(Actor))
-		return Favourability;
+	FVector favouredLocation = FVector::Zero();
+	FVector newLocation = FVector::Zero();
 
-	UHealthComponent* healthComp = Actor->GetComponentByClass<UHealthComponent>();
-	UAttackComponent* attackComp = Actor->GetComponentByClass<UAttackComponent>();
+	if (CurrentFavoured->IsA<ABuilding>())
+		Cast<ABuilding>(CurrentFavoured)->BuildingMesh->GetClosestPointOnCollision(location, favouredLocation);
+	else
+		favouredLocation = Cast<AAI>(CurrentFavoured)->MovementComponent->Transform.GetLocation();
 
-	if (!healthComp)
-		return Favourability;
+	if (Actor->IsA<ABuilding>())
+		Cast<ABuilding>(Actor)->BuildingMesh->GetClosestPointOnCollision(location, newLocation);
+	else
+		newLocation = Cast<AAI>(Actor)->MovementComponent->Transform.GetLocation();
 
-	Favourability.Hp = healthComp->GetHealth();
+	if (FVector::Dist(location, favouredLocation) > FVector::Dist(location, newLocation))
+		return Actor;
 
-	if (attackComp) {
-		if (*attackComp->ProjectileClass)
-			Favourability.Dmg = attackComp->ProjectileClass->GetDefaultObject<AProjectile>()->Damage * attackComp->DamageMultiplier;
-		else
-			Favourability.Dmg = attackComp->Damage * attackComp->DamageMultiplier;
-	}
-	else if (Actor->IsA<AWall>()) {
-		float num = 1.0f;
-
-		if (!Actor->IsA<ATower>()) {
-			num = 0.0f;
-
-			for (ACitizen* citizen : Cast<AWall>(Actor)->GetCitizensAtBuilding())
-				num += 1.0f * citizen->AttackComponent->DamageMultiplier;
-		}
-
-		Favourability.Dmg = Cast<AWall>(Actor)->BuildingProjectileClass->GetDefaultObject<AProjectile>()->Damage * num;
-	}
-
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-	const ANavigationData* NavData = nav->GetDefaultNavDataInstance();
-
-	NavData->CalcPathLength(Camera->GetTargetActorLocation(GetOwner()), Camera->GetTargetActorLocation(Actor), Favourability.Dist);
-
-	return Favourability;
+	return CurrentFavoured;
 }
 
 bool UAttackComponent::IsMoraleHigh()
@@ -220,7 +208,7 @@ bool UAttackComponent::IsMoraleHigh()
 	return morale > 0.0f;
 }
 
-void UAttackComponent::Attack(AActor* Target, float DeltaTime)
+void UAttackComponent::Attack(AActor* Target)
 {
 	if (!IsValid(Target))
 		return;
@@ -234,7 +222,8 @@ void UAttackComponent::Attack(AActor* Target, float DeltaTime)
 		return;
 
 	if (AttackTimer > 0.0f) {
-		AttackTimer -= DeltaTime;
+		AttackTimer -= (GetWorld()->GetTimeSeconds() - LastUpdateTime);
+		LastUpdateTime = GetWorld()->GetTimeSeconds();
 
 		return;
 	}
@@ -261,6 +250,7 @@ void UAttackComponent::Attack(AActor* Target, float DeltaTime)
 		}
 
 		AttackTimer = time;
+		LastUpdateTime = GetWorld()->GetTimeSeconds();
 
 		if (*ProjectileClass)
 			Throw();
@@ -295,28 +285,28 @@ void UAttackComponent::Throw()
 	else
 		z = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner())).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
 
-	double g = FMath::Abs(GetWorld()->GetGravityZ());
-	double v = projectileMovement->InitialSpeed;
+	const FVector startLoc = Camera->GetTargetActorLocation(GetOwner(), false) + FVector(0.0f, 0.0f, z / 2.0f);
+	const FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget, false) + FVector(0.0f, 0.0f, z / 2.0f);
 
-	FVector startLoc = Camera->GetTargetActorLocation(GetOwner(), false) + FVector(0.0f, 0.0f, z / 2.0f);
-	FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget, false);
-	if (CurrentTarget->IsA<AAI>() && !GetOwner()->IsA<AAI>())
-		targetLoc += Cast<AAI>(CurrentTarget)->MovementComponent->Velocity * (FVector::Dist(startLoc, targetLoc) / v);
-	FRotator lookAt = (targetLoc - startLoc).Rotation();
+	FVector targetVelocity = FVector::Zero();
+	if (CurrentTarget->IsA<AAI>()) {
+		UAIMovementComponent* movementComp = Cast<AAI>(CurrentTarget)->MovementComponent;
+		targetVelocity = movementComp->Velocity;
+		
+		if (!movementComp->Points.IsEmpty() && FVector::Dist(movementComp->Transform.GetLocation(), movementComp->Transform.GetLocation() + targetVelocity) > FVector::Dist(movementComp->Transform.GetLocation(), movementComp->Points.Last()))
+			targetVelocity = movementComp->Points.Last() - movementComp->Transform.GetLocation();
+	}
 
-	FVector groundedLocation = FVector(startLoc.X, startLoc.Y, targetLoc.Z);
-	double d = FVector::Dist(groundedLocation, targetLoc);
-	double h = targetLoc.Z - startLoc.Z;
+	const double gravityZ = GetWorld()->GetGravityZ();
+	const FVector gravityVector = FVector(0.0, 0.0, gravityZ);
 
-	double angle = FMath::Atan2(FMath::Square(v) + FMath::Sqrt(FMath::Pow(v, 4) - g * (g * FMath::Square(d) + 2 * h * FMath::Square(v))), g * d) * (180.0f / PI);
+	FVector velocity = (targetLoc + targetVelocity - startLoc - (0.5f * gravityVector));
 
-	FRotator ang = FRotator(angle, lookAt.Yaw, lookAt.Roll);
-
-	Async(EAsyncExecution::TaskGraphMainTick, [this, startLoc, ang]() {
-		AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, ang);
+	Async(EAsyncExecution::TaskGraphMainTick, [this, startLoc, velocity]() {
+		AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, startLoc, velocity.Rotation());
 		projectile->SpawnNiagaraSystems(GetOwner());
-		projectile->ActorToTrack = CurrentTarget->IsA<AAI>() && GetOwner()->IsA<AAI>() ? CurrentTarget : nullptr;
 		projectile->FactionName = Camera->ConquestManager->GetFaction("", GetOwner())->Name;
+		projectile->ProjectileMovementComponent->Velocity = velocity;
 	});
 }
 
@@ -328,7 +318,7 @@ void UAttackComponent::Melee()
 	USoundBase* sound = OnHitSound;
 
 	if (GetOwner()->IsA<AEnemy>()) {
-		Cast<AEnemy>(GetOwner())->Zap(Camera->GetTargetActorLocation(CurrentTarget));
+		Cast<AEnemy>(GetOwner())->Zap(Camera->GetTargetActorLocation(CurrentTarget, false));
 
 		sound = ZapSound;
 	}

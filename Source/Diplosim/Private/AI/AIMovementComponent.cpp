@@ -41,8 +41,6 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 {
 	LastUpdatedTime = GetWorld()->GetTimeSeconds();
 
-	Velocity = FVector::Zero();
-
 	if (!IsValid(AI) || DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
 
@@ -74,8 +72,11 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 		}
 	}
 
-	if (CurrentAnim.Type != EAnim::Move || Points.IsEmpty())
+	if (CurrentAnim.Type != EAnim::Move || Points.IsEmpty()) {
+		Velocity = FVector::Zero();
+
 		return;
+	}
 
 	Velocity = CalculateVelocity(Points[0], DeltaTime);
 
