@@ -65,6 +65,8 @@ private:
 
 	void Attack(AActor* Target);
 
+	FVector GetThrowLocation(AActor* Actor);
+
 	bool bClearAttacks;
 
 	double LastUpdateTime;

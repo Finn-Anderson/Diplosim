@@ -827,7 +827,7 @@ struct FGamemodeData
 		TArray<FString> SnakeNames;
 
 	UPROPERTY()
-		TArray<FEnemiesStruct> EnemiesData;
+		TArray<int32> EnemiesDataTally;
 
 	UPROPERTY()
 		bool bOngoingRaid;

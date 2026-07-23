@@ -410,7 +410,7 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 
 bool UBuildComponent::CheckBuildCosts()
 {
-	if (Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat)
+	if (Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat || IsValid(BuildingToMove))
 		return true;
 	
 	UResourceManager* rm = Camera->ResourceManager;
@@ -824,28 +824,8 @@ void UBuildComponent::Place(bool bQuick)
 
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction(building->FactionName);
 
-		FOverlapsStruct overlaps;
-		overlaps.GetEveryPawn();
-		TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, building, size, overlaps, EFactionType::Both, faction);
-
-		if (actors.IsEmpty())
-			continue;
-
-		FVector location = building->GetActorLocation();
-		if (building->BuildingMesh->DoesSocketExist("Entrance"))
-			location = building->BuildingMesh->GetSocketLocation("Entrance");
-
-		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
-		FNavLocation targetLoc;
-		nav->ProjectPointToNavigation(location, targetLoc, FVector(400.0f, 400.0f, 40.0f));
-		location = targetLoc.Location;
-
-		for (AActor* actor : actors)
-			Cast<AAI>(actor)->MovementComponent->Transform.SetLocation(location);
-
 		for (ACitizen* citizen : faction->Citizens)
-			if (!actors.Contains(citizen) && !citizen->MovementComponent->Points.IsEmpty() && FVector::Dist(citizen->MovementComponent->Points.Last(), building->GetActorLocation()) < size)
+			if (!citizen->MovementComponent->Points.IsEmpty() && FVector::Dist(citizen->MovementComponent->Points.Last(), building->GetActorLocation()) < size)
 				citizen->AIController->DefaultAction();
 	}
 

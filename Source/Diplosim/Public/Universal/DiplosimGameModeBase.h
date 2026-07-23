@@ -16,11 +16,15 @@ struct FEnemiesStruct
 		int32 Tally;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+		int32 Weight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 		FLinearColor Colour;
 
 	FEnemiesStruct()
 	{
 		Tally = 0;
+		Weight = 1;
 		Colour = FLinearColor(1.0f, 1.0f, 1.0f);
 	}
 };

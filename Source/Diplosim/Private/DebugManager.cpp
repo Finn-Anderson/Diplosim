@@ -40,7 +40,7 @@ void UDebugManager::SpawnEnemies()
 	gamemode->StartRaid();
 }
 
-void UDebugManager::AddEnemies(FString Category, int32 Amount)
+void UDebugManager::AddEnemies(FString ResourceName, int32 Amount)
 {
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
@@ -49,7 +49,7 @@ void UDebugManager::AddEnemies(FString Category, int32 Amount)
 	TSubclassOf<AResource> resource;
 
 	for (FResourceStruct resourceStruct : camera->ResourceManager->ResourceList) {
-		if (resourceStruct.Category != Category)
+		if (!resourceStruct.Type->GetName().ToLower().Contains(ResourceName.ToLower()))
 			continue;
 
 		resource = resourceStruct.Type;

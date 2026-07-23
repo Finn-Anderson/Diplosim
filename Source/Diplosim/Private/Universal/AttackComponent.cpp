@@ -127,8 +127,6 @@ void UAttackComponent::PickTarget()
 		reach = ai->GetReach();
 
 	if (favoured == nullptr) {
-		AttackTimer = 0.0f;
-
 		if (IsValid(ai))
 			ai->AIController->DefaultAction();
 
@@ -272,6 +270,21 @@ void UAttackComponent::Attack(AActor* Target)
 	}
 }
 
+FVector UAttackComponent::GetThrowLocation(AActor* Actor)
+{
+	FVector location = Camera->GetTargetActorLocation(Actor, false);
+
+	float z = 0.0f;
+	if (Actor->IsA<ABuilding>())
+		z = Cast<UStaticMeshComponent>(Actor->GetRootComponent())->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+	else
+		z = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(Actor)).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
+
+	location += FVector(0.0f, 0.0f, z / 2.0f);
+
+	return location;
+}
+
 void UAttackComponent::Throw()
 {
 	if (!IsValid(CurrentTarget))
@@ -279,14 +292,8 @@ void UAttackComponent::Throw()
 
 	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
 
-	float z = 0.0f;
-	if (GetOwner()->IsA<ABuilding>())
-		z = Cast<UStaticMeshComponent>(GetOwner()->GetRootComponent())->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-	else
-		z = Camera->Grid->AIVisualiser->GetAIHISM(Cast<AAI>(GetOwner())).Key->GetStaticMesh()->GetBounds().GetBox().GetSize().Z;
-
-	const FVector startLoc = Camera->GetTargetActorLocation(GetOwner(), false) + FVector(0.0f, 0.0f, z / 2.0f);
-	const FVector targetLoc = Camera->GetTargetActorLocation(CurrentTarget, false) + FVector(0.0f, 0.0f, z / 2.0f);
+	const FVector startLoc = GetThrowLocation(GetOwner());
+	const FVector targetLoc = GetThrowLocation(CurrentTarget);
 
 	FVector targetVelocity = FVector::Zero();
 	if (CurrentTarget->IsA<AAI>()) {

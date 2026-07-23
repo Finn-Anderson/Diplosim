@@ -465,7 +465,7 @@ void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
 
 void ACamera::DisplayBuildUI()
 {
-	if (Settings->GetShowLog())
+	if (Settings->GetShowLog() && !LogUIInstance->IsInViewport())
 		LogUIInstance->AddToViewport();
 
 	BuildUIInstance->AddToViewport();

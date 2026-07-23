@@ -58,6 +58,9 @@ FFactionResourceStruct* UResourceManager::GetFactionResourceStruct(FFactionStruc
 
 void UResourceManager::AddCommittedResource(FFactionStruct* Faction, TSubclassOf<AResource> Resource, int32 Amount)
 {
+	if (Amount == 0)
+		return;
+
 	FFactionResourceStruct* resourceStruct = GetFactionResourceStruct(Faction, Resource);
 	resourceStruct->Committed += Amount;
 
@@ -66,12 +69,18 @@ void UResourceManager::AddCommittedResource(FFactionStruct* Faction, TSubclassOf
 
 void UResourceManager::TakeCommittedResource(FFactionStruct* Faction, TSubclassOf<AResource> Resource, int32 Amount)
 {
+	if (Amount == 0)
+		return;
+
 	FFactionResourceStruct* resourceStruct = GetFactionResourceStruct(Faction, Resource);
 	resourceStruct->Committed -= Amount;
 }
 
 int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuilding* Building, int32 Amount)
 {
+	if (Amount == 0)
+		return Amount;
+
 	GameMode->TallyEnemyData(Resource, Amount);
 
 	FItemStruct itemStruct;
@@ -103,6 +112,9 @@ int32 UResourceManager::AddLocalResource(TSubclassOf<AResource> Resource, ABuild
 
 bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf<AResource> Resource, int32 Amount)
 {
+	if (Amount == 0)
+		return true;
+
 	GameMode->TallyEnemyData(Resource, Amount);
 
 	int32 stored = 0;
@@ -173,6 +185,9 @@ bool UResourceManager::AddUniversalResource(FFactionStruct* Faction, TSubclassOf
 
 bool UResourceManager::TakeLocalResource(TSubclassOf<AResource> Resource, ABuilding* Building, int32 Amount)
 {
+	if (Amount == 0)
+		return true;
+
 	FItemStruct itemStruct;
 	itemStruct.Resource = Resource;
 
@@ -198,6 +213,9 @@ bool UResourceManager::TakeLocalResource(TSubclassOf<AResource> Resource, ABuild
 
 bool UResourceManager::TakeUniversalResource(FFactionStruct* Faction, TSubclassOf<AResource> Resource, int32 Amount, int32 Min)
 {
+	if (Amount == 0)
+		return true;
+
 	int32 stored = 0;
 
 	FResourceStruct resourceStruct;

@@ -40,7 +40,7 @@ public:
 		void SetWindSpeed(int32 Speed);
 
 	UFUNCTION(Exec)
-		void AddEnemies(FString Category, int32 Amount);
+		void AddEnemies(FString ResourceName, int32 Amount);
 
 	UFUNCTION(Exec)
 		void AddResearch(float Amount);

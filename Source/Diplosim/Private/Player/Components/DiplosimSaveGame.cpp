@@ -473,7 +473,10 @@ void UDiplosimSaveGame::SaveGamemode(FActorSaveData& ActorData, AActor* Actor, i
 {
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(Actor);
 	FGamemodeData* gamemodeData = &Saves[Index].CameraData.GamemodeData;
-	gamemodeData->EnemiesData = gamemode->EnemiesData;
+
+	gamemodeData->EnemiesDataTally.Empty();
+	for (FEnemiesStruct enemyData : gamemode->EnemiesData)
+		gamemodeData->EnemiesDataTally.Add(enemyData.Tally);
 
 	gamemodeData->WaveData.Empty();
 	for (FWaveStruct wave : gamemode->WavesData) {
@@ -1103,7 +1106,10 @@ void UDiplosimSaveGame::LoadFactions(FActorSaveData& ActorData, FCameraData& Cam
 void UDiplosimSaveGame::LoadGamemode(FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor)
 {
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(Actor);
-	gamemode->EnemiesData = GamemodeData.EnemiesData;
+
+	for (int32 i = 0; i < GamemodeData.EnemiesDataTally.Num(); i++)
+		gamemode->EnemiesData[i].Tally = GamemodeData.EnemiesDataTally[i];
+
 	gamemode->Enemies.Empty();
 	gamemode->SnakeSpawners.Empty();
 	gamemode->Snakes.Empty();

@@ -165,7 +165,7 @@ void AProjectile::HitActor(ACamera* Camera, AActor* Actor)
 	}
 
 	if (bDamageFallOff) {
-		float distance = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
+		float distance = FVector::Dist(GetActorLocation(), Camera->GetTargetActorLocation(Actor));
 
 		dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
 	}

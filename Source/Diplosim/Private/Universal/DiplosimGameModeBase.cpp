@@ -399,9 +399,14 @@ bool ADiplosimGameModeBase::CheckEnemiesStatus()
 
 void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)
 {
-	for (FEnemiesStruct& enemyData : EnemiesData)
-		if (enemyData.Resources.Contains(Resource))
-			enemyData.Tally += Amount;
+	for (FEnemiesStruct& enemyData : EnemiesData) {
+		if (!enemyData.Resources.Contains(Resource))
+			continue;
+
+		enemyData.Tally += (Amount < 200 ? Amount * enemyData.Weight : Amount);
+
+		break;
+	}
 }
 
 void ADiplosimGameModeBase::SetWaveTimer()
