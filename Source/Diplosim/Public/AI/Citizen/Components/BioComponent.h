@@ -51,6 +51,8 @@ public:
 
 	void HaveChild();
 
+	TArray<ACitizen*> GetFamily(bool bIncludePartner = true);
+
 	TArray<ACitizen*> GetLikedFamily(bool bFactorAge);
 
 	void Disown();
@@ -101,8 +103,11 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		TArray<class ACitizen*> Siblings;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
 		bool bAdopted;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bio")
+		bool bInbred;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Age")
 		float SpeedBeforeOld;

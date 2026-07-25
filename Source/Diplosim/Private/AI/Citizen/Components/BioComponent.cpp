@@ -37,6 +37,7 @@ UBioComponent::UBioComponent()
 	PaidForEducationLevel = 0;
 
 	bAdopted = false;
+	bInbred = false;
 
 	SpeedBeforeOld = 100.0f;
 	MaxHealthBeforeOld = 100.0f;
@@ -339,14 +340,17 @@ void UBioComponent::HaveChild()
 
 	Adopt(c);
 
-	citizen->Camera->NotifyLog(c, "Good", c->BioComponent->Name + " is born", faction->Name);
+	if (GetFamily(false).Contains(Partner))
+		c->BioComponent->bInbred = true;
+
+	if (bInbred)
+		citizen->Camera->NotifyLog(c, "Bad", c->BioComponent->Name + " is born inbred", faction->Name);
+	else
+		citizen->Camera->NotifyLog(c, "Good", c->BioComponent->Name + " is born", faction->Name);
 }
 
-TArray<ACitizen*> UBioComponent::GetLikedFamily(bool bFactorAge)
+TArray<ACitizen*> UBioComponent::GetFamily(bool bIncludePartner)
 {
-	ACitizen* citizen = Cast<ACitizen>(GetOwner());
-	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
-
 	TArray<ACitizen*> family;
 
 	if (Mother != nullptr && Mother->HealthComponent->GetHealth() != 0)
@@ -355,7 +359,7 @@ TArray<ACitizen*> UBioComponent::GetLikedFamily(bool bFactorAge)
 	if (Father != nullptr && Father->HealthComponent->GetHealth() != 0)
 		family.Add(Cast<ACitizen>(Father));
 
-	if (Partner != nullptr && Partner->HealthComponent->GetHealth() != 0)
+	if (bIncludePartner && Partner != nullptr && Partner->HealthComponent->GetHealth() != 0)
 		family.Add(Cast<ACitizen>(Partner));
 
 	for (ACitizen* child : Children)
@@ -366,7 +370,17 @@ TArray<ACitizen*> UBioComponent::GetLikedFamily(bool bFactorAge)
 		if (IsValid(sibling) && sibling->HealthComponent->GetHealth() != 0)
 			family.Add(sibling);
 
-	if (bFactorAge&& Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age"))
+	return family;
+}
+
+TArray<ACitizen*> UBioComponent::GetLikedFamily(bool bFactorAge)
+{
+	ACitizen* citizen = Cast<ACitizen>(GetOwner());
+	FFactionStruct* faction = citizen->Camera->ConquestManager->GetFaction("", citizen);
+
+	TArray<ACitizen*> family = GetFamily();
+
+	if (bFactorAge && Age < citizen->Camera->PoliticsManager->GetLawValue(faction->Name, "Work Age"))
 		return family;
 
 	for (int32 i = (family.Num() - 1); i > -1; i--) {

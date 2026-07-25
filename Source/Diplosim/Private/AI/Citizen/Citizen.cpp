@@ -768,7 +768,7 @@ void ACitizen::GenerateGenetics(FFactionStruct* Faction)
 
 		int32 mutate = Camera->Stream.RandRange(1, 100);
 
-		int32 chance = 100 - (Faction->PrayStruct.Bad * 5) - (Faction->PrayStruct.Good * 5);
+		int32 chance = 100 - (Faction->PrayStruct.Bad * 5) - (Faction->PrayStruct.Good * 5) - (BioComponent->bInbred ? 50 : 0);
 
 		if (mutate >= chance)
 			continue;
@@ -780,7 +780,7 @@ void ACitizen::GenerateGenetics(FFactionStruct* Faction)
 		for (int32 i = 0; i <= Faction->PrayStruct.Good; i++)
 			grades.Add(EGeneticsGrade::Good);
 
-		for (int32 i = 0; i <= Faction->PrayStruct.Bad; i++)
+		for (int32 i = 0; i <= Faction->PrayStruct.Bad + (BioComponent->bInbred ? 10 : 0); i++)
 			grades.Add(EGeneticsGrade::Bad);
 
 		grades.Remove(genetic.Grade);

@@ -370,7 +370,7 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 {
 	TArray<FItemStruct> items;
 
-	if (Buildings.IsEmpty())
+	if (Buildings.IsEmpty() || IsValid(BuildingToMove))
 		return items;
 
 	int32 count = 0;
@@ -410,7 +410,7 @@ TArray<FItemStruct> UBuildComponent::GetBuildCosts()
 
 bool UBuildComponent::CheckBuildCosts()
 {
-	if (Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat || IsValid(BuildingToMove))
+	if (Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat)
 		return true;
 	
 	UResourceManager* rm = Camera->ResourceManager;
