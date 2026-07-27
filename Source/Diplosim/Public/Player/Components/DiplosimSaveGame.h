@@ -524,6 +524,9 @@ struct FCitizenData
 	UPROPERTY()
 		bool bAdopted;
 
+	UPROPERTY()
+		bool bInbred;
+
 	// Misc
 	UPROPERTY()
 		FSpiritualStruct Spirituality;
@@ -610,6 +613,7 @@ struct FCitizenData
 		PaidForEducationLevel = 0;
 		Name = "Citizen";
 		bAdopted = false;
+		bInbred = false;
 
 		VoicePitch = 1.0f;
 		Balance = 0;
@@ -699,6 +703,7 @@ struct FAIData
 
 	UPROPERTY()
 		FLinearColor Colour;
+
 	UPROPERTY()
 		FCitizenData CitizenData;
 

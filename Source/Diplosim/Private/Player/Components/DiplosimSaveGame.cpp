@@ -611,6 +611,7 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	AIData.CitizenData.EducationProgress = citizen->BioComponent->EducationProgress;
 	AIData.CitizenData.PaidForEducationLevel = citizen->BioComponent->PaidForEducationLevel;
 	AIData.CitizenData.bAdopted = citizen->BioComponent->bAdopted;
+	AIData.CitizenData.bInbred = citizen->BioComponent->bInbred;
 	AIData.CitizenData.SpeedBeforeOld = citizen->BioComponent->SpeedBeforeOld;
 	AIData.CitizenData.MaxHealthBeforeOld = citizen->BioComponent->MaxHealthBeforeOld;
 
@@ -1203,6 +1204,7 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	citizen->BioComponent->EducationProgress = AIData.CitizenData.EducationProgress;
 	citizen->BioComponent->PaidForEducationLevel = AIData.CitizenData.PaidForEducationLevel;
 	citizen->BioComponent->bAdopted = AIData.CitizenData.bAdopted;
+	citizen->BioComponent->bInbred = AIData.CitizenData.bInbred;
 	citizen->BioComponent->SpeedBeforeOld = AIData.CitizenData.SpeedBeforeOld;
 	citizen->BioComponent->MaxHealthBeforeOld = AIData.CitizenData.MaxHealthBeforeOld;
 

@@ -696,6 +696,10 @@ void UPoliticsManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 			}
 			else if (Faction->Politics.Laws[index].BillType == "Representatives" && Faction->Name == Camera->ColonyName)
 				Camera->RefreshRepresentatives();
+			else if (Faction->Politics.Laws[index].BillType == "Inbreeding" && !Bill.Value)
+				for (ACitizen* citizen : Faction->Citizens)
+					if (citizen->BioComponent->GetFamily().Contains(citizen->BioComponent->Partner))
+						citizen->BioComponent->RemovePartner();
 		}
 
 		bPassed = true;

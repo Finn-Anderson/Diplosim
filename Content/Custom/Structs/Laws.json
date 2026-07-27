@@ -881,6 +881,69 @@
 			}
 		},
 		{
+			"BillType": "Inbreeding",
+			"Bills": {
+				"Descriptions": [
+					{
+						"Description": "Prohibited",
+						"Min": 0,
+						"Max": 0
+					},
+					{
+						"Description": "Allowed",
+						"Min": 1,
+						"Max": 1
+					}
+				],
+				"Warning": "",
+				"Value": 1,
+				"Parties": [
+					{
+						"Party": "Chicken Winged",
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Free Range",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 1 ]
+					},
+					{
+						"Party": "The Scrambled Coalition",
+						"ForRange": [ 0, 1 ],
+						"AgainstRange": [ ]
+					},
+					{
+						"Party": "Golden Yolk",
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Party": "Shell Breakers",
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 0 ]
+					}
+				],
+				"Personalities": [
+					{
+						"Personality": "Evil",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 2 ]
+					},
+					{
+						"Personality": "Conscientious",
+						"ForRange": [ 1, 1 ],
+						"AgainstRange": [ 0, 0 ]
+					},
+					{
+						"Personality": "Careless",
+						"ForRange": [ 0, 0 ],
+						"AgainstRange": [ 1, 1 ]
+					}
+				]
+			}
+		},
+		{
 			"BillType": "Fighting Length",
 			"Bills": {
 				"Descriptions": [

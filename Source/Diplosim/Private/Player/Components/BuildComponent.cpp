@@ -850,12 +850,13 @@ void UBuildComponent::Place(bool bQuick)
 		BuildingToMove->SetActorLocation(Buildings[0]->GetActorLocation());
 		BuildingToMove->SetActorRotation(Buildings[0]->GetActorRotation());
 
-		BuildingToMove->SetSeed(Buildings[0]->SeedNum);
-
 		BuildingToMove->StoreSocketLocations();
 
 		for (ACitizen* citizen : BuildingToMove->GetOccupied()) {
-			if (!citizen->AIController->CanMoveTo(BuildingToMove->GetActorLocation())) {
+			FVector location = citizen->MovementComponent->Transform.GetLocation();
+			location.Z = BuildingToMove->GetActorLocation().Z;
+
+			if (!citizen->AIController->CanMoveTo(citizen->AIController->GetActualLocation(BuildingToMove), citizen, true, location)) {
 				BuildingToMove->RemoveCitizen(citizen);
 			}
 			else if (BuildingToMove->GetCitizensAtBuilding().Contains(citizen)) {

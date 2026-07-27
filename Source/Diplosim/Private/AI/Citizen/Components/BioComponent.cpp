@@ -206,6 +206,8 @@ void UBioComponent::FindPartner(FFactionStruct* Faction)
 	ACitizen* chosenCitizen = nullptr;
 	int32 curCount = 1;
 
+	TArray<ACitizen*> family = GetFamily();
+
 	for (ACitizen* c : Faction->Citizens) {
 		if (!IsValid(c) || c == citizen || c->HealthComponent->GetHealth() == 0 || c->IsPendingKillPending() || c->BioComponent->Partner != nullptr || c->BioComponent->Age < 18)
 			continue;
@@ -213,6 +215,9 @@ void UBioComponent::FindPartner(FFactionStruct* Faction)
 		int32 value = citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Same-Sex Laws");
 
 		if (((Sexuality == ESexuality::Straight || value == 0) && c->BioComponent->Sex == Sex) || (Sexuality != ESexuality::Straight && value != 0 && c->BioComponent->Sex != Sex))
+			continue;
+
+		if (!citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Inbreeding") && family.Contains(c))
 			continue;
 
 		int32 count = 0;
@@ -263,7 +268,7 @@ void UBioComponent::SetPartner(ACitizen* Citizen)
 
 void UBioComponent::RemoveMarriage()
 {
-	if (Partner == nullptr)
+	if (!bMarried || Partner == nullptr)
 		return;
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());

@@ -4,6 +4,7 @@
 #include "AI/Citizen/Components/BuildingComponent.h"
 #include "AI/Citizen/Components/BioComponent.h"
 #include "Buildings/House.h"
+#include "Buildings/Misc/Parliament.h"
 #include "Buildings/Work/Booster.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
@@ -324,6 +325,9 @@ void UHappinessComponent::SetWorkHappiness(ACitizen* Citizen, FFactionStruct* Fa
 
 void UHappinessComponent::SetPoliticsHappiness(ACitizen* Citizen, FFactionStruct* Faction)
 {
+	if (!IsValid(Faction->Parliament))
+		return;
+
 	FString party = Citizen->Camera->PoliticsManager->GetCitizenParty(Citizen);
 
 	if (party == "Undecided")
