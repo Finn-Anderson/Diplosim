@@ -77,7 +77,7 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 				else {
 					timer.bModifying = true;
 
-					CallTimerFunction(&timer);
+					Async(EAsyncExecution::TaskGraph, [this, &timer]() { CallTimerFunction(&timer); });
 				}
 			}
 

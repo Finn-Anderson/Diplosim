@@ -10,6 +10,8 @@
 #include "Buildings/Building.h"
 #include "Buildings/Misc/Broch.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
+#include "Map/AIInstancedStaticMeshComponent.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
@@ -405,10 +407,16 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 					continue;
 				}
 
-				if (hit.GetActor()->IsA<ABuilding>())
-					component = Cast<ABuilding>(hit.GetActor())->BuildingMesh;
+				if (component->IsA<UAIInstancedStaticMeshComponent>()) {
+					AAI* ai = Grid->AIVisualiser->GetHISMAI(Grid->Camera, Cast<UAIInstancedStaticMeshComponent>(component), hit.Item);
+					ai->bWet = true;
+				}
+				else {
+					if (hit.GetActor()->IsA<ABuilding>())
+						component = Cast<ABuilding>(hit.GetActor())->BuildingMesh;
 
-				SetRainMaterialEffect(locationStruct.Value, component, hit.Item, locationStruct.Increment);
+					SetRainMaterialEffect(locationStruct.Value, component, hit.Item, locationStruct.Increment);
+				}
 			}
 
 			FScopeLock lock(&RainDropLock);
@@ -416,18 +424,17 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 		}
 
 		for (auto node = WetnessStruct.GetHead(); node != nullptr; node = node->GetNextNode()) {
-			if (Grid->Camera->SaveGameComponent->IsLoading() || !IsValid(this))
+			if (Grid->Camera->SaveGameComponent->IsLoading())
 				return;
 
 			FWetnessStruct& wetness = node->GetValue();
 
-			if (!IsValid(wetness.Component) || wetness.bClear) {
-				if (wetness.bClear) {
+			if (wetness.Component == nullptr || wetness.bClear || (wetness.Component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(wetness.Component)->GetInstanceCount() <= wetness.Instance)) {
+				if (wetness.bClear && (wetness.Component != nullptr)) {
 					FString id = "Wet" + FString::FromInt(wetness.Component->GetUniqueID()) + FString::FromInt(wetness.Instance);
 					Grid->Camera->TimerManager->RemoveTimer(id, Grid);
 
-					if (IsValid(wetness.Component))
-						wetness.Component->SetCustomPrimitiveDataFloat(0, 0.0f);
+					wetness.Component->SetCustomPrimitiveDataFloat(0, 0.0f);
 				}
 
 				FScopeLock lock(&WetnessLock);

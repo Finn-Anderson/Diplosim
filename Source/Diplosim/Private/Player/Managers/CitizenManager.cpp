@@ -573,21 +573,19 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 	USoundBase* convo1 = GetConversationSound(Citizen1);
 	USoundBase* convo2 = GetConversationSound(Citizen2);
 	
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen1, Citizen2, bArrest, convo1, convo2]() {
-		TArray<FTimerParameterStruct> params;
-		Camera->TimerManager->SetParameter(*Faction, params);
-		Camera->TimerManager->SetParameter(Citizen1, params);
-		Camera->TimerManager->SetParameter(Citizen2, params);
+	TArray<FTimerParameterStruct> params;
+	Camera->TimerManager->SetParameter(*Faction, params);
+	Camera->TimerManager->SetParameter(Citizen1, params);
+	Camera->TimerManager->SetParameter(Citizen2, params);
 
-		if (bArrest)
-			Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Arrest", Camera, 4.0f, "Arrest", params, false, true);
-		else
-			Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Interact", Camera, 6.0f, "Interact", params, false);
+	if (bArrest)
+		Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Arrest", Camera, 4.0f, "Arrest", params, false, true);
+	else
+		Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Interact", Camera, 6.0f, "Interact", params, false);
 
-		Camera->PlayAmbientSound(Citizen1->AmbientAudioComponent, convo1, Citizen1->VoicePitch);
-		if (!bArrest)
-			Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);
-	});
+	Camera->PlayAmbientSound(Citizen1->AmbientAudioComponent, convo1, Citizen1->VoicePitch);
+	if (!bArrest)
+		Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);
 }
 
 void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACitizen* Citizen2)

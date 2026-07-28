@@ -289,7 +289,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						SetInstanceTransform(ism, j, citizen->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
 
 						UpdateCitizenVisuals(ism, Camera, citizen, j, instances);
-						UpdateDamageVisuals(ism, citizen, j, deltaTime, instances);
+						UpdateGradualVisuals(ism, citizen, j, deltaTime, instances);
 
 						SetAIColour(ism, j, citizen->Colour, instances);
 					}
@@ -392,7 +392,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 
 				SetInstanceTransform(ism, j, ai->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
 
-				UpdateDamageVisuals(ism, ai, j, deltaTime, instances);
+				UpdateGradualVisuals(ism, ai, j, deltaTime, instances);
 
 				SetAIColour(ism, j, ai->Colour, instances);
 			}
@@ -614,8 +614,22 @@ void UAIVisualiser::UpdateCitizenVisuals(UAIInstancedStaticMeshComponent* ISM, A
 	UpdateInstanceCustomData(ISM, Instance, 13, status.Value, Instances);
 }
 
-void UAIVisualiser::UpdateDamageVisuals(UAIInstancedStaticMeshComponent* ISM, AAI* AI, int32 Instance, float DeltaTime, TArray<int32>& Instances)
+void UAIVisualiser::UpdateGradualVisuals(UAIInstancedStaticMeshComponent* ISM, AAI* AI, int32 Instance, float DeltaTime, TArray<int32>& Instances)
 {
+	// Wet
+	int32 value = ISM->PerInstanceSMCustomData[Instance * ISM->NumCustomDataFloats];
+	if (AI->bWet) {
+		value += DeltaTime;
+
+		if (AI->bWet && value >= 1.0f)
+			value = 30.0f;
+	}
+	else if (value > 0.0f)
+		value -= DeltaTime;
+
+	UpdateInstanceCustomData(ISM, Instance, 0, FMath::Max(value, 0.0f), Instances);
+
+	// Damage
 	AI->DamageOverlayTimer = FMath::Max(AI->DamageOverlayTimer - DeltaTime, 0.0f);
 	UpdateInstanceCustomData(ISM, Instance, 9, AI->DamageOverlayTimer > 0.0f ? 1.0f : 0.0f, Instances);
 }

@@ -6,6 +6,7 @@
 #include "NavMesh/NavMeshPath.h"
 #include "Components/BoxComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #include "AI/AI.h"
 #include "AI/Enemy.h"
@@ -634,21 +635,49 @@ FVector UDiplosimAIController::GetClosestNavigablePointOnCollision(AActor* Actor
 	FVector location = Actor->GetActorLocation() + rotation.RotateVector(centre);
 	location.Z = Actor->GetActorLocation().Z;
 
-	float xInterval = 2.0f / (FMath::RoundHalfFromZero(size.X / 50.0f) + 1);
-	float yInterval = 2.0f / (FMath::RoundHalfFromZero(size.Y / 50.0f) + 1);
+	FString convexShape = "";
+	if (!Component->GetStaticMesh()->GetBodySetup()->AggGeom.ConvexElems.IsEmpty()) {
+		FVector lwh = size * 2.0f;
+		const double boxV = lwh.X * lwh.Y * lwh.Z;
 
-	float biggestDimension = size.X;
-	if (size.Y > biggestDimension)
-		biggestDimension = size.Y;
+		float radius = size.X;
+		if (size.Y > size.X)
+			radius = size.Y;
+		const double capsuleV = PI * FMath::Square(radius) * lwh.Z + (4 / 3) * PI * FMath::Pow(radius, 3);
 
-	for (float x = -1.0f; x <= 1.1f; x += xInterval) {
-		points.Add(location + rotation.RotateVector(size * FVector(x, -1.0f, 0.0f)));
-		points.Add(location + rotation.RotateVector(size * FVector(x, 1.0f, 0.0f)));
+		const double volume = Component->GetStaticMesh()->GetBodySetup()->GetScaledVolume(FVector(1.0f));
+
+		if (FMath::Abs(volume - boxV) > FMath::Abs(volume - capsuleV))
+			convexShape = "Capsule";
+		else
+			convexShape = "Box";
 	}
 
-	for (float y = -1.0f; y <= 1.1f; y += yInterval) {
-		points.Add(location + rotation.RotateVector(size * FVector(-1.0f, y, 0.0f)));
-		points.Add(location + rotation.RotateVector(size * FVector(1.0f, y, 0.0f)));
+	if (!Component->GetStaticMesh()->GetBodySetup()->AggGeom.BoxElems.IsEmpty() || convexShape == "Box") {
+		const float xInterval = 2.0f / (FMath::RoundHalfFromZero(size.X / 50.0f) + 1);
+		const float yInterval = 2.0f / (FMath::RoundHalfFromZero(size.Y / 50.0f) + 1);
+
+		for (float x = -1.0f; x <= 1.1f; x += xInterval) {
+			points.Add(location + rotation.RotateVector(size * FVector(x, -1.0f, 0.0f)));
+			points.Add(location + rotation.RotateVector(size * FVector(x, 1.0f, 0.0f)));
+		}
+
+		for (float y = -1.0f; y <= 1.1f; y += yInterval) {
+			points.Add(location + rotation.RotateVector(size * FVector(-1.0f, y, 0.0f)));
+			points.Add(location + rotation.RotateVector(size * FVector(1.0f, y, 0.0f)));
+		}
+	}
+	else {
+		float radius = size.X;
+		if (size.Y > radius)
+			radius = size.Y;
+
+		for (float angle = 0.0f; angle < 360.0f; angle += 45.0f) {
+			const float x = radius * FMath::Cos(angle * (PI / 180));
+			const float y = radius * FMath::Sin(angle * (PI / 180));
+
+			points.Add(location + rotation.RotateVector(FVector(x, y, 0.0f)));
+		}
 	}
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());

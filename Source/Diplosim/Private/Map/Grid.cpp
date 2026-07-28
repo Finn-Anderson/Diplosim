@@ -1353,6 +1353,15 @@ void AGrid::RemoveTree(AResource* Resource, TArray<int32> Instances)
 			Camera->Detach();
 			Camera->SetInteractStatus(Camera->WidgetComponent->GetAttachmentRootActor(), false);
 		}
+
+		for (FWetnessStruct wetness : AtmosphereComponent->Clouds->WetnessStruct) {
+			if (wetness.Component != Resource->ResourceHISM || wetness.Instance != instance)
+				continue;
+
+			wetness.bClear = true;
+
+			break;
+		}
 	}
 
 	Resource->ResourceHISM->RemoveInstances(Instances);

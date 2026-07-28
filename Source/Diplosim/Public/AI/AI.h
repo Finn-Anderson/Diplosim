@@ -62,4 +62,7 @@ public:
 
 	UPROPERTY()
 		float DamageOverlayTimer;
+
+	UPROPERTY()
+		bool bWet;
 };

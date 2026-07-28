@@ -217,7 +217,7 @@ void UBioComponent::FindPartner(FFactionStruct* Faction)
 		if (((Sexuality == ESexuality::Straight || value == 0) && c->BioComponent->Sex == Sex) || (Sexuality != ESexuality::Straight && value != 0 && c->BioComponent->Sex != Sex))
 			continue;
 
-		if (!citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Inbreeding") && family.Contains(c))
+		if (!citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Inbreeding") && family.Contains(c) && !bAdopted && !c->BioComponent->bAdopted)
 			continue;
 
 		int32 count = 0;

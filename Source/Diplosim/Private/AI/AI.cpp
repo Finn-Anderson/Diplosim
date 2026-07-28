@@ -39,6 +39,10 @@ AAI::AAI()
 	Range = InitialRange;
 	ReachPercentageOfRange = 6.75f;
 	DamageOverlayTimer = 0.0f;
+
+	SpawnSystem = nullptr;
+	Colour = FLinearColor();
+	bWet = false;
 }
 
 void AAI::BeginPlay()

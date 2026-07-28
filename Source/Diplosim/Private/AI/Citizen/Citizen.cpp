@@ -650,8 +650,8 @@ void ACitizen::SetPoliticalLeanings()
 			int32 i = faction->Politics.Parties.Find(partyStruct);
 			party = &faction->Politics.Parties[i];
 
+			FScopeLock lock(&PoliticsLock);
 			party->Members.Add(this, ESway::Moderate);
-			sway = party->Members.Find(this);
 
 			if (party->Party == "Shell Breakers" && Camera->PoliticsManager->IsRebellion(faction))
 				Camera->PoliticsManager->SetupRebel(faction, this);

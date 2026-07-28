@@ -5,6 +5,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/WidgetComponent.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "Misc/ScopeTryLock.h"
 
 #include "AI/DiplosimAIController.h"
@@ -192,24 +193,60 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(AActor* Actor, float Ext
 		params.AddIgnoredActor(Buildings[0]);
 
 	FRotator rotation = Actor->GetActorRotation();
+	UStaticMeshComponent* component = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
 
 	FVector centre, size;
-	Cast<UStaticMeshComponent>(Actor->GetRootComponent())->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, size);
+	component->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, size);
 
 	if (Location == FVector::Zero() || Location == Actor->GetActorLocation())
 		Location = Actor->GetActorLocation() + rotation.RotateVector(centre);
 
+	FString convexShape = "";
+	if (!component->GetStaticMesh()->GetBodySetup()->AggGeom.ConvexElems.IsEmpty()) {
+		FVector lwh = size * 2.0f;
+		const double boxV = lwh.X * lwh.Y * lwh.Z;
+
+		float radius = size.X;
+		if (size.Y > size.X)
+			radius = size.Y;
+		const double capsuleV = PI * FMath::Square(radius) * lwh.Z + (4 / 3) * PI * FMath::Pow(radius, 3);
+
+		const double volume = component->GetStaticMesh()->GetBodySetup()->GetScaledVolume(FVector(1.0f));
+
+		if (FMath::Abs(volume - boxV) > FMath::Abs(volume - capsuleV))
+			convexShape = "Capsule";
+		else
+			convexShape = "Box";
+	}
+
 	TArray<FVector> points;
-	float xInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 50.0f), 1);
-	float yInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.Y / 50.0f), 1);
+	if (!component->GetStaticMesh()->GetBodySetup()->AggGeom.BoxElems.IsEmpty() || convexShape == "Box") {
+		float xInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.X / 50.0f), 1);
+		float yInterval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(size.Y / 50.0f), 1);
 
-	float biggestDimension = size.X;
-	if (size.Y > biggestDimension)
-		biggestDimension = size.Y;
+		for (float x = -1.0f; x <= 1.1f; x += xInterval)
+			for (float y = -1.0f; y <= 1.1f; y += yInterval)
+				points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f)));
+	}
+	else {
+		float radius = size.X;
+		if (size.Y > radius)
+			radius = size.Y;
 
-	for (float x = -1.0f; x <= 1.1f; x += xInterval)
-		for (float y = -1.0f; y <= 1.1f; y += yInterval)
-			points.Add(Location + rotation.RotateVector(size * Extent * FVector(x, y, 0.0f)));
+		float interval = 1.0f / FMath::Max(FMath::RoundHalfFromZero(radius / 50.0f), 1);
+
+		points.Add(Location);
+		for (float i = interval; i <= 1.0f; i += interval) {
+			for (float angle = 0.0f; angle < 360.0f; angle += 45.0f) {
+				float r = radius * i;
+
+				float x = r * FMath::Cos(angle * (PI / 180));
+				float y = r * FMath::Sin(angle * (PI / 180));
+
+				points.Add(Location + rotation.RotateVector(FVector(x, y, 0.0f)));
+			}
+		}
+	}
 
 	float height = size.Z + 100.0f;
 

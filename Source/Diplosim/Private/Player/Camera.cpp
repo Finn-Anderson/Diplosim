@@ -252,6 +252,8 @@ void ACamera::Tick(float DeltaTime)
 	if (CustomTimeDilation <= 1.0f) {
 		Grid->AIVisualiser->MainLoop(this, DeltaTime);
 
+		TimerManager->TimerLoop(this);
+
 		for (FFactionStruct& faction : ConquestManager->Factions) {
 			if (faction.Citizens.IsEmpty())
 				continue;
@@ -268,8 +270,6 @@ void ACamera::Tick(float DeltaTime)
 
 			ConquestManager->CalculateAIFighting();
 			ConquestManager->CalculateBuildingFighting();
-
-			TimerManager->TimerLoop(this);
 
 			DiseaseManager->CalculateDisease(this);
 
