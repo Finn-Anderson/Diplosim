@@ -72,7 +72,8 @@ int32 UHappinessComponent::GetHappiness()
 	int32 value = 50;
 
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
-	value += Cast<UDebugManager>(citizen->Camera->PController->CheatManager)->Happiness;
+	if (IsValid(Cast<UDebugManager>(citizen->Camera->PController->CheatManager)))
+		value += Cast<UDebugManager>(citizen->Camera->PController->CheatManager)->Happiness;
 
 	if (!Modifiers.IsEmpty()) {
 		for (auto& element : Modifiers)

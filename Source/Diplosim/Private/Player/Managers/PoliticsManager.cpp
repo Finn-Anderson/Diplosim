@@ -796,6 +796,56 @@ ERaidPolicy UPoliticsManager::GetRaidPolicyStatus(ACitizen* Citizen)
 	return policy;
 }
 
+void UPoliticsManager::SetPartyStatus(FFactionStruct* Faction, ACitizen* Citizen, FPartyStruct* CurrentParty, TEnumAsByte<ESway>* Sway, FString NewPartyName)
+{
+	FScopeLock lock(&PoliticsLock);
+
+	if (CurrentParty != nullptr && CurrentParty->Party == NewPartyName) {
+		int32 mark = Camera->Stream.RandRange(0, 100);
+		int32 pass = 75;
+
+		if (Sway->GetValue() == ESway::Strong)
+			pass = 95;
+
+		if (mark > pass) {
+			if (Sway->GetValue() == ESway::Strong)
+				CurrentParty->Members.Emplace(Citizen, ESway::Radical);
+			else
+				CurrentParty->Members.Emplace(Citizen, ESway::Strong);
+		}
+	}
+	else {
+		if (CurrentParty != nullptr && Sway != nullptr && Sway->GetValue() == ESway::Strong) {
+			CurrentParty->Members.Emplace(Citizen, ESway::Moderate);
+		}
+		else {
+			if (CurrentParty != nullptr) {
+				CurrentParty->Members.Remove(Citizen);
+
+				Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen, CurrentParty]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, CurrentParty->Party, Citizen, false); });
+			}
+
+			FPartyStruct partyStruct;
+			partyStruct.Party = NewPartyName;
+
+			int32 i = Faction->Politics.Parties.Find(partyStruct);
+			CurrentParty = &Faction->Politics.Parties[i];
+
+			CurrentParty->Members.Add(Citizen, ESway::Moderate);
+
+			if (CurrentParty->Party == "Shell Breakers" && IsRebellion(Faction))
+				SetupRebel(Faction, Citizen);
+
+			Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen, CurrentParty]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, CurrentParty->Party, Citizen, true); });
+
+			if (!Faction->Politics.ProposedBills.IsEmpty())
+				Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen]() { GetVerdict(Faction, Citizen, Faction->Politics.ProposedBills[0], true, false); });
+			else
+				Camera->UpdateRepresentative(Faction->Politics.Representatives.Find(Citizen));
+		}
+	}
+}
+
 //
 // Rebel
 //

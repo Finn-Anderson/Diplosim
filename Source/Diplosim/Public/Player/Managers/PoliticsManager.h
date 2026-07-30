@@ -69,6 +69,8 @@ public:
 
 	ERaidPolicy GetRaidPolicyStatus(ACitizen* Citizen);
 
+	void SetPartyStatus(FFactionStruct* Faction, ACitizen* Citizen, FPartyStruct* CurrentParty, TEnumAsByte<ESway>* Sway, FString NewPartyName);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TArray<FPartyStruct> InitParties;
 
@@ -99,4 +101,6 @@ private:
 	void SetupBill(FFactionStruct* Faction);
 
 	void TallyVotes(FFactionStruct* Faction, FLawStruct Bill);
+
+	FCriticalSection PoliticsLock;
 };

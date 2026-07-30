@@ -556,9 +556,9 @@ void ACitizen::SetPoliticalLeanings()
 
 	TArray<FString> partyList;
 
-	TEnumAsByte<ESway>* sway = nullptr;
-
 	FPartyStruct* party = Camera->PoliticsManager->GetMembersParty(this);
+
+	TEnumAsByte<ESway>* sway = nullptr;
 
 	if (party != nullptr)
 		sway = party->Members.Find(this);
@@ -619,51 +619,7 @@ void ACitizen::SetPoliticalLeanings()
 	
 	int32 index = Camera->Stream.RandRange(0, partyList.Num() - 1);
 
-	if (party != nullptr && party->Party == partyList[index]) {
-		int32 mark = Camera->Stream.RandRange(0, 100);
-		int32 pass = 75;
-
-		if (sway->GetValue() == ESway::Strong)
-			pass = 95;
-
-		if (mark > pass) {
-			if (sway->GetValue() == ESway::Strong)
-				party->Members.Emplace(this, ESway::Radical);
-			else
-				party->Members.Emplace(this, ESway::Strong);
-		}
-	}
-	else {
-		if (sway != nullptr && sway->GetValue() == ESway::Strong) {
-			party->Members.Emplace(this, ESway::Moderate);
-		}
-		else {
-			if (party != nullptr) {
-				party->Members.Remove(this);
-
-				Async(EAsyncExecution::TaskGraphMainTick, [this, party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, this, false); });
-			}
-
-			FPartyStruct partyStruct;
-			partyStruct.Party = partyList[index];
-
-			int32 i = faction->Politics.Parties.Find(partyStruct);
-			party = &faction->Politics.Parties[i];
-
-			FScopeLock lock(&PoliticsLock);
-			party->Members.Add(this, ESway::Moderate);
-
-			if (party->Party == "Shell Breakers" && Camera->PoliticsManager->IsRebellion(faction))
-				Camera->PoliticsManager->SetupRebel(faction, this);
-
-			Async(EAsyncExecution::TaskGraphMainTick, [this, party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, this, true); });
-
-			if (!faction->Politics.ProposedBills.IsEmpty())
-				Async(EAsyncExecution::TaskGraphMainTick, [this, faction]() { Camera->PoliticsManager->GetVerdict(faction, this, faction->Politics.ProposedBills[0], true, false); });
-			else
-				Camera->UpdateRepresentative(faction->Politics.Representatives.Find(this));
-		}
-	}
+	Camera->PoliticsManager->SetPartyStatus(faction, this, party, sway, partyList[index]);
 }
 
 //

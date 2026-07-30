@@ -231,13 +231,13 @@ void UAttackComponent::Attack(AActor* Target)
 	if (GetOwner()->IsA<AAI>()) {
 		AAI* ai = Cast<AAI>(GetOwner());
 
-		ai->MovementComponent->SetPoints({});
+		if (!ai->MovementComponent->Points.IsEmpty())
+			ai->MovementComponent->SetPoints({});
+
 		ai->MovementComponent->ActorToLookAt = Target;
 	}
 
-	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
-
-	if ((GetOwner()->IsA<ABuilding>() && *ProjectileClass) || (GetOwner()->IsA<AEnemy>() && !gamemode->IsSnakeFaction(GetOwner()) && !*ProjectileClass)) {
+	if ((GetOwner()->IsA<ABuilding>() && *ProjectileClass) || (!*ProjectileClass && GetOwner()->IsA<AEnemy>() && !Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode())->IsSnakeFaction(GetOwner()))) {
 		float time = AttackTime;
 
 		if (GetOwner()->IsA<AWall>()) {

@@ -77,7 +77,7 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 				else {
 					timer.bModifying = true;
 
-					Async(EAsyncExecution::TaskGraph, [this, &timer]() { CallTimerFunction(&timer); });
+					CallTimerFunction(&timer);
 				}
 			}
 
@@ -244,6 +244,9 @@ TTuple<UObject*, UFunction*> UDiplosimTimerManager::GetFunction(FTimerStruct* Ti
 
 void UDiplosimTimerManager::CallTimerFunction(FTimerStruct* Timer)
 {
+	if (Timer == nullptr || !IsValid(Timer->Actor))
+		return;
+
 	TTuple<UObject*, UFunction*> objFunc = GetFunction(Timer);
 
 	int32 count = 0;

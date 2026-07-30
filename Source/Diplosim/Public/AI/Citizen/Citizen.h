@@ -269,7 +269,4 @@ public:
 	void ApplyToMultiplier(FString Affect, float Amount);
 
 	float GetProductivity();
-
-private:
-	FCriticalSection PoliticsLock;
 };

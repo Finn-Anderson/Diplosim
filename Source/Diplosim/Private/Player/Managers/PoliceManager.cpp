@@ -233,10 +233,10 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 
 	TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, aggressor, aggressor->InitialRange, requestedOverlaps, EFactionType::Same);
 
-	int32 chance = Camera->Stream.RandRange(0, 100);
+	int32 chance = Camera->Stream.RandRange(1, 100);
 	
 	bool bForceFight = Cast<UDebugManager>(Camera->PController->CheatManager)->bFight;
-	int32 fightChance = bForceFight ? chance + 1 : FMath::Max(25 * Citizen1Aggressiveness * Citizen2Aggressiveness - (closeToPoliceStation ? 50 : 0 - (10 * actors.Num())) / overallHappiness, 1);
+	int32 fightChance = bForceFight ? chance + 1 : FMath::Max((25 * Citizen1Aggressiveness * Citizen2Aggressiveness - (closeToPoliceStation ? 50 : 0) - (10 * actors.Num())) / overallHappiness, overallHappiness <= 66 ? 1 : 0);
 
 	if (fightChance > chance)
 		Camera->PoliceManager->CreatePoliceReport(Faction, EReportType::Fighting, aggressor, fightChance < 66, aggressor == Citizen1 ? Citizen2 : Citizen1);

@@ -693,7 +693,7 @@ FVector UAIVisualiser::AddHarvestVisual(AAI* AI, FLinearColor Colour)
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayColor(HarvestNiagaraComponent, "Colours", colours);
 
 	if (!HarvestNiagaraComponent->IsActive())
-		Async(EAsyncExecution::TaskGraphMainTick, [this]() {HarvestNiagaraComponent->Activate(); });
+		Async(EAsyncExecution::TaskGraphMainTick, [this]() { HarvestNiagaraComponent->Activate(); });
 
 	return location;
 }

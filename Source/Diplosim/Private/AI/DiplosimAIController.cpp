@@ -412,26 +412,31 @@ bool UDiplosimAIController::CanMoveTo(FVector Location, AActor* Target, bool bCh
 
 TArray<FVector> UDiplosimAIController::GetPathPoints(FVector StartLocation, FVector EndLocation)
 {
-	TSubclassOf<UNavigationQueryFilter> filter = {};
-
-	if (IsValid(AI)) {
-		if (IsValid(AI->NavQueryFilter))
-			filter = AI->NavQueryFilter;
-
-		if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->EnterLocation != FVector::Zero())
-			StartLocation = Cast<ACitizen>(AI)->BuildingComponent->EnterLocation;
-	}
-
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
-	UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), StartLocation, EndLocation, nullptr, filter);
-
-	if (path == nullptr)
+	if (!IsValid(AI))
 		return {};
 
-	path->EnableRecalculationOnInvalidation(ENavigationOptionFlag::Disable);
+	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+	const ANavigationData* navData = nav->GetDefaultNavDataInstance();
 
-	return path->PathPoints;
+	FSharedConstNavQueryFilter filter = nullptr;
+	if (IsValid(AI->NavQueryFilter))
+		filter = UNavigationQueryFilter::GetQueryFilter(*navData, AI->NavQueryFilter);
+
+	if (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->EnterLocation != FVector::Zero())
+		StartLocation = Cast<ACitizen>(AI)->BuildingComponent->EnterLocation;
+
+	FPathFindingQuery query(AI, *navData, StartLocation, EndLocation, nullptr);
+
+	const FPathFindingResult path = navData->FindPath(query.NavAgentProperties, query);
+
+	if (!path.IsSuccessful())
+		return {};
+
+	TArray<FVector> points;
+	for (const FNavPathPoint& point : path.Path->GetPathPoints())
+		points.Add(point.Location);
+
+	return points;
 }
 
 void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Instance)
@@ -525,18 +530,7 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 		}
 	}
 
-	if (IsInGameThread())
-		SetNewMovementPath(Actor, navAILoc);
-	else
-		Async(EAsyncExecution::TaskGraphMainTick, [this, Actor, navAILoc]() { SetNewMovementPath(Actor, navAILoc); });
-}
-
-void UDiplosimAIController::SetNewMovementPath(AActor* Actor, FNavLocation NavLocation)
-{
-	if (!IsValid(AI))
-		return;
-
-	TArray<FVector> points = GetPathPoints(NavLocation, MoveRequest.GetLocation());
+	TArray<FVector> points = GetPathPoints(navAILoc, MoveRequest.GetLocation());
 	AI->MovementComponent->SetPoints(points);
 
 	if (IsValid(Actor))
@@ -548,12 +542,12 @@ void UDiplosimAIController::SetNewMovementPath(AActor* Actor, FNavLocation NavLo
 	ACitizen* citizen = Cast<ACitizen>(AI);
 
 	if (IsValid(citizen->BuildingComponent->BuildingAt) && citizen->BuildingComponent->BuildingAt != Actor && !citizen->Camera->PoliceManager->IsInJail(citizen))
-		citizen->BuildingComponent->BuildingAt->Leave(citizen);
+		Async(EAsyncExecution::TaskGraphMainTick, [this, citizen]() { citizen->BuildingComponent->BuildingAt->Leave(citizen); });
 }
 
 void UDiplosimAIController::RecalculateMovement(AActor* Actor)
 {
-	if (!IsValid(AI) || !IsValid(Actor) || Actor->IsA<AGrid>() || (Actor->IsA<AResource>() && MoveRequest.GetGoalInstance() == INDEX_NONE) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
+	if (!IsValid(AI) || !IsValid(Actor) || Actor->IsA<AGrid>() || (Actor->IsA<AResource>() && MoveRequest.GetGoalInstance() == INDEX_NONE) || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor) || AI->AttackComponent->OverlappingEnemies.Contains(Actor))
 		return;
 
 	if (Actor->IsA<ABuilding>() && Cast<ABuilding>(Actor)->HealthComponent->GetHealth() == 0 && AI->AttackComponent->OverlappingEnemies.IsEmpty()) {
@@ -595,16 +589,16 @@ void UDiplosimAIController::RecalculateMovement(AActor* Actor)
 
 FVector UDiplosimAIController::GetActualLocation(AActor* Actor)
 {
-	FVector location = Actor->GetActorLocation();
+	FVector location = FVector::Zero();
 
 	if (Actor->IsA<AAI>()) {
 		location = Cast<AAI>(Actor)->MovementComponent->Transform.GetLocation();
 	}
-	if (Actor->IsA<ABuilding>()) {
+	else if (Actor->IsA<ABuilding>()) {
 		UStaticMeshComponent* comp = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
 
 		if (!comp)
-			return location;
+			return Actor->GetActorLocation();
 
 		if (comp->DoesSocketExist("Entrance") && CanMoveTo(comp->GetSocketLocation("Entrance")))
 			location = comp->GetSocketLocation("Entrance");
@@ -632,8 +626,9 @@ FVector UDiplosimAIController::GetClosestNavigablePointOnCollision(AActor* Actor
 	FVector centre, size;
 	Component->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, size);
 
-	FVector location = Actor->GetActorLocation() + rotation.RotateVector(centre);
-	location.Z = Actor->GetActorLocation().Z;
+	FVector actorLoc = Actor->GetActorLocation();
+	FVector location = actorLoc + rotation.RotateVector(centre);
+	location.Z = actorLoc.Z;
 
 	FString convexShape = "";
 	if (!Component->GetStaticMesh()->GetBodySetup()->AggGeom.ConvexElems.IsEmpty()) {
