@@ -293,16 +293,15 @@ void UPoliticsManager::SelectNewLeader(FPartyStruct* Party)
 	if (candidates.IsEmpty())
 		return;
 
-	auto value = Async(EAsyncExecution::TaskGraph, [this, candidates]() { return Camera->Stream.RandRange(0, candidates.Num() - 1); });
-
-	ACitizen* chosen = candidates[value.Get()];
+	int32 index = Camera->Stream.RandRange(0, candidates.Num() - 1);
+	ACitizen* chosen = candidates[index];
 
 	Party->Leader = chosen;
 
 	chosen->bHasBeenLeader = true;
 	Party->Members.Emplace(chosen, ESway::Radical);
 
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, Party->Party, Party->Leader, true); });
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, { TTuple<FString, int32>(Party->Party, Party->Members.Num()) }, Party->Leader->BioComponent->Name); });
 }
 
 void UPoliticsManager::StartElectionTimer(FFactionStruct* Faction)
@@ -320,10 +319,6 @@ void UPoliticsManager::StartElectionTimer(FFactionStruct* Faction)
 void UPoliticsManager::Election(FFactionStruct Faction, bool bVoted)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Faction.Name);
-
-	for (ACitizen* representative : faction->Politics.Representatives)
-		if (IsValid(representative))
-			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, GetCitizenParty(representative), representative, false);
 
 	faction->Politics.Representatives.Empty();
 
@@ -364,8 +359,6 @@ void UPoliticsManager::Election(FFactionStruct Faction, bool bVoted)
 			pair.Value.Remove(party->Leader);
 
 			number -= 1;
-
-			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, party->Leader, true);
 		}
 
 		for (int32 i = 0; i < number; i++) {
@@ -379,8 +372,6 @@ void UPoliticsManager::Election(FFactionStruct Faction, bool bVoted)
 			faction->Politics.Representatives.Add(citizen);
 
 			pair.Value.Remove(citizen);
-
-			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party->Party, citizen, true);
 
 			if (faction->Politics.Representatives.Num() == representatives)
 				break;
@@ -819,10 +810,21 @@ void UPoliticsManager::SetPartyStatus(FFactionStruct* Faction, ACitizen* Citizen
 			CurrentParty->Members.Emplace(Citizen, ESway::Moderate);
 		}
 		else {
+			TMap<FString, int32> partiesToUpdate;
+
 			if (CurrentParty != nullptr) {
 				CurrentParty->Members.Remove(Citizen);
 
-				Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen, CurrentParty]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, CurrentParty->Party, Citizen, false); });
+				partiesToUpdate.Add(CurrentParty->Party, CurrentParty->Members.Num());
+			}
+
+			bool bLeader = CurrentParty != nullptr ? CurrentParty->Leader == Citizen : false;
+			bool bRepresentative = Faction->Politics.Representatives.Contains(Citizen);
+
+			if (NewPartyName == "Undecided") {
+				Async(EAsyncExecution::TaskGraphMainTick, [this, partiesToUpdate]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, partiesToUpdate); });
+
+				return;
 			}
 
 			FPartyStruct partyStruct;
@@ -836,7 +838,12 @@ void UPoliticsManager::SetPartyStatus(FFactionStruct* Faction, ACitizen* Citizen
 			if (CurrentParty->Party == "Shell Breakers" && IsRebellion(Faction))
 				SetupRebel(Faction, Citizen);
 
-			Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen, CurrentParty]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, CurrentParty->Party, Citizen, true); });
+			partiesToUpdate.Add(CurrentParty->Party, CurrentParty->Members.Num());
+
+			Async(EAsyncExecution::TaskGraphMainTick, [this, partiesToUpdate]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, partiesToUpdate); });
+
+			if (!bRepresentative)
+				return;
 
 			if (!Faction->Politics.ProposedBills.IsEmpty())
 				Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, Citizen]() { GetVerdict(Faction, Citizen, Faction->Politics.ProposedBills[0], true, false); });

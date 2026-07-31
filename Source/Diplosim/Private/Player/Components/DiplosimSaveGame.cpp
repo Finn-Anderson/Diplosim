@@ -862,14 +862,14 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		if (f.Name == Camera->ColonyName)
 			faction = &f;
 
-		for (ACitizen* citizen : f.Citizens) {
-			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, Camera->PoliticsManager->GetCitizenParty(citizen), citizen, true);
+		for (FPartyStruct& party : f.Politics.Parties)
+			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, { TTuple<FString, int32>(party.Party, party.Members.Num()) }, IsValid(party.Leader) ? party.Leader->BioComponent->Name : "");
 
-			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, citizen->Spirituality.Faith, citizen, true);
+		for (FReligionStruct& religion : Camera->CitizenManager->Religions)
+			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, { TTuple<FString, int32>(religion.Faith, Camera->CitizenManager->GetCitizensOfReligion(f.Name, religion.Faith).Num()) });
 
-			for (FPersonality* personality : Camera->CitizenManager->GetCitizensPersonalities(citizen))
-				Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, personality->Trait, citizen, true);
-		}
+		for (FPersonality& personality : Camera->CitizenManager->Personalities)
+			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, { TTuple<FString, int32>(personality.Trait, personality.Citizens.Num()) });
 	}
 
 	if (IsValid(faction->Parliament)) {

@@ -168,7 +168,7 @@ public:
 		void ClearInfoDisplay();
 
 	UFUNCTION(BlueprintImplementableEvent)
-		void UpdateCitizenInfoDisplay(EInfoUpdate Type, const FString& Name, class ACitizen* Citizen, bool bAdd);
+		void UpdateCitizenInfoDisplay(EInfoUpdate Type, const TMap<FString, int32>& NameCount, const FString& LeaderName = "NULL");
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateBuildingInfoDisplay(class ABuilding* Building, bool bAdd);

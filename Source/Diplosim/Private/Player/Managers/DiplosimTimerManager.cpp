@@ -69,16 +69,12 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 			timer.LastUpdateTime = currentTime;
 
 			if (timer.Timer >= timer.Target && !timer.bModifying) {
-				if (timer.bOnGameThread) {
-					timer.bModifying = true;
+				timer.bModifying = true;
 
+				if (timer.bOnGameThread)
 					Async(EAsyncExecution::TaskGraphMainTick, [this, &timer]() { CallTimerFunction(&timer); });
-				}
-				else {
-					timer.bModifying = true;
-
+				else
 					CallTimerFunction(&timer);
-				}
 			}
 
 			if (!timer.bDone)

@@ -350,7 +350,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 
 		party.Members.Remove(Citizen);
 
-		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, party.Party, Citizen, false);
+		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, { TTuple<FString, int32>(party.Party, party.Members.Num()) }, IsValid(party.Leader) ? party.Leader->BioComponent->Name : "");
 
 		break;
 	}
@@ -394,7 +394,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen)) {
 		personality->Citizens.Remove(Citizen);
 
-		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, personality->Trait, Citizen, false);
+		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, { TTuple<FString, int32>(personality->Trait, personality->Citizens.Num()) });
 	}
 
 	if (IsValid(Citizen->BuildingComponent->Employment))
@@ -408,7 +408,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 
 	Camera->ArmyManager->RemoveFromArmy(Citizen);
 
-	Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Citizen->Spirituality.Faith, Citizen, false);
+	Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, { TTuple<FString, int32>(Citizen->Spirituality.Faith, Camera->CitizenManager->GetCitizensOfReligion(faction->Name, Citizen->Spirituality.Faith).Num()) });
 }
 
 //

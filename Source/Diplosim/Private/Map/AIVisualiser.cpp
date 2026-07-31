@@ -773,15 +773,15 @@ AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UAIInstancedStaticMeshComponent* 
 		clones.Append(faction.Clones);
 	}
 
-	if (ISM == HISMCitizen)
+	if (ISM == HISMCitizen && citizens.Num() > Instance)
 		ai = citizens[Instance];
-	else if (ISM == HISMRebel)
+	else if (ISM == HISMRebel && rebels.Num() > Instance)
 		ai = rebels[Instance];
-	else if (ISM == HISMClone)
+	else if (ISM == HISMClone && clones.Num() > Instance)
 		ai = clones[Instance];
-	else if (ISM == HISMEnemy)
+	else if (ISM == HISMEnemy && gamemode->Enemies.Num() > Instance)
 		ai = gamemode->Enemies[Instance];
-	else if (ISM == HISMSnake)
+	else if (ISM == HISMSnake && gamemode->Snakes.Num() > Instance)
 		ai = gamemode->Snakes[Instance];
 
 	return ai;

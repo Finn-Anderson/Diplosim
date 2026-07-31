@@ -689,7 +689,9 @@ void ACitizen::SetReligion(FFactionStruct* Faction)
 
 	Spirituality.Faith = religionList[index];
 
-	Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, Spirituality.Faith, this, true); });
+	int32 count = Camera->CitizenManager->GetCitizensOfReligion(Faction->Name, Spirituality.Faith).Num();
+
+	Async(EAsyncExecution::TaskGraphMainTick, [this, count]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, { TTuple<FString, int32>(Spirituality.Faith, count) }); });
 }
 
 //
@@ -871,7 +873,7 @@ void ACitizen::GivePersonalityTrait(ACitizen* Parent)
 
 	ApplyTraitAffect(Camera->CitizenManager->Personalities[i].Affects);
 
-	Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, Camera->CitizenManager->Personalities[i].Trait, this, true);
+	Async(EAsyncExecution::TaskGraphMainTick, [this, i]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, { TTuple<FString, int32>(Camera->CitizenManager->Personalities[i].Trait, Camera->CitizenManager->Personalities[i].Citizens.Num()) }); });
 }
 
 void ACitizen::ApplyTraitAffect(TMap<FString, float> Affects)

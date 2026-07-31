@@ -206,7 +206,7 @@ void UBioComponent::FindPartner(FFactionStruct* Faction)
 	ACitizen* chosenCitizen = nullptr;
 	int32 curCount = 1;
 
-	TArray<ACitizen*> family = GetFamily();
+	TArray<ACitizen*> family = GetFamily(false);
 
 	for (ACitizen* c : Faction->Citizens) {
 		if (!IsValid(c) || c == citizen || c->HealthComponent->GetHealth() == 0 || c->IsPendingKillPending() || c->BioComponent->Partner != nullptr || c->BioComponent->Age < 18)
@@ -243,7 +243,7 @@ void UBioComponent::FindPartner(FFactionStruct* Faction)
 			continue;
 		}
 
-		double magnitude = citizen->AIController->GetClosestActor(50.0f, citizen->MovementComponent->GetMovementTransform().GetLocation(), chosenCitizen->MovementComponent->GetMovementTransform().GetLocation(), c->MovementComponent->GetMovementTransform().GetLocation(), true, curCount, count);
+		double magnitude = citizen->AIController->GetClosestActor(50.0f, citizen->MovementComponent->GetMovementTransform().GetLocation(), chosenCitizen->MovementComponent->GetMovementTransform().GetLocation(), c->MovementComponent->GetMovementTransform().GetLocation(), false, curCount, count);
 
 		if (magnitude <= 0.0f)
 			continue;

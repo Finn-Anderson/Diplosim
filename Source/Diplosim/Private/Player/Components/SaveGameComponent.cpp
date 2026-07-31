@@ -72,7 +72,6 @@ void USaveGameComponent::SaveGameSave(FString Name, bool bAutosave)
 
 void USaveGameComponent::LoadGameSave(UDiplosimSaveGameData* SaveGameData, FString SlotName, int32 Index)
 {
-	Camera->PController->DisableInput(Camera->PController);
 	Camera->SetPause(false);
 
 	CurrentSaveData = SaveGameData;
@@ -138,8 +137,6 @@ void USaveGameComponent::OnNavMeshGenerated()
 	Camera->Grid->HISMGround->BuildTreeIfOutdated(false, true); // Fixes Distance Field not updating
 
 	Camera->DisplayBuildUI();
-
-	Camera->PController->EnableInput(Camera->PController);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	FScriptDelegate delegate;

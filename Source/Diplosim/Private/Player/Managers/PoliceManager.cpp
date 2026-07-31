@@ -236,7 +236,7 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 	int32 chance = Camera->Stream.RandRange(1, 100);
 	
 	bool bForceFight = Cast<UDebugManager>(Camera->PController->CheatManager)->bFight;
-	int32 fightChance = bForceFight ? chance + 1 : FMath::Max((25 * Citizen1Aggressiveness * Citizen2Aggressiveness - (closeToPoliceStation ? 50 : 0) - (10 * actors.Num())) / overallHappiness, overallHappiness <= 66 ? 1 : 0);
+	int32 fightChance = bForceFight ? chance + 1 : FMath::Max((25 * Citizen1Aggressiveness * Citizen2Aggressiveness - (closeToPoliceStation ? 50 : 0) - (10 * actors.Num())) / overallHappiness, overallHappiness <= (66.0f / 200.0f) ? 1 : 0);
 
 	if (fightChance > chance)
 		Camera->PoliceManager->CreatePoliceReport(Faction, EReportType::Fighting, aggressor, fightChance < 66, aggressor == Citizen1 ? Citizen2 : Citizen1);
