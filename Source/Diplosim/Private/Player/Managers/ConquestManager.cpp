@@ -312,7 +312,7 @@ void UConquestManager::CalculateAIFighting()
 				if (Camera->SaveGameComponent->IsLoading())
 					return;
 
-				if (!IsValid(ai) || ai->HealthComponent->GetHealth() <= 0)
+				if (ai == nullptr || ai->HealthComponent->GetHealth() <= 0)
 					continue;
 
 				FOverlapsStruct requestedOverlaps;
@@ -335,7 +335,7 @@ void UConquestManager::CalculateAIFighting()
 
 					UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
-					if ((healthComp && healthComp->GetHealth() <= 0) || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))) || (actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(actor)->BuildingComponent->BuildingAt)))
+					if (!healthComp || healthComp->GetHealth() <= 0 || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))) || (actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(actor)->BuildingComponent->BuildingAt)))
 						continue;
 
 					ai->AttackComponent->OverlappingEnemies.Add(actor);
@@ -375,12 +375,7 @@ void UConquestManager::CalculateBuildingFighting()
 				if (Camera->SaveGameComponent->IsLoading())
 					return;
 
-				if (!IsValid(building) || (!building->IsA<AGate>() && !building->IsA<ATower>() && !building->IsA<ATrap>()))
-					continue;
-
-				UHealthComponent* healthComp = building->GetComponentByClass<UHealthComponent>();
-
-				if (healthComp->GetHealth() <= 0)
+				if (building == nullptr || (!building->IsA<AGate>() && !building->IsA<ATower>() && !building->IsA<ATrap>()) || building->HealthComponent->GetHealth() <= 0)
 					continue;
 
 				if (building->IsA<ATrap>()) {
@@ -420,12 +415,12 @@ void UConquestManager::CalculateBuildingFighting()
 							if (Camera->SaveGameComponent->IsLoading())
 								return;
 
-							if (!IsValid(actor) || tower->AttackComponent->OverlappingEnemies.Contains(actor))
+							if (actor == nullptr || tower->AttackComponent->OverlappingEnemies.Contains(actor))
 								continue;
 
-							UHealthComponent* hpComp = actor->GetComponentByClass<UHealthComponent>();
+							UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
 
-							if (hpComp && hpComp->GetHealth() <= 0)
+							if (!healthComp || healthComp->GetHealth() <= 0)
 								continue;
 
 							tower->AttackComponent->OverlappingEnemies.Add(actor);

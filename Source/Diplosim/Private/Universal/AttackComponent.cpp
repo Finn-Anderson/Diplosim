@@ -127,8 +127,11 @@ void UAttackComponent::PickTarget()
 		reach = ai->GetReach();
 
 	if (favoured == nullptr) {
-		if (IsValid(ai))
+		if (IsValid(ai)) {
+			ai->MovementComponent->ActorToLookAt = nullptr;
+
 			ai->AIController->DefaultAction();
+		}
 
 		bShowMercy = false;
 

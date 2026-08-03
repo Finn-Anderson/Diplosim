@@ -197,7 +197,7 @@ void UCitizenManager::CitizenGeneralLoop(float DeltaTime)
 			float rebelsPerc = rebelCount / (float)faction.Citizens.Num();
 
 			if (rebelsPerc > 0.33f)
-				Async(EAsyncExecution::TaskGraphMainTick, [this, &faction, DeltaTime]() { Camera->PoliticsManager->ChooseRebellionType(&faction, DeltaTime); });
+				Camera->PoliticsManager->ChooseRebellionType(&faction, DeltaTime);
 
 			if (faction.Name == Camera->ColonyName) {
 				float happinessPerc = happinessCount / (faction.Citizens.Num() * 100.0f);
@@ -350,7 +350,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 
 		party.Members.Remove(Citizen);
 
-		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, { TTuple<FString, int32>(party.Party, party.Members.Num()) }, IsValid(party.Leader) ? party.Leader->BioComponent->Name : "");
+		Async(EAsyncExecution::TaskGraphMainTick, [this, party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, { TTuple<FString, int32>(party.Party, party.Members.Num()) }, IsValid(party.Leader) ? party.Leader->BioComponent->Name : ""); });
 
 		break;
 	}
@@ -394,7 +394,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 	for (FPersonality* personality : GetCitizensPersonalities(Citizen)) {
 		personality->Citizens.Remove(Citizen);
 
-		Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, { TTuple<FString, int32>(personality->Trait, personality->Citizens.Num()) });
+		Async(EAsyncExecution::TaskGraphMainTick, [this, personality]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, { TTuple<FString, int32>(personality->Trait, personality->Citizens.Num()) }); });
 	}
 
 	if (IsValid(Citizen->BuildingComponent->Employment))
@@ -408,7 +408,7 @@ void UCitizenManager::ClearCitizen(ACitizen* Citizen)
 
 	Camera->ArmyManager->RemoveFromArmy(Citizen);
 
-	Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, { TTuple<FString, int32>(Citizen->Spirituality.Faith, Camera->CitizenManager->GetCitizensOfReligion(faction->Name, Citizen->Spirituality.Faith).Num()) });
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen, faction]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Religion, { TTuple<FString, int32>(Citizen->Spirituality.Faith, Camera->CitizenManager->GetCitizensOfReligion(faction->Name, Citizen->Spirituality.Faith).Num()) }); });
 }
 
 //

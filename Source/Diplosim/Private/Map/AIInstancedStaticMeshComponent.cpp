@@ -55,6 +55,9 @@ void UAIInstancedStaticMeshComponent::BatchUpdateData(TArray<int32> Instances)
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this, Instances]() {
 		for (int32 instance : Instances) {
+			if (instance >= GetInstanceCount())
+				continue;
+
 			TArray<float> data;
 			for (int32 i = 0; i < NumCustomDataFloats; i++)
 				data.Add(PerInstanceSMCustomData[instance * NumCustomDataFloats + i]);

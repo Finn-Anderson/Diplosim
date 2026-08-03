@@ -113,9 +113,6 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 
 void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime, TArray<int32>& Instances)
 {
-	if (!CurrentAnim.bPlay)
-		return;
-
 	CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
 
 	if (IsValid(ActorToLookAt) && Points.IsEmpty()) {
@@ -124,9 +121,6 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 		rotation.Roll = Transform.GetRotation().Rotator().Roll;
 
 		Transform.SetRotation(FMath::Lerp(Transform.GetRotation(), rotation.Quaternion(), CurrentAnim.Alpha));
-
-		if (CurrentAnim.Alpha == 1.0f)
-			ActorToLookAt = nullptr;
 	}
 
 	FVector endLocation = CurrentAnim.EndTransform.GetLocation();
@@ -139,13 +133,13 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 
 	AIVisualiser->SetAnimationPoint(AI, transform, Instances);
 
-	if (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f) {
-		CurrentAnim.Speed *= -1.0f;
-
+	if (CurrentAnim.bPlay && (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f)) {
 		CurrentAnim.StartTransform = FTransform();
 
 		if ((CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat) || CurrentAnim.bOneWay)
 			CurrentAnim.bPlay = false;
+		else
+			CurrentAnim.Speed *= -1.0f;
 
 		if (CurrentAnim.Alpha == 1.0f && (CurrentAnim.Type == EAnim::Melee || CurrentAnim.Type == EAnim::Throw)) {
 			if (CurrentAnim.Type == EAnim::Melee) {
@@ -222,6 +216,9 @@ float UAIMovementComponent::GetMaximumSpeed()
 
 void UAIMovementComponent::SetAnimation(EAnim Type, bool bRepeat, float Speed)
 {
+	if (CurrentAnim.Type == EAnim::Death && Type != EAnim::Decay)
+		return;
+
 	FAnimStruct animStruct;
 	animStruct.Type = Type;
 

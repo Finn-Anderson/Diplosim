@@ -51,6 +51,8 @@ void UHappinessComponent::SetAttendStatus(EAttendStatus Status, bool bMass)
 
 void UHappinessComponent::SetDecayingHappiness(EHappinessType Type, int32 Amount, int32 Min, int32 Max)
 {
+	FScopeLock lock(&ModifiersCriticalSection);
+
 	int32 value = FMath::Clamp(*DecayingHappiness.Find(Type) + Amount, Min, Max);
 	DecayingHappiness.Add(Type, value);
 }
@@ -404,7 +406,7 @@ void UHappinessComponent::CheckSadness(ACitizen* Citizen, FFactionStruct* Factio
 {
 	int32 timeToCompleteDay = Citizen->Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
-	if (SadTimer + timeToCompleteDay > Citizen->GetWorld()->GetTimeSeconds() || GetHappiness() != 0 || Faction->Police.Arrested.Contains(Citizen) || Citizen->Camera->EventsManager->UpcomingProtest(Faction))
+	if (SadTimer + timeToCompleteDay > Citizen->GetWorld()->GetTimeSeconds() || GetHappiness() != 0 || Faction->Police.Arrested.Contains(Citizen))
 		return;
 
 	SadTimer = Citizen->GetWorld()->GetTimeSeconds();
@@ -418,7 +420,7 @@ void UHappinessComponent::CheckSadness(ACitizen* Citizen, FFactionStruct* Factio
 
 	if (Citizen->Camera->Stream.RandRange(1, 100) > chance)
 		Citizen->HealthComponent->TakeHealth(1000, Citizen);
-	else {
+	else if (!Citizen->Camera->EventsManager->UpcomingProtest(Faction)) {
 		int32 startHour = Citizen->Camera->Stream.RandRange(6, 9);
 		int32 endHour = Citizen->Camera->Stream.RandRange(12, 18);
 

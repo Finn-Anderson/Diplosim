@@ -148,6 +148,9 @@ void UDiplosimAIController::Idle(FFactionStruct* Faction, ACitizen* Citizen)
 
 void UDiplosimAIController::Wander(FVector CentrePoint, bool bTimer, ABuilding* Building, float MaxLength, bool bRaid)
 {
+	if (!IsValid(AI))
+		return;
+
 	MoveRequest.SetGoalActor(nullptr);
 
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());

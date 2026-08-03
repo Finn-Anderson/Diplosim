@@ -103,4 +103,5 @@ private:
 	void TallyVotes(FFactionStruct* Faction, FLawStruct Bill);
 
 	FCriticalSection PoliticsLock;
+	FCriticalSection RebelLock;
 };

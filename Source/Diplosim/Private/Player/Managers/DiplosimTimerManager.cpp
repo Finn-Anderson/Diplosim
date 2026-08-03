@@ -53,7 +53,7 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 
 			FTimerStruct& timer = node->GetValue(); 
 
-			if (!IsValid(timer.Actor)) {
+			if (timer.Actor == nullptr) {
 				FScopeLock lock(&TimerLock);
 				Timers.RemoveNode(node);
 

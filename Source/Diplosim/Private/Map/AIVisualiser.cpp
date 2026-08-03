@@ -246,7 +246,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 						ACitizen* citizen = citizens[i][j];
 
-						if (!IsValid(citizen))
+						if (citizen == nullptr || !IsValid(citizen))
 							continue;
 
 						UAIInstancedStaticMeshComponent* ism = nullptr;
@@ -370,7 +370,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 
 				AAI* ai = ais[i][j];
 
-				if (!IsValid(ai))
+				if (ai == nullptr || !IsValid(ai))
 					continue;
 
 				UAIInstancedStaticMeshComponent* ism = nullptr;
@@ -565,6 +565,9 @@ void UAIVisualiser::DeleteInstance(FPendingChangeStruct PendingChange)
 
 void UAIVisualiser::UpdateInstanceCustomData(UAIInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value, TArray<int32>& Instances)
 {
+	if (Instance >= ISM->GetInstanceCount())
+		return;
+
 	int32 value = ISM->PerInstanceSMCustomData[Instance * ISM->NumCustomDataFloats + Index];
 
 	if (value == Value)

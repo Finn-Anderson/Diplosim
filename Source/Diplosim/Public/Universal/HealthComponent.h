@@ -66,10 +66,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
 		TSubclassOf<class UCameraShakeBase> Shake;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Shake")
+		USoundBase* DeathSound;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Death")
 		class UNiagaraSystem* DeathSystem;
 
 	// Fire
 	UFUNCTION()
 		void OnFire();
+
+private:
+	FCriticalSection HealthLock;
 };

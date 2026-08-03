@@ -493,7 +493,7 @@ void UPoliticsManager::SetupBill(FFactionStruct* Faction)
 		GetVerdict(Faction, citizen, Faction->Politics.ProposedBills[0], true, false);
 
 	for (ACitizen* citizen : Faction->Politics.Representatives) {
-		int32 bribe = Async(EAsyncExecution::TaskGraph, [this]() { return Camera->Stream.RandRange(2, 40); }).Get();
+		int32 bribe = Camera->Stream.RandRange(2, 40);
 
 		if (Faction->Politics.Votes.For.Contains(citizen) || Faction->Politics.Votes.Against.Contains(citizen))
 			bribe *= 5;
@@ -858,6 +858,8 @@ void UPoliticsManager::SetPartyStatus(FFactionStruct* Faction, ACitizen* Citizen
 //
 void UPoliticsManager::ChooseRebellionType(FFactionStruct* Faction, float DeltaTime)
 {
+	FScopeLock lock(&RebelLock);
+
 	if (Faction->Citizens.IsEmpty() || IsRebellion(Faction))
 		return;
 
@@ -879,7 +881,7 @@ void UPoliticsManager::ChooseRebellionType(FFactionStruct* Faction, float DeltaT
 
 		int32 index = Faction->Politics.Laws.Find(lawStruct);
 
-		ProposeBill(Faction->Name, Faction->Politics.Laws[index]);
+		Async(EAsyncExecution::TaskGraphMainTick, [this, Faction, index]() { ProposeBill(Faction->Name, Faction->Politics.Laws[index]); });
 	}
 }
 
@@ -906,14 +908,13 @@ void UPoliticsManager::Overthrow(FFactionStruct* Faction)
 		break;
 	}
 
-	Camera->ShowEvent("Disaster", "Rebellion");
+	Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->ShowEvent("Disaster", "Rebellion"); });
 }
 
 void UPoliticsManager::SetupRebel(FFactionStruct* Faction, ACitizen* Citizen)
 {
 	Citizen->Energy = 100;
 	Citizen->Hunger = 100;
-	Citizen->AttackComponent->bShowMercy = false;
 
 	UAIVisualiser* aiVisualiser = Camera->Grid->AIVisualiser;
 	aiVisualiser->RemoveInstance(aiVisualiser->HISMCitizen, Faction->Citizens.Find(Citizen));

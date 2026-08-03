@@ -370,7 +370,7 @@ void UPoliceManager::CreatePoliceReport(FFactionStruct* Faction, EReportType Rep
 bool UPoliceManager::IsInAPoliceReport(ACitizen* Citizen, FFactionStruct* Faction)
 {
 	for (FPoliceReport& report : Faction->Police.PoliceReports) {
-		if (!report.Wanted.Contains(Citizen) && (!IsPoliceOfficer(Citizen) || !report.Wanted.Contains(Citizen->AIController->MoveRequest.GetGoalActor())))
+		if (!IsValid(Citizen) || (!report.Wanted.Contains(Citizen) && (!IsPoliceOfficer(Citizen) || !report.Wanted.Contains(Citizen->AIController->MoveRequest.GetGoalActor()))))
 			continue;
 
 		return true;

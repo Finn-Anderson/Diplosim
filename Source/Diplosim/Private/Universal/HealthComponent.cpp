@@ -46,7 +46,10 @@ UHealthComponent::UHealthComponent()
 	HealthMultiplier = 1.0f;
 	Health, MaxHealth = 0;
 
-	Camera, DeathSystem, OnHitEffect = nullptr;
+	Camera = nullptr;
+	DeathSystem = nullptr;
+	OnHitEffect = nullptr;
+	DeathSound = nullptr;
 }
 
 void UHealthComponent::BeginPlay()
@@ -64,26 +67,26 @@ void UHealthComponent::AddHealth(int32 Amount)
 
 void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* Sound)
 {
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Amount, Attacker, Sound]() {
-		if (GetHealth() == 0 || !IsValid(GetOwner()))
-			return;
+	FScopeLock lock(&HealthLock);
 
-		Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
+	if (GetHealth() == 0 || !IsValid(GetOwner()))
+		return;
 
-		ApplyDamageOverlay();
+	Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
 
-		if (GetHealth() == 0)
-			Death(Attacker);
-		else if (GetOwner()->IsA<ACitizen>()) {
-			ACitizen* citizen = Cast<ACitizen>(GetOwner());
-			Camera->DiseaseManager->Injure(citizen, Camera->Stream.RandRange(0, 100));
-		}
+	ApplyDamageOverlay();
 
-		UAudioComponent* comp = HitAudioComponent;
-		if (Attacker->IsA<AEnemy>() && Sound == Cast<AEnemy>(Attacker)->AttackComponent->ZapSound)
-			comp = Cast<AEnemy>(Attacker)->HealthComponent->HitAudioComponent;
-		Camera->PlayAmbientSound(comp, Sound);
-	});
+	if (GetHealth() == 0)
+		Death(Attacker);
+	else if (GetOwner()->IsA<ACitizen>()) {
+		ACitizen* citizen = Cast<ACitizen>(GetOwner());
+		Camera->DiseaseManager->Injure(citizen, Camera->Stream.RandRange(0, 100));
+	}
+
+	UAudioComponent* comp = HitAudioComponent;
+	if (Attacker->IsA<AEnemy>() && Sound == Cast<AEnemy>(Attacker)->AttackComponent->ZapSound)
+		comp = Cast<AEnemy>(Attacker)->HealthComponent->HitAudioComponent;
+	Camera->PlayAmbientSound(comp, Sound);
 }
 
 bool UHealthComponent::IsMaxHealth()
@@ -110,24 +113,26 @@ void UHealthComponent::ApplyDamageOverlay(bool bLoad)
 	float opacity = (MaxHealth - Health) / (float)MaxHealth;
 
 	if (GetOwner()->IsA<ABuilding>() || GetOwner()->IsA<AAISpawner>()) {
-		TArray<UStaticMeshComponent*> meshes;
-		GetOwner()->GetComponents<UStaticMeshComponent*>(meshes);
+		Async(EAsyncExecution::TaskGraphMainTick, [this, bLoad, opacity]() {
+			TArray<UStaticMeshComponent*> meshes;
+			GetOwner()->GetComponents<UStaticMeshComponent*>(meshes);
 
-		for (UStaticMeshComponent* mesh : meshes) {
-			mesh->SetOverlayMaterial(OnHitEffect);
-			mesh->SetCustomPrimitiveDataFloat(11, opacity);
-		}
+			for (UStaticMeshComponent* mesh : meshes) {
+				mesh->SetOverlayMaterial(OnHitEffect);
+				mesh->SetCustomPrimitiveDataFloat(11, opacity);
+			}
 
-		if (bLoad)
-			return;
+			if (bLoad)
+				return;
 
-		if (GetOwner()->IsA<ABuilding>())
-			Camera->ConstructionManager->AddBuilding(Cast<ABuilding>(GetOwner()), EBuildStatus::Damaged);
+			if (GetOwner()->IsA<ABuilding>())
+				Camera->ConstructionManager->AddBuilding(Cast<ABuilding>(GetOwner()), EBuildStatus::Damaged);
 
-		if (Camera->TimerManager->DoesTimerExist("DamageOverlay", GetOwner()))
-			Camera->TimerManager->ResetTimer("DamageOverlay", GetOwner());
-		else
-			Camera->TimerManager->CreateTimer("DamageOverlay", GetOwner(), 0.4f, "RemoveDamageOverlay", {}, false, true);
+			if (Camera->TimerManager->DoesTimerExist("DamageOverlay", GetOwner()))
+				Camera->TimerManager->ResetTimer("DamageOverlay", GetOwner());
+			else
+				Camera->TimerManager->CreateTimer("DamageOverlay", GetOwner(), 0.4f, "RemoveDamageOverlay", {}, false, true);
+		});
 	}
 	else
 		Cast<AAI>(GetOwner())->DamageOverlayTimer = 0.4f;
@@ -156,7 +161,7 @@ void UHealthComponent::Death(AActor* Attacker, bool bLoad)
 
 	if (actor->IsA<ABroch>()) {
 		if (faction->Name == Camera->ColonyName)
-			Camera->Lose();
+			Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->Lose(); });
 
 		for (ACitizen* citizen : faction->Citizens)
 			citizen->HealthComponent->TakeHealth(1000, Camera);
@@ -170,6 +175,7 @@ void UHealthComponent::Death(AActor* Attacker, bool bLoad)
 		attackComp->ClearAttacks();
 
 		Cast<AAI>(actor)->AIController->StopMovement();
+		Cast<AAI>(actor)->MovementComponent->ActorToLookAt = nullptr;
 
 		Camera->TimerManager->CreateTimer("Decay", actor, 6.0f, "AIDecay", {}, false, true);
 
@@ -226,41 +232,45 @@ void UHealthComponent::Death(AActor* Attacker, bool bLoad)
 			Camera->NotifyLog(building, "Bad", building->BuildingName + " has been destroyed", faction->Name);
 
 		if (Camera->InfoUIInstance->IsInViewport())
-			Camera->UpdateBuildingInfoDisplay(building, false);
+			Async(EAsyncExecution::TaskGraphMainTick, [this, building]() { Camera->UpdateBuildingInfoDisplay(building, false); });
 	}
 
 	Camera->Grid->AtmosphereComponent->ClearFire(actor);
 
 	if (DeathSystem != nullptr) {
-		FVector origin, extent;
-		actor->GetActorBounds(false, origin, extent);
+		Async(EAsyncExecution::TaskGraphMainTick, [this, actor]() {
+			FVector origin, extent;
+			actor->GetActorBounds(false, origin, extent);
 
-		FVector location = Camera->GetTargetActorLocation(actor);
+			FVector location = Camera->GetTargetActorLocation(actor);
 
-		if (actor->IsA<AEnemy>())
-			origin = location;
-		else
-			origin.Z = location.Z;
+			if (actor->IsA<AEnemy>())
+				origin = location;
+			else
+				origin.Z = location.Z;
 
-		UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DeathSystem, origin);
+			UNiagaraComponent* deathComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DeathSystem, origin);
 
-		if (actor->IsA<AEnemy>()) {
-			AEnemy* enemy = Cast<AEnemy>(actor);
-			enemy->MovementComponent->Transform.SetLocation(enemy->MovementComponent->Transform.GetLocation() - FVector(0.0f, 0.0f, 1000.0f));
+			if (actor->IsA<AEnemy>()) {
+				AEnemy* enemy = Cast<AEnemy>(actor);
+				enemy->MovementComponent->Transform.SetLocation(enemy->MovementComponent->Transform.GetLocation() - FVector(0.0f, 0.0f, 1000.0f));
 
-			deathComp->SetColorParameter("Colour", enemy->Colour);
-		}
-		else if (actor->IsA<ABuilding>() || actor->IsA<AAISpawner>()) {
-			UStaticMeshComponent* mesh = actor->GetComponentByClass<UStaticMeshComponent>();
-			FVector dimensions = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+				deathComp->SetColorParameter("Colour", enemy->Colour);
+			}
+			else if (actor->IsA<ABuilding>() || actor->IsA<AAISpawner>()) {
+				UStaticMeshComponent* mesh = actor->GetComponentByClass<UStaticMeshComponent>();
+				FVector dimensions = mesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-			deathComp->SetVariableVec2(TEXT("XY"), FVector2D(dimensions.X, dimensions.Y));
-			deathComp->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
+				deathComp->SetVariableVec2(TEXT("XY"), FVector2D(dimensions.X, dimensions.Y));
+				deathComp->SetVariableFloat(TEXT("Radius"), dimensions.X / 2);
 
-			Camera->Grid->AIVisualiser->DestructingActors.Add(actor, GetWorld()->GetTimeSeconds());
-			UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, origin, 0.0f, 2000.0f, 10000000.0f / (dimensions.X * dimensions.Y * dimensions.Z));
-		}
+				Camera->Grid->AIVisualiser->DestructingActors.Add(actor, GetWorld()->GetTimeSeconds());
+				UGameplayStatics::PlayWorldCameraShake(GetWorld(), Shake, origin, 0.0f, 2000.0f, 10000000.0f / (dimensions.X * dimensions.Y * dimensions.Z));
+			}
+		});
 	}
+
+	Camera->PlayAmbientSound(HitAudioComponent, DeathSound);
 
 	if (bLoad)
 		return;
