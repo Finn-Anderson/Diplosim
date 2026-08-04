@@ -136,6 +136,9 @@ void UCloudComponent::Clear()
 		cloudStruct.HISMCloud->DestroyComponent();
 	}
 
+	for (auto node = RainDropLocations.GetHead(); node != nullptr; node = node->GetNextNode())
+		node->GetValue().bClear = true;
+
 	for (auto node = WetnessStruct.GetHead(); node != nullptr; node = node->GetNextNode())
 		node->GetValue().bClear = true;
 
@@ -396,7 +399,7 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 			FLocationStruct& locationStruct = node->GetValue();
 			FHitResult hit;
 
-			if (GetWorld()->LineTraceSingleByChannel(hit, locationStruct.Location, FVector(locationStruct.Location.X, locationStruct.Location.Y, 0.0f), ECollisionChannel::ECC_Visibility))
+			if (!locationStruct.bClear && GetWorld()->LineTraceSingleByChannel(hit, locationStruct.Location, FVector(locationStruct.Location.X, locationStruct.Location.Y, 0.0f), ECollisionChannel::ECC_Visibility))
 			{
 				UPrimitiveComponent* component = hit.GetComponent();
 

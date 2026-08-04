@@ -190,6 +190,8 @@ class DIPLOSIM_API UAIVisualiser : public UActorComponent
 public:	
 	UAIVisualiser();
 
+	void SetupAttachment(USceneComponent* RootComponent);
+
 protected:
 	virtual void BeginPlay() override;
 

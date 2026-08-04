@@ -53,6 +53,12 @@ void UDiplosimAIController::DefaultAction()
 		ACitizen* citizen = Cast<ACitizen>(AI);
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
+		if (faction->Rebels.Contains(AI)) {
+			AI->MoveToBroch();
+
+			return;
+		}
+
 		if (faction->Police.Arrested.Contains(citizen))
 			Idle(faction, citizen);
 
@@ -584,7 +590,7 @@ void UDiplosimAIController::RecalculateMovement(AActor* Actor)
 	if (FVector::Dist(currentLoc, navLoc) < AI->GetReach())
 		return;
 
-	if (GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.Contains(AI))
+	if (GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.Contains(AI) || AI->Camera->ConquestManager->GetFaction("", AI)->Rebels.Contains(AI))
 		AI->MoveToBroch();
 	else
 		AIMoveTo(Actor, navLoc, MoveRequest.GetGoalInstance());

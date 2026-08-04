@@ -78,8 +78,10 @@ AGrid::AGrid()
 
 		hism->SetEvaluateWorldPositionOffset(bwpo);
 
-		if (hism == HISMLava || hism == HISMSea || hism == HISMRiver)
+		if (hism == HISMLava || hism == HISMSea || hism == HISMRiver) {
 			hism->SetCanEverAffectNavigation(false);
+			hism->SetCastShadow(false);
+		}
 
 		if (hism == HISMGround || hism == HISMRampGround)
 			hism->NumCustomDataFloats = 7;
@@ -100,7 +102,7 @@ AGrid::AGrid()
 	AtmosphereComponent->WindComponent->SetupAttachment(GetRootComponent());
 
 	AIVisualiser = CreateDefaultSubobject<UAIVisualiser>(TEXT("AIVisualiser"));
-	AIVisualiser->AIContainer->SetupAttachment(GetRootComponent());
+	AIVisualiser->SetupAttachment(GetRootComponent());
 
 	CrystalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CrystalMesh"));
 	CrystalMesh->SetCollisionProfileName("NoCollision", false);
@@ -728,7 +730,7 @@ void AGrid::SetupEnvironment(bool bLoad)
 
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(LavaComponent, TEXT("SpawnLocations"), LavaSpawnLocations);
 	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
-	LavaComponent->Activate();
+	LavaComponent->Activate(true);
 
 	if (bLoad) {
 		GenStatus = EGenStatus::Complete;

@@ -428,6 +428,6 @@ void UHappinessComponent::CheckSadness(ACitizen* Citizen, FFactionStruct* Factio
 		for (int32 i = startHour; i < endHour; i++)
 			hours.Add(i);
 
-		Citizen->Camera->EventsManager->CreateEvent(Faction->Name, EEventType::Protest, nullptr, nullptr, "", 0, hours, false, {});
+		Async(EAsyncExecution::TaskGraphMainTick, [this, Citizen, Faction, hours]() { Citizen->Camera->EventsManager->CreateEvent(Faction->Name, EEventType::Protest, nullptr, nullptr, "", 0, hours, false, {}); });
 	}
 }

@@ -240,7 +240,7 @@ TTuple<UObject*, UFunction*> UDiplosimTimerManager::GetFunction(FTimerStruct* Ti
 
 void UDiplosimTimerManager::CallTimerFunction(FTimerStruct* Timer)
 {
-	if (Timer == nullptr || !IsValid(Timer->Actor))
+	if (Timer == nullptr || Timer->Actor == nullptr)
 		return;
 
 	TTuple<UObject*, UFunction*> objFunc = GetFunction(Timer);

@@ -100,11 +100,15 @@ struct FLocationStruct
 	UPROPERTY()
 		float Increment;
 
+	UPROPERTY()
+		bool bClear;
+
 	FLocationStruct()
 	{
 		Location = FVector::Zero();
 		Value = 0.0f;
 		Increment = 0.0f;
+		bClear = false;
 	}
 };
 

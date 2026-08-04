@@ -55,7 +55,6 @@ UAIVisualiser::UAIVisualiser()
 	for (auto& element : hisms) {
 		auto hism = CreateDefaultSubobject<UAIInstancedStaticMeshComponent>(element.Value);
 		*element.Key = hism;
-		hism->SetupAttachment(AIContainer);
 		hism->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		hism->SetCollisionObjectType(ECC_Pawn);
 		hism->SetCollisionResponseToChannels(response);
@@ -73,7 +72,6 @@ UAIVisualiser::UAIVisualiser()
 	}
 
 	HarvestNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("HarvestNiagaraComponent"));
-	HarvestNiagaraComponent->SetupAttachment(AIContainer);
 	HarvestNiagaraComponent->SetAutoActivate(false);
 
 	HarvestVisualCooldownTimer = 0.0f;
@@ -81,13 +79,25 @@ UAIVisualiser::UAIVisualiser()
 	Counter = MaxCounter;
 
 	HatsContainer = CreateDefaultSubobject<USceneComponent>(TEXT("HatsContainer"));
-	HatsContainer->SetupAttachment(AIContainer);
 
 	HarvestVisuals.Add("Wood", FLinearColor(0.270498f, 0.158961f, 0.07036f));
 	HarvestVisuals.Add("Stone", FLinearColor(0.571125f, 0.590619f, 0.64448f));
 	HarvestVisuals.Add("Marble", FLinearColor(0.768151f, 0.73791f, 0.610496f));
 	HarvestVisuals.Add("Iron", FLinearColor(0.291771f, 0.097587f, 0.066626f));
 	HarvestVisuals.Add("Gold", FLinearColor(1.0f, 0.672443f, 0.0f));
+}
+
+void UAIVisualiser::SetupAttachment(USceneComponent* RootComponent)
+{
+	AIContainer->SetupAttachment(RootComponent);
+
+	HISMCitizen->SetupAttachment(AIContainer);
+	HISMClone->SetupAttachment(AIContainer);
+	HISMRebel->SetupAttachment(AIContainer);
+	HISMEnemy->SetupAttachment(AIContainer);
+	HISMSnake->SetupAttachment(AIContainer);
+	HarvestNiagaraComponent->SetupAttachment(AIContainer);
+	HatsContainer->SetupAttachment(AIContainer);
 }
 
 void UAIVisualiser::BeginPlay()
@@ -99,6 +109,7 @@ void UAIVisualiser::BeginPlay()
 
 		FHatsStruct hatsStruct;
 		hatsStruct.ISMHat = NewObject<UAIInstancedStaticMeshComponent>(this, UAIInstancedStaticMeshComponent::StaticClass(), *name);
+		hatsStruct.ISMHat->SetupAttachment(HatsContainer);
 		hatsStruct.ISMHat->SetStaticMesh(element.Key);
 		hatsStruct.ISMHat->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		hatsStruct.ISMHat->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -217,97 +228,102 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 		if (cs.IsEmpty() && rebels.IsEmpty())
 			return; 
 
-		TArray<TArray<ACitizen*>> citizens;
-		citizens.Add(cs);
-		citizens.Add(rebels);
+		TArray<ACitizen*> citizens;
+		citizens.Append(cs);
+		citizens.Append(rebels);
 
 		MaxCounter = FMath::CeilToInt32((cs.Num() + rebels.Num()) / 500.0f);
 		Counter = 0;
 
-		for (int32 k = 0; k < MaxCounter; k++) {
-			Async(EAsyncExecution::TaskGraph, [this, Camera, citizens, k]() {
-				for (int32 i = 0; i < citizens.Num(); i++) {
+		for (int32 i = 0; i < MaxCounter; i++) {
+			Async(EAsyncExecution::TaskGraph, [this, Camera, citizens, i, cs]() {
+				if (Camera->SaveGameComponent->IsLoading()) {
+					Counter = MaxCounter;
+
+					return;
+				}
+
+				TMap<FString, TMap<int32, FTransform>> instanceTransformsToUpdate;
+				instanceTransformsToUpdate.Add("Citizens");
+				instanceTransformsToUpdate.Add("Rebels");
+
+				TMap<FString, TArray<int32>> instances;
+				instances.Add("Citizens");
+				instances.Add("Rebels");
+
+				TArray<FHatsToUpdateStruct> hatsToUpdate;
+
+				for (int32 j = (citizens.Num() * i) / MaxCounter; j < (citizens.Num() * (i + 1)) / MaxCounter; j++) {
 					if (Camera->SaveGameComponent->IsLoading()) {
 						Counter = MaxCounter;
 
 						return;
 					}
 
-					TMap<int32, FTransform> instanceTransformsToUpdate;
-					TArray<int32> instances;
-					TArray<FHatsToUpdateStruct> hatsToUpdate;
+					ACitizen* citizen = citizens[j];
+					FString id = cs.Contains(citizen) ? "Citizens" : "Rebels";
+					int32 index = j;
 
-					for (int32 j = (citizens[i].Num() * k) / MaxCounter; j < (citizens[i].Num() * (k + 1)) / MaxCounter; j++) {
-						if (Camera->SaveGameComponent->IsLoading()) {
-							Counter = MaxCounter;
+					if (citizen == nullptr)
+						continue;
 
-							return;
-						}
-
-						ACitizen* citizen = citizens[i][j];
-
-						if (citizen == nullptr || !IsValid(citizen))
-							continue;
-
-						UAIInstancedStaticMeshComponent* ism = nullptr;
-						if (i == 0)
-							ism = HISMCitizen;
-						else
-							ism = HISMRebel;
-
-						if (ism->GetInstanceCount() <= j)
-							continue;
-
-						float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime, 1.0f);
-						citizen->MovementComponent->ComputeMovement(deltaTime, instances);
-
-						if (i == 0) {
-							float opacity = 1.0f;
-							if (IsValid(citizen->BuildingComponent->BuildingAt) && !Camera->PoliceManager->IsInJail(citizen)) {
-								if (citizen->BuildingComponent->BuildingAt->bHideCitizen)
-									opacity = 0.0f;
-								else if (!citizen->BuildingComponent->BuildingAt->SocketList.IsEmpty()) {
-									FSocketStruct socketStruct;
-									socketStruct.Citizen = citizen;
-
-									int32 index = citizen->BuildingComponent->BuildingAt->SocketList.Find(socketStruct);
-
-									if (index != INDEX_NONE)
-										citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->SocketList[index].SocketLocation);
-								}
-							}
-
-							UpdateInstanceCustomData(ism, j, 14, opacity, instances);
-							UpdateInstanceCustomData(ism, j, 18, citizen->bCommander, instances);
-							UpdateInstanceCustomData(ism, j, 1, citizen->bSelected * 2.0f, instances);
-
-							UpdateHatTransform(citizen, hatsToUpdate);
-
-							SetEyesVisuals(ism, j, citizen, instances);
-						}
-
-						SetInstanceTransform(ism, j, citizen->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
-
-						UpdateCitizenVisuals(ism, Camera, citizen, j, instances);
-						UpdateGradualVisuals(ism, citizen, j, deltaTime, instances);
-
-						SetAIColour(ism, j, citizen->Colour, instances);
-					}
-
-					if (i == 0) {
-						HISMCitizen->BatchUpdateTransforms(instanceTransformsToUpdate);
-						HISMCitizen->BatchUpdateData(instances);
-
-						for (FHatsToUpdateStruct htu : hatsToUpdate) {
-							htu.ISM->BatchUpdateTransforms(htu.InstanceTransformsToUpdate);
-							htu.ISM->BatchUpdateData(htu.InstanceDataToUpdate);
-						}
-					}
+					UAIInstancedStaticMeshComponent* ism = nullptr;
+					if (id == "Citizens")
+						ism = HISMCitizen;
 					else {
-						HISMRebel->BatchUpdateTransforms(instanceTransformsToUpdate);
-						HISMRebel->BatchUpdateData(instances);
+						ism = HISMRebel;
+						index -= cs.Num();
 					}
+
+					if (ism->GetInstanceCount() <= index)
+						continue;
+
+					float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime, 1.0f);
+					citizen->MovementComponent->ComputeMovement(deltaTime, *instances.Find(id));
+
+					if (id == "Citizens") {
+						float opacity = 1.0f;
+						if (IsValid(citizen->BuildingComponent->BuildingAt) && !Camera->PoliceManager->IsInJail(citizen)) {
+							if (citizen->BuildingComponent->BuildingAt->bHideCitizen)
+								opacity = 0.0f;
+							else if (!citizen->BuildingComponent->BuildingAt->SocketList.IsEmpty()) {
+								FSocketStruct socketStruct;
+								socketStruct.Citizen = citizen;
+
+								int32 socketIndex = citizen->BuildingComponent->BuildingAt->SocketList.Find(socketStruct);
+
+								if (socketIndex != INDEX_NONE)
+									citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->SocketList[socketIndex].SocketLocation);
+							}
+						}
+
+						UpdateInstanceCustomData(ism, index, 14, opacity, *instances.Find(id));
+						UpdateInstanceCustomData(ism, index, 18, citizen->bCommander, *instances.Find(id));
+						UpdateInstanceCustomData(ism, index, 1, citizen->bSelected * 2.0f, *instances.Find(id));
+
+						UpdateHatTransform(citizen, hatsToUpdate);
+
+						SetEyesVisuals(ism, index, citizen, *instances.Find(id));
+					}
+
+					SetInstanceTransform(ism, index, citizen->MovementComponent->GetMovementTransform(), *instanceTransformsToUpdate.Find(id));
+
+					UpdateCitizenVisuals(ism, Camera, citizen, index, *instances.Find(id));
+					UpdateGradualVisuals(ism, citizen, index, deltaTime, *instances.Find(id));
+
+					SetAIColour(ism, index, citizen->Colour, *instances.Find(id));
 				}
+
+				HISMCitizen->BatchUpdateTransforms(*instanceTransformsToUpdate.Find("Citizens"));
+				HISMCitizen->BatchUpdateData(*instances.Find("Citizens"));
+
+				for (FHatsToUpdateStruct htu : hatsToUpdate) {
+					htu.ISM->BatchUpdateTransforms(htu.InstanceTransformsToUpdate);
+					htu.ISM->BatchUpdateData(htu.InstanceDataToUpdate);
+				}
+
+				HISMRebel->BatchUpdateTransforms(*instanceTransformsToUpdate.Find("Rebels"));
+				HISMRebel->BatchUpdateData(*instances.Find("Rebels"));
 
 				Async(EAsyncExecution::TaskGraphMainTick, [this]() { Counter++; });
 			});

@@ -226,7 +226,7 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 	if (aggressorValue < Citizen2Aggressiveness)
 		aggressor = Citizen2;
 
-	float overallHappiness = FMath::Max((Citizen1->HappinessComponent->GetHappiness() + Citizen2->HappinessComponent->GetHappiness()) * 2.0f, 1.0f) / 200.0f;
+	float overallHappiness = (Citizen1->HappinessComponent->GetHappiness() + Citizen2->HappinessComponent->GetHappiness()) / 100.0f;
 
 	FOverlapsStruct requestedOverlaps;
 	requestedOverlaps.GetCitizenInteractions(false, false);
@@ -236,7 +236,7 @@ void UPoliceManager::CalculateIfFight(FFactionStruct* Faction, ACitizen* Citizen
 	int32 chance = Camera->Stream.RandRange(1, 100);
 	
 	bool bForceFight = Cast<UDebugManager>(Camera->PController->CheatManager)->bFight;
-	int32 fightChance = bForceFight ? chance + 1 : FMath::Max((25 * Citizen1Aggressiveness * Citizen2Aggressiveness - (closeToPoliceStation ? 50 : 0) - (10 * actors.Num())) / overallHappiness, overallHappiness <= (66.0f / 200.0f) ? 1 : 0);
+	int32 fightChance = bForceFight ? chance + 1 : FMath::Max((25 * Citizen1Aggressiveness * Citizen2Aggressiveness - (closeToPoliceStation ? 50 : 0) - (10 * actors.Num())) / overallHappiness, (overallHappiness <= 0.5f ? 1 : 0));
 
 	if (fightChance > chance)
 		Camera->PoliceManager->CreatePoliceReport(Faction, EReportType::Fighting, aggressor, fightChance < 66, aggressor == Citizen1 ? Citizen2 : Citizen1);
