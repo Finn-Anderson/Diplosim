@@ -255,13 +255,11 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 	precipitation->SetVariableVec3(TEXT("CloudLocation"), cloud->GetRelativeLocation());
 	precipitation->SetVariableObject(TEXT("Callback"), Grid);
 
-	float spawnRate = 0.0f;
-
 	float gravity = -980.0f;
 	float lifetime = cloud->GetRelativeLocation().Z / FMath::Abs(gravity);
 
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(precipitation, TEXT("SpawnLocations"), locations);
-	spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y * Grid->Camera->Stream.FRandRange(0.5f, 1.5f);
+	float spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y * Grid->Camera->Stream.FRandRange(0.5f, 2.5f);
 
 	if (bSnow) {
 		precipitation->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
@@ -332,6 +330,9 @@ void UCloudComponent::UpdateSpawnedClouds()
 
 void UCloudComponent::RainCollisionHandler(FVector Location, float Value, float Increment)
 {
+	if (bSnow)
+		return;
+
 	FScopeLock lock(&RainDropLock);
 
 	FLocationStruct locationStruct;

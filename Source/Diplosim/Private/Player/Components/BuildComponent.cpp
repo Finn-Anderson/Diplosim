@@ -131,32 +131,22 @@ void UBuildComponent::DisplayValidLocation()
 		if (building->IsHidden())
 			continue;
 
+		UMaterialInterface* material = BlueprintMaterial;
+		bool bStatus = true;
+
 		if ((StartLocation == FVector::Zero() && !IsValidLocation(building)) || !CheckBuildCosts()) {
-			building->BuildingMesh->SetOverlayMaterial(BlockedMaterial);
-
-			if (building->IsA<AResearch>()) {
-				AResearch* station = Cast<AResearch>(building);
-
-				station->TurretMesh->SetOverlayMaterial(BlockedMaterial);
-				station->TelescopeMesh->SetOverlayMaterial(BlockedMaterial);
-			}
-
-			DisplayInfluencedBuildings(building, false);
-			building->ToggleDecalComponentVisibility(false);
+			material = BlockedMaterial;
+			bStatus = false;
 		}
-		else {
-			building->BuildingMesh->SetOverlayMaterial(BlueprintMaterial);
 
-			if (building->IsA<AResearch>()) {
-				AResearch* station = Cast<AResearch>(building);
+		TArray<UStaticMeshComponent*> components;
+		building->GetComponents<UStaticMeshComponent>(components);
 
-				station->TurretMesh->SetOverlayMaterial(BlueprintMaterial);
-				station->TelescopeMesh->SetOverlayMaterial(BlueprintMaterial);
-			}
+		for (UStaticMeshComponent* component : components)
+			component->SetOverlayMaterial(material);
 
-			DisplayInfluencedBuildings(building, true);
-			building->ToggleDecalComponentVisibility(true);
-		}
+		DisplayInfluencedBuildings(building, bStatus);
+		building->ToggleDecalComponentVisibility(bStatus);
 	}
 }
 
@@ -643,6 +633,12 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 	ABuilding* building = GetWorld()->SpawnActor<ABuilding>(BuildingClass, location, rotation, params);
 	building->FactionName = FactionName;
 
+	TArray<UStaticMeshComponent*> components;
+	building->GetComponents<UStaticMeshComponent>(components);
+
+	for (UStaticMeshComponent* component : components)
+		component->SetEvaluateWorldPositionOffset(false);
+
 	if (building->IsA<ARoad>())
 		Cast<ARoad>(building)->HISMRoad->SetRelativeRotation(FRotator(0.0f, -rotation.Yaw, 0.0f));
 
@@ -934,6 +930,12 @@ void UBuildComponent::Place(bool bQuick)
 
 		for (UDecalComponent* decalComp : decalComponents)
 			decalComp->SetVisibility(false);
+
+		TArray<UStaticMeshComponent*> components;
+		building->GetComponents<UStaticMeshComponent>(components);
+
+		for (UStaticMeshComponent* component : components)
+			component->SetEvaluateWorldPositionOffset(true);
 
 		building->StoreSocketLocations();
 

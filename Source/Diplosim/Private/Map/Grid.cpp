@@ -1076,29 +1076,45 @@ void AGrid::AddCalculatedTile(UInstancedStaticMeshComponent* HISM, FTransform Tr
 
 void AGrid::FixEdgeZClipping(FTileStruct* Tile)
 {
-	FTransform transform = GetTransform(Tile);
-	TArray<float> offsets = { 0.0f, 0.01f, 0.02f, 0.03f };
+	if (!Tile->bEdge)
+		return;
+
+	FVector location = HISMGround->PerInstanceSMData[Tile->Instance].Transform.GetOrigin();
+
+	TArray<double> offsetsX = { 0.0f, 0.01f, -0.01f };
+	TArray<double> offsetsY = { 0.0f, 0.01f, -0.01f };
 
 	for (auto& element : Tile->AdjacentTiles) {
-		if (!Tile->bEdge || !element.Value->bEdge)
+		if (!element.Value->bEdge || Tile->Level != element.Value->Level || Tile->Fertility == element.Value->Fertility)
 			continue;
 
-		FTransform t = GetTransform(element.Value);
+		FVector loc = HISMGround->PerInstanceSMData[element.Value->Instance].Transform.GetOrigin();
+		double x = FMath::RoundHalfFromZero((loc.X - location.X) * 100.0f) / 100.0f;
+		double y = FMath::RoundHalfFromZero((loc.Y - location.Y) * 100.0f) / 100.0f;
 
-		float whole, fractional;
-		fractional = FMath::Modf(t.GetLocation().X, &whole);
-		fractional = FMath::RoundHalfFromZero(fractional * 100.0f) / 100.0f;
-
-		int32 index = offsets.Find(fractional);
-
-		if (index == INDEX_NONE)
-			continue;
-
-		offsets.RemoveAt(index);
+		if (FMath::Abs(x) < FMath::Abs(y)) {
+			if (x == 0.0f)
+				offsetsX.RemoveSingle(0.0f);
+			else if (x < 0.0f)
+				offsetsX.RemoveSingle(-1.02f);
+			else
+				offsetsX.RemoveSingle(1.02f);
+		}
+		else {
+			if (y == 0.0f)
+				offsetsY.RemoveSingle(0.0f);
+			else if (y < 0.0f)
+				offsetsY.RemoveSingle(-1.02f);
+			else
+				offsetsY.RemoveSingle(1.02f);
+		}
 	}
 
-	FVector location = transform.GetLocation() + FVector(offsets[0], offsets[0], -100.0f);
-	transform.SetLocation(location);
+	FVector newLocation = location + FVector(offsetsX[0], offsetsY[0], 0.0f);
+
+	FTransform transform;
+	transform.SetLocation(newLocation);
+	transform.SetRotation(Tile->Rotation);
 
 	FInstancedStaticMeshInstanceData& instanceData = HISMGround->PerInstanceSMData[Tile->Instance];
 	instanceData.Transform = transform.ToMatrixWithScale();

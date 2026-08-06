@@ -44,6 +44,9 @@ protected:
 		float MoonBrightness;
 
 	UPROPERTY(Config)
+		float ShadowDistance;
+
+	UPROPERTY(Config)
 		FString AAName;
 
 	UPROPERTY(Config)
@@ -190,6 +193,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Brightness")
 		float GetMoonBrightness() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Shadows")
+		void SetShadowDistance(float Value);
+
+	UFUNCTION(BlueprintPure, Category = "Shadows")
+		float GetShadowDistance() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AA")
 		void SetAA(FString Value);

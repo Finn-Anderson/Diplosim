@@ -128,6 +128,9 @@ void UAtmosphereComponent::BeginPlay()
 	Moon->SetIntensity(settings->GetMoonBrightness());
 	SkyLight->SetIntensity(settings->GetSkyLightBrightness());
 
+	Sun->SetDynamicShadowDistanceMovableLight(settings->GetShadowDistance());
+	Moon->SetDynamicShadowDistanceMovableLight(settings->GetShadowDistance());
+
 	float lightShaftIntensity = 0.0f;
 
 	if (settings->GetLightShafts())
@@ -392,12 +395,11 @@ void UAtmosphereComponent::SetSeasonAffect(FString Period, float Increment)
 	else
 		Clouds->bSnow = false;
 
-	Async(EAsyncExecution::TaskGraph, [this, Period, Increment]() { AlterSeasonAffectGradually(Period, Increment); });
 	if (Increment != 1.0f) {
 		TArray<FTimerParameterStruct> params;
 		Grid->Camera->TimerManager->SetParameter(Period, params);
 		Grid->Camera->TimerManager->SetParameter(Increment, params);
-		Grid->Camera->TimerManager->CreateTimer("AlterSeasonAffectGradually", Grid, 0.02f, "AlterSeasonAffectGradually", {}, true);
+		Grid->Camera->TimerManager->CreateTimer("AlterSeasonAffectGradually", Grid, 0.02f, "AlterSeasonAffectGradually", params, true);
 	}
 
 	Clouds->UpdateSpawnedClouds();
@@ -405,6 +407,8 @@ void UAtmosphereComponent::SetSeasonAffect(FString Period, float Increment)
 
 void UAtmosphereComponent::AlterSeasonAffectGradually(FString Period, float Increment)
 {
+	FScopeLock lock(&SeasonLock);
+
 	TArray<float> Values = { 0.0f, 0.0f, 0.0f };
 	if (!Grid->HISMGround->GetCustomPrimitiveData().Data.IsEmpty()) {
 		Values[0] = Grid->HISMGround->GetCustomPrimitiveData().Data[0];

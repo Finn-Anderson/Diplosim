@@ -61,6 +61,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bFilmGrain = true;
 	Bloom = 0.6f;
 	WPODistance = 5000.0f;
+	ShadowDistance = 40000.0f;
 
 	bIsMaximised = false;
 
@@ -143,6 +144,8 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 		SetSunBrightness(FCString::Atof(Value));
 	else if (FString("MoonBrightness").Equals(Key))
 		SetMoonBrightness(FCString::Atof(Value));
+	else if (FString("ShadowDistance").Equals(Key))
+		SetShadowDistance(FCString::Atof(Value));
 	else if (FString("AAName").Equals(Key))
 		SetAA(value);
 	else if (FString("GIName").Equals(Key))
@@ -230,6 +233,7 @@ void UDiplosimUserSettings::SaveIniSettings()
 	GConfig->SetFloat(*Section, TEXT("SkyLightBrightness"), GetSkyLightBrightness(), Filename);
 	GConfig->SetFloat(*Section, TEXT("SunBrightness"), GetSunBrightness(), Filename);
 	GConfig->SetFloat(*Section, TEXT("MoonBrightness"), GetMoonBrightness(), Filename);
+	GConfig->SetFloat(*Section, TEXT("ShadowDistance"), GetShadowDistance(), Filename);
 	GConfig->SetString(*Section, TEXT("AAName"), *GetAA(), Filename);
 	GConfig->SetString(*Section, TEXT("GIName"), *GetGI(), Filename);
 	GConfig->SetString(*Section, TEXT("Resolution"), *GetResolution(), Filename);
@@ -428,6 +432,22 @@ void UDiplosimUserSettings::SetMoonBrightness(float Value)
 float UDiplosimUserSettings::GetMoonBrightness() const
 {
 	return MoonBrightness;
+}
+
+void UDiplosimUserSettings::SetShadowDistance(float Value)
+{
+	ShadowDistance = Value;
+
+	if (Atmosphere == nullptr)
+		return;
+	
+	Atmosphere->Sun->SetDynamicShadowDistanceMovableLight(Value);
+	Atmosphere->Moon->SetDynamicShadowDistanceMovableLight(Value);
+}
+
+float UDiplosimUserSettings::GetShadowDistance() const
+{
+	return ShadowDistance;
 }
 
 void UDiplosimUserSettings::SetAA(FString Value)

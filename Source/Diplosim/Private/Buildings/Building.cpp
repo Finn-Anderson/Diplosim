@@ -453,7 +453,7 @@ TArray<FItemStruct> ABuilding::GetRebuildCost()
 void ABuilding::Rebuild(FString NewFactionName)
 {
 	if (!Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat) {
-		for (FItemStruct item : GetRebuildCost()) {
+		for (const FItemStruct& item : GetRebuildCost()) {
 			int32 amount = Camera->ResourceManager->GetResourceAmount(NewFactionName, item.Resource);
 
 			if (amount < item.Amount) {
@@ -483,7 +483,11 @@ void ABuilding::Rebuild(FString NewFactionName)
 
 void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 {
-	BuildingMesh->SetOverlayMaterial(nullptr);
+	TArray<UStaticMeshComponent*> components;
+	GetComponents<UStaticMeshComponent>(components);
+
+	for (UStaticMeshComponent* component : components)
+		component->SetOverlayMaterial(nullptr);
 
 	BuildingMesh->SetCanEverAffectNavigation(true);
 
@@ -520,10 +524,10 @@ void ABuilding::Build(bool bRebuild, bool bUpgrade, int32 Grade)
 		OnBuilt();
 
 		if (!Cast<UDebugManager>(Camera->PController->CheatManager)->bInstantBuildCheat)
-			for (FItemStruct item : TargetList)
+			for (const FItemStruct& item : TargetList)
 				rm->TakeUniversalResource(faction, item.Resource, item.Amount, 0);
 	} else {
-		for (FItemStruct item : TargetList)
+		for (const FItemStruct& item : TargetList)
 			rm->AddCommittedResource(faction, item.Resource, item.Amount);
 
 		cm->AddBuilding(this, EBuildStatus::Construction);

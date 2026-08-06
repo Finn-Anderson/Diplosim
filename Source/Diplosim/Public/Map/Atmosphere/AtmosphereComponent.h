@@ -145,4 +145,7 @@ public:
 		void AlterSeasonAffectGradually(FString Period, float Increment);
 
 	void SetSeasonValues(TArray<float> Values);
+
+private:
+	FCriticalSection SeasonLock;
 };
