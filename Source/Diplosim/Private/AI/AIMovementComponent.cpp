@@ -115,7 +115,7 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 {
 	CurrentAnim.Alpha = FMath::Clamp(CurrentAnim.Alpha + (DeltaTime * CurrentAnim.Speed), 0.0f, 1.0f);
 
-	if (IsValid(ActorToLookAt) && Points.IsEmpty()) {
+	if (ActorToLookAt != nullptr && Points.IsEmpty()) {
 		FRotator rotation = (AI->Camera->GetTargetActorLocation(ActorToLookAt) - Transform.GetLocation()).Rotation();
 		rotation.Pitch = Transform.GetRotation().Rotator().Pitch;
 		rotation.Roll = Transform.GetRotation().Rotator().Roll;

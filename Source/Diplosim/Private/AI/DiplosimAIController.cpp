@@ -54,7 +54,8 @@ void UDiplosimAIController::DefaultAction()
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
 		if (faction->Rebels.Contains(AI)) {
-			AI->MoveToBroch();
+			if (citizen->AttackComponent->OverlappingEnemies.IsEmpty())
+				AI->MoveToBroch();
 
 			return;
 		}

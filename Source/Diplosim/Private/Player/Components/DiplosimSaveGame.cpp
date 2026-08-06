@@ -170,7 +170,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 		}
 	}
 
-	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
+	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
 
 	UCloudComponent* clouds = grid->AtmosphereComponent->Clouds;
 
@@ -242,7 +242,7 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 		worldSaveData.CloudsData.WetnessData.Add(wetnessData);
 	}
 
-	for (FCloudStruct cloud : grid->AtmosphereComponent->Clouds->Clouds) {
+	for (const FCloudStruct& cloud : grid->AtmosphereComponent->Clouds->Clouds) {
 		FCloudData data;
 		data.Transform = cloud.HISMCloud->GetRelativeTransform();
 		data.Distance = cloud.Distance;
@@ -306,7 +306,7 @@ void UDiplosimSaveGame::SaveCamera(FActorSaveData& ActorData, AActor* Actor, int
 
 	Saves[Index].CameraData.ResourceList = camera->ResourceManager->ResourceList;
 
-	for (FConstructionStruct constructionStruct : camera->ConstructionManager->Construction) {
+	for (const FConstructionStruct& constructionStruct : camera->ConstructionManager->Construction) {
 		FConstructionData data;
 		data.BuildingName = constructionStruct.Building->GetName();
 		data.BuildPercentage = constructionStruct.BuildPercentage;
@@ -731,7 +731,7 @@ void UDiplosimSaveGame::SaveTimers(ACamera* Camera, FActorSaveData& ActorData, A
 			continue;
 
 		for (FTimerParameterStruct& param : timer.Parameters) {
-			if (!IsValid(param.Object))
+			if (param.Object == nullptr)
 				continue;
 
 			param.ObjectName = param.Object->GetName();
@@ -872,13 +872,13 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 			Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Personality, { TTuple<FString, int32>(personality.Trait, personality.Citizens.Num()) });
 	}
 
-	if (IsValid(faction->Parliament)) {
+	if (faction->Parliament != nullptr) {
 		Camera->DisplayLaws();
 		Camera->RefreshRepresentatives();
 		Camera->DisplayNewBill();
 	}
 
-	for (const FWetnessData wetData : wetnessData)
+	for (const FWetnessData& wetData : wetnessData)
 		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(wetData.Location, wetData.Value, wetData.Increment);
 }
 
@@ -900,7 +900,7 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	grid->InitialiseStorage();
 	auto bound = grid->GetMapBounds();
 
-	for (FTileData t : Tiles) {
+	for (const FTileData& t : Tiles) {
 		FTileStruct* tile = &grid->Storage[t.X + (bound / 2)][t.Y + (bound / 2)];
 		tile->Level = t.Level;
 		tile->Fertility = t.Fertility;
@@ -914,7 +914,7 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 		tile->bUnique = t.bUnique;
 	}
 
-	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
+	TArray<UHierarchicalInstancedStaticMeshComponent*> hisms = { grid->HISMFlatGround, grid->HISMGround, grid->HISMLava, grid->HISMRampGround, grid->HISMRiver, grid->HISMSea };
 
 	for (UHierarchicalInstancedStaticMeshComponent* hism : hisms) {
 		FHISMData data;

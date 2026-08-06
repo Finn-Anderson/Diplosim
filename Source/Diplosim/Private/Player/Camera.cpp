@@ -762,14 +762,19 @@ void ACamera::Detach()
 
 FVector ACamera::GetTargetActorLocation(AActor* Actor, bool bGetEnterLocation)
 {
-	FVector location = Actor->GetActorLocation();
+	FVector location = FVector::Zero();
+
+	if (Actor == nullptr)
+		return location;
 
 	if (Actor->IsA<AAI>()) {
-		location = Cast<AAI>(Actor)->MovementComponent->GetMovementTransform().GetLocation();
-
 		if (Actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(Actor)->BuildingComponent->BuildingAt) && bGetEnterLocation)
 			location = Cast<ACitizen>(Actor)->BuildingComponent->EnterLocation;
+		else
+			location = Cast<AAI>(Actor)->MovementComponent->GetMovementTransform().GetLocation();
 	}
+	else
+		location = Actor->GetActorLocation();
 
 	return location;
 }

@@ -55,6 +55,7 @@ AGrid::AGrid()
 	TMap<UHierarchicalInstancedStaticMeshComponent**, FName> hisms;
 	hisms.Add(&HISMLava, TEXT("HISMLava"));
 	hisms.Add(&HISMSea, TEXT("HISMSea"));
+	hisms.Add(&HISMFlatGround, TEXT("HISMFlatGround"));
 	hisms.Add(&HISMGround, TEXT("HISMGround"));
 	hisms.Add(&HISMRampGround, TEXT("HISMRampGround"));
 	hisms.Add(&HISMRiver, TEXT("HISMRiver"));
@@ -78,12 +79,13 @@ AGrid::AGrid()
 
 		hism->SetEvaluateWorldPositionOffset(bwpo);
 
-		if (hism == HISMLava || hism == HISMSea || hism == HISMRiver) {
+		if (hism == HISMLava || hism == HISMSea || hism == HISMRiver)
 			hism->SetCanEverAffectNavigation(false);
-			hism->SetCastShadow(false);
-		}
 
-		if (hism == HISMGround || hism == HISMRampGround)
+		if (hism == HISMLava || hism == HISMFlatGround || hism == HISMSea || hism == HISMRiver)
+			hism->SetCastShadow(false);
+
+		if (hism == HISMFlatGround || hism == HISMGround || hism == HISMRampGround)
 			hism->NumCustomDataFloats = 7;
 		else if (hism == HISMRiver)
 			hism->NumCustomDataFloats = 3;
@@ -1051,10 +1053,12 @@ void AGrid::CalculateTile(FTileStruct* Tile)
 						if (element.Value->Level < Tile->Level || (element.Value->Level == MaxLevel && Tile->Level == (MaxLevel - 1)))
 							bFlat = false;
 
-				AddCalculatedTile(HISMGround, transform);
-
-				if (!bFlat)
+				if (!bFlat) {
+					AddCalculatedTile(HISMGround, transform);
 					Tile->bEdge = true;
+				}
+				else
+					AddCalculatedTile(HISMFlatGround, transform);
 			}
 		}
 	}
@@ -1076,9 +1080,6 @@ void AGrid::AddCalculatedTile(UInstancedStaticMeshComponent* HISM, FTransform Tr
 
 void AGrid::FixEdgeZClipping(FTileStruct* Tile)
 {
-	if (!Tile->bEdge)
-		return;
-
 	FVector location = HISMGround->PerInstanceSMData[Tile->Instance].Transform.GetOrigin();
 
 	TArray<double> offsetsX = { 0.0f, 0.01f, -0.01f };
@@ -1175,7 +1176,7 @@ void AGrid::GenerateTiles()
 			if (tile == nullptr || tile->Fertility < 0)
 				continue;
 
-			if (element.Key == HISMGround || element.Key == HISMRampGround || element.Key->GetOwner()->IsA<AVegetation>()) {
+			if (element.Key == HISMFlatGround || element.Key == HISMGround || element.Key == HISMRampGround || element.Key->GetOwner()->IsA<AVegetation>()) {
 				if (!element.Key->GetOwner()->IsA<AVegetation>() || bTree)
 					colour = FLinearColor(GroundColours[tile->Fertility]);
 
@@ -1195,12 +1196,6 @@ void AGrid::GenerateTiles()
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 2] = colour.R;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 3] = colour.G;
 				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 4] = colour.B;
-
-				int32 opacity = 1.0f;
-				if (element.Key == HISMGround && !tile->bEdge)
-					opacity = 0.0f;
-
-				element.Key->PerInstanceSMCustomData[inst * element.Key->NumCustomDataFloats + 6] = opacity;
 			}
 
 			tile->Instance = inst; 
@@ -1432,6 +1427,7 @@ void AGrid::Clear()
 
 	HISMLava->ClearInstances();
 	HISMSea->ClearInstances();
+	HISMFlatGround->ClearInstances();
 	HISMGround->ClearInstances();
 	HISMRampGround->ClearInstances();
 	HISMRiver->ClearInstances();

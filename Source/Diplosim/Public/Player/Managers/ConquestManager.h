@@ -95,5 +95,9 @@ private:
 	FCriticalSection ConquestLock;
 
 	FCriticalSection AIFightLock;
+	FCriticalSection CounterLock;
+	int32 MaxCounter;
+	int32 Counter;
+
 	FCriticalSection BuildingFightLock;
 };

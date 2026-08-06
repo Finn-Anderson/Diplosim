@@ -40,7 +40,7 @@ UConquestManager::UConquestManager()
 	AINum = 2;
 	MaxAINum = 2;
 
-	BuildingFightCheckAftermathCount = 0;
+	BuildingFightCheckAftermathCount = MaxCounter = Counter = 0;
 }
 
 FFactionStruct UConquestManager::InitialiseFaction(FString Name)
@@ -266,6 +266,9 @@ void UConquestManager::ComputeAI()
 
 void UConquestManager::CalculateAIFighting()
 {
+	if (Counter != MaxCounter)
+		return;
+
 	Async(EAsyncExecution::TaskGraph, [this]() {
 		FScopeTryLock lock(&AIFightLock);
 		if (!lock.IsLocked())
@@ -277,73 +280,76 @@ void UConquestManager::CalculateAIFighting()
 			return;
 		}
 
-		TMap<FString, TArray<AAI*>> ais;
+		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+		TArray<AAI*> ais;
 
 		for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-			if (!ais.Contains("Citizens"))
-				ais.Add("Citizens");
-
-			TArray<AAI*>* ai = ais.Find("Citizens");
-			ai->Append(faction.Citizens);
-
-			if (!ais.Contains("Clones"))
-				ais.Add("Clones");
-
-			ai = ais.Find("Clones");
-			ai->Append(faction.Clones);
-
-			if (!ais.Contains("Rebels"))
-				ais.Add("Rebels");
-
-			ai = ais.Find("Rebels");
-			ai->Append(faction.Rebels);
+			ais.Append(faction.Citizens);
+			ais.Append(faction.Clones);
+			ais.Append(faction.Rebels);
 		}
 
-		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+		ais.Append(gamemode->Enemies);
+		ais.Append(gamemode->Snakes);
 
-		ais.Add("Enemies", gamemode->Enemies);
-		ais.Add("Snakes", gamemode->Snakes);
+		MaxCounter = FMath::CeilToInt32(ais.Num() / 500.0f);
+		Counter = 0;
 
-		for (auto& element : ais) {
-			if (Camera->SaveGameComponent->IsLoading())
-				return;
+		for (int32 i = 0; i < MaxCounter; i++) {
+			Async(EAsyncExecution::TaskGraph, [this, i, gamemode, ais]() {
+				if (Camera->SaveGameComponent->IsLoading()) {
+					Counter = MaxCounter;
 
-			for (AAI* ai : element.Value) {
-				if (Camera->SaveGameComponent->IsLoading())
 					return;
-
-				if (ai == nullptr || ai->HealthComponent->GetHealth() <= 0)
-					continue;
-
-				FOverlapsStruct requestedOverlaps;
-
-				if (element.Key == "Citizens" || element.Key == "Clones")
-					requestedOverlaps.GetCitizenEnemies();
-				else if (element.Key == "Rebels")
-					requestedOverlaps.GetRebelsEnemies();
-				else
-					requestedOverlaps.GetEnemyEnemies();
-
-				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range, requestedOverlaps, EFactionType::Both);
-
-				for (AActor* actor : actors) {
-					if (Camera->SaveGameComponent->IsLoading())
-						return;
-
-					if (!IsValid(actor) || ai->AttackComponent->OverlappingEnemies.Contains(actor) || actor->IsA<ATrap>() || actor->IsA<ARoad>() || actor->IsA<AFestival>() || actor->IsA(Camera->BuildComponent->RampClass))
-						continue;
-
-					UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
-
-					if (!healthComp || healthComp->GetHealth() <= 0 || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))) || (actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(actor)->BuildingComponent->BuildingAt)))
-						continue;
-
-					ai->AttackComponent->OverlappingEnemies.Add(actor);
 				}
 
-				if (!ai->AttackComponent->OverlappingEnemies.IsEmpty())
-					ai->AttackComponent->PickTarget();
-			}
+				for (int32 j = (ais.Num() * i) / MaxCounter; j < (ais.Num() * (i + 1)) / MaxCounter; j++) {
+					if (Camera->SaveGameComponent->IsLoading()) {
+						Counter = MaxCounter;
+
+						return;
+					}
+
+					AAI* ai = ais[j];
+
+					if (ai == nullptr || ai->HealthComponent->GetHealth() <= 0)
+						continue;
+
+					FOverlapsStruct requestedOverlaps;
+					if (gamemode->Enemies.Contains(ai) || gamemode->Snakes.Contains(ai))
+						requestedOverlaps.GetEnemyEnemies();
+					else if (GetFaction("", ai)->Rebels.Contains(ai))
+						requestedOverlaps.GetRebelsEnemies();
+					else
+						requestedOverlaps.GetCitizenEnemies();
+
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range, requestedOverlaps, EFactionType::Both);
+
+					for (AActor* actor : actors) {
+						if (Camera->SaveGameComponent->IsLoading()) {
+							Counter = MaxCounter;
+
+							return;
+						}
+
+						if (!IsValid(actor) || ai->AttackComponent->OverlappingEnemies.Contains(actor) || actor->IsA<ATrap>() || actor->IsA<ARoad>() || actor->IsA<AFestival>() || actor->IsA(Camera->BuildComponent->RampClass))
+							continue;
+
+						UHealthComponent* healthComp = actor->GetComponentByClass<UHealthComponent>();
+
+						if (!healthComp || healthComp->GetHealth() <= 0 || (!*ai->AttackComponent->ProjectileClass && !ai->AIController->CanMoveTo(Camera->GetTargetActorLocation(actor))) || (actor->IsA<ACitizen>() && IsValid(Cast<ACitizen>(actor)->BuildingComponent->BuildingAt)))
+							continue;
+
+						ai->AttackComponent->OverlappingEnemies.Add(actor);
+					}
+
+					if (!ai->AttackComponent->OverlappingEnemies.IsEmpty())
+						Async(EAsyncExecution::TaskGraph, [ai]() { ai->AttackComponent->PickTarget(); });
+				}
+
+				FScopeLock lock(&CounterLock);
+				Counter++;
+			});
 		}
 	});
 }

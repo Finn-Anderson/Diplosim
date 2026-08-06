@@ -325,7 +325,8 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 				HISMRebel->BatchUpdateTransforms(*instanceTransformsToUpdate.Find("Rebels"));
 				HISMRebel->BatchUpdateData(*instances.Find("Rebels"));
 
-				Async(EAsyncExecution::TaskGraphMainTick, [this]() { Counter++; });
+				FScopeLock lock(&CounterLock);
+				Counter++;
 			});
 		}
 	});
