@@ -76,7 +76,7 @@ void ABroch::GetNavigableInstances(UNavigationSystemV1* Nav, TArray<FHitResult>&
 	Nav->ProjectPointToNavigation(GetActorLocation(), origin, FVector(300.0f, 300.0f, 40.0f));
 
 	for (int32 i = Hits.Num() - 1; i > -1; i--) {
-		if (Hits[i].GetComponent() != Camera->Grid->HISMGround) {
+		if (Hits[i].GetComponent() != Camera->Grid->HISMGround && Hits[i].GetComponent() != Camera->Grid->HISMFlatGround) {
 			Hits.RemoveAt(i);
 
 			continue;

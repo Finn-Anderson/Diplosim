@@ -339,7 +339,7 @@ enum class EEventType : uint8
 {
 	Mass,
 	Festival,
-	Holliday,
+	Holiday,
 	Marriage,
 	Protest
 };
@@ -402,7 +402,7 @@ struct FEventStruct
 
 	FEventStruct()
 	{
-		Type = EEventType::Holliday;
+		Type = EEventType::Holiday;
 		Period = "";
 		Day = 0;
 		bRecurring = false;

@@ -29,6 +29,7 @@
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/PoliceManager.h"
+#include "Player/Managers/EventsManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
@@ -64,7 +65,7 @@ UAIVisualiser::UAIVisualiser()
 		hism->bWorldPositionOffsetWritesVelocity = false;
 
 		if (hism == HISMCitizen)
-			hism->NumCustomDataFloats = 19;
+			hism->NumCustomDataFloats = 20;
 		else if (hism == HISMRebel)
 			hism->NumCustomDataFloats = 14;
 		else
@@ -297,9 +298,10 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 							}
 						}
 
+						UpdateInstanceCustomData(ism, index, 1, citizen->bSelected * 2.0f, *instances.Find(id));
 						UpdateInstanceCustomData(ism, index, 14, opacity, *instances.Find(id));
 						UpdateInstanceCustomData(ism, index, 18, citizen->bCommander, *instances.Find(id));
-						UpdateInstanceCustomData(ism, index, 1, citizen->bSelected * 2.0f, *instances.Find(id));
+						UpdateInstanceCustomData(ism, index, 19, Camera->EventsManager->IsProtest(citizen), *instances.Find(id));
 
 						UpdateHatTransform(citizen, hatsToUpdate);
 

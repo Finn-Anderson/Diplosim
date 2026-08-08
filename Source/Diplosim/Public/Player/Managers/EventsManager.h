@@ -54,5 +54,5 @@ public:
 private:
 	void StartEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour);
 
-	void EndEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour);
+	void EndEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour, bool bAffectUI = true);
 };

@@ -46,7 +46,7 @@ UDiplosimAIController::UDiplosimAIController()
 
 void UDiplosimAIController::DefaultAction()
 {
-	if (!IsValid(AI) || AI->HealthComponent->GetHealth() == 0)
+	if (!IsValid(AI) || AI->HealthComponent->GetHealth() == 0 || !AI->AttackComponent->OverlappingEnemies.IsEmpty())
 		return;
 
 	if (AI->IsA<ACitizen>()) {
@@ -54,8 +54,7 @@ void UDiplosimAIController::DefaultAction()
 		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
 		if (faction->Rebels.Contains(AI)) {
-			if (citizen->AttackComponent->OverlappingEnemies.IsEmpty())
-				AI->MoveToBroch();
+			AI->MoveToBroch();
 
 			return;
 		}
@@ -83,7 +82,7 @@ void UDiplosimAIController::DefaultAction()
 			}
 		}
 
-		if (!citizen->AttackComponent->OverlappingEnemies.IsEmpty() || Camera->EventsManager->IsAttendingEvent(citizen)) {
+		if (Camera->EventsManager->IsAttendingEvent(citizen)) {
 			if (Camera->EventsManager->IsProtest(citizen))
 				Wander(Camera->EventsManager->GetProtestLocation(citizen), true, nullptr);
 

@@ -315,15 +315,19 @@ void UConquestManager::CalculateAIFighting()
 					if (ai == nullptr || ai->HealthComponent->GetHealth() <= 0)
 						continue;
 
+					FFactionStruct* faction = GetFaction("", ai);
+
 					FOverlapsStruct requestedOverlaps;
 					if (gamemode->Enemies.Contains(ai) || gamemode->Snakes.Contains(ai))
 						requestedOverlaps.GetEnemyEnemies();
-					else if (GetFaction("", ai)->Rebels.Contains(ai))
+					else if (faction == nullptr)
+						continue;
+					else if (faction->Rebels.Contains(ai))
 						requestedOverlaps.GetRebelsEnemies();
 					else
 						requestedOverlaps.GetCitizenEnemies();
 
-					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range, requestedOverlaps, EFactionType::Both);
+					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range, requestedOverlaps, EFactionType::Both, faction);
 
 					for (AActor* actor : actors) {
 						if (Camera->SaveGameComponent->IsLoading()) {

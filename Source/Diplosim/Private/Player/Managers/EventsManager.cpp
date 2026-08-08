@@ -140,7 +140,7 @@ bool UEventsManager::IsHoliday(ACitizen* Citizen)
 {
 	for (auto& element : OngoingEvents())
 		for (FEventStruct* event : element.Value)
-			if (event->Type == EEventType::Holliday || event->Type == EEventType::Festival)
+			if (event->Type == EEventType::Holiday || event->Type == EEventType::Festival)
 				return true;
 
 	return false;
@@ -186,10 +186,9 @@ void UEventsManager::RemoveEvent(FString FactionName, int32 Index)
 	FEventStruct* event = &faction->Events[Index];
 
 	if (event->bStarted)
-		EndEvent(faction, event, Camera->Grid->AtmosphereComponent->Calendar.Hour);
+		EndEvent(faction, event, Camera->Grid->AtmosphereComponent->Calendar.Hour, false);
 
-	if (event != nullptr)
-		faction->Events.RemoveAt(Index);
+	faction->Events.RemoveAt(Index);
 
 	Camera->UpdateEventInfoDisplay();
 }
@@ -354,19 +353,15 @@ void UEventsManager::StartEvent(FFactionStruct* Faction, FEventStruct* Event, in
 	Async(EAsyncExecution::TaskGraphMainThread, [this, Event]() { Camera->ShowEvent("Event", EnumToString<EEventType>(Event->Type)); });
 }
 
-void UEventsManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour)
+void UEventsManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int32 Hour, bool bAffectUI)
 {
 	Event->Attendees.Empty();
 	Event->bStarted = false;
 
-	if (Event->Type == EEventType::Holliday || Event->Type == EEventType::Festival) {
-		for (ABuilding* building : Faction->Buildings) {
-			if (building->IsA<AWork>())
-				Cast<AWork>(building)->CheckWorkStatus(Hour);
-			else if (building->IsA<AFestival>() && Event->Type == EEventType::Festival)
+	if (Event->Type == EEventType::Festival)
+		for (ABuilding* building : Faction->Buildings)
+			if (building->IsA<AFestival>())
 				Cast<AFestival>(building)->StopFestival();
-		}
-	}
 
 	for (ACitizen* citizen : Faction->Citizens) {
 		if (Event->Type == EEventType::Festival) {
@@ -390,9 +385,11 @@ void UEventsManager::EndEvent(FFactionStruct* Faction, FEventStruct* Event, int3
 				citizen->HappinessComponent->SetAttendStatus(EAttendStatus::Missed, true);
 		}
 
-		if (!IsValid(Event->Building))
-			citizen->AIController->DefaultAction();
+		citizen->AIController->DefaultAction();
 	}
+
+	if (!bAffectUI)
+		return;
 
 	if (!Event->bRecurring)
 		Faction->Events.RemoveSingle(*Event);

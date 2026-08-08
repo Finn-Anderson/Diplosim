@@ -167,8 +167,8 @@ void UDebugManager::SetEvent(FString Type, FString Period, int32 Day, int32 Star
 	EEventType type;
 	TSubclassOf<ABuilding> building = nullptr;
 
-	if (Type == "Holliday")
-		type = EEventType::Holliday;
+	if (Type == "Holiday")
+		type = EEventType::Holiday;
 	else if (Type == "Festival") {
 		type = EEventType::Festival;
 		building = AFestival::StaticClass();

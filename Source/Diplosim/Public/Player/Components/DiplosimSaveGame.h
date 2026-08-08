@@ -1039,7 +1039,7 @@ struct FEventData
 
 	FEventData()
 	{
-		Type = EEventType::Holliday;
+		Type = EEventType::Holiday;
 		Period = "";
 		Day = 0;
 		bRecurring = false;
