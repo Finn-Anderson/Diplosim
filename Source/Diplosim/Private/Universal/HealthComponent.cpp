@@ -44,7 +44,7 @@ UHealthComponent::UHealthComponent()
 	HitAudioComponent->bCanPlayMultipleInstances = true;
 
 	HealthMultiplier = 1.0f;
-	Health, MaxHealth = 0;
+	Health = MaxHealth = 0;
 
 	Camera = nullptr;
 	DeathSystem = nullptr;
@@ -131,7 +131,7 @@ void UHealthComponent::ApplyDamageOverlay(bool bLoad)
 			if (Camera->TimerManager->DoesTimerExist("DamageOverlay", GetOwner()))
 				Camera->TimerManager->ResetTimer("DamageOverlay", GetOwner());
 			else
-				Camera->TimerManager->CreateTimer("DamageOverlay", GetOwner(), 0.4f, "RemoveDamageOverlay", {}, false, true);
+				Camera->TimerManager->CreateTimer("DamageOverlay", GetOwner(), 0.4f, "RemoveDamageOverlay", {}, false);
 		});
 	}
 	else
@@ -279,7 +279,7 @@ void UHealthComponent::Death(AActor* Attacker, bool bLoad)
 
 	TArray<FTimerParameterStruct> params;
 	Camera->TimerManager->SetParameter(Attacker, params);
-	Camera->TimerManager->CreateTimer("Clear Death", GetOwner(), 10.0f, "Clear", params, false, true);
+	Camera->TimerManager->CreateTimer("Clear Death", GetOwner(), 10.0f, "Clear", params, false);
 }
 
 void UHealthComponent::AIDecay()
@@ -290,6 +290,8 @@ void UHealthComponent::AIDecay()
 
 void UHealthComponent::Clear(AActor* Attacker)
 {
+	FScopeLock lock(&Camera->ClearDeathLock);
+
 	AActor* actor = GetOwner();
 
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", actor);

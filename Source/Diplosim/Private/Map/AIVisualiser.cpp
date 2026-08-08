@@ -742,7 +742,7 @@ TTuple<UAIInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI
 {
 	TTuple<UAIInstancedStaticMeshComponent*, int32> info = TTuple<UAIInstancedStaticMeshComponent*, int32>(nullptr, INDEX_NONE);
 
-	if (!IsValid(AI))
+	if (AI == nullptr)
 		return info;
 
 	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();

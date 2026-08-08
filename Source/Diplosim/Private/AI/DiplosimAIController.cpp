@@ -83,8 +83,12 @@ void UDiplosimAIController::DefaultAction()
 			}
 		}
 
-		if (!citizen->AttackComponent->OverlappingEnemies.IsEmpty() || Camera->EventsManager->IsAttendingEvent(citizen))
+		if (!citizen->AttackComponent->OverlappingEnemies.IsEmpty() || Camera->EventsManager->IsAttendingEvent(citizen)) {
+			if (Camera->EventsManager->IsProtest(citizen))
+				Wander(Camera->EventsManager->GetProtestLocation(citizen), true, nullptr);
+
 			return;
+		}
 
 		for (auto& element : Camera->EventsManager->OngoingEvents()) {
 			if (element.Key->Name != faction->Name)
@@ -543,7 +547,7 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	TArray<FVector> points = GetPathPoints(navAILoc, MoveRequest.GetLocation());
 	AI->MovementComponent->SetPoints(points);
 
-	if (IsValid(Actor))
+	if (IsValid(Actor) || (AI->IsA<ACitizen>() && Camera->EventsManager->IsAttendingEvent(Cast<ACitizen>(AI))))
 		ClearMovementTimers();
 
 	if (!AI->IsA<ACitizen>())

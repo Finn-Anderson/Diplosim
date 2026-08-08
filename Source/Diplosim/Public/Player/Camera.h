@@ -623,6 +623,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 		void Menu();
 
+	FCriticalSection ClearDeathLock;
+
 private:
 	// Commands
 	void Action(const struct FInputActionInstance& Instance);

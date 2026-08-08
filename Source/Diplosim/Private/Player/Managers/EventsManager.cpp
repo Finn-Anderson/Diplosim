@@ -59,7 +59,10 @@ void UEventsManager::CreateEvent(FString FactionName, EEventType Type, TSubclass
 	faction->Events.Add(event);
 	SortEvents(faction);
 
-	Camera->UpdateEventInfoDisplay();
+	if (IsInGameThread())
+		Camera->UpdateEventInfoDisplay();
+	else
+		Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->UpdateEventInfoDisplay(); });
 }
 
 void UEventsManager::SortEvents(FFactionStruct* Faction)
@@ -143,6 +146,26 @@ bool UEventsManager::IsHoliday(ACitizen* Citizen)
 	return false;
 }
 
+bool UEventsManager::IsProtest(ACitizen* Citizen) 
+{
+	for (auto& element : OngoingEvents())
+		for (FEventStruct* event : element.Value)
+			if (event->Attendees.Contains(Citizen) && event->Type == EEventType::Protest)
+				return true;
+
+	return false;
+}
+
+FVector UEventsManager::GetProtestLocation(ACitizen* Citizen)
+{
+	for (auto& element : OngoingEvents())
+		for (FEventStruct* event : element.Value)
+			if (event->Attendees.Contains(Citizen) && event->Type == EEventType::Protest)
+				return event->Location;
+
+	return FVector::Zero();
+}
+
 void UEventsManager::RemoveFromEvent(ACitizen* Citizen)
 {
 	for (auto& element : OngoingEvents()) {
@@ -220,12 +243,9 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 		if (Citizen->HappinessComponent->GetHappiness() >= 35)
 			return;
 
-		UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-		const ANavigationData* navData = nav->GetDefaultNavDataInstance();
+		Event->Attendees.Add(Citizen);
 
-		UNavigationPath* path = nav->FindPathToLocationSynchronously(GetWorld(), Camera->GetTargetActorLocation(Citizen), Event->Location, Citizen, Citizen->NavQueryFilter);
-
-		Citizen->MovementComponent->SetPoints(path->PathPoints);
+		Citizen->AIController->DefaultAction();
 
 		return;
 	}

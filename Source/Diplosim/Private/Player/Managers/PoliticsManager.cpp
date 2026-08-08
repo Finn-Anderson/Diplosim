@@ -301,7 +301,7 @@ void UPoliticsManager::SelectNewLeader(FPartyStruct* Party)
 	chosen->bHasBeenLeader = true;
 	Party->Members.Emplace(chosen, ESway::Radical);
 
-	Async(EAsyncExecution::TaskGraphMainTick, [this, Party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, { TTuple<FString, int32>(Party->Party, Party->Members.Num()) }, Party->Leader->BioComponent->Name); });
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Party]() { Camera->UpdateCitizenInfoDisplay(EInfoUpdate::Party, { TTuple<FString, int32>(Party->Party, Party->Members.Num()) }, Party->Leader != nullptr ? Party->Leader->BioComponent->Name : ""); });
 }
 
 void UPoliticsManager::StartElectionTimer(FFactionStruct* Faction)

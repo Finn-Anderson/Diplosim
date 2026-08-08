@@ -25,6 +25,10 @@ public:
 
 	bool IsHoliday(class ACitizen* Citizen);
 
+	bool IsProtest(class ACitizen* Citizen);
+
+	FVector GetProtestLocation(class ACitizen* Citizen);
+
 	void RemoveFromEvent(class ACitizen* Citizen);
 
 	UFUNCTION(BlueprintCallable)
