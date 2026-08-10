@@ -51,6 +51,8 @@ public:
 
 	bool CanHostFestival();
 
+	void CheckForOngoingEvents();
+
 protected:
 	virtual void StoreSocketLocations() override;
 };

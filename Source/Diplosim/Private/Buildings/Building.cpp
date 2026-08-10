@@ -736,6 +736,9 @@ void ABuilding::UpdateOccupantsUI()
 
 void ABuilding::InitialiseCapacityStruct()
 {
+	if (IsA<AFestival>())
+		return;
+
 	Occupied.Empty();
 
 	for (int32 i = 0; i < GetCapacity(); i++)

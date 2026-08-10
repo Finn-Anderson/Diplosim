@@ -10,6 +10,7 @@
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
+#include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/EventsManager.h"
 #include "Universal/HealthComponent.h"
 
@@ -85,18 +86,14 @@ void AFestival::OnBuilt()
 {
 	Super::OnBuilt();
 
-	for (auto& element : Camera->EventsManager->OngoingEvents()) {
-		for (FEventStruct* event : element.Value) {
-			if (event->Type != EEventType::Festival)
-				continue;
-
-			StartFestival(event->bFireFestival);
-		}
-	}
+	CheckForOngoingEvents();
 }
 
 bool AFestival::CanHostFestival()
 {
+	if (FestivalMesh->GetStaticMesh() != nullptr)
+		return false;
+
 	FOverlapsStruct overlaps;
 	overlaps.bBuildings = true;
 
@@ -105,6 +102,32 @@ bool AFestival::CanHostFestival()
 	TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, this, range, overlaps, EFactionType::Same);
 
 	return actors.IsEmpty();
+}
+
+void AFestival::CheckForOngoingEvents()
+{
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
+
+	for (auto& element : Camera->EventsManager->OngoingEvents()) {
+		if (element.Key->Name != FactionName)
+			continue;
+
+		for (FEventStruct* event : element.Value) {
+			if (event->Type != EEventType::Festival)
+				continue;
+
+			StartFestival(event->bFireFestival);
+
+			TArray<ACitizen*> citizens = faction->Citizens;
+			if (!event->Whitelist.IsEmpty())
+				citizens = event->Whitelist;
+
+			for (ACitizen* citizen : citizens)
+				Camera->EventsManager->GotoEvent(citizen, event, faction);
+
+			return;
+		}
+	}
 }
 
 void AFestival::StoreSocketLocations()
@@ -172,6 +195,8 @@ void AFestival::StartFestival(bool bFireFestival)
 
 			z = 1.0f;
 		}
+		else
+			ParticleComponent->SetVariableStaticMesh("Fire Mesh", FestivalMesh->GetStaticMesh());
 
 		FestivalMesh->SetRelativeScale3D(FVector(z));
 		ParticleComponent->Activate();
@@ -194,5 +219,7 @@ void AFestival::StopFestival()
 		ParticleComponent->Deactivate();
 
 		SetActorTickEnabled(false);
+
+		CheckForOngoingEvents();
 	});
 }

@@ -222,7 +222,7 @@ TMap<FFactionStruct*, TArray<FEventStruct*>> UEventsManager::OngoingEvents()
 
 void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionStruct* Faction)
 {
-	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event->Type != EEventType::Protest && IsValid(Citizen->BuildingComponent->Employment) && !Citizen->BuildingComponent->Employment->bCanAttendEvents && Citizen->BuildingComponent->Employment->IsWorking(Citizen)))
+	if (IsAttendingEvent(Citizen) || Citizen->bSleep || (Event->Type != EEventType::Protest && IsValid(Citizen->BuildingComponent->Employment) && (Citizen->BuildingComponent->Employment->bEmergency || (!Citizen->BuildingComponent->Employment->bCanAttendEvents && Citizen->BuildingComponent->Employment->IsWorking(Citizen)))))
 		return;
 
 	TArray<AActor*> actors;
@@ -233,9 +233,12 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 		if (Faction == nullptr)
 			Faction = Camera->ConquestManager->GetFaction("", Citizen);
 
-		for (ABuilding* building : Faction->Buildings)
-			if (building->IsA(Event->Building))
-				actors.Add(building);
+		for (ABuilding* building : Faction->Buildings) {
+			if (!building->IsA(Event->Building) || (Event->Type == EEventType::Festival && !Cast<AFestival>(building)->CanHostFestival()) || (Event->Type == EEventType::Mass && building->GetOccupied().IsEmpty()))
+				continue;
+
+			actors.Add(building);
+		}
 	}
 
 	if (Event->Type == EEventType::Protest) {
@@ -279,7 +282,7 @@ void UEventsManager::GotoEvent(ACitizen* Citizen, FEventStruct* Event, FFactionS
 		ABuilding* building = Cast<ABuilding>(actor);
 		ACitizen* occupant = nullptr;
 
-		if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()) || (Event->Type == EEventType::Mass && building->GetOccupied().IsEmpty()) || (Event->Type == EEventType::Festival && !Cast<AFestival>(building)->CanHostFestival()))
+		if (!Citizen->AIController->CanMoveTo(building->GetActorLocation()))
 			continue;
 
 		bool bSpace = false;
