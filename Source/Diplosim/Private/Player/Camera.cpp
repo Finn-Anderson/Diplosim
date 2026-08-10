@@ -947,7 +947,7 @@ void ACamera::Cancel()
 
 void ACamera::NewMap()
 {
-	if (!Start || bUIMode == 2)
+	if (!Start || bUIMode == 2 || Grid->LoadUIInstance->IsInViewport())
 		return;
 
 	SetMouseCapture(false, bUIMode);

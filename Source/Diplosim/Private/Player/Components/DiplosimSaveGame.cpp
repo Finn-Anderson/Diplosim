@@ -1170,10 +1170,9 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode,
 			ism = Camera->Grid->AIVisualiser->HISMCitizen;
 		}
 	}
-
+	
+	ai->MovementComponent->Transform = AIData.MovementData.Transform;
 	ai->Colour = AIData.Colour;
-
-	Camera->Grid->AIVisualiser->AddInstance(ai, ism, AIData.MovementData.Transform);
 
 	if (!ai->IsA<AEnemy>())
 		return; 

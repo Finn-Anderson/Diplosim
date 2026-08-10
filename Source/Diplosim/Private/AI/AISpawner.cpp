@@ -62,10 +62,9 @@ void AAISpawner::SpawnAI()
 	transform.SetRotation((GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f)).Quaternion());
 
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(AIClass, FVector::Zero(), FRotator::ZeroRotator, params);
+	enemy->MovementComponent->Transform = transform;
 	enemy->SpawnLocation = transform.GetLocation();
 	enemy->Colour = Colour;
-
-	Camera->Grid->AIVisualiser->AddInstance(enemy, Camera->Grid->AIVisualiser->HISMSnake, transform);
 
 	GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Snakes.Add(enemy);
 

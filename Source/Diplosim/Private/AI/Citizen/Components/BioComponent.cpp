@@ -335,7 +335,7 @@ void UBioComponent::HaveChild()
 	transform.SetScale3D(FVector(0.28f));
 
 	ACitizen* c = GetWorld()->SpawnActor<ACitizen>(citizen->GetClass(), FVector::Zero(), FRotator::ZeroRotator, params);
-	citizen->Camera->Grid->AIVisualiser->AddInstance(c, citizen->Camera->Grid->AIVisualiser->HISMCitizen, transform);
+	c->MovementComponent->Transform = transform;
 
 	c->BioComponent->Mother = citizen;
 	c->BioComponent->Father = Partner;

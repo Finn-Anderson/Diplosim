@@ -26,6 +26,7 @@
 #include "Player/Camera.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Player/Components/BuildComponent.h"
 #include "Universal/EggBasket.h"
@@ -137,6 +138,7 @@ AGrid::AGrid()
 
 	bRandSpecialBuildings = true;
 	NumOfNests = 1;
+	MaxCounter = Counter = 0;
 
 	GroundColours = { FColor::FromHex("#111111FF"), FColor::FromHex("#E4C14DFF"), FColor::FromHex("#BEB449FF"), FColor::FromHex("#98A644FF"), FColor::FromHex("#729940FF"), FColor::FromHex("#4B8B3BFF") };
 }
@@ -197,6 +199,9 @@ int32 AGrid::GetMapBounds()
 
 void AGrid::Load()
 {
+	if (Counter != MaxCounter)
+		return;
+
 	LoadUIInstance->AddToViewport();
 
 	if (Seed != "" && Seed.IsNumeric())
@@ -212,7 +217,7 @@ void AGrid::Load()
 	Camera->UpdateMapSeed(s);
 
 	Seed = "";
-	GenStatus = EGenStatus::Loading;
+	MaxCounter = Counter = 0;
 
 	Camera->UpdateLoadingText("Initialising Map");
 
@@ -718,8 +723,6 @@ void AGrid::SpawnVegetation()
 
 void AGrid::SetupEnvironment(bool bLoad)
 {
-	GenStatus = EGenStatus::Incomplete;
-
 	auto bound = GetMapBounds();
 
 	AtmosphereComponent->SetSeasonAffect(AtmosphereComponent->Calendar.Period, 1.0f);
@@ -734,39 +737,23 @@ void AGrid::SetupEnvironment(bool bLoad)
 	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
 	LavaComponent->Activate(true);
 
-	if (bLoad) {
-		GenStatus = EGenStatus::Complete;
-
+	if (bLoad)
 		return;
-	}
 
 	AtmosphereComponent->Clouds->ActivateCloud();
 
-	TArray<UClass*> classes; 
-	classes.Init(AISpawnerClass, NumOfNests);
-	classes.Add(EggBasketClass);
-	GetChosenTileLocation(Cast<AAISpawner>(AISpawnerClass->GetDefaultObject()), classes);
-
-	SetSpecialBuildings();
+	SetBuildings();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(true, false);
-
-	if (GenStatus == EGenStatus::NavGenerated)
-		LoadUIInstance->RemoveFromParent();
-	else
-		GenStatus = EGenStatus::Complete;
 }
 
 void AGrid::OnNavMeshGenerated()
 {
-	if (GenStatus == EGenStatus::Loading)
+	if (!LavaComponent->IsActive() || Counter != MaxCounter)
 		return;
 
-	if (GenStatus == EGenStatus::Complete)
-		LoadUIInstance->RemoveFromParent();
-	else
-		GenStatus = EGenStatus::NavGenerated;
+	LoadUIInstance->RemoveFromParent();
 }
 
 TArray<FTileStruct*> AGrid::CalculatePath(FTileStruct* Tile, FTileStruct* Target)
@@ -1391,6 +1378,9 @@ FTransform AGrid::GetTransform(FTileStruct* Tile)
 
 void AGrid::Clear()
 {
+	if (Counter != MaxCounter)
+		return;
+
 	TArray<FResourceHISMStruct> resourceList;
 	resourceList.Append(TreeStruct);
 	resourceList.Append(FlowerStruct);
@@ -1417,8 +1407,11 @@ void AGrid::Clear()
 	for (AAISpawner* spawner : gamemode->SnakeSpawners)
 		spawner->Destroy();
 
-	for (AAI* snake : gamemode->Snakes)
+	for (AAI* snake : gamemode->Snakes) {
+		Camera->TimerManager->RemoveAllTimers(snake);
+		snake->AIController->StopMovement();
 		snake->Destroy();
+	}
 
 	gamemode->SnakeSpawners.Empty();
 	gamemode->Snakes.Empty();
@@ -1465,7 +1458,7 @@ void AGrid::GetChosenTileLocation(AActor* Actor, TArray<UClass*> Classes)
 		}
 	}
 
-	SetupMapBuildings(Actor, Classes, validLocations);
+	Async(EAsyncExecution::TaskGraphMainTick, [this, Actor, Classes, validLocations]() { SetupMapBuildings(Actor, Classes, validLocations); });
 }
 
 void AGrid::SetupMapBuildings(AActor* Actor, TArray<UClass*> Classes, TArray<FTileStruct*> ValidLocations)
@@ -1547,28 +1540,47 @@ void AGrid::SetupMapBuildings(AActor* Actor, TArray<UClass*> Classes, TArray<FTi
 			}
 		}
 	}
+
+	if (Actor->IsA<ABroch>())
+		return;
+
+	Counter++;
+
+	if (MaxCounter == Counter) {
+		Camera->UpdateMapSpecialBuildings();
+
+		if (LoadUIInstance->IsInViewport())
+			LoadUIInstance->RemoveFromParent();
+	}
 }
 
-void AGrid::SetSpecialBuildings()
+void AGrid::SetBuildings()
 {
-	for (ASpecial* building : SpecialBuildings) {
-		if (bRandSpecialBuildings) {
-			int32 value = Camera->Stream.RandRange(0, 1);
+	MaxCounter = 1 + SpecialBuildings.Num();
 
-			if (value == 0)
-				building->SetActorHiddenInGame(true);
-			else
-				building->SetActorHiddenInGame(false);
-		}
+	for (ABuilding* building : SpecialBuildings) {
+		if (bRandSpecialBuildings)
+			building->SetActorHiddenInGame(!Camera->Stream.RandRange(0, 1));
 
 		float yaw = Camera->Stream.RandRange(0, 3) * 90.0f;
-
 		building->SetActorRotation(FRotator(0.0f, yaw, 0.0f));
-
-		GetChosenTileLocation(building);
 	}
 
-	Camera->UpdateMapSpecialBuildings();
+	for (int32 i = 0; i < MaxCounter; i++) {
+		Async(EAsyncExecution::TaskGraph, [this, i]() {
+			FScopeLock lock(&CounterLock);
+
+			if (i == 0) {
+				TArray<UClass*> classes;
+				classes.Init(AISpawnerClass, NumOfNests);
+				classes.Add(EggBasketClass);
+
+				GetChosenTileLocation(Cast<AAISpawner>(AISpawnerClass->GetDefaultObject()), classes);
+			}
+			else
+				GetChosenTileLocation(SpecialBuildings[i - 1]);
+		});
+	}
 }
 
 void AGrid::SetSpecialBuildingStatus(ASpecial* Building, bool bShow)

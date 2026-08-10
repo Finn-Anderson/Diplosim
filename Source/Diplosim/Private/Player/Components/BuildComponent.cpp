@@ -185,6 +185,9 @@ TArray<FHitResult> UBuildComponent::GetBuildingOverlaps(AActor* Actor, float Ext
 	FRotator rotation = Actor->GetActorRotation();
 	UStaticMeshComponent* component = Cast<UStaticMeshComponent>(Actor->GetRootComponent());
 
+	if (!component)
+		return hits;
+
 	FVector centre, size;
 	component->GetStaticMesh()->GetBounds().GetBox().GetCenterAndExtents(centre, size);
 

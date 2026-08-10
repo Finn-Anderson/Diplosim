@@ -112,7 +112,7 @@ FTimerStruct* UDiplosimTimerManager::FindTimer(FString ID, AActor* Actor)
 {
 	FScopeLock lock(&TimerLock);
 
-	if (!IsValid(Actor))
+	if (Actor == nullptr)
 		return nullptr;
 
 	FTimerStruct timer;

@@ -31,36 +31,6 @@ struct FHatsToUpdateStruct
 };
 
 USTRUCT()
-struct FPendingChangeStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-		class AAI* AI;
-
-	UPROPERTY()
-		class UAIInstancedStaticMeshComponent* ISM;
-
-	UPROPERTY()
-		FTransform Transform;
-
-	UPROPERTY()
-		TArray<int32> Instances;
-
-	FPendingChangeStruct()
-	{
-		AI = nullptr;
-		ISM = nullptr;
-		Transform = FTransform();
-	}
-
-	bool operator==(const FPendingChangeStruct& other) const
-	{
-		return (other.ISM == ISM && other.AI == AI);
-	}
-};
-
-USTRUCT()
 struct FOverlapsStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -227,14 +197,6 @@ public:
 
 	void MainLoop(class ACamera* Camera, float DeltaTime);
 
-	void AddInstance(class AAI* AI, class UAIInstancedStaticMeshComponent* ISM, FTransform Transform);
-
-	void RemoveInstance(class UAIInstancedStaticMeshComponent* ISM, int32 Instance);
-
-	void CreateInstance(FPendingChangeStruct PendingChange, ACamera* Camera);
-
-	void DeleteInstance(FPendingChangeStruct PendingChange);
-
 	void SetHarvestVisuals(class ACitizen* Citizen, class AResource* Resource);
 
 	TTuple<class UAIInstancedStaticMeshComponent*, int32> GetAIHISM(class AAI* AI);
@@ -246,12 +208,6 @@ public:
 	void SetAnimationPoint(class AAI* AI, FTransform Transform, TArray<int32>& Instances);
 
 	TArray<AActor*> GetOverlaps(class ACamera* Camera, AActor* Actor, float Range, FOverlapsStruct RequestedOverlaps, EFactionType FactionType, FFactionStruct* Faction = nullptr, FVector Location = FVector::Zero());
-
-	UPROPERTY()
-		TArray<FPendingChangeStruct> CitizenPendingChange;
-
-	UPROPERTY()
-		TArray<FPendingChangeStruct> AIPendingChange;
 
 	UPROPERTY()
 		TMap<class AActor*, double> DestructingActors;
@@ -276,6 +232,8 @@ public:
 	bool DoesCitizenHaveHat(ACitizen* Citizen);
 
 private:
+	void CalculateInstanceChange(class ACamera* Camera, class UAIInstancedStaticMeshComponent* ISM, TArray<AAI*> AIList, bool bHat = false);
+
 	void CalculateCitizenMovement(class ACamera* Camera);
 
 	void CalculateAIMovement(class ACamera* Camera);

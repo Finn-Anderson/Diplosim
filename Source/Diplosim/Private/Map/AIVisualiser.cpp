@@ -126,31 +126,6 @@ void UAIVisualiser::BeginPlay()
 
 void UAIVisualiser::ResetToDefaultValues()
 {
-	CitizenPendingChange.Empty();
-	AIPendingChange.Empty();
-
-	for (int32 i = 0; i < HISMCitizen->GetInstanceCount(); i++)
-		RemoveInstance(HISMCitizen, i);
-
-	for (int32 i = 0; i < HISMRebel->GetInstanceCount(); i++)
-		RemoveInstance(HISMRebel, i);
-
-	for (int32 i = 0; i < HISMClone->GetInstanceCount(); i++)
-		RemoveInstance(HISMClone, i);
-
-	for (int32 i = 0; i < HISMEnemy->GetInstanceCount(); i++)
-		RemoveInstance(HISMEnemy, i);
-
-	for (int32 i = 0; i < HISMSnake->GetInstanceCount(); i++)
-		RemoveInstance(HISMSnake, i);
-
-	for (FHatsStruct& hat : HISMHats) {
-		for (int32 i = 0; i < hat.ISMHat->GetInstanceCount(); i++)
-			RemoveInstance(hat.ISMHat, i);
-
-		hat.Citizens.Empty();
-	}
-
 	DestructingActors.Empty();
 }
 
@@ -167,25 +142,90 @@ void UAIVisualiser::MainLoop(ACamera* Camera, float DeltaTime)
 	CalculateBuildingRotation(Camera);
 }
 
-void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
+void UAIVisualiser::CalculateInstanceChange(ACamera* Camera, UAIInstancedStaticMeshComponent* ISM, TArray<AAI*> AIList, bool bHat)
+{
+	if (AIList.Num() <= ISM->GetInstanceCount())
+		return;
+
+	bool bCrystalVisible = Camera->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0] > 0.0f;
+
+	TArray<FTransform> transforms;
+	for (int32 i = ISM->GetInstanceCount(); i < AIList.Num(); i++) {
+		AAI* ai = AIList[i];
+
+		FTransform transform = ai->MovementComponent->Transform;
+		if (bHat)
+			transform = GetHatTransform(Cast<ACitizen>(ai));
+
+		if (ai->SpawnSystem && bCrystalVisible)
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ai->SpawnSystem, transform.GetLocation());
+
+		transforms.Add(transform);
+	}
+
+	ISM->AddInstances(transforms, false, false, false);
+}
+
+void UAIVisualiser::CalculateCitizenMovement(ACamera* Camera)
 {
 	if (Counter != MaxCounter)
+		return;
+
+	FScopeTryLock lock(&CitizenMovementLock);
+	if (!lock.IsLocked())
 		return;
 
 	if (HarvestVisualCooldownTimer == 0.0f && HarvestNiagaraComponent->IsActive())
 		HarvestNiagaraComponent->Deactivate();
 
-	for (FPendingChangeStruct pending : CitizenPendingChange) {
-		if (pending.Instances.IsEmpty())
-			CreateInstance(pending, Camera);
-		else
-			DeleteInstance(pending);
+	TArray<ACitizen*> cs;
+	TArray<int32> citizenInstancesToDelete;
+
+	TArray<ACitizen*> rebels;
+	TArray<int32> rebelInstancesToDelete;
+
+	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+		for (int32 i = faction.Citizens.Num() - 1; i > -1; i--) {
+			if (!faction.Citizens[i]->HealthComponent->bDead)
+				continue;
+
+			faction.Citizens.RemoveAt(i);
+			citizenInstancesToDelete.Add(cs.Num() + i);
+		}
+
+		for (int32 i = faction.Rebels.Num() - 1; i > -1; i--) {
+			if (!faction.Rebels[i]->HealthComponent->bDead)
+				continue;
+
+			faction.Rebels.RemoveAt(i);
+			rebelInstancesToDelete.Add(rebels.Num() + i);
+		}
+
+		cs.Append(faction.Citizens);
+		rebels.Append(faction.Rebels);
 	}
 
-	if (!CitizenPendingChange.IsEmpty())
-		CitizenPendingChange.Empty();
+	HISMCitizen->RemoveInstances(citizenInstancesToDelete);
+	HISMRebel->RemoveInstances(rebelInstancesToDelete);
 
-	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
+	TArray<AAI*> AIList;
+	for (ACitizen* citizen : cs)
+		AIList.Add(citizen);
+	CalculateInstanceChange(Camera, HISMCitizen, AIList);
+
+	for (FHatsStruct& hat : HISMHats) {
+		AIList.Empty();
+		for (ACitizen* citizen : hat.Citizens)
+			AIList.Add(citizen);
+		CalculateInstanceChange(Camera, hat.ISMHat, AIList, true);
+	}
+
+	AIList.Empty();
+	for (ACitizen* citizen : rebels)
+		AIList.Add(citizen);
+	CalculateInstanceChange(Camera, HISMRebel, AIList);
+
+	Async(EAsyncExecution::TaskGraph, [this, Camera, cs, rebels]() {
 		FScopeTryLock lock(&CitizenMovementLock);
 		if (!lock.IsLocked())
 			return;
@@ -196,13 +236,7 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 			return;
 		}
 
-		TArray<ACitizen*> cs;
-		TArray<ACitizen*> rebels;
-
 		for (FFactionStruct faction : Camera->ConquestManager->Factions) {
-			cs.Append(faction.Citizens);
-			rebels.Append(faction.Rebels);
-
 			if (faction.PartyInPower == "")
 				continue;
 
@@ -254,19 +288,19 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 
 				TArray<FHatsToUpdateStruct> hatsToUpdate;
 
-				for (int32 j = (citizens.Num() * i) / MaxCounter; j < (citizens.Num() * (i + 1)) / MaxCounter; j++) {
+				for (int32 index = (citizens.Num() * i) / MaxCounter; index < (citizens.Num() * (i + 1)) / MaxCounter; index++) {
 					if (Camera->SaveGameComponent->IsLoading()) {
 						Counter = MaxCounter;
 
 						return;
 					}
 
-					ACitizen* citizen = citizens[j];
-					FString id = cs.Contains(citizen) ? "Citizens" : "Rebels";
-					int32 index = j;
+					ACitizen* citizen = citizens[index];
 
 					if (citizen == nullptr)
 						continue;
+
+					FString id = cs.Contains(citizen) ? "Citizens" : "Rebels";
 
 					UAIInstancedStaticMeshComponent* ism = nullptr;
 					if (id == "Citizens")
@@ -275,9 +309,6 @@ void UAIVisualiser::CalculateCitizenMovement(class ACamera* Camera)
 						ism = HISMRebel;
 						index -= cs.Num();
 					}
-
-					if (ism->GetInstanceCount() <= index)
-						continue;
 
 					float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime, 1.0f);
 					citizen->MovementComponent->ComputeMovement(deltaTime, *instances.Find(id));
@@ -340,17 +371,56 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 	if (!lock.IsLocked())
 		return;
 
-	for (FPendingChangeStruct pending : AIPendingChange) {
-		if (pending.Instances.IsEmpty())
-			CreateInstance(pending, Camera);
-		else
-			DeleteInstance(pending);
+	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+
+	TArray<AAI*> clones;
+	TArray<int32> cloneInstancesToDelete;
+
+	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
+		for (int32 i = faction.Clones.Num() - 1; i > -1; i--) {
+			if (!faction.Clones[i]->HealthComponent->bDead)
+				continue;
+
+			faction.Clones.RemoveAt(i);
+			cloneInstancesToDelete.Add(clones.Num() + i);
+		}
+
+		clones.Append(faction.Clones);
 	}
 
-	if (!AIPendingChange.IsEmpty())
-		AIPendingChange.Empty();
+	TArray<AAI*> enemies;
+	TArray<int32> enemyInstancesToDelete;
 
-	Async(EAsyncExecution::TaskGraph, [this, Camera]() {
+	for (int32 i = gamemode->Enemies.Num() - 1; i > -1; i--) {
+		if (!gamemode->Enemies[i]->HealthComponent->bDead)
+			continue;
+
+		gamemode->Enemies.RemoveAt(i);
+		enemyInstancesToDelete.Add(i);
+	}
+	enemies.Append(gamemode->Enemies);
+
+	TArray<AAI*> snakes;
+	TArray<int32> snakeInstancesToDelete;
+
+	for (int32 i = gamemode->Snakes.Num() - 1; i > -1; i--) {
+		if (!gamemode->Snakes[i]->HealthComponent->bDead)
+			continue;
+
+		gamemode->Snakes.RemoveAt(i);
+		snakeInstancesToDelete.Add(i);
+	}
+	snakes.Append(gamemode->Snakes);
+
+	HISMClone->RemoveInstances(cloneInstancesToDelete);
+	HISMClone->RemoveInstances(enemyInstancesToDelete);
+	HISMClone->RemoveInstances(snakeInstancesToDelete);
+
+	CalculateInstanceChange(Camera, HISMClone, clones);
+	CalculateInstanceChange(Camera, HISMEnemy, gamemode->Enemies);
+	CalculateInstanceChange(Camera, HISMSnake, gamemode->Snakes);
+
+	Async(EAsyncExecution::TaskGraph, [this, Camera, clones, gamemode]() {
 		FScopeTryLock lock(&AIMovementLock);
 		if (!lock.IsLocked())
 			return;
@@ -360,13 +430,6 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 
 			return;
 		}
-
-		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
-		TArray<AAI*> clones;
-
-		for (FFactionStruct faction : Camera->ConquestManager->Factions)
-			if (!Camera->ConquestManager->FactionsToRemove.Contains(faction))
-				clones.Append(faction.Clones);
 
 		if (clones.IsEmpty() && gamemode->Enemies.IsEmpty() && gamemode->Snakes.IsEmpty())
 			return;
@@ -526,60 +589,6 @@ void UAIVisualiser::CalculateBuildingRotation(ACamera* Camera)
 				RotatingBuildings.RemoveAt(i);
 		}
 	});
-}
-
-void UAIVisualiser::AddInstance(AAI* AI, UAIInstancedStaticMeshComponent* ISM, FTransform Transform)
-{
-	AI->MovementComponent->Transform = Transform;
-
-	FPendingChangeStruct pending;
-	pending.AI = AI;
-	pending.ISM = ISM;
-	pending.Transform = Transform;
-
-	if (AI->IsA<ACitizen>())
-		CitizenPendingChange.Add(pending);
-	else
-		AIPendingChange.Add(pending);
-}
-
-void UAIVisualiser::RemoveInstance(UAIInstancedStaticMeshComponent* ISM, int32 Instance)
-{
-	FPendingChangeStruct pending;
-	pending.ISM = ISM;
-	pending.Instances = { Instance };
-
-	int32 index = INDEX_NONE;
-
-	if (ISM == HISMClone || ISM == HISMEnemy || ISM == HISMSnake) {
-		index = AIPendingChange.Find(pending);
-
-		if (index == INDEX_NONE)
-			AIPendingChange.Add(pending);
-		else
-			AIPendingChange[index].Instances.Add(Instance);
-	}
-	else {
-		index = CitizenPendingChange.Find(pending);
-
-		if (index == INDEX_NONE)
-			CitizenPendingChange.Add(pending);
-		else
-			CitizenPendingChange[index].Instances.Add(Instance);
-	}
-}
-
-void UAIVisualiser::CreateInstance(FPendingChangeStruct PendingChange, ACamera* Camera)
-{
-	int32 instance = PendingChange.ISM->AddInstance(PendingChange.Transform, false);
-
-	if (IsValid(PendingChange.AI->SpawnSystem) && Camera->Grid->CrystalMesh->GetCustomPrimitiveData().Data[0] > 0.0f)
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), PendingChange.AI->SpawnSystem, PendingChange.Transform.GetLocation());
-}
-
-void UAIVisualiser::DeleteInstance(FPendingChangeStruct PendingChange)
-{
-	PendingChange.ISM->RemoveInstances(PendingChange.Instances);
 }
 
 void UAIVisualiser::UpdateInstanceCustomData(UAIInstancedStaticMeshComponent* ISM, int32 Instance, int32 Index, float Value, TArray<int32>& Instances)
@@ -1007,7 +1016,6 @@ void UAIVisualiser::AddCitizenToHISMHat(ACitizen* Citizen, UStaticMesh* HatMesh)
 		if (hat.ISMHat->GetStaticMesh() != HatMesh)
 			continue;
 
-		AddInstance(Citizen, hat.ISMHat, GetHatTransform(Citizen));
 		hat.Citizens.Add(Citizen);
 
 		break;
@@ -1022,7 +1030,6 @@ void UAIVisualiser::RemoveCitizenFromHISMHat(ACitizen* Citizen)
 		if (index == INDEX_NONE)
 			continue;
 
-		RemoveInstance(hat.ISMHat, index);
 		hat.Citizens.RemoveAt(index);
 
 		break;

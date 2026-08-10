@@ -12,19 +12,10 @@ void UAIInstancedStaticMeshComponent::BatchUpdateTransforms(TMap<int32, FTransfo
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this, InstanceTransformsToUpdate]() {
 		SetHasPerInstancePrevTransforms(true);
-		int32 count = 0;
 
 		for (auto& element : InstanceTransformsToUpdate) {
 			if (!PerInstanceSMData.IsValidIndex(element.Key))
 				continue;
-
-			count++;
-
-			if (InstanceTransformsToUpdate.Num() == count) {
-				UpdateInstanceTransform(element.Key, element.Value);
-
-				continue;
-			}
 
 			FPrimitiveInstanceId id = PrimitiveInstanceDataManager.IndexToId(element.Key);
 
@@ -62,7 +53,7 @@ void UAIInstancedStaticMeshComponent::BatchUpdateData(TArray<int32> Instances)
 			for (int32 i = 0; i < NumCustomDataFloats; i++)
 				data.Add(PerInstanceSMCustomData[instance * NumCustomDataFloats + i]);
 
-			SetCustomData(instance, data);
+			SetCustomData(instance, data, true);
 		}
 	});
 }

@@ -37,6 +37,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* HitAudioComponent;
 
+	UPROPERTY()
+		bool bDead;
+
 	void AddHealth(int32 Amount);
 
 	UFUNCTION()

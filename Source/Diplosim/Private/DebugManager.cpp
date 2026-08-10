@@ -122,7 +122,7 @@ void UDebugManager::SpawnCitizen(int32 Amount, int32 Age)
 		FTransform transform;
 		transform.SetLocation(camera->MouseHitLocation);
 		transform.SetScale3D(FVector(0.28f));
-		camera->Grid->AIVisualiser->AddInstance(citizen, camera->Grid->AIVisualiser->HISMCitizen, transform);
+		citizen->MovementComponent->Transform = transform;
 
 		citizen->BioComponent->SetSex(faction->Citizens);
 		citizen->CitizenSetup(faction);

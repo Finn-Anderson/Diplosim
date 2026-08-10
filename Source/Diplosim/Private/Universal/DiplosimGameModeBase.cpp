@@ -8,6 +8,7 @@
 
 #include "AI/Enemy.h"
 #include "AI/AISpawner.h"
+#include "AI/AIMovementComponent.h"
 #include "AI/Citizen/Citizen.h"
 #include "Buildings/Misc/Broch.h"
 #include "Buildings/Work/Defence/Wall.h"
@@ -21,6 +22,7 @@
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/PoliceManager.h"
 #include "Universal/DiplosimUserSettings.h"
+#include "Universal/HealthComponent.h"
 #include "DebugManager.h"
 
 ADiplosimGameModeBase::ADiplosimGameModeBase()
@@ -358,10 +360,10 @@ void ADiplosimGameModeBase::SpawnAtValidLocation(FLinearColor Colour)
 	transform.SetLocation(navLocation.Location);
 
 	AEnemy* enemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, FVector::Zero(), FRotator(0.0f), params);
+	enemy->MovementComponent->Transform = transform;
 	enemy->Colour = Colour;
 
 	Enemies.Add(enemy);
-	Grid->AIVisualiser->AddInstance(enemy, Grid->AIVisualiser->HISMEnemy, transform);
 
 	enemy->MoveToBroch();
 }
@@ -394,7 +396,15 @@ void ADiplosimGameModeBase::StartRaid()
 
 bool ADiplosimGameModeBase::CheckEnemiesStatus()
 {
-	return UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies() && Grid->CrystalMesh->GetCustomPrimitiveData().Data[0] <= 0.0f && Enemies.IsEmpty();
+	bool bDead = true;
+	for (AAI* ai : Enemies) {
+		bDead = ai->HealthComponent->bDead;
+
+		if (!bDead)
+			break;
+	}
+
+	return UDiplosimUserSettings::GetDiplosimUserSettings()->GetSpawnEnemies() && Grid->CrystalMesh->GetCustomPrimitiveData().Data[0] <= 0.0f && bDead;
 }
 
 void ADiplosimGameModeBase::TallyEnemyData(TSubclassOf<class AResource> Resource, int32 Amount)

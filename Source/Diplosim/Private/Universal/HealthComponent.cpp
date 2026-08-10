@@ -50,6 +50,8 @@ UHealthComponent::UHealthComponent()
 	DeathSystem = nullptr;
 	OnHitEffect = nullptr;
 	DeathSound = nullptr;
+
+	bDead = false;
 }
 
 void UHealthComponent::BeginPlay()
@@ -291,6 +293,7 @@ void UHealthComponent::AIDecay()
 void UHealthComponent::Clear(AActor* Attacker)
 {
 	FScopeLock lock(&Camera->ClearDeathLock);
+	bDead = true;
 
 	AActor* actor = GetOwner();
 
@@ -347,6 +350,9 @@ void UHealthComponent::Clear(AActor* Attacker)
 	}
 	else if (actor->IsA<AEnemy>() && gamemode->Enemies.Contains(actor)) {
 		gamemode->WavesData.Last().SetDiedTo(Attacker);
+
+		if (gamemode->CheckEnemiesStatus())
+			gamemode->SetWaveTimer();
 	}
 	else if (actor->IsA<ABuilding>()) {
 		ABuilding* building = Cast<ABuilding>(actor);
@@ -364,39 +370,6 @@ void UHealthComponent::Clear(AActor* Attacker)
 		gamemode->SnakeSpawners.RemoveSingle(spawner);
 
 		actor->Destroy();
-	}
-
-	if (actor->IsA<AAI>()) {
-		AAI* ai = Cast<AAI>(actor);
-
-		auto info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
-
-		Camera->Grid->AIVisualiser->RemoveInstance(info.Key, info.Value);
-
-		if (ai->IsA<ACitizen>()) {
-			ACitizen* citizen = Cast<ACitizen>(ai);
-
-			if (faction->Citizens.Contains(citizen))
-				faction->Citizens.Remove(citizen);
-			else
-				faction->Rebels.Remove(citizen);
-		}
-		else if (ai->IsA<AEnemy>()) {
-			AEnemy* enemy = Cast<AEnemy>(ai);
-
-			if (gamemode->Enemies.Contains(enemy)) {
-				gamemode->Enemies.Remove(enemy);
-
-				if (gamemode->CheckEnemiesStatus())
-					gamemode->SetWaveTimer();
-			}
-			else
-				gamemode->Snakes.Remove(enemy);
-		}
-		else
-			faction->Clones.Remove(ai);
-
-		ai->Destroy();
 	}
 
 	if (Camera->AttachedTo.Actor == actor)

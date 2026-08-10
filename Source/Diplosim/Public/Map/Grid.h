@@ -89,15 +89,6 @@ enum class EType : uint8
 	Mountain
 };
 
-UENUM()
-enum class EGenStatus : uint8
-{
-	Loading,
-	Incomplete,
-	Complete,
-	NavGenerated
-};
-
 UCLASS()
 class DIPLOSIM_API AGrid : public AActor
 {
@@ -124,9 +115,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ground", meta = (ClampMin = "0.0", ClampMax = "100.0", UIMin = "0.0", UIMax = "100.0"))
 		int32 PercentageGround;
-
-	UPROPERTY()
-		EGenStatus GenStatus;
 
 	//UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -316,7 +304,7 @@ public:
 
 	void SetupMapBuildings(AActor* Actor, TArray<UClass*> Classes, TArray<FTileStruct*> ValidLocations);
 
-	void SetSpecialBuildings();
+	void SetBuildings();
 
 	UFUNCTION(BlueprintCallable)
 		void SetSpecialBuildingStatus(class ASpecial* Building, bool bShow);
@@ -343,4 +331,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI Spawner")
 		int32 NumOfNests;
+
+private:
+	FCriticalSection CounterLock;
+	int32 Counter;
+	int32 MaxCounter;
 };

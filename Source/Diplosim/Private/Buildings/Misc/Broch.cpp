@@ -5,6 +5,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "NavigationSystem.h"
 
+#include "AI/AIMovementComponent.h"
 #include "AI/Citizen/Citizen.h"
 #include "AI/Citizen/Components/BioComponent.h"
 #include "Map/Grid.h"
@@ -52,7 +53,7 @@ void ABroch::SpawnCitizens()
 		transform.SetRotation((GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f)).Quaternion());
 
 		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, FVector::Zero(), FRotator::ZeroRotator, params);
-		Camera->Grid->AIVisualiser->AddInstance(citizen, Camera->Grid->AIVisualiser->HISMCitizen, transform);
+		citizen->MovementComponent->Transform = transform;
 
 		citizen->CitizenSetup(faction);
 

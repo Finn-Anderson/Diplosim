@@ -1,5 +1,6 @@
 #include "Buildings/Misc/Special/CloneLab.h"
 
+#include "AI/AIMovementComponent.h"
 #include "AI/Clone.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -39,6 +40,6 @@ void ACloneLab::Production(ACitizen* Citizen)
 	transform.SetRotation(GetActorQuat());
 
 	AClone* clone = GetWorld()->SpawnActor<AClone>(Clone, FVector::Zero(), FRotator::ZeroRotator, params);
+	clone->MovementComponent->Transform = transform;
 	faction->Clones.Add(clone);
-	Camera->Grid->AIVisualiser->AddInstance(clone, Camera->Grid->AIVisualiser->HISMClone, transform);
 }

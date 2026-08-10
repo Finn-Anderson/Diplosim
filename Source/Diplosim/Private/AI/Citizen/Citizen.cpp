@@ -405,12 +405,9 @@ void ACitizen::LoseEnergy()
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", this);
 
 	if (faction->Rebels.Contains(this)) {
-		UAIVisualiser* aiVisualiser = Camera->Grid->AIVisualiser;
-		aiVisualiser->RemoveInstance(aiVisualiser->HISMRebel, faction->Rebels.Find(this));
 		faction->Rebels.Remove(this);
 
 		faction->Citizens.Add(this);
-		aiVisualiser->AddInstance(this, aiVisualiser->HISMCitizen, MovementComponent->GetMovementTransform());
 	}
 }
 
