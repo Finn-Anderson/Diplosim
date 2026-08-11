@@ -310,6 +310,7 @@ void UAtmosphereComponent::SetOnFire(AActor* Actor, int32 Instance, bool bLoad)
 
 			if (!bLoad) {
 				healthComp->TakeHealth(25, Actor);
+				time -= 25;
 
 				Grid->Camera->TimerManager->CreateTimer("OnFire", Actor, 5.0f, "OnFire", {}, true);
 			}

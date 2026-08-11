@@ -9,6 +9,7 @@
 #include "Buildings/Misc/Broch.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Universal/HealthComponent.h"
 
 UConstructionManager::UConstructionManager()
 {
@@ -45,7 +46,7 @@ void UConstructionManager::RemoveBuilding(ABuilding* Building)
 	Construction.Remove(constructionStruct);
 
 	ACamera* camera = Cast<ACamera>(GetOwner());
-	if (!camera->WidgetComponent->IsAttachedTo(Building->GetRootComponent()))
+	if (!camera->WidgetComponent->IsAttachedTo(Building->GetRootComponent()) || Building->HealthComponent->GetHealth() == 0)
 		return;
 
 	if (!Building->IsA<ABroch>() && !camera->WidgetComponent->bHiddenInGame)

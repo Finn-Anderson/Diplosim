@@ -80,6 +80,9 @@ void UBuildComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	if (GetWorld()->LineTraceSingleByChannel(hit, mouseLoc, endTrace, ECollisionChannel::ECC_GameTraceChannel1))
 	{
 		FVector location = hit.Location;
+		if (hit.GetActor()->IsA<ABuilding>())
+			location = hit.GetActor()->GetActorLocation();
+
 		location.X = FMath::RoundHalfFromZero(location.X / 100.0f) * 100.0f;
 		location.Y = FMath::RoundHalfFromZero(location.Y / 100.0f) * 100.0f;
 		
@@ -161,13 +164,18 @@ void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
 	if (GetWorld()->LineTraceSingleByChannel(hit, FVector(Location.X, Location.Y, 1000.0f), FVector(Location.X, Location.Y, 0.0f), ECollisionChannel::ECC_GameTraceChannel1, params)) {
 		Location.Z = FMath::RoundHalfFromZero(hit.Location.Z);
 
+		if (!IsValid(hit.GetComponent()))
+			return;
+
 		if ((hit.GetComponent() == Camera->Grid->HISMRiver || hit.GetComponent() == Camera->Grid->HISMSea) && (Building->IsA<ARoad>() || (Building->bCanBuildOnBridge)))
 			Location.Z += 20.0f;
-		else if (IsValid(hit.GetComponent()) && Building->IsA(FoundationClass)) {
+		else if (hit.GetActor()->IsA(RampClass) && !Building->IsA<ARoad>())
+			Location.Z -= 37.5f;
+		else if (Building->IsA(FoundationClass)) {
 			if (hit.GetComponent() == Camera->Grid->HISMRiver)
 				Location.Z -= 55.0f;
 			else if (hit.GetComponent() == Camera->Grid->HISMSea || hit.GetComponent() == Camera->Grid->HISMRampGround)
-				Location.Z -= 50.0f;
+				Location.Z -= 25.0f;
 		}
 	}
 }

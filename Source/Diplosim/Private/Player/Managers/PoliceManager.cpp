@@ -23,6 +23,7 @@
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/PoliticsManager.h"
 #include "Player/Managers/ResourceManager.h"
+#include "Player/Components/BuildComponent.h"
 #include "Player/Components/SaveGameComponent.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/AttackComponent.h"
@@ -75,7 +76,7 @@ void UPoliceManager::CalculateVandalism()
 				TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, citizen, citizen->GetReach(), requestedOverlaps, EFactionType::Same, &faction);
 
 				for (AActor* actor : actors) {
-					if (actor->IsA<ABroch>() || actor->IsA<ARoad>() || actor->IsA<AFestival>() || citizen->BuildingComponent->House == actor)
+					if (actor->IsA<ABroch>() || actor->IsA<ARoad>() || actor->IsA<AFestival>() || actor->IsA(Camera->BuildComponent->RampClass) || actor->IsA(Camera->BuildComponent->FoundationClass) || citizen->BuildingComponent->House == actor)
 						continue;
 
 					Async(EAsyncExecution::TaskGraphMainTick, [this, citizen, actor]() { Camera->Grid->AtmosphereComponent->SetOnFire(actor); });

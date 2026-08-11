@@ -164,7 +164,7 @@ void UBioComponent::SetSexuality(TArray<ACitizen*> Citizens)
 {
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
 
-	if (Citizens.Num() <= 10) {
+	if (Citizens.Num() <= 20) {
 		Sexuality = ESexuality::Straight;
 
 		return;
@@ -178,15 +178,15 @@ void UBioComponent::SetSexuality(TArray<ACitizen*> Citizens)
 		if (c->BioComponent->Sexuality != ESexuality::NaN && c->BioComponent->Sexuality != ESexuality::Straight)
 			gays++;
 
-	float percentageGay = gays / (float)Citizens.Num();
-
-	if (percentageGay > 0.1f)
-		return;
+	float percentageGay = gays / (float)Citizens.Num() * 100;
 
 	int32 chance = citizen->Camera->Stream.RandRange(1, 100);
+	int32 value = 50 + FMath::RoundHalfFromZero(percentageGay * (50.0f / 15.0f));
 
-	if (chance > 90) {
-		if (chance > 95) {
+	if (chance > value) {
+		value = 100 - ((100 - value) / 2);
+
+		if (chance > value) {
 			Sexuality = ESexuality::Homosexual;
 
 			citizen->Fertility *= 0.5f;
@@ -212,9 +212,12 @@ void UBioComponent::FindPartner(FFactionStruct* Faction)
 		if (!IsValid(c) || c == citizen || c->HealthComponent->GetHealth() == 0 || c->IsPendingKillPending() || c->BioComponent->Partner != nullptr || c->BioComponent->Age < 18)
 			continue;
 
-		int32 value = citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Same-Sex Laws");
+		int32 chance = citizen->Camera->Stream.RandRange(1, 100);
 
-		if (((Sexuality == ESexuality::Straight || value == 0) && c->BioComponent->Sex == Sex) || (Sexuality != ESexuality::Straight && value != 0 && c->BioComponent->Sex != Sex))
+		if (Sexuality != c->BioComponent->Sexuality && Sexuality != ESexuality::Bisexual && c->BioComponent->Sexuality != ESexuality::Bisexual && (Sex == c->BioComponent->Sex || chance < 100))
+			continue;
+
+		if ((Sex == c->BioComponent->Sex && (Sexuality == ESexuality::Straight || c->BioComponent->Sexuality == ESexuality::Straight || citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Same-Sex Laws") == 0)) || (Sex != c->BioComponent->Sex && chance < 100 && (Sexuality == ESexuality::Homosexual || c->BioComponent->Sexuality == ESexuality::Homosexual)))
 			continue;
 
 		if (!citizen->Camera->PoliticsManager->GetLawValue(Faction->Name, "Inbreeding") && family.Contains(c) && !bAdopted && !c->BioComponent->bAdopted)
