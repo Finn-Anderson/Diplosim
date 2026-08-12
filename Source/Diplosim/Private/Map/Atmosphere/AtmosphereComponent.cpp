@@ -1,5 +1,6 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "Engine/DirectionalLight.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/DirectionalLightComponent.h"
@@ -102,7 +103,10 @@ UAtmosphereComponent::UAtmosphereComponent()
 	TargetWindSpeed = WindSpeed;
 	WindRotation = FRotator(0.0f);
 
-	Grid, WindCollection, FireSystem = nullptr;
+	Grid = nullptr; 
+	WindCollection = nullptr; 
+	LightningSystem = FireSystem = nullptr;
+	LightningSound = nullptr;
 }
 
 void UAtmosphereComponent::BeginPlay()
@@ -459,5 +463,33 @@ void UAtmosphereComponent::SetSeasonValues(TArray<float> Values)
 		hism->SetCustomPrimitiveDataFloat(0, Values[0]);
 		hism->SetCustomPrimitiveDataFloat(1, Values[1]);
 		hism->SetCustomPrimitiveDataFloat(2, Values[2]);
+	}
+}
+
+void UAtmosphereComponent::SpawnLightning(FVector StartLocation, FVector EndLocation, bool bFire)
+{
+	UNiagaraComponent* lightning = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LightningSystem, FVector::Zero(), FRotator::ZeroRotator, FVector(1.0f), true, false);
+	lightning->SetVariableVec3(TEXT("StartLocation"), StartLocation);
+	lightning->SetVariableVec3(TEXT("EndLocation"), EndLocation);
+	lightning->Activate();
+
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), LightningSound, EndLocation, settings->GetAmbientVolume() * settings->GetMasterVolume());
+
+	if (!bFire)
+		return;
+
+	TArray<FHitResult> hits;
+
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(Grid);
+
+	if (GetWorld()->SweepMultiByChannel(hits, EndLocation, EndLocation + FVector(0.0f, 0.0f, 300.0f), FQuat(0.0f), ECC_Visibility, FCollisionShape::MakeBox(FVector(50.0f, 50.0f, 100.0f)), params)) {
+		for (const FHitResult& hit : hits) {
+			if (Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(hit.GetActor()->GetActorLocation()))
+				continue;
+
+			Grid->AtmosphereComponent->SetOnFire(hit.GetActor(), hit.Item);
+		}
 	}
 }

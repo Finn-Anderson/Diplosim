@@ -535,9 +535,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Politics")
 		TSubclassOf<class AResource> Crystal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
-		class UNiagaraComponent* SmiteComponent;
-
 	int32 Smites;
 
 	UFUNCTION(BlueprintCallable)

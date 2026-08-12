@@ -113,10 +113,6 @@ ACamera::ACamera()
 	WidgetComponent->SetDrawSize(FVector2D(0.0f, 0.0f));
 	WidgetComponent->SetPivot(FVector2D(0.5f, 1.1f));
 
-	SmiteComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SmiteComponent"));
-	SmiteComponent->SetupAttachment(RootComponent);
-	SmiteComponent->SetAutoActivate(false);
-
 	Smites = 0;
 
 	Start = true;
@@ -624,6 +620,7 @@ void ACamera::SetPause(bool bPause, bool bAlterViewport)
 	}
 
 	SetTimeDilation(timeDilation);
+	Settings->UpdateAmbientVolume();
 }
 
 void ACamera::SetGameSpeed(float Speed)
@@ -797,16 +794,13 @@ void ACamera::Smite(class AAI* AI)
 
 	bool bPass = ResourceManager->TakeUniversalResource(faction, Crystal, GetSmiteCost(), 0);
 
-	if (!bPass) {
+	if (!bPass && !Cast<UDebugManager>(PController->CheatManager)->bInstantBuildCheat) {
 		ShowWarning("Cannot afford");
 
 		return;
 	}
 
-	SmiteComponent->SetVariablePosition("StartLocation", GetTargetActorLocation(AI) + FVector(0.0f, 0.0f, 2000.0f));
-	SmiteComponent->SetVariablePosition("EndLocation", GetTargetActorLocation(AI));
-
-	SmiteComponent->Activate();
+	Grid->AtmosphereComponent->SpawnLightning(GetTargetActorLocation(AI) + FVector(0.0f, 0.0f, 2000.0f), GetTargetActorLocation(AI), false);
 
 	AI->HealthComponent->TakeHealth(200, this);
 

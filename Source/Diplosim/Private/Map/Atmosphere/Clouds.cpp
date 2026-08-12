@@ -1,9 +1,11 @@
 #include "Map/Atmosphere/Clouds.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/AudioComponent.h"
 #include "Misc/ScopeTryLock.h"
 
 #include "AI/Citizen/Citizen.h"
@@ -26,9 +28,7 @@ UCloudComponent::UCloudComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	CloudMesh = nullptr;
-
 	CloudSystem = nullptr;
-	LightningSystem = nullptr;
 	Settings = nullptr;
 	Grid = nullptr;
 	NaturalDisasterComponent = nullptr;
@@ -96,28 +96,11 @@ void UCloudComponent::TickCloud(float DeltaTime)
 				int32 inst = Grid->Camera->Stream.RandRange(0, cloudStruct.HISMCloud->GetInstanceCount() - 1);
 				
 				FTransform transform;
-				cloudStruct.HISMCloud->GetInstanceTransform(inst, transform);
+				cloudStruct.HISMCloud->GetInstanceTransform(inst, transform, true);
 
 				FVector endLocation = FVector(transform.GetLocation().X + Grid->Camera->Stream.RandRange(-300.0f, 300.0f), transform.GetLocation().Y + Grid->Camera->Stream.RandRange(-300.0f, 300.0f), 0.0f);
 
-				UNiagaraComponent* lightning = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LightningSystem, transform.GetLocation(), FRotator(0.0f), FVector(1.0f), true, false);
-				lightning->SetVariableVec3(TEXT("StartLocation"), cloudStruct.HISMCloud->GetRelativeLocation() + transform.GetLocation());
-				lightning->SetVariableVec3(TEXT("EndLocation"), endLocation);
-				lightning->Activate();
-
-				TArray<FHitResult> hits;
-
-				FCollisionQueryParams params;
-				params.AddIgnoredActor(Grid);
-
-				if (GetWorld()->SweepMultiByChannel(hits, endLocation, endLocation + FVector(0.0f, 0.0f, 300.0f), FQuat(0.0f), ECC_Visibility, FCollisionShape::MakeBox(FVector(50.0f, 50.0f, 100.0f)), params)) {
-					for (const FHitResult& hit : hits) {
-						if (Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(hit.GetActor()->GetActorLocation()))
-							continue;
-
-						Grid->AtmosphereComponent->SetOnFire(hit.GetActor(), hit.Item);
-					}
-				}
+				Grid->AtmosphereComponent->SpawnLightning(cloudStruct.HISMCloud->GetRelativeLocation() + transform.GetLocation(), endLocation, true);
 
 				cloudStruct.lightningTimer = 0.0f;
 			}
@@ -207,7 +190,6 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 	TArray<FTransform> transforms;
 
 	float bounds = cloud->GetStaticMesh().Get()->GetBounds().GetBox().GetSize().X / 2.0f;
-
 	
 	for (int32 i = 0; i < 200; i++) {
 		FTransform t = Transform;
@@ -259,7 +241,8 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 	float lifetime = cloud->GetRelativeLocation().Z / FMath::Abs(gravity);
 
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(precipitation, TEXT("SpawnLocations"), locations);
-	float spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y * Grid->Camera->Stream.FRandRange(0.5f, 2.5f);
+	float intensity = Grid->Camera->Stream.FRandRange(0.5f, 2.5f);
+	float spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y;
 
 	if (bSnow) {
 		precipitation->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
@@ -277,6 +260,15 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 
 	precipitation->Activate();
 
+	UAudioComponent* audio = UGameplayStatics::SpawnSoundAttached(RainSound, cloud, "", FVector::Zero(), FRotator::ZeroRotator);
+	audio->SetPitchMultiplier(intensity);
+	audio->AttenuationSettings = RainSound->AttenuationSettings;
+	audio->AttenuationSettings->Attenuation.AttenuationShape = EAttenuationShape::Box;
+	audio->AttenuationSettings->Attenuation.AttenuationShapeExtents = FVector(1600.0f * Transform.GetScale3D().X, 1600.0f * Transform.GetScale3D().X, Transform.GetLocation().Z);
+	audio->AttenuationSettings->Attenuation.FalloffDistance = 3000.0f;
+	audio->Play();
+
+	cloudStruct.AudioComponent = audio;
 	cloudStruct.Precipitation = precipitation;
 
 	if (!bLoad && NaturalDisasterComponent->ShouldCreateDisaster()) {

@@ -32,6 +32,7 @@ UDiplosimUserSettings::UDiplosimUserSettings(const FObjectInitializer& ObjectIni
 	bEvil = true;
 
 	bSmoothCamera = true;
+	bShowLog = true;
 
 	bRenderTorches = true;
 
@@ -760,7 +761,7 @@ void UDiplosimUserSettings::SetAmbientVolume(float Value)
 
 float UDiplosimUserSettings::GetAmbientVolume() const
 {
-	return AmbientVolume;
+	return Camera != nullptr && Camera->CustomTimeDilation > 1.0f ? 0.0f : AmbientVolume;
 }
 
 void UDiplosimUserSettings::SetUIScale(float Value)
@@ -842,7 +843,12 @@ void UDiplosimUserSettings::UpdateAmbientVolume()
 	Camera->Grid->GetComponents<UAudioComponent>(components);
 
 	for (UAudioComponent* component : components)
-		component->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
+		if (IsValid(component))
+			component->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
+
+	for (FCloudStruct cloud : Camera->Grid->AtmosphereComponent->Clouds->Clouds)
+		if (IsValid(cloud.AudioComponent))
+			cloud.AudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
 }
 
 FVector2D UDiplosimUserSettings::GetWindowPosAsVector(FString Value)

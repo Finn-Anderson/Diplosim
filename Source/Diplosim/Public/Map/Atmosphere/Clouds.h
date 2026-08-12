@@ -16,6 +16,9 @@ struct FCloudStruct
 		class UNiagaraComponent* Precipitation;
 
 	UPROPERTY()
+		class UAudioComponent* AudioComponent;
+
+	UPROPERTY()
 		double Distance;
 
 	UPROPERTY()
@@ -31,6 +34,7 @@ struct FCloudStruct
 	{
 		HISMCloud = nullptr;
 		Precipitation = nullptr;
+		AudioComponent = nullptr;
 		Distance = 0.0f;
 		bHide = false;
 		lightningTimer = 0.0f;
@@ -148,8 +152,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
 		class UNiagaraSystem* CloudSystem;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lightning")
-		class UNiagaraSystem* LightningSystem;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clouds")
+		class USoundBase* RainSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		float Height;

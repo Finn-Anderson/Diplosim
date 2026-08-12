@@ -146,6 +146,15 @@ public:
 
 	void SetSeasonValues(TArray<float> Values);
 
+	// Lightning
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lightning")
+		class UNiagaraSystem* LightningSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lightning")
+		class USoundBase* LightningSound;
+
+	void SpawnLightning(FVector StartLocation, FVector EndLocation, bool bFire);
+
 private:
 	FCriticalSection SeasonLock;
 };
