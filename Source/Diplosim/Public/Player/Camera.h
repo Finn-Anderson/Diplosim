@@ -225,6 +225,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Army Manager")
 		class UArmyManager* ArmyManager;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+		class UAudioManager* AudioManager;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Build")
 		class UBuildComponent* BuildComponent;
 
@@ -268,21 +271,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void Quit(bool bMenu);
-
-	// Audio
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		class UAudioComponent* InteractAudioComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		class UAudioComponent* MusicAudioComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		class USoundBase* InteractSound;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		class USoundBase* EventSound;
-
-	void PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch = -1.0f);
 
 	UFUNCTION(BlueprintCallable)
 		void PlayInteractSound(USoundBase* Sound, float Pitch = 1.0f);

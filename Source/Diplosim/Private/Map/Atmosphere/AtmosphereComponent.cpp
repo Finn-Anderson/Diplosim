@@ -20,6 +20,7 @@
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ResourceManager.h"
@@ -228,6 +229,8 @@ void UAtmosphereComponent::AlterWind()
 	Instance->SetVectorParameterValue("WindRotation", FLinearColor(WindRotation.Vector()));
 
 	WindComponent->SetVariableFloat("SpawnRate", Grid->GetMapBounds() / 100.0f * (WindSpeed / 10.0f));
+
+	Grid->Camera->AudioManager->AlterWindPitch(WindSpeed / 100.0f);
 }
 
 void UAtmosphereComponent::SetWindDimensions(int32 Bound)

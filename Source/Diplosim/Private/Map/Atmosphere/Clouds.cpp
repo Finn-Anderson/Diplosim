@@ -172,7 +172,12 @@ void UCloudComponent::ActivateCloud()
 	Grid->Camera->TimerManager->CreateTimer("Cloud", Grid, time, "ActivateCloud", {}, false, true);
 }
 
-FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bool bLoad, TArray<FTransform> LoadTransforms)
+float UCloudComponent::GetPercipitationSpawnRate(FCloudStruct CloudStruct)
+{
+	return 400.0f * CloudStruct.Scale.X * CloudStruct.Scale.Y * CloudStruct.Intensity;
+}
+
+FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bool bLoad, TArray<FTransform> LoadTransforms, float Intensity)
 {
 	UInstancedStaticMeshComponent* cloud = NewObject<UInstancedStaticMeshComponent>(this, UInstancedStaticMeshComponent::StaticClass());
 	cloud->SetStaticMesh(CloudMesh);
@@ -227,6 +232,7 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 
 	FCloudStruct cloudStruct;
 	cloudStruct.HISMCloud = cloud;
+	cloudStruct.Scale = Transform.GetScale3D();
 
 	if (Chance <= 75)
 		return cloudStruct;
@@ -240,18 +246,21 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 	float gravity = -980.0f;
 	float lifetime = cloud->GetRelativeLocation().Z / FMath::Abs(gravity);
 
+	if (bLoad)
+		cloudStruct.Intensity = Intensity;
+	else
+		cloudStruct.Intensity = Grid->Camera->Stream.FRandRange(0.5f, 2.5f);
+
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(precipitation, TEXT("SpawnLocations"), locations);
-	float intensity = Grid->Camera->Stream.FRandRange(0.5f, 2.5f);
-	float spawnRate = 400.0f * Transform.GetScale3D().X * Transform.GetScale3D().Y;
+	float spawnRate = GetPercipitationSpawnRate(cloudStruct);
 
 	if (bSnow) {
 		precipitation->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);
 		gravity /= 4;
 		lifetime *= 4;
 	}
-	else {
+	else
 		precipitation->SetVariableFloat(TEXT("RainSpawnRate"), spawnRate);
-	}
 
 	precipitation->SetVariableVec3(TEXT("Gravity"), FVector(0.0f, 0.0f, gravity));
 	precipitation->SetVariableFloat(TEXT("Life"), lifetime);
@@ -260,12 +269,29 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 
 	precipitation->Activate();
 
+	FVector minLocation = FVector(10000000000.0f);
+	FVector maxLocation = FVector(-10000000000.0f);
+	for (const FVector& location : locations) {
+		if (location.X < minLocation.X)
+			minLocation.X = location.X;
+		if (location.Y < minLocation.Y)
+			minLocation.Y = location.Y;
+
+		if (location.X > maxLocation.X)
+			maxLocation.X = location.X;
+		if (location.Y > maxLocation.Y)
+			maxLocation.Y = location.Y;
+	}
+
+	FVector extent = FVector(FMath::Abs(maxLocation.X - minLocation.X) / 2.0f, FMath::Abs(maxLocation.Y - minLocation.Y) / 2.0f, Transform.GetLocation().Z + 500.0f);
+
 	UAudioComponent* audio = UGameplayStatics::SpawnSoundAttached(RainSound, cloud, "", FVector::Zero(), FRotator::ZeroRotator);
-	audio->SetPitchMultiplier(intensity);
+	audio->SetPitchMultiplier(0.5f + cloudStruct.Intensity);
+	audio->SetVolumeMultiplier(Settings->GetAmbientVolume() * Settings->GetMasterVolume());
 	audio->AttenuationSettings = RainSound->AttenuationSettings;
 	audio->AttenuationSettings->Attenuation.AttenuationShape = EAttenuationShape::Box;
-	audio->AttenuationSettings->Attenuation.AttenuationShapeExtents = FVector(1600.0f * Transform.GetScale3D().X, 1600.0f * Transform.GetScale3D().X, Transform.GetLocation().Z);
-	audio->AttenuationSettings->Attenuation.FalloffDistance = 3000.0f;
+	audio->AttenuationSettings->Attenuation.AttenuationShapeExtents = extent;
+	audio->AttenuationSettings->Attenuation.FalloffDistance = 5000.0f;
 	audio->Play();
 
 	cloudStruct.AudioComponent = audio;
@@ -307,7 +333,7 @@ void UCloudComponent::UpdateSpawnedClouds()
 		if (!IsValid(cloudStruct.Precipitation))
 			continue;
 
-		int32 spawnRate = 400.0f * cloudStruct.Precipitation->GetRelativeScale3D().X * cloudStruct.Precipitation->GetRelativeScale3D().Y;
+		int32 spawnRate = GetPercipitationSpawnRate(cloudStruct);
 
 		if (bSnow) {
 			cloudStruct.Precipitation->SetVariableFloat(TEXT("SnowSpawnRate"), spawnRate);

@@ -15,6 +15,7 @@
 #include "Map/Grid.h"
 #include "Player/Camera.h"
 #include "Player/Components/BuildComponent.h"
+#include "Player/Managers/AudioManager.h"
 #include "Universal/DiplosimUserSettings.h"
 
 UCameraMovementComponent::UCameraMovementComponent()
@@ -22,6 +23,7 @@ UCameraMovementComponent::UCameraMovementComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	TargetLength = 3000.0f;
+	MaxLength = 20000.0f;
 	LastScrollTime = 0.0f;
 
 	CameraSpeed = 10.0f;
@@ -73,11 +75,16 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	if (movementLoc != FVector::Zero())
 		MovementLocation = movementLoc;
 
+	bool bRecalcSound = Camera->SpringArmComponent->TargetArmLength != TargetLength || Camera->GetActorLocation() != MovementLocation;
+
 	if (Camera->SpringArmComponent->TargetArmLength != TargetLength)
 		Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, DeltaTime, armSpeed);
 
 	if (Camera->GetActorLocation() != MovementLocation)
 		Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(), MovementLocation, DeltaTime, movementSpeed));
+
+	if (bRecalcSound)
+		Camera->AudioManager->CalculateAmbientEnvironmentSound();
 
 	if (!bShake)
 		return;
@@ -238,7 +245,7 @@ void UCameraMovementComponent::Scroll(const struct FInputActionInstance& Instanc
 {
 	float target = (100.0f / FMath::Min((GetWorld()->GetRealTimeSeconds() - LastScrollTime) * 5.0f, 1.0f)) * Instance.GetValue().Get<float>();
 
-	TargetLength = FMath::Clamp(TargetLength + target, 100.0f, 20000.0f);
+	TargetLength = FMath::Clamp(TargetLength + target, 100.0f, MaxLength);
 
 	LastScrollTime = GetWorld()->GetRealTimeSeconds();
 }

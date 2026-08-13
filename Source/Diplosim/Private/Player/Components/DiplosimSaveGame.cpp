@@ -31,6 +31,7 @@
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ConquestManager.h"
@@ -243,21 +244,25 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 	}
 
 	for (const FCloudStruct& cloud : grid->AtmosphereComponent->Clouds->Clouds) {
+		FTransform transform = cloud.HISMCloud->GetRelativeTransform();
+		transform.SetScale3D(cloud.Scale);
+
 		FCloudData data;
-		data.Transform = cloud.HISMCloud->GetRelativeTransform();
+		data.Transform = transform;
 		data.Distance = cloud.Distance;
 		data.bPrecipitation = cloud.Precipitation != nullptr;
 		data.bHide = cloud.bHide;
 		data.lightningFrequency = cloud.lightningFrequency;
 		data.lightningTimer = cloud.lightningTimer;
 		data.Opacity = cloud.HISMCloud->GetCustomPrimitiveData().Data[0];
+		data.Intensity = cloud.Intensity;
 
 		data.HISMData.Name = cloud.HISMCloud->GetName();
 		for (int32 i = 0; i < cloud.HISMCloud->GetInstanceCount(); i++) {
-			FTransform transform;
-			cloud.HISMCloud->GetInstanceTransform(i, transform);
+			FTransform t;
+			cloud.HISMCloud->GetInstanceTransform(i, t);
 
-			data.HISMData.Transforms.Add(transform);
+			data.HISMData.Transforms.Add(t);
 		}
 
 		worldSaveData.CloudsData.CloudData.Add(data);
@@ -957,7 +962,7 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	WetnessData = WorldData.CloudsData.WetnessData;
 
 	for (FCloudData data : WorldData.CloudsData.CloudData) {
-		FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0, true, data.HISMData.Transforms);
+		FCloudStruct cloudStruct = grid->AtmosphereComponent->Clouds->CreateCloud(data.Transform, data.bPrecipitation ? 100 : 0, true, data.HISMData.Transforms, data.Intensity);
 		cloudStruct.Distance = data.Distance;
 		cloudStruct.bHide = data.bHide;
 		cloudStruct.lightningFrequency = data.lightningFrequency;
@@ -1227,7 +1232,7 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 	citizen->HoursSleptToday = AIData.CitizenData.HoursSleptToday;
 
 	if (AIData.CitizenData.bConversing)
-		Camera->PlayAmbientSound(citizen->AmbientAudioComponent, Camera->CitizenManager->GetConversationSound(citizen), citizen->VoicePitch);
+		Camera->AudioManager->PlayAmbientSound(citizen->AmbientAudioComponent, Camera->CitizenManager->GetConversationSound(citizen), citizen->VoicePitch);
 
 	for (FGeneticsStruct& genetic : citizen->Genetics)
 		citizen->ApplyGeneticAffect(genetic);

@@ -128,6 +128,9 @@ struct FCloudData
 	UPROPERTY()
 		float Opacity;
 
+	UPROPERTY()
+		float Intensity;
+
 	FCloudData()
 	{
 		Transform = FTransform();
@@ -137,6 +140,7 @@ struct FCloudData
 		lightningTimer = 0.0f;
 		lightningFrequency = 0.0f;
 		Opacity = 0.0f;
+		Intensity = 1.0f;
 	}
 };
 

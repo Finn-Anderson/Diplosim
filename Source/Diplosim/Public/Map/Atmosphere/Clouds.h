@@ -30,6 +30,12 @@ struct FCloudStruct
 	UPROPERTY()
 		float lightningFrequency;
 
+	UPROPERTY()
+		float Intensity;
+
+	UPROPERTY()
+		FVector Scale;
+
 	FCloudStruct()
 	{
 		HISMCloud = nullptr;
@@ -39,6 +45,8 @@ struct FCloudStruct
 		bHide = false;
 		lightningTimer = 0.0f;
 		lightningFrequency = 0.0f;
+		Intensity = 1.0f;
+		Scale = FVector(1.0f);
 	}
 
 	bool operator==(const FCloudStruct& other) const
@@ -144,7 +152,7 @@ public:
 	UFUNCTION()
 		void SetRainMaterialEffect(float Value, UPrimitiveComponent* Component, int32 Instance, float Increment = 0.0f);
 
-	FCloudStruct CreateCloud(FTransform Transform, int32 Chance, bool bLoad = false, TArray<FTransform> LoadTransforms = {});
+	FCloudStruct CreateCloud(FTransform Transform, int32 Chance, bool bLoad = false, TArray<FTransform> LoadTransforms = {}, float Intensity = 1.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		UStaticMesh* CloudMesh;
@@ -185,4 +193,6 @@ private:
 	TArray<FVector> SetPrecipitationLocations(FTransform Transform, float Bounds);
 
 	void SetGradualWetness(float DeltaTime);
+
+	float GetPercipitationSpawnRate(FCloudStruct CloudStruct);
 };

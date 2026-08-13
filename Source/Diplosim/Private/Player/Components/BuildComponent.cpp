@@ -28,6 +28,7 @@
 #include "Map/AIVisualiser.h"
 #include "Map/Resources/Vegetation.h"
 #include "Player/Camera.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/PoliceManager.h"
@@ -952,7 +953,7 @@ void UBuildComponent::Place(bool bQuick)
 
 		building->Build();
 
-		Camera->PlayAmbientSound(building->AmbientAudioComponent, PlaceSound);
+		Camera->AudioManager->PlayAmbientSound(building->AmbientAudioComponent, PlaceSound);
 	}
 
 	if (Camera->Start)

@@ -44,6 +44,9 @@ public:
 		float TargetLength;
 
 	UPROPERTY()
+		float MaxLength;
+
+	UPROPERTY()
 		FVector MovementLocation;
 
 	UPROPERTY()

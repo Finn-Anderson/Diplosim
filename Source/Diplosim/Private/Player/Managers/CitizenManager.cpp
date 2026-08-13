@@ -20,6 +20,7 @@
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/ArmyManager.h"
@@ -583,9 +584,9 @@ void UCitizenManager::StartConversation(FFactionStruct* Faction, ACitizen* Citiz
 	else
 		Camera->TimerManager->CreateTimer(Citizen1->GetName() + "Interact", Camera, 6.0f, "Interact", params, false);
 
-	Camera->PlayAmbientSound(Citizen1->AmbientAudioComponent, convo1, Citizen1->VoicePitch);
+	Camera->AudioManager->PlayAmbientSound(Citizen1->AmbientAudioComponent, convo1, Citizen1->VoicePitch);
 	if (!bArrest)
-		Camera->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);
+		Camera->AudioManager->PlayAmbientSound(Citizen2->AmbientAudioComponent, convo2, Citizen2->VoicePitch);
 }
 
 void UCitizenManager::Interact(FFactionStruct Faction, ACitizen* Citizen1, ACitizen* Citizen2)

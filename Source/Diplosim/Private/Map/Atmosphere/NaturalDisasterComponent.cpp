@@ -12,8 +12,9 @@
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
-#include "Player/Managers/DiplosimTimerManager.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/ConquestManager.h"
+#include "Player/Managers/DiplosimTimerManager.h"
 #include "Universal/Resource.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/Projectile.h"
@@ -113,7 +114,7 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 		UAudioComponent* audio = NewObject<UAudioComponent>(this, UAudioComponent::StaticClass(), FName("nd-audio" + FString::FromInt(count)));
 		audio->SetupAttachment(Grid->GetRootComponent());
 		audio->SetRelativeLocation(point);
-		Grid->Camera->PlayAmbientSound(audio, Sound, 1.0f);
+		Grid->Camera->AudioManager->PlayAmbientSound(audio, Sound, 1.0f);
 		if (Grid->Camera->CustomTimeDilation > 1.0f)
 			audio->SetPaused(true);
 

@@ -12,6 +12,7 @@
 #include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Components/SaveGameComponent.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/ArmyManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -230,7 +231,7 @@ void UDiseaseManager::Injure(ACitizen* Citizen, int32 Odds)
 			Citizen->ApplyToMultiplier("Health", affect.Amount);
 	}
 
-	Citizen->Camera->PlayAmbientSound(Citizen->AmbientAudioComponent, InjureSound);
+	Citizen->Camera->AudioManager->PlayAmbientSound(Citizen->AmbientAudioComponent, InjureSound);
 }
 
 void UDiseaseManager::Cure(ACitizen* Healer, ACitizen* Citizen)

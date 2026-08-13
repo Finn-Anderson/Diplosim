@@ -25,6 +25,7 @@
 #include "Player/Components/BuildComponent.h"
 #include "Player/Components/DiplomacyComponent.h"
 #include "Player/Components/SaveGameComponent.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/DiseaseManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/ResourceManager.h"
@@ -707,7 +708,7 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 	HarvestVisualCooldownTimer = 5.0f;
 
 	Citizen->AmbientAudioComponent->SetRelativeLocation(location);
-	Citizen->Camera->PlayAmbientSound(Citizen->AmbientAudioComponent, sound);
+	Citizen->Camera->AudioManager->PlayAmbientSound(Citizen->AmbientAudioComponent, sound);
 }
 
 FVector UAIVisualiser::AddHarvestVisual(AAI* AI, FLinearColor Colour)

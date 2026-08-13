@@ -10,7 +10,6 @@
 #include "Components/WidgetComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/DecalComponent.h"
-#include "Components/AudioComponent.h"
 #include "NiagaraComponent.h"
 
 #include "AI/AI.h"
@@ -41,6 +40,7 @@
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/ArmyManager.h"
+#include "Player/Managers/AudioManager.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/EggBasket.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -70,18 +70,6 @@ ACamera::ACamera()
 	CameraComponent->PostProcessSettings.AutoExposureMinBrightness = 0.0f;
 	CameraComponent->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
 
-	InteractAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("InteractAudioComponent"));
-	InteractAudioComponent->SetupAttachment(CameraComponent);
-	InteractAudioComponent->SetUISound(true);
-	InteractAudioComponent->SetAutoActivate(false);
-	InteractAudioComponent->bCanPlayMultipleInstances = true;
-
-	MusicAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("MusicAudioComponent"));
-	MusicAudioComponent->SetupAttachment(CameraComponent);
-	MusicAudioComponent->SetVolumeMultiplier(0.0f);
-	MusicAudioComponent->SetUISound(true);
-	MusicAudioComponent->SetAutoActivate(true);
-
 	ResourceManager = CreateDefaultSubobject<UResourceManager>(TEXT("ResourceManager"));
 
 	ConstructionManager = CreateDefaultSubobject<UConstructionManager>(TEXT("ConstructionManager"));
@@ -103,6 +91,8 @@ ACamera::ACamera()
 	ConquestManager = CreateDefaultSubobject<UConquestManager>(TEXT("ConquestManager"));
 
 	ArmyManager = CreateDefaultSubobject<UArmyManager>(TEXT("ArmyManager"));
+
+	AudioManager = CreateDefaultSubobject<UAudioManager>(TEXT("AudioManager"));
 
 	SaveGameComponent = CreateDefaultSubobject<USaveGameComponent>(TEXT("SaveGameComponent"));
 
@@ -430,33 +420,9 @@ void ACamera::Quit(bool bMenu)
 		UKismetSystemLibrary::QuitGame(GetWorld(), PController, EQuitPreference::Quit, false);
 }
 
-void ACamera::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch)
-{
-	if (Sound == nullptr || Grid->Storage.IsEmpty())
-		return;
-
-	Async(EAsyncExecution::TaskGraphMainTick, [this, AudioComponent, Sound, Pitch]() {
-		float pitch = Pitch;
-
-		if (pitch == -1.0f)
-			pitch = Stream.FRandRange(0.8f, 1.2f);
-
-		if (IsValid(AudioComponent->GetOwner()) && AudioComponent->GetOwner()->IsA<AAI>())
-			AudioComponent->SetRelativeLocation(Cast<AAI>(AudioComponent->GetOwner())->MovementComponent->GetMovementTransform().GetLocation());
-
-		AudioComponent->SetSound(Sound);
-		AudioComponent->SetPitchMultiplier(pitch);
-		AudioComponent->SetVolumeMultiplier(Settings->GetAmbientVolume() * Settings->GetMasterVolume());
-		AudioComponent->Play();
-	});
-}
-
 void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
 {
-	InteractAudioComponent->SetSound(Sound);
-	InteractAudioComponent->SetVolumeMultiplier(Settings->GetMasterVolume() * Settings->GetSFXVolume());
-
-	InteractAudioComponent->Play();
+	AudioManager->PlayInteractSound(Sound, Pitch);
 }
 
 void ACamera::DisplayBuildUI()
@@ -477,7 +443,7 @@ void ACamera::ShowEvent(FString Descriptor, FString Event)
 	if (bLost)
 		return;
 
-	PlayInteractSound(EventSound);
+	PlayInteractSound(AudioManager->EventSound);
 
 	DisplayEvent(Descriptor, Event);
 }
@@ -686,7 +652,7 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 		Component = Actor->GetRootComponent();
 
 	if (!BuildComponent->IsComponentTickEnabled() && !SaveGameComponent->IsLoading())
-		PlayInteractSound(InteractSound);
+		PlayInteractSound(AudioManager->InteractSound);
 	
 	SetInteractableText(Actor, Instance);
 	ClearPopupUI();
@@ -936,7 +902,7 @@ void ACamera::Cancel()
 		ArmyManager->PlayerMoveArmy(MouseHitLocation);
 
 	if (bBulldoze || BuildComponent->IsComponentTickEnabled() || ArmyManager->PlayerSelectedArmyData.Value > INDEX_NONE)
-		PlayInteractSound(InteractSound);
+		PlayInteractSound(AudioManager->InteractSound);
 }
 
 void ACamera::NewMap()
@@ -968,7 +934,7 @@ void ACamera::Menu()
 	if (bLost)
 		return;
 
-	PlayInteractSound(InteractSound);
+	PlayInteractSound(AudioManager->InteractSound);
 
 	if (!WidgetComponent->bHiddenInGame && !BuildComponent->IsComponentTickEnabled()) {
 		SetInteractStatus(WidgetComponent->GetAttachmentRootActor(), false);

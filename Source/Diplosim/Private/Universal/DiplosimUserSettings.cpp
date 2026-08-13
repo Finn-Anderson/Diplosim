@@ -761,7 +761,7 @@ void UDiplosimUserSettings::SetAmbientVolume(float Value)
 
 float UDiplosimUserSettings::GetAmbientVolume() const
 {
-	return Camera != nullptr && Camera->CustomTimeDilation > 1.0f ? 0.0f : AmbientVolume;
+	return Camera != nullptr && (Camera->CustomTimeDilation > 1.0f || Camera->SaveGameComponent->IsLoading()) ? 0.0f : AmbientVolume;
 }
 
 void UDiplosimUserSettings::SetUIScale(float Value)
@@ -840,8 +840,13 @@ void UDiplosimUserSettings::UpdateAmbientVolume()
 	}
 
 	TArray<UAudioComponent*> components;
-	Camera->Grid->GetComponents<UAudioComponent>(components);
 
+	Camera->Grid->GetComponents<UAudioComponent>(components);
+	for (UAudioComponent* component : components)
+		if (IsValid(component))
+			component->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
+
+	Camera->GetComponents<UAudioComponent>(components);
 	for (UAudioComponent* component : components)
 		if (IsValid(component))
 			component->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());

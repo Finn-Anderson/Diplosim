@@ -22,6 +22,7 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/DiseaseManager.h"
@@ -812,7 +813,7 @@ void ACitizen::Snore(bool bCreate)
 	else {
 		int32 index = Camera->Stream.RandRange(0, Snores.Num() - 1);
 
-		Camera->PlayAmbientSound(AmbientAudioComponent, Snores[index]);
+		Camera->AudioManager->PlayAmbientSound(AmbientAudioComponent, Snores[index]);
 
 		Camera->TimerManager->UpdateTimerLength("Snore", this, time);
 	}

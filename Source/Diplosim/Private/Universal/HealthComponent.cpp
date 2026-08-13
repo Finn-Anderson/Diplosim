@@ -24,6 +24,7 @@
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/ConstructionManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -88,7 +89,7 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 	UAudioComponent* comp = HitAudioComponent;
 	if (Attacker->IsA<AEnemy>() && Sound == Cast<AEnemy>(Attacker)->AttackComponent->ZapSound)
 		comp = Cast<AEnemy>(Attacker)->HealthComponent->HitAudioComponent;
-	Camera->PlayAmbientSound(comp, Sound);
+	Camera->AudioManager->PlayAmbientSound(comp, Sound);
 }
 
 bool UHealthComponent::IsMaxHealth()
@@ -272,7 +273,7 @@ void UHealthComponent::Death(AActor* Attacker, bool bLoad)
 		});
 	}
 
-	Camera->PlayAmbientSound(HitAudioComponent, DeathSound);
+	Camera->AudioManager->PlayAmbientSound(HitAudioComponent, DeathSound);
 
 	if (bLoad)
 		return;
