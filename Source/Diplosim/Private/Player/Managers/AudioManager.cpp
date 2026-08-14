@@ -2,11 +2,13 @@
 
 #include "Components/AudioComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Camera/CameraComponent.h"
 
 #include "AI/AI.h"
 #include "AI/AIMovementComponent.h"
 #include "Map/Grid.h"
+#include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -25,30 +27,33 @@ UAudioManager::UAudioManager()
 	for (auto element : components) {
 		auto component = CreateDefaultSubobject<UAudioComponent>(element.Value);
 		*element.Key = component;
+		component->SetAutoActivate(false);
 		
 		if (component == InteractAudioComponent || component == MusicAudioComponent)
 			component->SetUISound(true);
 
-		if (component == InteractAudioComponent) {
-			component->SetAutoActivate(false);
+		if (component == InteractAudioComponent)
 			component->bCanPlayMultipleInstances = true;
-		}
-		else {
+		else
 			component->SetVolumeMultiplier(0.0f);
-			component->SetAutoActivate(true);
-		}
 	}
+
+	EventSound = InteractSound = nullptr;
+	Camera = nullptr;
+
+	LastTransform = FTransform(FQuat::Identity, FVector::Zero());
+	Counter = 0;
+
+	WindSpeedPercentage = -1.0f;
 }
 
-void UAudioManager::SetupAttachment(ACamera* Cmra)
+void UAudioManager::SetupAttachment(USceneComponent* SceneComponent)
 {
-	Camera = Cmra;
-
-	InteractAudioComponent->SetupAttachment(Camera->CameraComponent);
-	AmbientWindAudioComponent->SetupAttachment(Camera->CameraComponent);
-	AmbientTreesAudioComponent->SetupAttachment(Camera->CameraComponent);
-	AmbientSeaAudioComponent->SetupAttachment(Camera->CameraComponent);
-	MusicAudioComponent->SetupAttachment(Camera->CameraComponent);
+	InteractAudioComponent->SetupAttachment(SceneComponent);
+	AmbientWindAudioComponent->SetupAttachment(SceneComponent);
+	AmbientTreesAudioComponent->SetupAttachment(SceneComponent);
+	AmbientSeaAudioComponent->SetupAttachment(SceneComponent);
+	MusicAudioComponent->SetupAttachment(SceneComponent);
 }
 
 void UAudioManager::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase* Sound, float Pitch)
@@ -75,31 +80,49 @@ void UAudioManager::PlayAmbientSound(UAudioComponent* AudioComponent, USoundBase
 void UAudioManager::PlayInteractSound(USoundBase* Sound, float Pitch)
 {
 	InteractAudioComponent->SetSound(Sound);
+	InteractAudioComponent->SetPitchMultiplier(Pitch);
 	InteractAudioComponent->SetVolumeMultiplier(Camera->Settings->GetMasterVolume() * Camera->Settings->GetSFXVolume());
 
 	InteractAudioComponent->Play();
 }
 
-void UAudioManager::CalculateAmbientEnvironmentSound()
+void UAudioManager::CalculateAmbientEnvironmentSound(bool bForce)
 {
-	FScopeTryLock lock(&AmbientLock);
-	if (!lock.IsLocked())
-		return;
+	if (!AmbientWindAudioComponent->IsActive())
+		AmbientWindAudioComponent->Activate();
 
-	Async(EAsyncExecution::TaskGraph, [this]() {
+	if (!AmbientTreesAudioComponent->IsActive())
+		AmbientTreesAudioComponent->Activate();
+
+	if (!AmbientSeaAudioComponent->IsActive())
+		AmbientSeaAudioComponent->Activate();
+
+	Async(EAsyncExecution::TaskGraph, [this, bForce]() {
 		FScopeTryLock lock(&AmbientLock);
 		if (!lock.IsLocked())
 			return;
 
-		// Wind
-		FVector location = Camera->CameraComponent->GetComponentLocation();
+		FTransform transform = Camera->CameraComponent->GetComponentTransform();
+		if ((transform.GetLocation() - LastTransform.GetLocation()).IsNearlyZero(1.0f) && !bForce)
+			return;
+
+		if (Counter > 0 && !bForce) {
+			Counter--;
+
+			return;
+		}
+
+		LastTransform = transform;
+		Counter = 20;
+
 		float volume = Camera->Settings->GetAmbientVolume() * Camera->Settings->GetMasterVolume();
 
-		AmbientWindAudioComponent->SetVolumeMultiplier((location.Z / Camera->MovementComponent->MaxLength) * volume);
+		// Wind
+		AmbientWindAudioComponent->SetVolumeMultiplier((LastTransform.GetLocation().Z / Camera->MovementComponent->MaxLength) * volume * GetWindSpeedVolume());
 		
 		// Trees
 		FVector closestPoint = FVector(100000000.0f);
-		for (FResourceHISMStruct treeStruct : Camera->Grid->TreeStruct) {
+		for (const FResourceHISMStruct& treeStruct : Camera->Grid->TreeStruct) {
 			if (!treeStruct.Resource->ResourceHISM)
 				continue;
 
@@ -107,23 +130,24 @@ void UAudioManager::CalculateAmbientEnvironmentSound()
 				if (!treeStruct.Resource->ResourceHISM->IsValidInstance(i))
 					continue;
 
-				FTransform transform;
-				treeStruct.Resource->ResourceHISM->GetInstanceTransform(i, transform);
+				FTransform t;
+				treeStruct.Resource->ResourceHISM->GetInstanceTransform(i, t);
 
-				if (FVector::Dist(transform.GetLocation(), location) > FVector::Dist(closestPoint, location))
+				if (FVector::Dist(t.GetLocation(), LastTransform.GetLocation()) > FVector::Dist(closestPoint, LastTransform.GetLocation()))
 					continue;
 
-				closestPoint = transform.GetLocation();
+				closestPoint = t.GetLocation();
 			}
 		}
 
-		AmbientTreesAudioComponent->SetWorldLocation(closestPoint);
+		float distance = FMath::Min(1.0f / FMath::Pow(FMath::LogX(300, FVector::Dist(LastTransform.GetLocation(), closestPoint)), 5), 1.0f);
+		AmbientTreesAudioComponent->SetVolumeMultiplier(distance * volume * GetWindSpeedVolume());
 
 		// Sea
-		Camera->Grid->HISMSea->GetClosestPointOnCollision(location, closestPoint);
+		Camera->Grid->SeaComponent->GetClosestPointOnCollision(LastTransform.GetLocation(), closestPoint);
 
 		FCollisionQueryParams params;
-		params.AddIgnoredComponent(Camera->Grid->HISMSea);
+		params.AddIgnoredComponent(Camera->Grid->SeaComponent);
 		params.AddIgnoredActor(Camera);
 
 		if (GetWorld()->LineTraceTestByChannel(closestPoint, closestPoint + FVector(0.0f, 0.0f, Camera->Grid->MaxLevel * 75.0f + 100.0f), ECollisionChannel::ECC_GameTraceChannel1, params)) {
@@ -133,23 +157,42 @@ void UAudioManager::CalculateAmbientEnvironmentSound()
 					if (!tile.bEdge || tile.Level != 0)
 						continue;
 
-					FTransform transform = Camera->Grid->GetTransform(&tile);
+					FTransform t = Camera->Grid->GetTransform(&tile);
 
-					if (FVector::Dist(transform.GetLocation(), location) > FVector::Dist(closestPoint, location))
+					if (FVector::Dist(t.GetLocation(), LastTransform.GetLocation()) > FVector::Dist(closestPoint, LastTransform.GetLocation()))
 						continue;
 
-					closestPoint = transform.GetLocation();
+					closestPoint = t.GetLocation();
 				}
 			}
 		}
 
-		AmbientSeaAudioComponent->SetWorldLocation(closestPoint);
+		distance = FMath::Min(1.0f / FMath::Pow(FMath::LogX(300, FVector::Dist(LastTransform.GetLocation(), closestPoint)), 5), 1.0f);
+		AmbientSeaAudioComponent->SetVolumeMultiplier(distance * volume);
 	});
 }
 
-void UAudioManager::AlterWindPitch(float WindSpeedPercentage)
+void UAudioManager::AlterWindPitch(float WindSpeedPerc)
 {
-	float pitch = 1.0f + (WindSpeedPercentage * 0.5f);
-	AmbientWindAudioComponent->SetPitchMultiplier(pitch);
-	AmbientTreesAudioComponent->SetPitchMultiplier(pitch);
+	bool recalc = WindSpeedPercentage != -1.0f ? true : false;
+
+	WindSpeedPercentage = WindSpeedPerc;
+
+	AmbientWindAudioComponent->SetPitchMultiplier(WindSpeedPercentage);
+	AmbientTreesAudioComponent->SetPitchMultiplier(WindSpeedPercentage);
+
+	if (recalc)
+		CalculateAmbientEnvironmentSound(true);
+}
+
+void UAudioManager::ClearAmbientSound()
+{
+	AmbientWindAudioComponent->SetVolumeMultiplier(0.0f);
+	AmbientTreesAudioComponent->SetVolumeMultiplier(0.0f);
+	AmbientSeaAudioComponent->SetVolumeMultiplier(0.0f);
+}
+
+float UAudioManager::GetWindSpeedVolume()
+{
+	return WindSpeedPercentage * 1.25f;
 }

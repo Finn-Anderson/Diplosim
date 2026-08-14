@@ -273,7 +273,7 @@ public:
 		void Quit(bool bMenu);
 
 	UFUNCTION(BlueprintCallable)
-		void PlayInteractSound(USoundBase* Sound, float Pitch = 1.0f);
+		void PlayButtonSound();
 
 	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")

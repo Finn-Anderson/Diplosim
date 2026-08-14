@@ -24,6 +24,7 @@
 #include "Map/Resources/Vegetation.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/CitizenManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -55,7 +56,6 @@ AGrid::AGrid()
 
 	TMap<UHierarchicalInstancedStaticMeshComponent**, FName> hisms;
 	hisms.Add(&HISMLava, TEXT("HISMLava"));
-	hisms.Add(&HISMSea, TEXT("HISMSea"));
 	hisms.Add(&HISMFlatGround, TEXT("HISMFlatGround"));
 	hisms.Add(&HISMGround, TEXT("HISMGround"));
 	hisms.Add(&HISMRampGround, TEXT("HISMRampGround"));
@@ -75,15 +75,15 @@ AGrid::AGrid()
 		hism->PrimaryComponentTick.bCanEverTick = false;
 
 		bool bwpo = false;
-		if (hism == HISMSea || hism == HISMRiver)
+		if (hism == HISMRiver)
 			bwpo = true;
 
 		hism->SetEvaluateWorldPositionOffset(bwpo);
 
-		if (hism == HISMLava || hism == HISMSea || hism == HISMRiver)
+		if (hism == HISMLava || hism == HISMRiver)
 			hism->SetCanEverAffectNavigation(false);
 
-		if (hism == HISMLava || hism == HISMFlatGround || hism == HISMSea || hism == HISMRiver)
+		if (hism == HISMLava || hism == HISMFlatGround || hism == HISMRiver)
 			hism->SetCastShadow(false);
 
 		if (hism == HISMFlatGround || hism == HISMGround || hism == HISMRampGround)
@@ -93,8 +93,21 @@ AGrid::AGrid()
 	}
 
 	HISMGround->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
-
 	HISMRiver->SetWorldPositionOffsetDisableDistance(5000);
+
+	SeaComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SeaComponent"));
+	SeaComponent->SetupAttachment(GetRootComponent());
+	SeaComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f));
+	SeaComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SeaComponent->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	SeaComponent->SetCollisionResponseToChannels(response);
+	SeaComponent->SetGenerateOverlapEvents(false);
+	SeaComponent->SetMobility(EComponentMobility::Static);
+	SeaComponent->SetEvaluateWorldPositionOffset(true);
+	SeaComponent->SetCanEverAffectNavigation(false);
+	SeaComponent->SetCastShadow(false);
+	SeaComponent->bWorldPositionOffsetWritesVelocity = false;
+	SeaComponent->PrimaryComponentTick.bCanEverTick = false;
 
 	LavaComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("LavaComponent"));
 	LavaComponent->SetupAttachment(GetRootComponent());
@@ -221,6 +234,8 @@ void AGrid::Load()
 
 	Camera->UpdateLoadingText("Initialising Map");
 
+	Camera->AudioManager->ClearAmbientSound();
+
 	FTimerHandle RenderTimer;
 	GetWorld()->GetTimerManager().SetTimer(RenderTimer, this, &AGrid::SetupMap, 0.001f, false);
 }
@@ -270,11 +285,7 @@ void AGrid::InitialiseStorage()
 
 void AGrid::SetupMap()
 {
-	FTransform seaTransform;
-	seaTransform.SetLocation(FVector(0.0f, 0.0f, 50.0f));
-	seaTransform.SetScale3D(FVector(FMath::Sqrt((float)Chunks), FMath::Sqrt((float)Chunks), 1.0f));
-	HISMSea->AddInstance(seaTransform);
-	HISMSea->BuildTreeIfOutdated(true, true);
+	SeaComponent->SetRelativeScale3D(FVector(FMath::Sqrt((float)Chunks), FMath::Sqrt((float)Chunks), 1.0f));
 
 	SetMapBounds();
 	auto bound = GetMapBounds();
@@ -1419,7 +1430,6 @@ void AGrid::Clear()
 	AIVisualiser->ResetToDefaultValues();
 
 	HISMLava->ClearInstances();
-	HISMSea->ClearInstances();
 	HISMFlatGround->ClearInstances();
 	HISMGround->ClearInstances();
 	HISMRampGround->ClearInstances();

@@ -1,6 +1,8 @@
 #include "DebugManager.h"
 
 #include "Components/WidgetComponent.h"
+#include "Materials/MaterialParameterCollectionInstance.h"
+#include "NiagaraComponent.h"
 
 #include "AI/AIMovementComponent.h"
 #include "AI/Citizen/Citizen.h"
@@ -12,6 +14,7 @@
 #include "Map/AIVisualiser.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/ResearchManager.h"
 #include "Player/Managers/ConquestManager.h"
@@ -75,9 +78,18 @@ void UDebugManager::SetRain(bool bChance)
 
 void UDebugManager::SetWindSpeed(int32 Speed)
 {
+	Speed = FMath::Clamp(Speed, 0, 100);
+
 	ACamera* camera = GetPlayerController()->GetPawn<ACamera>();
 
 	camera->Grid->AtmosphereComponent->WindSpeed = Speed;
+	camera->AudioManager->AlterWindPitch(Speed / 100.0f);
+
+	UMaterialParameterCollectionInstance* Instance = GetWorld()->GetParameterCollectionInstance(camera->Grid->AtmosphereComponent->WindCollection);
+	Instance->SetScalarParameterValue("WindSpeed", Speed / 50.0f);
+	Instance->SetVectorParameterValue("WindRotation", FLinearColor(camera->Grid->AtmosphereComponent->WindRotation.Vector()));
+
+	camera->Grid->AtmosphereComponent->WindComponent->SetVariableFloat("SpawnRate", camera->Grid->GetMapBounds() / 100.0f * (Speed / 10.0f));
 }
 
 void UDebugManager::AddResearch(float Amount)

@@ -20,6 +20,7 @@
 #include "Map/Atmosphere/Clouds.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Player/Camera.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Components/SaveGameComponent.h"
@@ -761,7 +762,7 @@ void UDiplosimUserSettings::SetAmbientVolume(float Value)
 
 float UDiplosimUserSettings::GetAmbientVolume() const
 {
-	return Camera != nullptr && (Camera->CustomTimeDilation > 1.0f || Camera->SaveGameComponent->IsLoading()) ? 0.0f : AmbientVolume;
+	return Camera != nullptr && !Camera->SettingsUIInstance->IsInViewport() && (Camera->CustomTimeDilation > 1.0f || Camera->SaveGameComponent->IsLoading()) ? 0.0f : AmbientVolume;
 }
 
 void UDiplosimUserSettings::SetUIScale(float Value)
@@ -846,14 +847,11 @@ void UDiplosimUserSettings::UpdateAmbientVolume()
 		if (IsValid(component))
 			component->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
 
-	Camera->GetComponents<UAudioComponent>(components);
-	for (UAudioComponent* component : components)
-		if (IsValid(component))
-			component->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
-
 	for (FCloudStruct cloud : Camera->Grid->AtmosphereComponent->Clouds->Clouds)
 		if (IsValid(cloud.AudioComponent))
 			cloud.AudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
+
+	Camera->AudioManager->CalculateAmbientEnvironmentSound(true);
 }
 
 FVector2D UDiplosimUserSettings::GetWindowPosAsVector(FString Value)

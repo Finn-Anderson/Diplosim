@@ -93,6 +93,7 @@ ACamera::ACamera()
 	ArmyManager = CreateDefaultSubobject<UArmyManager>(TEXT("ArmyManager"));
 
 	AudioManager = CreateDefaultSubobject<UAudioManager>(TEXT("AudioManager"));
+	AudioManager->SetupAttachment(CameraComponent);
 
 	SaveGameComponent = CreateDefaultSubobject<USaveGameComponent>(TEXT("SaveGameComponent"));
 
@@ -148,6 +149,7 @@ void ACamera::BeginPlay()
 	EventsManager->Camera = this;
 	PoliticsManager->Camera = this;
 	PoliceManager->Camera = this;
+	AudioManager->Camera = this;
 
 	ResourceManager->GameMode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
@@ -420,9 +422,9 @@ void ACamera::Quit(bool bMenu)
 		UKismetSystemLibrary::QuitGame(GetWorld(), PController, EQuitPreference::Quit, false);
 }
 
-void ACamera::PlayInteractSound(USoundBase* Sound, float Pitch)
+void ACamera::PlayButtonSound()
 {
-	AudioManager->PlayInteractSound(Sound, Pitch);
+	AudioManager->PlayInteractSound(AudioManager->InteractSound);
 }
 
 void ACamera::DisplayBuildUI()
@@ -443,7 +445,7 @@ void ACamera::ShowEvent(FString Descriptor, FString Event)
 	if (bLost)
 		return;
 
-	PlayInteractSound(AudioManager->EventSound);
+	AudioManager->PlayInteractSound(AudioManager->EventSound);
 
 	DisplayEvent(Descriptor, Event);
 }
@@ -652,7 +654,7 @@ void ACamera::DisplayInteract(AActor* Actor, USceneComponent* Component, int32 I
 		Component = Actor->GetRootComponent();
 
 	if (!BuildComponent->IsComponentTickEnabled() && !SaveGameComponent->IsLoading())
-		PlayInteractSound(AudioManager->InteractSound);
+		PlayButtonSound();
 	
 	SetInteractableText(Actor, Instance);
 	ClearPopupUI();
@@ -884,7 +886,7 @@ void ACamera::Bulldoze()
 		return;
 	}
 
-	PlayInteractSound(BuildComponent->PlaceSound);
+	AudioManager->PlayInteractSound(BuildComponent->PlaceSound);
 
 	Cast<ABuilding>(HoveredActor.Actor)->DestroyBuilding();
 }
@@ -902,7 +904,7 @@ void ACamera::Cancel()
 		ArmyManager->PlayerMoveArmy(MouseHitLocation);
 
 	if (bBulldoze || BuildComponent->IsComponentTickEnabled() || ArmyManager->PlayerSelectedArmyData.Value > INDEX_NONE)
-		PlayInteractSound(AudioManager->InteractSound);
+		PlayButtonSound();
 }
 
 void ACamera::NewMap()
@@ -931,10 +933,10 @@ void ACamera::Pause()
 
 void ACamera::Menu()
 {
-	if (bLost)
+	if (bLost || MainMenuUIInstance->IsInViewport())
 		return;
 
-	PlayInteractSound(AudioManager->InteractSound);
+	PlayButtonSound();
 
 	if (!WidgetComponent->bHiddenInGame && !BuildComponent->IsComponentTickEnabled()) {
 		SetInteractStatus(WidgetComponent->GetAttachmentRootActor(), false);

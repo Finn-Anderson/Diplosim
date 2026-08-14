@@ -12,7 +12,7 @@ class DIPLOSIM_API UAudioManager : public UActorComponent
 public:	
 	UAudioManager();
 
-	void SetupAttachment(class ACamera* Camera);
+	void SetupAttachment(class USceneComponent* SceneComponent);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* InteractAudioComponent;
@@ -42,10 +42,19 @@ public:
 
 	void PlayInteractSound(class USoundBase* Sound, float Pitch = 1.0f);
 
-	void CalculateAmbientEnvironmentSound();
+	void CalculateAmbientEnvironmentSound(bool bForce = false);
 
-	void AlterWindPitch(float WindSpeedPercentage);
+	void AlterWindPitch(float WindSpeedPerc);
+
+	void ClearAmbientSound();
 
 private:
 	FCriticalSection AmbientLock;
+	int32 Counter;
+
+	FTransform LastTransform;
+
+	float WindSpeedPercentage;
+
+	float GetWindSpeedVolume();
 };

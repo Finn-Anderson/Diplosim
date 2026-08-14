@@ -75,16 +75,13 @@ void UCameraMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	if (movementLoc != FVector::Zero())
 		MovementLocation = movementLoc;
 
-	bool bRecalcSound = Camera->SpringArmComponent->TargetArmLength != TargetLength || Camera->GetActorLocation() != MovementLocation;
-
 	if (Camera->SpringArmComponent->TargetArmLength != TargetLength)
 		Camera->SpringArmComponent->TargetArmLength = FMath::FInterpTo(Camera->SpringArmComponent->TargetArmLength, TargetLength, DeltaTime, armSpeed);
 
 	if (Camera->GetActorLocation() != MovementLocation)
 		Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(), MovementLocation, DeltaTime, movementSpeed));
 
-	if (bRecalcSound)
-		Camera->AudioManager->CalculateAmbientEnvironmentSound();
+	Camera->AudioManager->CalculateAmbientEnvironmentSound();
 
 	if (!bShake)
 		return;

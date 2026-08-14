@@ -146,7 +146,7 @@ public:
 		class UHierarchicalInstancedStaticMeshComponent* HISMRiver;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
-		class UHierarchicalInstancedStaticMeshComponent* HISMSea;
+		class UStaticMeshComponent* SeaComponent;
 
 	// Dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions")

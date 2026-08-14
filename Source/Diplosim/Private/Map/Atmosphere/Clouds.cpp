@@ -422,7 +422,7 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 			{
 				UPrimitiveComponent* component = hit.GetComponent();
 
-				if (!IsValid(hit.GetActor()) || !IsValid(component) || !component->IsA<UPrimitiveComponent>() || component == Grid->HISMSea || component == Grid->HISMLava || component == Grid->HISMRiver || (component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(component)->NumCustomDataFloats == 0)) {
+				if (!IsValid(hit.GetActor()) || !IsValid(component) || !component->IsA<UPrimitiveComponent>() || component == Grid->SeaComponent || component == Grid->HISMLava || component == Grid->HISMRiver || (component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(component)->NumCustomDataFloats == 0)) {
 					FScopeLock lock(&RainDropLock);
 					RainDropLocations.RemoveNode(node);
 

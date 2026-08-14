@@ -168,14 +168,14 @@ void UBuildComponent::GetBuildLocationZ(ABuilding* Building, FVector& Location)
 		if (!IsValid(hit.GetComponent()))
 			return;
 
-		if ((hit.GetComponent() == Camera->Grid->HISMRiver || hit.GetComponent() == Camera->Grid->HISMSea) && (Building->IsA<ARoad>() || (Building->bCanBuildOnBridge)))
+		if ((hit.GetComponent() == Camera->Grid->HISMRiver || hit.GetComponent() == Camera->Grid->SeaComponent) && (Building->IsA<ARoad>() || (Building->bCanBuildOnBridge)))
 			Location.Z += 20.0f;
 		else if (hit.GetActor()->IsA(RampClass) && !Building->IsA<ARoad>())
 			Location.Z -= 37.5f;
 		else if (Building->IsA(FoundationClass)) {
 			if (hit.GetComponent() == Camera->Grid->HISMRiver)
 				Location.Z -= 55.0f;
-			else if (hit.GetComponent() == Camera->Grid->HISMSea || hit.GetComponent() == Camera->Grid->HISMRampGround)
+			else if (hit.GetComponent() == Camera->Grid->SeaComponent || hit.GetComponent() == Camera->Grid->HISMRampGround)
 				Location.Z -= 25.0f;
 		}
 	}
@@ -495,10 +495,10 @@ bool UBuildComponent::IsValidLocation(AActor* Actor, float Extent, FVector Locat
 		else
 			transform = hit.GetActor()->GetTransform();
 
-		if (hit.GetComponent() == Camera->Grid->HISMSea || hit.GetComponent() == Camera->Grid->HISMRiver) {
+		if (hit.GetComponent() == Camera->Grid->SeaComponent || hit.GetComponent() == Camera->Grid->HISMRiver) {
 			FVector location = transform.GetLocation();
 
-			if (hit.GetComponent() == Camera->Grid->HISMSea) {
+			if (hit.GetComponent() == Camera->Grid->SeaComponent) {
 				auto bound = Camera->Grid->GetMapBounds();
 
 				int32 x = FMath::RoundHalfFromZero(hit.Location.X / 100.0f) * 100.0f;
