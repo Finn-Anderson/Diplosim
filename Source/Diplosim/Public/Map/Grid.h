@@ -116,7 +116,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ground", meta = (ClampMin = "0.0", ClampMax = "100.0", UIMin = "0.0", UIMax = "100.0"))
 		int32 PercentageGround;
 
-	//UI
+	// UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		TSubclassOf<class UUserWidget> LoadUI;
 
@@ -299,7 +299,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int32 VegetationSizeMultiplier;
 
-	// Grid Buildings
+	// Grid Buildings + AI
 		void GetChosenTileLocation(AActor* Actor, TArray<UClass*> Classes = {});
 
 	void SetupMapBuildings(AActor* Actor, TArray<UClass*> Classes, TArray<FTileStruct*> ValidLocations);
@@ -314,6 +314,8 @@ public:
 	UFUNCTION()
 		void SpawnEggBasket();
 
+	void SpawnBirds();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Egg Basket")
 		TSubclassOf<class AEggBasket> EggBasketClass;
 
@@ -326,11 +328,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unique")
 		TArray<TSubclassOf<class ASpecial>> SpecialBuildingClasses;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI Spawner")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 		TSubclassOf<class AAISpawner> AISpawnerClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI Spawner")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 		int32 NumOfNests;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+		TSubclassOf<class AAI> BirdClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+		int32 BirdsNum;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+		int32 MaxBirdsNum;
+
+	UPROPERTY()
+		TArray<class AAI*> Birds;
 
 private:
 	FCriticalSection CounterLock;

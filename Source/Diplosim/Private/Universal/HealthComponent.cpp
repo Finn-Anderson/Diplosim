@@ -256,7 +256,7 @@ void UHealthComponent::Death(AActor* Attacker, bool bLoad)
 
 			if (actor->IsA<AEnemy>()) {
 				AEnemy* enemy = Cast<AEnemy>(actor);
-				enemy->MovementComponent->Transform.SetLocation(enemy->MovementComponent->Transform.GetLocation() - FVector(0.0f, 0.0f, 1000.0f));
+				enemy->MovementComponent->Transform.SetLocation(enemy->MovementComponent->Transform.GetLocation() - FVector(0.0f, 0.0f, 10000.0f));
 
 				deathComp->SetColorParameter("Colour", enemy->Colour);
 			}

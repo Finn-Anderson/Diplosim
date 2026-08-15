@@ -53,6 +53,7 @@ UAIVisualiser::UAIVisualiser()
 	hisms.Add(&HISMRebel, TEXT("HISMRebel"));
 	hisms.Add(&HISMEnemy, TEXT("HISMEnemy"));
 	hisms.Add(&HISMSnake, TEXT("HISMSnake"));
+	hisms.Add(&HISMBird, TEXT("HISMBird"));
 
 	for (auto& element : hisms) {
 		auto hism = CreateDefaultSubobject<UAIInstancedStaticMeshComponent>(element.Value);
@@ -98,6 +99,7 @@ void UAIVisualiser::SetupAttachment(USceneComponent* RootComponent)
 	HISMRebel->SetupAttachment(AIContainer);
 	HISMEnemy->SetupAttachment(AIContainer);
 	HISMSnake->SetupAttachment(AIContainer);
+	HISMBird->SetupAttachment(AIContainer);
 	HarvestNiagaraComponent->SetupAttachment(AIContainer);
 	HatsContainer->SetupAttachment(AIContainer);
 }
@@ -134,8 +136,6 @@ void UAIVisualiser::MainLoop(ACamera* Camera, float DeltaTime)
 {
 	HarvestVisualCooldownTimer = FMath::Max(HarvestVisualCooldownTimer - DeltaTime, 0.0f);
 
-	CalculateCitizenMovement(Camera);
-
 	CalculateAIMovement(Camera);
 
 	CalculateBuildingDeath(Camera);
@@ -143,7 +143,35 @@ void UAIVisualiser::MainLoop(ACamera* Camera, float DeltaTime)
 	CalculateBuildingRotation(Camera);
 }
 
-void UAIVisualiser::CalculateInstanceChange(ACamera* Camera, UAIInstancedStaticMeshComponent* ISM, TArray<AAI*> AIList, bool bHat)
+void UAIVisualiser::RemoveInstances(class UAIInstancedStaticMeshComponent* ISM, TArray<AAI*>& AIList, int32 StartInstance, bool bRemove, TArray<int32> InstancesToDelete)
+{
+	for (int32 i = AIList.Num() - 1; i > -1; i--) {
+		if (!AIList[i]->HealthComponent->bDead)
+			continue;
+
+		AIList.RemoveAt(i);
+		InstancesToDelete.Add(StartInstance + i);
+	}
+
+	if (bRemove)
+		ISM->RemoveInstances(InstancesToDelete);
+}
+
+void UAIVisualiser::RemoveInstances(class UAIInstancedStaticMeshComponent* ISM, TArray<ACitizen*>& CitizensList, int32 StartInstance, bool bRemove, TArray<int32> InstancesToDelete)
+{
+	for (int32 i = CitizensList.Num() - 1; i > -1; i--) {
+		if (!CitizensList[i]->HealthComponent->bDead)
+			continue;
+
+		CitizensList.RemoveAt(i);
+		InstancesToDelete.Add(StartInstance + i);
+	}
+
+	if (bRemove)
+		ISM->RemoveInstances(InstancesToDelete);
+}
+
+void UAIVisualiser::AddInstances(ACamera* Camera, UAIInstancedStaticMeshComponent* ISM, TArray<AAI*> AIList, bool bHat)
 {
 	if (AIList.Num() <= ISM->GetInstanceCount())
 		return;
@@ -167,66 +195,70 @@ void UAIVisualiser::CalculateInstanceChange(ACamera* Camera, UAIInstancedStaticM
 	ISM->AddInstances(transforms, false, false, false);
 }
 
-void UAIVisualiser::CalculateCitizenMovement(ACamera* Camera)
+void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 {
 	if (Counter != MaxCounter)
 		return;
 
 	FScopeTryLock lock(&CitizenMovementLock);
 	if (!lock.IsLocked())
-		return;
+		return; 
+
+	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 	if (HarvestVisualCooldownTimer == 0.0f && HarvestNiagaraComponent->IsActive())
 		HarvestNiagaraComponent->Deactivate();
 
-	TArray<ACitizen*> cs;
+	TArray<AAI*> AIList;
+
+	TArray<AAI*> cs;
 	TArray<int32> citizenInstancesToDelete;
 
-	TArray<ACitizen*> rebels;
+	TArray<AAI*> rebels;
 	TArray<int32> rebelInstancesToDelete;
 
+	TArray<AAI*> clones;
+	TArray<int32> cloneInstancesToDelte;
+
+	int32 count = 0;
+
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-		for (int32 i = faction.Citizens.Num() - 1; i > -1; i--) {
-			if (!faction.Citizens[i]->HealthComponent->bDead)
-				continue;
+		count++;
 
-			faction.Citizens.RemoveAt(i);
-			citizenInstancesToDelete.Add(cs.Num() + i);
-		}
+		AIList.Empty();
+		for (ACitizen* citizen : faction.Citizens)
+			AIList.Add(citizen);
+		cs.Append(AIList);
 
-		for (int32 i = faction.Rebels.Num() - 1; i > -1; i--) {
-			if (!faction.Rebels[i]->HealthComponent->bDead)
-				continue;
+		AIList.Empty();
+		for (ACitizen* rebel : faction.Rebels)
+			AIList.Add(rebel);
+		rebels.Append(AIList);
 
-			faction.Rebels.RemoveAt(i);
-			rebelInstancesToDelete.Add(rebels.Num() + i);
-		}
+		clones.Append(faction.Clones);
 
-		cs.Append(faction.Citizens);
-		rebels.Append(faction.Rebels);
+		RemoveInstances(HISMCitizen, faction.Citizens, cs.Num(), count == Camera->ConquestManager->Factions.Num(), citizenInstancesToDelete);
+		RemoveInstances(HISMRebel, faction.Rebels, rebels.Num(), count == Camera->ConquestManager->Factions.Num(), rebelInstancesToDelete);
+		RemoveInstances(HISMClone, faction.Clones, clones.Num(), count == Camera->ConquestManager->Factions.Num(), cloneInstancesToDelte);
 	}
+	RemoveInstances(HISMEnemy, gamemode->Enemies);
+	RemoveInstances(HISMSnake, gamemode->Snakes);
+	RemoveInstances(HISMBird, Camera->Grid->Birds);
 
-	HISMCitizen->RemoveInstances(citizenInstancesToDelete);
-	HISMRebel->RemoveInstances(rebelInstancesToDelete);
-
-	TArray<AAI*> AIList;
-	for (ACitizen* citizen : cs)
-		AIList.Add(citizen);
-	CalculateInstanceChange(Camera, HISMCitizen, AIList);
-
+	AddInstances(Camera, HISMCitizen, cs);
 	for (FHatsStruct& hat : HISMHats) {
 		AIList.Empty();
 		for (ACitizen* citizen : hat.Citizens)
 			AIList.Add(citizen);
-		CalculateInstanceChange(Camera, hat.ISMHat, AIList, true);
+		AddInstances(Camera, hat.ISMHat, AIList, true);
 	}
+	AddInstances(Camera, HISMRebel, rebels);
+	AddInstances(Camera, HISMClone, clones);
+	AddInstances(Camera, HISMEnemy, gamemode->Enemies);
+	AddInstances(Camera, HISMSnake, gamemode->Snakes);
+	AddInstances(Camera, HISMBird, Camera->Grid->Birds);
 
-	AIList.Empty();
-	for (ACitizen* citizen : rebels)
-		AIList.Add(citizen);
-	CalculateInstanceChange(Camera, HISMRebel, AIList);
-
-	Async(EAsyncExecution::TaskGraph, [this, Camera, cs, rebels]() {
+	Async(EAsyncExecution::TaskGraph, [this, Camera, cs, rebels, clones, gamemode]() {
 		FScopeTryLock lock(&CitizenMovementLock);
 		if (!lock.IsLocked())
 			return;
@@ -261,18 +293,19 @@ void UAIVisualiser::CalculateCitizenMovement(ACamera* Camera)
 			HISMCitizen->SetCustomPrimitiveDataFloat(2, faction.FlagColour.B);
 		}
 
-		if (cs.IsEmpty() && rebels.IsEmpty())
-			return; 
+		TArray<AAI*> ais;
+		ais.Append(cs);
+		ais.Append(rebels);
+		ais.Append(clones);
+		ais.Append(gamemode->Enemies);
+		ais.Append(gamemode->Snakes);
+		ais.Append(Camera->Grid->Birds);
 
-		TArray<ACitizen*> citizens;
-		citizens.Append(cs);
-		citizens.Append(rebels);
-
-		MaxCounter = FMath::CeilToInt32((cs.Num() + rebels.Num()) / 500.0f);
+		MaxCounter = FMath::CeilToInt32(ais.Num() / 500.0f);
 		Counter = 0;
 
 		for (int32 i = 0; i < MaxCounter; i++) {
-			Async(EAsyncExecution::TaskGraph, [this, Camera, citizens, i, cs]() {
+			Async(EAsyncExecution::TaskGraph, [this, Camera, ais, i, cs, rebels, clones, gamemode]() {
 				if (Camera->SaveGameComponent->IsLoading()) {
 					Counter = MaxCounter;
 
@@ -282,70 +315,108 @@ void UAIVisualiser::CalculateCitizenMovement(ACamera* Camera)
 				TMap<FString, TMap<int32, FTransform>> instanceTransformsToUpdate;
 				instanceTransformsToUpdate.Add("Citizens");
 				instanceTransformsToUpdate.Add("Rebels");
+				instanceTransformsToUpdate.Add("Clones");
+				instanceTransformsToUpdate.Add("Enemies");
+				instanceTransformsToUpdate.Add("Snakes");
+				instanceTransformsToUpdate.Add("Birds");
 
 				TMap<FString, TArray<int32>> instances;
 				instances.Add("Citizens");
 				instances.Add("Rebels");
+				instances.Add("Clones");
+				instances.Add("Enemies");
+				instances.Add("Snakes");
+				instances.Add("Birds");
 
 				TArray<FHatsToUpdateStruct> hatsToUpdate;
 
-				for (int32 index = (citizens.Num() * i) / MaxCounter; index < (citizens.Num() * (i + 1)) / MaxCounter; index++) {
+				for (int32 j = (ais.Num() * i) / MaxCounter; j < (ais.Num() * (i + 1)) / MaxCounter; j++) {
 					if (Camera->SaveGameComponent->IsLoading()) {
 						Counter = MaxCounter;
 
 						return;
 					}
 
-					ACitizen* citizen = citizens[index];
+					int32 index = j;
+					AAI* ai = ais[index];
 
-					if (citizen == nullptr)
+					if (ai == nullptr)
 						continue;
 
-					FString id = cs.Contains(citizen) ? "Citizens" : "Rebels";
-
+					FString id = "";
 					UAIInstancedStaticMeshComponent* ism = nullptr;
-					if (id == "Citizens")
+					if (cs.Contains(ai)) {
+						id = "Citizens";
 						ism = HISMCitizen;
-					else {
+					}
+					else if (rebels.Contains(ai)) {
+						id = "Rebels";
 						ism = HISMRebel;
 						index -= cs.Num();
 					}
-
-					float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - citizen->MovementComponent->LastUpdatedTime, 1.0f);
-					citizen->MovementComponent->ComputeMovement(deltaTime, *instances.Find(id));
-
-					if (id == "Citizens") {
-						float opacity = 1.0f;
-						if (IsValid(citizen->BuildingComponent->BuildingAt) && !Camera->PoliceManager->IsInJail(citizen)) {
-							if (citizen->BuildingComponent->BuildingAt->bHideCitizen)
-								opacity = 0.0f;
-							else if (!citizen->BuildingComponent->BuildingAt->SocketList.IsEmpty()) {
-								FSocketStruct socketStruct;
-								socketStruct.Citizen = citizen;
-
-								int32 socketIndex = citizen->BuildingComponent->BuildingAt->SocketList.Find(socketStruct);
-
-								if (socketIndex != INDEX_NONE)
-									citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->SocketList[socketIndex].SocketLocation);
-							}
-						}
-
-						UpdateInstanceCustomData(ism, index, 1, citizen->bSelected * 2.0f, *instances.Find(id));
-						UpdateInstanceCustomData(ism, index, 14, opacity, *instances.Find(id));
-						UpdateInstanceCustomData(ism, index, 18, citizen->bCommander, *instances.Find(id));
-						UpdateInstanceCustomData(ism, index, 19, Camera->EventsManager->IsProtest(citizen), *instances.Find(id));
-
-						UpdateHatTransform(citizen, hatsToUpdate);
-
-						SetEyesVisuals(ism, index, citizen, *instances.Find(id));
+					else if (clones.Contains(ai)) {
+						id = "Clones";
+						ism = HISMClone;
+						index -= (cs.Num() + rebels.Num());
+					}
+					else if (gamemode->Enemies.Contains(ai)) {
+						id = "Enemies";
+						ism = HISMEnemy;
+						index -= (cs.Num() + rebels.Num() + clones.Num());
+					}
+					else if (gamemode->Snakes.Contains(ai)) {
+						id = "Snakes";
+						ism = HISMSnake;
+						index -= (cs.Num() + rebels.Num() + clones.Num() + gamemode->Enemies.Num());
+					}
+					else {
+						id = "Birds";
+						ism = HISMBird;
+						index -= (cs.Num() + rebels.Num() + clones.Num() + gamemode->Enemies.Num() + gamemode->Snakes.Num());
 					}
 
-					SetInstanceTransform(ism, index, citizen->MovementComponent->GetMovementTransform(), *instanceTransformsToUpdate.Find(id));
+					float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime, 1.0f);
+					ai->MovementComponent->ComputeMovement(deltaTime, *instances.Find(id));
 
-					UpdateCitizenVisuals(ism, Camera, citizen, index, *instances.Find(id));
-					UpdateGradualVisuals(ism, citizen, index, deltaTime, *instances.Find(id));
+					if (id == "Citizens" || id == "Rebels") {
+						ACitizen* citizen = Cast<ACitizen>(ai);
 
-					SetAIColour(ism, index, citizen->Colour, *instances.Find(id));
+						if (id == "Citizens") {
+							float opacity = 1.0f;
+							if (IsValid(citizen->BuildingComponent->BuildingAt) && !Camera->PoliceManager->IsInJail(citizen)) {
+								if (citizen->BuildingComponent->BuildingAt->bHideCitizen)
+									opacity = 0.0f;
+								else if (!citizen->BuildingComponent->BuildingAt->SocketList.IsEmpty()) {
+									FSocketStruct socketStruct;
+									socketStruct.Citizen = citizen;
+
+									int32 socketIndex = citizen->BuildingComponent->BuildingAt->SocketList.Find(socketStruct);
+
+									if (socketIndex != INDEX_NONE)
+										citizen->MovementComponent->Transform.SetLocation(citizen->BuildingComponent->BuildingAt->SocketList[socketIndex].SocketLocation);
+								}
+							}
+
+							UpdateInstanceCustomData(ism, index, 1, citizen->bSelected * 2.0f, *instances.Find(id));
+							UpdateInstanceCustomData(ism, index, 14, opacity, *instances.Find(id));
+							UpdateInstanceCustomData(ism, index, 18, citizen->bCommander, *instances.Find(id));
+							UpdateInstanceCustomData(ism, index, 19, Camera->EventsManager->IsProtest(citizen), *instances.Find(id));
+
+							UpdateHatTransform(citizen, hatsToUpdate);
+
+							SetEyesVisuals(ism, index, citizen, *instances.Find(id));
+						}
+
+						UpdateCitizenVisuals(ism, Camera, citizen, index, *instances.Find(id));
+					}
+					else if (id == "Clones")
+						UpdateInstanceCustomData(ism, index, 1, 3.0f, *instances.Find(id));
+
+					SetInstanceTransform(ism, index, ai->MovementComponent->GetMovementTransform(), *instanceTransformsToUpdate.Find(id));
+
+					UpdateGradualVisuals(ism, ai, index, deltaTime, *instances.Find(id));
+
+					SetAIColour(ism, index, ai->Colour, *instances.Find(id));
 				}
 
 				HISMCitizen->BatchUpdateTransforms(*instanceTransformsToUpdate.Find("Citizens"));
@@ -359,139 +430,21 @@ void UAIVisualiser::CalculateCitizenMovement(ACamera* Camera)
 				HISMRebel->BatchUpdateTransforms(*instanceTransformsToUpdate.Find("Rebels"));
 				HISMRebel->BatchUpdateData(*instances.Find("Rebels"));
 
+				HISMClone->BatchUpdateTransforms(*instanceTransformsToUpdate.Find("Clones"));
+				HISMClone->BatchUpdateData(*instances.Find("Clones"));
+
+				HISMEnemy->BatchUpdateTransforms(*instanceTransformsToUpdate.Find("Enemies"));
+				HISMEnemy->BatchUpdateData(*instances.Find("Enemies"));
+
+				HISMSnake->BatchUpdateTransforms(*instanceTransformsToUpdate.Find("Snakes"));
+				HISMSnake->BatchUpdateData(*instances.Find("Snakes"));
+
+				HISMBird->BatchUpdateTransforms(*instanceTransformsToUpdate.Find("Birds"));
+				HISMBird->BatchUpdateData(*instances.Find("Birds"));
+
 				FScopeLock lock(&CounterLock);
 				Counter++;
 			});
-		}
-	});
-}
-
-void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
-{
-	FScopeTryLock lock(&AIMovementLock);
-	if (!lock.IsLocked())
-		return;
-
-	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
-
-	TArray<AAI*> clones;
-	TArray<int32> cloneInstancesToDelete;
-
-	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {
-		for (int32 i = faction.Clones.Num() - 1; i > -1; i--) {
-			if (!faction.Clones[i]->HealthComponent->bDead)
-				continue;
-
-			faction.Clones.RemoveAt(i);
-			cloneInstancesToDelete.Add(clones.Num() + i);
-		}
-
-		clones.Append(faction.Clones);
-	}
-
-	TArray<AAI*> enemies;
-	TArray<int32> enemyInstancesToDelete;
-
-	for (int32 i = gamemode->Enemies.Num() - 1; i > -1; i--) {
-		if (!gamemode->Enemies[i]->HealthComponent->bDead)
-			continue;
-
-		gamemode->Enemies.RemoveAt(i);
-		enemyInstancesToDelete.Add(i);
-	}
-	enemies.Append(gamemode->Enemies);
-
-	TArray<AAI*> snakes;
-	TArray<int32> snakeInstancesToDelete;
-
-	for (int32 i = gamemode->Snakes.Num() - 1; i > -1; i--) {
-		if (!gamemode->Snakes[i]->HealthComponent->bDead)
-			continue;
-
-		gamemode->Snakes.RemoveAt(i);
-		snakeInstancesToDelete.Add(i);
-	}
-	snakes.Append(gamemode->Snakes);
-
-	HISMClone->RemoveInstances(cloneInstancesToDelete);
-	HISMClone->RemoveInstances(enemyInstancesToDelete);
-	HISMClone->RemoveInstances(snakeInstancesToDelete);
-
-	CalculateInstanceChange(Camera, HISMClone, clones);
-	CalculateInstanceChange(Camera, HISMEnemy, gamemode->Enemies);
-	CalculateInstanceChange(Camera, HISMSnake, gamemode->Snakes);
-
-	Async(EAsyncExecution::TaskGraph, [this, Camera, clones, gamemode]() {
-		FScopeTryLock lock(&AIMovementLock);
-		if (!lock.IsLocked())
-			return;
-
-		if (Camera->SaveGameComponent->IsLoading()) {
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::AIMovement);
-
-			return;
-		}
-
-		if (clones.IsEmpty() && gamemode->Enemies.IsEmpty() && gamemode->Snakes.IsEmpty())
-			return;
-
-		TArray<TArray<AAI*>> ais;
-		ais.Add(clones);
-		ais.Add(gamemode->Enemies);
-		ais.Add(gamemode->Snakes);
-
-		for (int32 i = 0; i < ais.Num(); i++) {
-			if (Camera->SaveGameComponent->IsLoading())
-				return;
-
-			TMap<int32, FTransform> instanceTransformsToUpdate;
-			TArray<int32> instances;
-
-			for (int32 j = 0; j < ais[i].Num(); j++) {
-				if (Camera->SaveGameComponent->IsLoading())
-					return;
-
-				AAI* ai = ais[i][j];
-
-				if (ai == nullptr || !IsValid(ai))
-					continue;
-
-				UAIInstancedStaticMeshComponent* ism = nullptr;
-				if (i == 0)
-					ism = HISMClone;
-				else if (i == 1)
-					ism = HISMEnemy;
-				else
-					ism = HISMSnake;
-
-				if (ism->GetInstanceCount() <= j)
-					continue;
-
-				float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime, 1.0f);
-				ai->MovementComponent->ComputeMovement(deltaTime, instances);
-
-				if (i == 0) 
-					UpdateInstanceCustomData(ism, j, 1, 3.0f, instances);
-
-				SetInstanceTransform(ism, j, ai->MovementComponent->GetMovementTransform(), instanceTransformsToUpdate);
-
-				UpdateGradualVisuals(ism, ai, j, deltaTime, instances);
-
-				SetAIColour(ism, j, ai->Colour, instances);
-			}
-
-			if (i == 0) {
-				HISMClone->BatchUpdateTransforms(instanceTransformsToUpdate);
-				HISMClone->BatchUpdateData(instances);
-			}
-			else if (i == 1) {
-				HISMEnemy->BatchUpdateTransforms(instanceTransformsToUpdate);
-				HISMEnemy->BatchUpdateData(instances);
-			}
-			else {
-				HISMSnake->BatchUpdateTransforms(instanceTransformsToUpdate);
-				HISMSnake->BatchUpdateData(instances);
-			}
 		}
 	});
 }
@@ -767,6 +720,10 @@ TTuple<UAIInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI
 		info.Key = HISMSnake;
 		info.Value = gamemode->Snakes.Find(AI);
 	}
+	else if (AI->Camera->Grid->Birds.Contains(AI)) {
+		info.Key = HISMBird;
+		info.Value = AI->Camera->Grid->Birds.Find(AI);
+	}
 	else {
 		FFactionStruct* faction = AI->Camera->ConquestManager->GetFaction("", AI);
 
@@ -815,6 +772,8 @@ AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UAIInstancedStaticMeshComponent* 
 		ai = gamemode->Enemies[Instance];
 	else if (ISM == HISMSnake && gamemode->Snakes.Num() > Instance)
 		ai = gamemode->Snakes[Instance];
+	else if (ISM == HISMBird && Camera->Grid->Birds.Num() > Instance)
+		ai = Camera->Grid->Birds[Instance];
 
 	return ai;
 }

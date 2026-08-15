@@ -184,6 +184,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class UAIInstancedStaticMeshComponent* HISMSnake;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
+		class UAIInstancedStaticMeshComponent* HISMBird;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 		class UNiagaraComponent* HarvestNiagaraComponent;
 
@@ -232,9 +235,10 @@ public:
 	bool DoesCitizenHaveHat(ACitizen* Citizen);
 
 private:
-	void CalculateInstanceChange(class ACamera* Camera, class UAIInstancedStaticMeshComponent* ISM, TArray<AAI*> AIList, bool bHat = false);
+	void RemoveInstances(class UAIInstancedStaticMeshComponent* ISM, TArray<AAI*>& AIList, int32 StartInstance = 0, bool bRemove = true, TArray<int32> InstancesToDelete = {});
+	void RemoveInstances(class UAIInstancedStaticMeshComponent* ISM, TArray<ACitizen*>& CitizensList, int32 StartInstance = 0, bool bRemove = true, TArray<int32> InstancesToDelete = {});
 
-	void CalculateCitizenMovement(class ACamera* Camera);
+	void AddInstances(class ACamera* Camera, class UAIInstancedStaticMeshComponent* ISM, TArray<AAI*> AIList, bool bHat = false);
 
 	void CalculateAIMovement(class ACamera* Camera);
 

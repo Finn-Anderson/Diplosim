@@ -13,6 +13,7 @@
 #include "Engine/ExponentialHeightFog.h"
 #include "NavigationSystem.h"
 
+#include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AISpawner.h"
 #include "AI/Citizen/Citizen.h"
@@ -151,6 +152,8 @@ AGrid::AGrid()
 
 	bRandSpecialBuildings = true;
 	NumOfNests = 1;
+	BirdsNum = 10;
+	MaxBirdsNum = 500;
 	MaxCounter = Counter = 0;
 
 	GroundColours = { FColor::FromHex("#111111FF"), FColor::FromHex("#E4C14DFF"), FColor::FromHex("#BEB449FF"), FColor::FromHex("#98A644FF"), FColor::FromHex("#729940FF"), FColor::FromHex("#4B8B3BFF") };
@@ -754,6 +757,8 @@ void AGrid::SetupEnvironment(bool bLoad)
 	AtmosphereComponent->Clouds->ActivateCloud();
 
 	SetBuildings();
+
+	SpawnBirds();
 
 	if (Camera->PauseUIInstance->IsInViewport())
 		Camera->SetPause(true, false);
@@ -1427,6 +1432,14 @@ void AGrid::Clear()
 	gamemode->SnakeSpawners.Empty();
 	gamemode->Snakes.Empty();
 
+	for (AAI* bird : Birds) {
+		Camera->TimerManager->RemoveAllTimers(bird);
+		bird->AIController->StopMovement();
+		bird->Destroy();
+	}
+
+	Birds.Empty();
+
 	AIVisualiser->ResetToDefaultValues();
 
 	HISMLava->ClearInstances();
@@ -1621,4 +1634,33 @@ void AGrid::BuildSpecialBuildings()
 void AGrid::SpawnEggBasket()
 {
 	GetChosenTileLocation(Cast<AActor>(EggBasketClass->GetDefaultObject()), { EggBasketClass });
+}
+
+void AGrid::SpawnBirds()
+{
+	TArray<FVector> spawnLocations;
+	for (TArray<FTileStruct>& row : Storage) {
+		for (FTileStruct& tile : row) {
+			if (tile.Level < 0 || (bLava && tile.Level == MaxLevel) || tile.bRamp || tile.bMineral || tile.bRiver || tile.bUnique)
+				continue;
+
+			spawnLocations.Add(GetTransform(&tile).GetLocation() + FVector(0.0f, 0.0f, 2.0f));
+		}
+	}
+
+	for (int32 i = 0; i < BirdsNum; i++) {
+		FActorSpawnParameters params;
+		params.bNoFail = true;
+
+		FTransform transform;
+		transform.SetLocation(spawnLocations[Camera->Stream.RandRange(0, spawnLocations.Num() - 1)]);
+		transform.SetRotation(FRotator(0.0f, Camera->Stream.RandRange(0, 359), 0.0f).Quaternion());
+
+		AAI* bird = GetWorld()->SpawnActor<AAI>(BirdClass, FVector::Zero(), FRotator::ZeroRotator, params);
+		bird->MovementComponent->Transform = transform;
+
+		bird->AIController->DefaultAction();
+
+		Birds.Add(bird);
+	}
 }

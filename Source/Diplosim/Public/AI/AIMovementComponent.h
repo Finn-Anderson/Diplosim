@@ -28,6 +28,9 @@ public:
 
 	FTransform GetMovementTransform();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+		bool bFly;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float MaxSpeed;
 

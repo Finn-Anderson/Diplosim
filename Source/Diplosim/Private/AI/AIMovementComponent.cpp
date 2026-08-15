@@ -35,6 +35,8 @@ UAIMovementComponent::UAIMovementComponent()
 	ActorToLookAt = nullptr;
 	bSetPoints = false;
 	SetPosition = FVector::Zero();
+
+	bFly = false;
 }
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Instances)
@@ -51,11 +53,17 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 	if (AI->HealthComponent->GetHealth() == 0 || (AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->bConversing))
 		return;
 
-	if (SetPosition == FVector::Zero())
+	if (SetPosition == FVector::Zero() && !bFly)
 		AI->AIController->RecalculateMovement(goal);
 
 	if (bSetPoints || SetPosition != FVector::Zero()) {
 		Points = TempPoints;
+
+		if (AI->GetName().Contains("1")) {
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Orange, AI->GetName());
+			for (FVector location : Points)
+				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("%f %f %f"), location.X, location.Y, location.Z));
+		}
 
 		TempPoints.Empty();
 		bSetPoints = false;
@@ -84,19 +92,21 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 
 	if (!deltaV.IsNearlyZero(1e-6f) && !AI->CanReach(AI, 5.0f, Points[0]))
 	{
-		FCollisionQueryParams params;
-		params.AddIgnoredActor(GetOwner());
-
-		FHitResult hit;
-
 		FVector location = Transform.GetLocation() + deltaV;
-
-		ZOffset = 0.0f;
-		if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 100.0f), location - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
-			ZOffset = hit.Location.Z - location.Z;
 
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;
+
+		if (!bFly) {
+			FCollisionQueryParams params;
+			params.AddIgnoredActor(GetOwner());
+
+			FHitResult hit;
+
+			ZOffset = 0.0f;
+			if (GetWorld()->LineTraceSingleByChannel(hit, location + FVector(0.0f, 0.0f, 100.0f), location - FVector(0.0f, 0.0f, 100.0f), ECollisionChannel::ECC_GameTraceChannel1, params))
+				ZOffset = hit.Location.Z - location.Z;
+		}
 
 		Transform.SetLocation(location);
 
@@ -123,18 +133,28 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 		Transform.SetRotation(FMath::Lerp(Transform.GetRotation(), rotation.Quaternion(), CurrentAnim.Alpha));
 	}
 
+	FVector startLocation = CurrentAnim.StartTransform.GetLocation();
 	FVector endLocation = CurrentAnim.EndTransform.GetLocation();
+
 	if (CurrentAnim.Type == EAnim::Melee)
 		endLocation = Transform.GetRotation().Vector() * endLocation.X;
 
+	if (bFly) {
+		startLocation *= 0.1f;
+		endLocation *= 0.1f;
+	}
+
 	FTransform transform;
-	transform.SetLocation(FMath::Lerp(CurrentAnim.StartTransform.GetLocation(), endLocation, CurrentAnim.Alpha));
+	transform.SetLocation(FMath::Lerp(startLocation, endLocation, CurrentAnim.Alpha));
 	transform.SetRotation(FMath::Lerp(CurrentAnim.StartTransform.GetRotation(), CurrentAnim.EndTransform.GetRotation(), CurrentAnim.Alpha));
 
 	AIVisualiser->SetAnimationPoint(AI, transform, Instances);
 
 	if (CurrentAnim.bPlay && (CurrentAnim.Alpha == 1.0f || CurrentAnim.Alpha == 0.0f)) {
-		CurrentAnim.StartTransform = FTransform();
+		if (bFly && CurrentAnim.Type == EAnim::Move)
+			CurrentAnim.StartTransform.SetLocation(-CurrentAnim.EndTransform.GetLocation());
+		else
+			CurrentAnim.StartTransform = FTransform();
 
 		if ((CurrentAnim.Alpha == 0.0f && !CurrentAnim.bRepeat) || CurrentAnim.bOneWay)
 			CurrentAnim.bPlay = false;
@@ -197,6 +217,10 @@ void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 {
 	TempPoints = VectorPoints;
 	bSetPoints = true;
+
+	if (AI->GetName().Contains("1"))
+		for (FVector location : TempPoints)
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, FString::Printf(TEXT("%f %f %f"), location.X, location.Y, location.Z));
 
 	if (!VectorPoints.IsEmpty())
 		AI->AIController->StartMovement();

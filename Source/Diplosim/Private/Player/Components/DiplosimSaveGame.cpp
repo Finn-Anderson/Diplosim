@@ -268,6 +268,9 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 		worldSaveData.CloudsData.CloudData.Add(data);
 	}
 
+	for (AAI* bird : grid->Birds)
+		worldSaveData.BirdNames.Add(bird->GetName());
+
 	Saves[Index].WorldData = worldSaveData;
 }
 
@@ -549,6 +552,8 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 		AIData.bSnake = true;
 		AIData.SpawnLocation = Cast<AEnemy>(ai)->SpawnLocation;
 	}
+	else if (Camera->Grid->Birds.Contains(ai))
+		AIData.bBird = true;
 
 	if (faction != nullptr)
 		AIData.FactionName = faction->Name;
@@ -835,7 +840,7 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		else if (actor->IsA<ADiplosimGameModeBase>())
 			LoadGamemode(actorData, Saves[Index].CameraData.GamemodeData, actor);
 		else if (actor->IsA<AAI>()) {
-			LoadAI(Camera, gamemode, actorData, Saves[Index].AIData[actorData.dataIndex], Saves[Index].CameraData.GamemodeData, actor, aiToName);
+			LoadAI(Camera, gamemode, actorData, Saves[Index].AIData[actorData.dataIndex], Saves[Index].CameraData.GamemodeData, Saves[Index].WorldData, actor, aiToName);
 
 			if (actor->IsA<ACitizen>())
 				LoadCitizen(Camera, actorData, Saves[Index].AIData[actorData.dataIndex], Saves[Index].CameraData, actor);
@@ -969,6 +974,8 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 		
 		grid->AtmosphereComponent->Clouds->Clouds.Add(cloudStruct);
 	}
+
+	grid->Birds.Empty();
 
 	grid->SetupEnvironment(true);
 	grid->AIVisualiser->ResetToDefaultValues();
@@ -1141,49 +1148,22 @@ void UDiplosimSaveGame::LoadGamemode(FActorSaveData& ActorData, FGamemodeData& G
 		gamemode->SetActorTickEnabled(true);
 }
 
-void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FAIData& AIData, FGamemodeData& GamemodeData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName)
+void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FAIData& AIData, FGamemodeData& GamemodeData, FWorldSaveData& WorldData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName)
 {
 	AAI* ai = Cast<AAI>(Actor);
 	AIToName.Add(ActorData.Name, &ActorData);
-
-	UAIInstancedStaticMeshComponent* ism;
-
-	if (AIData.FactionName == "") {
-		if (AIData.bSnake) {
-			ism = Camera->Grid->AIVisualiser->HISMSnake;
-			Cast<AEnemy>(ai)->SpawnLocation = AIData.SpawnLocation;
-		}
-		else
-			ism = Camera->Grid->AIVisualiser->HISMEnemy;
-	}
-	else {
-		FFactionStruct* faction = Camera->ConquestManager->GetFaction(AIData.FactionName);
-
-		if (ai->IsA<AClone>()) {
-			faction->Clones.Add(ai);
-			ism = Camera->Grid->AIVisualiser->HISMClone;
-		}
-		else if (AIData.CitizenData.bRebel) {
-			faction->Rebels.Add(Cast<ACitizen>(ai));
-			ism = Camera->Grid->AIVisualiser->HISMRebel;
-		}
-		else {
-			faction->Citizens.Add(Cast<ACitizen>(ai));
-			ism = Camera->Grid->AIVisualiser->HISMCitizen;
-		}
-	}
 	
 	ai->MovementComponent->Transform = AIData.MovementData.Transform;
 	ai->Colour = AIData.Colour;
-
-	if (!ai->IsA<AEnemy>())
-		return; 
 
 	if (GamemodeData.EnemyNames.Contains(ActorData.Name))
 		Gamemode->Enemies.Add(ai);
 
 	if (GamemodeData.SnakeNames.Contains(ActorData.Name))
 		Gamemode->Snakes.Add(ai);
+
+	if (WorldData.BirdNames.Contains(ActorData.Name))
+		Camera->Grid->Birds.Add(ai);
 }
 
 void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FCameraData& CameraData, AActor* Actor)

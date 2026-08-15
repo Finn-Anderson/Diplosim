@@ -124,8 +124,6 @@ public:
 
 	void AIMoveTo(AActor* Actor, FVector Location = FVector::Zero(), int32 Instance = INDEX_NONE);
 
-	void SetNewMovementPath(AActor* Actor, FNavLocation NavLocation);
-
 	void RecalculateMovement(AActor* Actor);
 
 	FVector GetActualLocation(AActor* Actor);
@@ -146,5 +144,9 @@ public:
 		class AAI* AI;
 
 private:
+	void MoveNavigation(AActor* Actor, class UNavigationSystemV1* Nav);
+
+	void MoveFly();
+
 	FVector GetClosestNavigablePointOnCollision(AActor* Actor, UStaticMeshComponent* Component);
 };

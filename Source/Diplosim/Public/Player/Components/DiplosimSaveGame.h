@@ -305,6 +305,9 @@ struct FWorldSaveData
 	UPROPERTY()
 		double WorldTimer;
 
+	UPROPERTY()
+		TArray<FString> BirdNames;
+
 	FWorldSaveData()
 	{
 		Stream = FRandomStream();
@@ -715,6 +718,9 @@ struct FAIData
 		bool bSnake;
 
 	UPROPERTY()
+		bool bBird;
+
+	UPROPERTY()
 		FVector SpawnLocation;
 
 	UPROPERTY()
@@ -729,6 +735,7 @@ struct FAIData
 		BuildingAtName = "";
 		Colour = FLinearColor();
 		bSnake = false;
+		bBird = false;
 		SpawnLocation = FVector::Zero();
 	}
 };
@@ -1336,7 +1343,7 @@ private:
 	void LoadFactions(FActorSaveData& ActorData, FCameraData& CameraData, AActor* Actor);
 	void LoadGamemode(FActorSaveData& ActorData, FGamemodeData& GamemodeData, AActor* Actor);
 
-	void LoadAI(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FAIData& AIData, FGamemodeData& GamemodeData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName);
+	void LoadAI(class ACamera* Camera, class ADiplosimGameModeBase* Gamemode, FActorSaveData& ActorData, FAIData& AIData, FGamemodeData& GamemodeData, FWorldSaveData& WorldData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName);
 	void LoadCitizen(class ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FCameraData& CameraData, AActor* Actor);
 
 	void LoadBuilding(class ACamera* Camera, FActorSaveData& ActorData, FBuildingData& BuildingData, TArray<FConstructionData>& ConstructionData, AActor* Actor, TMap<FString, FActorSaveData*>& AIToName, int32 Index);

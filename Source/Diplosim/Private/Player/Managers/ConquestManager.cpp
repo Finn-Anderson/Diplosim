@@ -347,8 +347,8 @@ void UConquestManager::CalculateAIFighting()
 						ai->AttackComponent->OverlappingEnemies.Add(actor);
 					}
 
-					if (!ai->AttackComponent->OverlappingEnemies.IsEmpty())
-						Async(EAsyncExecution::TaskGraph, [ai]() { ai->AttackComponent->PickTarget(); });
+					//if (!ai->AttackComponent->OverlappingEnemies.IsEmpty())
+						//Async(EAsyncExecution::TaskGraph, [ai]() { ai->AttackComponent->PickTarget(); });
 				}
 
 				FScopeLock lock(&CounterLock);
