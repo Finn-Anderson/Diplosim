@@ -200,7 +200,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 	if (Counter != MaxCounter)
 		return;
 
-	FScopeTryLock lock(&CitizenMovementLock);
+	FScopeTryLock lock(&AIMovementLock);
 	if (!lock.IsLocked())
 		return; 
 
@@ -259,12 +259,12 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 	AddInstances(Camera, HISMBird, Camera->Grid->Birds);
 
 	Async(EAsyncExecution::TaskGraph, [this, Camera, cs, rebels, clones, gamemode]() {
-		FScopeTryLock lock(&CitizenMovementLock);
+		FScopeTryLock lock(&AIMovementLock);
 		if (!lock.IsLocked())
 			return;
 
 		if (Camera->SaveGameComponent->IsLoading()) {
-			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::CitizenMovement);
+			Camera->SaveGameComponent->LoadGameCallback(EAsyncLoop::AIMovement);
 
 			return;
 		}

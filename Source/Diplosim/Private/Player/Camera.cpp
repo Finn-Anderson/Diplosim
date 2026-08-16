@@ -301,7 +301,7 @@ void ACamera::Tick(float DeltaTime)
 
 		MouseHitLocation = hit.Location;
 
-		if (hit.GetActor() == Grid && hit.GetComponent()->GetAttachParent() == nullptr)
+		if (hit.GetActor() == Grid && (hit.GetComponent()->GetAttachParent() == nullptr || hit.GetComponent()->GetAttachParent() == Grid->AIVisualiser->AIContainer))
 			HoveredActor.Actor = Grid->AIVisualiser->GetHISMAI(this, Cast<UAIInstancedStaticMeshComponent>(hit.GetComponent()), hit.Item);
 		else if (!hit.GetActor()->IsA<AGrid>())
 			HoveredActor.Actor = actor;

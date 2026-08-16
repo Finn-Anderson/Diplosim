@@ -520,6 +520,7 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction("", ai);
 
 	AIData.Colour = ai->Colour;
+	AIData.VoicePitch = ai->VoicePitch;
 
 	if (ai->MovementComponent->bSetPoints)
 		AIData.MovementData.Points = ai->MovementComponent->TempPoints;
@@ -527,7 +528,6 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 		AIData.MovementData.Points = ai->MovementComponent->Points;
 
 	AIData.MovementData.CurrentAnim = ai->MovementComponent->CurrentAnim;
-	AIData.MovementData.LastUpdatedTime = ai->MovementComponent->LastUpdatedTime;
 
 	TTuple<UInstancedStaticMeshComponent*, int32> info = Camera->Grid->AIVisualiser->GetAIHISM(ai);
 	if (!info.Key->GetInstanceTransform(info.Value, AIData.MovementData.Transform))
@@ -548,12 +548,16 @@ void UDiplosimSaveGame::SaveAI(ACamera* Camera, FActorSaveData& ActorData, FAIDa
 	AIData.MovementData.Instance = ai->AIController->MoveRequest.GetGoalInstance();
 	AIData.MovementData.Location = ai->AIController->MoveRequest.GetLocation();
 
-	if (gamemode->Snakes.Contains(ai)) {
-		AIData.bSnake = true;
+	if (gamemode->Snakes.Contains(ai))
 		AIData.SpawnLocation = Cast<AEnemy>(ai)->SpawnLocation;
+	else if (faction) {
+		if (faction->Citizens.Contains(ai))
+			AIData.Type = "Citizen";
+		else if (faction->Rebels.Contains(ai))
+			AIData.Type = "Rebel";
+		else
+			AIData.Type = "Clone";
 	}
-	else if (Camera->Grid->Birds.Contains(ai))
-		AIData.bBird = true;
 
 	if (faction != nullptr)
 		AIData.FactionName = faction->Name;
@@ -627,7 +631,6 @@ void UDiplosimSaveGame::SaveCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 
 	AIData.CitizenData.Spirituality = citizen->Spirituality;
 	AIData.CitizenData.TimeOfAcquirement = citizen->BuildingComponent->TimeOfAcquirement;
-	AIData.CitizenData.VoicePitch = citizen->VoicePitch;
 	AIData.CitizenData.Balance = citizen->Balance;
 	AIData.CitizenData.HoursWorked = citizen->BuildingComponent->HoursWorked;
 	AIData.CitizenData.Hunger = citizen->Hunger;
@@ -1155,15 +1158,30 @@ void UDiplosimSaveGame::LoadAI(ACamera* Camera, ADiplosimGameModeBase* Gamemode,
 	
 	ai->MovementComponent->Transform = AIData.MovementData.Transform;
 	ai->Colour = AIData.Colour;
+	ai->VoicePitch = AIData.VoicePitch;
+
+	ai->AIController->MoveRequest.SetLocation(AIData.MovementData.Location);
+	ai->AIController->MoveRequest.SetGoalInstance(AIData.MovementData.Instance);
+
+	ai->MovementComponent->Points = AIData.MovementData.Points;
+	ai->MovementComponent->CurrentAnim = AIData.MovementData.CurrentAnim;
+	ai->MovementComponent->LastUpdatedTime = Camera->GetWorld()->GetTimeSeconds();
 
 	if (GamemodeData.EnemyNames.Contains(ActorData.Name))
 		Gamemode->Enemies.Add(ai);
-
-	if (GamemodeData.SnakeNames.Contains(ActorData.Name))
+	else if (GamemodeData.SnakeNames.Contains(ActorData.Name))
 		Gamemode->Snakes.Add(ai);
-
-	if (WorldData.BirdNames.Contains(ActorData.Name))
+	else if (WorldData.BirdNames.Contains(ActorData.Name))
 		Camera->Grid->Birds.Add(ai);
+	else {
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction(AIData.FactionName);
+		if (AIData.Type == "Citizen")
+			faction->Citizens.Add(Cast<ACitizen>(ai));
+		else if (AIData.Type == "Citizen")
+			faction->Rebels.Add(Cast<ACitizen>(ai));
+		else
+			faction->Clones.Add(ai);
+	}
 }
 
 void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, FAIData& AIData, FCameraData& CameraData, AActor* Actor)
@@ -1191,7 +1209,6 @@ void UDiplosimSaveGame::LoadCitizen(ACamera* Camera, FActorSaveData& ActorData, 
 
 	citizen->Spirituality = AIData.CitizenData.Spirituality;
 	citizen->BuildingComponent->TimeOfAcquirement = AIData.CitizenData.TimeOfAcquirement;
-	citizen->VoicePitch = AIData.CitizenData.VoicePitch;
 	citizen->Balance = AIData.CitizenData.Balance;
 	citizen->BuildingComponent->HoursWorked = AIData.CitizenData.HoursWorked;
 	citizen->Hunger = AIData.CitizenData.Hunger;
@@ -1513,15 +1530,8 @@ void UDiplosimSaveGame::InitialiseAI(ACamera* Camera, FActorSaveData& ActorData,
 	if (SavedData.Name == movementData.ActorToLookAtName)
 		ai->MovementComponent->ActorToLookAt = SavedData.Actor;
 
-	if (SavedData.Name == movementData.ActorName) {
+	if (SavedData.Name == movementData.ActorName)
 		ai->AIController->MoveRequest.Actor = SavedData.Actor;
-		ai->AIController->MoveRequest.SetLocation(AIData.MovementData.Location);
-		ai->AIController->MoveRequest.SetGoalInstance(AIData.MovementData.Instance);
-
-		ai->MovementComponent->Points = AIData.MovementData.Points;
-		ai->MovementComponent->CurrentAnim = AIData.MovementData.CurrentAnim;
-		ai->MovementComponent->LastUpdatedTime = AIData.MovementData.LastUpdatedTime;
-	}
 
 	if (SavedData.Name == movementData.LinkedPortalName)
 		ai->AIController->MoveRequest.LinkedPortal = SavedData.Actor;

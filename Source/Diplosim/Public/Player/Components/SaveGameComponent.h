@@ -16,7 +16,6 @@ enum class EAsyncLoop : uint8
 	Conversations,
 	Report,
 	Fighting,
-	CitizenMovement,
 	AIMovement,
 	BuildingDeath,
 	BuildingRotation,

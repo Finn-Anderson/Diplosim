@@ -72,12 +72,17 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 {
 	FScopeLock lock(&HealthLock);
 
-	if (GetHealth() == 0 || !IsValid(GetOwner()))
+	UAudioComponent* comp = HitAudioComponent;
+	if (Attacker->IsA<AEnemy>() && Sound == Cast<AEnemy>(Attacker)->AttackComponent->ZapSound)
+		comp = Cast<AEnemy>(Attacker)->HealthComponent->HitAudioComponent;
+	Camera->AudioManager->PlayAmbientSound(comp, Sound);
+
+	ApplyDamageOverlay();
+
+	if (Amount == 0 || GetHealth() == 0 || !IsValid(GetOwner()))
 		return;
 
 	Health = FMath::Clamp(Health - Amount, 0, MaxHealth);
-
-	ApplyDamageOverlay();
 
 	if (GetHealth() == 0)
 		Death(Attacker);
@@ -85,11 +90,6 @@ void UHealthComponent::TakeHealth(int32 Amount, AActor* Attacker, USoundBase* So
 		ACitizen* citizen = Cast<ACitizen>(GetOwner());
 		Camera->DiseaseManager->Injure(citizen, Camera->Stream.RandRange(0, 100));
 	}
-
-	UAudioComponent* comp = HitAudioComponent;
-	if (Attacker->IsA<AEnemy>() && Sound == Cast<AEnemy>(Attacker)->AttackComponent->ZapSound)
-		comp = Cast<AEnemy>(Attacker)->HealthComponent->HitAudioComponent;
-	Camera->AudioManager->PlayAmbientSound(comp, Sound);
 }
 
 bool UHealthComponent::IsMaxHealth()

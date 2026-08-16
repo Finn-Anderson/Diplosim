@@ -9,6 +9,8 @@
 
 #include "AI/AI.h"
 #include "AI/AIMovementComponent.h"
+#include "AI/Citizen/Citizen.h"
+#include "AI/Citizen/Components/HappinessComponent.h"
 #include "Buildings/Work/Defence/Tower.h"
 #include "Map/Grid.h"
 #include "Map/AIVisualiser.h"
@@ -16,6 +18,7 @@
 #include "Map/Atmosphere/AtmosphereComponent.h"
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 #include "Player/Camera.h"
+#include "Player/Managers/AudioManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Universal/AttackComponent.h"
 #include "Universal/HealthComponent.h"
@@ -148,27 +151,31 @@ void AProjectile::HitActor(ACamera* Camera, AActor* Actor)
 	if (!IsValid(Actor) || Camera->ConquestManager->GetFactionFromActor(Actor).Name == FactionName)
 		return;
 
-	UHealthComponent* healthComponent = Actor->GetComponentByClass<UHealthComponent>();
-
-	if (!healthComponent || healthComponent->GetHealth() == 0)
-		return;
-
-	float multiplier = 1.0f;
-	float dmg = Damage;
 	USoundBase* sound = nullptr;
-
 	UAttackComponent* attackComponent = GetOwner()->FindComponentByClass<UAttackComponent>();
 
-	if (attackComponent) {
-		multiplier = attackComponent->DamageMultiplier;
+	if (attackComponent)
 		sound = attackComponent->OnHitSound;
+
+	UHealthComponent* healthComponent = Actor->GetComponentByClass<UHealthComponent>();
+
+	if (!healthComponent) {
+		if (Damage == 0)
+			Camera->AudioManager->PlayAmbientSound(healthComponent->HitAudioComponent, sound);
+
+		return;
 	}
 
+	if (Actor->IsA<ACitizen>())
+		for (auto& element : HappinessModifier)
+			Cast<ACitizen>(Actor)->HappinessComponent->SetDecayingHappiness(element.Key, element.Value);
+
+	float dmg = Damage;
 	if (bDamageFallOff) {
 		float distance = FVector::Dist(GetActorLocation(), Camera->GetTargetActorLocation(Actor));
 
 		dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
 	}
 
-	healthComponent->TakeHealth(dmg * multiplier, GetOwner(), sound);
+	healthComponent->TakeHealth(dmg * attackComponent->DamageMultiplier, GetOwner(), sound);
 }

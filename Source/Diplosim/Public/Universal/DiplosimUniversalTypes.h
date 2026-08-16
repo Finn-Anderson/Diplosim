@@ -845,7 +845,8 @@ enum class EHappinessType : uint8
 	Conversation,
 	FamilyDeath,
 	WitnessedDeath,
-	Divorce
+	Divorce,
+	PoopedOnByBird
 };
 
 class DIPLOSIM_API DiplosimUniversalTypes

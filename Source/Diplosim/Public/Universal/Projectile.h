@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Universal/DiplosimUniversalTypes.h"
 #include "GameFramework/Actor.h"
 #include "Projectile.generated.h"
 
@@ -46,6 +47,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		bool bDamageFallOff;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+		TMap<EHappinessType, int32> HappinessModifier;
 
 	UPROPERTY()
 		FString FactionName;

@@ -59,12 +59,6 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 	if (bSetPoints || SetPosition != FVector::Zero()) {
 		Points = TempPoints;
 
-		if (AI->GetName().Contains("1")) {
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Orange, AI->GetName());
-			for (FVector location : Points)
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("%f %f %f"), location.X, location.Y, location.Z));
-		}
-
 		TempPoints.Empty();
 		bSetPoints = false;
 
@@ -90,7 +84,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 
 	FVector deltaV = Velocity * DeltaTime;
 
-	if (!deltaV.IsNearlyZero(1e-6f) && !AI->CanReach(AI, 5.0f, Points[0]))
+	if (!deltaV.IsNearlyZero(1e-6f) && !AI->CanReach(AI, bFly ? 1.0f : 5.0f, Points[0]))
 	{
 		FVector location = Transform.GetLocation() + deltaV;
 
@@ -140,8 +134,8 @@ void UAIMovementComponent::ComputeCurrentAnimation(AActor* Goal, float DeltaTime
 		endLocation = Transform.GetRotation().Vector() * endLocation.X;
 
 	if (bFly) {
-		startLocation *= 0.1f;
-		endLocation *= 0.1f;
+		startLocation *= 0.2f;
+		endLocation *= 0.2f;
 	}
 
 	FTransform transform;
@@ -217,10 +211,6 @@ void UAIMovementComponent::SetPoints(TArray<FVector> VectorPoints)
 {
 	TempPoints = VectorPoints;
 	bSetPoints = true;
-
-	if (AI->GetName().Contains("1"))
-		for (FVector location : TempPoints)
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, FString::Printf(TEXT("%f %f %f"), location.X, location.Y, location.Z));
 
 	if (!VectorPoints.IsEmpty())
 		AI->AIController->StartMovement();

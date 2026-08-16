@@ -542,9 +542,6 @@ struct FCitizenData
 		TArray<float> TimeOfAcquirement;
 
 	UPROPERTY()
-		float VoicePitch;
-
-	UPROPERTY()
 		int32 Balance;
 
 	UPROPERTY()
@@ -622,7 +619,6 @@ struct FCitizenData
 		bAdopted = false;
 		bInbred = false;
 
-		VoicePitch = 1.0f;
 		Balance = 0;
 		Hunger = 100;
 		Energy = 100;
@@ -656,9 +652,6 @@ struct FAIMovementData
 		FAnimStruct CurrentAnim;
 
 	UPROPERTY()
-		double LastUpdatedTime;
-
-	UPROPERTY()
 		FTransform Transform;
 
 	UPROPERTY()
@@ -682,7 +675,6 @@ struct FAIMovementData
 
 	FAIMovementData()
 	{
-		LastUpdatedTime = 0.0f;
 		Transform = FTransform();
 		ActorToLookAtName = "";
 
@@ -715,10 +707,10 @@ struct FAIData
 		FCitizenData CitizenData;
 
 	UPROPERTY()
-		bool bSnake;
+		FString Type;
 
 	UPROPERTY()
-		bool bBird;
+		float VoicePitch;
 
 	UPROPERTY()
 		FVector SpawnLocation;
@@ -734,8 +726,8 @@ struct FAIData
 		FactionName = "";
 		BuildingAtName = "";
 		Colour = FLinearColor();
-		bSnake = false;
-		bBird = false;
+		Type = "";
+		VoicePitch = 1.0f;
 		SpawnLocation = FVector::Zero();
 	}
 };

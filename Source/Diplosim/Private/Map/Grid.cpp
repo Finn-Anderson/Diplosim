@@ -16,6 +16,7 @@
 #include "AI/AIMovementComponent.h"
 #include "AI/DiplosimAIController.h"
 #include "AI/AISpawner.h"
+#include "AI/Bird.h"
 #include "AI/Citizen/Citizen.h"
 #include "Buildings/Misc/Special/Special.h"
 #include "Buildings/Misc/Broch.h"
@@ -1656,7 +1657,8 @@ void AGrid::SpawnBirds()
 		transform.SetLocation(spawnLocations[Camera->Stream.RandRange(0, spawnLocations.Num() - 1)]);
 		transform.SetRotation(FRotator(0.0f, Camera->Stream.RandRange(0, 359), 0.0f).Quaternion());
 
-		AAI* bird = GetWorld()->SpawnActor<AAI>(BirdClass, FVector::Zero(), FRotator::ZeroRotator, params);
+		ABird* bird = GetWorld()->SpawnActor<ABird>(BirdClass, FVector::Zero(), FRotator::ZeroRotator, params);
+		bird->SetupBird();
 		bird->MovementComponent->Transform = transform;
 
 		bird->AIController->DefaultAction();

@@ -143,9 +143,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class TArray<USoundBase*> IneptIdiotConversations;
 
-	UPROPERTY()
-		float VoicePitch;
-
 	// Economy
 	bool CanAffordEducationLevel();
 

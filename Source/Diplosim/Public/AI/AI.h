@@ -28,6 +28,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance")
 		class USceneComponent* RootSceneComponent;
 
+	UPROPERTY()
+		float VoicePitch;
+
 	// Fighting
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 		class UHealthComponent* HealthComponent;

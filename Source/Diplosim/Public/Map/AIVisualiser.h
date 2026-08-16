@@ -268,12 +268,10 @@ private:
 
 	FHatsStruct* GetCitizenHat(ACitizen* Citizen);
 
-	FCriticalSection CitizenMovementLock;
+	FCriticalSection AIMovementLock;
 	FCriticalSection CounterLock;
 	int32 MaxCounter;
 	int32 Counter;
-
-	FCriticalSection AIMovementLock;
 
 	FCriticalSection BuildingDeathLock;
 

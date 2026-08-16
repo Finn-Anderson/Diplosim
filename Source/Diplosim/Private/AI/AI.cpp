@@ -42,6 +42,7 @@ AAI::AAI()
 
 	SpawnSystem = nullptr;
 	Colour = FLinearColor();
+	VoicePitch = 1.0f;
 	bWet = false;
 }
 
@@ -61,6 +62,7 @@ void AAI::BeginPlay()
 	AttackComponent->Camera = Camera;
 
 	Colour = FLinearColor(Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f), Camera->Stream.FRandRange(0.0f, 1.0f));
+	VoicePitch = Camera->Stream.RandRange(0.8f, 1.2f);
 }
 
 void AAI::MoveToBroch()

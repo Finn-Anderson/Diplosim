@@ -203,7 +203,7 @@ void UDiplosimAIController::Wander(FVector CentrePoint, bool bTimer, ABuilding* 
 		FVector location = CentrePoint + FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(innerRange, outerRange);
 
 		FNavLocation navLoc;
-		nav->ProjectPointToNavigation(location, navLoc, FVector(outerRange, outerRange, 1000.0f));
+		nav->ProjectPointToNavigation(location, navLoc, FVector(outerRange));
 
 		if (AI->MovementComponent->bFly) {
 			AIMoveTo(nullptr, navLoc.Location);
@@ -488,8 +488,11 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(200.0f, 200.0f, 30.0f));
 	MoveRequest.SetLocation(navLoc);
 	
-	if (AI->MovementComponent->bFly)
+	if (AI->MovementComponent->bFly) {
 		MoveFly();
+
+		return;
+	}
 	else if (AI->CanReach(Actor, AI->GetReach(), MoveRequest.GetLocation()) || (IsValid(Actor) && AI->IsA<ACitizen>() && Cast<ACitizen>(AI)->BuildingComponent->BuildingAt == Actor))
 		return;
 
@@ -590,16 +593,12 @@ void UDiplosimAIController::MoveFly()
 	float distance = FVector::Dist(startLocation, MoveRequest.GetLocation());
 	int32 numOfPoints = FMath::Max(FMath::RoundHalfFromZero(distance / 1000.0f), 2);
 
-	FVector sectionPoint = MoveRequest.GetLocation() + (MoveRequest.GetLocation() - startLocation) / numOfPoints;
+	FVector sectionPoint = (MoveRequest.GetLocation() - startLocation) / numOfPoints;
 
 	for (int32 i = 1; i < numOfPoints; i++)
-		points.Add(sectionPoint * i + FVector(0.0f, 0.0f, Camera->Stream.RandRange(950, 1050)));
+		points.Add(startLocation + (sectionPoint * i) + FVector(0.0f, 0.0f, Camera->Stream.RandRange(950, 1050)));
 
 	points.Add(MoveRequest.GetLocation());
-
-	if (AI->GetName().Contains("1"))
-		for (FVector location : points)
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("%f %f %f"), location.X, location.Y, location.Z));
 
 	AI->MovementComponent->SetPoints(points);
 }
