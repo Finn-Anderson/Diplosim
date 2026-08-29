@@ -5,7 +5,7 @@
 #include "NavFilters/NavigationQueryFilter.h"
 #include "NavMesh/NavMeshPath.h"
 #include "Components/BoxComponent.h"
-#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "PhysicsEngine/BodySetup.h"
 
 #include "AI/AI.h"
@@ -24,6 +24,7 @@
 #include "Buildings/Work/Service/School.h"
 #include "Buildings/Work/Service/Orphanage.h"
 #include "Map/Grid.h"
+#include "Map/AIVisualiser.h"
 #include "Player/Camera.h"
 #include "Player/Managers/ResourceManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
@@ -197,71 +198,109 @@ void UDiplosimAIController::Wander(FVector CentrePoint, bool bTimer, ABuilding* 
 		CentrePoint = Building->GetActorLocation();
 	}
 
-	int32 attempts = 0;
+	UHierarchicalInstancedStaticMeshComponent* flatGround = AI->Camera->Grid->HISMFlatGround;
+	UHierarchicalInstancedStaticMeshComponent* ground = AI->Camera->Grid->HISMGround;
 
-	while (attempts < 5) {
-		FVector location = CentrePoint + FRotator(0.0f, Camera->Stream.RandRange(0, 360), 0.0f).Vector() * Camera->Stream.RandRange(innerRange, outerRange);
+	TMap<UHierarchicalInstancedStaticMeshComponent*, TArray<int32>> groundInstances;
+	groundInstances.Add(flatGround, flatGround->GetInstancesOverlappingSphere(CentrePoint, outerRange, false));
+	groundInstances.Add(ground, ground->GetInstancesOverlappingSphere(CentrePoint, outerRange, false));
 
-		FNavLocation navLoc;
-		nav->ProjectPointToNavigation(location, navLoc, FVector(outerRange));
+	TArray<FNavLocation> portalLocations;
+	if (AI->IsA<ACitizen>()) {
+		ACitizen* citizen = Cast<ACitizen>(AI);
+		FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
 
-		if (AI->MovementComponent->bFly) {
-			AIMoveTo(nullptr, navLoc.Location);
+		for (ABuilding* building : faction->Buildings) {
+			if (!building->IsA<APortal>() || building->HealthComponent->GetHealth() == 0)
+				continue;
 
-			break;
+			FNavLocation navBuildingLoc;
+			nav->ProjectPointToNavigation(GetActualLocation(building), navBuildingLoc, FVector(100.0f, 100.0f, 200.0f));
+
+			portalLocations.Add(navBuildingLoc);
 		}
+	}
 
-		double length = 0.0f;
-		ENavigationQueryResult::Type result = nav->GetPathLength(GetActualLocation(AI), navLoc, length);
+	FNavLocation navAILoc;
+	nav->ProjectPointToNavigation(GetActualLocation(AI), navAILoc, FVector(100.0f, 100.0f, 200.0f));
 
-		if (AI->IsA<ACitizen>()) {
-			ACitizen* citizen = Cast<ACitizen>(AI);
-			FFactionStruct* faction = Camera->ConquestManager->GetFaction("", citizen);
+	for (auto& element : groundInstances) {
+		for (int32 i = element.Value.Num() - 1; i > -1; i--) {
+			FTransform transform;
+			flatGround->GetInstanceTransform(element.Value[i], transform);
 
-			double nearLength = 1000000.0f;
-			double farLength = nearLength;
-			double testLength = 0.0f;
+			FNavLocation navLoc;
+			nav->ProjectPointToNavigation(transform.GetLocation(), navLoc, FVector(100.0f, 100.0f, 200.0f));
 
-			for (ABuilding* building : faction->Buildings) {
-				if (!building->IsA<APortal>() || building->HealthComponent->GetHealth() == 0)
-					continue;
+			if (FVector::Dist(CentrePoint, navLoc.Location) <= innerRange || (element.Value.Num() > 15 && Camera->Stream.RandRange(1, 100) < 75)) {
+				element.Value.RemoveAt(i);
 
-				FNavLocation navBuildingLoc;
-				nav->ProjectPointToNavigation(GetActualLocation(building), navBuildingLoc, FVector(100.0f, 100.0f, 200.0f));
-
-				FNavLocation navAILoc;
-				nav->ProjectPointToNavigation(GetActualLocation(AI), navAILoc, FVector(100.0f, 100.0f, 200.0f));
-
-				nav->GetPathLength(navAILoc, navBuildingLoc, testLength);
-				if (testLength != 0.0f && testLength < nearLength)
-					nearLength = testLength;
-
-				nav->GetPathLength(navLoc, navBuildingLoc, testLength);
-				if (testLength != 0.0f && testLength < farLength)
-					farLength = testLength;
+				continue;
 			}
 
-			if (length > nearLength + farLength) {
-				length = nearLength + farLength;
-				result = ENavigationQueryResult::Success;
+			if (AI->MovementComponent->bFly)
+				continue;
+
+			double length = 0.0f;
+			ENavigationQueryResult::Type result = nav->GetPathLength(navAILoc, navLoc, length);
+
+			if (!portalLocations.IsEmpty()) {
+				double nearLength = 1000000.0f;
+				double farLength = nearLength;
+				double testLength = 0.0f;
+
+				for (const FNavLocation& location : portalLocations) {
+					nav->GetPathLength(navAILoc, location, testLength);
+					if (testLength != 0.0f && testLength < nearLength)
+						nearLength = testLength;
+
+					nav->GetPathLength(navLoc, location, testLength);
+					if (testLength != 0.0f && testLength < farLength)
+						farLength = testLength;
+				}
+
+				if (length > nearLength + farLength) {
+					length = nearLength + farLength;
+					result = ENavigationQueryResult::Success;
+				}
+			}
+
+			if (result != ENavigationQueryResult::Success || length > MaxLength) {
+				element.Value.RemoveAt(i);
+
+				continue;
 			}
 		}
+	}
 
-		if (result == ENavigationQueryResult::Success && length <= MaxLength) {
-			AIMoveTo(nullptr, navLoc.Location);
+	TArray<TArray<int32>> instances; 
+	groundInstances.GenerateValueArray(instances);
 
-			break;
-		}
+	if (!instances[0].IsEmpty() || !instances[1].IsEmpty()) {
+		int32 index = Camera->Stream.RandRange(0, instances[0].Num() + instances[1].Num() - 1);
 
-		attempts++;
+		FTransform transform;
+		if (index < instances[0].Num())
+			flatGround->GetInstanceTransform(instances[0][index], transform);
+		else
+			ground->GetInstanceTransform(instances[1][index - instances[0].Num()], transform);
+
+		FVector location = transform.GetLocation();
+		transform.SetLocation(location + FVector(Camera->Stream.FRandRange(0.0f, 50.0f), Camera->Stream.FRandRange(0.0f, 50.0f), 100.0f));
+
+		AIMoveTo(nullptr, transform.GetLocation());
 	}
 
 	if (!bTimer)
 		return;
 
 	int32 timer = Camera->Stream.RandRange(5, 20);
-	if (AI->MovementComponent->bFly)
+
+	if (AI->MovementComponent->bFly) {
+		AI->MovementComponent->bAvoid = true;
+
 		timer *= 3;
+	}
 
 	Camera->TimerManager->CreateTimer("Wander", AI, timer, "DefaultAction", {}, false);
 }
@@ -485,8 +524,8 @@ void UDiplosimAIController::AIMoveTo(AActor* Actor, FVector Location, int32 Inst
 	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 
 	FNavLocation navLoc;
-	nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(200.0f, 200.0f, 30.0f));
-	MoveRequest.SetLocation(navLoc);
+	if (nav->ProjectPointToNavigation(MoveRequest.GetLocation(), navLoc, FVector(200.0f, 200.0f, 30.0f)))
+		MoveRequest.SetLocation(navLoc);
 	
 	if (AI->MovementComponent->bFly) {
 		MoveFly();
@@ -643,6 +682,20 @@ void UDiplosimAIController::RecalculateMovement(AActor* Actor)
 		AI->MoveToBroch();
 	else
 		AIMoveTo(Actor, navLoc, MoveRequest.GetGoalInstance());
+}
+
+void UDiplosimAIController::CalculateAvoidance()
+{
+	FOverlapsStruct overlaps;
+	overlaps.GetEveryPawn();
+	bool bTooClose = !AI->Camera->Grid->AIVisualiser->GetOverlaps(AI->Camera, AI, 300.0f, overlaps, EFactionType::Different).IsEmpty();
+
+	if (!bTooClose)
+		return;
+
+	Camera->TimerManager->RemoveTimer("Wander", AI);
+
+	DefaultAction();
 }
 
 FVector UDiplosimAIController::GetActualLocation(AActor* Actor)

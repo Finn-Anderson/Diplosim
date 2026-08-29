@@ -37,6 +37,7 @@ UAIMovementComponent::UAIMovementComponent()
 	SetPosition = FVector::Zero();
 
 	bFly = false;
+	bAvoid = false;
 }
 
 void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Instances)
@@ -55,6 +56,8 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 
 	if (SetPosition == FVector::Zero() && !bFly)
 		AI->AIController->RecalculateMovement(goal);
+	else if (!bAvoid && bFly)
+		AI->AIController->CalculateAvoidance();
 
 	if (bSetPoints || SetPosition != FVector::Zero()) {
 		Points = TempPoints;
@@ -84,7 +87,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 
 	FVector deltaV = Velocity * DeltaTime;
 
-	if (!deltaV.IsNearlyZero(1e-6f) && !AI->CanReach(AI, bFly ? 1.0f : 5.0f, Points[0]))
+	if (!deltaV.IsNearlyZero(1e-6f) && !AI->CanReach(AI, bFly ? 2.0f : 5.0f, Points[0]))
 	{
 		FVector location = Transform.GetLocation() + deltaV;
 
@@ -109,6 +112,7 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 	}
 	else {
 		Points.RemoveAt(0);
+		bAvoid = false;
 
 		if (Points.IsEmpty())
 			AI->AIController->StopMovement();

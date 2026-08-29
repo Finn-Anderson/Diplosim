@@ -770,6 +770,12 @@ void AGrid::OnNavMeshGenerated()
 	if (!LavaComponent->IsActive() || Counter != MaxCounter)
 		return;
 
+	for (AAI* bird : Birds)
+		bird->AIController->DefaultAction();
+
+	for (AAISpawner* spawner : GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->SnakeSpawners)
+		spawner->SpawnAI();
+
 	LoadUIInstance->RemoveFromParent();
 }
 
@@ -1556,12 +1562,8 @@ void AGrid::SetupMapBuildings(AActor* Actor, TArray<UClass*> Classes, TArray<FTi
 
 			AActor* actor = GetWorld()->SpawnActor<AActor>(c, transform, params);
 
-			if (actor->IsA<AAISpawner>()) {
-				AAISpawner* nest = Cast<AAISpawner>(actor);
-				nest->SpawnAI();
-
-				Camera->BuildComponent->SetTreeStatus(nest, true);
-			}
+			if (actor->IsA<AAISpawner>())
+				Camera->BuildComponent->SetTreeStatus(actor, true);
 		}
 	}
 
@@ -1660,8 +1662,6 @@ void AGrid::SpawnBirds()
 		ABird* bird = GetWorld()->SpawnActor<ABird>(BirdClass, FVector::Zero(), FRotator::ZeroRotator, params);
 		bird->SetupBird();
 		bird->MovementComponent->Transform = transform;
-
-		bird->AIController->DefaultAction();
 
 		Birds.Add(bird);
 	}

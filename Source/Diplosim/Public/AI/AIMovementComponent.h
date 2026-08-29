@@ -31,6 +31,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 		bool bFly;
 
+	UPROPERTY()
+		bool bAvoid;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Speed")
 		float MaxSpeed;
 

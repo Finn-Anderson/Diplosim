@@ -126,6 +126,8 @@ public:
 
 	void RecalculateMovement(AActor* Actor);
 
+	void CalculateAvoidance();
+
 	FVector GetActualLocation(AActor* Actor);
 
 	void StartMovement();
