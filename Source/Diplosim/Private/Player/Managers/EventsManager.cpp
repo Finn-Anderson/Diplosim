@@ -123,6 +123,35 @@ void UEventsManager::ExecuteEvent(FString Period, int32 Day, int32 Hour)
 	});
 }
 
+bool UEventsManager::IsEventAtDate(FFactionStruct* Faction, FEventStruct Date, ABuilding* Venue)
+{
+	for (FEventStruct& event : Faction->Events) {
+		if (Date.Period != event.Period || Date.Day != event.Day)
+			continue;
+
+		for (int32 hour : Date.Hours) {
+			if (!event.Hours.Contains(hour) || Date.Type != event.Type || (Venue != nullptr && Venue != event.Venue && !Venue->IsA(event.Building)))
+				continue;
+
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool UEventsManager::IsOnEventWhitelist(FFactionStruct* Faction, ACitizen* Citizen)
+{
+	for (FEventStruct& event : Faction->Events) {
+		if (!event.Whitelist.Contains(Citizen))
+			continue;
+
+		return true;
+	}
+
+	return false;
+}
+
 bool UEventsManager::IsAttendingEvent(ACitizen* Citizen)
 {
 	if (Camera->ArmyManager->IsCitizenInAnArmy(Citizen))
@@ -426,24 +455,22 @@ void UEventsManager::CreateWedding(int32 Hour)
 				continue;
 
 			ACitizen* partner = citizen->BioComponent->Partner.Get();
-
 			checked.Add(citizen);
 			checked.Add(partner);
 
-			if (IsAttendingEvent(citizen) || IsAttendingEvent(partner))
+			if (IsOnEventWhitelist(&faction, citizen))
 				continue;
 
 			TArray<FPersonality*> personalities = Camera->CitizenManager->GetCitizensPersonalities(citizen);
 			personalities.Append(Camera->CitizenManager->GetCitizensPersonalities(partner));
 
-			int32 likelihood = 0;
-
+			float likelihood = 0.0f;
 			for (FPersonality* personality : personalities)
 				if (personality->Affects.Contains("Marriage"))
 					likelihood += *personality->Affects.Find("Marriage");
 
-			int32 chance = Camera->Stream.RandRange(80, 150);
-			int32 likelihoodChance = likelihood * 10 + citizen->BioComponent->HoursTogetherWithPartner * 5;
+			int32 chance = Camera->Stream.RandRange(80 / likelihood, 150 / likelihood);
+			int32 likelihoodChance = likelihood * (10 + citizen->BioComponent->HoursTogetherWithPartner * 5);
 
 			if (likelihoodChance < chance)
 				continue;
@@ -463,16 +490,25 @@ void UEventsManager::CreateWedding(int32 Hour)
 			FString chosenFaith = faiths[index];
 
 			ABooster* chosenChurch = nullptr;
-			ACitizen* priest = nullptr;
+			TArray<FEventStruct> chosenDates;
+			TArray<ACitizen*> chosenPriests;
 
-			TArray<int32> weddingHours = { Hour };
-			for (int32 j = 0; j < 2; j++) {
-				int32 hour = Hour + j;
+			TArray<FEventStruct> weddingDates;
+			FCalendarStruct date = Camera->Grid->AtmosphereComponent->Calendar;
+			date.NextDay();
+			for (int32 j = 0; j < 22; j++) {
+				TArray<int32> hours = {  j, j + 1, j + 2 };
 
-				if (hour > 23)
-					hour -= 24;
+				FEventStruct eventDate;
+				eventDate.Type = EEventType::Marriage;
+				eventDate.Period = date.Period;
+				eventDate.Day = date.Days[date.Index];
+				eventDate.Hours = hours;
 
-				weddingHours.Add(hour);
+				if (IsEventAtDate(&faction, eventDate))
+					continue;
+
+				weddingDates.Add(eventDate);
 			}
 
 			for (ABuilding* building : faction.Buildings) {
@@ -481,36 +517,51 @@ void UEventsManager::CreateWedding(int32 Hour)
 
 				ABooster* church = Cast<ABooster>(building);
 
-				church->BuildingsToBoost.GenerateValueArray(faiths);
-
 				if (!church->bHolyPlace || faiths[0] != chosenFaith || church->GetOccupied().IsEmpty())
 					continue;
 
-				bool bAvailable = false;
-
-				for (ACitizen* p : church->GetOccupied()) {
-					if (IsAttendingEvent(p))
-						continue;
-
-					bool bWithinHours = true;
-					for (int32 hour : weddingHours)
-						if (!church->IsWorking(p, hour))
-							bWithinHours = false;
-
-					if (!bWithinHours)
-						continue;
-
-					bAvailable = true;
-					priest = p;
-
-					break;
+				TArray<FEventStruct> possibleDates;
+				TArray<ACitizen*> possiblePriests;
+				for (FEventStruct d : weddingDates) {
+					possibleDates.Add(d);
+					possiblePriests.Add(nullptr);
 				}
 
-				if (!bAvailable)
+				for (int32 j = possibleDates.Num() - 1; j > -1; j--) {
+					if (IsEventAtDate(&faction, possibleDates[j], church)) {
+						possibleDates.RemoveAt(j);
+						possiblePriests.RemoveAt(j);
+
+						continue;
+					}
+
+					for (int32 hour : possibleDates[j].Hours) {
+						ACitizen* priest = nullptr;
+						for (ACitizen* p : church->GetOccupied()) {
+							if (!church->IsWorking(p, hour))
+								continue;
+
+							priest = p;
+
+							break;
+						}
+
+						if (priest == nullptr) {
+							possibleDates.RemoveAt(j);
+							possiblePriests.RemoveAt(j);
+						}
+						else
+							possiblePriests[j] = priest;
+					}
+				}
+
+				if (possibleDates.IsEmpty())
 					continue;
 
 				if (chosenChurch == nullptr) {
 					chosenChurch = church;
+					chosenDates = possibleDates;
+					chosenPriests = possiblePriests;
 
 					continue;
 				}
@@ -521,37 +572,20 @@ void UEventsManager::CreateWedding(int32 Hour)
 					continue;
 
 				chosenChurch = church;
+				chosenDates = possibleDates;
+				chosenPriests = possiblePriests;
 			}
 
 			if (!IsValid(chosenChurch))
 				continue;
 
-			for (FEventStruct event : faction.Events) {
-				bool bContainsWeddingHour = false;
+			index = Camera->Stream.RandRange(0, chosenDates.Num() - 1);
 
-				for (int32 hour : weddingHours) {
-					if (!event.Hours.Contains(hour))
-						continue;
-
-					bContainsWeddingHour = true;
-
-					break;
-				}
-
-				if (!bContainsWeddingHour)
-					continue;
-
-				if (chosenChurch->IsA(event.Building))
-					return;
-			}
-
-			TArray<ACitizen*> whitelist = { citizen, partner, priest };
+			TArray<ACitizen*> whitelist = { citizen, partner, chosenPriests[index] };
 			whitelist.Append(citizen->BioComponent->GetLikedFamily(false));
 			whitelist.Append(partner->BioComponent->GetLikedFamily(false));
 
-			FCalendarStruct calendar = Camera->Grid->AtmosphereComponent->Calendar;
-
-			CreateEvent(faction.Name, EEventType::Marriage, nullptr, chosenChurch, "", calendar.Days[calendar.Index], weddingHours, false, whitelist);
+			CreateEvent(faction.Name, EEventType::Marriage, nullptr, chosenChurch, chosenDates[index].Period, chosenDates[index].Day, chosenDates[index].Hours, false, whitelist);
 		}
 	}
 }

@@ -226,6 +226,9 @@ void UDiplosimAIController::Wander(FVector CentrePoint, bool bTimer, ABuilding* 
 
 	for (auto& element : groundInstances) {
 		for (int32 i = element.Value.Num() - 1; i > -1; i--) {
+			if (!IsValid(AI))
+				return;
+
 			FTransform transform;
 			flatGround->GetInstanceTransform(element.Value[i], transform);
 
@@ -242,7 +245,7 @@ void UDiplosimAIController::Wander(FVector CentrePoint, bool bTimer, ABuilding* 
 				continue;
 
 			double length = 0.0f;
-			ENavigationQueryResult::Type result = nav->GetPathLength(navAILoc, navLoc, length);
+			ENavigationQueryResult::Type result = nav->GetPathLength(navAILoc, navLoc, length, navData);
 
 			if (!portalLocations.IsEmpty()) {
 				double nearLength = 1000000.0f;
@@ -250,11 +253,11 @@ void UDiplosimAIController::Wander(FVector CentrePoint, bool bTimer, ABuilding* 
 				double testLength = 0.0f;
 
 				for (const FNavLocation& location : portalLocations) {
-					nav->GetPathLength(navAILoc, location, testLength);
+					nav->GetPathLength(navAILoc, location, testLength, navData);
 					if (testLength != 0.0f && testLength < nearLength)
 						nearLength = testLength;
 
-					nav->GetPathLength(navLoc, location, testLength);
+					nav->GetPathLength(navLoc, location, testLength, navData);
 					if (testLength != 0.0f && testLength < farLength)
 						farLength = testLength;
 				}

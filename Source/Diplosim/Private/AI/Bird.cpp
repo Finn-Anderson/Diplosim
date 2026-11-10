@@ -56,5 +56,3 @@ int32 ABird::GetChirpTimer()
 {
 	return Camera->Stream.RandRange(1, 20);
 }
-
-// Avoidance (tie to conquest AI fight calculation)

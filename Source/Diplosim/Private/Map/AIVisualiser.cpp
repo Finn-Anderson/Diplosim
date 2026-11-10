@@ -301,7 +301,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 		ais.Append(gamemode->Snakes);
 		ais.Append(Camera->Grid->Birds);
 
-		MaxCounter = FMath::CeilToInt32(ais.Num() / 500.0f);
+		MaxCounter = FMath::CeilToInt32(ais.Num() / 100.0f);
 		Counter = 0;
 
 		for (int32 i = 0; i < MaxCounter; i++) {
@@ -832,7 +832,7 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 			if (FactionType != EFactionType::Both && Faction != nullptr && Faction->Name == f.Name)
 				continue;
 
-			if (!RequestedOverlaps.IsGettingCitizenEnemies() || Faction->AtWar.Contains(f.Name)) {
+			if (!RequestedOverlaps.IsGettingCitizenEnemies() || (Faction != nullptr && Faction->AtWar.Contains(f.Name))) {
 				if (RequestedOverlaps.bBuildings)
 					actorsToCheck.Append(f.Buildings);
 

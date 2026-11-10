@@ -20,6 +20,10 @@ public:
 
 	void ExecuteEvent(FString Period, int32 Day, int32 Hour);
 
+	bool IsEventAtDate(FFactionStruct* Faction, FEventStruct Date, ABuilding* Venue = nullptr);
+
+	bool IsOnEventWhitelist(FFactionStruct* Faction, ACitizen* Citizen);
+
 	UFUNCTION(BlueprintCallable)
 		bool IsAttendingEvent(class ACitizen* Citizen);
 

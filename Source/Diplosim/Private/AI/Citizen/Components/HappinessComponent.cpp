@@ -28,6 +28,7 @@ UHappinessComponent::UHappinessComponent()
 	DecayingHappiness.Add(EHappinessType::FamilyDeath, 0);
 	DecayingHappiness.Add(EHappinessType::WitnessedDeath, 0);
 	DecayingHappiness.Add(EHappinessType::Divorce, 0);
+	DecayingHappiness.Add(EHappinessType::PoopedOnByBird, 0);
 
 	SadTimer = -10000.0f;
 }

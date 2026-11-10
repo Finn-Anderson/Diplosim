@@ -91,6 +91,10 @@ void UAIMovementComponent::ComputeMovement(float DeltaTime, TArray<int32>& Insta
 	{
 		FVector location = Transform.GetLocation() + deltaV;
 
+		double distance = FVector::Dist(Points[0], Transform.GetLocation());
+		if (FVector::Dist(Transform.GetLocation(), location) > distance)
+			location = Points[0];
+
 		FRotator targetRotation = deltaV.Rotation();
 		targetRotation.Pitch = 0.0f;
 
@@ -177,12 +181,6 @@ FVector UAIMovementComponent::CalculateVelocity(FVector Vector, float DeltaTime)
 	CalculateRoadBonus();
 
 	float speed = GetMaximumSpeed();
-
-	if (DeltaTime > 0.05f) {
-		float distance = FVector::Dist(Vector, Transform.GetLocation());
-		if (speed > distance)
-			speed = FMath::Max(distance, 50.0f);
-	}
 
 	return (Vector - Transform.GetLocation()).Rotation().Vector() * speed;
 }
