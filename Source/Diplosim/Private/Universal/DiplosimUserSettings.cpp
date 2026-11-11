@@ -200,17 +200,6 @@ void UDiplosimUserSettings::LoadIniSettings()
 {
 	GEngine->Exec(GetWorld(), TEXT("r.FullScreenMode 2"));
 
-	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-
-	if (!PlatformFile.FileExists(*Filename))
-		FFileHelper::SaveStringToFile(TEXT(""), *Filename);
-
-	GConfig->Flush(true, Filename);
-
-	GConfig->LoadFile(Filename);
-
-	GConfig->ForEachEntry(_keyValueSink, *Section, Filename);
-
 	if (Resolution == "0x0") {
 		TArray<FIntPoint> resolutions;
 		UKismetSystemLibrary::GetSupportedFullscreenResolutions(resolutions);
@@ -218,8 +207,21 @@ void UDiplosimUserSettings::LoadIniSettings()
 		SetResolution(FString::FromInt(resolutions.Last().X) + "x" + FString::FromInt(resolutions.Last().Y));
 	}
 
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	if (!PlatformFile.FileExists(*Filename)) {
+		FFileHelper::SaveStringToFile(TEXT(""), *Filename);
+		GEngine->Exec(GetWorld(), TEXT("r.ScreenPercentage 100"));
+	}
+
+	GConfig->Flush(true, Filename);
+
+	GConfig->LoadFile(Filename);
+
+	GConfig->ForEachEntry(_keyValueSink, *Section, Filename);
+
 	GEngine->GameViewport->Viewport->ViewportResizedEvent.AddUObject(this, &UDiplosimUserSettings::OnWindowResize);
-	GEngine->GameViewport->GetWindow()->SetOnWindowMoved(FOnWindowMoved::CreateUObject(this, &UDiplosimUserSettings::OnGameWindowMoved));
+	FSlateApplicationBase::Get().GetActiveTopLevelWindow()->SetOnWindowMoved(FOnWindowMoved::CreateUObject(this, &UDiplosimUserSettings::OnGameWindowMoved));
 }
 
 void UDiplosimUserSettings::SaveIniSettings()
@@ -277,7 +279,7 @@ void UDiplosimUserSettings::SetSpawnEnemies(bool Value)
 {
 	bEnemies = Value;
 
-	if (!IsValid(GameMode) || !IsValid(Camera) || !IsValid(Camera->CitizenManager))
+	if (GameMode == nullptr || Camera == nullptr || Camera->CitizenManager == nullptr)
 		return;
 
 	Camera->TimerManager->ResetTimer("WaveTimer", GameMode);
@@ -677,16 +679,19 @@ void UDiplosimUserSettings::SetResolution(FString Value)
 {
 	Resolution = Value;
 
-	if (Camera)
-		Camera->UpdateResolutionText();
+	if (Camera == nullptr)
+		return;
 
-	FSlateApplicationBase::Get().GetPlatformCursor()->Lock(nullptr);
+	Camera->UpdateResolutionText();
+
+	FSlateApplicationBase& app = FSlateApplicationBase::Get();
+	app.GetPlatformCursor()->Lock(nullptr);
 
 	FString cmd = "r.SetRes " + Resolution;
 
 	GEngine->Exec(GetWorld(), *cmd);
 
-	if (GEngine->GameViewport->GetWindow()->GetNativeWindow()->IsMaximized())
+	if (app.GetActiveTopLevelWindow()->GetNativeWindow()->IsMaximized())
 		SetMaximised(true);
 	else
 		SetMaximised(false);
@@ -700,8 +705,11 @@ FString UDiplosimUserSettings::GetResolution() const
 void UDiplosimUserSettings::SetWindowPos(FVector2D Position)
 {
 	WindowPosition = Position;
-	
-	GEngine->GameViewport->GetWindow()->MoveWindowTo(WindowPosition);
+
+	if (Camera == nullptr)
+		return;
+
+	FSlateApplicationBase::Get().GetActiveTopLevelWindow()->MoveWindowTo(WindowPosition);
 }
 
 FVector2D UDiplosimUserSettings::GetWindowPos() const
@@ -713,8 +721,10 @@ void UDiplosimUserSettings::SetMaximised(bool Value)
 {
 	bIsMaximised = Value;
 
-	if (bIsMaximised)
-		GEngine->GameViewport->GetWindow()->GetNativeWindow()->Maximize();
+	if (Camera == nullptr || !bIsMaximised)
+		return;
+
+	FSlateApplicationBase::Get().GetActiveTopLevelWindow()->GetNativeWindow()->Maximize();
 }
 
 bool UDiplosimUserSettings::GetMaximised() const
@@ -785,7 +795,7 @@ void UDiplosimUserSettings::SetShowLog(bool Value)
 {
 	bShowLog = Value;
 
-	if (!IsValid(Camera) || !Camera->BuildUIInstance->IsInViewport())
+	if (Camera == nullptr || !Camera->BuildUIInstance->IsInViewport())
 		return;
 
 	if (bShowLog)
@@ -806,7 +816,7 @@ void UDiplosimUserSettings::SetAutosaveTimer(float Value)
 
 	AutosaveTimer = Value;
 
-	if (!IsValid(Camera))
+	if (Camera == nullptr)
 		return;
 
 	Camera->SaveGameComponent->UpdateAutosave(AutosaveTimer * Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay());
@@ -829,7 +839,7 @@ float UDiplosimUserSettings::GetPopupUISpeed() const
 
 void UDiplosimUserSettings::UpdateAmbientVolume()
 {
-	if (!IsValid(Camera))
+	if (Camera == nullptr)
 		return;
 
 	for (FFactionStruct& faction : Camera->ConquestManager->Factions) {

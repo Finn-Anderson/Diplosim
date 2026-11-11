@@ -54,7 +54,7 @@ void UCloudComponent::TickCloud(float DeltaTime)
 		FVector speed = Grid->AtmosphereComponent->WindRotation.Vector() * DeltaTime * Grid->AtmosphereComponent->WindSpeed * 2.0f;
 		FVector location = cloudStruct.HISMCloud->GetRelativeLocation() + speed;
 
-		float bobAmount = FMath::Sin(GetWorld()->GetTimeSeconds() / 2.0f) / 10.0f;
+		float bobAmount = FMath::Sin(Grid->GetWorld()->GetTimeSeconds() / 2.0f) / 10.0f;
 		location.Z += bobAmount;
 
 		cloudStruct.HISMCloud->SetRelativeLocation(location);
@@ -410,21 +410,24 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 
 			return;
 		}
-
-		for (auto node = RainDropLocations.GetHead(); node != nullptr; node = node->GetNextNode()) {
-			if (Grid->Camera->SaveGameComponent->IsLoading() || !IsValid(this))
+		auto nextNode = RainDropLocations.GetHead();
+		while (nextNode != nullptr) {
+			if (Grid->Camera->SaveGameComponent->IsLoading())
 				return;
 
-			FLocationStruct& locationStruct = node->GetValue();
+			auto currentNode = nextNode;
+			nextNode = currentNode->GetNextNode();
+
+			FLocationStruct& locationStruct = currentNode->GetValue();
 			FHitResult hit;
 
-			if (!locationStruct.bClear && GetWorld()->LineTraceSingleByChannel(hit, locationStruct.Location, FVector(locationStruct.Location.X, locationStruct.Location.Y, 0.0f), ECollisionChannel::ECC_Visibility))
+			if (!locationStruct.bClear && Grid->GetWorld()->LineTraceSingleByChannel(hit, locationStruct.Location, FVector(locationStruct.Location.X, locationStruct.Location.Y, 0.0f), ECollisionChannel::ECC_Visibility))
 			{
 				UPrimitiveComponent* component = hit.GetComponent();
 
 				if (!IsValid(hit.GetActor()) || !IsValid(component) || !component->IsA<UPrimitiveComponent>() || component == Grid->SeaComponent || component == Grid->HISMLava || component == Grid->HISMRiver || (component->IsA<UInstancedStaticMeshComponent>() && Cast<UInstancedStaticMeshComponent>(component)->NumCustomDataFloats == 0)) {
 					FScopeLock lock(&RainDropLock);
-					RainDropLocations.RemoveNode(node);
+					RainDropLocations.RemoveNode(currentNode);
 
 					continue;
 				}
@@ -442,7 +445,7 @@ void UCloudComponent::SetGradualWetness(float DeltaTime)
 			}
 
 			FScopeLock lock(&RainDropLock);
-			RainDropLocations.RemoveNode(node); 
+			RainDropLocations.RemoveNode(currentNode);
 		}
 
 		for (auto node = WetnessStruct.GetHead(); node != nullptr; node = node->GetNextNode()) {

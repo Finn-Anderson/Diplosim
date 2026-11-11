@@ -292,7 +292,6 @@ void UConquestManager::CalculateAIFighting()
 
 		ais.Append(gamemode->Enemies);
 		ais.Append(gamemode->Snakes);
-		ais.Append(gamemode->Grid->Birds);
 
 		MaxCounter = FMath::CeilToInt32(ais.Num() / 100.0f);
 		Counter = 0;
@@ -318,13 +317,10 @@ void UConquestManager::CalculateAIFighting()
 						continue;
 
 					FFactionStruct* faction = GetFaction("", ai);
-					bool bBird = gamemode->Grid->Birds.Contains(ai);
 
 					FOverlapsStruct requestedOverlaps;
 					if (gamemode->Enemies.Contains(ai) || gamemode->Snakes.Contains(ai))
 						requestedOverlaps.GetEnemyEnemies();
-					else if (faction == nullptr && bBird)
-						requestedOverlaps.GetEveryPawn();
 					else if (faction == nullptr)
 						continue;
 					else if (faction->Rebels.Contains(ai))
@@ -333,13 +329,6 @@ void UConquestManager::CalculateAIFighting()
 						requestedOverlaps.GetCitizenEnemies();
 
 					TArray<AActor*> actors = Camera->Grid->AIVisualiser->GetOverlaps(Camera, ai, ai->Range, requestedOverlaps, EFactionType::Both, faction);
-
-					if (bBird) {
-						if (!actors.IsEmpty())
-							ai->AIController->DefaultAction();
-
-						continue;
-					}
 
 					for (AActor* actor : actors) {
 						if (Camera->SaveGameComponent->IsLoading()) {

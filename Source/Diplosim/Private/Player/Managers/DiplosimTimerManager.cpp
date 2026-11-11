@@ -44,18 +44,19 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 			return;
 		}
 
-		for (auto node = Timers.GetHead(); node != nullptr; node = node->GetNextNode()) {
+		auto nextNode = Timers.GetHead();
+		while (nextNode != nullptr) {
 			if (Camera->SaveGameComponent->IsLoading())
 				return;
 
-			if (!IsValid(this) || !node)
-				return;
+			auto currentNode = nextNode;
+			nextNode = currentNode->GetNextNode();
 
-			FTimerStruct& timer = node->GetValue(); 
+			FTimerStruct& timer = currentNode->GetValue();
 
 			if (timer.Actor == nullptr) {
 				FScopeLock lock(&TimerLock);
-				Timers.RemoveNode(node);
+				Timers.RemoveNode(currentNode);
 
 				continue;
 			}
@@ -63,7 +64,7 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 			if (timer.bPaused)
 				continue;
 
-			double currentTime = GetWorld()->GetTimeSeconds();
+			double currentTime = Camera->GetWorld()->GetTimeSeconds();
 
 			timer.Timer = FMath::Min(timer.Timer + currentTime - timer.LastUpdateTime, timer.Target);
 			timer.LastUpdateTime = currentTime;
@@ -87,7 +88,7 @@ void UDiplosimTimerManager::TimerLoop(ACamera* Camera)
 			}
 			else {
 				FScopeLock lock(&TimerLock);
-				Timers.RemoveNode(node);
+				Timers.RemoveNode(currentNode);
 			}
 		}
 	});
@@ -103,7 +104,7 @@ void UDiplosimTimerManager::CreateTimer(FString Identifier, AActor* Actor, float
 
 	FTimerStruct timer;
 	timer.CreateTimer(Identifier, Actor, Time, FunctionName, Params, Repeat, OnGameThread);
-	timer.LastUpdateTime = GetWorld()->GetTimeSeconds();
+	timer.LastUpdateTime = Actor->GetWorld()->GetTimeSeconds();
 
 	Timers.AddTail(timer);
 }

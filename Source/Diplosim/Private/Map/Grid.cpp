@@ -289,6 +289,9 @@ void AGrid::InitialiseStorage()
 
 void AGrid::SetupMap()
 {
+	UDiplosimUserSettings* settings = UDiplosimUserSettings::GetDiplosimUserSettings();
+	settings->LoadIniSettings();
+
 	SeaComponent->SetRelativeScale3D(FVector(FMath::Sqrt((float)Chunks), FMath::Sqrt((float)Chunks), 1.0f));
 
 	SetMapBounds();

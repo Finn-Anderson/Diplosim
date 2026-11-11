@@ -121,7 +121,6 @@ ACamera::ACamera()
 	GameSpeed = 1.0f;
 	ResetGameSpeedCounter();
 
-	WikiURL = FPaths::ProjectDir() + "/Content/Custom/Wiki/index.html";
 	bMouseCapture = true;
 	bUIMode = 0;
 
@@ -225,7 +224,6 @@ void ACamera::BeginPlay()
 
 	Settings = UDiplosimUserSettings::GetDiplosimUserSettings();
 	Settings->Camera = this;
-	Settings->LoadIniSettings();
 
 	Grid->Load();
 }

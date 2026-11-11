@@ -187,7 +187,7 @@ void UAIVisualiser::AddInstances(ACamera* Camera, UAIInstancedStaticMeshComponen
 			transform = GetHatTransform(Cast<ACitizen>(ai));
 
 		if (ai->SpawnSystem && bCrystalVisible)
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ai->SpawnSystem, transform.GetLocation());
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(Camera->GetWorld(), ai->SpawnSystem, transform.GetLocation());
 
 		transforms.Add(transform);
 	}
@@ -204,7 +204,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 	if (!lock.IsLocked())
 		return; 
 
-	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+	ADiplosimGameModeBase* gamemode = Camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 	if (HarvestVisualCooldownTimer == 0.0f && HarvestNiagaraComponent->IsActive())
 		HarvestNiagaraComponent->Deactivate();
@@ -375,7 +375,7 @@ void UAIVisualiser::CalculateAIMovement(ACamera* Camera)
 						index -= (cs.Num() + rebels.Num() + clones.Num() + gamemode->Enemies.Num() + gamemode->Snakes.Num());
 					}
 
-					float deltaTime = FMath::Min(GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime, 1.0f);
+					float deltaTime = FMath::Min(Camera->GetWorld()->GetTimeSeconds() - ai->MovementComponent->LastUpdatedTime, 1.0f);
 					ai->MovementComponent->ComputeMovement(deltaTime, *instances.Find(id));
 
 					if (id == "Citizens" || id == "Rebels") {
@@ -486,7 +486,7 @@ void UAIVisualiser::CalculateBuildingDeath(ACamera* Camera)
 			}
 
 			double deathTime = *DestructingActors.Find(actor);
-			double alpha = FMath::Clamp((GetWorld()->GetTimeSeconds() - deathTime) / 10.0f, 0.0f, 1.0f);
+			double alpha = FMath::Clamp((Camera->GetWorld()->GetTimeSeconds() - deathTime) / 10.0f, 0.0f, 1.0f);
 
 			UStaticMeshComponent* mainMesh = actor->GetComponentByClass<UStaticMeshComponent>();
 			FVector dimensions = mainMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
@@ -530,7 +530,7 @@ void UAIVisualiser::CalculateBuildingRotation(ACamera* Camera)
 
 			AResearch* building = RotatingBuildings[i];
 
-			double alpha = FMath::Clamp((GetWorld()->GetTimeSeconds() - building->RotationTime) / 10.0f, 0.0f, 1.0f);
+			double alpha = FMath::Clamp((Camera->GetWorld()->GetTimeSeconds() - building->RotationTime) / 10.0f, 0.0f, 1.0f);
 			float pitch = FMath::Lerp(building->PrevTelescopeTargetPitch, building->TelescopeTargetPitch, alpha);
 			float yaw = FMath::Lerp(building->PrevTurretTargetYaw, building->TurretTargetYaw, alpha);
 
@@ -710,7 +710,7 @@ TTuple<UAIInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI
 	if (AI == nullptr)
 		return info;
 
-	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+	ADiplosimGameModeBase* gamemode = AI->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 	if (gamemode->Enemies.Contains(AI)) {
 		info.Key = HISMEnemy;
@@ -750,7 +750,7 @@ TTuple<UAIInstancedStaticMeshComponent*, int32> UAIVisualiser::GetAIHISM(AAI* AI
 AAI* UAIVisualiser::GetHISMAI(ACamera* Camera, UAIInstancedStaticMeshComponent* ISM, int32 Instance)
 {
 	AAI* ai = nullptr;
-	ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+	ADiplosimGameModeBase* gamemode = Camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 	TArray<ACitizen*> citizens;
 	TArray<ACitizen*> rebels;
@@ -865,7 +865,7 @@ TArray<AActor*> UAIVisualiser::GetOverlaps(ACamera* Camera, AActor* Actor, float
 	}
 
 	if (RequestedOverlaps.bEnemies) {
-		ADiplosimGameModeBase* gamemode = GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
+		ADiplosimGameModeBase* gamemode = Camera->GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>();
 
 		actorsToCheck.Append(gamemode->Enemies);
 		actorsToCheck.Append(gamemode->Snakes);

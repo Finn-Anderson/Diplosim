@@ -435,9 +435,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 		class UWidgetComponent* WidgetComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-		FString WikiURL;
-
 	UPROPERTY()
 		bool bLost;
 

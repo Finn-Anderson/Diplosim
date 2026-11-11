@@ -19,10 +19,6 @@
 			"Enabled": true
 		},
 		{
-			"Name": "WebBrowserWidget",
-			"Enabled": true
-		},
-		{
 			"Name": "VisualStudioTools",
 			"Enabled": false,
 			"SupportedTargetPlatforms": [
@@ -174,6 +170,10 @@
 				"Win64",
 				"Linux"
 			]
+		},
+		{
+			"Name": "ChaosCloth",
+			"Enabled": false
 		}
 	]
 }
