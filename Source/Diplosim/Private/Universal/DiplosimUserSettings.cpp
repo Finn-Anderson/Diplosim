@@ -110,10 +110,10 @@ void UDiplosimUserSettings::OnWindowResize(FViewport* Viewport, uint32 Value)
 
 void UDiplosimUserSettings::OnGameWindowMoved(const TSharedRef<SWindow>& WindowBeingMoved)
 {
-	if (GetWindowPos() == WindowBeingMoved.Get().GetPositionInScreen())
+	if (GetWindowPos() == WindowBeingMoved->GetPositionInScreen())
 		return;
 	
-	WindowPosition = WindowBeingMoved.Get().GetPositionInScreen();
+	WindowPosition = WindowBeingMoved->GetPositionInScreen();
 
 	GConfig->SetVector2D(*Section, TEXT("WindowPosition"), GetWindowPos(), Filename);
 
@@ -198,14 +198,11 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 
 void UDiplosimUserSettings::LoadIniSettings()
 {
-	GEngine->Exec(GetWorld(), TEXT("r.FullScreenMode 2"));
+	FSlateApplicationBase& app = FSlateApplicationBase::Get();
+	FIntPoint res = app.GetActiveTopLevelWindow()->GetViewport()->GetSize();
 
-	if (Resolution == "0x0") {
-		TArray<FIntPoint> resolutions;
-		UKismetSystemLibrary::GetSupportedFullscreenResolutions(resolutions);
-
-		SetResolution(FString::FromInt(resolutions.Last().X) + "x" + FString::FromInt(resolutions.Last().Y));
-	}
+	if (Resolution == "0x0")
+		SetResolution(FString::FromInt(res.X) + "x" + FString::FromInt(res.Y) + "w");
 
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
@@ -221,7 +218,7 @@ void UDiplosimUserSettings::LoadIniSettings()
 	GConfig->ForEachEntry(_keyValueSink, *Section, Filename);
 
 	GEngine->GameViewport->Viewport->ViewportResizedEvent.AddUObject(this, &UDiplosimUserSettings::OnWindowResize);
-	FSlateApplicationBase::Get().GetActiveTopLevelWindow()->SetOnWindowMoved(FOnWindowMoved::CreateUObject(this, &UDiplosimUserSettings::OnGameWindowMoved));
+	app.GetActiveTopLevelWindow()->SetOnWindowMoved(FOnWindowMoved::CreateUObject(this, &UDiplosimUserSettings::OnGameWindowMoved));
 }
 
 void UDiplosimUserSettings::SaveIniSettings()
@@ -292,7 +289,7 @@ bool UDiplosimUserSettings::GetSpawnEnemies() const
 
 void UDiplosimUserSettings::SetCanBeEvil(bool Value)
 {
-	bEvil = false;
+	bEvil = Value;
 }
 
 bool UDiplosimUserSettings::GetCanBeEvil() const
@@ -687,7 +684,7 @@ void UDiplosimUserSettings::SetResolution(FString Value)
 	FSlateApplicationBase& app = FSlateApplicationBase::Get();
 	app.GetPlatformCursor()->Lock(nullptr);
 
-	FString cmd = "r.SetRes " + Resolution;
+	FString cmd = "r.SetRes " + Resolution + "w";
 
 	GEngine->Exec(GetWorld(), *cmd);
 
@@ -706,10 +703,7 @@ void UDiplosimUserSettings::SetWindowPos(FVector2D Position)
 {
 	WindowPosition = Position;
 
-	if (Camera == nullptr)
-		return;
-
-	FSlateApplicationBase::Get().GetActiveTopLevelWindow()->MoveWindowTo(WindowPosition);
+	FSlateApplicationBase::Get().GetActiveTopLevelWindow().Get()->MoveWindowTo(WindowPosition);
 }
 
 FVector2D UDiplosimUserSettings::GetWindowPos() const
@@ -721,7 +715,7 @@ void UDiplosimUserSettings::SetMaximised(bool Value)
 {
 	bIsMaximised = Value;
 
-	if (Camera == nullptr || !bIsMaximised)
+	if (!bIsMaximised)
 		return;
 
 	FSlateApplicationBase::Get().GetActiveTopLevelWindow()->GetNativeWindow()->Maximize();
