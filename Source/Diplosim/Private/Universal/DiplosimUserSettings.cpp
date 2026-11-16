@@ -11,6 +11,7 @@
 #include "Components/SkyLightComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Engine.h"
 
 #include "AI/AIMovementComponent.h"
 #include "AI/Citizen/Citizen.h"
@@ -198,8 +199,7 @@ void UDiplosimUserSettings::HandleSink(const TCHAR* Key, const TCHAR* Value)
 
 void UDiplosimUserSettings::LoadIniSettings()
 {
-	FSlateApplicationBase& app = FSlateApplicationBase::Get();
-	FIntPoint res = app.GetActiveTopLevelWindow()->GetViewport()->GetSize();
+	FIntPoint res = GEngine->GameViewport->Viewport->GetSize();
 
 	if (Resolution == "0x0")
 		SetResolution(FString::FromInt(res.X) + "x" + FString::FromInt(res.Y) + "w");
@@ -218,7 +218,7 @@ void UDiplosimUserSettings::LoadIniSettings()
 	GConfig->ForEachEntry(_keyValueSink, *Section, Filename);
 
 	GEngine->GameViewport->Viewport->ViewportResizedEvent.AddUObject(this, &UDiplosimUserSettings::OnWindowResize);
-	app.GetActiveTopLevelWindow()->SetOnWindowMoved(FOnWindowMoved::CreateUObject(this, &UDiplosimUserSettings::OnGameWindowMoved));
+	GEngine->GameViewport->GetWindow()->SetOnWindowMoved(FOnWindowMoved::CreateUObject(this, &UDiplosimUserSettings::OnGameWindowMoved));
 }
 
 void UDiplosimUserSettings::SaveIniSettings()
@@ -681,14 +681,13 @@ void UDiplosimUserSettings::SetResolution(FString Value)
 
 	Camera->UpdateResolutionText();
 
-	FSlateApplicationBase& app = FSlateApplicationBase::Get();
-	app.GetPlatformCursor()->Lock(nullptr);
+	FSlateApplicationBase::Get().GetPlatformCursor()->Lock(nullptr);
 
 	FString cmd = "r.SetRes " + Resolution + "w";
 
 	GEngine->Exec(GetWorld(), *cmd);
 
-	if (app.GetActiveTopLevelWindow()->GetNativeWindow()->IsMaximized())
+	if (GEngine->GameViewport->GetWindow()->IsWindowMaximized())
 		SetMaximised(true);
 	else
 		SetMaximised(false);
@@ -703,7 +702,7 @@ void UDiplosimUserSettings::SetWindowPos(FVector2D Position)
 {
 	WindowPosition = Position;
 
-	FSlateApplicationBase::Get().GetActiveTopLevelWindow().Get()->MoveWindowTo(WindowPosition);
+	GEngine->GameViewport->GetWindow()->GetNativeWindow()->MoveWindowTo(WindowPosition.X, WindowPosition.Y);
 }
 
 FVector2D UDiplosimUserSettings::GetWindowPos() const
@@ -718,7 +717,7 @@ void UDiplosimUserSettings::SetMaximised(bool Value)
 	if (!bIsMaximised)
 		return;
 
-	FSlateApplicationBase::Get().GetActiveTopLevelWindow()->GetNativeWindow()->Maximize();
+	GEngine->GameViewport->GetWindow()->Maximize();
 }
 
 bool UDiplosimUserSettings::GetMaximised() const
