@@ -211,6 +211,19 @@ bool ABuilding::GetDecalComponentVisibility()
 	return DecalComponent->GetVisibleFlag();
 }
 
+void ABuilding::InitialiseSeeds()
+{
+	for (int32 i = Seeds.Num() - 1; i > -1; i--) {
+		for (UStaticMesh* mesh : Seeds[i].Meshes) {
+			if (mesh != nullptr)
+				continue;
+
+			Seeds.RemoveAt(i);
+			break;
+		}
+	}
+}
+
 void ABuilding::SetSeed(int32 Seed)
 {
 	if (Seeds.IsEmpty()) {
@@ -220,20 +233,18 @@ void ABuilding::SetSeed(int32 Seed)
 	}
 
 	if (bAffectBuildingMesh) {
-		if (!Seeds[Seed].Meshes.IsEmpty()) {
-			BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
+		BuildingMesh->SetStaticMesh(Seeds[Seed].Meshes[0]);
 
-			FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
+		FVector size = BuildingMesh->GetStaticMesh()->GetBounds().GetBox().GetSize();
 
-			if (IsA<AFestival>())
-				Cast<AFestival>(this)->BoxAreaAffect->SetBoxExtent(FVector(size.X / 2.0f, size.Y / 2.0f, 20.0f));
-			else if (IsA<AFort>()) {
-				AFort* fort = Cast<AFort>(this);
-				int32 range = fort->GetZ() * 400.0f;
+		if (IsA<AFestival>())
+			Cast<AFestival>(this)->BoxAreaAffect->SetBoxExtent(FVector(size.X / 2.0f, size.Y / 2.0f, 20.0f));
+		else if (IsA<AFort>()) {
+			AFort* fort = Cast<AFort>(this);
+			int32 range = fort->GetZ() * 400.0f;
 
-				fort->DecalComponent->DecalSize = FVector(range);
-				fort->RangeComponent->SetSphereRadius(range);
-			}
+			fort->DecalComponent->DecalSize = FVector(range);
+			fort->RangeComponent->SetSphereRadius(range);
 		}
 
 		if (Seeds[Seed].Health != -1) {

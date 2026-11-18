@@ -2,6 +2,8 @@
 
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 
+#include "Player/Camera.h"
+
 APowerPlant::APowerPlant()
 {
 	bNoTimer = true;
@@ -21,4 +23,6 @@ void APowerPlant::OnBuilt()
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(ParticleComponent, TEXT("SpawnLocations"), socketLocations);
 
 	Super::OnBuilt();
+
+	Camera->UnlockAchievement("FeatheredFuel");
 }

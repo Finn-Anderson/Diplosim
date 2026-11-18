@@ -10,6 +10,13 @@ AGMLab::AGMLab()
 	TimeLength = 100.0f;
 }
 
+void AGMLab::OnBuilt()
+{
+	Super::OnBuilt();
+
+	Camera->UnlockAchievement("Battered");
+}
+
 void AGMLab::Production(ACitizen* Citizen)
 {
 	Super::Production(Citizen);

@@ -11,6 +11,7 @@
 #include "AI/AIMovementComponent.h"
 #include "AI/Citizen/Citizen.h"
 #include "Buildings/Misc/Broch.h"
+#include "Buildings/Work/Defence/Trap.h"
 #include "Buildings/Work/Defence/Wall.h"
 #include "Buildings/Misc/Special/CloneLab.h"
 #include "Map/Grid.h"
@@ -21,6 +22,7 @@
 #include "Player/Managers/ConquestManager.h"
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/PoliceManager.h"
+#include "Player/Managers/PoliticsManager.h"
 #include "Universal/DiplosimUserSettings.h"
 #include "Universal/HealthComponent.h"
 #include "DebugManager.h"
@@ -33,6 +35,8 @@ ADiplosimGameModeBase::ADiplosimGameModeBase()
 	TargetOpacity = 0.0f;
 	
 	Grid = nullptr;
+
+	bNoDefensiveBuildings = false;
 }
 
 void ADiplosimGameModeBase::BeginPlay()
@@ -340,6 +344,20 @@ void ADiplosimGameModeBase::SpawnAllEnemies()
 		break;
 	}
 
+	FFactionStruct* faction = Camera->ConquestManager->GetFaction(Camera->ColonyName);
+
+	if (Camera->PoliticsManager->IsRebellion(faction))
+		Camera->bRaidAndRebellion = true;
+
+	bNoDefensiveBuildings = true;
+	for (ABuilding* building : faction->Buildings) {
+		if (!building->IsA<AWall>() && !building->IsA<ATrap>())
+			continue;
+
+		bNoDefensiveBuildings = false;
+		break;
+	}
+
 	Camera->ShowEvent("Event", "Raid");
 }
 
@@ -435,6 +453,9 @@ void ADiplosimGameModeBase::SetWaveTimer()
 	int32 timeToCompleteDay = Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
 	Camera->TimerManager->CreateTimer("WaveTimer", this, timeToCompleteDay * 2, "StartRaid", {}, true, false);
+
+	if (bNoDefensiveBuildings)
+		Camera->UnlockAchievement("HardBoiledEggs");
 }
 
 void ADiplosimGameModeBase::CheckWaveTimer()

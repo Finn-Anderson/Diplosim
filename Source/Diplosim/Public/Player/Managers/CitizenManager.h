@@ -141,6 +141,8 @@ public:
 		TArray<FReligionStruct> Religions;
 
 	// Personality
+	bool HasPersonality(class ACitizen* Citizen, FString PersonalityName);
+
 	UFUNCTION(BlueprintCallable)
 		TArray<ACitizen*> GetCitizensOfPersonality(FString FactionName, FString PersonalityName);
 

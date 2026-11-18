@@ -23,6 +23,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 		TSubclassOf<class AProjectile> BuildingProjectileClass;
 
+	virtual void OnBuilt() override;
+
 	virtual void Enter(class ACitizen* Citizen) override;
 
 	virtual void Leave(class ACitizen* Citizen) override;

@@ -33,6 +33,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trap")
 		class UMaterial* ExplosionTickOverlay;
 
+	virtual void OnBuilt() override;
+
 	void StartTrapFuse();
 
 	UFUNCTION()

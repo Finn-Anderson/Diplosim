@@ -420,6 +420,9 @@ void UPoliticsManager::Bribe(class ACitizen* Representative, bool bAgree)
 	else
 		faction->Politics.Votes.Against.Add(Representative);
 
+	if (faction->Politics.Representatives.Num() == 1)
+		Camera->UnlockAchievement("Eggstortion");
+
 	if (Camera->ColonyName == faction->Name)
 		Camera->UpdateRepresentative(index);
 }
@@ -694,6 +697,9 @@ void UPoliticsManager::TallyVotes(FFactionStruct* Faction, FLawStruct Bill)
 		}
 
 		bPassed = true;
+
+		if (GetBillPassChance(Faction->Name, Bill) == "Low")
+			Camera->UnlockAchievement("Uneggspected");
 	}
 
 	if (Faction->Name == Camera->ColonyName) {
@@ -907,6 +913,9 @@ void UPoliticsManager::Overthrow(FFactionStruct* Faction)
 
 		break;
 	}
+
+	if (!GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty())
+		Camera->bRaidAndRebellion = true;
 
 	Async(EAsyncExecution::TaskGraphMainTick, [this]() { Camera->ShowEvent("Disaster", "Rebellion"); });
 }

@@ -15,6 +15,8 @@ void AParliament::OnBuilt()
 {
 	Super::OnBuilt();
 
+	Camera->UnlockAchievement("TopOfTheFlock");
+
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
 	Camera->PoliticsManager->Election(*faction);
 	Camera->PoliticsManager->StartElectionTimer(faction);

@@ -15,6 +15,13 @@ ACloneLab::ACloneLab()
 	TimeLength = 30.0f;
 }
 
+void ACloneLab::OnBuilt()
+{
+	Super::OnBuilt();
+
+	Camera->UnlockAchievement("Eggtosis");
+}
+
 void ACloneLab::StartCloneLab()
 {
 	if (FactionName == "" || Camera->TimerManager->DoesTimerExist("Internal", this))

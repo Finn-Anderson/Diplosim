@@ -140,6 +140,8 @@ void UCitizenManager::CitizenGeneralLoop(float DeltaTime)
 
 			int32 timeToCompleteDay = Camera->Grid->AtmosphereComponent->GetTimeToCompleteDay();
 
+			TMap<FString, TArray<ACitizen*>> religions;
+			TMap<FString, TArray<ACitizen*>> parties;
 			for (ACitizen* citizen : faction.Citizens) {
 				if (Camera->SaveGameComponent->IsLoading())
 					return;
@@ -193,6 +195,19 @@ void UCitizenManager::CitizenGeneralLoop(float DeltaTime)
 					if (station->bEmergency)
 						station->Production(nullptr);
 				}
+
+				TArray<ACitizen*>* citizens = religions.Find(citizen->Spirituality.Faith);
+				if (citizens == nullptr)
+					religions.Add(citizen->Spirituality.Faith, { citizen });
+				else
+					citizens->Add(citizen);
+
+				FString party = Camera->PoliticsManager->GetCitizenParty(citizen);
+				citizens = parties.Find(party);
+				if (citizens == nullptr)
+					parties.Add(party, { citizen });
+				else
+					citizens->Add(citizen);
 			}
 
 			float rebelsPerc = rebelCount / (float)faction.Citizens.Num();
@@ -201,6 +216,9 @@ void UCitizenManager::CitizenGeneralLoop(float DeltaTime)
 				Camera->PoliticsManager->ChooseRebellionType(&faction, DeltaTime);
 
 			if (faction.Name == Camera->ColonyName) {
+				if (religions.Num() == 1 && parties.Num() == 1)
+					Camera->UnlockAchievement("WholeEgg");
+
 				float happinessPerc = happinessCount / (faction.Citizens.Num() * 100.0f);
 
 				Async(EAsyncExecution::TaskGraphMainTick, [this, happinessPerc, rebelsPerc]() { Camera->UpdateUI(happinessPerc, rebelsPerc); });
@@ -720,6 +738,15 @@ void UCitizenManager::SetPrayTimer(FFactionStruct Faction, FString Type)
 //
 // Personality
 //
+bool UCitizenManager::HasPersonality(ACitizen* Citizen, FString PersonalityName)
+{
+	for (FPersonality* personality : GetCitizensPersonalities(Citizen))
+		if (personality->Trait == PersonalityName)
+			return true;
+
+	return false;
+}
+
 TArray<ACitizen*> UCitizenManager::GetCitizensOfPersonality(FString FactionName, FString PersonalityName)
 {
 	FFactionStruct* faction = Camera->ConquestManager->GetFaction(FactionName);
@@ -738,7 +765,7 @@ TArray<ACitizen*> UCitizenManager::GetCitizensOfPersonality(FString FactionName,
 	return citizens;
 }
 
-TArray<FPersonality*> UCitizenManager::GetCitizensPersonalities(class ACitizen* Citizen)
+TArray<FPersonality*> UCitizenManager::GetCitizensPersonalities(ACitizen* Citizen)
 {
 	TArray<FPersonality*> personalities;
 

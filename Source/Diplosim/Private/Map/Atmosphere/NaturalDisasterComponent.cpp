@@ -275,8 +275,12 @@ bool UNaturalDisasterComponent::IsProtected(FVector Location)
 
 			double distance = FVector::Dist(building->GetActorLocation(), Location);
 
-			if (distance <= Cast<AWork>(building)->ForcefieldRange)
+			if (distance <= Cast<AWork>(building)->ForcefieldRange) {
+				if (faction.Name == Grid->Camera->ColonyName)
+					Grid->Camera->UnlockAchievement("EggOMatic");
+
 				return true;
+			}
 		}
 	}
 

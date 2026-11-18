@@ -129,6 +129,8 @@ ACamera::ACamera()
 
 	LoopInterval = 0.2f;
 	LoopCount = 0.0f;
+
+	bRaidAndRebellion = false;
 }
 
 void ACamera::BeginPlay()
@@ -264,6 +266,12 @@ void ACamera::Tick(float DeltaTime)
 			ConquestManager->CheckLoadFactionLock();
 
 			ResourceManager->GameMode->CheckWaveTimer();
+
+			if (bRaidAndRebellion && GetWorld()->GetAuthGameMode<ADiplosimGameModeBase>()->Enemies.IsEmpty() && !PoliticsManager->IsRebellion(ConquestManager->GetFaction(ColonyName))) {
+				bRaidAndRebellion = false;
+
+				UnlockAchievement("Ineggitable");
+			}
 
 			LoopCount = 0.0f;
 		}
@@ -765,6 +773,9 @@ void ACamera::Smite(class AAI* AI)
 
 		return;
 	}
+
+	if (AI->IsA<ACitizen>() && CitizenManager->HasPersonality(Cast<ACitizen>(AI), "Evil"))
+		UnlockAchievement("Eggscused");
 
 	Grid->AtmosphereComponent->SpawnLightning(GetTargetActorLocation(AI) + FVector(0.0f, 0.0f, 2000.0f), GetTargetActorLocation(AI), false);
 

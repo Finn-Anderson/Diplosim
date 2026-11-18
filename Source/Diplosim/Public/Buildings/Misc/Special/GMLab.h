@@ -12,5 +12,7 @@ class DIPLOSIM_API AGMLab : public ASpecial
 public:
 	AGMLab();
 
+	virtual void OnBuilt() override;
+
 	virtual void Production(class ACitizen* Citizen) override;
 };

@@ -8,7 +8,7 @@ public class Diplosim : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule", "UMG", "Slate", "SlateCore", "NavigationSystem", "EnhancedInput", "Niagara", "Json", "JsonUtilities", "ProceduralMeshComponent" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule", "UMG", "Slate", "SlateCore", "NavigationSystem", "EnhancedInput", "Niagara", "Json", "JsonUtilities", "ProceduralMeshComponent", "OnlineSubsystem", "OnlineSubsystemUtils", "Steamworks" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
@@ -24,5 +24,6 @@ public class Diplosim : ModuleRules
         // PrivateDependencyModuleNames.Add("OnlineSubsystem");
 
         // To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
+        DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
     }
 }

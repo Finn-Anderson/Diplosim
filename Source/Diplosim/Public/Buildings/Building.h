@@ -289,6 +289,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Faction")
 		FString FactionName;
 
+	void InitialiseSeeds();
+
 	UFUNCTION(BlueprintCallable)
 		void SetSeed(int32 Seed);
 

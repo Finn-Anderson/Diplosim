@@ -260,6 +260,19 @@ void UResearchManager::Research(float Amount, FString FactionName)
 		for (ACitizen* citizen : faction->Citizens)
 			citizen->ApplyToMultiplier(element.Key, element.Value);
 
-	if (FactionName == Camera->ColonyName)
+	if (FactionName == Camera->ColonyName) {
+		bool bAllResearched = true;
+		for (FResearchStruct r : faction->ResearchStruct) {
+			if (r.Level == r.MaxLevel)
+				continue;
+
+			bAllResearched = false;
+			break;
+		}
+
+		if (bAllResearched)
+			Camera->UnlockAchievement("Egghead");
+
 		Camera->NotifyLog(nullptr, "Good", "Research Complete: " + research->ResearchName, faction->Name);
+	}
 }

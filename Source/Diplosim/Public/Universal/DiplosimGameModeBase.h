@@ -173,6 +173,9 @@ public:
 	UPROPERTY()
 		float TargetOpacity;
 
+	UPROPERTY()
+		bool bNoDefensiveBuildings;
+
 private:
 	void EvaluateThreats();
 

@@ -11,6 +11,7 @@
 #include "Player/Managers/DiplosimTimerManager.h"
 #include "Player/Managers/ConquestManager.h"
 #include "Universal/HealthComponent.h"
+#include "Universal/DiplosimGameModeBase.h"
 
 ATrap::ATrap()
 {
@@ -25,6 +26,17 @@ ATrap::ATrap()
 	FuseTime = 1.0f;
 
 	bExplode = false;
+}
+
+void ATrap::OnBuilt()
+{
+	Super::OnBuilt();
+
+	if (FactionName != Camera->ColonyName)
+		return;
+
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	gamemode->bNoDefensiveBuildings = false;
 }
 
 void ATrap::StartTrapFuse()

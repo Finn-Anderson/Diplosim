@@ -531,8 +531,12 @@ void UPoliceManager::Jail(FFactionStruct Faction, ACitizen* Officer, ACitizen* C
 
 	faction->Police.Arrested.Add(Citizen, Camera->PoliticsManager->GetLawValue(faction->Name, law));
 
-	if (faction->Name == Citizen->Camera->ColonyName)
+	if (faction->Name == Citizen->Camera->ColonyName) {
+		if (faction->Police.Arrested.Num() == 3)
+			Camera->UnlockAchievement("CagedHens");
+
 		Citizen->Camera->NotifyLog(Citizen, "Bad", Citizen->BioComponent->Name + " has been arrested", faction->Name);
+	}
 
 	if (!IsValid(Officer) || Officer->BuildingComponent->Employment != Jail || Officer->AIController->MoveRequest.GetGoalActor() != Citizen || Officer->HealthComponent->GetHealth() == 0)
 		return;

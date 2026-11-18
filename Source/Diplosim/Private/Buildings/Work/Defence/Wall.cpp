@@ -5,6 +5,7 @@
 
 #include "AI/Citizen/Citizen.h"
 #include "Buildings/Work/Defence/Fort.h"
+#include "Player/Camera.h"
 #include "Universal/HealthComponent.h"
 #include "Universal/DiplosimGameModeBase.h"
 #include "Universal/AttackComponent.h"
@@ -36,8 +37,19 @@ void AWall::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (FactionName != Camera->ColonyName)
+		return;
+
 	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
 	RangeComponent->SetAreaClassOverride(gamemode->NavAreaThreat);
+}
+
+void AWall::OnBuilt()
+{
+	Super::OnBuilt();
+
+	ADiplosimGameModeBase* gamemode = Cast<ADiplosimGameModeBase>(GetWorld()->GetAuthGameMode());
+	gamemode->bNoDefensiveBuildings = false;
 }
 
 void AWall::Enter(ACitizen* Citizen)

@@ -662,6 +662,8 @@ void UBuildComponent::SpawnBuilding(TSubclassOf<class ABuilding> BuildingClass, 
 		Camera->WidgetComponent->SetHiddenInGame(true);
 	}
 
+	building->InitialiseSeeds();
+
 	if (IsValid(BuildingToMove)) {
 		building->SeedNum = BuildingToMove->SeedNum;
 		building->SetTier(BuildingToMove->Tier);

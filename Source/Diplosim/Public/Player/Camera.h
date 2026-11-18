@@ -185,6 +185,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void UpdateVisitors(class ABuilding* Building, class ACitizen* Citizen, bool bAdd);
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void UnlockAchievement(const FString& Name);
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class UCameraComponent* CameraComponent;
@@ -606,6 +609,10 @@ public:
 		void Menu();
 
 	FCriticalSection ClearDeathLock;
+
+	// Achievements
+	UPROPERTY()
+		bool bRaidAndRebellion;
 
 private:
 	// Commands
