@@ -120,7 +120,7 @@ void ACitizen::CitizenSetup(FFactionStruct* Faction)
 	if (BioComponent->Mother != nullptr && BioComponent->Mother->BuildingComponent->BuildingAt != nullptr)
 		BioComponent->Mother->BuildingComponent->BuildingAt->Enter(this);
 	else
-		AIController->DefaultAction();
+		Camera->TimerManager->CreateTimer("CitizenSetupDefault", this, 1.0f, "DefaultAction", {}, false);
 }
 
 void ACitizen::ClearCitizen()

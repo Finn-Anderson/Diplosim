@@ -42,14 +42,11 @@ void ABroch::SpawnCitizens()
 		Cast<UHierarchicalInstancedStaticMeshComponent>(hits[chosenNum].GetComponent())->GetInstanceTransform(hits[chosenNum].Item, t);
 		t.SetLocation(t.GetLocation() + FVector(Camera->Stream.FRandRange(-40.0f, 40.0f), Camera->Stream.FRandRange(-40.0f, 40.0f), 100.0f));
 
-		FNavLocation navLoc;
-		nav->ProjectPointToNavigation(t.GetLocation(), navLoc, FVector(10.0f, 10.0f, 40.0f));
-
 		FActorSpawnParameters params;
 		params.bNoFail = true;
 
 		FTransform transform;
-		transform.SetLocation(navLoc.Location - FVector(0.0f, 0.0f, 2.0f));
+		transform.SetLocation(t.GetLocation());
 		transform.SetRotation((GetActorRotation() - FRotator(0.0f, 90.0f, 0.0f)).Quaternion());
 
 		ACitizen* citizen = GetWorld()->SpawnActor<ACitizen>(CitizenClass, FVector::Zero(), FRotator::ZeroRotator, params);

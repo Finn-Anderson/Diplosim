@@ -114,4 +114,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Age")
 		float MaxHealthBeforeOld;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Path to file, starting from project directory"))
+		TArray<FString> MaleNames;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Path to file, starting from project directory"))
+		TArray<FString> FemaleNames;
 };

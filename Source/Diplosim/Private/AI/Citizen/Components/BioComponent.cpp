@@ -145,12 +145,24 @@ void UBioComponent::SetSex(TArray<ACitizen*> Citizens)
 void UBioComponent::SetName()
 {
 	ACitizen* citizen = Cast<ACitizen>(GetOwner());
-	FString names;
+	FString names = "";
 
-	if (Sex == ESex::Male)
-		FFileHelper::LoadFileToString(names, *(FPaths::ProjectDir() + "/Content/Custom/Citizen/MaleNames.txt"));
-	else
-		FFileHelper::LoadFileToString(names, *(FPaths::ProjectDir() + "/Content/Custom/Citizen/FemaleNames.txt"));
+	TArray<FString> paths = MaleNames;
+	if (Sex == ESex::Female)
+		paths = FemaleNames;
+
+	for (FString path : paths) {
+		if (!FPaths::FileExists(FPaths::ProjectDir() + path))
+			continue;
+
+		if (names != "")
+			names += ",";
+
+		FString result;
+		FFileHelper::LoadFileToString(result, *(FPaths::ProjectDir() + path));
+
+		names += result;
+	}
 
 	TArray<FString> parsed;
 	names.ParseIntoArray(parsed, TEXT(","));
