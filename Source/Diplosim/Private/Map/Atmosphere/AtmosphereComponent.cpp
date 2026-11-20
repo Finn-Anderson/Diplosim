@@ -99,7 +99,6 @@ UAtmosphereComponent::UAtmosphereComponent()
 
 	NaturalDisasterComponent = CreateDefaultSubobject<UNaturalDisasterComponent>(TEXT("NaturalDisasterComponent"));
 
-	bRedSun = false;
 	WindSpeed = 20;
 	TargetWindSpeed = WindSpeed;
 	WindRotation = FRotator(0.0f);

@@ -213,7 +213,6 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 	}
 
 	worldSaveData.AtmosphereData.Calendar = grid->AtmosphereComponent->Calendar;
-	worldSaveData.AtmosphereData.bRedSun = grid->AtmosphereComponent->bRedSun;
 	worldSaveData.AtmosphereData.WindRotation = grid->AtmosphereComponent->WindRotation;
 	worldSaveData.AtmosphereData.WindSpeed = grid->AtmosphereComponent->WindSpeed;
 	worldSaveData.AtmosphereData.TargetWindSpeed = grid->AtmosphereComponent->TargetWindSpeed;
@@ -223,6 +222,8 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 	worldSaveData.NaturalDisasterData.DisasterChance = grid->AtmosphereComponent->NaturalDisasterComponent->DisasterChance;
 	worldSaveData.NaturalDisasterData.Frequency = grid->AtmosphereComponent->NaturalDisasterComponent->Frequency;
 	worldSaveData.NaturalDisasterData.Intensity = grid->AtmosphereComponent->NaturalDisasterComponent->Intensity;
+	worldSaveData.NaturalDisasterData.bRedSun = grid->AtmosphereComponent->NaturalDisasterComponent->bRedSun;
+	worldSaveData.NaturalDisasterData.VolcanoMagnitude = grid->AtmosphereComponent->NaturalDisasterComponent->VolcanoMagnitude;
 
 	for (AActor* a : PotentialWetActors) {
 		FWetnessStruct wetnessStruct;
@@ -722,6 +723,7 @@ void UDiplosimSaveGame::SaveProjectile(FActorSaveData& ActorData, AActor* Actor,
 
 	projectileData.OwnerName = projectile->GetOwner()->GetName();
 	projectileData.Velocity = projectile->ProjectileMovementComponent->Velocity;
+	projectileData.Timer = projectile->Timer;
 
 	ActorData.dataIndex = Saves[Index].ProjectileData.Add(projectileData);
 }
@@ -891,6 +893,10 @@ void UDiplosimSaveGame::LoadGame(ACamera* Camera, int32 Index)
 		Camera->DisplayNewBill();
 	}
 
+	float magnitude = Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->VolcanoMagnitude;
+	if (magnitude > 0.0f)
+		Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->GenerateVolcano(magnitude);
+
 	for (const FWetnessData& wetData : wetnessData)
 		Camera->Grid->AtmosphereComponent->Clouds->RainCollisionHandler(wetData.Location, wetData.Value, wetData.Increment);
 }
@@ -950,7 +956,6 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	}
 
 	grid->AtmosphereComponent->Calendar = WorldData.AtmosphereData.Calendar;
-	grid->AtmosphereComponent->bRedSun = WorldData.AtmosphereData.bRedSun;
 	grid->AtmosphereComponent->WindRotation = WorldData.AtmosphereData.WindRotation;
 	grid->AtmosphereComponent->WindSpeed = WorldData.AtmosphereData.WindSpeed;
 	grid->AtmosphereComponent->TargetWindSpeed = WorldData.AtmosphereData.TargetWindSpeed;
@@ -960,8 +965,10 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	grid->AtmosphereComponent->NaturalDisasterComponent->DisasterChance = WorldData.NaturalDisasterData.DisasterChance;
 	grid->AtmosphereComponent->NaturalDisasterComponent->Frequency = WorldData.NaturalDisasterData.Frequency;
 	grid->AtmosphereComponent->NaturalDisasterComponent->Intensity = WorldData.NaturalDisasterData.Intensity;
+	grid->AtmosphereComponent->NaturalDisasterComponent->bRedSun = WorldData.NaturalDisasterData.bRedSun;
+	grid->AtmosphereComponent->NaturalDisasterComponent->VolcanoMagnitude = WorldData.NaturalDisasterData.VolcanoMagnitude;
 
-	if (grid->AtmosphereComponent->bRedSun)
+	if (grid->AtmosphereComponent->NaturalDisasterComponent->bRedSun)
 		grid->AtmosphereComponent->NaturalDisasterComponent->AlterSunGradually(0.15f, -1.00f);
 
 	WetnessData = WorldData.CloudsData.WetnessData;
@@ -1378,6 +1385,7 @@ void UDiplosimSaveGame::LoadProjectile(FProjectileData& ProjectileData, AActor* 
 {
 	AProjectile* projectile = Cast<AProjectile>(Actor);
 	projectile->ProjectileMovementComponent->Velocity = ProjectileData.Velocity;
+	projectile->Timer = ProjectileData.Timer;
 }
 
 void UDiplosimSaveGame::LoadAISpawner(FSpawnerData& SpawnerData, AActor* Actor)

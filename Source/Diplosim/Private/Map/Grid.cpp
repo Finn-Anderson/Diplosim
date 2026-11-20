@@ -82,6 +82,9 @@ AGrid::AGrid()
 
 		hism->SetEvaluateWorldPositionOffset(bwpo);
 
+		if (hism == HISMLava)
+			hism->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+
 		if (hism == HISMLava || hism == HISMRiver)
 			hism->SetCanEverAffectNavigation(false);
 
@@ -752,7 +755,7 @@ void AGrid::SetupEnvironment(bool bLoad)
 	Camera->MovementComponent->SetBounds(c1, c2);
 
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(LavaComponent, TEXT("SpawnLocations"), LavaSpawnLocations);
-	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), LavaSpawnLocations.Num() / 10.0f);
+	SetLavaSpawnrate(1.0f);
 	LavaComponent->Activate(true);
 
 	if (bLoad)
@@ -1240,6 +1243,11 @@ void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAx
 
 		AddCalculatedTile(HISMRiver, transform);
 	}
+}
+
+void AGrid::SetLavaSpawnrate(float Intensity)
+{
+	LavaComponent->SetVariableFloat(TEXT("SpawnRate"), (LavaSpawnLocations.Num() / 10.0f) * Intensity);
 }
 
 //

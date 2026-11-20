@@ -57,11 +57,19 @@ AProjectile::AProjectile()
 	bDamageFallOff = true;
 
 	FactionName = "";
+	Timer = 0.0f;
+	RotationAmount = FRotator::ZeroRotator;
+	CurrentRotation = FRotator::ZeroRotator;
 }
 
 void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	FRotator rotation = RotationAmount * DeltaTime;
+	CurrentRotation += RotationAmount;
+	CurrentRotation.Normalize();
+	ProjectileMesh->SetCustomPrimitiveDataVector3(0, FVector(CurrentRotation.Roll, CurrentRotation.Pitch, CurrentRotation.Yaw));
 
 	if (DeltaTime < 0.001f || DeltaTime > 1.0f)
 		return;
@@ -74,6 +82,10 @@ void AProjectile::Tick(float DeltaTime)
 
 	if (IsValid(MovementShake))
 		UGameplayStatics::PlayWorldCameraShake(GetWorld(), MovementShake, GetActorLocation(), 0.0f, Radius, 1.0f);
+
+	Timer += DeltaTime;
+	if (Timer > 120.0f)
+		Destroy();
 }
 
 void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
@@ -96,6 +108,16 @@ void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
 
 	if (TrailSystem)
 		trail->SetVariableLinearColor(TEXT("Colour"), colour);
+}
+
+void AProjectile::SetInitialSpeed(float Speed)
+{
+	ProjectileMovementComponent->InitialSpeed = Speed;
+}
+
+void AProjectile::SetRotationAmount(FRotator Rotation)
+{
+	RotationAmount = Rotation;
 }
 
 void AProjectile::OnHit(AActor* Actor, UActorComponent* Component, int32 Instance)

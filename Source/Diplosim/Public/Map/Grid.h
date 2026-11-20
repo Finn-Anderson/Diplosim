@@ -232,6 +232,8 @@ public:
 
 	void CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAxis);
 
+	void SetLavaSpawnrate(float Intensity);
+
 	void Clear();
 
 	FTileStruct* GetTileFromLocation(FVector WorldLocation);

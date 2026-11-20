@@ -63,9 +63,6 @@ struct FAtmosphereData
 	UPROPERTY()
 		FRotator MoonRotation;
 
-	UPROPERTY()
-		bool bRedSun;
-
 	FAtmosphereData()
 	{
 		WindRotation = FRotator::ZeroRotator;
@@ -73,7 +70,6 @@ struct FAtmosphereData
 		TargetWindSpeed = WindSpeed;
 		SunRotation = FRotator(-15.0f, 15.0f, 0.0f);
 		MoonRotation = FRotator(15.0f, 195.0f, 0.0f);
-		bRedSun = false;
 	}
 };
 
@@ -178,11 +174,19 @@ struct FNaturalDisasterData
 	UPROPERTY()
 		float Frequency;
 
+	UPROPERTY()
+		bool bRedSun;
+
+	UPROPERTY()
+		float VolcanoMagnitude;
+
 	FNaturalDisasterData()
 	{
 		DisasterChance = 0.0f;
 		Intensity = 1.0f;
 		Frequency = 1.0f;
+		bRedSun = false;
+		VolcanoMagnitude = 0.0f;
 	}
 };
 
@@ -743,10 +747,14 @@ struct FProjectileData
 	UPROPERTY()
 		FVector Velocity;
 
+	UPROPERTY()
+		float Timer;
+
 	FProjectileData()
 	{
 		OwnerName = "";
 		Velocity = FVector::Zero();
+		Timer = 0.0f;
 	}
 };
 

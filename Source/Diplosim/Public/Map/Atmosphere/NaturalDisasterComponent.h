@@ -19,15 +19,22 @@ public:
 
 	void ResetDisasterChance();
 
-	void SetEarthquakeSounds(float Dilation);
+	void GenerateNDShakesAndSounds(FString Type, TArray<FVector> Points, float Range);
+
+	void SetNDSounds(float Dilation);
 
 	UFUNCTION()
-		void ClearEarthquakeShakesAndSounds();
+		void ClearNDShakesAndSounds(FString TypeAndTally);
 
 	void AlterSunGradually(float Target, float Increment);
 
 	UFUNCTION()
 		void CancelRedSun();
+
+	void GenerateVolcano(float Magnitude);
+
+	UFUNCTION()
+		void GenerateVolcanicRock(float Magnitude);
 
 	bool IsProtected(FVector Location);
 
@@ -52,6 +59,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Purifier")
 		TSubclassOf<class AProjectile> PurifierClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Volcano")
+		TSubclassOf<class AProjectile> VolcanicRockClass;
+
+	UPROPERTY()
+		bool bRedSun;
+
+	UPROPERTY()
+		float VolcanoMagnitude;
+
+	UPROPERTY()
+		int32 DisasterTally;
+
 private:
 	void GenerateEarthquake(float Magnitude);
 
@@ -61,5 +80,5 @@ private:
 
 	void GenerateRedSun(float Magnitude);
 
-	bool bVisualiseEarthquakes;
+	float VolcanoTimer;
 };

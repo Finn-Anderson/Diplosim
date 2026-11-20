@@ -118,9 +118,6 @@ public:
 	UPROPERTY()
 		class AGrid* Grid;
 
-	UPROPERTY()
-		bool bRedSun;
-
 	UFUNCTION()
 		void AlterWind();
 

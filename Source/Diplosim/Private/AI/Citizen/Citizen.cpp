@@ -963,7 +963,7 @@ float ACitizen::GetProductivity()
 		break;
 	}
 
-	if (Camera->Grid->AtmosphereComponent->bRedSun && !Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(MovementComponent->GetMovementTransform().GetLocation()))
+	if (Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->bRedSun && !Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(MovementComponent->GetMovementTransform().GetLocation()))
 		productivity *= 0.5f;
 
 	return productivity;

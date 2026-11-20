@@ -54,7 +54,17 @@ public:
 	UPROPERTY()
 		FString FactionName;
 
+	UPROPERTY()
+		float Timer;
+
+	UPROPERTY()
+		FRotator RotationAmount;
+
 	void SpawnNiagaraSystems(AActor* Launcher);
+
+	void SetInitialSpeed(float Speed);
+
+	void SetRotationAmount(FRotator Rotation);
 
 private:
 	void OnHit(AActor* Actor, UActorComponent* Component, int32 Instance);
@@ -62,4 +72,6 @@ private:
 	void Explode(class ACamera* Camera);
 
 	void HitActor(class ACamera* Camera, AActor* Actor);
+
+	FRotator CurrentRotation;
 };

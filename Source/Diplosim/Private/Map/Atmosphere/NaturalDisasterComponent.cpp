@@ -29,6 +29,13 @@ UNaturalDisasterComponent::UNaturalDisasterComponent()
 
 	Frequency = 1.0f;
 	Intensity = 1.0f;
+
+	VolcanoTimer = 0.0f;
+
+	bRedSun = false;
+	VolcanoMagnitude = 0.0f;
+
+	DisasterTally = 0;
 }
 
 bool UNaturalDisasterComponent::ShouldCreateDisaster()
@@ -50,7 +57,7 @@ void UNaturalDisasterComponent::IncrementDisasterChance()
 
 	float magnitude = Grid->Camera->Stream.FRandRange(1.0f, 5.0f) * Intensity;
 
-	int32 type = Grid->Camera->Stream.RandRange(0, 2);
+	int32 type = Grid->Camera->Stream.RandRange(0, VolcanicRockClass != nullptr && VolcanoMagnitude != -1.0f ? 3 : 2);
 	FString text = "";
 
 	if (type == 0) {
@@ -61,10 +68,17 @@ void UNaturalDisasterComponent::IncrementDisasterChance()
 		GeneratePurifier(magnitude);
 		text = "Purifier";
 	}
-	else {
+	else if (type == 2) {
 		GenerateRedSun(magnitude);
 		text = "Red Sun";
 	}
+	else {
+		GenerateVolcano(magnitude);
+
+		text = "Volcano";
+	}
+
+	DisasterTally++;
 
 	Grid->Camera->ShowEvent("Natural Disaster", text);
 
@@ -76,7 +90,29 @@ void UNaturalDisasterComponent::ResetDisasterChance()
 	DisasterChance = 0.0f;
 }
 
-void UNaturalDisasterComponent::SetEarthquakeSounds(float Dilation)
+void UNaturalDisasterComponent::GenerateNDShakesAndSounds(FString Type, TArray<FVector> Points, float Range)
+{
+	int32 count = 0;
+	for (const FVector point : Points) {
+		UAudioComponent* audio = NewObject<UAudioComponent>(this, UAudioComponent::StaticClass(), FName("nd-audio-" + Type + FString::FromInt(DisasterTally) + "-" + FString::FromInt(count)));
+		audio->SetupAttachment(Grid->GetRootComponent());
+		audio->SetRelativeLocation(point);
+		Grid->Camera->AudioManager->PlayAmbientSound(audio, Sound, 1.0f);
+		if (Grid->Camera->CustomTimeDilation > 1.0f)
+			audio->SetPaused(true);
+
+		UCameraShakeSourceComponent* shake = NewObject<UCameraShakeSourceComponent>(this, UCameraShakeSourceComponent::StaticClass(), FName("nd-shake-" + Type + FString::FromInt(DisasterTally) + "-" + FString::FromInt(count)));
+		shake->SetupAttachment(Grid->GetRootComponent());
+		shake->SetRelativeLocation(point);
+		shake->InnerAttenuationRadius = Range;
+		shake->OuterAttenuationRadius = Range * 6;
+		shake->StartCameraShake(Shake, 1.0f, ECameraShakePlaySpace::World);
+
+		count++;
+	}
+}
+
+void UNaturalDisasterComponent::SetNDSounds(float Dilation)
 {
 	TArray<UAudioComponent*> components;
 	Grid->GetComponents<UAudioComponent>(components);
@@ -89,16 +125,34 @@ void UNaturalDisasterComponent::SetEarthquakeSounds(float Dilation)
 	}
 }
 
+void UNaturalDisasterComponent::ClearNDShakesAndSounds(FString TypeAndTally)
+{
+	TArray<UActorComponent*> components;
+	Grid->GetComponents(components);
+
+	for (UActorComponent* component : components) {
+		if (!component->GetName().Contains("nd-") || !component->GetName().Contains(TypeAndTally))
+			continue;
+
+		if (component->IsA<UAudioComponent>())
+			Cast<UAudioComponent>(component)->SetPaused(true);
+
+		component->DestroyComponent();
+	}
+
+	if (TypeAndTally.Contains("volcano"))
+		VolcanoMagnitude = 0.0f;
+}
+
 void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 {
 	float range = 500.0f * Magnitude;
+	TArray<FVector> points = GetEarthquakePoints(Magnitude);
 
 	FOverlapsStruct overlaps;
 	overlaps.bBuildings = true;
 
-	int32 count = 0;
-
-	for (const FVector& point : GetEarthquakePoints(Magnitude)) {
+	for (const FVector& point : points) {
 		TArray<AActor*> actors = Grid->AIVisualiser->GetOverlaps(Grid->Camera, Grid, range, overlaps, EFactionType::Both, nullptr, point);
 
 		for (AActor* actor : actors) {
@@ -110,41 +164,13 @@ void UNaturalDisasterComponent::GenerateEarthquake(float Magnitude)
 
 			Cast<ABuilding>(actor)->HealthComponent->TakeHealth(damage, Grid);
 		}
-
-		UAudioComponent* audio = NewObject<UAudioComponent>(this, UAudioComponent::StaticClass(), FName("nd-audio" + FString::FromInt(count)));
-		audio->SetupAttachment(Grid->GetRootComponent());
-		audio->SetRelativeLocation(point);
-		Grid->Camera->AudioManager->PlayAmbientSound(audio, Sound, 1.0f);
-		if (Grid->Camera->CustomTimeDilation > 1.0f)
-			audio->SetPaused(true);
-
-		UCameraShakeSourceComponent* shake = NewObject<UCameraShakeSourceComponent>(this, UCameraShakeSourceComponent::StaticClass(), FName("nd-shake" + FString::FromInt(count)));
-		shake->SetupAttachment(Grid->GetRootComponent());
-		shake->SetRelativeLocation(point);
-		shake->InnerAttenuationRadius = range;
-		shake->OuterAttenuationRadius = range * 6;
-		shake->StartCameraShake(Shake, 1.0f, ECameraShakePlaySpace::World);
-
-		count++;
 	}
 
-	Grid->Camera->TimerManager->CreateTimer("Clear Earthquake", Grid, 10.0f, "ClearEarthquakeShakesAndSounds", {}, false, true);
-}
+	GenerateNDShakesAndSounds("earthquake", points, range);
 
-void UNaturalDisasterComponent::ClearEarthquakeShakesAndSounds()
-{
-	TArray<UActorComponent*> components;
-	Grid->GetComponents(components);
-
-	for (UActorComponent* component : components) {
-		if (!component->GetName().Contains("nd-"))
-			continue;
-
-		if (component->IsA<UAudioComponent>())
-			Cast<UAudioComponent>(component)->SetPaused(true);
-
-		component->DestroyComponent();
-	}
+	TArray<FTimerParameterStruct> params;
+	Grid->Camera->TimerManager->SetParameter("earthquake" + FString::FromInt(DisasterTally), params);
+	Grid->Camera->TimerManager->CreateTimer("Clear Earthquake", Grid, 10.0f, "ClearNDShakesAndSounds", params, false, true);
 }
 
 TArray<FVector> UNaturalDisasterComponent::GetEarthquakePoints(float Magnitude)
@@ -235,11 +261,14 @@ void UNaturalDisasterComponent::GeneratePurifier(float Magnitude)
 
 void UNaturalDisasterComponent::GenerateRedSun(float Magnitude)
 {
-	Grid->AtmosphereComponent->bRedSun = true;
+	bRedSun = true;
 
 	AlterSunGradually(0.15f, -0.02f);
 
-	Grid->Camera->TimerManager->CreateTimer("Red Sun", Grid, 120.0f * Magnitude, "CancelRedSun", {}, false, true);
+	if (Grid->Camera->TimerManager->DoesTimerExist("RedSun", Grid))
+		Grid->Camera->TimerManager->UpdateTimerLength("RedSun", Grid, Grid->Camera->TimerManager->FindTimer("RedSun", Grid)->Target + 120.0f * Magnitude);
+	else
+		Grid->Camera->TimerManager->CreateTimer("RedSun", Grid, 120.0f * Magnitude, "CancelRedSun", {}, false, true);
 }
 
 void UNaturalDisasterComponent::AlterSunGradually(float Target, float Increment)
@@ -254,16 +283,70 @@ void UNaturalDisasterComponent::AlterSunGradually(float Target, float Increment)
 
 	if (colour.G == Target)
 		return;
-	
-	FTimerHandle sunChangeTimer;
-	GetWorld()->GetTimerManager().SetTimer(sunChangeTimer, FTimerDelegate::CreateUObject(this, &UNaturalDisasterComponent::AlterSunGradually, Target, Increment), 0.02f, false);
+
+	TArray<FTimerParameterStruct> params;
+	Grid->Camera->TimerManager->SetParameter(Target, params);
+	Grid->Camera->TimerManager->SetParameter(Increment, params);
+	Grid->Camera->TimerManager->CreateTimer("AlterSunGradually", Grid, 0.02f, "AlterSunGradually", params, false, true);
 }
 
 void UNaturalDisasterComponent::CancelRedSun()
 {
-	Grid->AtmosphereComponent->bRedSun = false;
+	bRedSun = false;
 
 	AlterSunGradually(1.0f, 0.02f);
+}
+
+void UNaturalDisasterComponent::GenerateVolcano(float Magnitude)
+{
+	VolcanoMagnitude = Magnitude;
+	float range = 500.0f * Magnitude;
+
+	Grid->SetLavaSpawnrate(Magnitude);
+
+	GenerateNDShakesAndSounds("volcano", Grid->LavaSpawnLocations, range);
+
+	if (Grid->Camera->TimerManager->DoesTimerExist("GenerateVolcanicRock", Grid))
+		return;
+
+	VolcanoTimer = 10.0f * Magnitude;
+	float time = Grid->Camera->Stream.FRandRange(5.0f / (Magnitude / 2.0f), 25.0f / (Magnitude / 2.0f));
+	VolcanoTimer -= time;
+
+	TArray<FTimerParameterStruct> params;
+	Grid->Camera->TimerManager->SetParameter(Magnitude, params);
+	Grid->Camera->TimerManager->CreateTimer("GenerateVolcanicRock", Grid, time, "GenerateVolcanicRock", params, false, true);
+}
+
+void UNaturalDisasterComponent::GenerateVolcanicRock(float Magnitude)
+{
+	int32 index = Grid->Camera->Stream.RandRange(0, Grid->LavaSpawnLocations.Num() - 1);
+	FVector location = Grid->LavaSpawnLocations[index];
+
+	FRotator rotation;
+	rotation.Yaw = Grid->Camera->Stream.RandRange(0, 359);
+	rotation.Pitch = Grid->Camera->Stream.RandRange(50, 80);
+
+	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(VolcanicRockClass, location, rotation);
+	projectile->ProjectileMesh->SetRelativeScale3D(FVector(Magnitude));
+	projectile->SpawnNiagaraSystems(Grid->Camera);
+	projectile->Radius *= Magnitude;
+	projectile->SetInitialSpeed(Grid->Camera->Stream.RandRange(450, 750));
+	projectile->SetRotationAmount(FRotator(Grid->Camera->Stream.FRandRange(0.0f, 5.0f), Grid->Camera->Stream.FRandRange(0.0f, 5.0f), Grid->Camera->Stream.FRandRange(0.0f, 5.0f)));
+
+	float chance = Grid->Camera->Stream.FRandRange(0.0f + VolcanoTimer, 100.0f + VolcanoTimer);
+	if (chance <= 0.0f) {
+		Grid->SetLavaSpawnrate(1.0f);
+
+		return;
+	}
+
+	float time = Grid->Camera->Stream.FRandRange(5.0f / (Magnitude / 2.0f), 25.0f / (Magnitude / 2.0f));
+	VolcanoTimer -= time;
+
+	TArray<FTimerParameterStruct> params;
+	Grid->Camera->TimerManager->SetParameter(Magnitude, params);
+	Grid->Camera->TimerManager->CreateTimer("GenerateVolcanicRock", Grid, time, "GenerateVolcanicRock", params, false, true);
 }
 
 bool UNaturalDisasterComponent::IsProtected(FVector Location)

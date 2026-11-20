@@ -634,7 +634,7 @@ void ACamera::SetTimeDilation(float Dilation)
 	BuildComponent->SetComponentTickInterval(1.0f / 60.0f * Dilation);
 	BuildComponent->SetComponentTickEnabled(bEnabled);
 
-	Grid->AtmosphereComponent->NaturalDisasterComponent->SetEarthquakeSounds(Dilation);
+	Grid->AtmosphereComponent->NaturalDisasterComponent->SetNDSounds(Dilation);
 }
 
 void ACamera::DisplayInteractOnAI(AAI* AI)
