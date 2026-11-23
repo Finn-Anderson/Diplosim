@@ -1,5 +1,6 @@
 #include "Map/Atmosphere/NaturalDisasterComponent.h"
 
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "Camera/CameraShakeSourceComponent.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/AudioComponent.h"
@@ -36,6 +37,9 @@ UNaturalDisasterComponent::UNaturalDisasterComponent()
 	VolcanoMagnitude = 0.0f;
 
 	DisasterTally = 0;
+	
+	EarthquakeShake = nullptr;
+	VolcanoShake = nullptr;
 }
 
 bool UNaturalDisasterComponent::ShouldCreateDisaster()
@@ -93,7 +97,7 @@ void UNaturalDisasterComponent::ResetDisasterChance()
 void UNaturalDisasterComponent::GenerateNDShakesAndSounds(FString Type, TArray<FVector> Points, float Range)
 {
 	int32 count = 0;
-	for (const FVector point : Points) {
+	for (const FVector& point : Points) {
 		UAudioComponent* audio = NewObject<UAudioComponent>(this, UAudioComponent::StaticClass(), FName("nd-audio-" + Type + FString::FromInt(DisasterTally) + "-" + FString::FromInt(count)));
 		audio->SetupAttachment(Grid->GetRootComponent());
 		audio->SetRelativeLocation(point);
@@ -106,7 +110,7 @@ void UNaturalDisasterComponent::GenerateNDShakesAndSounds(FString Type, TArray<F
 		shake->SetRelativeLocation(point);
 		shake->InnerAttenuationRadius = Range;
 		shake->OuterAttenuationRadius = Range * 6;
-		shake->StartCameraShake(Shake, 1.0f, ECameraShakePlaySpace::World);
+		shake->StartCameraShake(Type == "earthquake" ? EarthquakeShake : VolcanoShake, Range / 500.0f, ECameraShakePlaySpace::World);
 
 		count++;
 	}
@@ -315,10 +319,11 @@ void UNaturalDisasterComponent::GenerateVolcano(float Magnitude)
 
 	TArray<FTimerParameterStruct> params;
 	Grid->Camera->TimerManager->SetParameter(Magnitude, params);
+	Grid->Camera->TimerManager->SetParameter("volcano" + FString::FromInt(DisasterTally), params);
 	Grid->Camera->TimerManager->CreateTimer("GenerateVolcanicRock", Grid, time, "GenerateVolcanicRock", params, false, true);
 }
 
-void UNaturalDisasterComponent::GenerateVolcanicRock(float Magnitude)
+void UNaturalDisasterComponent::GenerateVolcanicRock(float Magnitude, FString TypeAndTally)
 {
 	int32 index = Grid->Camera->Stream.RandRange(0, Grid->LavaSpawnLocations.Num() - 1);
 	FVector location = Grid->LavaSpawnLocations[index];
@@ -327,15 +332,19 @@ void UNaturalDisasterComponent::GenerateVolcanicRock(float Magnitude)
 	rotation.Yaw = Grid->Camera->Stream.RandRange(0, 359);
 	rotation.Pitch = Grid->Camera->Stream.RandRange(50, 80);
 
+	UProjectileMovementComponent* projectileMovement = VolcanicRockClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
+	projectileMovement->MaxSpeed = 6000;
+	projectileMovement->InitialSpeed = Grid->Camera->Stream.RandRange(1000, 2000);
+
 	AProjectile* projectile = GetWorld()->SpawnActor<AProjectile>(VolcanicRockClass, location, rotation);
 	projectile->ProjectileMesh->SetRelativeScale3D(FVector(Magnitude));
 	projectile->SpawnNiagaraSystems(Grid->Camera);
 	projectile->Radius *= Magnitude;
-	projectile->SetInitialSpeed(Grid->Camera->Stream.RandRange(450, 750));
 	projectile->SetRotationAmount(FRotator(Grid->Camera->Stream.FRandRange(0.0f, 5.0f), Grid->Camera->Stream.FRandRange(0.0f, 5.0f), Grid->Camera->Stream.FRandRange(0.0f, 5.0f)));
 
 	float chance = Grid->Camera->Stream.FRandRange(0.0f + VolcanoTimer, 100.0f + VolcanoTimer);
 	if (chance <= 0.0f) {
+		ClearNDShakesAndSounds(TypeAndTally);
 		Grid->SetLavaSpawnrate(1.0f);
 
 		return;
@@ -346,6 +355,7 @@ void UNaturalDisasterComponent::GenerateVolcanicRock(float Magnitude)
 
 	TArray<FTimerParameterStruct> params;
 	Grid->Camera->TimerManager->SetParameter(Magnitude, params);
+	Grid->Camera->TimerManager->SetParameter(TypeAndTally, params);
 	Grid->Camera->TimerManager->CreateTimer("GenerateVolcanicRock", Grid, time, "GenerateVolcanicRock", params, false, true);
 }
 

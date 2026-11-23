@@ -62,8 +62,6 @@ public:
 
 	void SpawnNiagaraSystems(AActor* Launcher);
 
-	void SetInitialSpeed(float Speed);
-
 	void SetRotationAmount(FRotator Rotation);
 
 private:

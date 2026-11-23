@@ -293,8 +293,6 @@ void UAttackComponent::Throw()
 	if (!IsValid(CurrentTarget))
 		return;
 
-	UProjectileMovementComponent* projectileMovement = ProjectileClass->GetDefaultObject<AProjectile>()->ProjectileMovementComponent;
-
 	const FVector startLoc = GetThrowLocation(GetOwner());
 	const FVector targetLoc = GetThrowLocation(CurrentTarget);
 

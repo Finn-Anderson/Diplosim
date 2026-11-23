@@ -84,7 +84,7 @@ void AProjectile::Tick(float DeltaTime)
 		UGameplayStatics::PlayWorldCameraShake(GetWorld(), MovementShake, GetActorLocation(), 0.0f, Radius, 1.0f);
 
 	Timer += DeltaTime;
-	if (Timer > 120.0f)
+	if (Timer > 60.0f)
 		Destroy();
 }
 
@@ -108,11 +108,6 @@ void AProjectile::SpawnNiagaraSystems(AActor* Launcher)
 
 	if (TrailSystem)
 		trail->SetVariableLinearColor(TEXT("Colour"), colour);
-}
-
-void AProjectile::SetInitialSpeed(float Speed)
-{
-	ProjectileMovementComponent->InitialSpeed = Speed;
 }
 
 void AProjectile::SetRotationAmount(FRotator Rotation)
@@ -174,10 +169,13 @@ void AProjectile::HitActor(ACamera* Camera, AActor* Actor)
 		return;
 
 	USoundBase* sound = nullptr;
+	float multiplier = 1.0f;
 	UAttackComponent* attackComponent = GetOwner()->FindComponentByClass<UAttackComponent>();
 
-	if (attackComponent)
+	if (attackComponent) {
 		sound = attackComponent->OnHitSound;
+		multiplier = attackComponent->DamageMultiplier;
+	}
 
 	UHealthComponent* healthComponent = Actor->GetComponentByClass<UHealthComponent>();
 
@@ -199,5 +197,5 @@ void AProjectile::HitActor(ACamera* Camera, AActor* Actor)
 		dmg /= FMath::Pow(FMath::LogX(50.0f, distance), 5.0f);
 	}
 
-	healthComponent->TakeHealth(dmg * attackComponent->DamageMultiplier, GetOwner(), sound);
+	healthComponent->TakeHealth(dmg * multiplier, GetOwner(), sound);
 }

@@ -26,7 +26,8 @@ public:
 	UFUNCTION()
 		void ClearNDShakesAndSounds(FString TypeAndTally);
 
-	void AlterSunGradually(float Target, float Increment);
+	UFUNCTION()
+		void AlterSunGradually(float Target, float Increment);
 
 	UFUNCTION()
 		void CancelRedSun();
@@ -34,7 +35,7 @@ public:
 	void GenerateVolcano(float Magnitude);
 
 	UFUNCTION()
-		void GenerateVolcanicRock(float Magnitude);
+		void GenerateVolcanicRock(float Magnitude, FString TypeAndTally);
 
 	bool IsProtected(FVector Location);
 
@@ -51,7 +52,10 @@ public:
 		float Frequency;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Earthquake")
-		TSubclassOf<class UCameraShakeBase> Shake;
+		TSubclassOf<class UCameraShakeBase> EarthquakeShake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Earthquake")
+		TSubclassOf<class UCameraShakeBase> VolcanoShake;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Earthquake")
 		class USoundBase* Sound;
