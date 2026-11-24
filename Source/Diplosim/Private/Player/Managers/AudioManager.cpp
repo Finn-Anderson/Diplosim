@@ -192,6 +192,18 @@ void UAudioManager::ClearAmbientSound()
 	AmbientSeaAudioComponent->SetVolumeMultiplier(0.0f);
 }
 
+TArray<USoundBase*> UAudioManager::GetResourceSounds(AResource* Resource)
+{
+	for (const FCitizenResourceStruct& crs : CitizenResourceStruct) {
+		if (!crs.Resources.Contains(Resource->GetClass()))
+			continue;
+
+		return crs.Sounds;
+	}
+
+	return TArray<USoundBase*>();
+}
+
 float UAudioManager::GetWindSpeedVolume()
 {
 	return WindSpeedPercentage * 1.25f;

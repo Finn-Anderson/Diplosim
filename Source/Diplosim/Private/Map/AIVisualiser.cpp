@@ -130,6 +130,11 @@ void UAIVisualiser::BeginPlay()
 void UAIVisualiser::ResetToDefaultValues()
 {
 	DestructingActors.Empty();
+
+	for (FHatsStruct hat : HISMHats) {
+		hat.Citizens.Empty();
+		hat.ISMHat->ClearInstances();
+	}
 }
 
 void UAIVisualiser::MainLoop(ACamera* Camera, float DeltaTime)
@@ -648,13 +653,7 @@ void UAIVisualiser::SetHarvestVisuals(ACitizen* Citizen, AResource* Resource)
 		location = AddHarvestVisual(Citizen, colour);
 	}
 
-	TArray<USoundBase*> sounds;
-	if (Resource->IsA<AMineral>())
-		sounds = Citizen->Mines;
-	else if (Resource->IsA<AVegetation>())
-		sounds = Citizen->Chops;
-	else
-		sounds = Citizen->Anvils;
+	TArray<USoundBase*> sounds = Citizen->Camera->AudioManager->GetResourceSounds(Resource);
 
 	sound = sounds[Citizen->Camera->Stream.RandRange(0, sounds.Num() - 1)];
 

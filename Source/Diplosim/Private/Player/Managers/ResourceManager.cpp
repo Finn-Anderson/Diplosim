@@ -442,7 +442,7 @@ TMap<TSubclassOf<class ABuilding>, int32> UResourceManager::GetBuildings(TSubcla
 
 TArray<ABuilding*> UResourceManager::GetBuildingsOfClass(FFactionStruct* Faction, TSubclassOf<AActor> Class)
 {
-	TArray<ABuilding*> foundBuildings;
+	TArray<ABuilding*> foundBuildings = {};
 
 	ACamera* camera = Cast<ACamera>(GetOwner());
 

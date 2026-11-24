@@ -4,6 +4,23 @@
 #include "Components/ActorComponent.h"
 #include "AudioManager.generated.h"
 
+USTRUCT(BlueprintType)
+struct FCitizenResourceStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+		TArray<class USoundBase*> Sounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+		TArray<TSubclassOf<class AResource>> Resources;
+
+	FCitizenResourceStruct()
+	{
+
+	}
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DIPLOSIM_API UAudioManager : public UActorComponent
 {
@@ -35,6 +52,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class USoundBase* EventSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		TArray<FCitizenResourceStruct> CitizenResourceStruct;
+
 	UPROPERTY()
 		class ACamera* Camera;
 
@@ -47,6 +67,8 @@ public:
 	void AlterWindPitch(float WindSpeedPerc);
 
 	void ClearAmbientSound();
+
+	TArray<class USoundBase*> GetResourceSounds(AResource* Resource);
 
 private:
 	FCriticalSection AmbientLock;

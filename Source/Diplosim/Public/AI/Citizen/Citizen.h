@@ -128,15 +128,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* AmbientAudioComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		TArray<USoundBase*> Chops;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		TArray<USoundBase*> Mines;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-		TArray<USoundBase*> Anvils;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 		class TArray<USoundBase*> NormalConversations;
 

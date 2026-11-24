@@ -693,19 +693,19 @@ void AGrid::SpawnVegetation()
 {
 	int32 num = ResourceTiles.Num() / 2000;
 
-	TMap<int32, TArray<FResourceHISMStruct>> vegetation;
-	vegetation.Add(2, FlowerStruct);
-	vegetation.Add(5, TreeStruct);
+	TArray<TArray<FResourceHISMStruct>> vegetation;
+	vegetation.Add(FlowerStruct);
+	vegetation.Add(TreeStruct);
 
-	for (auto& element : vegetation) {
+	for (TArray<FResourceHISMStruct> list : vegetation) {
 		int32 iterations = num * VegetationMultiplier;
 		int32 min = VegetationMinDensity;
 		int32 max = VegetationMaxDensity;
 
-		if (element.Key == 2) {
+		if (list == FlowerStruct) {
 			iterations = FMath::Max(1.0f, iterations / 3.0f);
 			min = FMath::Max(1.0f, VegetationMinDensity / 3.0f);
-			max = FMath::Max(1.0f, VegetationMinDensity / 3.0f);
+			max = FMath::Max(1.0f, VegetationMaxDensity / 3.0f);
 		}
 
 		for (int32 i = 0; i < iterations; i++) {
@@ -718,7 +718,7 @@ void AGrid::SpawnVegetation()
 
 			int32 scale = 1.5f;
 
-			if (element.Key == 5) {
+			if (list == TreeStruct) {
 				bTree = true;
 
 				scale = 1.1f;
@@ -726,7 +726,7 @@ void AGrid::SpawnVegetation()
 
 			VegetationTiles.Empty();
 
-			GenerateVegetation(element.Value, chosenTile, chosenTile, amount, scale, bTree);
+			GenerateVegetation(list, chosenTile, chosenTile, amount, scale, bTree);
 
 			if (bTree)
 				for (FTileStruct* tile : VegetationTiles)
@@ -1315,9 +1315,12 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 	TArray<int32> usedY;
 
 	int32 num = Amount;
+	int32 limit = 40;
 
-	if (!bTree)
+	if (!bTree) {
 		num *= Camera->Stream.RandRange(10, 20);
+		limit = 50;
+	}
 
 	for (int32 i = 0; i < num; i++) {
 		bool validXY = false;
@@ -1325,8 +1328,8 @@ void AGrid::GenerateVegetation(TArray<FResourceHISMStruct> Vegetation, FTileStru
 		int32 y = 0;
 
 		while (!validXY) {
-			x = Camera->Stream.RandRange(-40, 40);
-			y = Camera->Stream.RandRange(-40, 40);
+			x = Camera->Stream.RandRange(-limit, limit);
+			y = Camera->Stream.RandRange(-limit, limit);
 
 			if (!usedX.Contains(x) && !usedY.Contains(y))
 				validXY = true;

@@ -80,6 +80,11 @@ struct FResourceHISMStruct
 		Multiplier = 1;
 		Resource = nullptr;
 	}
+
+	bool operator==(const FResourceHISMStruct& other) const
+	{
+		return (other.ResourceClass == ResourceClass);
+	}
 };
 
 UENUM()
