@@ -850,10 +850,6 @@ void UDiplosimUserSettings::UpdateAmbientVolume()
 		if (IsValid(component))
 			component->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
 
-	for (FCloudStruct cloud : Camera->Grid->AtmosphereComponent->Clouds->Clouds)
-		if (IsValid(cloud.AudioComponent))
-			cloud.AudioComponent->SetVolumeMultiplier(GetAmbientVolume() * GetMasterVolume());
-
 	Camera->AudioManager->CalculateAmbientEnvironmentSound(true);
 }
 

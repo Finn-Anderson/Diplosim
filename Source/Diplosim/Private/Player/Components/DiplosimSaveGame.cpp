@@ -947,6 +947,9 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 		hism->BuildTreeIfOutdated(false, true);
 
 		for (int32 inst : instances) {
+			if (!hism->IsValidInstance(inst))
+				continue;
+
 			FTransform transform;
 			hism->GetInstanceTransform(inst, transform);
 

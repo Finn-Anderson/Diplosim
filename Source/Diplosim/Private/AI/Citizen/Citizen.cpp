@@ -954,6 +954,12 @@ float ACitizen::GetProductivity()
 
 	float productivity = (ProductivityMultiplier * (1 + BioComponent->EducationLevel * 0.1)) * scale * speed;
 
+	if (Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->bRedSun && !Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(MovementComponent->GetMovementTransform().GetLocation()))
+		productivity *= 0.5f;
+
+	if (faction == nullptr)
+		return productivity;
+
 	for (ABuilding* building : faction->Buildings) {
 		if (!building->IsA<APowerPlant>())
 			continue;
@@ -962,9 +968,6 @@ float ACitizen::GetProductivity()
 
 		break;
 	}
-
-	if (Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->bRedSun && !Camera->Grid->AtmosphereComponent->NaturalDisasterComponent->IsProtected(MovementComponent->GetMovementTransform().GetLocation()))
-		productivity *= 0.5f;
 
 	return productivity;
 }

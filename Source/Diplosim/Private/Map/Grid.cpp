@@ -198,13 +198,6 @@ void AGrid::BeginPlay()
 
 	for (TSubclassOf<ASpecial> specialClass : SpecialBuildingClasses)
 		SpecialBuildings.Add(GetWorld()->SpawnActor<ASpecial>(specialClass, FVector::Zero(), FRotator(0.0f)));
-
-	UNavigationSystemV1* nav = UNavigationSystemV1::GetNavigationSystem(GetWorld());
-
-	FScriptDelegate delegate;
-	delegate.BindUFunction(this, TEXT("OnNavMeshGenerated"));
-
-	nav->OnNavigationGenerationFinishedDelegate.Add(delegate);
 }
 
 void AGrid::SetMapBounds()
@@ -322,12 +315,14 @@ void AGrid::SetupMap()
 		int32 height = i;
 
 		if (Type == EType::Mountain)
-			height = (MaxLevel / FMath::Min(FMath::Max(1, i) * 2.0f, MaxLevel));
+			height = (MaxLevel / FMath::Min(FMath::Max(1, i) * 5, MaxLevel));
 
 		float percentage = (1.85f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(height) / (1.85f * FMath::Square(MaxLevel / 2.5f)))));
 
 		totalPercentage += percentage;
 	}
+
+	TArray<FTileStruct*> unofficialPeaks = {};
 
 	while (true) {
 		if (levelCount <= 0) {
@@ -339,14 +334,13 @@ void AGrid::SetupMap()
 			int32 height = level;
 
 			if (Type == EType::Mountain)
-				height = (MaxLevel / FMath::Min(FMath::Max(1, level) * 2.0f, MaxLevel));
+				height = (MaxLevel / FMath::Min(FMath::Max(1, level) * 5, MaxLevel));
 
 			float percentage = (1.85f / FMath::Sqrt(2.0f * PI * FMath::Square(MaxLevel / 2.5f)) * FMath::Exp(-1.0f * (FMath::Square(height) / (1.85f * FMath::Square(MaxLevel / 2.5f))))) / totalPercentage;
 			levelCount = FMath::Clamp(percentage * levelTotal, 0, levelTotal);
 		}
 
 		FTileStruct* chosenTile = nullptr;
-
 		if (PeaksList.Num() < Peaks * Chunks) {
 			int32 range = bound / 4;
 
@@ -354,24 +348,32 @@ void AGrid::SetupMap()
 			int32 chosenY = Camera->Stream.RandRange(range, bound - 1 - range);
 
 			chosenTile = &Storage[chosenX][chosenY];
+			chosenTile->Level = MaxLevel;
 
+			if (bLava)
+				LavaTiles.Add(chosenTile);
+
+			chooseableTiles.Remove(chosenTile);
 			PeaksList.Add(chosenTile);
 
-			if (PeaksList.Num() == 2 && Type == EType::Mountain) {
-				float distance = FVector2D::Distance(FVector2D(PeaksList[0]->X, PeaksList[0]->Y), FVector2D(PeaksList[1]->X, PeaksList[1]->Y));
+			if (PeaksList.Num() % 2 == 0 && Type == EType::Mountain) {
+				int32 point1Index = PeaksList.Num() - 2;
+				int32 point2Index = PeaksList.Num() - 1;
+
+				float distance = FVector2D::Distance(FVector2D(PeaksList[point1Index]->X, PeaksList[point1Index]->Y), FVector2D(PeaksList[point2Index]->X, PeaksList[point2Index]->Y));
 
 				FVector2D p0 = FVector2D::Zero();
 				FVector2D p1 = FVector2D::Zero();
 				FVector2D p2 = FVector2D::Zero();
 				FVector2D p3 = FVector2D::Zero();
 
-				if (PeaksList[0]->Y > PeaksList[1]->Y) {
-					p0 = FVector2D(PeaksList[1]->X, PeaksList[1]->Y);
-					p3 = FVector2D(PeaksList[0]->X, PeaksList[0]->Y);
+				if (PeaksList[point1Index]->Y > PeaksList[point2Index]->Y) {
+					p0 = FVector2D(PeaksList[point2Index]->X, PeaksList[point2Index]->Y);
+					p3 = FVector2D(PeaksList[point1Index]->X, PeaksList[point1Index]->Y);
 				}
 				else {
-					p0 = FVector2D(PeaksList[0]->X, PeaksList[0]->Y);
-					p3 = FVector2D(PeaksList[1]->X, PeaksList[1]->Y);
+					p0 = FVector2D(PeaksList[point1Index]->X, PeaksList[point1Index]->Y);
+					p3 = FVector2D(PeaksList[point2Index]->X, PeaksList[point2Index]->Y);
 				}
 
 				FVector2D pHalf = (p0 + p3) / 2.0f;
@@ -382,7 +384,6 @@ void AGrid::SetupMap()
 				p2 = FVector2D(Camera->Stream.RandRange(pHalf.X, p3.X) + Camera->Stream.RandRange(-variance, variance), Camera->Stream.RandRange(pHalf.Y, p3.Y) + Camera->Stream.RandRange(-variance, variance));
 
 				double t = 0.0f;
-
 				while (t <= 1.0f) {
 					FVector2D point = FMath::Pow((1 - t), 3) * p0 + 3 * FMath::Pow((1 - t), 2) * t * p1 + 3 * (1 - t) * FMath::Pow(t, 2) * p2 + FMath::Pow(t, 3) * p3;
 
@@ -392,35 +393,34 @@ void AGrid::SetupMap()
 					FTileStruct* tile = &Storage[px][py];
 
 					if (tile->Level > -1) {
-						t += 0.01f;
+						t += 0.01f / Chunks;
 
 						continue;
 					}
 
-					for (auto& element : tile->AdjacentTiles) {
-						element.Value->Level = level;
+					tile->Level = MaxLevel;
 
-						levelCount--;
+					unofficialPeaks.Add(tile);
 
-						chooseableTiles.Remove(element.Value);
+					t += 0.01f / Chunks;
+				}
+			}
 
-						PeaksList.Add(element.Value);
+			if (PeaksList.Num() == Peaks * Chunks) {
+				if (bLava)
+					LavaTiles.Append(unofficialPeaks);
 
-						for (auto& e : element.Value->AdjacentTiles)
-							if (!chooseableTiles.Contains(e.Value) && e.Value->Level < 0)
-								chooseableTiles.Add(e.Value);
-					}
+				PeaksList.Append(unofficialPeaks);
 
-					tile->Level = level;
-
-					levelCount--;
-
+				for (FTileStruct* tile : PeaksList) {
 					chooseableTiles.Remove(tile);
 
-					PeaksList.Add(tile);
-
-					t += 0.01f;
+					for (auto& element : tile->AdjacentTiles)
+						if (!chooseableTiles.Contains(element.Value) && element.Value->Level < 0)
+							chooseableTiles.Add(element.Value);
 				}
+
+				levelCount -= PeaksList.Num();
 			}
 		}
 		else {
@@ -432,40 +432,36 @@ void AGrid::SetupMap()
 
 			for (FTileStruct* tile : chooseableTiles) {
 				int32 distance = 1000000000;
-
-				for (FTileStruct* peak : PeaksList) {
-					int32 d = FVector2D::Distance(FVector2D(peak->X, peak->Y), FVector2D(tile->X, tile->Y));
-
-					if (distance > d)
-						distance = d;
-				}
-
 				int32 chosenDistance = 1000000000;
 
 				for (FTileStruct* peak : PeaksList) {
-					int32 d = FVector2D::Distance(FVector2D(peak->X, peak->Y), FVector2D(chosenTile->X, chosenTile->Y));
+					int32 d = FVector2D::Distance(FVector2D(peak->X, peak->Y), FVector2D(tile->X, tile->Y));
+					int32 d2 = FVector2D::Distance(FVector2D(peak->X, peak->Y), FVector2D(chosenTile->X, chosenTile->Y));
 
-					if (chosenDistance > d)
-						chosenDistance = d;
+					if (distance > d)
+						distance = d;
+
+					if (chosenDistance > d2)
+						chosenDistance = d2;
 				}
 
-				if (chosenDistance > distance + 20)
+				if (chosenDistance > distance + 50)
 					chosenTile = tile;
 			}
+
+			if (level == MaxLevel && bLava)
+				LavaTiles.Add(chosenTile);
+
+			chosenTile->Level = level;
+
+			for (auto& element : chosenTile->AdjacentTiles)
+				if (!chooseableTiles.Contains(element.Value) && element.Value->Level < 0)
+					chooseableTiles.Add(element.Value);
+
+			chooseableTiles.Remove(chosenTile);
+
+			levelCount--;
 		}
-
-		if (level == MaxLevel)
-			LavaTiles.Add(chosenTile);
-
-		chosenTile->Level = level;
-
-		for (auto& element : chosenTile->AdjacentTiles)
-			if (!chooseableTiles.Contains(element.Value) && element.Value->Level < 0)
-				chooseableTiles.Add(element.Value);
-
-		chooseableTiles.Remove(chosenTile);
-
-		levelCount--;
 	}
 
 	Camera->UpdateLoadingText("Cleaning Up Holes");
@@ -600,6 +596,8 @@ void AGrid::SetupTileInformation()
 		distToLava.ValueSort([](float A, float B) { return A < B; });
 
 		int32 charredAmount = Size * Chunks * (PercentageGround / 100.0f) * 0.03f;
+		if (LavaTiles.Num() > charredAmount)
+			charredAmount = LavaTiles.Num();
 
 		for (auto element : distToLava) {
 			if (charredAmount == 0)
@@ -631,7 +629,7 @@ void AGrid::SpawnTiles()
 		for (FTileStruct& tile : row) {
 			CalculateTile(&tile);
 
-			if (tile.Level < 0 || tile.Level > 4 || tile.bRiver || tile.bRamp)
+			if (tile.Level < 0 || (bLava && tile.Level > MaxLevel - FMath::CeilToInt32(MaxLevel / 3.0f)) || tile.bRiver || tile.bRamp)
 				continue;
 
 			ResourceTiles.Add(&tile);
@@ -709,6 +707,9 @@ void AGrid::SpawnVegetation()
 		}
 
 		for (int32 i = 0; i < iterations; i++) {
+			if (ResourceTiles.IsEmpty())
+				continue;
+
 			int32 chosenNum = Camera->Stream.RandRange(0, ResourceTiles.Num() - 1);
 			FTileStruct* chosenTile = ResourceTiles[chosenNum];
 
@@ -771,11 +772,8 @@ void AGrid::SetupEnvironment(bool bLoad)
 		Camera->SetPause(true, false);
 }
 
-void AGrid::OnNavMeshGenerated()
+void AGrid::OnMapGenerated()
 {
-	if (!LavaComponent->IsActive() || Counter != MaxCounter)
-		return;
-
 	for (AAI* bird : Birds)
 		bird->AIController->DefaultAction();
 
@@ -1589,8 +1587,7 @@ void AGrid::SetupMapBuildings(AActor* Actor, TArray<UClass*> Classes, TArray<FTi
 	if (MaxCounter == Counter) {
 		Camera->UpdateMapSpecialBuildings();
 
-		if (LoadUIInstance->IsInViewport())
-			LoadUIInstance->RemoveFromParent();
+		OnMapGenerated();
 	}
 }
 

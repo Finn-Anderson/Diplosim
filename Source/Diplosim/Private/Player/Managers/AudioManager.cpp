@@ -9,6 +9,7 @@
 #include "AI/AIMovementComponent.h"
 #include "Map/Grid.h"
 #include "Map/Atmosphere/AtmosphereComponent.h"
+#include "Map/Atmosphere/Clouds.h"
 #include "Player/Camera.h"
 #include "Player/Components/CameraMovementComponent.h"
 #include "Universal/DiplosimUserSettings.h"
@@ -22,6 +23,7 @@ UAudioManager::UAudioManager()
 	components.Add(&AmbientWindAudioComponent, TEXT("AmbientWindAudioComponent"));
 	components.Add(&AmbientTreesAudioComponent, TEXT("AmbientTreesAudioComponent"));
 	components.Add(&AmbientSeaAudioComponent, TEXT("AmbientSeaAudioComponent"));
+	components.Add(&AmbientRainAudioComponent, TEXT("AmbientRainAudioComponent"));
 	components.Add(&MusicAudioComponent, TEXT("MusicAudioComponent"));
 
 	for (auto element : components) {
@@ -53,6 +55,7 @@ void UAudioManager::SetupAttachment(USceneComponent* SceneComponent)
 	AmbientWindAudioComponent->SetupAttachment(SceneComponent);
 	AmbientTreesAudioComponent->SetupAttachment(SceneComponent);
 	AmbientSeaAudioComponent->SetupAttachment(SceneComponent);
+	AmbientRainAudioComponent->SetupAttachment(SceneComponent);
 	MusicAudioComponent->SetupAttachment(SceneComponent);
 }
 
@@ -97,6 +100,9 @@ void UAudioManager::CalculateAmbientEnvironmentSound(bool bForce)
 	if (!AmbientSeaAudioComponent->IsActive())
 		AmbientSeaAudioComponent->Activate();
 
+	if (!AmbientRainAudioComponent->IsActive())
+		AmbientRainAudioComponent->Activate();
+
 	Async(EAsyncExecution::TaskGraph, [this, bForce]() {
 		FScopeTryLock lock(&AmbientLock);
 		if (!lock.IsLocked())
@@ -121,7 +127,7 @@ void UAudioManager::CalculateAmbientEnvironmentSound(bool bForce)
 		AmbientWindAudioComponent->SetVolumeMultiplier((LastTransform.GetLocation().Z / Camera->MovementComponent->MaxLength) * volume * GetWindSpeedVolume());
 		
 		// Trees
-		FVector closestPoint = FVector(100000000.0f);
+		FVector closestPoint = FVector(100000000000.0f);
 		for (const FResourceHISMStruct& treeStruct : Camera->Grid->TreeStruct) {
 			if (!treeStruct.Resource->ResourceHISM)
 				continue;
@@ -131,7 +137,7 @@ void UAudioManager::CalculateAmbientEnvironmentSound(bool bForce)
 					continue;
 
 				FTransform t;
-				treeStruct.Resource->ResourceHISM->GetInstanceTransform(i, t);
+				treeStruct.Resource->ResourceHISM->GetInstanceTransform(i, t, true);
 
 				if (FVector::Dist(t.GetLocation(), LastTransform.GetLocation()) > FVector::Dist(closestPoint, LastTransform.GetLocation()))
 					continue;
@@ -169,6 +175,30 @@ void UAudioManager::CalculateAmbientEnvironmentSound(bool bForce)
 
 		distance = FMath::Min(1.0f / FMath::Pow(FMath::LogX(300, FVector::Dist(LastTransform.GetLocation(), closestPoint)), 5), 1.0f);
 		AmbientSeaAudioComponent->SetVolumeMultiplier(distance * volume);
+
+		// Rain
+		closestPoint = FVector(100000000000.0f);
+		for (const FCloudStruct& cloudStruct : Camera->Grid->AtmosphereComponent->Clouds->Clouds) {
+			if (!cloudStruct.Precipitation)
+				continue;
+
+			for (int32 i = 0; i < cloudStruct.HISMCloud->GetInstanceCount(); i++) {
+				if (!cloudStruct.HISMCloud->IsValidInstance(i))
+					continue;
+
+				FTransform t;
+				cloudStruct.HISMCloud->GetInstanceTransform(i, t, true);
+
+				if (FVector::DistXY(t.GetLocation(), LastTransform.GetLocation()) > FVector::DistXY(closestPoint, LastTransform.GetLocation()))
+					continue;
+
+				closestPoint = t.GetLocation();
+			}
+		}
+
+		distance = FMath::Min(1.0f / FMath::Pow(FMath::LogX(300, FVector::DistXY(LastTransform.GetLocation(), closestPoint)), 5), 1.0f);
+		AmbientRainAudioComponent->SetVolumeMultiplier(distance * volume);
+
 	});
 }
 
@@ -190,6 +220,7 @@ void UAudioManager::ClearAmbientSound()
 	AmbientWindAudioComponent->SetVolumeMultiplier(0.0f);
 	AmbientTreesAudioComponent->SetVolumeMultiplier(0.0f);
 	AmbientSeaAudioComponent->SetVolumeMultiplier(0.0f);
+	AmbientRainAudioComponent->SetVolumeMultiplier(0.0f);
 }
 
 TArray<USoundBase*> UAudioManager::GetResourceSounds(AResource* Resource)

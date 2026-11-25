@@ -142,6 +142,8 @@ void USaveGameComponent::OnNavMeshGenerated()
 	FScriptDelegate delegate;
 	delegate.BindUFunction(this, TEXT("OnNavMeshGenerated"));
 	nav->OnNavigationGenerationFinishedDelegate.Remove(delegate); 
+
+	Camera->Grid->LoadUIInstance->RemoveFromParent();
 	
 	Camera->SetPause(true, true);
 }

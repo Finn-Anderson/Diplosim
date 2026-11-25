@@ -285,16 +285,6 @@ FCloudStruct UCloudComponent::CreateCloud(FTransform Transform, int32 Chance, bo
 
 	FVector extent = FVector(FMath::Abs(maxLocation.X - minLocation.X) / 2.0f, FMath::Abs(maxLocation.Y - minLocation.Y) / 2.0f, Transform.GetLocation().Z + 500.0f);
 
-	UAudioComponent* audio = UGameplayStatics::SpawnSoundAttached(RainSound, cloud, "", FVector::Zero(), FRotator::ZeroRotator);
-	audio->SetPitchMultiplier(0.5f + cloudStruct.Intensity);
-	audio->SetVolumeMultiplier(Settings->GetAmbientVolume() * Settings->GetMasterVolume());
-	audio->AttenuationSettings = RainSound->AttenuationSettings;
-	audio->AttenuationSettings->Attenuation.AttenuationShape = EAttenuationShape::Box;
-	audio->AttenuationSettings->Attenuation.AttenuationShapeExtents = extent;
-	audio->AttenuationSettings->Attenuation.FalloffDistance = 5000.0f;
-	audio->Play();
-
-	cloudStruct.AudioComponent = audio;
 	cloudStruct.Precipitation = precipitation;
 
 	if (!bLoad && NaturalDisasterComponent->ShouldCreateDisaster()) {

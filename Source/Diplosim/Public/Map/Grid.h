@@ -212,8 +212,7 @@ public:
 
 	void SetupEnvironment(bool bLoad = false);
 
-	UFUNCTION()
-		void OnNavMeshGenerated();
+	void OnMapGenerated();
 
 	TArray<FTileStruct*> CalculatePath(FTileStruct* Tile, FTileStruct* Target);
 
