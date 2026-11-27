@@ -539,13 +539,16 @@ void UAIVisualiser::CalculateBuildingRotation(ACamera* Camera)
 			float pitch = FMath::Lerp(building->PrevTelescopeTargetPitch, building->TelescopeTargetPitch, alpha);
 			float yaw = FMath::Lerp(building->PrevTurretTargetYaw, building->TurretTargetYaw, alpha);
 
-			building->TurretMesh->SetCustomPrimitiveDataFloat(10, yaw);
+			building->TurretMesh->SetRelativeRotation(FRotator(0.0f, yaw, 0.0f));
+			building->TelescopeMesh->SetRelativeRotation(FRotator(0.0f, 0.0f, pitch));
 
-			building->TelescopeMesh->SetCustomPrimitiveDataFloat(9, pitch);
-			building->TelescopeMesh->SetCustomPrimitiveDataFloat(10, yaw);
+			if (!building->AmbientAudioComponent->IsPlaying())
+				Camera->AudioManager->PlayAmbientSound(building->AmbientAudioComponent, building->RotationSound);
 
-			if (alpha == 1.0f)
+			if (alpha == 1.0f) {
+				Async(EAsyncExecution::TaskGraphMainTick, [building]() { building->AmbientAudioComponent->Stop(); });
 				RotatingBuildings.RemoveAt(i);
+			}
 		}
 	});
 }

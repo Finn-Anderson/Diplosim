@@ -192,6 +192,10 @@ void UAudioManager::CalculateAmbientEnvironmentSound(bool bForce)
 			}
 		}
 
+		FHitResult hit;
+		if (GetWorld()->LineTraceSingleByChannel(hit, LastTransform.GetLocation(), FVector(LastTransform.GetLocation().X, LastTransform.GetLocation().Y, 0.0f), ECC_GameTraceChannel1) && hit.Component == Camera->Grid->SeaComponent && FVector::Dist(hit.Location, LastTransform.GetLocation()) < FVector::Dist(closestPoint, LastTransform.GetLocation()))
+			closestPoint = hit.Location;
+
 		CalculateAmbientVolume(AmbientSeaAudioComponent, volume, closestPoint, false);
 
 		// Rain

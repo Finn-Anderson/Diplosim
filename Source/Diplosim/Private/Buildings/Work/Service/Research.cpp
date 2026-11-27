@@ -10,6 +10,7 @@
 AResearch::AResearch()
 {
 	TimeLength = 5.0f;
+	RotationSound = nullptr;
 
 	TurretMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TurretMesh"));
 	TurretMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -25,8 +26,8 @@ void AResearch::BeginRotation()
 	PrevTurretTargetYaw = TurretTargetYaw;
 	PrevTelescopeTargetPitch = TelescopeTargetPitch;
 
-	TurretTargetYaw = Camera->Stream.RandRange(0, 359) / 360.0f;
-	TelescopeTargetPitch = Camera->Stream.RandRange(-15, 15) / 360.0f;
+	TurretTargetYaw = Camera->Stream.RandRange(0, 359);
+	TelescopeTargetPitch = Camera->Stream.RandRange(-15, 15);
 
 	RotationTime = GetWorld()->GetTimeSeconds();
 
