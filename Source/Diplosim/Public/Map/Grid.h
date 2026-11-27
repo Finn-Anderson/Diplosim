@@ -185,6 +185,16 @@ public:
 	UPROPERTY()
 		TArray<FVector> LavaSpawnLocations;
 
+	// Waterfall
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lava")
+		class UNiagaraComponent* WaterfallComponent;
+
+	UPROPERTY()
+		TArray<FVector> WaterfallSpawnLocations;
+
+	UPROPERTY()
+		TArray<FVector> WaterfallRotations;
+
 	// Map
 	void SetMapBounds();
 

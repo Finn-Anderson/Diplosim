@@ -298,6 +298,12 @@ struct FWorldSaveData
 		TArray<FVector> LavaSpawnLocations;
 
 	UPROPERTY()
+		TArray<FVector> WaterfallSpawnLocations;
+
+	UPROPERTY()
+		TArray<FVector> WaterfallRotations;
+
+	UPROPERTY()
 		FAtmosphereData AtmosphereData;
 
 	UPROPERTY()

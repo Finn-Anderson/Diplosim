@@ -119,6 +119,11 @@ AGrid::AGrid()
 	LavaComponent->SetMobility(EComponentMobility::Static);
 	LavaComponent->SetAutoActivate(false);
 
+	WaterfallComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WaterfallComponent"));
+	WaterfallComponent->SetupAttachment(GetRootComponent());
+	WaterfallComponent->SetMobility(EComponentMobility::Static);
+	WaterfallComponent->SetAutoActivate(false);
+
 	AtmosphereComponent = CreateDefaultSubobject<UAtmosphereComponent>(TEXT("AtmosphereComponent"));
 	AtmosphereComponent->WindComponent->SetupAttachment(GetRootComponent());
 
@@ -759,6 +764,11 @@ void AGrid::SetupEnvironment(bool bLoad)
 	SetLavaSpawnrate(1.0f);
 	LavaComponent->Activate(true);
 
+	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(WaterfallComponent, TEXT("SpawnLocations"), WaterfallSpawnLocations);
+	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(WaterfallComponent, TEXT("Rotations"), WaterfallRotations);
+	WaterfallComponent->SetVariableFloat(TEXT("SpawnRate"), WaterfallSpawnLocations.Num() * 100.0f);
+	WaterfallComponent->Activate(true);
+
 	if (bLoad)
 		return;
 
@@ -1229,14 +1239,44 @@ void AGrid::CreateWaterfall(FVector Location, int32 Num, int32 Sign, bool bOnYAx
 {
 	for (int32 i = 0; i < Num; i++) {
 		FTransform transform;
+		float waterfallLocSign = Sign * 50.0f;
+		float waterfallHeight = 80.0f;
 
 		if (bOnYAxis) {
 			transform.SetRotation(FRotator(0.0f, 0.0f, 90.0f * Sign).Quaternion());
 			transform.SetLocation(Location + FVector(0.0f, 30.0f * Sign * -1, 30.0f - (100.0f * i)));
+
+			for (int32 j = -9; j < 10; j++) {
+				WaterfallRotations.Add(FVector(0.0f, Sign, 0.0f));
+				WaterfallSpawnLocations.Add(Location + FVector(j * 5.0f, waterfallLocSign, waterfallHeight));
+			}
+
+			if (WaterfallSpawnLocations.Contains(Location + FVector(11 * 5.0f, waterfallLocSign, waterfallHeight))) {
+				WaterfallRotations.Add(FVector(0.0f, Sign, 0.0f));
+				WaterfallSpawnLocations.Add(Location + FVector(10 * 5.0f, waterfallLocSign, waterfallHeight));
+			}
+			else if (WaterfallSpawnLocations.Contains(Location + FVector(-11 * 5.0f, waterfallLocSign, waterfallHeight))) {
+				WaterfallRotations.Add(FVector(0.0f, Sign, 0.0f));
+				WaterfallSpawnLocations.Add(Location + FVector(-10 * 5.0f, waterfallLocSign, waterfallHeight));
+			}
 		}
 		else {
 			transform.SetRotation(FRotator(90.0f * Sign, 0.0f, 0.0f).Quaternion());
 			transform.SetLocation(Location + FVector(30.0f * Sign, 0.0f, 30.0f - (100.0f * i)));
+
+			for (int32 j = -9; j < 10; j++) {
+				WaterfallRotations.Add(FVector(-Sign, 0.0f, 0.0f));
+				WaterfallSpawnLocations.Add(Location + FVector(-waterfallLocSign, j * 5.0f, waterfallHeight));
+			}
+
+			if (WaterfallSpawnLocations.Contains(Location + FVector(-waterfallLocSign, 11 * 5.0f, waterfallHeight))) {
+				WaterfallRotations.Add(FVector(-Sign, 0.0f, 0.0f));
+				WaterfallSpawnLocations.Add(Location + FVector(-waterfallLocSign, 10 * 5.0f, waterfallHeight));
+			}
+			else if (WaterfallSpawnLocations.Contains(Location + FVector(-waterfallLocSign, -11 * 5.0f, waterfallHeight))) {
+				WaterfallRotations.Add(FVector(-Sign, 0.0f, 0.0f));
+				WaterfallSpawnLocations.Add(Location + FVector(-waterfallLocSign, -10 * 5.0f, waterfallHeight));
+			}
 		}
 
 		AddCalculatedTile(HISMRiver, transform);
@@ -1404,8 +1444,12 @@ void AGrid::RemoveTree(AResource* Resource, TArray<int32> Instances)
 
 FTransform AGrid::GetTransform(FTileStruct* Tile)
 {
+	int32 level = Tile->Level;
+	if (bLava && level == MaxLevel)
+		level = (MaxLevel - 2);
+
 	FTransform transform;
-	transform.SetLocation(FVector(Tile->X * 100.0f, Tile->Y * 100.0f, Tile->Level * 75.0f + 100.0f));
+	transform.SetLocation(FVector(Tile->X * 100.0f, Tile->Y * 100.0f, level * 75.0f + 100.0f));
 	transform.SetRotation(Tile->Rotation);
 
 	return transform;
@@ -1427,8 +1471,12 @@ void AGrid::Clear()
 		ResourceStruct.Resource->ResourceHISM->GetStaticMesh()->Sockets.Empty();
 	}
 
-	LavaComponent->Deactivate();
+	LavaComponent->DeactivateImmediate();
 	LavaSpawnLocations.Empty();
+
+	WaterfallComponent->DeactivateImmediate();
+	WaterfallSpawnLocations.Empty();
+	WaterfallRotations.Empty();
 
 	AtmosphereComponent->Clouds->Clear();
 

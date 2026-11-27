@@ -150,6 +150,8 @@ void UDiplosimSaveGame::SaveWorld(FActorSaveData& ActorData, AActor* Actor, int3
 	worldSaveData.Stream = grid->Camera->Stream;
 
 	worldSaveData.LavaSpawnLocations = grid->LavaSpawnLocations;
+	worldSaveData.WaterfallSpawnLocations = grid->WaterfallSpawnLocations;
+	worldSaveData.WaterfallRotations = grid->WaterfallRotations;
 
 	if (Tiles.IsEmpty()) {
 		for (TArray<FTileStruct>& row : grid->Storage) {
@@ -914,6 +916,8 @@ void UDiplosimSaveGame::LoadWorld(FWorldSaveData WorldData, AActor* Actor, TArra
 	grid->Camera->Stream = WorldData.Stream;
 
 	grid->LavaSpawnLocations = WorldData.LavaSpawnLocations;
+	grid->WaterfallSpawnLocations = WorldData.WaterfallSpawnLocations;
+	grid->WaterfallRotations = WorldData.WaterfallRotations;
 
 	grid->SetMapBounds();
 	grid->InitialiseStorage();

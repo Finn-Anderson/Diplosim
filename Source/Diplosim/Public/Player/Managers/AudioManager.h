@@ -47,6 +47,12 @@ public:
 		class UAudioComponent* AmbientRainAudioComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* AmbientLavaAudioComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+		class UAudioComponent* AmbientWaterfallAudioComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 		class UAudioComponent* MusicAudioComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
@@ -70,6 +76,8 @@ public:
 	void AlterWindPitch(float WindSpeedPerc);
 
 	void ClearAmbientSound();
+
+	void CalculateAmbientVolume(class UAudioComponent* AudioComponent, float Volume, FVector ClosestPoint, bool bIgnoreZ);
 
 	TArray<class USoundBase*> GetResourceSounds(AResource* Resource);
 

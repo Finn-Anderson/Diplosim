@@ -24,6 +24,8 @@ UAudioManager::UAudioManager()
 	components.Add(&AmbientTreesAudioComponent, TEXT("AmbientTreesAudioComponent"));
 	components.Add(&AmbientSeaAudioComponent, TEXT("AmbientSeaAudioComponent"));
 	components.Add(&AmbientRainAudioComponent, TEXT("AmbientRainAudioComponent"));
+	components.Add(&AmbientLavaAudioComponent, TEXT("AmbientLavaAudioComponent"));
+	components.Add(&AmbientWaterfallAudioComponent, TEXT("AmbientWaterfallAudioComponent"));
 	components.Add(&MusicAudioComponent, TEXT("MusicAudioComponent"));
 
 	for (auto element : components) {
@@ -56,6 +58,8 @@ void UAudioManager::SetupAttachment(USceneComponent* SceneComponent)
 	AmbientTreesAudioComponent->SetupAttachment(SceneComponent);
 	AmbientSeaAudioComponent->SetupAttachment(SceneComponent);
 	AmbientRainAudioComponent->SetupAttachment(SceneComponent);
+	AmbientLavaAudioComponent->SetupAttachment(SceneComponent);
+	AmbientWaterfallAudioComponent->SetupAttachment(SceneComponent);
 	MusicAudioComponent->SetupAttachment(SceneComponent);
 }
 
@@ -103,6 +107,16 @@ void UAudioManager::CalculateAmbientEnvironmentSound(bool bForce)
 	if (!AmbientRainAudioComponent->IsActive())
 		AmbientRainAudioComponent->Activate();
 
+	if (!Camera->Grid->bLava) {
+		if (AmbientLavaAudioComponent->IsActive())
+			AmbientLavaAudioComponent->Deactivate();
+	}
+	else if (!AmbientLavaAudioComponent->IsActive())
+		AmbientLavaAudioComponent->Activate();
+
+	if (!AmbientWaterfallAudioComponent->IsActive())
+		AmbientWaterfallAudioComponent->Activate();
+
 	Async(EAsyncExecution::TaskGraph, [this, bForce]() {
 		FScopeTryLock lock(&AmbientLock);
 		if (!lock.IsLocked())
@@ -146,35 +160,39 @@ void UAudioManager::CalculateAmbientEnvironmentSound(bool bForce)
 			}
 		}
 
-		float distance = FMath::Min(1.0f / FMath::Pow(FMath::LogX(300, FVector::Dist(LastTransform.GetLocation(), closestPoint)), 5), 1.0f);
-		AmbientTreesAudioComponent->SetVolumeMultiplier(distance * volume * GetWindSpeedVolume());
+		CalculateAmbientVolume(AmbientTreesAudioComponent, volume * GetWindSpeedVolume(), closestPoint, false);
 
 		// Sea
-		Camera->Grid->SeaComponent->GetClosestPointOnCollision(LastTransform.GetLocation(), closestPoint);
+		closestPoint = FVector(100000000000.0f);
+		for (TArray<FTileStruct>& row : Camera->Grid->Storage) {
+			for (FTileStruct& tile : row) {
+				if (tile.Level != 0)
+					continue;
 
-		FCollisionQueryParams params;
-		params.AddIgnoredComponent(Camera->Grid->SeaComponent);
-		params.AddIgnoredActor(Camera);
+				bool bSeaEdgeTile = tile.AdjacentTiles.Num() < 4;
+				if (!bSeaEdgeTile) {
+					for (auto& element : tile.AdjacentTiles) {
+						if (element.Value->Level > -1)
+							continue;
 
-		if (GetWorld()->LineTraceTestByChannel(closestPoint, closestPoint + FVector(0.0f, 0.0f, Camera->Grid->MaxLevel * 75.0f + 100.0f), ECollisionChannel::ECC_GameTraceChannel1, params)) {
-			closestPoint = FVector(100000000.0f);
-			for (TArray<FTileStruct>& row : Camera->Grid->Storage) {
-				for (FTileStruct& tile : row) {
-					if (!tile.bEdge || tile.Level != 0)
-						continue;
-
-					FTransform t = Camera->Grid->GetTransform(&tile);
-
-					if (FVector::Dist(t.GetLocation(), LastTransform.GetLocation()) > FVector::Dist(closestPoint, LastTransform.GetLocation()))
-						continue;
-
-					closestPoint = t.GetLocation();
+						bSeaEdgeTile = true;
+						break;
+					}
 				}
+
+				if (!bSeaEdgeTile)
+					continue;
+
+				FTransform t = Camera->Grid->GetTransform(&tile);
+
+				if (FVector::Dist(t.GetLocation(), LastTransform.GetLocation()) > FVector::Dist(closestPoint, LastTransform.GetLocation()))
+					continue;
+
+				closestPoint = t.GetLocation();
 			}
 		}
 
-		distance = FMath::Min(1.0f / FMath::Pow(FMath::LogX(300, FVector::Dist(LastTransform.GetLocation(), closestPoint)), 5), 1.0f);
-		AmbientSeaAudioComponent->SetVolumeMultiplier(distance * volume);
+		CalculateAmbientVolume(AmbientSeaAudioComponent, volume, closestPoint, false);
 
 		// Rain
 		closestPoint = FVector(100000000000.0f);
@@ -196,9 +214,37 @@ void UAudioManager::CalculateAmbientEnvironmentSound(bool bForce)
 			}
 		}
 
-		distance = FMath::Min(1.0f / FMath::Pow(FMath::LogX(300, FVector::DistXY(LastTransform.GetLocation(), closestPoint)), 5), 1.0f);
-		AmbientRainAudioComponent->SetVolumeMultiplier(distance * volume);
+		CalculateAmbientVolume(AmbientRainAudioComponent, volume, closestPoint, true);
 
+		// Lava
+		if (!Camera->Grid->bLava)
+			return;
+
+		closestPoint = FVector(100000000000.0f);
+		for (FTileStruct* tile : Camera->Grid->LavaTiles) {
+			FTransform t = Camera->Grid->GetTransform(tile);
+
+			if (FVector::Dist(t.GetLocation(), LastTransform.GetLocation()) > FVector::Dist(closestPoint, LastTransform.GetLocation()))
+				continue;
+
+			closestPoint = t.GetLocation();
+		}
+
+		CalculateAmbientVolume(AmbientLavaAudioComponent, volume, closestPoint, false);
+
+		// Waterfall
+		if (!Camera->Grid->bLava)
+			return;
+
+		closestPoint = FVector(100000000000.0f);
+		for (const FVector& location : Camera->Grid->WaterfallSpawnLocations) {
+			if (FVector::Dist(location, LastTransform.GetLocation()) > FVector::Dist(closestPoint, LastTransform.GetLocation()))
+				continue;
+
+			closestPoint = location;
+		}
+
+		CalculateAmbientVolume(AmbientWaterfallAudioComponent, volume, closestPoint, false);
 	});
 }
 
@@ -221,6 +267,18 @@ void UAudioManager::ClearAmbientSound()
 	AmbientTreesAudioComponent->SetVolumeMultiplier(0.0f);
 	AmbientSeaAudioComponent->SetVolumeMultiplier(0.0f);
 	AmbientRainAudioComponent->SetVolumeMultiplier(0.0f);
+}
+
+void UAudioManager::CalculateAmbientVolume(UAudioComponent* AudioComponent, float Volume, FVector ClosestPoint, bool bIgnoreZ)
+{
+	float d = 100000000.0f;
+	if (bIgnoreZ)
+		d = FVector::DistXY(LastTransform.GetLocation(), ClosestPoint);
+	else
+		d = FVector::Dist(LastTransform.GetLocation(), ClosestPoint);
+
+	float distance = FMath::Min(1.0f / FMath::Pow(FMath::LogX(300, d), 5), 1.0f);
+	AudioComponent->SetVolumeMultiplier(distance * Volume);
 }
 
 TArray<USoundBase*> UAudioManager::GetResourceSounds(AResource* Resource)
